@@ -39,8 +39,8 @@ export default function RulesSection({
   const keyword = externalKeyword ?? internalKeyword;
   const setKeyword = externalOnKeywordChange ?? setInternalKeyword;
 
-  // 每页大小（分页展示固定 4）
-  const pageSize = 4;
+  // 每页大小（分页展示固定 8，两列布局）
+  const pageSize = 8;
   const { data: rules = [] as Rule[] } = useRulePageQuery({
     pageNo: pageNum,
     pageSize,
@@ -101,7 +101,7 @@ export default function RulesSection({
           <button
             type="button"
             onClick={() => setPageNum(pageNum + 1)}
-            disabled={rules.length <= pageSize}
+            disabled={rules.length < pageSize}
             className="join-item btn btn-ghost btn-sm disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -121,7 +121,7 @@ export default function RulesSection({
             <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
             <div className="mt-4 space-y-4">
               {searchBar}
-              <div className="grid gap-4 grid-cols-1">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 {rules.map(rule => (
                   <div
                     key={rule.ruleId}
@@ -159,7 +159,7 @@ export default function RulesSection({
   return (
     <div className="space-y-3">
       {searchBar}
-      <div className="space-y-2 max-h-96 overflow-y-auto">
+      <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
         {rules.map(rule => (
           <div
             key={rule.ruleId}
@@ -173,8 +173,8 @@ export default function RulesSection({
             <p className="text-xs text-base-content/60 line-clamp-2">{rule.ruleDescription}</p>
           </div>
         ))}
-        {/* 添加占位项以保持4个项目的固定高度 */}
-        {Array.from({ length: Math.max(0, 4 - rules.length) }, (_, index) => `compact-placeholder-${rules.length}-${index}`).map(placeholderId => (
+        {/* 添加占位项以保持8个项目的固定高度 */}
+        {Array.from({ length: Math.max(0, 8 - rules.length) }, (_, index) => `compact-placeholder-${rules.length}-${index}`).map(placeholderId => (
           <div
             key={placeholderId}
             className="p-3 rounded-lg bg-transparent border-2 border-dashed border-base-content/10 opacity-30"
