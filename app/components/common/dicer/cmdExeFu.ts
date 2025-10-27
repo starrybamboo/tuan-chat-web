@@ -1,5 +1,5 @@
 import { roll } from "@/components/common/dicer/dice";
-import UNTIL from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils";
 
 import { CommandExecutor, RuleNameSpace } from "./cmd";
 
@@ -92,7 +92,7 @@ const cmdSt = new CommandExecutor(
       for (const prop of showProps) {
         const normalizedKey = prop.toLowerCase();
         const key = PROPERTY_NAMES_MAP[normalizedKey] || prop;
-        const value = UNTIL.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
+        const value = UTILS.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
 
         result.push(`${key}: ${value}`);
       }
@@ -111,7 +111,7 @@ const cmdSt = new CommandExecutor(
       const normalizedKey = rawKey.toLowerCase();
       const key = PROPERTY_NAMES_MAP[normalizedKey] || rawKey;
 
-      const currentValue = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
+      const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;
 
       if (operator === "+") {
@@ -133,7 +133,7 @@ const cmdSt = new CommandExecutor(
       };
 
       // 更新属性
-      UNTIL.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
+      UTILS.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
     }
     // 生成包含变化过程的提示信息
     const changeEntries = Object.entries(abilityChanges)
@@ -166,7 +166,7 @@ const cmdFu = new CommandExecutor(
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
-    const isForceToasted = UNTIL.doesHaveArg(args, "h");
+    const isForceToasted = UTILS.doesHaveArg(args, "h");
 
     // 解析参数
     // 1. 以正负号开头的数字
