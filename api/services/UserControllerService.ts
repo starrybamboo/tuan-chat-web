@@ -81,7 +81,7 @@ export class UserControllerService {
     }
     /**
      * 用户登录
-     * 用户登录接口
+     * 用户登录接口，支持 userId 或 username 进行登录
      * @param requestBody
      * @returns ApiResultString OK
      * @throws ApiError

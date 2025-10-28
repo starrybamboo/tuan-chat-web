@@ -36,5 +36,9 @@ export type UserInfoResponse = {
      * 用户的README
      */
     readMe?: string;
+    /**
+     * 用户邮箱
+     */
+    email?: string;
 };
 
