@@ -8,7 +8,7 @@ import DisplayOfItemDetail from "../displayOfItemsDetail";
 import DisplayOfLocationDetail from "../displayOfLocationDetail";
 import { RoomContext } from "../roomContext";
 
-export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) => void }) {
+export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) => void }) {
   const { spaceId } = use(RoomContext);
   const userRoomQuery = useGetUserRoomsQuery(spaceId ?? -1);
   const rooms = useMemo(

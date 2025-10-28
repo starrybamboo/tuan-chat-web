@@ -18,6 +18,7 @@ interface ContextMenuProps {
   onEditMessage: (messageId: number) => void;
   onToggleBackground: (messageId: number) => void;
   onAddEmoji: (imgMessage: ImageMessage) => void;
+  onAddClue?: (clueInfo: { img: string; name: string; description: string }) => void;
 }
 
 export default function ChatFrameContextMenu({
@@ -35,6 +36,7 @@ export default function ChatFrameContextMenu({
   onEditMessage,
   onToggleBackground,
   onAddEmoji,
+  onAddClue,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
@@ -43,6 +45,7 @@ export default function ChatFrameContextMenu({
     return null;
 
   const message = historyMessages.find(message => message.message.messageId === contextMenu.messageId);
+  const clueMessage = message?.message.extra?.clueMessage;
 
   return (
     <div
@@ -51,6 +54,22 @@ export default function ChatFrameContextMenu({
       onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-40">
+        {clueMessage && (
+          <li>
+            <a onClick={(e) => {
+              e.preventDefault();
+              onAddClue?.({
+                img: clueMessage.img || "",
+                name: clueMessage.name || "未知线索",
+                description: clueMessage.description || "",
+              });
+              onClose();
+            }}
+            >
+              收藏线索
+            </a>
+          </li>
+        )}
         {
           (spaceContext.isSpaceOwner || message?.message.userId === globalContext.userId)
           && (
@@ -118,7 +137,7 @@ export default function ChatFrameContextMenu({
           if (message?.message.userId !== globalContext.userId && !spaceContext.isSpaceOwner) {
             return null;
           }
-          if (!message || message.message.messageType !== 2) {
+          if (!message || (message.message.messageType !== 2 && message.message.messageType !== 1000)) {
             return (
               <li>
                 <a

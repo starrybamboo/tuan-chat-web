@@ -25,5 +25,6 @@ export type RoleAbility = {
      * 技能字段，不能为空或null，必须为单层
      */
     skill?: Record<string, string>;
+    record?: Record<string, string>;
 };
 

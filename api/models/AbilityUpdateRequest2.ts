@@ -24,5 +24,9 @@ export type AbilityUpdateRequest2 = {
      * 技能字段，不能为null，必须为单层
      */
     skill?: Record<string, string>;
+    /**
+     * 记录字段，不能为null，必须为单层
+     */
+    record?: Record<string, string>;
 };
 

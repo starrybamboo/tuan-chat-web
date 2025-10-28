@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SpaceClueCreateRequest = {
-    spaceId: number;
+    clueStarsId: number;
     name?: string;
     image?: string;
     description?: string;
     note?: string;
-    type?: string;
 };
 

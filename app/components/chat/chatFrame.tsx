@@ -14,6 +14,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
+import { useAddCluesMutation } from "api/hooks/spaceClueHooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
@@ -66,6 +67,7 @@ export default function ChatFrame(props: {
     updateMessageMutation.mutate(message);
     roomContext.chatHistory?.addOrUpdateMessage({ message });
   }, [updateMessageMutation, roomContext.chatHistory]);
+  const addCluesMutation = useAddCluesMutation();
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -73,6 +75,35 @@ export default function ChatFrame(props: {
 
   // 新增表情
   const createEmojiMutation = useCreateEmojiMutation();
+
+  // 收藏线索
+  const handleAddClue = useCallback(async (clueInfo: { img: string; name: string; description: string }) => {
+    if (!spaceContext.spaceId) {
+      toast.error("无法获取空间信息");
+      return;
+    }
+
+    try {
+      const request = [
+        {
+          spaceId: spaceContext.spaceId,
+          name: clueInfo.name,
+          description: clueInfo.description,
+          image: clueInfo.img,
+          note: "从聊天消息收藏",
+          type: "OTHER" as const,
+        },
+      ];
+
+      await addCluesMutation.mutateAsync(request);
+      toast.success("线索收藏成功");
+    }
+    catch (error) {
+      toast.error("收藏线索失败");
+      console.error("收藏线索失败:", error);
+    }
+  }, [spaceContext.spaceId, addCluesMutation]);
+
   /**
    * 获取历史消息
    * 分页获取消息
@@ -634,7 +665,7 @@ export default function ChatFrame(props: {
       >
         {selectedMessageIds.size > 0 && (
           <div
-            className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-5 flex justify-between items-center rounded"
+            className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-15 flex justify-between items-center rounded"
           >
             <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
             <div className="gap-x-4 flex">
@@ -735,6 +766,7 @@ export default function ChatFrame(props: {
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
         onAddEmoji={handleAddEmoji}
+        onAddClue={handleAddClue}
       />
     </div>
   );
