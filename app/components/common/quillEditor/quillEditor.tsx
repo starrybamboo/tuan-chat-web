@@ -385,7 +385,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         return found?.entityInfo?.tips;
       }
       else {
-        return found?.entityInfo?.act?.背景故事;
+        return found?.entityInfo?.act?.kp;
       }
     };
     const onOver = (e: MouseEvent) => {
