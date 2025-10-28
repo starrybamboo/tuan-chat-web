@@ -14,6 +14,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
+import { useAddCluesMutation } from "api/hooks/spaceClueHooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
@@ -66,6 +67,7 @@ export default function ChatFrame(props: {
     updateMessageMutation.mutate(message);
     roomContext.chatHistory?.addOrUpdateMessage({ message });
   }, [updateMessageMutation, roomContext.chatHistory]);
+  const addCluesMutation = useAddCluesMutation();
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -736,6 +738,7 @@ export default function ChatFrame(props: {
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
         onAddEmoji={handleAddEmoji}
+        onAddClue={handleAddClue}
       />
     </div>
   );

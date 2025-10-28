@@ -38,6 +38,7 @@ export default function ChatFrameContextMenu({
   onEditMessage,
   onToggleBackground,
   onAddEmoji,
+  onAddClue,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
