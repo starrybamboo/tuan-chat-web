@@ -40,12 +40,18 @@ export default function FunctionButtons() {
       commit({
         stageId: stageId as number,
         message: "无提交说明",
+      }, {
+        onSuccess: () => { toast.success("提交成功"); },
+        onError: () => { toast.error("提交失败，请稍后重试"); },
       });
     }
     else {
       commit({
         stageId: stageId as number,
         message,
+      }, {
+        onSuccess: () => { toast.success("提交成功"); },
+        onError: () => { toast.error("提交失败，请稍后重试"); },
       });
     }
     setIsCommitOpen(false);
