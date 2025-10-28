@@ -40,7 +40,7 @@ export default function ModuleForm({ register, errors }: {
           placeholder=""
           {...register("description", {
             required: "模组描述是必填项",
-            maxLength: { value: 50, message: "模组描述不能超过50个字符" },
+            maxLength: { value: 255, message: "模组描述不能超过255个字符" },
           })}
         />
         <p className="label text-sm text-error">{errors.description?.message}</p>
