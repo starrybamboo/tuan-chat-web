@@ -331,6 +331,8 @@ export function useUpdateEntityMutation(stageId: number) {
         onSuccess: (_data,variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId], refetchType: 'all' });
             queryClient.invalidateQueries({ queryKey: ['roleAvatar', variables.id] });
+            queryClient.invalidateQueries({ queryKey: ['item-detail', variables.id] });
+            queryClient.invalidateQueries({ queryKey: ['location-detail', variables.id] });
         }
     })
 }

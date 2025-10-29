@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import type { ClueStarsCreateRequest } from "api/models/ClueStarsCreateRequest";
 import type { SpaceClueCreateRequest } from "api/models/SpaceClueCreateRequest";
+import type { SpaceClueUpdateRequest } from "api/models/SpaceClueUpdateRequest";
 
 /**
  * 获取用户空间所有文件夹
@@ -80,6 +81,21 @@ export function useDeleteClueStarsMutation(spaceId: number) {
         mutationKey: ['addClues'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getMyClueStarsBySpace', spaceId] });
+        }
+    });
+}
+
+/**
+ * 更新线索
+ */
+export function useUpdateClueMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: Array<SpaceClueUpdateRequest>) => tuanchat.spaceClue.updateClue(req),
+        mutationKey: ['updateClue'],
+        onSuccess: (_, variables) => {
+            const clueStarsId = variables[0].clueStarsId;
+            queryClient.invalidateQueries({ queryKey: ['getCluesByClueStars', clueStarsId] });
         }
     });
 }

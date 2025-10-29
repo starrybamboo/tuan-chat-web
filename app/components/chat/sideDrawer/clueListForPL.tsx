@@ -49,6 +49,11 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     toast("发送成功");
   };
 
+  const handleClueUpdate = () => {
+    getCluesByClueStarsQuery.refetch();
+    toast.success("线索更新成功");
+  };
+
   // 添加线索表单状态
   const [showAddClue, setShowAddClue] = useState(false);
   const [showFolderManager, setShowFolderManager] = useState(false);
@@ -62,7 +67,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     clueStarsId: selectedFolderId,
   });
 
-  // 修改：使用单个状态管理展开的线索夹，模仿第二个组件的实现
   const [openFolderId, setOpenFolderId] = useState<number | null>(null);
 
   const toggleFolder = (folderId: number) => {
@@ -73,10 +77,12 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
   // 处理查看线索详情
   const handleViewClue = (clue: any) => {
     setSelectedManualClue({
+      id: clue.id,
       name: clue.name,
       description: clue.description,
       image: clue.image,
       note: clue.note,
+      clueStarsId: clue.clueStarsId,
     });
   };
 
@@ -118,6 +124,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
         note: "",
         clueStarsId: selectedFolderId,
       });
+      getCluesByClueStarsQuery.refetch();
     }
     catch {
       toast.error("添加线索失败");
@@ -132,6 +139,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       await deleteCluesMutation.mutateAsync([clueToDelete.id]);
       toast.success("删除线索成功");
       setClueToDelete(null);
+      getCluesByClueStarsQuery.refetch();
     }
     catch {
       toast.error("删除线索失败");
@@ -168,6 +176,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       toast.success("线索夹创建成功");
       setNewFolderName("");
       setShowFolderManager(false);
+      getMyClueStarsBySpaceQuery.refetch();
     }
     catch {
       toast.error("创建线索夹失败");
@@ -183,6 +192,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       await deleteClueStarsMutation.mutateAsync([folderToDelete.id]);
       toast.success("线索夹删除成功");
       setFolderToDelete(null);
+      getMyClueStarsBySpaceQuery.refetch();
     }
     catch {
       toast.error("删除线索夹失败");
@@ -216,17 +226,11 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     if (!selectedManualClue)
       return null;
 
-    const manualData = {
-      name: selectedManualClue.name,
-      description: selectedManualClue.description,
-      image: selectedManualClue.image,
-      note: selectedManualClue.note,
-    };
-
     return (
       <DisplayOfItemDetail
-        manualData={manualData}
+        manualData={selectedManualClue}
         onSend={handleSend}
+        onUpdate={handleClueUpdate}
       />
     );
   };
@@ -322,9 +326,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                         {folder.name}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="badge badge-sm badge-primary badge-outline">
-                          {folderClues.length}
-                        </span>
                         <svg
                           className={`h-4 w-4 transform transition-transform flex-shrink-0 ${openFolderId === folder.id ? "rotate-180" : ""}`}
                           fill="none"
