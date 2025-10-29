@@ -1,8 +1,10 @@
 import type { ExportOptions } from "@/utils/exportChatMessages";
 import { RoomContext } from "@/components/chat/roomContext";
 import { exportChatMessages } from "@/utils/exportChatMessages";
+import { useQueryClient } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { tuanchat } from "../../../../api/instance";
 import { useGetRolesQueries } from "../../../../api/queryHooks";
 
 /**
@@ -14,15 +16,12 @@ export default function ExportChatDrawer() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     includeTimestamp: true,
-    includeUserId: true,
+    includeUsername: true,
     dateFormat: "full",
   });
 
   // 获取历史消息
   const historyMessages = useMemo(() => roomContext.chatHistory?.messages ?? [], [roomContext.chatHistory?.messages]);
-
-  // 使用房间ID作为文件名
-  const roomName = `房间${roomContext.roomId}`;
 
   // 获取所有角色信息用于导出
   const getRolesQueries = useGetRolesQueries(
@@ -41,6 +40,8 @@ export default function ExportChatDrawer() {
     return map;
   }, [getRolesQueries]);
 
+  const queryClient = useQueryClient();
+
   const handleExport = async () => {
     try {
       setIsExporting(true);
@@ -50,7 +51,80 @@ export default function ExportChatDrawer() {
         return;
       }
 
-      exportChatMessages(historyMessages, roleMap, roomName, exportOptions);
+      // 获取空间和房间的名称
+      let spaceName = `空间${roomContext.spaceId}`;
+      let roomName = `房间${roomContext.roomId}`;
+
+      // 获取空间信息
+      if (roomContext.spaceId) {
+        const spaceInfo = await queryClient.fetchQuery({
+          queryKey: ["getSpaceInfo", roomContext.spaceId],
+          queryFn: () => tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0),
+          staleTime: 5 * 60 * 1000, // 5分钟缓存
+        });
+        if (spaceInfo.data?.spaceId && spaceInfo.data?.name) {
+          spaceName = spaceInfo.data.name;
+        }
+      }
+
+      // 获取房间信息
+      if (roomContext.roomId) {
+        const roomInfo = await queryClient.fetchQuery({
+          queryKey: ["getRoomInfo", roomContext.roomId],
+          queryFn: () => tuanchat.roomController.getRoomInfo(roomContext.roomId ?? 0),
+          staleTime: 5 * 60 * 1000, // 5分钟缓存
+        });
+        if (roomInfo.data?.roomId && roomInfo.data?.name) {
+          roomName = roomInfo.data.name;
+        }
+      }
+
+      // 生成完整的文件名：空间名_房间名
+      const fileName = `${spaceName}_${roomName}`;
+
+      // 构建角色映射 - 从缓存或API中获取所有出现的角色信息
+      const allRoleMap = new Map<number, string>(roleMap);
+      const roleIds = new Set<number>();
+      historyMessages.forEach((msg) => {
+        roleIds.add(msg.message.roleId);
+      });
+
+      // 获取所有角色的信息
+      for (const roleId of roleIds) {
+        // 如果已经在map中，跳过
+        if (allRoleMap.has(roleId)) {
+          continue;
+        }
+        const roleInfo = await queryClient.fetchQuery({
+          queryKey: ["getRole", roleId],
+          queryFn: () => tuanchat.roleController.getRole(roleId),
+          staleTime: 5 * 60 * 1000, // 5分钟缓存
+        });
+        if (roleInfo.data?.roleId && roleInfo.data?.roleName) {
+          allRoleMap.set(roleInfo.data.roleId, roleInfo.data.roleName);
+        }
+      }
+
+      // 构建用户映射 - 从缓存或API中获取用户信息
+      const userMap = new Map<number, string>();
+      const userIds = new Set<number>();
+      historyMessages.forEach((msg) => {
+        userIds.add(msg.message.userId);
+      });
+
+      // 获取所有用户的信息
+      for (const userId of userIds) {
+        const userInfo = await queryClient.fetchQuery({
+          queryKey: ["getUserInfo", userId],
+          queryFn: () => tuanchat.userController.getUserInfo(userId),
+          staleTime: 5 * 60 * 1000, // 5分钟缓存
+        });
+        if (userInfo.data?.userId && userInfo.data?.username) {
+          userMap.set(userInfo.data.userId, userInfo.data.username);
+        }
+      }
+
+      exportChatMessages(historyMessages, allRoleMap, userMap, fileName, exportOptions);
       toast.success("导出成功!");
     }
     catch (error) {
@@ -106,15 +180,15 @@ export default function ExportChatDrawer() {
           <span className="label-text">包含时间戳</span>
         </label>
 
-        {/* 用户ID选项 */}
+        {/* 用户名选项 */}
         <label className="label cursor-pointer justify-start gap-3">
           <input
             type="checkbox"
             className="checkbox checkbox-sm"
-            checked={exportOptions.includeUserId}
-            onChange={() => toggleOption("includeUserId")}
+            checked={exportOptions.includeUsername}
+            onChange={() => toggleOption("includeUsername")}
           />
-          <span className="label-text">包含用户ID</span>
+          <span className="label-text">包含用户名</span>
         </label>
 
         {/* 日期格式选项 */}

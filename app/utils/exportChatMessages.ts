@@ -5,26 +5,28 @@ import type { ChatMessageResponse } from "../../api";
  */
 export type ExportOptions = {
   includeTimestamp?: boolean; // 是否包含时间戳
-  includeUserId?: boolean; // 是否包含用户ID
+  includeUsername?: boolean; // 是否包含用户名
   dateFormat?: "full" | "short"; // 日期格式：完整或简短
 };
 
 /**
  * 将聊天记录导出为文本格式
- * 格式参考：用户名(用户ID) YYYY/MM/DD HH:mm:ss\n消息内容
+ * 格式参考：角色名(用户名) YYYY/MM/DD HH:mm:ss\n消息内容
  * @param messages 聊天消息列表
  * @param roleMap 角色信息映射 (roleId -> roleName)
+ * @param userMap 用户信息映射 (userId -> username)
  * @param options 导出选项
  * @returns 格式化的文本内容
  */
 export function formatChatMessages(
   messages: ChatMessageResponse[],
   roleMap: Map<number, string> = new Map(),
+  userMap: Map<number, string> = new Map(),
   options: ExportOptions = {},
 ): string {
   const {
     includeTimestamp = true,
-    includeUserId = true,
+    includeUsername = true,
     dateFormat = "full",
   } = options;
 
@@ -34,6 +36,7 @@ export function formatChatMessages(
       const roleId = message.roleId;
       const roleName = roleMap.get(roleId) || `角色${roleId}`;
       const userId = message.userId;
+      const username = userMap.get(userId) || `用户${userId}`;
 
       // 构建消息头（用户名和时间）
       let header = "";
@@ -48,14 +51,14 @@ export function formatChatMessages(
         const seconds = String(date.getSeconds()).padStart(2, "0");
 
         if (dateFormat === "full") {
-          header = `${roleName}${includeUserId ? `(${userId})` : ""} ${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+          header = `${roleName}${includeUsername ? `(${username})` : ""} ${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
         }
         else {
-          header = `${roleName}${includeUserId ? `(${userId})` : ""} ${hours}:${minutes}:${seconds}`;
+          header = `${roleName}${includeUsername ? `(${username})` : ""} ${hours}:${minutes}:${seconds}`;
         }
       }
       else {
-        header = `${roleName}${includeUserId ? `(${userId})` : ""}`;
+        header = `${roleName}${includeUsername ? `(${username})` : ""}`;
       }
 
       // 获取消息内容
@@ -117,12 +120,14 @@ export function downloadTextFile(content: string, filename: string): void {
  * 导出聊天记录
  * @param messages 聊天消息列表
  * @param roleMap 角色信息映射
+ * @param userMap 用户信息映射
  * @param roomName 房间名称（用于生成文件名）
  * @param options 导出选项
  */
 export function exportChatMessages(
   messages: ChatMessageResponse[],
   roleMap: Map<number, string> = new Map(),
+  userMap: Map<number, string> = new Map(),
   roomName: string = "聊天记录",
   options: ExportOptions = {},
 ): void {
@@ -132,7 +137,7 @@ export function exportChatMessages(
   }
 
   // 格式化消息
-  const content = formatChatMessages(messages, roleMap, options);
+  const content = formatChatMessages(messages, roleMap, userMap, options);
 
   // 生成文件名（包含日期）
   const date = new Date();
