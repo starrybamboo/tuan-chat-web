@@ -32,28 +32,30 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
   };
 
   return (
-    <div>
-      <div className="relative group">
-        <img
-          ref={imgRef}
-          src={imgSrc}
-          width={size?.width}
-          height={size?.height}
-          className={`hover:scale-101 ${className} cursor-zoom-in object-contain`}
-          alt="img"
-          onClick={() => openToastWindow()}
-        />
+    <div className="relative group">
+      <img
+        ref={imgRef}
+        src={imgSrc}
+        height={size?.height}
+        width={size?.width}
+        className={`hover:scale-101 ${className} cursor-zoom-in object-contain`}
+        style={{
+          width: size?.width ? `${size.width}px` : undefined,
+          // height: size?.height ? `${size.height}px` : undefined,
+        }}
+        alt="img"
+        onClick={() => openToastWindow()}
+      />
 
-        {onClose && (
-          <button
-            type="button"
-            className="btn btn-xs btn-circle right-0 top-0 absolute opacity-100 duration-200 origin-top-right"
-            onClick={onClose}
-          >
-            <span className="text-xs">✕</span>
-          </button>
-        )}
-      </div>
+      {onClose && (
+        <button
+          type="button"
+          className="btn btn-xs btn-circle right-0 top-0 absolute opacity-100 duration-200 origin-top-right"
+          onClick={onClose}
+        >
+          <span className="text-xs">✕</span>
+        </button>
+      )}
     </div>
   );
 }
