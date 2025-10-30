@@ -438,7 +438,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                                           </svg>
                                         </div>
                                       )}
-                                  <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 max-w-28 truncate">
+                                  <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 max-w-24 truncate">
                                     {clue.name}
                                   </span>
                                 </div>
