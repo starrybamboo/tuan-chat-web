@@ -10,6 +10,7 @@ import {
   useDeleteClueStarsMutation,
   useGetCluesByClueStarsQuery,
   useGetMyClueStarsBySpaceQuery,
+  useUpdateClueStarsMutation,
 } from "api/hooks/spaceClueHooks";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -36,12 +37,17 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
   const deleteCluesMutation = useDeleteCluesMutation();
   // 创建线索夹
   const createClueStarsBatchMutation = useCreateClueStarsBatchMutation(spaceId ?? -1);
-  // 删除文件夹
+  // 删除线索夹
   const deleteClueStarsMutation = useDeleteClueStarsMutation(spaceId ?? -1);
+  // 更新线索夹
+  const updateClueStarsMutation = useUpdateClueStarsMutation(spaceId ?? -1);
 
   const [selectedManualClue, setSelectedManualClue] = useState<any>(null);
   const [clueToDelete, setClueToDelete] = useState<{ id: number; name: string } | null>(null);
   const [folderToDelete, setFolderToDelete] = useState<{ id: number; name: string } | null>(null);
+
+  const [editingFolder, setEditingFolder] = useState<{ id: number; name: string } | null>(null);
+  const [editFolderName, setEditFolderName] = useState("");
 
   const handleSend = (clue: ClueMessage) => {
     onSend(clue);
@@ -72,6 +78,53 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
   const toggleFolder = (folderId: number) => {
     setOpenFolderId(prev => (prev === folderId ? null : folderId));
     setSelectedFolderId(prev => (prev === folderId ? -1 : folderId));
+  };
+
+  // 编辑线索夹名称函数
+  const handleStartEditFolder = (folderId: number, folderName: string) => {
+    setEditingFolder({ id: folderId, name: folderName });
+    setEditFolderName(folderName);
+  };
+
+  const handleCancelEditFolder = () => {
+    setEditingFolder(null);
+    setEditFolderName("");
+  };
+
+  const handleSaveFolderName = async () => {
+    if (!editingFolder || !editFolderName.trim()) {
+      toast.error("请输入有效的线索夹名称");
+      return;
+    }
+
+    if (editFolderName === editingFolder.name) {
+      setEditingFolder(null);
+      setEditFolderName("");
+      return;
+    }
+
+    // 检查名称是否重复
+    if (clueFolders.some(folder => folder.name === editFolderName && folder.id !== editingFolder.id)) {
+      toast.error("该名称的线索夹已存在");
+      return;
+    }
+
+    try {
+      const request = {
+        id: editingFolder.id,
+        name: editFolderName,
+      };
+
+      await updateClueStarsMutation.mutateAsync(request);
+
+      toast.success("线索夹名称修改成功");
+      setEditingFolder(null);
+      setEditFolderName("");
+      getMyClueStarsBySpaceQuery.refetch();
+    }
+    catch {
+      toast.error("修改线索夹名称失败");
+    }
   };
 
   // 处理查看线索详情
@@ -599,25 +652,76 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                   key={folder.id}
                   className="flex items-center justify-between p-3 bg-white dark:bg-neutral-700 rounded-lg border border-neutral-200 dark:border-neutral-600"
                 >
-                  <div className="flex items-center gap-3 flex-1">
-                    <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    <div className="flex-1">
-                      <div className="font-semibold text-blue-600 dark:text-blue-400">
-                        {folder.name}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openDeleteFolderConfirm(folder.id!, folder.name ?? "")}
-                      className="btn btn-ghost btn-xs text-error hover:bg-error hover:text-error-content"
-                    >
-                      删除
-                    </button>
-                  </div>
+                  {editingFolder?.id === folder.id
+                    ? (
+                  // 编辑模式
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="text"
+                            value={editFolderName}
+                            onChange={e => setEditFolderName(e.target.value)}
+                            className="flex-1 px-2 py-1 border border-blue-300 rounded bg-white dark:bg-neutral-600 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleSaveFolderName();
+                              }
+                              else if (e.key === "Escape") {
+                                handleCancelEditFolder();
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={handleSaveFolderName}
+                              className="btn btn-xs btn-success"
+                              disabled={updateClueStarsMutation.isPending}
+                            >
+                              {updateClueStarsMutation.isPending ? "保存中..." : "保存"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditFolder}
+                              className="btn btn-xs btn-ghost"
+                            >
+                              取消
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    : (
+                  // 查看模式
+                        <>
+                          <div className="flex items-center gap-3 flex-1">
+                            <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                            <div className="flex-1">
+                              <div className="font-semibold text-blue-600 dark:text-blue-400">
+                                {folder.name}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditFolder(folder.id!, folder.name ?? "")}
+                              className="btn btn-ghost btn-xs text-info hover:bg-info hover:text-info-content"
+                              title="编辑名称"
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openDeleteFolderConfirm(folder.id!, folder.name ?? "")}
+                              className="btn btn-ghost btn-xs text-error hover:bg-error hover:text-error-content"
+                            >
+                              删除
+                            </button>
+                          </div>
+                        </>
+                      )}
                 </div>
               ))}
             </div>

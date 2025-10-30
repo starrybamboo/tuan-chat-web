@@ -34,6 +34,7 @@ interface DisplayOfLocationDetailProps {
   onUpdate?: () => void;
   stageId?: number;
   entityType?: number;
+  roomId?: number;
 }
 
 function DisplayOfLocationDetail({
@@ -43,6 +44,7 @@ function DisplayOfLocationDetail({
   onUpdate,
   stageId = -1,
   entityType = 4,
+  roomId,
 }: DisplayOfLocationDetailProps) {
   // 如果提供了 manualData，则使用手动数据，否则通过 locationId 获取数据
   const { data, isLoading, isError } = useLocationDetailQuery(
@@ -91,7 +93,7 @@ function DisplayOfLocationDetail({
   }, [manualData, data]);
 
   // 更新实体的 mutation（用于非 manualData 情况）
-  const updateEntityMutation = useUpdateEntityMutation(stageId);
+  const updateEntityMutation = useUpdateEntityMutation(stageId, roomId ?? -1);
 
   let location: StageEntityResponse | undefined;
   let entityInfo: EntityInfo | undefined;

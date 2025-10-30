@@ -33,8 +33,9 @@ interface DisplayOfItemDetailProps {
   manualData?: ManualData;
   onSend: (clue: ClueMessage) => void;
   onUpdate?: () => void;
-  stageId?: number; // 新增：用于实体更新
-  entityType?: number; // 新增：实体类型
+  stageId?: number;
+  entityType?: number;
+  roomId?: number;
 }
 
 function DisplayOfItemDetail({
@@ -44,6 +45,7 @@ function DisplayOfItemDetail({
   onUpdate,
   stageId = -1,
   entityType = 1,
+  roomId,
 }: DisplayOfItemDetailProps) {
   // 如果提供了 manualData，则使用手动数据，否则通过 itemId 获取数据
   const { data, isLoading, isError } = useModuleItemDetailQuery(
@@ -94,7 +96,7 @@ function DisplayOfItemDetail({
   // 更新线索的 mutation（用于 manualData 情况）
   const updateClueMutation = useUpdateClueMutation();
   // 更新实体的 mutation（用于非 manualData 情况）
-  const updateEntityMutation = useUpdateEntityMutation(stageId);
+  const updateEntityMutation = useUpdateEntityMutation(stageId, roomId ?? -1);
 
   let item: StageEntityResponse | undefined;
   let entityInfo: EntityInfo | undefined;

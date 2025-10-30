@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import type { ClueStarsCreateRequest } from "api/models/ClueStarsCreateRequest";
+import type { ClueStarsUpdateRequest } from "api/models/ClueStarsUpdateRequest";
 import type { SpaceClueCreateRequest } from "api/models/SpaceClueCreateRequest";
 import type { SpaceClueUpdateRequest } from "api/models/SpaceClueUpdateRequest";
 
@@ -64,7 +65,7 @@ export function useCreateClueStarsBatchMutation(spaceId: number) {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: Array<ClueStarsCreateRequest>) => tuanchat.spaceClue.createClueStarsBatch(req),
-        mutationKey: ['addClues'],
+        mutationKey: ['createClueStarsBatch'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getMyClueStarsBySpace', spaceId] });
         }
@@ -78,7 +79,7 @@ export function useDeleteClueStarsMutation(spaceId: number) {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (ids: Array<number>) => tuanchat.spaceClue.deleteClueStars(ids),
-        mutationKey: ['addClues'],
+        mutationKey: ['deleteClueStars'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getMyClueStarsBySpace', spaceId] });
         }
@@ -96,6 +97,20 @@ export function useUpdateClueMutation() {
         onSuccess: (_, variables) => {
             const clueStarsId = variables[0].clueStarsId;
             queryClient.invalidateQueries({ queryKey: ['getCluesByClueStars', clueStarsId] });
+        }
+    });
+}
+
+/**
+ * 更新线索夹
+ */
+export function useUpdateClueStarsMutation(spaceId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: ClueStarsUpdateRequest) => tuanchat.spaceClue.updateClueStars(req),
+        mutationKey: ['updateClueStars'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['getMyClueStarsBySpace', spaceId] });
         }
     });
 }
