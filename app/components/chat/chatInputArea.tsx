@@ -183,6 +183,15 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   };
 
   /**
+   * [事件] 处理输入。这是连接 DOM 和 React 状态的核心桥梁。
+   */
+  const handleInputInternal = () => {
+    // 解析内容并将纯文本和提及列表发送给父组件
+    const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
+    props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
+  };
+
+  /**
    * [事件] 处理粘贴
    */
   const handlePasteInternal = async (e: React.ClipboardEvent<HTMLDivElement>) => {
@@ -200,20 +209,23 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
           files.push(file);
         }
       }
+      else {
+        e.preventDefault(); // 阻止默认粘贴行为
+        const plainText = e.clipboardData.getData("text/plain");
+
+        // 插入纯文本到当前光标位置
+        insertNodeAtCursorInternal(document.createTextNode(plainText), {
+          replaceSelection: true,
+          moveCursorToEnd: true,
+        });
+        // 手动触发同步更新状态
+        handleInputInternal();
+      }
     }
     if (files.length > 0) {
       props.onPasteFiles(files); // 将文件回调给父组件
     }
     // 纯文本粘贴将自动继续
-  };
-
-  /**
-   * [事件] 处理输入。这是连接 DOM 和 React 状态的核心桥梁。
-   */
-  const handleInputInternal = () => {
-    // 解析内容并将纯文本和提及列表发送给父组件
-    const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
-    props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
   };
 
   // --- 暴露 Ref API ---
