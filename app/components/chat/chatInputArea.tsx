@@ -195,37 +195,39 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
    * [事件] 处理粘贴
    */
   const handlePasteInternal = async (e: React.ClipboardEvent<HTMLDivElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items)
+    const items = Array.from(e.clipboardData?.items || []);
+    if (items.length === 0)
       return;
 
-    const files: File[] = [];
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        e.preventDefault(); // 阻止默认的粘贴行为
+    // 优先检查是否含图片：如果有图片，则只处理图片（并阻止默认），避免文本/HTML 同时被插入多次
+    const imageItems = items.filter(i => i.type.startsWith("image/"));
+    if (imageItems.length > 0) {
+      e.preventDefault();
+      const files: File[] = [];
+      for (const item of imageItems) {
         const blob = item.getAsFile();
         if (blob) {
           const file = new File([blob], `pasted-image-${Date.now()}`, { type: blob.type });
           files.push(file);
         }
       }
-      else {
-        e.preventDefault(); // 阻止默认粘贴行为
-        const plainText = e.clipboardData.getData("text/plain");
+      if (files.length > 0)
+        props.onPasteFiles(files);
+      return;
+    }
 
-        // 插入纯文本到当前光标位置
-        insertNodeAtCursorInternal(document.createTextNode(plainText), {
-          replaceSelection: true,
-          moveCursorToEnd: true,
-        });
-        // 手动触发同步更新状态
-        handleInputInternal();
-      }
+    // 否则只处理纯文本（只插入一次），避免当 clipboard 同时包含 text/html 和 text/plain 时重复插入
+    const plainText = e.clipboardData.getData("text/plain");
+    if (plainText) {
+      e.preventDefault();
+      insertNodeAtCursorInternal(document.createTextNode(plainText), {
+        replaceSelection: true,
+        moveCursorToEnd: true,
+      });
+      // 手动触发同步更新状态
+      handleInputInternal();
     }
-    if (files.length > 0) {
-      props.onPasteFiles(files); // 将文件回调给父组件
-    }
-    // 纯文本粘贴将自动继续
+    // 如果既没有图片也没有纯文本，允许默认行为（例如复杂 HTML 由浏览器处理）
   };
 
   // --- 暴露 Ref API ---
