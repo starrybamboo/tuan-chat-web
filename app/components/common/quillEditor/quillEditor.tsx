@@ -2077,14 +2077,51 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
             return; // 无法解析纯文本，交由默认流程
           }
 
-          // 规范化换行，去除尾部空白以提高命中率
-          const normalized = text.replace(/\r\n/g, "\n").replace(/[\u00A0\u2007\u3000]/g, " ").replace(/[\t ]+$/gm, "").trim();
+          // 规范化换行，去除尾部行末空白，但保留行首的 tab（用于 Markdown 代码块等语义）
+          // 注意：不要使用 trim()，它会移除开头的 tab，从而破坏缩进/代码块检测。
+          const normalized = text.replace(/\r\n/g, "\n").replace(/[\u00A0\u2007\u3000]/g, " ").replace(/[ \t]+$/gm, "");
+
+          // 如果文本包含 tab 并且不是被判断为 Markdown，我们认为用户希望在富文本中保留可见的缩进。
+          // HTML 中常规文本会折叠空白，所以在此将 tab 转为若干个不间断空格以保留视觉缩进。
+          if (normalized.includes("\t") && !isLikelyMarkdown(normalized)) {
+            try {
+              const selection = lastRangeRef.current;
+              let insertIndex = selection && typeof selection.index === "number" ? selection.index : (editor.getLength?.() ?? 0);
+              if (selection && typeof selection.index === "number" && selection.length && selection.length > 0) {
+                try {
+                  editor.deleteText(selection.index, selection.length, "user");
+                  insertIndex = selection.index;
+                  editor.setSelection(selection.index, 0, "silent");
+                }
+                catch { /* ignore delete errors */ }
+              }
+              e.preventDefault();
+              // 将每个 tab 转为 4 个不间断空格，确保在 HTML 渲染中保留
+              const replaced = normalized.replace(/\t/g, "\u00A0\u00A0\u00A0\u00A0");
+              // 使用 insertText 插入（避免直接 dangerouslyPasteHTML）
+              editor.insertText?.(insertIndex, replaced, "user");
+              try {
+                editor.setSelection(insertIndex + replaced.length, 0, "silent");
+              }
+              catch {
+                /* ignore */
+              }
+              scheduleSerialize();
+              return;
+            }
+            catch {
+              // fallback to default if anything fails
+            }
+          }
+
+          // 如果看起来像 Markdown，则把 tab 转为 4 个空格再进行 Markdown -> HTML 的转换
           if (!isLikelyMarkdown(normalized)) {
             return; // 交由默认流程处理
           }
 
           e.preventDefault();
-          const html = markdownToHtmlWithEntities(normalized, entitiesRef.current);
+          const mdForConvert = normalized.replace(/\t/g, "    ");
+          const html = markdownToHtmlWithEntities(mdForConvert, entitiesRef.current);
           const selection = lastRangeRef.current;
           let insertIndex = selection && typeof selection.index === "number"
             ? selection.index
