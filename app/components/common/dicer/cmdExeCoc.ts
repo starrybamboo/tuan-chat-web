@@ -16,7 +16,7 @@ const ABILITY_MAP: { [key: string]: string } = {
   san: "san值",
   luck: "幸运",
   mp: "魔法",
-  hp: "体力",
+  体力: "hp",
   cm: "克苏鲁神话",
   克苏鲁: "克苏鲁神话",
   计算机: "计算机使用",

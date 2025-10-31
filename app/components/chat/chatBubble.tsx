@@ -98,7 +98,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
           <BetterImg
             src={imgMsg?.url || message.extra?.fileMessage?.url}
             size={{ width: imgMsg?.width, height: imgMsg?.height }}
-            className="max-h-[40vh] w-max "
+            className="max-h-[40vh] w-max"
           />
           {imgMsg?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
         </div>

@@ -22,17 +22,29 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = "取消",
   variant = "danger",
 }) => {
-  const getButtonClass = () => {
-    switch (variant) {
-      case "warning":
-        return "btn-warning";
-      case "info":
-        return "btn-primary";
-      case "danger":
-      default:
-        return "btn-error";
-    }
+  // 定义颜色配置
+  const colorConfig = {
+    danger: {
+      bg: "bg-rose-700/70",
+      hover: "hover:bg-rose-800/70",
+      border: "border-rose-700/70",
+      focus: "focus:ring-rose-600/70",
+    },
+    warning: {
+      bg: "bg-amber-700/70",
+      hover: "hover:bg-amber-800/70",
+      border: "border-amber-700/70",
+      focus: "focus:ring-amber-600/70",
+    },
+    info: {
+      bg: "bg-slate-700/70",
+      hover: "hover:bg-slate-800/70",
+      border: "border-slate-700/70",
+      focus: "focus:ring-slate-600/70",
+    },
   };
+
+  const colors = colorConfig[variant];
 
   return (
     <PopWindow isOpen={isOpen} onClose={onClose}>
@@ -65,14 +77,14 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="flex gap-3 justify-center">
           <button
             type="button"
-            className="btn btn-outline btn-sm flex-1 transition-all duration-200 hover:scale-[1.02]"
+            className="btn flex-1 px-4 py-2 text-sm font-medium text-slate-900 bg-slate-100/70 border border-slate-300/70 rounded-lg hover:bg-slate-300/70 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400/90"
             onClick={onClose}
           >
             {cancelText}
           </button>
           <button
             type="button"
-            className={`btn btn-sm flex-1 transition-all duration-200 hover:scale-[1.02] ${getButtonClass()}`}
+            className={`btn flex-1 px-4 py-2 text-sm font-medium text-white border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.bg} ${colors.hover} ${colors.border} ${colors.focus}`}
             onClick={onConfirm}
           >
             {confirmText}
