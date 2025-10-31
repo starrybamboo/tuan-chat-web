@@ -56,6 +56,7 @@ import {
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
 import ClueListForKP from "./sideDrawer/clueListForKP";
 import ClueListForPL from "./sideDrawer/clueListForPL";
+import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
@@ -162,8 +163,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [initiativeDrawerWidth, setInitiativeDrawerWidth] = useLocalStorage("initiativeDrawerWidth", 300);
   const [clueDrawerWidth, setClueDrawerWidth] = useLocalStorage("clueDrawerWidth", 300);
   const [mapDrawerWidth, setMapDrawerWidth] = useLocalStorage("mapDrawerWidth", 600);
+  const [exportDrawerWidth, setExportDrawerWidth] = useLocalStorage("exportDrawerWidth", 350);
 
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue">("rightSideDrawer", "none");
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
@@ -682,6 +684,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             {spaceContext.isSpaceOwner
               ? <ClueListForKP onSend={handleClueSend}></ClueListForKP>
               : <ClueListForPL onSend={handleClueSend}></ClueListForPL>}
+          </OpenAbleDrawer>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "export"}
+            className="h-full bg-base-100 overflow-auto z-20"
+            initialWidth={exportDrawerWidth}
+            onWidthChange={setExportDrawerWidth}
+          >
+            <ExportChatDrawer></ExportChatDrawer>
           </OpenAbleDrawer>
         </div>
       </div>

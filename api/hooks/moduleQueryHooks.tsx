@@ -323,7 +323,7 @@ export function useAddEntityWithoutTypeMutation() {
 //     });
 // }
 
-export function useUpdateEntityMutation(stageId: number) {
+export function useUpdateEntityMutation(stageId: number, roomId?: number) {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: EntityUpdateRequest) => tuanchat.stageController.update(req),
@@ -331,6 +331,12 @@ export function useUpdateEntityMutation(stageId: number) {
         onSuccess: (_data,variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId], refetchType: 'all' });
             queryClient.invalidateQueries({ queryKey: ['roleAvatar', variables.id] });
+            queryClient.invalidateQueries({ queryKey: ['item-detail', variables.id] });
+            queryClient.invalidateQueries({ queryKey: ['location-detail', variables.id] });
+            if (roomId) {
+                queryClient.invalidateQueries({ queryKey: ['roomItems', roomId] });
+                queryClient.invalidateQueries({ queryKey: ['roomLocations', roomId] });
+            }
         }
     })
 }

@@ -157,7 +157,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   }, [localScene]);
 
   const handleNameChange = (val: string) => {
-    beginSelectionLock("editing-scene-name", 800);
+    beginSelectionLock("editing-scene-name", 10000);
     const oldName = oldNameRef.current;
     nameInputRef.current = val;
     updateModuleTabLabel(scene.id!.toString(), val || "未命名");
@@ -197,6 +197,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
             updateScene({ id: mapDataRef.current.id!, entityType: 5, entityInfo: { sceneMap: newMap }, name: mapDataRef.current.name }, {
               onSuccess: () => {
                 oldNameRef.current = val;
+                setTimeout(() => endSelectionLock(), 600);
               },
             });
           }
@@ -431,7 +432,6 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 placeholder="输入场景名称"
                 title="点击编辑场景名称"
                 className="font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
-                maxLength={60}
               />
               <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

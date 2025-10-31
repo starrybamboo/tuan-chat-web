@@ -14,5 +14,9 @@ export type UserRegisterRequest = {
      * 密码
      */
     password: string;
+    /**
+     * 邮箱
+     */
+    email: string;
 };
 

@@ -119,14 +119,37 @@ export function evaluateCharacterDataExpressions(data: CharacterData): Character
   for (const key of Object.keys(nextData.ability)) {
     const rawValue = nextData.ability[key];
     if (Number.isNaN(Number(rawValue)))
-      nextData.ability[key] = String(UNTIL.calculateExpression(rawValue, nextData));
+      nextData.ability[key] = String(safeCalculateExpression(rawValue, key, "ability", nextData));
   }
 
   for (const key of Object.keys(nextData.skill)) {
     const rawValue = nextData.skill[key];
     if (Number.isNaN(Number(rawValue)))
-      nextData.skill[key] = String(UNTIL.calculateExpression(rawValue, nextData));
+      nextData.skill[key] = String(safeCalculateExpression(rawValue, key, "skill", nextData));
   }
 
   return nextData;
+}
+
+function safeCalculateExpression(
+  expression: string,
+  key: string,
+  section: "ability" | "skill",
+  data: CharacterData,
+): number {
+  try {
+    return UNTIL.calculateExpression(expression, data);
+  }
+  catch (error) {
+    // Provide context for invalid expressions to simplify debugging.
+    console.error("角色属性表达式计算失败", {
+      section,
+      key,
+      expression,
+      ability: data.ability,
+      skill: data.skill,
+      error,
+    });
+    throw error;
+  }
 }

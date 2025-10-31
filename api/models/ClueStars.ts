@@ -3,21 +3,22 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 空间线索
+ * 线索文件夹
  */
-export type SpaceClue = {
+export type ClueStars = {
     id?: number;
     /**
-     * 所属线索文件夹ID
+     * 文件夹名称
      */
-    clueStarsId?: number;
     name?: string;
-    image?: string;
-    description?: string;
     /**
-     * 对线索的备忘录或猜想
+     * 所属空间ID
      */
-    note?: string;
+    spaceId?: number;
+    /**
+     * 创建者用户ID
+     */
+    userId?: number;
     updateTime?: string;
 };
 

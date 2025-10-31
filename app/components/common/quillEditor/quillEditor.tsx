@@ -385,7 +385,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         return found?.entityInfo?.tips;
       }
       else {
-        return found?.entityInfo?.act?.背景故事;
+        return found?.entityInfo?.act?.kp;
       }
     };
     const onOver = (e: MouseEvent) => {
@@ -1966,11 +1966,15 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       onRootPaste = (e: ClipboardEvent) => {
         try {
           const htmlRaw = e.clipboardData?.getData("text/html") || "";
-          // 优先处理纯标签(不含复杂结构)的 htmlRaw，用很宽松的判定：标签数 <= 12 且不含脚本/表格/blockquote 等复杂块
-          if (htmlRaw && /<\s*(?:a|img|span|div)\b/i.test(htmlRaw) && !/<(?:script|table|tr|td|th|blockquote|h[1-6]|ul|ol|li)\b/i.test(htmlRaw)) {
+          // 优先处理“简单且需要保留超链接/图片”的 HTML 片段：
+          // 注意：从 PDF 粘贴往往是 <div><span>文本</span></div> 的层级包装，
+          // 如果我们把 span/div 也当做可解析节点，会在父子节点上各取一次 textContent，导致插入两份。
+          // 因此这里只在存在 <a> 或 <img> 时走自定义 HTML 分支，其它仅包含 span/div 的情况交给后面的纯文本/Markdown 逻辑处理。
+          if (htmlRaw && /<\s*(?:a|img)\b/i.test(htmlRaw) && !/<(?:script|table|tr|td|th|blockquote|h[1-6]|ul|ol|li)\b/i.test(htmlRaw)) {
             const tmp = document.createElement("div");
             tmp.innerHTML = htmlRaw;
-            const allowed = Array.from(tmp.querySelectorAll("a,img,span,div"));
+            // 仅保留 <a> 与 <img>，避免 span/div 造成父子重复插入
+            const allowed = Array.from(tmp.querySelectorAll("a,img"));
             if (allowed.length && allowed.length <= 12) {
               // const editorRoot = (editor as any).root as HTMLElement; // 未使用，保留注释防止再度添加
               const sel = lastRangeRef.current;
@@ -1985,7 +1989,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                 catch { /* ignore deleteText errors */ }
               }
               e.preventDefault();
-              // 逐节点插入：a -> 文本+link, img -> image blot, span/div -> 其 textContent
+              // 逐节点插入：a -> 文本+link, img -> image blot
               let cursor = insertIndex;
               const walkInsert = (node: HTMLElement) => {
                 const tag = node.tagName.toLowerCase();
@@ -2028,13 +2032,6 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                     }
                     catch { /* ignore */ }
                     cursor += 1; // image blot 占位 1
-                  }
-                }
-                else if (tag === "span" || tag === "div") {
-                  const txt = node.textContent || "";
-                  if (txt) {
-                    editor.insertText(cursor, txt, "user");
-                    cursor += txt.length;
                   }
                 }
               };
@@ -2080,14 +2077,51 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
             return; // 无法解析纯文本，交由默认流程
           }
 
-          // 规范化换行，去除尾部空白以提高命中率
-          const normalized = text.replace(/\r\n/g, "\n").replace(/[\u00A0\u2007\u3000]/g, " ").replace(/[\t ]+$/gm, "").trim();
+          // 规范化换行，去除尾部行末空白，但保留行首的 tab（用于 Markdown 代码块等语义）
+          // 注意：不要使用 trim()，它会移除开头的 tab，从而破坏缩进/代码块检测。
+          const normalized = text.replace(/\r\n/g, "\n").replace(/[\u00A0\u2007\u3000]/g, " ").replace(/[ \t]+$/gm, "");
+
+          // 如果文本包含 tab 并且不是被判断为 Markdown，我们认为用户希望在富文本中保留可见的缩进。
+          // HTML 中常规文本会折叠空白，所以在此将 tab 转为若干个不间断空格以保留视觉缩进。
+          if (normalized.includes("\t") && !isLikelyMarkdown(normalized)) {
+            try {
+              const selection = lastRangeRef.current;
+              let insertIndex = selection && typeof selection.index === "number" ? selection.index : (editor.getLength?.() ?? 0);
+              if (selection && typeof selection.index === "number" && selection.length && selection.length > 0) {
+                try {
+                  editor.deleteText(selection.index, selection.length, "user");
+                  insertIndex = selection.index;
+                  editor.setSelection(selection.index, 0, "silent");
+                }
+                catch { /* ignore delete errors */ }
+              }
+              e.preventDefault();
+              // 将每个 tab 转为 4 个不间断空格，确保在 HTML 渲染中保留
+              const replaced = normalized.replace(/\t/g, "\u00A0\u00A0\u00A0\u00A0");
+              // 使用 insertText 插入（避免直接 dangerouslyPasteHTML）
+              editor.insertText?.(insertIndex, replaced, "user");
+              try {
+                editor.setSelection(insertIndex + replaced.length, 0, "silent");
+              }
+              catch {
+                /* ignore */
+              }
+              scheduleSerialize();
+              return;
+            }
+            catch {
+              // fallback to default if anything fails
+            }
+          }
+
+          // 如果看起来像 Markdown，则把 tab 转为 4 个空格再进行 Markdown -> HTML 的转换
           if (!isLikelyMarkdown(normalized)) {
             return; // 交由默认流程处理
           }
 
           e.preventDefault();
-          const html = markdownToHtmlWithEntities(normalized, entitiesRef.current);
+          const mdForConvert = normalized.replace(/\t/g, "    ");
+          const html = markdownToHtmlWithEntities(mdForConvert, entitiesRef.current);
           const selection = lastRangeRef.current;
           let insertIndex = selection && typeof selection.index === "number"
             ? selection.index

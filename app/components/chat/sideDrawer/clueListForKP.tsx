@@ -8,7 +8,7 @@ import DisplayOfItemDetail from "../displayOfItemsDetail";
 import DisplayOfLocationDetail from "../displayOfLocationDetail";
 import { RoomContext } from "../roomContext";
 
-export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) => void }) {
+export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) => void }) {
   const { spaceId } = use(RoomContext);
   const userRoomQuery = useGetUserRoomsQuery(spaceId ?? -1);
   const rooms = useMemo(
@@ -193,7 +193,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                                     </div>
                                     <button
                                       type="button"
-                                      className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                      className="btn btn-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                                       onClick={() => setSelectedItemId(item.id ?? -1)}
                                     >
                                       查看
@@ -262,7 +262,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                                     </div>
                                     <button
                                       type="button"
-                                      className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                      className="btn btn-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                                       onClick={() => setSelectedLocationId(location.id ?? -1)}
                                     >
                                       查看
@@ -288,7 +288,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
         hiddenScrollbar={true}
       >
         {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} onSend={handleSend} />
+          <DisplayOfItemDetail itemId={selectedItemId} onSend={handleSend} roomId={selectedRoomId} />
         )}
       </PopWindow>
 
@@ -299,7 +299,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
         hiddenScrollbar={true}
       >
         {selectedLocationId && (
-          <DisplayOfLocationDetail locationId={selectedLocationId} onSend={handleSend} />
+          <DisplayOfLocationDetail locationId={selectedLocationId} onSend={handleSend} roomId={selectedRoomId} />
         )}
       </PopWindow>
     </div>
