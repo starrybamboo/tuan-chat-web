@@ -257,11 +257,11 @@ function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave,
         <span className="font-bold">kp可见描述</span>
         <QuillEditor
           id={id}
-          placeholder={act.背景故事 || "kp可见描述"}
+          placeholder={act.kp || "kp可见描述"}
           onchange={(value) => {
             if (value === "")
               return;
-            const newAct = { ...act, 背景故事: value };
+            const newAct = { ...act, kp: value };
             setAct(newAct);
             scheduleSave();
           }}
@@ -639,7 +639,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
                 placeholder="输入角色名称"
                 title="点击编辑角色名称"
                 className="editable-name-input font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none min-w-[60vw] truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
-                maxLength={50}
               />
               <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -690,7 +689,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
                       placeholder="输入角色名称"
                       title="点击编辑角色名称"
                       className="editable-name-input font-semibold text-xl bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
-                      maxLength={50}
                     />
                     <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

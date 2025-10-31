@@ -7,8 +7,10 @@
  */
 export type SpaceClue = {
     id?: number;
-    userId?: number;
-    spaceId?: number;
+    /**
+     * 所属线索文件夹ID
+     */
+    clueStarsId?: number;
     name?: string;
     image?: string;
     description?: string;
@@ -16,7 +18,6 @@ export type SpaceClue = {
      * 对线索的备忘录或猜想
      */
     note?: string;
-    type?: string;
     updateTime?: string;
 };
 

@@ -8,6 +8,6 @@ export type SpaceClueUpdateRequest = {
     image?: string;
     description?: string;
     note?: string;
-    type?: string;
+    clueStarsId?: number;
 };
 

@@ -243,46 +243,45 @@ export function detectInlineFormats(
   return false;
 }
 
-// 检测行尾的对齐语法：c/r/b + 空格
+// 检测 Slash 对齐命令：/center /right /left /justify （在输入空格后触发）
+// 规则：行首允许若干空格，紧跟 /keyword，最后一个空格触发检测（即当前 range.index 位于命令后面的空格处）
 export function detectAlignment(quillInstance: any, range: any): boolean {
-  if (!quillInstance || !range)
+  if (!quillInstance || !range) {
     return false;
-
+  }
   const lineInfo = quillInstance.getLine?.(range.index);
-  if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2)
+  if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
     return false;
-
+  }
   const [_line, offset] = lineInfo as [any, number];
   const lineStart = range.index - offset;
-  // 获取整行文本（不含末尾换行符）
-  const lineText = (quillInstance.getText?.(lineStart, offset) ?? "").trimEnd();
+  // 取得从行首到当前光标（含刚输入的空格）的文本
+  const raw = quillInstance.getText?.(lineStart, offset) ?? ""; // 可能以空格结尾
+  const trimmedEnd = raw.replace(/\n$/, "").trimEnd();
 
-  // 匹配行尾的 c/r/b
-  const alignMatch = /^(.*)([crb])$/.exec(lineText);
-  if (!alignMatch)
+  // Slash 命令匹配
+  const m = /^\s*\/(center|right|left|justify)$/.exec(trimmedEnd);
+  if (!m) {
     return false;
-
-  const content = alignMatch[1].trimEnd(); // 移除后缀前的所有尾随空格
-  const suffix = alignMatch[2];
-
-  const mapping: Record<string, "center" | "right" | "justify"> = {
-    c: "center",
-    r: "right",
-    b: "justify",
-  };
-  const align = mapping[suffix];
-  if (!align)
-    return false;
+  }
+  const keyword = m[1];
+  const alignValue: false | "center" | "right" | "justify" = keyword === "left"
+    ? false
+    : keyword === "justify"
+      ? "justify"
+      : (keyword as "center" | "right");
 
   try {
-    // 必须先格式化，再删除文本，否则 quill 会将格式应用到错误的行
-    quillInstance.formatLine(lineStart, 1, "align", align, "user");
-    // 计算需要删除的长度：后缀(1) + content 与 lineText 之间的空格
-    const deleteLen = lineText.length - content.length;
-    const deleteStart = lineStart + content.length;
-    quillInstance.deleteText(deleteStart, deleteLen, "user");
-    // 光标定位到内容末尾
-    quillInstance.setSelection(lineStart + content.length, 0, "silent");
+    // 删除整行命令文本（到当前 offset，包含命令与末尾空格）
+    quillInstance.deleteText(lineStart, raw.length, "user");
+    if (alignValue) {
+      quillInstance.formatLine(lineStart, 1, "align", alignValue, "user");
+    }
+    else {
+      // left -> 取消对齐（传 false）
+      quillInstance.formatLine(lineStart, 1, "align", false, "user");
+    }
+    quillInstance.setSelection(lineStart, 0, "silent");
     return true;
   }
   catch {
