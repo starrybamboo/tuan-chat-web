@@ -1,12 +1,6 @@
-export type LoginCredentials = {
-  username: string;
-  password: string;
-};
+import type { UserLoginRequest, UserRegisterRequest } from "api";
 
-export type RegisterCredentials = {
-  username: string;
-  password: string;
-};
+export type { UserLoginRequest, UserRegisterRequest };
 
 export type RegisterResponse = {
   success: boolean;

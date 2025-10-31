@@ -1,4 +1,4 @@
-import type { LoginCredentials, RegisterCredentials } from "../../types/authtype";
+import type { UserLoginRequest, UserRegisterRequest } from "api";
 
 import { tuanchat } from "../../../api/instance";
 
@@ -7,12 +7,24 @@ import { tuanchat } from "../../../api/instance";
 // 2. error 对象的 message
 // 3. 默认错误信息
 
-export async function loginUser(credentials: LoginCredentials) {
+export async function loginUser(
+  credentials: UserLoginRequest,
+  loginMethod: "username" | "userId",
+) {
   try {
-    const response = await tuanchat.userController.login({
-      userId: credentials.username,
+    const loginRequest: UserLoginRequest = {
       password: credentials.password,
-    });
+    };
+
+    // 根据登录方式设置对应的字段
+    if (loginMethod === "username") {
+      loginRequest.username = credentials.username;
+    }
+    else if (loginMethod === "userId") {
+      loginRequest.userId = credentials.username; // 重用 username 字段存储 userId
+    }
+
+    const response = await tuanchat.userController.login(loginRequest);
 
     return response;
   }
@@ -25,12 +37,9 @@ export async function loginUser(credentials: LoginCredentials) {
   }
 }
 
-export async function registerUser(credentials: RegisterCredentials) {
+export async function registerUser(credentials: UserRegisterRequest) {
   try {
-    const response = await tuanchat.userController.register({
-      username: credentials.username,
-      password: credentials.password,
-    });
+    const response = await tuanchat.userController.register(credentials);
 
     return response;
   }
