@@ -56,62 +56,136 @@ interface InlineExpansionModuleProps {
   setShowAbilityPopup: (v: boolean) => void;
 }
 
+// 处理数值输入，允许中间态("-", "", "-.", ".")，只在成为合法数字时写入数字并触发保存
+function handleNumericInput(key: string | number, setState: React.Dispatch<React.SetStateAction<any>>, scheduleSave?: () => void) {
+  return (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setState((prev: any) => {
+      // 如果 state 是数组（批量创建场景），按 id/index 处理
+      if (Array.isArray(prev)) {
+        const arr = prev.slice();
+        // key 可能是 index 或 id（string）
+        let idx = -1;
+        if (typeof key === "number") {
+          idx = key as number;
+        }
+        else {
+          idx = arr.findIndex((it: any) => it.id === key || it.name === key);
+        }
+        if (idx === -1) {
+          return prev; // 找不到对应行，取消更新
+        }
+        const item = { ...arr[idx] };
+        if (raw === "" || raw === "-" || raw === "." || raw === "-.") {
+          item.value = raw;
+          arr[idx] = item;
+          return arr;
+        }
+        if (/^-?\d*(?:\.\d*)?$/.test(raw)) {
+          const parsed = Number(raw);
+          if (!Number.isNaN(parsed) && raw !== "-" && raw !== "." && raw !== "-.") {
+            item.value = parsed;
+            if (scheduleSave) {
+              scheduleSave();
+            }
+          }
+          else {
+            item.value = raw;
+          }
+          arr[idx] = item;
+        }
+        return arr;
+      }
+
+      // 否则假定是对象映射（能力/基础属性）
+      const next = { ...prev };
+      const label = String(key);
+      if (raw === "" || raw === "-" || raw === "." || raw === "-.") {
+        next[label] = raw;
+        return next;
+      }
+      if (/^-?\d*(?:\.\d*)?$/.test(raw)) {
+        const parsed = Number(raw);
+        if (!Number.isNaN(parsed) && raw !== "-" && raw !== "." && raw !== "-.") {
+          next[label] = parsed;
+          if (scheduleSave) {
+            scheduleSave();
+          }
+        }
+        else {
+          next[label] = raw;
+        }
+      }
+      return next;
+    });
+  };
+}
+
+// 失焦时如果仍是临时字符串，将其规范化为数字或清空
+function commitNumericOnBlur(key: string | number, setState: React.Dispatch<React.SetStateAction<any>>, scheduleSave?: () => void) {
+  return () => {
+    setState((prev: any) => {
+      if (Array.isArray(prev)) {
+        const arr = prev.slice();
+        let idx = -1;
+        if (typeof key === "number") {
+          idx = key as number;
+        }
+        else {
+          idx = arr.findIndex((it: any) => it.id === key || it.name === key);
+        }
+        if (idx === -1) {
+          return prev;
+        }
+        const item = { ...arr[idx] };
+        const val = item.value;
+        if (val === "" || val === undefined) {
+          return prev;
+        }
+        if (typeof val === "string") {
+          const parsed = Number(val);
+          if (!Number.isNaN(parsed)) {
+            item.value = parsed;
+            arr[idx] = item;
+            if (scheduleSave) {
+              scheduleSave();
+            }
+            return arr;
+          }
+          return prev;
+        }
+        return prev;
+      }
+
+      const label = String(key);
+      const val = prev[label];
+      if (val === "" || val === undefined) {
+        return prev;
+      }
+      if (typeof val === "string") {
+        const parsed = Number(val);
+        if (!Number.isNaN(parsed)) {
+          const next = { ...prev, [label]: parsed };
+          if (scheduleSave) {
+            scheduleSave();
+          }
+          return next;
+        }
+        return prev;
+      }
+      return prev;
+    });
+  };
+}
+
+const normalizeDisplay = (v: any) => (v === undefined || v === null ? "" : v);
+
 function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave, basicDefaults, abilityDefaults, setShowAbilityPopup }: InlineExpansionModuleProps) {
   // 基础属性键集合（中文）
   const basicKeys = Object.keys(basicDefaults || {});
   const abilityKeys = Object.keys(abilityDefaults || {});
   // 使用quillEditor进行角色行为模式的编辑
   const id = generateTempId();
-
-  // 处理数值输入，允许中间态("-", "", "-.", ".")，只在成为合法数字时写入数字并触发保存
-  const handleNumericInput = (label: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setAbility((prev: any) => {
-      const next = { ...prev };
-      // 允许的临时输入模式（不立即转为 number）
-      if (raw === "" || raw === "-" || raw === "." || raw === "-.") {
-        next[label] = raw; // 保持字符串形式
-        return next;
-      }
-      // 仅包含数字/一个可选的负号/一个可选的小数点的模式（逐字构建）
-      if (/^-?\d*(?:\.\d*)?$/.test(raw)) {
-        // 如果可以被正常解析为数字且不是仅有 '-' '.' 或 '-.' 的中间态
-        const parsed = Number(raw);
-        if (!Number.isNaN(parsed) && raw !== "-" && raw !== "." && raw !== "-.") {
-          next[label] = parsed;
-          scheduleSave();
-        }
-        else {
-          next[label] = raw; // 仍是中间态，保存字符串
-        }
-      }
-      // 其它非法输入忽略（保持原值）
-      return next;
-    });
-  };
-
-  // 失焦时如果仍是临时字符串，将其规范化为数字或清空
-  const commitNumericOnBlur = (label: string) => () => {
-    setAbility((prev: any) => {
-      const val = prev[label];
-      if (val === "" || val === undefined) {
-        return prev; // 空值不保存
-      }
-      if (typeof val === "string") {
-        const parsed = Number(val);
-        if (!Number.isNaN(parsed)) {
-          const next = { ...prev, [label]: parsed };
-          scheduleSave();
-          return next;
-        }
-        // 字符串但不能解析，忽略
-        return prev;
-      }
-      return prev;
-    });
-  };
-
-  const normalizeDisplay = (v: any) => (v === undefined || v === null ? "" : v);
 
   return (
     <div className="space-y-6">
@@ -131,11 +205,11 @@ function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave,
                         type="text"
                         inputMode="decimal"
                         value={normalizeDisplay(ability[label])}
-                        onChange={handleNumericInput(label)}
-                        onBlur={commitNumericOnBlur(label)}
+                        onChange={handleNumericInput(label, setAbility, scheduleSave)}
+                        onBlur={commitNumericOnBlur(label, setAbility, scheduleSave)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            commitNumericOnBlur(label)();
+                            commitNumericOnBlur(label, setAbility, scheduleSave)();
                           }
                         }}
                         className="input input-bordered input-sm w-20"
@@ -167,11 +241,11 @@ function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave,
                         type="text"
                         inputMode="decimal"
                         value={normalizeDisplay(ability[label])}
-                        onChange={handleNumericInput(label)}
-                        onBlur={commitNumericOnBlur(label)}
+                        onChange={handleNumericInput(label, setAbility, scheduleSave)}
+                        onBlur={commitNumericOnBlur(label, setAbility, scheduleSave)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            commitNumericOnBlur(label)();
+                            commitNumericOnBlur(label, setAbility, scheduleSave)();
                           }
                         }}
                         className="input input-bordered input-sm w-20"
@@ -222,11 +296,11 @@ function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave,
                         type="text"
                         inputMode="decimal"
                         value={normalizeDisplay(value)}
-                        onChange={handleNumericInput(key)}
-                        onBlur={commitNumericOnBlur(key)}
+                        onChange={handleNumericInput(key, setAbility, scheduleSave)}
+                        onBlur={commitNumericOnBlur(key, setAbility, scheduleSave)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            commitNumericOnBlur(key)();
+                            commitNumericOnBlur(key, setAbility, scheduleSave)();
                           }
                         }}
                         className="input input-bordered input-sm w-20"
@@ -323,7 +397,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // 不再使用编辑模式/同步 props 到 state 的副作用，初始值已从 props 派生
 
   // 接入接口
-  const { mutate: updateRole } = useUpdateEntityMutation(stageId as number);
+  const { mutate: updateRole } = useUpdateEntityMutation(stageId as number, 0);
 
   // 引用最新状态，供防抖保存时使用
   const localRoleRef = useRef(localRole);
@@ -1020,14 +1094,13 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   }}
                 />
                 <input
-                  type="number"
+                  type="text"
                   placeholder="数值"
                   className="input input-bordered w-28"
-                  value={item.value}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setBatchAbilities(prev => prev.map((it, i) => (i === idx ? { ...it, value: v } : it)));
-                  }}
+                  inputMode="decimal"
+                  value={normalizeDisplay(item.value)}
+                  onBlur={commitNumericOnBlur(item.name, setBatchAbilities)}
+                  onChange={handleNumericInput(item.name, setBatchAbilities)}
                 />
               </div>
             ))}

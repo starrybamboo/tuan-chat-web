@@ -1966,11 +1966,15 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       onRootPaste = (e: ClipboardEvent) => {
         try {
           const htmlRaw = e.clipboardData?.getData("text/html") || "";
-          // 优先处理纯标签(不含复杂结构)的 htmlRaw，用很宽松的判定：标签数 <= 12 且不含脚本/表格/blockquote 等复杂块
-          if (htmlRaw && /<\s*(?:a|img|span|div)\b/i.test(htmlRaw) && !/<(?:script|table|tr|td|th|blockquote|h[1-6]|ul|ol|li)\b/i.test(htmlRaw)) {
+          // 优先处理“简单且需要保留超链接/图片”的 HTML 片段：
+          // 注意：从 PDF 粘贴往往是 <div><span>文本</span></div> 的层级包装，
+          // 如果我们把 span/div 也当做可解析节点，会在父子节点上各取一次 textContent，导致插入两份。
+          // 因此这里只在存在 <a> 或 <img> 时走自定义 HTML 分支，其它仅包含 span/div 的情况交给后面的纯文本/Markdown 逻辑处理。
+          if (htmlRaw && /<\s*(?:a|img)\b/i.test(htmlRaw) && !/<(?:script|table|tr|td|th|blockquote|h[1-6]|ul|ol|li)\b/i.test(htmlRaw)) {
             const tmp = document.createElement("div");
             tmp.innerHTML = htmlRaw;
-            const allowed = Array.from(tmp.querySelectorAll("a,img,span,div"));
+            // 仅保留 <a> 与 <img>，避免 span/div 造成父子重复插入
+            const allowed = Array.from(tmp.querySelectorAll("a,img"));
             if (allowed.length && allowed.length <= 12) {
               // const editorRoot = (editor as any).root as HTMLElement; // 未使用，保留注释防止再度添加
               const sel = lastRangeRef.current;
@@ -1985,7 +1989,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                 catch { /* ignore deleteText errors */ }
               }
               e.preventDefault();
-              // 逐节点插入：a -> 文本+link, img -> image blot, span/div -> 其 textContent
+              // 逐节点插入：a -> 文本+link, img -> image blot
               let cursor = insertIndex;
               const walkInsert = (node: HTMLElement) => {
                 const tag = node.tagName.toLowerCase();
@@ -2028,13 +2032,6 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                     }
                     catch { /* ignore */ }
                     cursor += 1; // image blot 占位 1
-                  }
-                }
-                else if (tag === "span" || tag === "div") {
-                  const txt = node.textContent || "";
-                  if (txt) {
-                    editor.insertText(cursor, txt, "user");
-                    cursor += txt.length;
                   }
                 }
               };
