@@ -1,6 +1,8 @@
 interface RegisterFormProps {
-  username: string;
+  username?: string;
   setUsername: (value: string) => void;
+  email?: string;
+  setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
   confirmPassword: string;
@@ -10,8 +12,10 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({
-  username,
+  username = "",
   setUsername,
+  email = "",
+  setEmail,
   password,
   setPassword,
   confirmPassword,
@@ -30,6 +34,20 @@ export function RegisterForm({
             className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
             value={username}
             onChange={e => setUsername(e.target.value)}
+            required
+          />
+        </label>
+      </div>
+
+      <div className="form-control w-full mt-2">
+        <label className="floating-label">
+          <span className="label-text">邮箱</span>
+          <input
+            type="email"
+            placeholder="请输入邮箱地址"
+            className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             required
           />
         </label>
