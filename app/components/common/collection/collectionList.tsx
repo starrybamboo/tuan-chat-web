@@ -1,12 +1,11 @@
 import type { CollectionList as CollectionListType } from "api";
-import { BaselineDeleteOutline, Edit2Outline, EllipsisVertical, LockKeyhole, LockKeyholeOpen,
+import { Arrowleft, Arrowright, BaselineDeleteOutline, Edit2Outline, EllipsisVertical, LockKeyhole, LockKeyholeOpen,
 } from "@/icons";
 import { useGetCollectionListQuery, useGetUserCollectionListsQuery } from "api/hooks/collectionQueryHooks";
 import { useState } from "react";
 
 function CollectionListItem({ c, selectedId, onSelect }: { c: CollectionListType; selectedId?: number; onSelect?: (id: number) => void }) {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-
   return (
     <div
       onClick={() => onSelect?.(c.collectionListId!)}
@@ -45,10 +44,11 @@ function CollectionListItem({ c, selectedId, onSelect }: { c: CollectionListType
 
 interface CollectionListProps {
   selectedId?: number;
-  onSelect?: (id: number) => void;
+  onSelect: (id: number) => void;
+  onAddCollection: () => void;
 }
 
-export default function CollectionList({ onSelect, selectedId }: CollectionListProps) {
+export default function CollectionList({ selectedId, onSelect, onAddCollection }: CollectionListProps) {
   const [pageIndex, setPageIndex] = useState(1);
   const pageSize = 4;
   const { data, isLoading, isError } = useGetUserCollectionListsQuery({
@@ -57,6 +57,7 @@ export default function CollectionList({ onSelect, selectedId }: CollectionListP
   });
 
   const collectionLists: CollectionListType[] | undefined = data?.data?.list;
+  const isLast = data?.data?.isLast;
 
   // 收藏夹详情信息
   const [selectId, setSelectId] = useState(0);
@@ -64,13 +65,21 @@ export default function CollectionList({ onSelect, selectedId }: CollectionListP
   const description = collectionListDetail?.data?.description;
   const imageUrl = collectionListDetail?.data?.coverImageUrl;
 
-  // 收藏夹设置
+  // 封面图，暂时用社区头像代替
+  const tuanPicsUrls = [
+    "http://101.126.143.129:9000/avatar/avatar/b51e8b24e434946fa7daac7f43da2ff1_7450.webp",
+    "http://101.126.143.129:9000/avatar/avatar/bedc6e7259afd1b00dcecaebff6d75c7_11256.webp",
+    "http://101.126.143.129:9000/avatar/avatar/2482bc79c85235e3d8c84417293dac8f_13192.webp",
+    "http://101.126.143.129:9000/avatar/avatar/9a9760f951b59d50571e3c136ba55a2e_15012.webp",
+    "http://101.126.143.129:9000/avatar/avatar/1ada3a88c27d7629dbb59faaa4a2e265_16514.webp",
+  ];
+  const tuanPicsUrl = tuanPicsUrls[Math.floor(Math.random() * tuanPicsUrls.length)];
 
   return (
     <div className="space-y-2 w-full ">
       <div className="w-full aspect-[1618/1000] relative overflow-hidden rounded-lg">
         <img
-          src={imageUrl ?? "http://101.126.143.129:9000/avatar/avatar/5275ec2f0e6ba166343a5ec60c5674d8_31076.webp"}
+          src={imageUrl ?? tuanPicsUrl}
           alt="收藏夹封面"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -85,14 +94,41 @@ export default function CollectionList({ onSelect, selectedId }: CollectionListP
               ? (
                   <div>
                     <h3>你还没有收藏夹</h3>
-                    <button type="button" className="flex justify-between w-[90%] sm:w-[95%] lg:w-full sm:h-[3vh] lg:h-[5vh] bg-blue-500/10 hover:text-blue-500 cursor-pointer rounded-sm px-4 py-2">创建收藏夹</button>
+
                   </div>
                 )
-              : (collectionLists?.map(c => (
-                  <div key={c.collectionListId}>
-                    <CollectionListItem c={c} selectedId={selectedId} onSelect={() => setSelectId(c.collectionListId ?? 0)} />
+              : (
+                  <div>
+                    {collectionLists?.map(c => (
+                      <div key={c.collectionListId}>
+                        <CollectionListItem
+                          c={c}
+                          selectedId={selectedId}
+                          onSelect={(id) => {
+                            setSelectId(id);
+                            onSelect(id);
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="flex justify-start w-[90%] sm:w-[95%] lg:w-full sm:h-[3vh] lg:h-[5vh] hover:bg-blue-500/10 hover:text-blue-500 cursor-pointer rounded-sm px-4 py-2"
+                      onClick={onAddCollection}
+                    >
+                      创建收藏夹
+                    </button>
+                    <div className="flex w-[20%] justify-center items-center mx-auto mt-auto">
+                      <button type="button" disabled={pageIndex === 1}><Arrowleft className="w-6 h-6 cursor-pointer text-gray-300" onClick={() => setPageIndex(prev => prev - 1)} /></button>
+                      <div className="whitespace-nowrap">
+                        第
+                        {pageIndex}
+                        页
+                      </div>
+                      <button type="button" disabled={isLast}><Arrowright className="w-6 h-6 cursor-pointer text-gray-300" onClick={() => setPageIndex(prev => prev + 1)} /></button>
+                    </div>
                   </div>
-                )))}
+                )}
     </div>
   );
 }
