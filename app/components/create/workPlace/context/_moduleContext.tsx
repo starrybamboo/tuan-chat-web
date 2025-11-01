@@ -14,7 +14,9 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
   const selectionLockRef = useRef<{ expire: number; reason?: string } | null>(null);
   const selectionLockTimer = useRef<number | null>(null);
   // 切换页面时保存；保持一个永不为 null 的函数，避免调用处判空带来竞态
-  const tabSaveFunctionRef = useRef<() => void>(() => {});
+  const tabSaveFunctionRef = useRef<() => void>(() => { });
+  // 状态
+  const [isCommitted, _setIsCommitted] = useState<boolean>(true);
 
   // 保持回调的引用稳定，避免依赖 setXxx 触发下游 useEffect 重复执行
   const setStageIdCb = useCallback((id: TabId | null) => {
@@ -51,6 +53,7 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
       try {
         if (tabSaveFunctionRef.current) {
           tabSaveFunctionRef.current();
+          _setIsCommitted(false);
         }
       }
       catch (e) {
@@ -139,12 +142,17 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     });
   }, [updateModuleTabItems]);
 
+  const setIsCommitted = useCallback((val: boolean) => {
+    _setIsCommitted(val);
+  }, []);
+
   const moduleContextValue: ModuleContextType = useMemo(() => ({
     moduleTabItems,
     currentSelectedTabId,
     stageId,
     moduleId,
     activeList,
+    isCommitted,
     setStageId: setStageIdCb,
     setModuleId: setModuleIdCb,
     setCurrentSelectedTabId: setCurrentSelectedTabIdCb,
@@ -157,7 +165,8 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     setActiveList: setActiveListCb,
     beginSelectionLock: beginSelectionLockCb,
     endSelectionLock: endSelectionLockCb,
-  }), [moduleTabItems, currentSelectedTabId, stageId, moduleId, activeList, setStageIdCb, setModuleIdCb, setCurrentSelectedTabIdCb, setTabSaveFunctionCb, forceSetCurrentSelectedTabIdCb, pushModuleTabItemCb, removeModuleTabItemCb, updateModuleTabLabelCb, updateModuleTabContentNameCb, setActiveListCb, beginSelectionLockCb, endSelectionLockCb]);
+    setIsCommitted,
+  }), [moduleTabItems, currentSelectedTabId, stageId, moduleId, activeList, isCommitted, setStageIdCb, setModuleIdCb, setCurrentSelectedTabIdCb, setTabSaveFunctionCb, forceSetCurrentSelectedTabIdCb, pushModuleTabItemCb, removeModuleTabItemCb, updateModuleTabLabelCb, updateModuleTabContentNameCb, setActiveListCb, beginSelectionLockCb, endSelectionLockCb, setIsCommitted]);
 
   return (
     <ModuleContext

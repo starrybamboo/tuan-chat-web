@@ -13,32 +13,19 @@ import { useModuleContext } from "./context/_moduleContext";
 export default function FunctionButtons() {
   const navigate = useNavigate();
   const globalContext = useGlobalContext();
-  const { stageId, moduleId } = useModuleContext();
+  const { stageId, moduleId, isCommitted, setIsCommitted } = useModuleContext();
   const { mutate: commit } = useCommitMutation();
   const { mutate: updateModule } = useUpdateModuleMutation();
   const moduleData = useModuleIdQuery(moduleId as number);
   const [isCommitOpen, setIsCommitOpen] = useState(false);
   const [isDeclareOpen, setIsDeclareOpen] = useState(false);
-  const [isUnsavedWarningOpen, setIsUnsavedWarningOpen] = useState(false);
+  const [isUnCommitWarningOpen, setIsUnCommitWarningOpen] = useState(false);
   const [message, setMessage] = useState("");
 
   const moduleInfo = useModuleIdQuery(moduleId as number);
 
-  // 检查是否有未保存的修改（这里需要根据实际情况实现）
-  const hasUnsavedChanges = () => {
-    // TODO: 这里应该检查实际的未保存状态
-    // 可以从 context 或其他状态管理中获取
-    // 暂时返回 false，需要根据实际情况调整
-    return false;
-  };
-
   const handleCommitClick = () => {
-    if (hasUnsavedChanges()) {
-      setIsUnsavedWarningOpen(true);
-    }
-    else {
-      setIsCommitOpen(true);
-    }
+    setIsCommitOpen(true);
   };
 
   const handleCommit = () => {
@@ -47,7 +34,10 @@ export default function FunctionButtons() {
         stageId: stageId as number,
         message: "无提交说明",
       }, {
-        onSuccess: () => { toast.success("提交成功"); },
+        onSuccess: () => {
+          toast.success("提交成功");
+          setIsCommitted(true);
+        },
         onError: () => { toast.error("提交失败，请稍后重试"); },
       });
     }
@@ -56,7 +46,10 @@ export default function FunctionButtons() {
         stageId: stageId as number,
         message,
       }, {
-        onSuccess: () => { toast.success("提交成功"); },
+        onSuccess: () => {
+          toast.success("提交成功");
+          setIsCommitted(true);
+        },
         onError: () => { toast.error("提交失败，请稍后重试"); },
       });
     }
@@ -167,20 +160,40 @@ export default function FunctionButtons() {
           <button
             type="button"
             onClick={handleCommitClick}
-            className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-info/80 text-info-content hover:bg-info/70 transition-colors"
+            className={`group cursor-pointer h-10 w-full px-3 rounded-lg flex items-center justify-center transition-colors
+              ${isCommitted ? "bg-success/80 hover:bg-success/70 text-success-content" : "bg-info/80 hover:bg-info/70 text-info-content"}`}
+            title={isCommitted ? "再次提交" : "提交"}
           >
-            <ChevronSmallTripleUp className="w-4 h-4" />
-            提交
+            {/* 常态：展示当前状态（已提交/未提交） */}
+            <span className="group-hover:hidden inline-flex items-center gap-2">
+              <ChevronSmallTripleUp className="w-4 h-4" />
+              {isCommitted ? "已提交" : "未提交"}
+            </span>
+            {/* 悬停：展示操作文案（再次提交/提交） */}
+            <span className="hidden group-hover:inline-flex items-center gap-2">
+              <ChevronSmallTripleUp className="w-4 h-4" />
+              {isCommitted ? "再次提交" : "提交"}
+            </span>
           </button>
         </div>
         <div className="flex-1/3">
           <button
             type="button"
             onClick={() => setIsDeclareOpen(true)}
-            className={`cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center text-primary-content hover:bg-primary-focus transition-colors ${moduleData.data?.data?.state === 1 ? "bg-success" : "bg-error"}`}
+            className={`group cursor-pointer h-10 w-full px-3 rounded-lg flex items-center justify-center transition-colors
+              ${moduleData.data?.data?.state === 1 ? "bg-success/80 hover:bg-success/70 text-success-content" : "bg-error/80 hover:bg-error/70 text-error-content"}`}
+            title={moduleData.data?.data?.state === 1 ? "取消发布" : "发布"}
           >
-            <ChevronSmallTripleUp className="w-4 h-4" />
-            { moduleData.data?.data?.state === 1 ? "已发布" : "未发布"}
+            {/* 常态：展示当前状态（已发布/未发布） */}
+            <span className="group-hover:hidden inline-flex items-center gap-2">
+              <ChevronSmallTripleUp className="w-4 h-4" />
+              { moduleData.data?.data?.state === 1 ? "已发布" : "未发布"}
+            </span>
+            {/* 悬停：展示操作文案（取消发布/发布） */}
+            <span className="hidden group-hover:inline-flex items-center gap-2">
+              <ChevronSmallTripleUp className="w-4 h-4" />
+              { moduleData.data?.data?.state === 1 ? "取消发布" : "发布"}
+            </span>
           </button>
         </div>
         <div className="flex-1/3">
@@ -229,21 +242,24 @@ export default function FunctionButtons() {
         </div>
       </PopWindow>
 
-      <PopWindow isOpen={isUnsavedWarningOpen} onClose={() => setIsUnsavedWarningOpen(false)}>
+      <PopWindow isOpen={isUnCommitWarningOpen} onClose={() => setIsUnCommitWarningOpen(false)}>
         <div className="p-4 max-w-sm flex flex-col min-h-[24vh]">
-          <h3 className="text-lg font-bold mb-4 text-center">未保存的修改</h3>
+          <h3 className="text-lg font-bold mb-4 text-center">未提交的修改</h3>
           <div className="flex-1 flex items-center justify-center mb-4">
             <p className="text-sm text-base-content/70 text-center">
-              检测到有未保存的修改，请先保存后再应用。
+              检测到有未提交的修改，请先提交后再应用。
             </p>
           </div>
           <div className="flex justify-end gap-2">
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => setIsUnsavedWarningOpen(false)}
+              onClick={() => {
+                setIsUnCommitWarningOpen(false);
+                setIsCommitOpen(true);
+              }}
             >
-              知道了
+              现在提交
             </button>
           </div>
         </div>
@@ -268,6 +284,10 @@ export default function FunctionButtons() {
               type="button"
               className="btn btn-primary"
               onClick={() => {
+                if (isCommitted === false) {
+                  setIsUnCommitWarningOpen(true);
+                  return;
+                }
                 if (moduleData.data?.data?.state === 1) {
                   updateModule(
                     { moduleId, state: 0 } as any,
@@ -318,7 +338,13 @@ export default function FunctionButtons() {
             <button
               type="button"
               className="btn btn-success w-full"
-              onClick={handleDirectCreateSpaceAndImport}
+              onClick={() => {
+                if (isCommitted === false) {
+                  setIsUnCommitWarningOpen(true);
+                  return;
+                }
+                handleDirectCreateSpaceAndImport();
+              }}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -360,7 +386,12 @@ export default function FunctionButtons() {
                       <button
                         type="button"
                         className="btn w-20"
-                        onClick={() => { handleModuleImport(space.spaceId ?? -1); }}
+                        onClick={() => {
+                          if (isCommitted === false) {
+                            setIsUnCommitWarningOpen(true);
+                          }
+                          else { handleModuleImport(space.spaceId ?? -1); }
+                        }}
                       >
                         应用
                       </button>
