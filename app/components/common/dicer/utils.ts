@@ -209,6 +209,10 @@ function tokenize(expression: string): string[] {
       tokens.push(char);
       i++;
     }
+    // 处理空白符
+    else if (/[ \t\n\r]/.test(char)) {
+      i++;
+    }
     // 处理变量（非数字和运算符的字符）
     else {
       let variable = char;
