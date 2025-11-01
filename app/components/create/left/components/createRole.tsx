@@ -342,6 +342,7 @@ export default function CreateRole({
           <button
             type="button"
             className={`btn btn-primary ${selectedRoles.size === 0 ? "btn-disabled" : ""}`}
+            // 第一个弹窗的确认按钮
             onClick={handleConfirm}
             disabled={selectedRoles.size === 0}
           >
@@ -371,6 +372,7 @@ export default function CreateRole({
               onClick={() => {
                 onCreateNew(num);
                 setIsOpenSecond(false);
+                handleClose();
               }}
             >
               确认提交
