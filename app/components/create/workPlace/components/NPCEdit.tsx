@@ -45,14 +45,19 @@ function generateTempId(): string {
 
 // 内联的属性编辑模块 (简化版 ExpansionModule) - 独立定义避免每次渲染重建
 interface InlineExpansionModuleProps {
+  basic: Record<string, any>;
+  setBasic: React.Dispatch<React.SetStateAction<any>>;
   ability: Record<string, string>;
   setAbility: React.Dispatch<React.SetStateAction<any>>;
   act: Record<string, string>;
   setAct: React.Dispatch<React.SetStateAction<any>>;
+  skill: Record<string, any>;
+  setSkill: React.Dispatch<React.SetStateAction<any>>;
   scheduleSave: () => void;
   /** 基础属性中文键集合 */
   basicDefaults: Record<string, any>;
   abilityDefaults: Record<string, any>;
+  skillDefaults: Record<string, any>;
   setShowAbilityPopup: (v: boolean) => void;
 }
 
@@ -94,6 +99,11 @@ function handleNumericInput(key: string | number, setState: React.Dispatch<React
           }
           arr[idx] = item;
         }
+        else {
+          // 允许非纯数字表达式（如 i+体型/10）作为字符串写入，避免输入被阻断
+          item.value = raw;
+          arr[idx] = item;
+        }
         return arr;
       }
 
@@ -115,6 +125,10 @@ function handleNumericInput(key: string | number, setState: React.Dispatch<React
         else {
           next[label] = raw;
         }
+      }
+      else {
+        // 允许非纯数字表达式作为字符串写入
+        next[label] = raw;
       }
       return next;
     });
@@ -152,6 +166,10 @@ function commitNumericOnBlur(key: string | number, setState: React.Dispatch<Reac
             }
             return arr;
           }
+          // 非数字表达式：保留字符串，并触发保存
+          if (scheduleSave) {
+            scheduleSave();
+          }
           return prev;
         }
         return prev;
@@ -171,6 +189,10 @@ function commitNumericOnBlur(key: string | number, setState: React.Dispatch<Reac
           }
           return next;
         }
+        // 非数字表达式：保持字符串并触发保存
+        if (scheduleSave) {
+          scheduleSave();
+        }
         return prev;
       }
       return prev;
@@ -180,10 +202,11 @@ function commitNumericOnBlur(key: string | number, setState: React.Dispatch<Reac
 
 const normalizeDisplay = (v: any) => (v === undefined || v === null ? "" : v);
 
-function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave, basicDefaults, abilityDefaults, setShowAbilityPopup }: InlineExpansionModuleProps) {
+function InlineExpansionModule({ basic, setBasic, ability, setAbility, act, setAct, skill, setSkill, scheduleSave, basicDefaults, abilityDefaults, skillDefaults, setShowAbilityPopup }: InlineExpansionModuleProps) {
   // 基础属性键集合（中文）
   const basicKeys = Object.keys(basicDefaults || {});
   const abilityKeys = Object.keys(abilityDefaults || {});
+  const skillKeys = Object.keys(skillDefaults || {});
   // 使用quillEditor进行角色行为模式的编辑
   const id = generateTempId();
 
@@ -204,12 +227,12 @@ function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave,
                       <input
                         type="text"
                         inputMode="decimal"
-                        value={normalizeDisplay(ability[label])}
-                        onChange={handleNumericInput(label, setAbility, scheduleSave)}
-                        onBlur={commitNumericOnBlur(label, setAbility, scheduleSave)}
+                        value={normalizeDisplay(basic[label])}
+                        onChange={handleNumericInput(label, setBasic, scheduleSave)}
+                        onBlur={commitNumericOnBlur(label, setBasic, scheduleSave)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            commitNumericOnBlur(label, setAbility, scheduleSave)();
+                            commitNumericOnBlur(label, setBasic, scheduleSave)();
                           }
                         }}
                         className="input input-bordered input-sm w-20"
@@ -266,7 +289,7 @@ function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave,
       <div className="relative collapse collapse-arrow rounded-2xl border-2 border-base-content/10 bg-base-100">
         <input type="checkbox" defaultChecked />
         <div className="collapse-title flex items-center justify-between pr-0">
-          <span className="font-bold">自定义能力</span>
+          <span className="font-bold">自定义技能</span>
           <button
             type="button"
             onClick={(e) => {
@@ -279,51 +302,46 @@ function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave,
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" />
               </svg>
-              创建能力
+              创建技能
             </span>
           </button>
         </div>
         <div className="collapse-content">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {Object.entries(ability)
-              .filter(([key]) => !basicKeys.includes(key) && !abilityKeys.includes(key) && key !== "behavior")
-              .map(([key, value]) => (
-                <div key={key} className="card bg-base-100 shadow-sm p-3 border border-base-200">
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium text-sm truncate" title={key}>{key}</div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={normalizeDisplay(value)}
-                        onChange={handleNumericInput(key, setAbility, scheduleSave)}
-                        onBlur={commitNumericOnBlur(key, setAbility, scheduleSave)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            commitNumericOnBlur(key, setAbility, scheduleSave)();
-                          }
-                        }}
-                        className="input input-bordered input-sm w-20"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newAbility = { ...ability } as any;
-                          delete newAbility[key];
-                          setAbility(newAbility);
-                          scheduleSave();
-                        }}
-                        className="btn btn-error btn-circle btn-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
+            {skillKeys.map(label => (
+              <div key={label} className="card bg-base-100 shadow-sm p-3 border border-base-200">
+                <div className="flex justify-between items-center">
+                  <div className="font-medium text-sm truncate" title={label}>{label}</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={normalizeDisplay(skill[label])}
+                      onChange={handleNumericInput(label, setSkill, scheduleSave)}
+                      onBlur={commitNumericOnBlur(label, setSkill, scheduleSave)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          commitNumericOnBlur(label, setSkill, scheduleSave)();
+                        }
+                      }}
+                      className="input input-bordered input-sm w-20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSkill = { ...skill } as any;
+                        delete newSkill[label];
+                        setSkill(newSkill);
+                        scheduleSave();
+                      }}
+                      className="btn btn-error btn-circle btn-xs"
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
-              ))}
-            {Object.entries(ability).filter(([key]) => !basicKeys.includes(key)).length === 0 && (
-              <div className="text-sm opacity-60 col-span-full text-center py-4">暂无自定义能力，点击“创建能力”添加</div>
-            )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -360,8 +378,10 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
-  const [ability, setAbility] = useState<Record<string, string>>(entityInfo.ability || {});
+  const [skill, setSkill] = useState<Record<string, string>>(entityInfo.skill || {});
   const [act, setAct] = useState<Record<string, string>>(entityInfo.act || {});
+  const [ability, setAbility] = useState<Record<string, string>>(entityInfo.ability || {});
+  const [basic, setBasic] = useState<Record<string, string>>(entityInfo.basic || {});
   // 角色名改为仅在列表中重命名，编辑器内不再直接编辑
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
@@ -384,15 +404,15 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
   // 获取规则详细
   const { data: ruleAbility } = useGetRuleDetailQuery(moduleInfo.data?.data?.ruleId as number);
-  const [showAbilityPopup, setShowAbilityPopup] = useState(false);
-  const [selectedAbilities, setSelectedAbilities] = useState<Record<string, number>>({});
+  const [showSkillPopup, setShowSkillPopup] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<Record<string, number>>({});
 
-  // 批量创建能力流程相关状态
-  const [showBatchCreateAbilityModal, setShowBatchCreateAbilityModal] = useState(false); // 填写能力
-  const [batchAbilities, setBatchAbilities] = useState<Array<{ id: string; name: string; value: number }>>([]);
+  // 批量创建技能流程相关状态
+  const [showBatchCreateSkillModal, setShowBatchCreateSkillModal] = useState(false); // 填写技能
+  const [batchSkills, setBatchSkills] = useState<Array<{ id: string; name: string; value: number }>>([]);
 
-  // 规则能力搜索框
-  const [abilitySearchQuery, setAbilitySearchQuery] = useState("");
+  // 规则技能搜索框
+  const [skillSearchQuery, setSkillSearchQuery] = useState("");
 
   // 不再使用编辑模式/同步 props 到 state 的副作用，初始值已从 props 派生
 
@@ -403,6 +423,8 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const localRoleRef = useRef(localRole);
   const abilityRef = useRef(ability);
   const actRef = useRef(act);
+  const basicRef = useRef(basic);
+  const skillRef = useRef(skill);
   // 名称不在此处编辑，保持与外部同步
   const nameRef = useRef(role.name);
   useEffect(() => {
@@ -479,7 +501,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
       }
-      const updatedRole = { ...localRoleRef.current, ability: abilityRef.current, act: actRef.current };
+      const updatedRole = { ...localRoleRef.current, ability: abilityRef.current, act: actRef.current, basic: basicRef.current, skill: skillRef.current };
       setIsTransitioning(false);
       // 先更新角色自身，成功后再同步引用与关闭标签，避免因移除标签导致保存函数不可用
       updateRole(
@@ -511,45 +533,45 @@ export default function NPCEdit({ role }: NPCEditProps) {
   }, []);
 
   // 处理添加能力
-  const handleAddAbilities = () => {
+  const handleAddSkills = () => {
     // 仅添加已勾选的能力（来自规则的预设能力）
-    const updatedAbility = { ...ability };
-    Object.entries(selectedAbilities).forEach(([key, value]) => {
+    const updatedSkill = { ...skill };
+    Object.entries(selectedSkills).forEach(([key, value]) => {
       if (key && value !== undefined) {
-        updatedAbility[key] = value.toString();
+        updatedSkill[key] = value.toString();
       }
     });
-    setAbility(updatedAbility);
-    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });
-    setSelectedAbilities({});
-    setShowAbilityPopup(false);
+    setSkill(updatedSkill);
+    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, skill: updatedSkill }, name: role.name });
+    setSelectedSkills({});
+    setShowSkillPopup(false);
   };
   // 提交批量创建
-  const handleConfirmBatchCreateAbilities = () => {
-    const updatedAbility = { ...ability } as Record<string, string>;
+  const handleConfirmBatchCreateSkills = () => {
+    const updatedSkills = { ...skill } as Record<string, string>;
     const duplicateNames: string[] = [];
     const invalidNames: string[] = [];
-    batchAbilities.forEach(({ name, value }, idx) => {
+    batchSkills.forEach(({ name, value }, idx) => {
       const trimmed = (name || "").trim();
       if (!trimmed) {
         invalidNames.push(`第${idx + 1}条`);
         return;
       }
-      if (Object.prototype.hasOwnProperty.call(updatedAbility, trimmed)) {
+      if (Object.prototype.hasOwnProperty.call(updatedSkills, trimmed)) {
         duplicateNames.push(trimmed);
         return;
       }
-      updatedAbility[trimmed] = Number.isFinite(value) ? value.toString() : "0";
+      updatedSkills[trimmed] = Number.isFinite(value) ? value.toString() : "0";
     });
-    setAbility(updatedAbility);
-    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });
-    setShowBatchCreateAbilityModal(false);
-    setShowAbilityPopup(false);
-    toast.success("批量创建能力完成");
+    setSkill(updatedSkills);
+    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, skill: updatedSkills }, name: role.name });
+    setShowBatchCreateSkillModal(false);
+    setShowSkillPopup(false);
+    toast.success("批量创建技能完成");
     if (duplicateNames.length) {
       toast.custom(() => (
         <div className="px-3 py-2 bg-base-200 rounded text-sm">
-          以下能力已存在，已跳过：
+          以下技能已存在，已跳过：
           {duplicateNames.join("、")}
         </div>
       ), { duration: 4000 });
@@ -851,16 +873,21 @@ export default function NPCEdit({ role }: NPCEditProps) {
               />
             </div>
           </div>
-          {/* 属性与自定义能力 */}
+          {/* 属性与自定义 */}
           <InlineExpansionModule
+            basic={basic}
+            setBasic={setBasic}
             ability={ability}
             setAbility={setAbility}
             act={act}
             setAct={setAct}
+            skill={skill}
+            setSkill={setSkill}
             scheduleSave={scheduleSave}
             basicDefaults={ruleAbility?.data?.basicDefault || {}}
             abilityDefaults={ruleAbility?.data?.abilityFormula || {}}
-            setShowAbilityPopup={setShowAbilityPopup}
+            skillDefaults={ruleAbility?.data?.skillDefault || {}}
+            setShowAbilityPopup={setShowSkillPopup}
           />
         </div>
       </div>
@@ -961,15 +988,15 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
       {/* 自定义能力弹窗 */}
       <PopWindow
-        isOpen={showAbilityPopup}
+        isOpen={showSkillPopup}
         onClose={() => {
-          setShowAbilityPopup(false);
-          setAbilitySearchQuery("");
+          setShowSkillPopup(false);
+          setSkillSearchQuery("");
         }}
         fullScreen={false}
       >
         <div className="space-y-4">
-          <h3 className="font-bold text-lg">选择能力</h3>
+          <h3 className="font-bold text-lg">选择技能</h3>
           <div className="flex gap-2">
             <label className="input flex items-center gap-2 w-full">
               <svg
@@ -986,32 +1013,32 @@ export default function NPCEdit({ role }: NPCEditProps) {
               <input
                 type="text"
                 className="grow"
-                placeholder="搜索能力..."
-                value={abilitySearchQuery}
-                onChange={e => setAbilitySearchQuery(e.target.value)}
+                placeholder="搜索技能..."
+                value={skillSearchQuery}
+                onChange={e => setSkillSearchQuery(e.target.value)}
               />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
             {Object.entries(ruleAbility?.data?.skillDefault || {})
               .filter(([key]) =>
-                key.toLowerCase().includes(abilitySearchQuery.toLowerCase()) || abilitySearchQuery === "",
+                key.toLowerCase().includes(skillSearchQuery.toLowerCase()) || skillSearchQuery === "",
               )
               .map(([key, value]) => {
-                const checked = Object.prototype.hasOwnProperty.call(selectedAbilities, key);
+                const checked = Object.prototype.hasOwnProperty.call(selectedSkills, key);
                 return (
                   <div key={key} className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      id={`ability-${key}`}
+                      id={`skill-${key}`}
                       checked={checked}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedAbilities(prev => ({ ...prev, [key]: Number(value) }));
+                          setSelectedSkills(prev => ({ ...prev, [key]: Number(value) }));
                         }
                         else {
-                          const { [key]: _, ...rest } = selectedAbilities;
-                          setSelectedAbilities(rest);
+                          const { [key]: _, ...rest } = selectedSkills;
+                          setSelectedSkills(rest);
                         }
                       }}
                       className="checkbox checkbox-sm"
@@ -1028,12 +1055,12 @@ export default function NPCEdit({ role }: NPCEditProps) {
               })}
           </div>
           {(() => {
-            const noAbilityMatch = abilitySearchQuery
+            const noSkillMatch = skillSearchQuery
               && Object.keys(ruleAbility?.data?.skillDefault || {})
-                .filter(k => k.toLowerCase().includes(abilitySearchQuery.toLowerCase()))
+                .filter(k => k.toLowerCase().includes(skillSearchQuery.toLowerCase()))
                 .length === 0;
-            return noAbilityMatch
-              ? <div className="text-center py-4 text-base-content/50">未找到匹配的能力</div>
+            return noSkillMatch
+              ? <div className="text-center py-4 text-base-content/50">未找到匹配的技能</div>
               : null;
           })()}
           <div className="flex justify-end gap-2">
@@ -1041,17 +1068,17 @@ export default function NPCEdit({ role }: NPCEditProps) {
               type="button"
               className="btn btn-accent"
               onClick={() => {
-                setShowBatchCreateAbilityModal(true);
-                setBatchAbilities(Array.from({ length: 1 }).map(() => ({ id: generateTempId(), name: "", value: 0 })));
+                setShowBatchCreateSkillModal(true);
+                setBatchSkills(Array.from({ length: 1 }).map(() => ({ id: generateTempId(), name: "", value: 0 })));
               }}
             >
-              创建新能力
+              创建新技能
             </button>
             <button
               type="button"
               onClick={() => {
-                setShowAbilityPopup(false);
-                setAbilitySearchQuery("");
+                setShowSkillPopup(false);
+                setSkillSearchQuery("");
               }}
               className="btn btn-secondary"
             >
@@ -1059,7 +1086,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
             </button>
             <button
               type="button"
-              onClick={handleAddAbilities}
+              onClick={handleAddSkills}
               className="btn btn-primary"
             >
               确认添加
@@ -1068,16 +1095,16 @@ export default function NPCEdit({ role }: NPCEditProps) {
         </div>
       </PopWindow>
 
-      {/* 创建能力: 批量填写 */}
+      {/* 创建技能: 批量填写 */}
       <PopWindow
-        isOpen={showBatchCreateAbilityModal}
-        onClose={() => setShowBatchCreateAbilityModal(false)}
+        isOpen={showBatchCreateSkillModal}
+        onClose={() => setShowBatchCreateSkillModal(false)}
         fullScreen={false}
       >
         <div className="space-y-4 w-full max-w-[520px]">
-          <h3 className="font-bold text-lg">创建新能力</h3>
+          <h3 className="font-bold text-lg">创建新技能</h3>
           <div className="max-h-[360px] overflow-y-auto pr-1 space-y-3">
-            {batchAbilities.map((item, idx) => (
+            {batchSkills.map((item, idx) => (
               <div
                 key={item.id}
                 className="flex items-center gap-2"
@@ -1090,7 +1117,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   value={item.name}
                   onChange={(e) => {
                     const v = e.target.value;
-                    setBatchAbilities(prev => prev.map((it, i) => (i === idx ? { ...it, name: v } : it)));
+                    setBatchSkills(prev => prev.map((it, i) => (i === idx ? { ...it, name: v } : it)));
                   }}
                 />
                 <input
@@ -1099,12 +1126,12 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   className="input input-bordered w-28"
                   inputMode="decimal"
                   value={normalizeDisplay(item.value)}
-                  onBlur={commitNumericOnBlur(item.name, setBatchAbilities)}
-                  onChange={handleNumericInput(item.name, setBatchAbilities)}
+                  onBlur={commitNumericOnBlur(item.name, setBatchSkills)}
+                  onChange={handleNumericInput(item.name, setBatchSkills)}
                 />
               </div>
             ))}
-            {batchAbilities.length === 0 && (
+            {batchSkills.length === 0 && (
               <div className="text-center text-sm opacity-60 py-6">未生成输入项</div>
             )}
           </div>
@@ -1113,7 +1140,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
               type="button"
               className="btn btn-ghost"
               onClick={() => {
-                setShowBatchCreateAbilityModal(false);
+                setShowBatchCreateSkillModal(false);
               }}
             >
               取消
@@ -1124,7 +1151,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                 className="btn btn-accent"
                 onClick={() => {
                   // 追加一行
-                  setBatchAbilities(prev => [...prev, { id: generateTempId(), name: "", value: 0 }]);
+                  setBatchSkills(prev => [...prev, { id: generateTempId(), name: "", value: 0 }]);
                 }}
               >
                 + 添加一行
@@ -1132,7 +1159,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={handleConfirmBatchCreateAbilities}
+                onClick={handleConfirmBatchCreateSkills}
               >
                 确认创建
               </button>
