@@ -12,7 +12,7 @@ import { useNavigate, useParams } from "react-router";
 import 教室图片 from "../home/images/教室.webp";
 import Author from "./author";
 import ContentTab from "./contentTab";
-import IssueTab from "./issueTab";
+// import IssueTab from "./issueTab";
 import userContent from "./readmeDemo.md?raw";
 
 export default function ModuleDetailComponent({ moduleData: propModuleData }: { moduleData?: ModuleData }) {
@@ -319,6 +319,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                     <button
                       type="button"
                       className="md:hidden cursor-pointer flex items-center px-3 py-2 border-2 border-accent bg-transparent font-bold text-sm overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0 ml-3"
+                      onClick={() => setIsGroupSelectOpen(true)}
                     >
                       <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
                       <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用</span>
@@ -340,7 +341,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                   </div>
                   <div className="divider m-0" />
                   {/* 模组简介 */}
-                  <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 md:text-white line-clamp-4">
+                  <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 md:text-white line-clamp-4 break-all whitespace-pre-wrap">
                     {moduleData.description}
                   </p>
                 </div>
@@ -363,7 +364,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                     </div>
                   </div>
                 )}
-                <div className="flex flex-col md:flex-row justify-center md:justify-start items-center mt-6 mb-6 gap-4">
+                <div className="flex flex-col md:flex-row justify-center md:justify-start items-center mt-6 md:mb-6 gap-4">
                   <Author userId={moduleData.userId} />
                   {/* 原有按钮 - 只在桌面端显示 */}
                   <button
@@ -406,19 +407,17 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
             </div>
             <div className="rounded-md overflow-hidden mb-4 flex flex-col gap-2">
               {/* 作者信息常规展示 */}
-              <div className="mb-2">
-                <div className="card w-full mb-4 md:mb-8">
+              {/* <div className="mb-2"> */}
+              {/* <div className="card w-full mb-4 md:mb-8">
                   <div className="card-body p-2">
                     <div className="flex flex-col gap-4">
-                      {/* 作者信息行 */}
                       <div className="flex flex-row items-center justify-center gap-4 w-full">
                       </div>
                     </div>
                   </div>
-                </div>
-                {/* 移动端按钮组 - 纵向排列 */}
-                <div className="flex flex-col gap-3 md:hidden">
-                  {/* Branch和Clone按钮行 */}
+                </div> */}
+              {/* 移动端按钮组 - 纵向排列 */}
+              {/* <div className="flex flex-col gap-3 md:hidden">
                   <div className="flex gap-2 justify-center">
                     <button type="button" className="btn btn-outline btn-ghost btn-sm rounded-md flex-1 max-w-32">
                       Branch
@@ -430,9 +429,8 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                       Clone
                     </button>
                   </div>
-                </div>
-
-              </div>
+                </div> */}
+              {/* </div> */}
               <div className="tabs tabs-border">
                 <label className="tab">
                   <input type="radio" name="moduleDetailTab" defaultChecked />
@@ -457,14 +455,13 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                   <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
                   </svg>
-                  Content
+                  模组内容
                 </label>
                 <div className="tab-content">
                   <ContentTab moduleInfo={moduleInfo} moduleId={Number(moduleId!)} isLoading={isLoading} error={error} />
                 </div>
-                <label className="tab">
+                {/* <label className="tab">
                   <input type="radio" name="moduleDetailTab" />
-                  {/* Issue/警告 icon */}
                   <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
@@ -472,7 +469,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                 </label>
                 <div className="tab-content bg-base-100">
                   <IssueTab />
-                </div>
+                </div> */}
               </div>
             </div>
             <PopWindow isOpen={isGroupSelectOpen} onClose={() => setIsGroupSelectOpen(false)}>
