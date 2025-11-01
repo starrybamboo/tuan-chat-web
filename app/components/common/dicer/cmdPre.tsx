@@ -101,6 +101,15 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     mentioned.push(operator);
     // 获取角色的能力列表
     const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
+      // try {
+      //   const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(roleId, ruleId);
+      //   const ability = abilityQuery.data;
+      //   return ability || {};
+      // }
+      // catch (e) {
+      //   console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
+      //   return {};
+      // }
       const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
       const abilityList = abilityQuery.data ?? [];
       const ability = abilityList.find(a => a.ruleId === ruleId);
