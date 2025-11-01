@@ -256,24 +256,45 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [LLMMessage, setLLMMessageRaw] = useState("");
   const isAutoCompletingRef = useRef(false);
   const hintNodeRef = useRef<HTMLSpanElement | null>(null); // Ref for the hint span itself
+  const justAcceptedRewriteRef = useRef(false); // 标记刚刚接受了重写，防止触发自动补全
+
+  // AI重写相关状态
+  const [originalTextBeforeRewrite, setOriginalTextBeforeRewrite] = useState(""); // 保存重写前的原文
 
   const setLLMMessage = (newLLMMessage: string) => {
     if (hintNodeRef.current) {
       hintNodeRef.current.remove(); // 移除旧的提示节点
     }
     setLLMMessageRaw(newLLMMessage);
+
+    // 创建容器用于包含补全文本和提示词
+    const containerNode = document.createElement("span");
+    containerNode.contentEditable = "false";
+    containerNode.style.pointerEvents = "none";
+
+    // 创建补全文本节点
     const hintNode = document.createElement("span");
     hintNode.textContent = newLLMMessage;
     hintNode.className = "opacity-60";
-    hintNode.contentEditable = "false";
-    hintNode.style.pointerEvents = "none";
+
+    // 创建提示词节点 (只在有补全内容时显示)
+    const tipsNode = document.createElement("span");
+    tipsNode.textContent = newLLMMessage ? " [Tab 接受]" : "";
+    tipsNode.className = "opacity-40 text-xs";
+    tipsNode.style.marginLeft = "4px";
+
+    // 将补全文本和提示词添加到容器
+    containerNode.appendChild(hintNode);
+    if (newLLMMessage) {
+      containerNode.appendChild(tipsNode);
+    }
 
     // *** 调用 ref API 插入节点 ***
-    chatInputRef.current?.insertNodeAtCursor(hintNode);
-    hintNodeRef.current = hintNode; // 保存对新节点的引用
+    chatInputRef.current?.insertNodeAtCursor(containerNode);
+    hintNodeRef.current = containerNode; // 保存对新节点的引用
 
     const handleInput = () => {
-      hintNode.remove();
+      containerNode.remove();
       chatInputRef.current?.getRawElement()?.removeEventListener("input", handleInput);
       isAutoCompletingRef.current = false;
       hintNodeRef.current = null;
@@ -330,10 +351,78 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       hintNodeRef.current = null;
     }
 
-    // 插入纯文本
-    chatInputRef.current.insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
+    // 检查是否是重写模式（有原文保存）
+    if (originalTextBeforeRewrite) {
+      // 重写模式：直接设置为重写后的文本
+      const rewriteText = LLMMessage.replace(/\u200B/g, ""); // 移除零宽字符
+      setInputText(rewriteText);
+      // 同步更新 DOM
+      if (chatInputRef.current?.getRawElement()) {
+        chatInputRef.current.getRawElement()!.textContent = rewriteText;
+      }
+      setOriginalTextBeforeRewrite(""); // 清空原文记录
+      justAcceptedRewriteRef.current = true; // 标记刚刚接受了重写
+      toast.success("已接受重写");
+    }
+    else {
+      // 补全模式：插入到光标位置
+      chatInputRef.current.insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
+    }
+
     setLLMMessage(""); // 清空补全状态
     chatInputRef.current.triggerSync(); // 手动触发同步，更新父组件的 inputText 状态
+  };
+
+  // AI重写：显示为虚影预览
+  const handleQuickRewrite = async (prompt: string) => {
+    if (!inputText.trim()) {
+      toast.error("请先输入内容");
+      return;
+    }
+
+    // 如果已有虚影补全，先清除
+    if (LLMMessage) {
+      setLLMMessage("");
+    }
+
+    setOriginalTextBeforeRewrite(inputText); // 保存原文
+
+    try {
+      const fullPrompt = `${prompt}\n\n请根据上述要求重写以下文本：\n${inputText}`;
+
+      // 清空输入框，插入零宽字符作为锚点
+      const rawElement = chatInputRef.current?.getRawElement();
+      if (rawElement) {
+        rawElement.textContent = "\u200B"; // 零宽空格
+        rawElement.focus();
+        // 光标移到末尾
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(rawElement);
+        range.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+      setInputText("\u200B");
+
+      sendLlmStreamMessage(fullPrompt, (newContent) => {
+        // 先清除零宽字符
+        if (rawElement && rawElement.textContent === "\u200B") {
+          rawElement.textContent = "";
+        }
+        // 显示为虚影
+        setLLMMessage(newContent);
+        return true;
+      });
+
+      toast.success("重写完成，按 Tab 接受或 Esc 取消");
+    }
+    catch (error) {
+      toast.error(`AI重写失败: ${error}`);
+      // 恢复原文
+      setInputText(originalTextBeforeRewrite);
+      setOriginalTextBeforeRewrite("");
+    }
   };
 
   /**
@@ -460,6 +549,16 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
     }
 
+    // Esc 键：取消重写，恢复原文
+    if (e.key === "Escape" && originalTextBeforeRewrite) {
+      e.preventDefault();
+      setInputText(originalTextBeforeRewrite);
+      setOriginalTextBeforeRewrite("");
+      setLLMMessage("");
+      toast("已取消重写", { icon: "ℹ️" });
+      return;
+    }
+
     // 如果 @ 控制器未处理，则继续执行原始逻辑
     if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
       e.preventDefault();
@@ -479,6 +578,18 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const handleKeyUp = (e: React.KeyboardEvent) => {
     // 总是通知 @ 控制器关于 keyup 事件
     atMentionRef.current?.onKeyUp(e);
+
+    // 按Tab键触发虚影补全（但不在刚接受重写后触发，也不在输入只有零宽字符时触发）
+    const hasRealContent = inputText.trim() && inputText !== "\u200B";
+    if (e.key === "Tab" && !LLMMessage && !isAutoCompletingRef.current && hasRealContent && !justAcceptedRewriteRef.current) {
+      e.preventDefault();
+      autoComplete();
+    }
+
+    // 重置刚接受重写的标记
+    if (e.key === "Tab" && justAcceptedRewriteRef.current) {
+      justAcceptedRewriteRef.current = false;
+    }
 
     // 快捷键阻止 (父组件逻辑)
     if (e.ctrlKey || e.metaKey) {
@@ -509,7 +620,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     ? "你是观战成员，不能发送消息"
     : (noRole
         ? "请先拉入你的角色，之后才能发送消息。"
-        : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"));
+        : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"));
 
   return (
     <RoomContext value={roomContext}>
@@ -569,7 +680,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   updateImgFiles={updateImgFiles}
                   disableSendMessage={disableSendMessage}
                   handleMessageSubmit={handleMessageSubmit}
-                  autoComplete={autoComplete}
+                  onAIRewrite={handleQuickRewrite}
                   currentChatStatus={myStatue as any}
                   onChangeChatStatus={handleManualStatusChange}
                   isSpectator={isSpectator}
