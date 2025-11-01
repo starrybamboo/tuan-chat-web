@@ -13,7 +13,7 @@ export default function ModuleForm({ register, errors }: {
           placeholder=""
           {...register("authorName", {
             required: "模组作者是必填项",
-            maxLength: { value: 20, message: "作者名不能超过20个字符" },
+            maxLength: { value: 255, message: "作者名不能超过255个字符" },
           })}
         />
         <p className="label text-sm text-error">{errors.authorName?.message}</p>
@@ -27,7 +27,7 @@ export default function ModuleForm({ register, errors }: {
           placeholder=""
           {...register("moduleName", {
             required: "模组名称是必填项",
-            maxLength: { value: 20, message: "模组名不能超过20个字符" },
+            maxLength: { value: 255, message: "模组名不能超过255个字符" },
           })}
         />
         <p className="label text-sm text-error">{errors.moduleName?.message}</p>
