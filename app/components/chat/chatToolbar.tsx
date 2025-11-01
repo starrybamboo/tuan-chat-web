@@ -25,7 +25,8 @@ interface ChatToolbarProps {
   disableSendMessage: boolean;
   handleMessageSubmit: () => void;
 
-  autoComplete: () => void;
+  // AI重写：支持直接使用预设提示词或打开自定义对话框
+  onAIRewrite?: (prompt: string) => void; // 直接使用提示词重写
   // 新增：当前聊天状态 & 手动切换
   currentChatStatus: "idle" | "input" | "wait" | "leave";
   onChangeChatStatus: (status: "idle" | "input" | "wait" | "leave") => void;
@@ -40,7 +41,7 @@ export function ChatToolbar({
   updateImgFiles,
   disableSendMessage,
   handleMessageSubmit,
-  autoComplete,
+  onAIRewrite,
   currentChatStatus,
   onChangeChatStatus,
   isSpectator = false,
@@ -170,18 +171,82 @@ export function ChatToolbar({
           </div>
         </ImgUploader>
 
-        <div className="tooltip" data-tip="AI帮写">
-          <SparklesOutline
-            className="size-7 cursor-pointer jump_icon"
-            onMouseDown={(e) => {
-              e.preventDefault(); // 防止失去焦点
-            }}
+        {/* AI重写分离按钮 */}
+        <div className="flex items-center gap-1">
+          {/* 主按钮：默认重写 */}
+          <div
+            className="tooltip"
+            data-tip="AI重写（默认优化）"
             onClick={(e) => {
               e.preventDefault();
-              autoComplete();
+              const prompt = localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅";
+              onAIRewrite?.(prompt);
             }}
           >
-          </SparklesOutline>
+            <SparklesOutline className="size-7 cursor-pointer jump_icon" />
+          </div>
+
+          {/* 自定义提示词弹出框 */}
+          <details
+            className="dropdown dropdown-top"
+            style={{ pointerEvents: "auto" }}
+          >
+            <summary
+              tabIndex={3}
+              className="cursor-pointer list-none hover:opacity-80"
+              style={{ pointerEvents: "auto", zIndex: 100, position: "relative" }}
+            >
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M7 10l5 5 5-5z" />
+              </svg>
+            </summary>
+            <div
+              tabIndex={3}
+              className="dropdown-content bg-base-100 rounded-box z-50 p-3 shadow-lg border border-base-300"
+              style={{ width: "320px", zIndex: 9999, position: "absolute" }}
+            >
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">自定义AI重写提示词</label>
+                <textarea
+                  className="textarea textarea-bordered w-full h-20 text-sm"
+                  placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
+                  defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
+                  onBlur={(e) => {
+                    // 保存到本地存储
+                    if (e.target.value.trim()) {
+                      localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
+                    }
+                  }}
+                  onClick={e => e.stopPropagation()}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const textarea = e.currentTarget.previousElementSibling as HTMLTextAreaElement;
+                    const prompt = textarea?.value.trim();
+                    if (prompt) {
+                      localStorage.setItem("ai-rewrite-prompt", prompt);
+                      onAIRewrite?.(prompt);
+                      // 关闭弹出框
+                      const details = e.currentTarget.closest("details");
+                      if (details) {
+                        details.removeAttribute("open");
+                      }
+                    }
+                  }}
+                >
+                  开始重写
+                </button>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
 
