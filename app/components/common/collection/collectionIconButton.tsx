@@ -12,6 +12,7 @@ import {
   useDeleteCollectionMutation,
   useGetCollectionCountQuery,
   useGetUserCollectionListsQuery,
+  useRemoveFromListMutation,
 } from "../../../../api/hooks/collectionQueryHooks";
 import toastWindow from "../toastWindow/toastWindow";
 
@@ -58,11 +59,7 @@ function CollectionListPop({ resourceId, resourceType }: CollectionListPopProps)
       toast.success("收藏成功！");
     }
     catch (error) {
-      // 打印出完整的错误信息，以便检查后端返回的错误详情（通常在 error.response 或 error.message 中）
-      console.error("收藏失败的详细错误:", error);
-      // 尝试显示具体的错误信息，如果后端有提供
-      const errorMessage = (error as any)?.body?.message || (error as any)?.message || "请检查控制台获取详细错误。";
-      toast.error(`收藏失败: ${errorMessage}`);
+      console.error("收藏失败:", error);
       toast.error("收藏失败，请重试！");
     }
   };
@@ -107,6 +104,7 @@ function CollectionListPop({ resourceId, resourceType }: CollectionListPopProps)
     </div>
   );
 };
+
 interface CollectionIconButtonProps {
   targetInfo: CollectionCheckRequest;
   className?: string;
@@ -121,9 +119,15 @@ export default function CollectionIconButton({
   collectionCount: initialCount, // 优先使用已有值
 }: CollectionIconButtonProps) {
   // 查询用户收藏状态
-
   const isCollectedQuery = useCheckUserCollectionQuery(targetInfo);
-  const [isCollected, setIsCollected] = useState(isCollectedQuery.data?.data ?? false); // 优先 false
+  const initialIsCollected = isCollectedQuery?.data?.data ?? 0;
+  const GetCollectionId = isCollectedQuery?.data?.data ?? 0;
+  const [isCollected, setIsCollected] = useState(initialIsCollected);
+  useEffect(() => {
+    if (typeof isCollectedQuery?.data?.data === "number") {
+      setIsCollected(isCollectedQuery.data?.data);
+    }
+  }, [isCollectedQuery.data]);
 
   // 查询收藏数
   const countData = useGetCollectionCountQuery(
@@ -138,13 +142,31 @@ export default function CollectionIconButton({
     }
   }, [countData]);
 
-  // const addCollectionMutation = useAddCollectionMutation();
+  // 取消收藏
   const deleteCollectionMutation = useDeleteCollectionMutation();
+  const removeFromListMutation = useRemoveFromListMutation();
+  const handleDeleteCollection = async (collectionId: number, listId?: number) => {
+    try {
+      await deleteCollectionMutation.mutateAsync(collectionId);
+      if (!collectionId) {
+        toast.error("无法获取收藏ID，请重试！");
+        return;
+      }
+      if (!listId) {
+        toast.error("取消收藏成功，但无法获取收藏列表");
+        return;
+      }
+      await removeFromListMutation.mutateAsync({ collectionListId: listId, collectionId });
+    }
+    catch (error) {
+      console.error("取消收藏失败:", error);
 
+      toast.error("取消收藏失败，请重试！");
+    }
+  };
+  // 点击收藏按钮
   const userId: number | null = useGlobalContext().userId;
-
-  // 收藏弹窗
-  const toggleCollection = () => {
+  const toggleCollection = (collectionId: number) => {
     const showCollectionList = () => {
       toastWindow(_close => (<CollectionListPop resourceId={targetInfo.resourceId} resourceType={targetInfo.resourceType} />));
     };
@@ -153,9 +175,9 @@ export default function CollectionIconButton({
       return;
     }
     if (isCollected) {
-      setIsCollected(false);
+      setIsCollected(0);
       setCollectionCount(prev => prev - 1);
-      deleteCollectionMutation.mutate(targetInfo.resourceId);
+      handleDeleteCollection(collectionId);
     }
     else {
       showCollectionList();
@@ -164,7 +186,7 @@ export default function CollectionIconButton({
 
   return (
     <button
-      onClick={() => toggleCollection()}
+      onClick={() => toggleCollection(GetCollectionId)}
       className={`flex items-center justify-center ${
         direction === "row" ? "flex-row gap-1" : "flex-col"
       } ${className}`}
