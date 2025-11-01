@@ -61,9 +61,6 @@ export default function MainWork() {
               <EditModule />
             </div>
           </div>
-          {/* <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden">
-            AI 面板
-          </div> */}
         </div>
       </div>
     </ModuleProvider>

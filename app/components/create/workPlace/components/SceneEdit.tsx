@@ -85,7 +85,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel, setTabSaveFunction, currentSelectedTabId, setIsCommitted } = useModuleContext();
 
   // 获取所有实体
   const { data: entities } = useQueryEntitiesQuery(stageId as number);
@@ -169,6 +169,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     nameDebounceTimer.current = setTimeout(() => {
       updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: val }, {
         onSuccess: () => {
+          setIsCommitted(false);
           if (mapDataRef.current) {
             const oldMap = { ...mapDataRef.current.entityInfo?.sceneMap } as Record<string, any>;
             const newMap: Record<string, any> = {};
@@ -383,6 +384,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         {
           onSuccess: () => {
             toast.success("场景保存成功");
+            setIsCommitted(false);
             setTimeout(() => endSelectionLock(), 300);
           },
           onError: () => {

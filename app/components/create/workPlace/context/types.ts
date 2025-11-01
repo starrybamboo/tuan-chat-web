@@ -24,6 +24,10 @@ export type ModuleContextType = {
   endSelectionLock: () => void;
   /** 设置当前 tab 的保存函数 */
   setTabSaveFunction: (fn: () => void) => void;
+  // 状态
+  /** 是否已提交（用于驱动 UI 渲染） */
+  isCommitted: boolean;
+  setIsCommitted: (val: boolean) => void;
 };
 
 /**
