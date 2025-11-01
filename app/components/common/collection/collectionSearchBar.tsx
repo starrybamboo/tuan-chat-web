@@ -4,7 +4,7 @@ import { useState } from "react";
 export default function CollectionSearchBar() {
   const [showFilters, setShowFilters] = useState(false);
   return (
-    <div className="flex w-full justify-start md:justify-center lg:justify-center items-center px-4 md:px-0 lg:px-0">
+    <div className="flex w-full justify-center max-w-[90vw] items-center mr-8 md:px-0 lg:px-0">
       {/* 按类型筛选 */}
       <div className="relative" onMouseEnter={() => setShowFilters(true)} onMouseLeave={() => setShowFilters(false)}>
         <button type="button" className="cursor-pointer mr-4"><Filter className="h-6 w-6" /></button>
