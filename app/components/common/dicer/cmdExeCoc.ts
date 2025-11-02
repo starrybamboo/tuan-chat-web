@@ -1,6 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
-import UNTIL from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils";
 
 // 属性名中英文对照表
 // noinspection NonAsciiCharacters
@@ -56,7 +56,7 @@ const cmdRc = new CommandExecutor(
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
-    const isForceToasted = UNTIL.doesHaveArg(args, "h");
+    const isForceToasted = UTILS.doesHaveArg(args, "h");
 
     // 解析参数
     const signedNumbers: string[] = [];
@@ -117,7 +117,7 @@ const cmdRc = new CommandExecutor(
       return false;
     }
 
-    let value = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, name) || "");
+    let value = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, name) || "");
 
     if ((value === undefined || Number.isNaN(value)) && attr === undefined && !bonus) {
       cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
@@ -164,7 +164,7 @@ const cmdRcb = new CommandExecutor(
   async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     args = args.map(arg => arg.toLowerCase());
-    const isForceToasted = UNTIL.doesHaveArg(args, "h");
+    const isForceToasted = UTILS.doesHaveArg(args, "h");
 
     const signedNumbers: string[] = [];
     const names: string[] = [];
@@ -218,7 +218,7 @@ const cmdRcb = new CommandExecutor(
     }
 
     // 从角色数据中获取技能基础值
-    const baseSkillValue = name ? (UNTIL.getRoleAbilityValue(curAbility, name) || "") : "";
+    const baseSkillValue = name ? (UTILS.getRoleAbilityValue(curAbility, name) || "") : "";
     let skillValue: number;
 
     // 情况1：有技能名 → 优先用角色数据中的技能值
@@ -281,7 +281,7 @@ const cmdRcp = new CommandExecutor(
   async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     args = args.map(arg => arg.toLowerCase());
-    const isForceToasted = UNTIL.doesHaveArg(args, "h");
+    const isForceToasted = UTILS.doesHaveArg(args, "h");
 
     const signedNumbers: string[] = [];
     const names: string[] = [];
@@ -328,7 +328,7 @@ const cmdRcp = new CommandExecutor(
       name = ABILITY_MAP[name.toLowerCase()];
     }
 
-    const baseSkillValue = name ? (UNTIL.getRoleAbilityValue(curAbility, name) || "") : "";
+    const baseSkillValue = name ? (UTILS.getRoleAbilityValue(curAbility, name) || "") : "";
     let skillValue: number;
 
     if (name) {
@@ -492,7 +492,7 @@ const cmdRch = new CommandExecutor(
       name = ABILITY_MAP[name.toLowerCase()];
     }
 
-    const baseSkillValue = name ? (UNTIL.getRoleAbilityValue(curAbility, name) || "") : "";
+    const baseSkillValue = name ? (UTILS.getRoleAbilityValue(curAbility, name) || "") : "";
     let skillValue: number;
 
     if (name) {
@@ -546,7 +546,7 @@ const cmdEn = new CommandExecutor(
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
-    const _isForceToasted = UNTIL.doesHaveArg(args, "h");
+    const _isForceToasted = UTILS.doesHaveArg(args, "h");
     // 解析参数
     // 1. 以正负号开头的数字
     const signedNumbers = args.filter(str => /^[+-]\d+(?:\.\d+)?$/.test(str));
@@ -576,7 +576,7 @@ const cmdEn = new CommandExecutor(
       return false;
     }
 
-    let value = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, name) || "");
+    let value = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, name) || "");
 
     if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
       cpi.sendMsg(prop, `错误：未找到技能或属性`);
@@ -601,7 +601,7 @@ const cmdEn = new CommandExecutor(
     let improveAmount = 0;
     if (doNeedImprove) {
       improveAmount = Math.floor(Math.random() * 10) + 1;
-      UNTIL.setRoleAbilityValue(curAbility, name, String(value + improveAmount), "skill");
+      UTILS.setRoleAbilityValue(curAbility, name, String(value + improveAmount), "skill");
       cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
       result += `\n${name}成长：${value} -> ${value + improveAmount}`;
     }
@@ -845,7 +845,7 @@ const cmdSt = new CommandExecutor(
       for (const prop of showProps) {
         const normalizedKey = prop.toLowerCase();
         const key = ABILITY_MAP[normalizedKey] || prop;
-        const value = UNTIL.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
+        const value = UTILS.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
 
         result.push(`${key}: ${value}`);
       }
@@ -864,7 +864,7 @@ const cmdSt = new CommandExecutor(
       const normalizedKey = rawKey.toLowerCase();
       const key = ABILITY_MAP[normalizedKey] || rawKey;
 
-      const currentValue = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
+      const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;
 
       if (operator === "+") {
@@ -886,7 +886,7 @@ const cmdSt = new CommandExecutor(
       };
 
       // 更新属性
-      UNTIL.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
+      UTILS.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
     }
     // 生成包含变化过程的提示信息
     const changeEntries = Object.entries(abilityChanges)

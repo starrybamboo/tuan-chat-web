@@ -1,4 +1,4 @@
-import UNTIL from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import {
@@ -121,11 +121,11 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
 
       // 查找映射关系
       if (ABILITY_MAP[normalizedKey]) {
-        UNTIL.setRoleAbilityValue(curAbility, ABILITY_MAP[normalizedKey], String(value), "skill");
+        UTILS.setRoleAbilityValue(curAbility, ABILITY_MAP[normalizedKey], String(value), "skill");
         abilityToUpdate.set(ABILITY_MAP[normalizedKey], String(value));
       }
       else {
-        UNTIL.setRoleAbilityValue(curAbility, rawKey, String(value), "skill");
+        UTILS.setRoleAbilityValue(curAbility, rawKey, String(value), "skill");
         abilityToUpdate.set(rawKey, String(value));
       }
     }
