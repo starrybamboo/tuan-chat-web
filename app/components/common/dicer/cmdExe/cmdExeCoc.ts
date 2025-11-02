@@ -1,6 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
-import UTILS from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 
 // 属性名中英文对照表
 // noinspection NonAsciiCharacters
@@ -42,6 +42,7 @@ const executorCoc = new RuleNameSpace(
   "coc7",
   ["coc", "coc7th"],
   "COC7版规则的指令集",
+  new Map<string, string>(Object.entries(ABILITY_MAP)),
 );
 
 export default executorCoc;

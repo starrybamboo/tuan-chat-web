@@ -1,6 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { roll } from "@/components/common/dicer/dice";
-import UTILS from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 
 const executorPublic = new RuleNameSpace(
   0,

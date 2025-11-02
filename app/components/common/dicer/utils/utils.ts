@@ -1,3 +1,5 @@
+import { AliasMap } from "@/components/common/dicer/utils/aliasMap";
+
 const UTILS = {
   /** 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false */
   doesHaveArg: (args: string[], arg: string) => {
@@ -82,6 +84,12 @@ const UTILS = {
     }
   },
   calculateExpression,
+  initAliasMap: (aliasMapSet: { [key: string]: Map <string, string> }): void => {
+    AliasMap.getInstance(aliasMapSet);
+  },
+  getAlias(alias: string, ruleCode: string) {
+    return AliasMap.getInstance().getAlias(alias, ruleCode);
+  },
 };
 
 export default UTILS;
@@ -256,7 +264,8 @@ function shuntingYard(tokens: string[], role: RoleAbility): (number | string)[] 
     }
     // 变量替换为对应的值，未定义则为0
     else if (!/[+\-*/()]/.test(token)) {
-      const value = UTILS.getRoleAbilityValue(role, token) ?? 0;
+      const fmtToken = UTILS.getAlias(token, String(role.ruleId));
+      const value = UTILS.getRoleAbilityValue(role, fmtToken) ?? 0;
       output.push(Number(value)); // 确保是数字类型
     }
     // 左括号入栈

@@ -1,7 +1,7 @@
 import { roll } from "@/components/common/dicer/dice";
-import UTILS from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 
-import { CommandExecutor, RuleNameSpace } from "./cmd";
+import { CommandExecutor, RuleNameSpace } from "../cmd";
 
 // noinspection NonAsciiCharacters
 const PROPERTY_NAMES_MAP: Record<string, string> = {
@@ -49,6 +49,7 @@ const executorFu = new RuleNameSpace(
   "fu",
   ["最终物语"],
   "最终物语规则的指令集",
+  new Map<string, string>(Object.entries(PROPERTY_NAMES_MAP)),
 );
 
 export default executorFu;

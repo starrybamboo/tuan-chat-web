@@ -137,6 +137,7 @@ interface RuleNameSpace { // eslint-disable-line ts/consistent-type-definitions
   alias: string[];
   description: string;
   cmdMap: Map<string, CommandExecutor>;
+  aliasMap: Map<string, string>;
 
   /**
    * 添加命令到命名空间
