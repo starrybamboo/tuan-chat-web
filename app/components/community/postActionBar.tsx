@@ -110,7 +110,7 @@ export default function PostActionBar({
 
   return (
     <CommentContext value={commentContext}>
-      <div className={`md:bg-base-100 md:rounded-lg md:border md:border-base-200 md:shadow-sm fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 shadow-lg z-50 md:static md:border-t-0 md:shadow-sm ${className}`}>
+      <div className={`md:bg-base-100 md:rounded-lg md:border md:border-base-200 fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 shadow-lg z-50 md:static md:border-t-0 md:shadow-sm ${className}`}>
         {/* 评论输入框和操作按钮 */}
         <div className="px-4 py-3 md:px-6 md:py-4">
           {/* 评论输入框 */}
