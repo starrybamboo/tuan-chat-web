@@ -13,6 +13,6 @@ export type CollectionCheckRequest = {
     /**
      * 资源类型
      */
-    resourceType: string;
+    resourceType: number; //实际上是byte
 };
 
