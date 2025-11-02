@@ -1,4 +1,4 @@
-import UTILS from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import {
