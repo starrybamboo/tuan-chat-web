@@ -122,29 +122,34 @@ export default function CollectionPage() {
             <li>评论</li>
             <li>模组</li>
           </ul>
-          <div className="grid grid-cols-3 auto-rows-[10px] gap-5">
-            {isLoading
+          {isLoading
+            ? (
+                <div className="flex justify-center items-center mt-20">
+                  <span className="loading loading-spinner loading-lg "></span>
+                  <div>加载中...</div>
+                </div>
+              )
+            : isError
               ? (
-                  "加载中..."
+                  "加载失败！"
                 )
-              : isError
+              : collections && collections.length === 0
                 ? (
-                    "加载失败！"
+                    "空空如也"
                   )
-                : collections && collections.length === 0
-                  ? (
-                      "空空如也"
-                    )
-                  : collections?.map(c => (
-                    <CollectionPreview
-                      key={c?.collectionId}
-                      collectionId={c?.collectionId}
-                      resourceId={c?.resourceId}
-                      collectionTypeId={c?.resourceId}
-                      collectTime={String(c?.createTime)}
-                    />
-                  ))}
-          </div>
+                : (
+                    <div className="grid grid-cols-3 auto-rows-[10px] gap-5">
+                      {collections?.map(c => (
+                        <CollectionPreview
+                          key={c?.collectionId}
+                          collectionId={c?.collectionId}
+                          resourceId={c?.resourceId}
+                          collectionTypeId={c?.resourceId}
+                          collectTime={String(c?.createTime)}
+                        />
+                      ))}
+                    </div>
+                  )}
         </div>
       </div>
     </div>

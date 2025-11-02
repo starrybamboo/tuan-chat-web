@@ -18,7 +18,7 @@ export default function CollectionPreview({ collectionId, resourceId, collection
   });
 
   // 卡片动态高度
-  const BASE_ROW_HEIGHT = 10; // 基础行高
+  const BASE_ROW_HEIGHT = 25; // 基础行高
   const [span, setSpan] = useState(10);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +29,7 @@ export default function CollectionPreview({ collectionId, resourceId, collection
         setSpan(Math.ceil(actualHeight / BASE_ROW_HEIGHT));
       }
     },
-    [span, previewRef],
+    [previewRef],
   );
 
   const handleClick = () => {
@@ -55,7 +55,8 @@ export default function CollectionPreview({ collectionId, resourceId, collection
   };
   return (
     <article
-      className={`bg-base-100 border border-base-300 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden row-span-[${span}]`}
+      className={`bg-base-100 border border-base-300 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden `}
+      style={{ gridRowEnd: `span ${span}` }}
       onClick={handleClick}
       ref={previewRef}
     >
@@ -65,7 +66,7 @@ export default function CollectionPreview({ collectionId, resourceId, collection
         <div className="relative rounded-lg overflow-hidden w-full">
           {(collectionTypeId === 2) && (
             <div className="flex items-center justify-center w-full h-full text-sm text-gray-500">
-              <img src="http://39.103.58.31:9000/avatar/avatar/5275ec2f0e6ba166343a5ec60c5674d8_31076.webp"></img>
+              <img src="http://101.126.143.129:9000/avatar/avatar/5275ec2f0e6ba166343a5ec60c5674d8_31076.webp" className="object-cover w-full h-40"></img>
             </div>
           )}
         </div>
