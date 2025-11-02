@@ -166,6 +166,8 @@ function getRoleAbilityValueAuto(role: RoleAbility, key: string): string | undef
  * @throws 当表达式无效或计算出错时抛出错误
  */
 function calculateExpression(expression: string, role: RoleAbility): number {
+  // 去除表达式中的空格
+  expression = expression.replace(/\s+/g, "");
   // 词法分析：将表达式拆分为token
   const tokens = tokenize(expression);
 
