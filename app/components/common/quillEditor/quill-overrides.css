@@ -3,12 +3,17 @@
   min-height: 80vh; /* 使内部容器可继承外层 min-height */
 }
 
-/* 全局基准变量（可被外层覆盖）。如果你想要 10vw，这里设置 10vw；建议后面用 clamp 控制上限。 */
+/* 全局基准变量(可被外层覆盖)。如果你想要 10vw,这里设置 10vw;建议后面用 clamp 控制上限。 */
 :root {
-  /* 基准 20px；使用 vmin 自适配（以较小边为参考），限制范围避免极端抖动 */
-  /* 计算：在 1680x(>=1680) 情况下 1vmin = 16.8px，因此 20px ≈ 1.19vmin */
-  --ql-base-size: clamp(18px, 1.2vmin, 26px);
-  /* 如需更大放大曲线，可改成 clamp(18px, 1.4vmin, 32px); */
+  /* 移动端基准:更小的字体 14-16px */
+  --ql-base-size: clamp(14px, 3.5vw, 16px);
+}
+
+/* 桌面端基准:保持原有大小 18-26px */
+@media (min-width: 768px) {
+  :root {
+    --ql-base-size: clamp(18px, 1.2vmin, 26px);
+  }
 }
 /* Quill 会在容器内创建 .ql-container 和 .ql-editor，这里同步继承高度 */
 .ql-wrapper .ql-container {

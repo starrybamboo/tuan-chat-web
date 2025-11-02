@@ -435,37 +435,54 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                   </div>
                 </div> */}
               {/* </div> */}
-              <div className="flex flex-col">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="tabs tabs-border md:tabs-lg flex-1">
+              <div className="flex flex-col mt-2 md:mt-0">
+                {/* 权限选择器 - 移动端在上方，桌面端在右侧 */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  {/* 权限选择器 - 移动端显示在上方 */}
+                  <label className="flex md:hidden items-center justify-start gap-2 ml-2 text-sm font-medium text-base-content/70 w-full">
+                    <span>查看权限</span>
+                    <select
+                      className="select select-sm rounded-md w-20 bg-base-300/40 border-0 ring-1 focus:outline-none focus:ring-2 focus:border-primary"
+                      value={contentPermission}
+                      onChange={event => setContentPermission(event.target.value as ContentPermission)}
+                    >
+                      <option value="player">玩家</option>
+                      <option value="kp">KP</option>
+                    </select>
+                  </label>
+
+                  {/* Tabs 区域 */}
+                  <div className="tabs tabs-border md:tabs-lg flex-1 w-full md:w-auto">
                     <button
                       type="button"
-                      className={`tab ${activeTab === "readme" ? "tab-active" : ""}`}
+                      className={`tab flex-1 md:flex-initial ${activeTab === "readme" ? "tab-active" : ""}`}
                       onClick={() => setActiveTab("readme")}
                     >
                       {/* 文档/内容 icon */}
-                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-1 md:me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 4v16h12V8.828A2 2 0 0 0 17.414 7.414l-3.828-3.828A2 2 0 0 0 12.172 3H6a2 2 0 0 0-2 2z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h8" />
                       </svg>
-                      Readme
+                      <span className="text-sm md:text-base">Readme</span>
                     </button>
                     <button
                       type="button"
-                      className={`tab ${activeTab === "content" ? "tab-active" : ""}`}
+                      className={`tab flex-1 md:flex-initial ${activeTab === "content" ? "tab-active" : ""}`}
                       onClick={() => setActiveTab("content")}
                     >
                       {/* 文件夹 icon */}
-                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-1 md:me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
                       </svg>
-                      模组内容
+                      <span className="text-sm md:text-base">模组内容</span>
                     </button>
                   </div>
-                  <label className="flex items-center gap-4 text-lg font-medium text-base-content/70">
+
+                  {/* 权限选择器 - 桌面端显示在右侧 */}
+                  <label className="hidden md:flex items-center gap-4 text-lg font-medium text-base-content/70">
                     <span>查看权限</span>
                     <select
-                      className="select select-sm rounded-md w-24 mr-2 bg-base-300/40 border-0 ring-1 focus:outline-none focus:ring-2 focus:border-primary "
+                      className="select select-sm rounded-md w-24 mr-2 bg-base-300/40 border-0 ring-1 focus:outline-none focus:ring-2 focus:border-primary"
                       value={contentPermission}
                       onChange={event => setContentPermission(event.target.value as ContentPermission)}
                     >
