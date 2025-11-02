@@ -25,7 +25,7 @@ const nodeTypes = {
 };
 
 export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterSave?: (fn: () => void) => void }) {
-  const { stageId } = useModuleContext();
+  const { stageId, setIsCommitted } = useModuleContext();
   // 接入接口
   const { data, isLoading, error } = useQueryEntitiesQuery(stageId as number);
   const { mutate: updateMap } = useUpdateEntityMutation(stageId as number);
@@ -93,6 +93,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
               sceneMap: updatedSceneMap,
             },
           });
+          setIsCommitted(false);
 
           return updatedSceneMap;
         });
@@ -100,6 +101,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
 
       setEdges(eds => applyEdgeChanges(changes, eds));
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [edges, map, updateMap],
   );
 
@@ -165,6 +167,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
             sceneMap: updatedSceneMap,
           },
         });
+        setIsCommitted(false);
 
         return updatedSceneMap;
       });
@@ -172,6 +175,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
     }
 
     edgeReconnectSuccessful.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, updateMap]);
 
   // 处理重连操作
@@ -210,11 +214,13 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
           sceneMap: updatedSceneMap,
         },
       });
+      setIsCommitted(false);
 
       return updatedSceneMap;
     });
 
     setEdges(els => reconnectEdge(oldEdge, newConnection, els));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, updateMap]);
 
   // 处理从外部拖拽到节点上的功能
@@ -308,13 +314,14 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
 
         // 显示成功提示
         toast.success(`已将${typeText}「${draggedItem.name}」添加到场景「${sceneData.name}」`);
+        setIsCommitted(false);
       }
     }
     catch (error) {
       console.error("Error handling drop:", error);
       toast.error("拖拽添加失败，请重试");
     }
-  }, [data, updateMap]);
+  }, [data?.data, setIsCommitted, updateMap]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();

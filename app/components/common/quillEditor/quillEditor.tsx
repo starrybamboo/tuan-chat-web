@@ -6,12 +6,16 @@ import { useModuleContext } from "@/components/create/workPlace/context/_moduleC
 import { BaselineAutoAwesomeMotion } from "@/icons";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
+import useQuillCore from "./hooks/useQuillCore";
 import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlTagWysiwyg";
 import { htmlToMarkdown } from "./htmlToMarkdown";
 import { backendContentToQuillHtml, markdownToHtmlWithEntities } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
+import { registerBlots } from "./modules/quillBlots";
+import { preloadQuill } from "./modules/quillLoader";
 import { restoreRawHtml } from "./restoreRawHtml";
 import { InlineMenu, SelectionMenu } from "./toolbar";
+import { createLogger } from "./utils/logger";
 import {
   detectAlignment,
   detectInlineFormats,
@@ -52,90 +56,21 @@ interface vditorProps {
   debugSelection?: boolean;
 }
 
-// 顶层预加载句柄，避免重复导入
-let vditorPromise: Promise<any> | null = null;
+// 顶层预加载句柄，避免重复导入（由 modules/quillLoader 接管）
 // 全局标记避免重复注册
-let mentionBlotRegistered = false;
-let hrBlotRegistered = false;
-
+// Wrap new blots registration with idempotent module to keep call sites unchanged
 function registerMentionBlot(Q: any) {
-  if (Q && !mentionBlotRegistered) {
-    try {
-      const Embed = Q.import("blots/embed");
-      class MentionBlot extends Embed {
-        static blotName = "mention-span";
-        static tagName = "span";
-        static className = "ql-mention-span";
-
-        static create(value: any) {
-          const node = super.create();
-          node.setAttribute("data-label", value?.label || "");
-          node.setAttribute("data-category", value?.category || "");
-          node.textContent = value?.label || "";
-          const cat = value?.category || "";
-          const colorMap: Record<string, { bg: string; color: string }> = {
-            人物: { bg: "#fef3c7", color: "#92400e" },
-            地点: { bg: "#d1fae5", color: "#065f46" },
-            物品: { bg: "#e0f2fe", color: "#075985" },
-          };
-          let bg = "#eef2ff";
-          let fg = "#4338ca";
-          if (cat && colorMap[cat]) {
-            bg = colorMap[cat].bg;
-            fg = colorMap[cat].color;
-          }
-          (node as HTMLElement).style.background = bg;
-          (node as HTMLElement).style.padding = "0 4px";
-          (node as HTMLElement).style.borderRadius = "4px";
-          (node as HTMLElement).style.color = fg;
-          (node as HTMLElement).style.fontSize = "0.85em";
-          (node as HTMLElement).style.userSelect = "none";
-          return node;
-        }
-
-        static value(node: HTMLElement) {
-          return {
-            label: node.getAttribute("data-label") || node.textContent || "",
-            category: node.getAttribute("data-category") || "",
-          };
-        }
-      }
-      Q.register(MentionBlot);
-      mentionBlotRegistered = true;
-    }
-    catch { /* ignore */ }
+  try {
+    const log = createLogger("CORE/Blots", { domainKey: "CORE" });
+    registerBlots(Q, log);
   }
-  if (Q && !hrBlotRegistered) {
-    try {
-      const BlockEmbed = Q.import("blots/block/embed");
-      class HrBlot extends BlockEmbed {
-        static blotName = "hr";
-        static tagName = "hr";
-        static className = "ql-hr";
-        static create() {
-          const node = super.create();
-          (node as HTMLElement).setAttribute("contenteditable", "false");
-          return node;
-        }
-      }
-      Q.register(HrBlot);
-      hrBlotRegistered = true;
-    }
-    catch { /* ignore */ }
+  catch {
+    // ignore
   }
 }
 
 function preloadVeditor() {
-  if (typeof window === "undefined")
-    return null;
-  if (!vditorPromise) {
-    vditorPromise = import("quill").then((mod) => {
-      const Q = (mod as any)?.default ?? mod;
-      registerMentionBlot(Q);
-      return mod;
-    });
-  }
-  return vditorPromise;
+  return preloadQuill(createLogger("CORE/Loader", { domainKey: "CORE" }));
 }
 
 // 顶层预热：模块加载后尽快预热（空闲时），减少首次打开编辑器的等待
@@ -244,6 +179,8 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
   const allEntities = allEntitiesResp?.data || [];
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // 挂载核心：由 useQuillCore 负责懒加载与实例创建（带调试日志）
+  const { quillRef: coreQuillRef, ready: coreReady } = useQuillCore({ containerRef });
   const floatingTbRef = useRef<HTMLDivElement | null>(null);
   // 提供稳定引用，供事件处理器中调用，避免依赖项警告
   const scheduleToolbarUpdateRef = useRef<() => void>(() => { });
@@ -252,6 +189,18 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
   const [tbLeft, setTbLeft] = useState(0);
   // 编辑器实例是否已就绪（用于在就绪后再绑定滚动/尺寸监听）
   const [editorReady, setEditorReady] = useState(false);
+  // 将核心 hook 的实例与就绪态同步给现有变量/状态，避免大面积改动
+  useEffect(() => {
+    if (coreQuillRef?.current) {
+      // 映射到旧的 quillRef，以复用现有逻辑
+      (quillRef as any).current = coreQuillRef.current as any;
+    }
+    if (coreReady) {
+      const id = requestAnimationFrame(() => setEditorReady(true));
+      return () => cancelAnimationFrame(id);
+    }
+    return undefined;
+  }, [coreReady, coreQuillRef]);
   // 供组件内任意位置调用的工具栏位置更新函数
   const updateToolbarPosRef = useRef<((idx: number) => void) | null>(null);
   // 用于在下一帧刷新工具栏位置（避免读取到旧的布局）
@@ -966,7 +915,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       const mod = await preloadVeditor();
       const Q = (mod?.default ?? mod) as any;
       registerMentionBlot(Q);
-      if (!Q || quillRef.current || !container) {
+      if (!Q || !container) {
         return;
       }
       // 防御：若容器内已存在旧的 Quill DOM（例如严格模式下的首次装载后立即卸载再装载），先清空
@@ -978,25 +927,27 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       catch {
         // ignore
       }
-
-      quillRef.current = new Q(container, {
-        theme: "snow",
-        modules: {
-          toolbar: false,
-          // 统一以 delta 处理，Clipboard 配置最小化；自定义粘贴在 root paste 事件中完成
-          clipboard: {
-            matchVisual: false,
+      // 若核心 hook 已创建实例，则直接复用；否则按原逻辑创建
+      if (!quillRef.current) {
+        quillRef.current = new Q(container, {
+          theme: "snow",
+          modules: {
+            toolbar: false,
+            // 统一以 delta 处理，Clipboard 配置最小化；自定义粘贴在 root paste 事件中完成
+            clipboard: {
+              matchVisual: false,
+            },
+            // 启用 Quill 内置撤销/重做栈，避免浏览器原生撤销导致一次性清空
+            // userOnly:true 表示仅记录用户触发(source === 'user')的变更，
+            // 初始加载/外部导入使用 'api' / 'silent' 不会进入历史，从而 Ctrl+Z 不会回退到“空”状态
+            history: {
+              delay: 800,
+              maxStack: 500,
+              userOnly: true,
+            },
           },
-          // 启用 Quill 内置撤销/重做栈，避免浏览器原生撤销导致一次性清空
-          // userOnly:true 表示仅记录用户触发(source === 'user')的变更，
-          // 初始加载/外部导入使用 'api' / 'silent' 不会进入历史，从而 Ctrl+Z 不会回退到“空”状态
-          history: {
-            delay: 800,
-            maxStack: 500,
-            userOnly: true,
-          },
-        },
-      });
+        });
+      }
       const editor = quillRef.current!;
       // 聚焦编辑器，确保键盘事件由编辑器接收
       editor.focus?.();

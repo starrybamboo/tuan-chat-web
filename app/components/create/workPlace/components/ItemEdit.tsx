@@ -15,7 +15,7 @@ interface ItemEditProps {
 
 export default function ItemEdit({ item }: ItemEditProps) {
   const entityInfo = useMemo(() => item.entityInfo || {}, [item.entityInfo]);
-  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId, setIsCommitted } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
 
@@ -147,6 +147,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
         {
           onSuccess: () => {
             toast.success("物品保存成功");
+            setIsCommitted(false);
             endSelectionLock();
           },
         },

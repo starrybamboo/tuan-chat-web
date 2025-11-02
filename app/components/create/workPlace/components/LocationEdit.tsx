@@ -16,7 +16,7 @@ interface LocationEditProps {
 
 export default function LocationEdit({ location }: LocationEditProps) {
   const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
-  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId, setIsCommitted } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
 
@@ -147,6 +147,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
         {
           onSuccess: () => {
             toast.success("地点保存成功");
+            setIsCommitted(true);
           },
         },
       );
