@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import UTILS from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 
 import type { Role } from "../../types";
 import type { CharacterData } from "../types";
