@@ -102,7 +102,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     // 获取角色的能力列表
     const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
       try {
-        const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(roleId, ruleId);
+        const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
         const ability = abilityQuery.data;
         return ability || {};
       }
