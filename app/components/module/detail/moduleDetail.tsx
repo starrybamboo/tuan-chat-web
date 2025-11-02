@@ -1,4 +1,5 @@
 import type { ModuleData } from "./constants";
+import type { ContentPermission } from "./ContentTab/ContentPermissionContext";
 import { PopWindow } from "@/components/common/popWindow";
 import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -12,7 +13,8 @@ import { useNavigate, useParams } from "react-router";
 import 教室图片 from "../home/images/教室.webp";
 import Author from "./author";
 import ContentTab from "./contentTab";
-import IssueTab from "./issueTab";
+import { ContentPermissionContext } from "./ContentTab/ContentPermissionContext";
+// import IssueTab from "./issueTab";
 import userContent from "./readmeDemo.md?raw";
 
 export default function ModuleDetailComponent({ moduleData: propModuleData }: { moduleData?: ModuleData }) {
@@ -31,6 +33,8 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
   // 获取 moduleInfo 数据
   const { data: moduleInfoData, isLoading, error } = useModuleInfoQuery(Number(moduleId!));
   const moduleInfo = useMemo(() => moduleInfoData?.data?.responses || [], [moduleInfoData]);
+  const [contentPermission, setContentPermission] = useState<ContentPermission>("player");
+  const [activeTab, setActiveTab] = useState<"readme" | "content">("readme");
 
   // 获取用户Id
   const globalContext = useGlobalContext();
@@ -319,6 +323,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                     <button
                       type="button"
                       className="md:hidden cursor-pointer flex items-center px-3 py-2 border-2 border-accent bg-transparent font-bold text-sm overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0 ml-3"
+                      onClick={() => setIsGroupSelectOpen(true)}
                     >
                       <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
                       <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用</span>
@@ -340,7 +345,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                   </div>
                   <div className="divider m-0" />
                   {/* 模组简介 */}
-                  <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 md:text-white line-clamp-4">
+                  <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 md:text-white line-clamp-4 break-all whitespace-pre-wrap">
                     {moduleData.description}
                   </p>
                 </div>
@@ -363,7 +368,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                     </div>
                   </div>
                 )}
-                <div className="flex flex-col md:flex-row justify-center md:justify-start items-center mt-6 mb-6 gap-4">
+                <div className="flex flex-col md:flex-row justify-center md:justify-start items-center mt-6 md:mb-6 gap-4">
                   <Author userId={moduleData.userId} />
                   {/* 原有按钮 - 只在桌面端显示 */}
                   <button
@@ -406,19 +411,17 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
             </div>
             <div className="rounded-md overflow-hidden mb-4 flex flex-col gap-2">
               {/* 作者信息常规展示 */}
-              <div className="mb-2">
-                <div className="card w-full mb-4 md:mb-8">
+              {/* <div className="mb-2"> */}
+              {/* <div className="card w-full mb-4 md:mb-8">
                   <div className="card-body p-2">
                     <div className="flex flex-col gap-4">
-                      {/* 作者信息行 */}
                       <div className="flex flex-row items-center justify-center gap-4 w-full">
                       </div>
                     </div>
                   </div>
-                </div>
-                {/* 移动端按钮组 - 纵向排列 */}
-                <div className="flex flex-col gap-3 md:hidden">
-                  {/* Branch和Clone按钮行 */}
+                </div> */}
+              {/* 移动端按钮组 - 纵向排列 */}
+              {/* <div className="flex flex-col gap-3 md:hidden">
                   <div className="flex gap-2 justify-center">
                     <button type="button" className="btn btn-outline btn-ghost btn-sm rounded-md flex-1 max-w-32">
                       Branch
@@ -430,48 +433,78 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                       Clone
                     </button>
                   </div>
-                </div>
+                </div> */}
+              {/* </div> */}
+              <div className="flex flex-col mt-2 md:mt-0">
+                {/* 权限选择器 - 移动端在上方，桌面端在右侧 */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  {/* 权限选择器 - 移动端显示在上方 */}
+                  <label className="flex md:hidden items-center justify-start gap-2 ml-2 text-sm font-medium text-base-content/70 w-full">
+                    <span>查看权限</span>
+                    <select
+                      className="select select-sm rounded-md w-20 bg-base-300/40 border-0 ring-1 focus:outline-none focus:ring-2 focus:border-primary"
+                      value={contentPermission}
+                      onChange={event => setContentPermission(event.target.value as ContentPermission)}
+                    >
+                      <option value="player">玩家</option>
+                      <option value="kp">KP</option>
+                    </select>
+                  </label>
 
-              </div>
-              <div className="tabs tabs-border">
-                <label className="tab">
-                  <input type="radio" name="moduleDetailTab" defaultChecked />
-                  {/* 文档/内容 icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 4v16h12V8.828A2 2 0 0 0 17.414 7.414l-3.828-3.828A2 2 0 0 0 12.172 3H6a2 2 0 0 0-2 2z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h8" />
-                  </svg>
-                  Readme
-                </label>
-                <div className="tab-content">
-                  <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
-                    {/* 使用 MarkdownMentionViewer 显示用户内容 */}
-                    <MarkdownMentionViewer
-                      markdown={moduleData.readMe ? moduleData.readMe : userContent}
-                    />
+                  {/* Tabs 区域 */}
+                  <div className="tabs tabs-border md:tabs-lg flex-1 w-full md:w-auto">
+                    <button
+                      type="button"
+                      className={`tab flex-1 md:flex-initial ${activeTab === "readme" ? "tab-active" : ""}`}
+                      onClick={() => setActiveTab("readme")}
+                    >
+                      {/* 文档/内容 icon */}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-1 md:me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 4v16h12V8.828A2 2 0 0 0 17.414 7.414l-3.828-3.828A2 2 0 0 0 12.172 3H6a2 2 0 0 0-2 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h8" />
+                      </svg>
+                      <span className="text-sm md:text-base">Readme</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`tab flex-1 md:flex-initial ${activeTab === "content" ? "tab-active" : ""}`}
+                      onClick={() => setActiveTab("content")}
+                    >
+                      {/* 文件夹 icon */}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-1 md:me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                      </svg>
+                      <span className="text-sm md:text-base">模组内容</span>
+                    </button>
                   </div>
+
+                  {/* 权限选择器 - 桌面端显示在右侧 */}
+                  <label className="hidden md:flex items-center gap-4 text-lg font-medium text-base-content/70">
+                    <span>查看权限</span>
+                    <select
+                      className="select select-sm rounded-md w-24 mr-2 bg-base-300/40 border-0 ring-1 focus:outline-none focus:ring-2 focus:border-primary"
+                      value={contentPermission}
+                      onChange={event => setContentPermission(event.target.value as ContentPermission)}
+                    >
+                      <option value="player">玩家</option>
+                      <option value="kp">KP</option>
+                    </select>
+                  </label>
                 </div>
-                <label className="tab">
-                  <input type="radio" name="moduleDetailTab" />
-                  {/* 文件夹 icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                  </svg>
-                  Content
-                </label>
-                <div className="tab-content">
-                  <ContentTab moduleInfo={moduleInfo} moduleId={Number(moduleId!)} isLoading={isLoading} error={error} />
-                </div>
-                <label className="tab">
-                  <input type="radio" name="moduleDetailTab" />
-                  {/* Issue/警告 icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  Issue
-                </label>
-                <div className="tab-content bg-base-100">
-                  <IssueTab />
+                <div className="w-full">
+                  {activeTab === "readme" && (
+                    <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
+                      {/* 使用 MarkdownMentionViewer 显示用户内容 */}
+                      <MarkdownMentionViewer
+                        markdown={moduleData.readMe ? moduleData.readMe : userContent}
+                      />
+                    </div>
+                  )}
+                  {activeTab === "content" && (
+                    <ContentPermissionContext value={contentPermission}>
+                      <ContentTab moduleInfo={moduleInfo} moduleId={Number(moduleId!)} isLoading={isLoading} error={error} />
+                    </ContentPermissionContext>
+                  )}
                 </div>
               </div>
             </div>

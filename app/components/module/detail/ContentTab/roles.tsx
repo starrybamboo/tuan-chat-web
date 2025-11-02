@@ -2,6 +2,7 @@ import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useRoleAvatarQuery } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
+import { useContentPermission } from "./ContentPermissionContext";
 
 // 可折叠组件
 function CollapsibleSection({
@@ -175,34 +176,13 @@ function SelectedAvatar({ avatarId }: { avatarId?: number }) {
 function RoleDetail(
   { name, roleList }: { name: string; roleList: any[] },
 ) {
-  // 管理选中的头像状态
-  const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
-
-  // 通过 name 查找角色
   const roleData = roleList.find(role => role.name === name);
   const roleInfo = roleData?.entityInfo;
+  const permission = useContentPermission();
+  const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
 
-  // 创建设置头像的回调函数
-  const updateSelectedAvatar = useCallback(() => {
-    if (roleInfo?.avatarIds && roleInfo.avatarIds.length > 0) {
-      const newAvatarId = roleInfo.avatarIds[0];
-      setSelectedAvatarId((prev) => {
-        // 只有当前选中的头像不在新的头像列表中时才重置
-        if (!prev || !roleInfo.avatarIds.includes(prev)) {
-          return newAvatarId;
-        }
-        return prev;
-      });
-    }
-    else {
-      setSelectedAvatarId(() => undefined);
-    }
-  }, [roleInfo?.avatarIds]);
-
-  // 当角色切换时，重置为第一个头像
-  useEffect(() => {
-    updateSelectedAvatar();
-  }, [name, updateSelectedAvatar]);
+  const defaultAvatarId = roleInfo?.avatarIds?.[0];
+  const activeAvatarId = roleInfo?.avatarIds?.includes(selectedAvatarId ?? -1) ? selectedAvatarId : defaultAvatarId;
 
   if (!name) {
     return (
@@ -274,7 +254,7 @@ function RoleDetail(
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
         <div className="hidden md:block">
           <div className="flex items-center gap-4">
-            <SelectedAvatar avatarId={selectedAvatarId} />
+            <SelectedAvatar avatarId={activeAvatarId} />
             <h1 className="text-2xl md:text-3xl font-bold ">{roleData.name || "未命名"}</h1>
             <span className="px-3 py-1 text-sm md:text-base bg-accent/10  rounded-full whitespace-nowrap">
               {getRoleTypeText(roleInfo.type)}
@@ -293,7 +273,7 @@ function RoleDetail(
             <h4 className="text-xs md:text-sm font-medium text-base-content/60">头像列表</h4>
             <AvatarList
               avatarIds={roleInfo.avatarIds}
-              selectedAvatarId={selectedAvatarId}
+              selectedAvatarId={activeAvatarId}
               onAvatarSelect={setSelectedAvatarId}
             />
           </div>
@@ -321,7 +301,7 @@ function RoleDetail(
           </div>
         )}
         {/* KP提示（如果有，统一为ItemDetail样式） */}
-        {roleInfo.tip && (
+        {permission === "kp" && roleInfo.tip && (
           <div className="w-full">
             <h4 className="font-semibold text-base md:text-lg mb-2 text-orange-600">KP提示</h4>
             <p className="text-gray-700 bg-orange-50 p-3 rounded-lg border-l-4 border-orange-200 text-sm md:text-base">

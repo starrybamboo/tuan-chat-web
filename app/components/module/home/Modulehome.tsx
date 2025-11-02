@@ -243,7 +243,6 @@ export default function ModuleHome() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState("");
   const itemsPerPage = 12; // 每页显示12个模组
 
   // // 当前活跃的背景图片状态
@@ -296,41 +295,21 @@ export default function ModuleHome() {
       }));
   }, [moduleData, RuleList]);
 
-  // 前端搜索过滤
+  // 前端分页（移除搜索过滤）
   const filteredItems = useMemo(() => {
-    if (!searchKeyword.trim()) {
-      return allItems;
-    }
-
-    const keyword = searchKeyword.toLowerCase().trim();
-    return allItems.filter(item =>
-      item.title?.toLowerCase().includes(keyword)
-      || item.content?.toLowerCase().includes(keyword)
-      || item.authorName?.toLowerCase().includes(keyword)
-      || item.rule?.toLowerCase().includes(keyword),
-    );
-  }, [allItems, searchKeyword]);
+    return allItems;
+  }, [allItems]);
 
   // 计算总页数（使用 API 返回的总记录数）
   const totalPages = useMemo(() => {
-    // 如果有搜索关键词，使用前端过滤后的结果计算
-    if (searchKeyword.trim()) {
-      return Math.ceil(filteredItems.length / itemsPerPage);
-    }
-    // 否则使用后端返回的总记录数
     return Math.ceil((moduleData?.totalRecords || 0) / itemsPerPage);
-  }, [moduleData?.totalRecords, filteredItems.length, itemsPerPage, searchKeyword]);
+  }, [moduleData?.totalRecords, itemsPerPage]);
 
   // 当前页显示的数据
   const currentItems = useMemo(() => {
-    // 如果有搜索关键词，使用前端分页
-    if (searchKeyword.trim()) {
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      return filteredItems.slice(startIndex, startIndex + itemsPerPage);
-    }
-    // 否则直接使用后端分页返回的数据
+    // 直接使用后端分页返回的数据
     return filteredItems;
-  }, [filteredItems, currentPage, itemsPerPage, searchKeyword]);
+  }, [filteredItems]);
 
   const [imagesReady, setImagesReady] = useState(false);
 
@@ -370,12 +349,6 @@ export default function ModuleHome() {
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  };
-
-  // 处理搜索
-  const handleSearch = (value: string) => {
-    setSearchKeyword(value);
-    setCurrentPage(1); // 搜索时重置到第一页
   };
 
   return (
@@ -450,29 +423,6 @@ export default function ModuleHome() {
                 模组列表
               </h1>
               <div className="ml-auto flex items-center">
-                <div className="relative w-32 md:w-64 ml-6">
-                  <input
-                    type="text"
-                    className="input input-sm w-full pl-10 bg-base-200 border-2 border-base-300 focus:border-primary focus:bg-base-100 transition-colors"
-                    placeholder="搜索模组..."
-                    value={searchKeyword}
-                    onChange={e => handleSearch(e.target.value)}
-                  />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60 pointer-events-none">
-                    <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <g
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                        strokeWidth="2.5"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="m21 21-4.3-4.3"></path>
-                      </g>
-                    </svg>
-                  </span>
-                </div>
                 {/* 移动端筛选图标 */}
                 <button
                   type="button"
@@ -508,7 +458,6 @@ export default function ModuleHome() {
                       onClick={() => {
                         setSelectedRuleId(selectedRuleId === rule.ruleId ? null : rule.ruleId ?? null);
                         setCurrentPage(1);
-                        setSearchKeyword(""); // 切换规则时清空搜索
                       }}
                     >
                       {rule.ruleName ?? "未命名规则"}

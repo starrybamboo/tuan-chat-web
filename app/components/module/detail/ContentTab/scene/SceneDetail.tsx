@@ -1,4 +1,5 @@
 import React from "react";
+import { useContentPermission } from "../ContentPermissionContext";
 
 interface SceneDetailProps {
   data: {
@@ -14,6 +15,8 @@ interface SceneDetailProps {
 }
 
 const SceneDetail: React.FC<SceneDetailProps> = ({ data }) => {
+  const permission = useContentPermission();
+
   return (
     <div className="flex flex-col items-center gap-4 p-4 max-w-2xl">
       <h3 className="text-xl font-bold text-center">{data.label}</h3>
@@ -40,7 +43,7 @@ const SceneDetail: React.FC<SceneDetailProps> = ({ data }) => {
       )}
 
       {/* KP提示 */}
-      {data.tip && (
+      {permission === "kp" && data.tip && (
         <div className="w-full">
           <h4 className="font-semibold text-lg mb-2 text-orange-600">剧情详细</h4>
           <p className="text-gray-700 bg-orange-50 p-3 rounded-lg border-l-4 border-orange-200">

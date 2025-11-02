@@ -61,8 +61,8 @@ export default function Author({ userId }: { userId?: number }) {
             )
           : (
               <>
-                <h3 className="card-title text-lg whitespace-nowrap">{data.name}</h3>
-                <p className="text-sm text-base-content/80 whitespace-nowrap overflow-hidden text-ellipsis">{data.description}</p>
+                <h3 className="card-title text-lg overflow-hidden text-ellipsis">{data.name}</h3>
+                <p className="text-sm text-base-content/80 line-clamp-3">{data.description}</p>
               </>
             )}
       </div>
