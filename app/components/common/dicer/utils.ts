@@ -1,4 +1,4 @@
-const UNTIL = {
+const UTILS = {
   /** 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false */
   doesHaveArg: (args: string[], arg: string) => {
     // 转化为小写并去除空格
@@ -84,7 +84,7 @@ const UNTIL = {
   calculateExpression,
 };
 
-export default UNTIL;
+export default UTILS;
 
 /**
  * 根据角色能力值自动设置角色能力，会依次遍历basic、ability、skill中的键，如果没有找到则设置到default_type中
@@ -166,6 +166,8 @@ function getRoleAbilityValueAuto(role: RoleAbility, key: string): string | undef
  * @throws 当表达式无效或计算出错时抛出错误
  */
 function calculateExpression(expression: string, role: RoleAbility): number {
+  // 去除表达式中的空格
+  expression = expression.replace(/\s+/g, "");
   // 词法分析：将表达式拆分为token
   const tokens = tokenize(expression);
 
@@ -209,6 +211,10 @@ function tokenize(expression: string): string[] {
       tokens.push(char);
       i++;
     }
+    // 处理空白符
+    else if (/[ \t\n\r]/.test(char)) {
+      i++;
+    }
     // 处理变量（非数字和运算符的字符）
     else {
       let variable = char;
@@ -250,7 +256,7 @@ function shuntingYard(tokens: string[], role: RoleAbility): (number | string)[] 
     }
     // 变量替换为对应的值，未定义则为0
     else if (!/[+\-*/()]/.test(token)) {
-      const value = UNTIL.getRoleAbilityValue(role, token) ?? 0;
+      const value = UTILS.getRoleAbilityValue(role, token) ?? 0;
       output.push(Number(value)); // 确保是数字类型
     }
     // 左括号入栈

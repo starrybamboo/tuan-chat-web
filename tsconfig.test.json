@@ -15,7 +15,7 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "skipLibCheck": true
   },
   "include": [
