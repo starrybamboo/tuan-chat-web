@@ -18,7 +18,7 @@
 }
 
 .ql-wrapper .ql-editor {
-  min-height: inherit; /* 关键：编辑区随容器伸展 */
+  min-height: inherit; /* 关键:编辑区随容器伸展 */
   padding: 1.190476vw 1.428571vw; /* 20px 24px */
   line-height: 1.45; /* 回调高少许易读性 */
   font-size: var(--ql-base-size) !important;
@@ -288,6 +288,7 @@
   --mm-link-visited: #4f46e5;
   --mm-link-hover: #1d4ed8;
   --mm-list-indent-step: 1.1em;
+  font-size: var(--ql-base-size); /* 使用与编辑器相同的基准字体 */
 }
 .mention-markdown h1,
 .mention-markdown h2,
@@ -297,13 +298,13 @@
   margin: 0.9em 0 0.5em;
 }
 .mention-markdown h1 {
-  font-size: 1.9rem;
+  font-size: calc(var(--ql-base-size) * 2); /* 与编辑器保持一致 */
 }
 .mention-markdown h2 {
-  font-size: 1.55rem;
+  font-size: calc(var(--ql-base-size) * 1.5); /* 与编辑器保持一致 */
 }
 .mention-markdown h3 {
-  font-size: 1.3rem;
+  font-size: calc(var(--ql-base-size) * 1.17); /* 与编辑器保持一致 */
 }
 .mention-markdown p {
   margin: 0.6em 0;

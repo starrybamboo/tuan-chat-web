@@ -440,7 +440,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                   <div className="tabs tabs-border md:tabs-lg flex-1">
                     <button
                       type="button"
-                      className={`tab ${activeTab === "readme" ? "tab-active !border-accent" : ""}`}
+                      className={`tab ${activeTab === "readme" ? "tab-active" : ""}`}
                       onClick={() => setActiveTab("readme")}
                     >
                       {/* 文档/内容 icon */}
@@ -452,7 +452,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                     </button>
                     <button
                       type="button"
-                      className={`tab ${activeTab === "content" ? "tab-active !border-accent" : ""}`}
+                      className={`tab ${activeTab === "content" ? "tab-active" : ""}`}
                       onClick={() => setActiveTab("content")}
                     >
                       {/* 文件夹 icon */}
