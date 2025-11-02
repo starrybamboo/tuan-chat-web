@@ -1,4 +1,5 @@
 import type { ModuleData } from "./constants";
+import type { ContentPermission } from "./ContentTab/ContentPermissionContext";
 import { PopWindow } from "@/components/common/popWindow";
 import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -12,6 +13,7 @@ import { useNavigate, useParams } from "react-router";
 import 教室图片 from "../home/images/教室.webp";
 import Author from "./author";
 import ContentTab from "./contentTab";
+import { ContentPermissionContext } from "./ContentTab/ContentPermissionContext";
 // import IssueTab from "./issueTab";
 import userContent from "./readmeDemo.md?raw";
 
@@ -31,6 +33,8 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
   // 获取 moduleInfo 数据
   const { data: moduleInfoData, isLoading, error } = useModuleInfoQuery(Number(moduleId!));
   const moduleInfo = useMemo(() => moduleInfoData?.data?.responses || [], [moduleInfoData]);
+  const [contentPermission, setContentPermission] = useState<ContentPermission>("player");
+  const [activeTab, setActiveTab] = useState<"readme" | "content">("readme");
 
   // 获取用户Id
   const globalContext = useGlobalContext();
@@ -431,45 +435,60 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
                   </div>
                 </div> */}
               {/* </div> */}
-              <div className="tabs tabs-border">
-                <label className="tab">
-                  <input type="radio" name="moduleDetailTab" defaultChecked />
-                  {/* 文档/内容 icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 4v16h12V8.828A2 2 0 0 0 17.414 7.414l-3.828-3.828A2 2 0 0 0 12.172 3H6a2 2 0 0 0-2 2z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h8" />
-                  </svg>
-                  Readme
-                </label>
-                <div className="tab-content">
-                  <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
-                    {/* 使用 MarkdownMentionViewer 显示用户内容 */}
-                    <MarkdownMentionViewer
-                      markdown={moduleData.readMe ? moduleData.readMe : userContent}
-                    />
+              <div className="flex flex-col">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="tabs tabs-border md:tabs-lg flex-1">
+                    <button
+                      type="button"
+                      className={`tab ${activeTab === "readme" ? "tab-active !border-accent" : ""}`}
+                      onClick={() => setActiveTab("readme")}
+                    >
+                      {/* 文档/内容 icon */}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 4v16h12V8.828A2 2 0 0 0 17.414 7.414l-3.828-3.828A2 2 0 0 0 12.172 3H6a2 2 0 0 0-2 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h8" />
+                      </svg>
+                      Readme
+                    </button>
+                    <button
+                      type="button"
+                      className={`tab ${activeTab === "content" ? "tab-active !border-accent" : ""}`}
+                      onClick={() => setActiveTab("content")}
+                    >
+                      {/* 文件夹 icon */}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                      </svg>
+                      模组内容
+                    </button>
                   </div>
+                  <label className="flex items-center gap-4 text-lg font-medium text-base-content/70">
+                    <span>查看权限</span>
+                    <select
+                      className="select select-sm rounded-md w-24 mr-2 bg-base-300/40 border-0 ring-1 focus:outline-none focus:ring-2 focus:border-primary "
+                      value={contentPermission}
+                      onChange={event => setContentPermission(event.target.value as ContentPermission)}
+                    >
+                      <option value="player">玩家</option>
+                      <option value="kp">KP</option>
+                    </select>
+                  </label>
                 </div>
-                <label className="tab">
-                  <input type="radio" name="moduleDetailTab" />
-                  {/* 文件夹 icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                  </svg>
-                  模组内容
-                </label>
-                <div className="tab-content">
-                  <ContentTab moduleInfo={moduleInfo} moduleId={Number(moduleId!)} isLoading={isLoading} error={error} />
+                <div className="w-full">
+                  {activeTab === "readme" && (
+                    <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
+                      {/* 使用 MarkdownMentionViewer 显示用户内容 */}
+                      <MarkdownMentionViewer
+                        markdown={moduleData.readMe ? moduleData.readMe : userContent}
+                      />
+                    </div>
+                  )}
+                  {activeTab === "content" && (
+                    <ContentPermissionContext value={contentPermission}>
+                      <ContentTab moduleInfo={moduleInfo} moduleId={Number(moduleId!)} isLoading={isLoading} error={error} />
+                    </ContentPermissionContext>
+                  )}
                 </div>
-                {/* <label className="tab">
-                  <input type="radio" name="moduleDetailTab" />
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  Issue
-                </label>
-                <div className="tab-content bg-base-100">
-                  <IssueTab />
-                </div> */}
               </div>
             </div>
             <PopWindow isOpen={isGroupSelectOpen} onClose={() => setIsGroupSelectOpen(false)}>
