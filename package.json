@@ -128,6 +128,6 @@
     ]
   },
   "lint-staged": {
-    "*": "pnpm lint"
+    "*": "eslint"
   }
 }
