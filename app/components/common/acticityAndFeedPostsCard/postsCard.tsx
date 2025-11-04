@@ -137,6 +137,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
     ...(Array.isArray(res?.imageUrls) ? res.imageUrls : []),
     ...(res?.coverImage ? [res.coverImage] : []),
   ];
+  const actualCommunityId = res?.communityId;
   const publishTime = res?.createTime ?? "";
   const content = res?.content ?? "";
   const title = res?.title ?? "";
@@ -239,7 +240,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 
         {/* 头部 */}
         {(!isFeed || (isFeed && contentTypeNumber !== 13)) && (
-          <div className="flex flex-row items-center gap-2 mb-2">
+          <div className="flex flex-row items-center gap-2 mb-2 feed-avatar">
             {userInfoLoading
               ? (
                   <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
@@ -310,7 +311,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
           </div>
         )}
         {/* 可点击区域：内容 */}
-        <div className="mb-4">
+        <div className="mb-4 feed-container">
           {/* 渲染特殊内容卡片 */}
           {renderSpecialContent() || (
             <div
@@ -364,6 +365,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               targetInfo={{ targetId: actualId, targetType }}
               className="w-9 h-6 cursor-pointer"
               direction="row"
+              data-html-image-exclude="true"
             />
           </div>
 
@@ -371,19 +373,19 @@ export const PostsCard: React.FC<PostsCardProps> = ({
             onClick={handleComment}
             className="flex items-center space-x-1 text-sm hover:text-primary cursor-pointer hover:bg-primary/10 transition-colors px-2 py-1 rounded-full"
           >
-            <CommentOutline className="h-6 w-5" />
+            <CommentOutline className="h-6 w-5" data-html-image-exclude="true" />
             <span className="font-medium">{stats?.commentCount || 0}</span>
           </div>
 
           <div className="flex items-center space-x-1 text-sm hover:text-warning cursor-pointer hover:bg-warning/10 transition-colors px-2 py-1 rounded-full">
             <CollectionIconButton
               targetInfo={{ resourceId: actualId, resourceType: Number(targetType) }}
-              className="w-9 h-6 cursor-pointer"
+              className="w-9 h-6 cursor-pointer data-html-image-exclude"
             />
           </div>
 
-          <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
-            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={window.location.href} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
+          <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full data-html-image-exclude">
+            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={targetType === "2" ? `http://47.119.147.6:84/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `http://47.119.147.6:84/module/detail/${actualId}` : "http://47.119.147.6:84/chat"} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
 
