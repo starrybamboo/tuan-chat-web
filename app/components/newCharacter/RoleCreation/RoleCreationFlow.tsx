@@ -23,8 +23,8 @@ import { AI_STEPS, ST_STEPS, STEPS } from "./constants";
 import AttributeStep from "./steps/AttributeStep";
 import BasicInfoStep from "./steps/BasicInfoStep";
 import STImportStep from "./steps/STImportStep";
-// import { completeRoleCreation, evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
-import { completeRoleCreation } from "./utils/roleCreationHelpers";
+import { completeRoleCreation, evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
+// import { completeRoleCreation } from "./utils/roleCreationHelpers";
 import { useCharacterData } from "./utils/useCharacterData";
 
 export type RoleCreationMode = "self" | "AI" | "ST";
@@ -227,9 +227,9 @@ export default function RoleCreationFlow({
           setSelectedRoleId,
           onComplete,
         },
-        // {
-        //   beforeSetRoleAbility: evaluateCharacterDataExpressions,
-        // },
+        {
+          beforeSetRoleAbility: evaluateCharacterDataExpressions,
+        },
       );
     }
     catch (error) {

@@ -1400,7 +1400,7 @@ export function AddIcon() {
   );
 }
 
-// 五角星图标
+// 空心五角星图标
 export function RoundStarBorder(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1415,6 +1415,24 @@ export function RoundStarBorder(props: SVGProps<SVGSVGElement>) {
         d="m19.65 9.04l-4.84-.42l-1.89-4.45c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18l-1.1 4.72c-.2.86.73 1.54 1.49 1.08l4.15-2.5l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.73l3.67-3.18c.67-.58.32-1.68-.56-1.75M12 15.4l-3.76 2.27l1-4.28l-3.32-2.88l4.38-.38L12 6.1l1.71 4.04l4.38.38l-3.32 2.88l1 4.28z"
       >
       </path>
+    </svg>
+  );
+}
+
+// 实心五角星图标
+export function RoundStarFilled(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="m12 17.27l-4.15 2.51c-.76.46-1.69-.22-1.49-1.08l1.1-4.73l-3.67-3.18c-.67-.58-.32-1.68.56-1.75l4.84-.42l1.89-4.45c.34-.81 1.5-.81 1.84 0l1.89 4.45l4.84.42c.88.07 1.24 1.17.57 1.75l-3.67 3.18l1.1 4.73c.2.86-.73 1.54-1.49 1.08z"
+      />
     </svg>
   );
 }
@@ -1583,6 +1601,150 @@ export function BaselineAutoAwesomeMotion(props: SVGProps<SVGSVGElement>) {
       <path
         fill="currentColor"
         d="M14 2H4a2 2 0 0 0-2 2v10h2V4h10zm4 4H8a2 2 0 0 0-2 2v10h2V8h10zm2 4h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 过滤图标
+// 其他关键词：筛选、过滤、漏斗
+export function Filter(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M22 3H2l8 9.46V19l4 2v-8.54z"
+      >
+      </path>
+    </svg>
+  );
+}
+// 左箭头
+export function Arrowleft(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 32 32"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M20.834 8.037L9.64 14.5c-1.43.824-1.43 2.175 0 3l11.194 6.463c1.43.826 2.598.15 2.598-1.5V9.537c0-1.65-1.17-2.326-2.598-1.5"
+      >
+      </path>
+    </svg>
+  );
+}
+// 右箭头
+export function Arrowright(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 32 32"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M11.166 23.963L22.36 17.5c1.43-.824 1.43-2.175 0-3L11.165 8.037c-1.43-.826-2.598-.15-2.598 1.5v12.926c0 1.65 1.17 2.326 2.598 1.5z"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 解锁图标
+export function LockKeyholeOpen(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      >
+        <circle cx="12" cy="16" r="1"></circle>
+        <rect width="18" height="12" x="3" y="10" rx="2"></rect>
+        <path d="M7 10V7a5 5 0 0 1 9.33-2.5"></path>
+      </g>
+    </svg>
+  );
+}
+
+// 锁图标
+export function LockKeyhole(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      >
+        <circle cx="12" cy="16" r="1"></circle>
+        <rect width="18" height="12" x="3" y="10" rx="2"></rect>
+        <path d="M7 10V7a5 5 0 0 1 10 0v3"></path>
+      </g>
+    </svg>
+  );
+}
+
+// 编辑图标
+export function Edit2Outline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M19 20H5a1 1 0 0 0 0 2h14a1 1 0 0 0 0-2M5 18h.09l4.17-.38a2 2 0 0 0 1.21-.57l9-9a1.92 1.92 0 0 0-.07-2.71L16.66 2.6A2 2 0 0 0 14 2.53l-9 9a2 2 0 0 0-.57 1.21L4 16.91a1 1 0 0 0 .29.8A1 1 0 0 0 5 18M15.27 4L18 6.73l-2 1.95L13.32 6Zm-8.9 8.91L12 7.32l2.7 2.7l-5.6 5.6l-3 .28Z"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 垃圾桶图标
+export function BaselineDeleteOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM8 9h8v10H8zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"
       >
       </path>
     </svg>

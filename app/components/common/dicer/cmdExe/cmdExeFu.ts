@@ -1,28 +1,28 @@
 import { roll } from "@/components/common/dicer/dice";
-import UNTIL from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 
-import { CommandExecutor, RuleNameSpace } from "./cmd";
+import { CommandExecutor, RuleNameSpace } from "../cmd";
 
 // noinspection NonAsciiCharacters
 const PROPERTY_NAMES_MAP: Record<string, string> = {
-  灵巧度: "灵巧度",
-  dex: "灵巧度",
-  灵巧: "灵巧度",
-  敏捷: "灵巧度",
-  敏捷值: "灵巧度",
-  洞察力: "洞察力",
-  ins: "洞察力",
-  洞察: "洞察力",
-  洞察值: "洞察力",
-  感知: "洞察力",
-  感知值: "洞察力",
-  力量值: "力量值",
-  mig: "力量值",
-  力量: "力量值",
-  意志力: "意志力",
-  wlp: "意志力",
-  意志: "意志力",
-  意志值: "意志力",
+  灵巧度: "敏捷",
+  dex: "敏捷",
+  灵巧: "敏捷",
+  敏捷: "敏捷",
+  敏捷值: "敏捷",
+  洞察力: "洞察",
+  ins: "洞察",
+  洞察: "洞察",
+  洞察值: "洞察",
+  感知: "洞察",
+  感知值: "洞察",
+  力量值: "力量",
+  mig: "力量",
+  力量: "力量",
+  意志力: "意志",
+  wlp: "意志",
+  意志: "意志",
+  意志值: "意志",
 };
 
 const PROPERTY_SHORTS_MAP: Record<string, string> = {
@@ -49,6 +49,7 @@ const executorFu = new RuleNameSpace(
   "fu",
   ["最终物语"],
   "最终物语规则的指令集",
+  new Map<string, string>(Object.entries(PROPERTY_NAMES_MAP)),
 );
 
 export default executorFu;
@@ -92,7 +93,7 @@ const cmdSt = new CommandExecutor(
       for (const prop of showProps) {
         const normalizedKey = prop.toLowerCase();
         const key = PROPERTY_NAMES_MAP[normalizedKey] || prop;
-        const value = UNTIL.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
+        const value = UTILS.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
 
         result.push(`${key}: ${value}`);
       }
@@ -111,7 +112,7 @@ const cmdSt = new CommandExecutor(
       const normalizedKey = rawKey.toLowerCase();
       const key = PROPERTY_NAMES_MAP[normalizedKey] || rawKey;
 
-      const currentValue = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
+      const currentValue = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;
 
       if (operator === "+") {
@@ -133,7 +134,7 @@ const cmdSt = new CommandExecutor(
       };
 
       // 更新属性
-      UNTIL.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
+      UTILS.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
     }
     // 生成包含变化过程的提示信息
     const changeEntries = Object.entries(abilityChanges)
@@ -166,7 +167,7 @@ const cmdFu = new CommandExecutor(
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
-    const isForceToasted = UNTIL.doesHaveArg(args, "h");
+    const isForceToasted = UTILS.doesHaveArg(args, "h");
 
     // 解析参数
     // 1. 以正负号开头的数字
