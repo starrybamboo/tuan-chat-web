@@ -1,6 +1,6 @@
 // import type { Transform } from "./sprite/TransformControl";
-import type { RoleAvatar } from "api";
 import type { Role } from "./types";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRuleDetailQuery, useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -44,14 +44,32 @@ function CharacterDetailInner({
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // 头像相关状态管理
-  const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
+  // 头像选择状态 - 只保留 ID,URL 通过计算得出
   const [selectedAvatarId, setSelectedAvatarId] = useState<number>(role.avatarId);
-  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>(role.avatar || "/favicon.ico");
-  const [selectedSpriteUrl, setSelectedSpriteUrl] = useState<string | null>("");
 
   // 获取角色所有头像
-  const { data: roleAvatarsResponse, isSuccess, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
+  const { data: roleAvatarsResponse, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
+  const queryClient = useQueryClient();
+
+  // 直接使用 query 数据,无需额外 state
+  const roleAvatars = useMemo(
+    () => roleAvatarsResponse?.data ?? [],
+    [roleAvatarsResponse?.data],
+  );
+
+  // 通过 useMemo 派生展示用的头像/立绘 URL
+  const { selectedAvatarUrl, selectedSpriteUrl } = useMemo(() => {
+    const avatarFromList = (
+      localRole.avatarId && localRole.avatarId !== 0
+    )
+      ? roleAvatars.find(item => item.avatarId === localRole.avatarId)
+      : undefined;
+
+    return {
+      selectedAvatarUrl: avatarFromList?.avatarUrl ?? localRole.avatar ?? "/favicon.ico",
+      selectedSpriteUrl: avatarFromList?.spriteUrl ?? "",
+    };
+  }, [localRole.avatarId, localRole.avatar, roleAvatars]);
 
   // 字数统计：由描述派生，避免在 useEffect 中 setState
   const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
@@ -109,29 +127,6 @@ function CharacterDetailInner({
     // 模拟加载延迟，给用户更好的反馈
     setTimeout(() => setIsRuleLoading(false), 300);
   }, [selectedRuleId, allRules, prefetchPageSize, role]);
-
-  useEffect(() => {
-    // 更新 roleAvatars
-    if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
-      setRoleAvatars(roleAvatarsResponse.data);
-    }
-
-    // 根据 localRole.avatarId + roleAvatars 计算头像状态
-    if (localRole.avatarId && localRole.avatarId !== 0 && roleAvatars.length > 0) {
-      const currentAvatar = roleAvatars.find(ele => ele.avatarId === localRole.avatarId);
-      setSelectedAvatarUrl(currentAvatar?.avatarUrl || "/favicon.ico");
-      setSelectedSpriteUrl(currentAvatar?.spriteUrl || null);
-
-      // 确保 localRole.avatar 跟 url 对齐
-      if (currentAvatar?.avatarUrl && localRole.avatar !== currentAvatar.avatarUrl) {
-        setLocalRole(prev => ({ ...prev, avatar: currentAvatar.avatarUrl }));
-      }
-    }
-    else {
-      setSelectedAvatarUrl(localRole.avatar || "/favicon.ico");
-      setSelectedSpriteUrl("");
-    }
-  }, [isSuccess, roleAvatarsResponse, roleAvatars, localRole.avatarId, localRole.avatar]);
 
   // 预取规则列表数据 - 默认预取第一页，用户体验优先
   useRulePageQuery({
@@ -216,17 +211,14 @@ function CharacterDetailInner({
   };
 
   // 更新url和avatarId,方便更改服务器数据
-  const handleAvatarChange = (previewUrl: string, avatarId: number, spriteUrl?: string | null) => {
+  const handleAvatarChange = (previewUrl: string, avatarId: number) => {
     const updatedRole = {
       ...localRole,
       avatar: previewUrl,
       avatarId,
     };
     setLocalRole(updatedRole);
-    // 同时更新选中的立绘URL
-    if (spriteUrl !== undefined) {
-      setSelectedSpriteUrl(spriteUrl);
-    }
+    setSelectedAvatarId(avatarId); // 更新选中ID,URL会自动通过useMemo计算
     const cleanedRole = {
       ...updatedRole,
       name: cleanText(localRole.name),
@@ -235,22 +227,29 @@ function CharacterDetailInner({
     updateRole(cleanedRole);
   };
 
-  // 处理头像选择
-  const handleAvatarSelect = (avatarUrl: string, avatarId: number, spriteUrl: string | null) => {
-    setSelectedAvatarUrl(avatarUrl);
+  // 处理头像选择 - 简化为只更新ID
+  const handleAvatarSelect = (avatarId: number) => {
     setSelectedAvatarId(avatarId);
-    setSelectedSpriteUrl(spriteUrl);
   };
 
-  // 处理头像删除
+  // 处理头像删除 - 使用 React Query 的乐观更新
   const handleAvatarDelete = (avatarId: number) => {
-    setRoleAvatars(prev => prev.filter(avatar => avatar.avatarId !== avatarId));
+    // 乐观更新:直接修改query cache
+    queryClient.setQueryData(
+      ["getRoleAvatars", role.id],
+      (old: any) => {
+        if (!old?.data)
+          return old;
+        return {
+          ...old,
+          data: old.data.filter((avatar: any) => avatar.avatarId !== avatarId),
+        };
+      },
+    );
 
     // 如果删除的是当前选中的头像，重置为默认
     if (avatarId === selectedAvatarId) {
-      setSelectedAvatarUrl("/favicon.ico");
       setSelectedAvatarId(0);
-      setSelectedSpriteUrl("");
     }
   };
 
@@ -407,11 +406,10 @@ function CharacterDetailInner({
                       <CharacterAvatar
                         role={localRole} // 当前角色基本信息
                         roleAvatars={roleAvatars} // 当前角色的头像列表
-                        selectedAvatarId={selectedAvatarId} // 选中的头像ID?只在handleAvatarDelete有用
-                        selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL,只用了在这里传参了
-                        selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL,只用于在这里传参了
+                        selectedAvatarId={selectedAvatarId} // 选中的头像ID
+                        selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL
+                        selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL
                         onchange={handleAvatarChange}// 头像变化的回调
-                        onSpritePreviewChange={url => setSelectedSpriteUrl(url)} // 设置selectedSpriteUrl的函数，用于切换头像后同步立绘组件
                         onAvatarSelect={handleAvatarSelect} // 头像选择的回调
                         onAvatarDelete={handleAvatarDelete} // 头像删除的回调
                         onAvatarUpload={handleAvatarUpload} // 头像上传的回调
