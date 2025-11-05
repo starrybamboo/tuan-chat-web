@@ -229,6 +229,7 @@ export function SpriteRenderStudio({
 
     // --- 这是修复的关键部分 ---
     let isActive = true; // 标志位，表示当前 effect 是否仍然“有效”
+    let timeoutId: number | null = null;
 
     const canvas = previewCanvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -247,7 +248,7 @@ export function SpriteRenderStudio({
 
           const newTransform = parseTransformFromAvatar(currentSprite);
           setDisplayTransform(newTransform);
-          setTimeout(() => setIsImageLoading(false), 200);
+          timeoutId = window.setTimeout(() => setIsImageLoading(false), 200);
         }
       };
 
@@ -265,6 +266,9 @@ export function SpriteRenderStudio({
     // 上一个 effect 的清理函数会被调用。
     return () => {
       isActive = false; // 将上一个 effect 标记为“无效”
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [spriteUrl, previewCanvasRef, currentSprite]);
 

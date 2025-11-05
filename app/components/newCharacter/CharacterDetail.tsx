@@ -21,10 +21,13 @@ interface CharacterDetailProps {
   onRuleChange: (newRuleId: number) => void;
 }
 
+export default function CharacterDetail(props: CharacterDetailProps) {
+  return <CharacterDetailInner key={props.role.id} {...props} />;
+}
 /**
  * 角色详情组件
  */
-export default function CharacterDetail({
+function CharacterDetailInner({
   role,
   onSave,
   selectedRuleId,
@@ -106,6 +109,30 @@ export default function CharacterDetail({
     // 模拟加载延迟，给用户更好的反馈
     setTimeout(() => setIsRuleLoading(false), 300);
   }, [selectedRuleId, allRules, prefetchPageSize, role]);
+
+  useEffect(() => {
+    // 更新 roleAvatars
+    if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
+      setRoleAvatars(roleAvatarsResponse.data);
+    }
+
+    // 根据 localRole.avatarId + roleAvatars 计算头像状态
+    if (localRole.avatarId && localRole.avatarId !== 0 && roleAvatars.length > 0) {
+      const currentAvatar = roleAvatars.find(ele => ele.avatarId === localRole.avatarId);
+      setSelectedAvatarUrl(currentAvatar?.avatarUrl || "/favicon.ico");
+      setSelectedSpriteUrl(currentAvatar?.spriteUrl || null);
+
+      // 确保 localRole.avatar 跟 url 对齐
+      if (currentAvatar?.avatarUrl && localRole.avatar !== currentAvatar.avatarUrl) {
+        setLocalRole(prev => ({ ...prev, avatar: currentAvatar.avatarUrl }));
+      }
+    }
+    else {
+      setSelectedAvatarUrl(localRole.avatar || "/favicon.ico");
+      setSelectedSpriteUrl("");
+    }
+  }, [isSuccess, roleAvatarsResponse, roleAvatars, localRole.avatarId, localRole.avatar]);
+
   // 预取规则列表数据 - 默认预取第一页，用户体验优先
   useRulePageQuery({
     pageNo: prefetchPageNum,
@@ -157,35 +184,6 @@ export default function CharacterDetail({
     });
   };
 
-  // localRole 同步（只在 role.id 变化时更新）
-  useEffect(() => {
-    if (role.id !== localRole.id) {
-      setLocalRole(role);
-    }
-  }, [role.id, localRole.id, role]);
-
-  useEffect(() => {
-    // 更新 roleAvatars
-    if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
-      setRoleAvatars(roleAvatarsResponse.data);
-    }
-
-    // 根据 localRole.avatarId + roleAvatars 计算头像状态
-    if (localRole.avatarId && localRole.avatarId !== 0 && roleAvatars.length > 0) {
-      const currentAvatar = roleAvatars.find(ele => ele.avatarId === localRole.avatarId);
-      setSelectedAvatarUrl(currentAvatar?.avatarUrl || "/favicon.ico");
-      setSelectedSpriteUrl(currentAvatar?.spriteUrl || null);
-
-      // 确保 localRole.avatar 跟 url 对齐
-      if (currentAvatar?.avatarUrl && localRole.avatar !== currentAvatar.avatarUrl) {
-        setLocalRole(prev => ({ ...prev, avatar: currentAvatar.avatarUrl }));
-      }
-    }
-    else {
-      setSelectedAvatarUrl(localRole.avatar || "/favicon.ico");
-      setSelectedSpriteUrl("");
-    }
-  }, [isSuccess, roleAvatarsResponse, roleAvatars, localRole.avatarId, localRole.avatar]);
   // 干净的文本
   const cleanText = (text: string) => {
     if (!text)
