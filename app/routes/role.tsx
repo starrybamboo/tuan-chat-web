@@ -1,6 +1,6 @@
-import type { Role } from "@/components/newCharacter/types"; // 确保路径正确
+import type { Role } from "@/components/Role/types"; // 确保路径正确
 import type { Route } from "./+types/home";
-import { Sidebar } from "@/components/newCharacter/Sidebar"; // 确保路径正确
+import { Sidebar } from "@/components/Role/Sidebar"; // 确保路径正确
 import { useState } from "react";
 import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams
 import { Drawer } from "vaul";

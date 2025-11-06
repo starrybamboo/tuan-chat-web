@@ -1,4 +1,4 @@
-import ImportWithStCmd from "@/components/newCharacter/rules/ImportWithStCmd";
+import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";

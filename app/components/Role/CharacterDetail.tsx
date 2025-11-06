@@ -1,9 +1,9 @@
 // import type { Transform } from "./sprite/TransformControl";
-import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { useRuleDetailQuery, useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Link } from "react-router";
 import AudioPlayer from "./AudioPlayer";
 import AudioUploadModal from "./AudioUploadModal";
@@ -21,10 +21,13 @@ interface CharacterDetailProps {
   onRuleChange: (newRuleId: number) => void;
 }
 
+export default function CharacterDetail(props: CharacterDetailProps) {
+  return <CharacterDetailInner key={props.role.id} {...props} />;
+}
 /**
  * 角色详情组件
  */
-export default function CharacterDetail({
+function CharacterDetailInner({
   role,
   onSave,
   selectedRuleId,
@@ -33,22 +36,37 @@ export default function CharacterDetail({
   // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
   const [isEditing, setIsEditing] = useState(false);
 
-  // --- MOVED --- isRuleLoading 状态也应该在这里
-  const [isRuleLoading, setIsRuleLoading] = useState(false);
-
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // 头像相关状态管理
-  const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
+  // 头像选择状态 - 只保留 ID,URL 通过计算得出
   const [selectedAvatarId, setSelectedAvatarId] = useState<number>(role.avatarId);
-  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>(role.avatar || "/favicon.ico");
-  const [selectedSpriteUrl, setSelectedSpriteUrl] = useState<string | null>("");
 
   // 获取角色所有头像
-  const { data: roleAvatarsResponse, isSuccess, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
+  const { data: roleAvatarsResponse, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
+  const queryClient = useQueryClient();
+
+  // 直接使用 query 数据,无需额外 state
+  const roleAvatars = useMemo(
+    () => roleAvatarsResponse?.data ?? [],
+    [roleAvatarsResponse?.data],
+  );
+
+  // 通过 useMemo 派生展示用的头像/立绘 URL
+  const { selectedAvatarUrl, selectedSpriteUrl } = useMemo(() => {
+    const avatarFromList = (
+      localRole.avatarId && localRole.avatarId !== 0
+    )
+      ? roleAvatars.find(item => item.avatarId === localRole.avatarId)
+      : undefined;
+
+    return {
+      selectedAvatarUrl: avatarFromList?.avatarUrl ?? localRole.avatar ?? "/favicon.ico",
+      selectedSpriteUrl: avatarFromList?.spriteUrl ?? "",
+    };
+  }, [localRole.avatarId, localRole.avatar, roleAvatars]);
 
   // 字数统计：由描述派生，避免在 useEffect 中 setState
   const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
@@ -67,51 +85,6 @@ export default function CharacterDetail({
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
-
-  // 预取规则数据 - 为规则选择弹窗准备数据
-  const [prefetchPageNum, setPrefetchPageNum] = useState(1);
-  const [prefetchKeyword, setPrefetchKeyword] = useState("");
-  const prefetchPageSize = 4;
-
-  // 获取完整规则列表用于计算当前规则所在页数
-  const { data: allRules = [] } = useRuleListQuery();
-
-  // 使用 ref 来跟踪是否已经为当前规则初始化过页码
-  const initializedRuleIdRef = useRef<number | null>(null);
-
-  // 根据当前选中规则定位所在页（只在规则首次加载或切换规则时执行）
-  useEffect(() => {
-    if (!selectedRuleId || !allRules.length)
-      return;
-
-    // 如果已经为当前规则初始化过，就不再重复初始化
-    if (initializedRuleIdRef.current === selectedRuleId)
-      return;
-
-    setIsRuleLoading(true);
-
-    // 找到选中规则索引
-    const ruleIndex = allRules.findIndex(rule => rule.ruleId === selectedRuleId);
-    if (ruleIndex === -1) {
-      setIsRuleLoading(false);
-      return;
-    }
-
-    const targetPage = Math.floor(ruleIndex / prefetchPageSize) + 1;
-    setPrefetchPageNum(targetPage);
-
-    // 标记当前规则已初始化
-    initializedRuleIdRef.current = selectedRuleId;
-
-    // 模拟加载延迟，给用户更好的反馈
-    setTimeout(() => setIsRuleLoading(false), 300);
-  }, [selectedRuleId, allRules, prefetchPageSize, role]);
-  // 预取规则列表数据 - 默认预取第一页，用户体验优先
-  useRulePageQuery({
-    pageNo: prefetchPageNum,
-    pageSize: prefetchPageSize,
-    keyword: prefetchKeyword,
-  });
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -157,35 +130,6 @@ export default function CharacterDetail({
     });
   };
 
-  // localRole 同步（只在 role.id 变化时更新）
-  useEffect(() => {
-    if (role.id !== localRole.id) {
-      setLocalRole(role);
-    }
-  }, [role.id, localRole.id, role]);
-
-  useEffect(() => {
-    // 更新 roleAvatars
-    if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
-      setRoleAvatars(roleAvatarsResponse.data);
-    }
-
-    // 根据 localRole.avatarId + roleAvatars 计算头像状态
-    if (localRole.avatarId && localRole.avatarId !== 0 && roleAvatars.length > 0) {
-      const currentAvatar = roleAvatars.find(ele => ele.avatarId === localRole.avatarId);
-      setSelectedAvatarUrl(currentAvatar?.avatarUrl || "/favicon.ico");
-      setSelectedSpriteUrl(currentAvatar?.spriteUrl || null);
-
-      // 确保 localRole.avatar 跟 url 对齐
-      if (currentAvatar?.avatarUrl && localRole.avatar !== currentAvatar.avatarUrl) {
-        setLocalRole(prev => ({ ...prev, avatar: currentAvatar.avatarUrl }));
-      }
-    }
-    else {
-      setSelectedAvatarUrl(localRole.avatar || "/favicon.ico");
-      setSelectedSpriteUrl("");
-    }
-  }, [isSuccess, roleAvatarsResponse, roleAvatars, localRole.avatarId, localRole.avatar]);
   // 干净的文本
   const cleanText = (text: string) => {
     if (!text)
@@ -218,17 +162,14 @@ export default function CharacterDetail({
   };
 
   // 更新url和avatarId,方便更改服务器数据
-  const handleAvatarChange = (previewUrl: string, avatarId: number, spriteUrl?: string | null) => {
+  const handleAvatarChange = (previewUrl: string, avatarId: number) => {
     const updatedRole = {
       ...localRole,
       avatar: previewUrl,
       avatarId,
     };
     setLocalRole(updatedRole);
-    // 同时更新选中的立绘URL
-    if (spriteUrl !== undefined) {
-      setSelectedSpriteUrl(spriteUrl);
-    }
+    setSelectedAvatarId(avatarId); // 更新选中ID,URL会自动通过useMemo计算
     const cleanedRole = {
       ...updatedRole,
       name: cleanText(localRole.name),
@@ -237,22 +178,29 @@ export default function CharacterDetail({
     updateRole(cleanedRole);
   };
 
-  // 处理头像选择
-  const handleAvatarSelect = (avatarUrl: string, avatarId: number, spriteUrl: string | null) => {
-    setSelectedAvatarUrl(avatarUrl);
+  // 处理头像选择 - 简化为只更新ID
+  const handleAvatarSelect = (avatarId: number) => {
     setSelectedAvatarId(avatarId);
-    setSelectedSpriteUrl(spriteUrl);
   };
 
-  // 处理头像删除
+  // 处理头像删除 - 使用 React Query 的乐观更新
   const handleAvatarDelete = (avatarId: number) => {
-    setRoleAvatars(prev => prev.filter(avatar => avatar.avatarId !== avatarId));
+    // 乐观更新:直接修改query cache
+    queryClient.setQueryData(
+      ["getRoleAvatars", role.id],
+      (old: any) => {
+        if (!old?.data)
+          return old;
+        return {
+          ...old,
+          data: old.data.filter((avatar: any) => avatar.avatarId !== avatarId),
+        };
+      },
+    );
 
     // 如果删除的是当前选中的头像，重置为默认
     if (avatarId === selectedAvatarId) {
-      setSelectedAvatarUrl("/favicon.ico");
       setSelectedAvatarId(0);
-      setSelectedSpriteUrl("");
     }
   };
 
@@ -409,11 +357,10 @@ export default function CharacterDetail({
                       <CharacterAvatar
                         role={localRole} // 当前角色基本信息
                         roleAvatars={roleAvatars} // 当前角色的头像列表
-                        selectedAvatarId={selectedAvatarId} // 选中的头像ID?只在handleAvatarDelete有用
-                        selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL,只用了在这里传参了
-                        selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL,只用于在这里传参了
+                        selectedAvatarId={selectedAvatarId} // 选中的头像ID
+                        selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL
+                        selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL
                         onchange={handleAvatarChange}// 头像变化的回调
-                        onSpritePreviewChange={url => setSelectedSpriteUrl(url)} // 设置selectedSpriteUrl的函数，用于切换头像后同步立绘组件
                         onAvatarSelect={handleAvatarSelect} // 头像选择的回调
                         onAvatarDelete={handleAvatarDelete} // 头像删除的回调
                         onAvatarUpload={handleAvatarUpload} // 头像上传的回调
@@ -567,7 +514,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          {isRuleLoading || isQueryLoading
+          {isQueryLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
                   <div className="card-body">
@@ -599,7 +546,7 @@ export default function CharacterDetail({
               )}
 
           {/* 扩展模块（右侧） */}
-          {isRuleLoading
+          {isQueryLoading
             ? (
                 <div className="space-y-6">
                   {/* 骨架屏 - 模拟扩展模块 */}
@@ -666,14 +613,18 @@ export default function CharacterDetail({
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">
-                <RulesSection
-                  currentRuleId={selectedRuleId}
-                  onRuleChange={handleRuleChange}
-                  pageNum={prefetchPageNum}
-                  onPageChange={setPrefetchPageNum}
-                  keyword={prefetchKeyword}
-                  onKeywordChange={setPrefetchKeyword}
-                />
+                <Suspense fallback={(
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <span className="loading loading-spinner loading-lg text-primary"></span>
+                    <p className="text-sm text-base-content/60">加载规则列表...</p>
+                  </div>
+                )}
+                >
+                  <RulesSection
+                    currentRuleId={selectedRuleId}
+                    onRuleChange={handleRuleChange}
+                  />
+                </Suspense>
               </div>
             </div>
           </div>

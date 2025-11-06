@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Role } from "../types";
-import type { CharacterData } from "./types";
+import type { CharacterData } from "./components/types";
 import type { SetSelectedRoleIdFn } from "./utils/roleCreationHelpers";
 
 import {

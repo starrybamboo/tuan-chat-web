@@ -1,18 +1,12 @@
 // RulesSection.tsx
 
-import type { Rule } from "api/models/Rule";
-import { useRulePageQuery } from "api/hooks/ruleQueryHooks";
+import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
 
 interface RulesSectionProps {
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
   large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）
-  // 外部状态管理（用于预取数据）
-  pageNum?: number;
-  onPageChange?: (pageNum: number) => void;
-  keyword?: string;
-  onKeywordChange?: (keyword: string) => void;
 }
 
 /**
@@ -24,28 +18,19 @@ export default function RulesSection({
   currentRuleId,
   onRuleChange,
   large = false,
-  // 外部状态管理
-  pageNum: externalPageNum,
-  onPageChange: externalOnPageChange,
-  keyword: externalKeyword,
-  onKeywordChange: externalOnKeywordChange,
 }: RulesSectionProps) {
-  // 分页和搜索状态 - 优先使用外部状态，否则使用内部状态
-  const [internalPageNum, setInternalPageNum] = useState(1);
-  const [internalKeyword, setInternalKeyword] = useState("");
-
-  const pageNum = externalPageNum ?? internalPageNum;
-  const setPageNum = externalOnPageChange ?? setInternalPageNum;
-  const keyword = externalKeyword ?? internalKeyword;
-  const setKeyword = externalOnKeywordChange ?? setInternalKeyword;
+  // 内部状态管理 - 完全自治
+  const [pageNum, setPageNum] = useState(1);
+  const [keyword, setKeyword] = useState("");
 
   // 每页大小（分页展示固定 8，两列布局）
   const pageSize = 8;
-  const { data: rules = [] as Rule[] } = useRulePageQuery({
-    pageNo: pageNum,
-    pageSize,
+  // 使用 Suspense 版本的查询，自动处理加载状态
+  const { data: rules } = useRulePageSuspenseQuery(
+    pageNum,
     keyword,
-  });
+    pageSize,
+  );
 
   // 当首次有数据且未选择规则时，默认选中第一个
   useEffect(() => {

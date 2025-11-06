@@ -6,9 +6,9 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { PopWindow } from "@/components/common/popWindow";
 import QuillEditor from "@/components/common/quillEditor/quillEditor";
 import RoleAvatar from "@/components/common/roleAvatar";
-import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
+import { CharacterCopper } from "@/components/Role/sprite/CharacterCopper";
 
-import { SpriteRenderStudio } from "@/components/newCharacter/sprite/SpriteRenderStudio";
+import { SpriteRenderStudio } from "@/components/Role/sprite/SpriteRenderStudio";
 // External Libraries
 import { useQueryClient } from "@tanstack/react-query";
 // API Internal (value) Imports

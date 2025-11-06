@@ -75,7 +75,7 @@ function RenderPreviewComponent({
       positionX: transform.positionX * scaleX,
       positionY: transform.positionY * scaleY,
     };
-  }, [transform, containerSize]); // 当 transform 或 containerSize 变化时重新计算
+  }, [transform, containerSize, scaleX, scaleY]); // 当 transform 或 containerSize 变化时重新计算
 
   return (
     <>

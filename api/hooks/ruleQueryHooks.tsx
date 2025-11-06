@@ -1,12 +1,9 @@
-import {keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient} from "@tanstack/react-query";
+import {keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import { useEffect } from "react";
 import type {RuleCloneRequest} from "../models/RuleCloneRequest";
 import type {RuleCreateRequest} from "../models/RuleCreateRequest";
 import type {RulePageRequest} from "../models/RulePageRequest";
 import type {RuleUpdateRequest} from "../models/RuleUpdateRequest";
-import type {ApiResultLong} from "../models/ApiResultLong";
-import type {ApiResultPageBaseRespRuleResponse} from "../models/ApiResultPageBaseRespRuleResponse";
-import type {ApiResultRule} from "../models/ApiResultRule";
-import type {ApiResultVoid} from "../models/ApiResultVoid";
 import type {Rule} from "../models/Rule";
 
 import {tuanchat} from "../instance";
@@ -143,21 +140,74 @@ export function useRuleDetailQuery(ruleId: number, options?: { enabled?: boolean
     })
   }
 
-// 分页获取规则（useQuery 版本）
-export function useRulePageQuery(params: RulePageRequest) {
-    return useQuery<Rule[], Error>({
-        queryKey: ["ruleList", params],
-        queryFn: async (): Promise<Rule[]> => {
-            const res = await tuanchat.ruleController.getRulePage(params);
-            if (res.success && res.data?.list) {
-                return res.data.list;
-            }
-            return [] as Rule[];
-        },
-        staleTime: 30_000,
-        // 在翻页/搜索时保留上一页数据避免闪烁（React Query v5）
-        placeholderData: keepPreviousData,
-    });
+/**
+ * 获取规则列表查询选项配置
+ * 用于预取和条件查询
+ * @param page 页码
+ * @param keyword 搜索关键词
+ * @param pageSize 每页大小
+ */
+function getRulesQueryOptions(page: number, keyword?: string, pageSize: number = 4) {
+  return {
+    queryKey: ['rules', { page, keyword, pageSize }] as const,
+    queryFn: () => fetchRules(page, keyword, pageSize),
+    staleTime: 10 * 1000, // 10秒缓存
+  };
+}
+
+/**
+ * 获取规则列表（带分页和搜索）
+ */
+async function fetchRules(page: number, keyword?: string, pageSize: number = 4) {
+  const res = await tuanchat.ruleController.getRulePage({
+    pageNo: page,
+    pageSize,
+    keyword,
+  });
+  if (res.success && res.data?.list) {
+    return res.data.list;
+  }
+  return [] as Rule[];
+}
+
+/**
+ * 使用规则列表 Hook（自动预取下一页）
+ * @param page 页码
+ * @param keyword 搜索关键词
+ * @param pageSize 每页大小
+ */
+export function useRulePageQuery(page: number, keyword?: string, pageSize: number = 8) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // 自动预取下一页数据，提升用户体验
+    queryClient.prefetchQuery(getRulesQueryOptions(page + 1, keyword, pageSize));
+  }, [page, keyword, pageSize, queryClient]);
+
+  return useQuery({
+    ...getRulesQueryOptions(page, keyword, pageSize),
+    placeholderData: (previousData) => previousData, // 保持上一页数据避免闪烁
+  });
+}
+
+/**
+ * 使用规则列表 Hook（Suspense 版本，自动预取下一页）
+ * 使用 Suspense 边界处理加载状态，更符合 React 18+ 的模式
+ * @param page 页码
+ * @param keyword 搜索关键词
+ * @param pageSize 每页大小
+ */
+export function useRulePageSuspenseQuery(page: number, keyword?: string, pageSize: number = 8) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // 自动预取下一页数据，提升用户体验
+    queryClient.prefetchQuery(getRulesQueryOptions(page + 1, keyword, pageSize));
+  }, [page, keyword, pageSize, queryClient]);
+
+  return useSuspenseQuery({
+    ...getRulesQueryOptions(page, keyword, pageSize),
+  });
 }
 
 export function useRuleListQuery() {
