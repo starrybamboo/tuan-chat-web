@@ -1,4 +1,4 @@
-import type { Role } from "../types";
+import type { Role } from "./types";
 
 // 1. 从 Props 接口中移除 onSelect
 interface RoleListItemProps {

@@ -1,4 +1,4 @@
-import type { CharacterData } from "../components/types";
+import type { CharacterData } from "../types";
 
 interface BasicInfoStepProps {
   characterData: CharacterData;

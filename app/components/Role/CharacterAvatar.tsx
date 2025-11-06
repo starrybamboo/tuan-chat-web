@@ -1,5 +1,5 @@
 import type { RoleAvatar } from "api";
-import type { Role } from "../types";
+import type { Role } from "./types";
 import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -171,7 +171,7 @@ export default function CharacterAvatar({
         <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
           <img
-            src={role.avatar || "./favicon.ico"}
+            src={selectedAvatarUrl || "./favicon.ico"}
             alt="Character Avatar"
             className="object-cover transform group-hover:scale-105 transition-transform duration-300"
           />
