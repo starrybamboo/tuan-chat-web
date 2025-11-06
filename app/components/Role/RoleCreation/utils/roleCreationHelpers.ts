@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 import type { Role } from "../../types";
-import type { CharacterData } from "../components/types";
+import type { CharacterData } from "../types";
 
 type CreateRoleFn = (payload: { roleName: string; description: string }) => Promise<number | undefined | null>;
 

@@ -1,4 +1,4 @@
-import type { CharacterData } from "../components/types";
+import type { CharacterData } from "../types";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 
