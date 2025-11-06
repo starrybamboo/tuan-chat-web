@@ -1,9 +1,9 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRuleDetailQuery, useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
+import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Link } from "react-router";
 import AudioPlayer from "./AudioPlayer";
 import AudioUploadModal from "./AudioUploadModal";
@@ -35,9 +35,6 @@ function CharacterDetailInner({
 }: CharacterDetailProps) {
   // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
   const [isEditing, setIsEditing] = useState(false);
-
-  // --- MOVED --- isRuleLoading 状态也应该在这里
-  const [isRuleLoading, setIsRuleLoading] = useState(false);
 
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
@@ -88,52 +85,6 @@ function CharacterDetailInner({
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
-
-  // 预取规则数据 - 为规则选择弹窗准备数据
-  const [prefetchPageNum, setPrefetchPageNum] = useState(1);
-  const [prefetchKeyword, setPrefetchKeyword] = useState("");
-  const prefetchPageSize = 4;
-
-  // 获取完整规则列表用于计算当前规则所在页数
-  const { data: allRules = [] } = useRuleListQuery();
-
-  // 使用 ref 来跟踪是否已经为当前规则初始化过页码
-  const initializedRuleIdRef = useRef<number | null>(null);
-
-  // 根据当前选中规则定位所在页（只在规则首次加载或切换规则时执行）
-  useEffect(() => {
-    if (!selectedRuleId || !allRules.length)
-      return;
-
-    // 如果已经为当前规则初始化过，就不再重复初始化
-    if (initializedRuleIdRef.current === selectedRuleId)
-      return;
-
-    setIsRuleLoading(true);
-
-    // 找到选中规则索引
-    const ruleIndex = allRules.findIndex(rule => rule.ruleId === selectedRuleId);
-    if (ruleIndex === -1) {
-      setIsRuleLoading(false);
-      return;
-    }
-
-    const targetPage = Math.floor(ruleIndex / prefetchPageSize) + 1;
-    setPrefetchPageNum(targetPage);
-
-    // 标记当前规则已初始化
-    initializedRuleIdRef.current = selectedRuleId;
-
-    // 模拟加载延迟，给用户更好的反馈
-    setTimeout(() => setIsRuleLoading(false), 300);
-  }, [selectedRuleId, allRules, prefetchPageSize, role]);
-
-  // 预取规则列表数据 - 默认预取第一页，用户体验优先
-  useRulePageQuery({
-    pageNo: prefetchPageNum,
-    pageSize: prefetchPageSize,
-    keyword: prefetchKeyword,
-  });
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -563,7 +514,7 @@ function CharacterDetailInner({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          {isRuleLoading || isQueryLoading
+          {isQueryLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
                   <div className="card-body">
@@ -595,7 +546,7 @@ function CharacterDetailInner({
               )}
 
           {/* 扩展模块（右侧） */}
-          {isRuleLoading
+          {isQueryLoading
             ? (
                 <div className="space-y-6">
                   {/* 骨架屏 - 模拟扩展模块 */}
@@ -662,14 +613,18 @@ function CharacterDetailInner({
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">
-                <RulesSection
-                  currentRuleId={selectedRuleId}
-                  onRuleChange={handleRuleChange}
-                  pageNum={prefetchPageNum}
-                  onPageChange={setPrefetchPageNum}
-                  keyword={prefetchKeyword}
-                  onKeywordChange={setPrefetchKeyword}
-                />
+                <Suspense fallback={(
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <span className="loading loading-spinner loading-lg text-primary"></span>
+                    <p className="text-sm text-base-content/60">加载规则列表...</p>
+                  </div>
+                )}
+                >
+                  <RulesSection
+                    currentRuleId={selectedRuleId}
+                    onRuleChange={handleRuleChange}
+                  />
+                </Suspense>
               </div>
             </div>
           </div>

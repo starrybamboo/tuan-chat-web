@@ -1,6 +1,6 @@
 import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import type { RoleAvatar } from "api";
-import type { Transform } from "./TransformControl";
+// import type { Transform } from "./TransformControl";
 import MoodRegulator from "@/components/common/MoodRegulator";
 import { PopWindow } from "@/components/common/popWindow";
 import { useUpdateAvatarTitleMutation } from "api/queryHooks";
@@ -151,27 +151,21 @@ export function SpriteRenderStudio({
 
   const spriteUrl = currentSprite?.spriteUrl || null;
 
-  // 当前显示的transform状态，用于平滑切换
-  const [displayTransform, setDisplayTransform] = useState<Transform>(() => ({
-    scale: 1,
-    positionX: 0,
-    positionY: 0,
-    alpha: 1,
-    rotation: 0,
-  }));
-
-  // 当currentSprite变化时，如果没有spriteUrl则立即更新transform
-  useEffect(() => {
-    if (currentSprite && !currentSprite.spriteUrl) {
-      const newTransform = parseTransformFromAvatar(currentSprite);
-      setDisplayTransform(newTransform);
+  // 直接从 currentSprite 计算 transform,无需状态
+  const transform = useMemo(() => {
+    if (!currentSprite) {
+      return {
+        scale: 1,
+        positionX: 0,
+        positionY: 0,
+        alpha: 1,
+        rotation: 0,
+      };
     }
+    return parseTransformFromAvatar(currentSprite);
   }, [currentSprite]);
 
-  // 使用displayTransform作为实际的transform
-  const transform = displayTransform;
-
-  // 记录上一个currentSpriteIndex，用于检测立绘切换
+  // 记录上一个currentSpriteIndex,用于检测立绘切换
   const [lastSpriteIndex, setLastSpriteIndex] = useState(currentSpriteIndex);
 
   // 切换到上一个立绘
@@ -211,7 +205,7 @@ export function SpriteRenderStudio({
   }, [currentSpriteIndex, lastSpriteIndex, currentSprite]);
 
   // 图片加载状态
-  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(true);
 
   // 当立绘URL变化时，加载到预览Canvas (已修复)
   useEffect(() => {
@@ -229,12 +223,10 @@ export function SpriteRenderStudio({
 
     // --- 这是修复的关键部分 ---
     let isActive = true; // 标志位，表示当前 effect 是否仍然“有效”
-    let timeoutId: number | null = null;
 
     const canvas = previewCanvasRef.current;
     const ctx = canvas.getContext("2d");
     if (ctx) {
-      setIsImageLoading(true);
       const img = new Image();
       img.crossOrigin = "anonymous";
 
@@ -245,10 +237,7 @@ export function SpriteRenderStudio({
           canvas.height = img.height;
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
-
-          const newTransform = parseTransformFromAvatar(currentSprite);
-          setDisplayTransform(newTransform);
-          timeoutId = window.setTimeout(() => setIsImageLoading(false), 200);
+          setIsImageLoading(false);
         }
       };
 
@@ -266,9 +255,6 @@ export function SpriteRenderStudio({
     // 上一个 effect 的清理函数会被调用。
     return () => {
       isActive = false; // 将上一个 effect 标记为“无效”
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
     };
   }, [spriteUrl, previewCanvasRef, currentSprite]);
 
@@ -435,7 +421,7 @@ export function SpriteRenderStudio({
           <div>
             spriteUrl:
             {spriteUrl ? "有" : "无"}
-            {isImageLoading && " (加载中)"}
+
           </div>
           <div>
             Transform: S:
@@ -475,7 +461,7 @@ export function SpriteRenderStudio({
             <button
               type="button"
               onClick={handlePreviousSprite}
-              className="absolute left-2 top-1/2 btn btn-circle btn-xs bg-black/50 border-none text-white hover:bg-black/70 z-20 hidden sm:block flex items-center justify-center"
+              className="absolute left-2 top-1/2 btn btn-circle btn-xs bg-black/50 border-none text-white hover:bg-black/70 z-20 hidden sm:block items-center justify-center"
               title="上一个立绘"
             >
               <span className="flex items-center justify-center w-full h-full">
@@ -489,7 +475,7 @@ export function SpriteRenderStudio({
             <button
               type="button"
               onClick={handleNextSprite}
-              className="absolute right-2 top-1/2 btn btn-circle btn-xs bg-black/50 border-none text-white hover:bg-black/70 z-20 hidden sm:block flex items-center justify-center"
+              className="absolute right-2 top-1/2 btn btn-circle btn-xs bg-black/50 border-none text-white hover:bg-black/70 z-20 hidden sm:block items-center justify-center"
               title="下一个立绘"
             >
               <span className="flex items-center justify-center w-full h-full">
