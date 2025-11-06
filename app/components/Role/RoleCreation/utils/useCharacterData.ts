@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 
-import type { CharacterData } from "../types";
+import type { CharacterData } from "../components/types";
 
 type CharacterSectionKey = "act" | "basic" | "ability" | "skill";
 

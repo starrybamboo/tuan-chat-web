@@ -17,7 +17,7 @@ import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { RolePageQueryRequest } from './models/RolePageQueryRequest'
-import type { Transform } from '../app/components/newCharacter/sprite/TransformControl';
+import type { Transform } from '../app/components/Role/sprite/TransformControl';
 
 import {
   type ApiResultRoleAbility,
@@ -25,7 +25,7 @@ import {
   type UserInfoResponse,
   type RoleCreateRequest
 } from "api";
-import type { Role } from '@/components/newCharacter/types';
+import type { Role } from '@/components/Role/types';
 
 // ==================== 角色管理 ====================
 /**

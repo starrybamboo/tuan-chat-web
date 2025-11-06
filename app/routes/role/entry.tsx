@@ -1,10 +1,10 @@
-import type { Role } from "@/components/newCharacter/types";
-import AICreateRole from "@/components/newCharacter/RoleCreation/AICreateRole";
+import type { Role } from "@/components/Role/types";
+import AICreateRole from "@/components/Role/RoleCreation/AICreateRole";
 // 导入您的创建组件
-import CreateEntry from "@/components/newCharacter/RoleCreation/CreateEntry";
+import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 
-import CreateRoleBySelf from "@/components/newCharacter/RoleCreation/CreateRoleBySelf";
-import STCreateRole from "@/components/newCharacter/RoleCreation/STCreateRole";
+import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
+import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
 import { setRoleRule } from "@/utils/roleRuleStorage";
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router";
