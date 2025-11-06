@@ -1,5 +1,5 @@
 import type { RoleAvatar } from "api";
-import type { Role } from "../types";
+import type { Role } from "./types";
 import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

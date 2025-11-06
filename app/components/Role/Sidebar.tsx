@@ -1,5 +1,5 @@
 import type { UserRole } from "api";
-import type { Role } from "../types";
+import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useQueryClient } from "@tanstack/react-query";
