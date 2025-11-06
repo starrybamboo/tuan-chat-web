@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-
-import type { Role } from "../../types";
+import type { Role } from "../types";
 import RoleCreationFlow from "./RoleCreationFlow";
 
 interface CreateRoleBySelfProps {
