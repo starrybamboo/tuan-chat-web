@@ -2,7 +2,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import ExpansionModule from "@/components/newCharacter/rules/ExpansionModule";
+import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { use } from "react";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
