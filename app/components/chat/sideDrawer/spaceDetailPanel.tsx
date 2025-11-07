@@ -6,15 +6,13 @@ import RenderWindow from "@/components/chat/window/renderWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { GirlIcon, MemberIcon, Setting, WebgalIcon } from "@/icons";
+import { MemberIcon, Setting, WebgalIcon } from "@/icons";
 import React, { use } from "react";
 import toast from "react-hot-toast";
 import {
   useAddSpaceMemberMutation,
   useAddSpaceRoleMutation,
   useGetSpaceMembersQuery,
-  useGetSpaceRolesQuery,
 } from "../../../../api/hooks/chatQueryHooks";
 
 export default function SpaceDetailPanel() {
@@ -22,8 +20,8 @@ export default function SpaceDetailPanel() {
   const spaceId = spaceContext.spaceId ?? -1;
   const spaceMemberQuery = useGetSpaceMembersQuery(spaceId);
   const spaceMembers = spaceMemberQuery.data?.data ?? [];
-  const spaceRolesQuery = useGetSpaceRolesQuery(spaceId);
-  const spaceRoles = spaceRolesQuery.data?.data ?? [];
+  // const spaceRolesQuery = useGetSpaceRolesQuery(spaceId);
+  // const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
   // 是否显示space详情
   const [_, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
@@ -88,49 +86,49 @@ export default function SpaceDetailPanel() {
           <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
         {/* 角色列表 */}
-        <label className="tab">
-          <input type="radio" name="space_detail_tabs" />
-          <GirlIcon className="size-4"></GirlIcon>
-          角色
-        </label>
-        <div className="tab-content space-y-2 p-4 overflow-y-auto">
-          <div className="flex flex-row justify-center items-center gap-2 px-4">
-            <p>
-              角色列表-
-              <span className="text-sm">{spaceRoles.length}</span>
-            </p>
-            {
-              (1) && (
-                <button
-                  className="btn btn-dash btn-info"
-                  type="button"
-                  onClick={() => setIsRoleHandleOpen(true)}
-                >
-                  添加角色
-                </button>
-              )
-            }
-          </div>
-          {spaceRoles.map((role) => {
-            return (
-              <div
-                key={role.roleId}
-                className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
-              >
-                {/* role列表 */}
-                <RoleAvatarComponent
-                  avatarId={role.avatarId ?? 0}
-                  width={8}
-                  isRounded={true}
-                  withTitle={false}
-                />
-                <div className="flex flex-col items-center gap-2 text-sm font-medium">
-                  <span>{role.roleName || "未命名角色"}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* <label className="tab"> */}
+        {/*  <input type="radio" name="space_detail_tabs" /> */}
+        {/*  <GirlIcon className="size-4"></GirlIcon> */}
+        {/*  角色 */}
+        {/* </label> */}
+        {/* <div className="tab-content space-y-2 p-4 overflow-y-auto"> */}
+        {/*  <div className="flex flex-row justify-center items-center gap-2 px-4"> */}
+        {/*    <p> */}
+        {/*      角色列表- */}
+        {/*      <span className="text-sm">{spaceRoles.length}</span> */}
+        {/*    </p> */}
+        {/*    { */}
+        {/*      (1) && ( */}
+        {/*        <button */}
+        {/*          className="btn btn-dash btn-info" */}
+        {/*          type="button" */}
+        {/*          onClick={() => setIsRoleHandleOpen(true)} */}
+        {/*        > */}
+        {/*          添加角色 */}
+        {/*        </button> */}
+        {/*      ) */}
+        {/*    } */}
+        {/*  </div> */}
+        {/*  {spaceRoles.map((role) => { */}
+        {/*    return ( */}
+        {/*      <div */}
+        {/*        key={role.roleId} */}
+        {/*        className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center " */}
+        {/*      > */}
+        {/*        /!* role列表 *!/ */}
+        {/*        <RoleAvatarComponent */}
+        {/*          avatarId={role.avatarId ?? 0} */}
+        {/*          width={8} */}
+        {/*          isRounded={true} */}
+        {/*          withTitle={false} */}
+        {/*        /> */}
+        {/*        <div className="flex flex-col items-center gap-2 text-sm font-medium"> */}
+        {/*          <span>{role.roleName || "未命名角色"}</span> */}
+        {/*        </div> */}
+        {/*      </div> */}
+        {/*    ); */}
+        {/*  })} */}
+        {/* </div> */}
         {/* 设置窗口 */}
         {
           spaceContext.isSpaceOwner && (

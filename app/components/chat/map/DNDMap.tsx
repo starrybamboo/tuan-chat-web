@@ -665,7 +665,7 @@ export default function DNDMap() {
         onDrop={handleDropOnPanel}
       >
         <h2 className="text-lg font-bold mb-4">地图编辑器</h2>
-        <div className="flex flex-col flex-1">
+        <div className={`flex flex-col flex-1 ${isCompactMode ? "" : "overflow-auto"}`}>
           {/* 网格设置区域 */}
           <div className={`flex ${isCompactMode ? "flex-row gap-4 flex-shrink-0" : "flex-col"}`}>
             <div className="form-control">

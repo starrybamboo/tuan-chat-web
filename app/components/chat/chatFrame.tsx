@@ -671,13 +671,13 @@ export default function ChatFrame(props: {
         <div className="h-full flex-1">
           <Virtuoso
             data={historyMessages}
-            firstItemIndex={CHAT_VIRTUOSO_INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
+            firstItemIndex={0}
             initialTopMostItemIndex={historyMessages.length - 1}
             followOutput={true}
             overscan={10} // 不要设得太大，会导致rangeChange更新不及时
             ref={virtuosoRef}
             context={{
-              isAtTopRef: isAtBottomRef,
+              isAtTopRef,
             }}
             rangeChanged={({ endIndex }) => {
               // Update state with the end-most visible item's index.
