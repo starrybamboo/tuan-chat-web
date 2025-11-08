@@ -6,9 +6,9 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { PopWindow } from "@/components/common/popWindow";
 import QuillEditor from "@/components/common/quillEditor/quillEditor";
 import RoleAvatar from "@/components/common/roleAvatar";
-import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
+import { CharacterCopper } from "@/components/Role/sprite/CharacterCopper";
 
-import { SpriteRenderStudio } from "@/components/newCharacter/sprite/SpriteRenderStudio";
+import { SpriteRenderStudio } from "@/components/Role/sprite/SpriteRenderStudio";
 // External Libraries
 import { useQueryClient } from "@tanstack/react-query";
 // API Internal (value) Imports
@@ -57,7 +57,6 @@ interface InlineExpansionModuleProps {
   /** 基础属性中文键集合 */
   basicDefaults: Record<string, any>;
   abilityDefaults: Record<string, any>;
-  skillDefaults: Record<string, any>;
   setShowAbilityPopup: (v: boolean) => void;
 }
 
@@ -202,11 +201,11 @@ function commitNumericOnBlur(key: string | number, setState: React.Dispatch<Reac
 
 const normalizeDisplay = (v: any) => (v === undefined || v === null ? "" : v);
 
-function InlineExpansionModule({ basic, setBasic, ability, setAbility, act, setAct, skill, setSkill, scheduleSave, basicDefaults, abilityDefaults, skillDefaults, setShowAbilityPopup }: InlineExpansionModuleProps) {
+function InlineExpansionModule({ basic, setBasic, ability, setAbility, act, setAct, skill, setSkill, scheduleSave, basicDefaults, abilityDefaults, setShowAbilityPopup }: InlineExpansionModuleProps) {
   // 基础属性键集合（中文）
   const basicKeys = Object.keys(basicDefaults || {});
   const abilityKeys = Object.keys(abilityDefaults || {});
-  const skillKeys = Object.keys(skillDefaults || {});
+  const skillKeys = Object.keys(skill || {});
   // 使用quillEditor进行角色行为模式的编辑
   const id = generateTempId();
 
@@ -342,6 +341,9 @@ function InlineExpansionModule({ basic, setBasic, ability, setAbility, act, setA
                 </div>
               </div>
             ))}
+            {skillKeys.length === 0 && (
+              <div className="text-sm opacity-60 col-span-full text-center py-4">暂无技能属性配置</div>
+            )}
           </div>
         </div>
       </div>
@@ -365,7 +367,7 @@ function InlineExpansionModule({ basic, setBasic, ability, setAbility, act, setA
 
 export default function NPCEdit({ role }: NPCEditProps) {
   // 上下文获取moduleId
-  const { moduleId } = useModuleContext();
+  const { moduleId, setIsCommitted } = useModuleContext();
   // 接入接口
   const { mutate: updateRoleAvatar } = useUploadModuleRoleAvatarMutation();
   const { mutate: deleteAvatar } = useDeleteRoleAvatarMutation();
@@ -450,6 +452,12 @@ export default function NPCEdit({ role }: NPCEditProps) {
   useEffect(() => {
     actRef.current = act;
   }, [act]);
+  useEffect(() => {
+    basicRef.current = basic;
+  }, [basic]);
+  useEffect(() => {
+    skillRef.current = skill;
+  }, [skill]);
   useLayoutEffect(() => {
     if ((role.name || "") !== nameInputRef.current) {
       nameRef.current = role.name;
@@ -509,6 +517,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
         {
           onSuccess: () => {
             toast.success("角色保存成功");
+            setIsCommitted(false);
           },
         },
       );
@@ -886,7 +895,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
             scheduleSave={scheduleSave}
             basicDefaults={ruleAbility?.data?.basicDefault || {}}
             abilityDefaults={ruleAbility?.data?.abilityFormula || {}}
-            skillDefaults={ruleAbility?.data?.skillDefault || {}}
             setShowAbilityPopup={setShowSkillPopup}
           />
         </div>

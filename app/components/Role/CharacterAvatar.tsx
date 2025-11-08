@@ -17,9 +17,8 @@ interface CharacterAvatarProps {
   selectedAvatarUrl: string;
   selectedSpriteUrl: string | null;
   isLoading?: boolean;
-  onchange: (avatarUrl: string, avatarId: number, spriteUrl?: string | null) => void;
-  onSpritePreviewChange?: (spriteUrl: string | null) => void;
-  onAvatarSelect: (avatarUrl: string, avatarId: number, spriteUrl: string | null) => void;
+  onchange: (avatarUrl: string, avatarId: number) => void;
+  onAvatarSelect: (avatarId: number) => void;
   onAvatarDelete: (avatarId: number) => void;
   onAvatarUpload: (data: any) => void;
 }
@@ -31,7 +30,6 @@ export default function CharacterAvatar({
   selectedAvatarUrl,
   selectedSpriteUrl,
   onchange,
-  onSpritePreviewChange,
   onAvatarSelect,
   onAvatarDelete,
   onAvatarUpload,
@@ -95,10 +93,9 @@ export default function CharacterAvatar({
   // 点击头像处理
   const handleAvatarClick = (avatarUrl: string, index: number) => {
     const targetAvatar = roleAvatars[index];
-    const nextSprite = targetAvatar.spriteUrl || avatarUrl || null;
 
     // 直接通知父组件状态变化，不再维护本地状态
-    onAvatarSelect(targetAvatar.avatarUrl || "", targetAvatar.avatarId || 0, nextSprite);
+    onAvatarSelect(targetAvatar.avatarId || 0);
   };
 
   // 删除操作处理
@@ -127,16 +124,14 @@ export default function CharacterAvatar({
 
       // 如果需要替换头像，先设置新的头像
       if (replacementAvatar) {
-        const nextSprite = replacementAvatar.spriteUrl || replacementAvatar.avatarUrl || null;
-
         // 如果删除的是角色当前使用的头像，需要通知父组件更新角色头像
         if (isCurrentRoleAvatar) {
-          onchange(replacementAvatar.avatarUrl || "", replacementAvatar.avatarId || 0, nextSprite);
+          onchange(replacementAvatar.avatarUrl || "", replacementAvatar.avatarId || 0);
         }
 
         // 如果删除的是当前选中的头像，或者删除的是角色头像（保持选中状态同步）
         if (isCurrentlySelected || isCurrentRoleAvatar) {
-          onAvatarSelect(replacementAvatar.avatarUrl || "", replacementAvatar.avatarId || 0, nextSprite);
+          onAvatarSelect(replacementAvatar.avatarId || 0);
         }
       }
 
@@ -176,7 +171,7 @@ export default function CharacterAvatar({
         <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
           <img
-            src={role.avatar || "./favicon.ico"}
+            src={selectedAvatarUrl || "./favicon.ico"}
             alt="Character Avatar"
             className="object-cover transform group-hover:scale-105 transition-transform duration-300"
           />
@@ -339,8 +334,7 @@ export default function CharacterAvatar({
           <button
             type="submit"
             onClick={() => {
-              onchange(displayAvatarUrl, avatarId, displaySpriteUrl || null);
-              onSpritePreviewChange?.(displaySpriteUrl || null);
+              onchange(displayAvatarUrl, avatarId);
               setChangeAvatarConfirmOpen(false);
             }}
             className="btn btn-primary btn-md md:btn-lg"

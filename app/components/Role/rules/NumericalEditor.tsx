@@ -2,7 +2,7 @@ import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import AddFieldForm from "../shared/AddFieldForm";
 import EditableField from "../shared/EditableField";
 
@@ -18,12 +18,53 @@ interface NumericalEditorProps {
   roleId: number;
   ruleId: number;
   title?: string;
-  fieldType: FieldType; // 新增：指定要更新的字段类型
+  fieldType: FieldType; // 新增:指定要更新的字段类型
+}
+
+// Reducer actions
+type DataAction =
+  | { type: "SYNC_PROPS"; payload: NumericalData }
+  | { type: "UPDATE_FIELD"; payload: { key: string; value: string } }
+  | { type: "ADD_FIELD"; payload: { key: string; value: string } }
+  | { type: "DELETE_FIELD"; payload: string }
+  | { type: "RENAME_FIELD"; payload: { oldKey: string; newKey: string } };
+
+// Reducer function
+function dataReducer(state: NumericalData, action: DataAction): NumericalData {
+  switch (action.type) {
+    case "SYNC_PROPS":
+      return action.payload;
+    case "UPDATE_FIELD":
+      return {
+        ...state,
+        [action.payload.key]: action.payload.value,
+      };
+    case "ADD_FIELD":
+      return {
+        ...state,
+        [action.payload.key]: action.payload.value,
+      };
+    case "DELETE_FIELD": {
+      const newState = { ...state };
+      delete newState[action.payload];
+      return newState;
+    }
+    case "RENAME_FIELD": {
+      const { oldKey, newKey } = action.payload;
+      const value = state[oldKey];
+      const newState = { ...state };
+      delete newState[oldKey];
+      newState[newKey] = value;
+      return newState;
+    }
+    default:
+      return state;
+  }
 }
 
 /**
  * 数值编辑器组件
- * 用于渲染和编辑数值数据的通用组件
+ * 使用 useReducer 管理本地数据状态,通过 useEffect 同步 props 变化
  */
 export default function NumericalEditor({
   data,
@@ -37,10 +78,13 @@ export default function NumericalEditor({
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [localData, setLocalData] = useState(data);
 
+  // 使用 useReducer 管理本地数据
+  const [localData, dispatch] = useReducer(dataReducer, data);
+
+  // 使用 useEffect 同步 props.data 的变化
   useEffect(() => {
-    setLocalData(data);
+    dispatch({ type: "SYNC_PROPS", payload: data });
   }, [data]);
 
   // 处理字段值更新
@@ -86,20 +130,25 @@ export default function NumericalEditor({
 
   // 处理字段值更新
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
-    const updatedData = {
-      ...localData,
-      [fieldKey]: newValue,
-    };
-    setLocalData(updatedData);
+    dispatch({
+      type: "UPDATE_FIELD",
+      payload: { key: fieldKey, value: newValue },
+    });
   };
 
   // 添加新字段
   const handleAddField = (newFieldKey: string, newFieldValue: string) => {
+    // 先计算新数据
     const updatedData = {
       ...localData,
       [newFieldKey]: newFieldValue,
     };
-    setLocalData(updatedData);
+
+    // 更新本地状态
+    dispatch({
+      type: "ADD_FIELD",
+      payload: { key: newFieldKey, value: newFieldValue },
+    });
 
     // 使用 API 更新字段 (根据 AbilityFieldUpdateRequest 定义)
     const fieldUpdateRequest = {
@@ -120,9 +169,12 @@ export default function NumericalEditor({
 
   // 删除字段
   const handleDeleteField = (fieldKey: string) => {
+    // 先计算新数据
     const updatedData = { ...localData };
     delete updatedData[fieldKey];
-    setLocalData(updatedData);
+
+    // 更新本地状态
+    dispatch({ type: "DELETE_FIELD", payload: fieldKey });
 
     // 使用 API 删除字段（传 null 表示删除）
     const fieldUpdateRequest = {
@@ -147,11 +199,17 @@ export default function NumericalEditor({
       return; // 新字段名不能为空、相同或重复
     }
 
+    // 先计算新数据
     const value = localData[oldKey];
     const updatedData = { ...localData };
     delete updatedData[oldKey];
     updatedData[newKey] = value;
-    setLocalData(updatedData);
+
+    // 更新本地状态
+    dispatch({
+      type: "RENAME_FIELD",
+      payload: { oldKey, newKey },
+    });
 
     // 删除旧字段，添加新字段
     const fieldUpdateRequest = {

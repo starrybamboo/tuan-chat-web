@@ -4,7 +4,6 @@ import Pagination from "@/components/common/pagination";
 import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { ModuleProvider } from "./context/_moduleContext";
 
 const FALLBACK_IMAGE = "/moduleDefaultImage.webp";
 const SKELETON_KEYS = [
@@ -61,7 +60,7 @@ function Card({ item, onClick }: { item: StageResponse; onClick: () => void }) {
   );
 }
 
-function WorkInner() {
+export default function Work() {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useStagingQuery();
   const [currentPage, setCurrentPage] = useState(1);
@@ -162,13 +161,5 @@ function WorkInner() {
         )}
       </div>
     </div>
-  );
-}
-
-export default function Work() {
-  return (
-    <ModuleProvider>
-      <WorkInner />
-    </ModuleProvider>
   );
 }

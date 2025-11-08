@@ -1,4 +1,5 @@
 import type { ClueMessage } from "api/models/ClueMessage";
+import BetterImg from "@/components/common/betterImg";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useModuleItemDetailQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useUpdateClueMutation } from "api/hooks/spaceClueHooks";
@@ -247,9 +248,8 @@ function DisplayOfItemDetail({
                       {displayData.image
                         ? (
                             <>
-                              <img
+                              <BetterImg
                                 src={displayData.image}
-                                alt="图片"
                                 className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
                               />
                               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
@@ -279,10 +279,9 @@ function DisplayOfItemDetail({
                 )
               : displayData.image
                 ? (
-                    <img
+                    <BetterImg
                       src={displayData.image}
-                      alt={displayData.name ?? "物品图片"}
-                      className="w-full h-full object-cover transition-transform duration-300"
+                      className="w-full h-full object-cover transition-transform duration-300 cursor-pointer"
                     />
                   )
                 : (

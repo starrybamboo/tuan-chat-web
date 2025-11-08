@@ -1,5 +1,5 @@
-import type { Role } from "@/components/newCharacter/types";
-import CharacterDetail from "@/components/newCharacter/CharacterDetail";
+import type { Role } from "@/components/Role/types";
+import CharacterDetail from "@/components/Role/CharacterDetail";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 import { useEffect } from "react";
 // --- CHANGED --- 引入更多 react-router hooks
