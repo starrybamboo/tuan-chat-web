@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -88,6 +89,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 获取所有实体
   const { data: entities } = useQueryEntitiesQuery(stageId as number);
+  const queryClient = useQueryClient();
   // 获取地图
   const mapDataRef = useRef<StageEntityResponse>(entities?.data?.find(item => item.entityType === 5));
 
@@ -132,21 +134,21 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     }
   }, [scene.name]);
 
-  // const optimisticUpdateEntityName = (newName: string) => {
-  //   if (!stageId) {
-  //     return;
-  //   }
-  //   queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
-  //     if (!oldData) {
-  //       return oldData;
-  //     }
-  //     const cloned = { ...oldData };
-  //     if (Array.isArray(cloned.data)) {
-  //       cloned.data = cloned.data.map((ent: any) => ent.id === scene.id ? { ...ent, name: newName } : ent);
-  //     }
-  //     return cloned;
-  //   });
-  // };
+  const optimisticUpdateEntityName = (newName: string) => {
+    if (!stageId) {
+      return;
+    }
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => ent.id === scene.id ? { ...ent, name: newName } : ent);
+      }
+      return cloned;
+    });
+  };
 
   // 保存引用（需早于名称防抖使用）
   const localSceneRef = useRef(localScene);
@@ -159,7 +161,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     // oldName 仅用于旧逻辑（基于名称的 sceneMap 重写），已不再需要
     nameInputRef.current = val;
     updateModuleTabLabel(scene.id!.toString(), val || "未命名");
-    // optimisticUpdateEntityName(val || "未命名");
+    optimisticUpdateEntityName(val || "未命名");
     nameRef.current = val;
     if (nameDebounceTimer.current) {
       clearTimeout(nameDebounceTimer.current);
