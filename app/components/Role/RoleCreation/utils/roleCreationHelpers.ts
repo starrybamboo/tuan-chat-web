@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import UNTIL from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 
 import type { Role } from "../../types";
 import type { CharacterData } from "../types";
@@ -138,7 +138,7 @@ function safeCalculateExpression(
   data: CharacterData,
 ): number {
   try {
-    return UNTIL.calculateExpression(expression, data);
+    return UTILS.calculateExpression(expression, data);
   }
   catch (error) {
     // Provide context for invalid expressions to simplify debugging.

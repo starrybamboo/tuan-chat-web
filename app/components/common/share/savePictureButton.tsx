@@ -1,5 +1,5 @@
 import { SharpDownload } from "@/icons";
-import domtoimage from "dom-to-image";
+import * as htmltoimage from "html-to-image";
 import QRCode from "qrcode";
 import toast from "react-hot-toast";
 
@@ -23,19 +23,69 @@ interface SavePictureButtonProps {
 export default function SavePictureButton({ targetRef, qrLink, className }: SavePictureButtonProps) {
   const handleShare = async () => {
     try {
-      // 将targetRef转换为图片
-      const ImageDataUrl = await domtoimage.toPng(targetRef.current);
+      // 暂时移除googleFonts，避免跨域问题
+      const googleFonts = Array.from(document.querySelectorAll("link[href*=\"fonts.googleapis.com\"]"));
+      googleFonts.forEach(link => link.remove());
+
+      // 原始容器
+      if (!targetRef.current) {
+        toast.error("未找到目标元素，无法保存");
+        return;
+      }
+      const cloneNode = targetRef?.current.cloneNode(true) as HTMLElement;
+
+      // 新的容器，用于截图
+      const newNode = document.createElement("div");
+      const avatar = cloneNode.querySelector(".feed-avatar") as HTMLElement;
+      const container = cloneNode.querySelector(".feed-container") as HTMLElement;
+      newNode.style.position = "relative";
+      newNode.style.width = "500px";
+      newNode.style.height = "auto";
+      // newNode.style.display = "flex";
+      // newNode.style.padding = "0";
+      newNode.style.background = "#fff";
+      newNode.style.padding = "20px";
+
+      if (avatar) {
+        newNode.appendChild(avatar);
+        // avatar.style.left = "40px"
+        // avatar.style.top = "0px";
+        // avatar.style.zIndex = "10";
+        // avatar.style.margin = "0px";
+        // avatar.style.padding = "20px";
+      }
+      if (container) {
+        newNode.appendChild(container);
+        // container.style.position = "static";
+        // container.style.marginTop = "0px"
+        // container.style.width = "auto";
+        // container.style.padding = "0px";
+      }
+
+      // 隐藏容器
+      const tempDiv = document.createElement("div");
+      tempDiv.style.position = "fixed";
+      tempDiv.style.left = "-9999px";
+      tempDiv.style.top = "0";
+      tempDiv.style.zIndex = "-1";
+      tempDiv.appendChild(newNode);
+      document.body.appendChild(tempDiv);
+
+      const ImageDataUrl = await htmltoimage.toPng(newNode);
+
+      // 恢复googleFonts
+      googleFonts.forEach(link => document.head.appendChild(link));
 
       // 生成二维码
       const QRCodeDataUrl = await QRCode.toDataURL(qrLink, { width: 100 });
 
       // 随机数量团子
       const tuanPicsUrls = [
-        "http://39.103.58.31:9000/avatar/avatar/b51e8b24e434946fa7daac7f43da2ff1_7450.webp",
-        "http://39.103.58.31:9000/avatar/avatar/bedc6e7259afd1b00dcecaebff6d75c7_11256.webp",
-        "http://39.103.58.31:9000/avatar/avatar/2482bc79c85235e3d8c84417293dac8f_13192.webp",
-        "http://39.103.58.31:9000/avatar/avatar/9a9760f951b59d50571e3c136ba55a2e_15012.webp",
-        "http://39.103.58.31:9000/avatar/avatar/1ada3a88c27d7629dbb59faaa4a2e265_16514.webp",
+        "/tuanImages/tuanImage1.webp",
+        "/tuanImages/tuanImage2.webp",
+        "/tuanImages/tuanImage3.webp",
+        "/tuanImages/tuanImage4.webp",
+        "/tuanImages/tuanImage5.webp",
       ];
       const tuanPicsUrl = tuanPicsUrls[Math.floor(Math.random() * tuanPicsUrls.length)];
 
@@ -49,17 +99,21 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
         LoadingImg(QRCodeDataUrl),
         LoadingImg(tuanPicsUrl),
       ]);
+      // 使用 CardImg 的实际尺寸来计算 Canvas 尺寸
+      const finalCardHeight = CardImg.height;
+      const finalCardWidth = CardImg.width;
 
-      const extraHeight = 150; // 底部额外高度
-      canvas.width = 500;
-      canvas.height = CardImg.height + extraHeight;
+      const EXTRA_HEIGHT = finalCardWidth / 4;
+
+      canvas.width = finalCardWidth;
+      canvas.height = finalCardHeight + EXTRA_HEIGHT; // Canvas 总高度 = 截图高度 + 底部留白
       if (ctx) {
         // 图片渲染
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(CardImg, 0, 0);
-        ctx.drawImage(QRImg, 0, canvas.height - 150, 150, 150);
-        ctx?.drawImage(TuanImg, canvas.width - 200, canvas.height - 200, 200, 200);
+        ctx.drawImage(QRImg, 20, canvas.height - 300, 300, 300);
+        ctx?.drawImage(TuanImg, canvas.width - 400, canvas.height - 300, 300, 300);
 
         // 旋转坐标系以实现斜向文本
         ctx.save();
@@ -70,6 +124,9 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
         ctx.fillText("tuan-chat", -60, -100);
         ctx?.restore();
       }
+      // 移除临时容器
+      document.body.removeChild(tempDiv);
+
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
       link.download = "image.png";

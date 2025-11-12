@@ -1,6 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { roll } from "@/components/common/dicer/dice";
-import UNTIL from "@/components/common/dicer/utils";
+import UTILS from "@/components/common/dicer/utils/utils";
 
 const executorPublic = new RuleNameSpace(
   0,
@@ -18,7 +18,7 @@ const cmdR = new CommandExecutor(
   [".r 1d100", ".r 3d6*5"],
   ".r [掷骰表达式]",
   async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
-    const isForceToast = UNTIL.doesHaveArg(args, "h");
+    const isForceToast = UTILS.doesHaveArg(args, "h");
     let input = args.join("");
     if (!input) {
       input = "1d100";

@@ -6,6 +6,7 @@
  * @property {string[]} alias - 命名空间别名数组
  * @property {string} description - 命名空间描述
  * @property {Map<string, CommandExecutor>} cmdMap - 命令映射表，存储命令名称/别名与执行器的映射
+ * @property {Map<string, string>} aliasMap - 别名映射表，存储角色能力字段的映射
  *
  * @example
  * // 创建一个coc7th命名空间
@@ -31,6 +32,7 @@ export class RuleNameSpace {
   alias: string[];
   description: string;
   cmdMap: Map<string, CommandExecutor>;
+  aliasMap: Map<string, string>;
 
   /**
    * 构造函数
@@ -38,13 +40,15 @@ export class RuleNameSpace {
    * @param {string} name - 命名空间名称
    * @param {string[]} alias - 命名空间别名
    * @param {string} description - 命名空间描述
+   * @param {Map<string, string>} aliasMap - 角色能力字段映射表
    */
-  constructor(id: number, name: string, alias: string[], description: string) {
+  constructor(id: number, name: string, alias: string[], description: string, aliasMap: Map<string, string> = new Map()) {
     this.id = id;
     this.name = name;
     this.alias = alias;
     this.description = description;
     this.cmdMap = new Map();
+    this.aliasMap = aliasMap;
   }
 
   /**

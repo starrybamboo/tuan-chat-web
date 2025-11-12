@@ -1,10 +1,11 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
-import executorCoc from "@/components/common/dicer/cmdExeCoc";
-import executorDnd from "@/components/common/dicer/cmdExeDnd";
-import executorFu from "@/components/common/dicer/cmdExeFu";
-import executorPublic from "@/components/common/dicer/cmdExePublic";
+import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
+import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
+import executorFu from "@/components/common/dicer/cmdExe/cmdExeFu";
+import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
+import UTILS from "@/components/common/dicer/utils/utils";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
@@ -19,6 +20,14 @@ const RULES: Map<number, RuleNameSpace> = new Map();
 RULES.set(1, executorCoc); // CoC规则
 RULES.set(2, executorDnd); // DnD规则
 RULES.set(3, executorFu); // 最终物语规则
+
+const ALIAS_MAP_SET: { [key: string]: Map<string, string> } = {
+  1: executorCoc.aliasMap,
+  2: executorDnd.aliasMap,
+  3: executorFu.aliasMap,
+};
+
+UTILS.initAliasMap(ALIAS_MAP_SET);
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
@@ -101,10 +110,19 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     mentioned.push(operator);
     // 获取角色的能力列表
     const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
-      const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
-      const abilityList = abilityQuery.data ?? [];
-      const ability = abilityList.find(a => a.ruleId === ruleId);
-      return ability || {};
+      try {
+        const abilityQuery = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+        const ability = abilityQuery.data;
+        return ability || {};
+      }
+      catch (e) {
+        console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
+        return {};
+      }
+      // const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
+      // const abilityList = abilityQuery.data ?? [];
+      // const ability = abilityList.find(a => a.ruleId === ruleId);
+      // return ability || {};
     };
     // 获取所有可能用到的角色能力
     const mentionedRoles = new Map<number, RoleAbility>();

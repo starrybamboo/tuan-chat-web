@@ -11,8 +11,9 @@ import type { CollectionListItemAddRequest } from "../models/CollectionListItemA
 import type { CollectionListItemBatchAddRequest } from "../models/CollectionListItemBatchAddRequest";
 import type { CollectionListItemPageRequest } from "../models/CollectionListItemPageRequest";
 import type { CollectionListItemRemoveRequest } from "../models/CollectionListItemRemoveRequest";
-import type { CollectionTagAddRequest } from "../models/CollectionTagAddRequest";
-import type { CollectionTagDeleteRequest } from "../models/CollectionTagDeleteRequest";
+import type {CollectionListUpdateRequest} from "../models/CollectionListUpdateRequest";
+// import type { CollectionTagAddRequest } from "../models/CollectionTagAddRequest";
+// import type { CollectionTagDeleteRequest } from "../models/CollectionTagDeleteRequest";
 
 // ==================== CollectionControllerService ====================
 
@@ -26,6 +27,24 @@ export function useGetCollectionQuery(id: number) {
         queryFn: () => tuanchat.collectionController.getCollection(id),
         staleTime: 300000, // 5分钟缓存
         enabled: id > 0
+    });
+}
+
+
+/**
+ * 获取收藏数量
+ * @param resourceId 资源ID
+ * @param resourceType 资源类型
+ */
+export function useGetCollectionCountQuery(resourceId: number, resourceType: string) {
+    return useQuery({
+        queryKey: ['getCollectionCount', { resourceId, resourceType }],
+        queryFn: () => tuanchat.collectionController.getCollectionCount(
+            resourceId,
+            resourceType
+        ),
+        staleTime: 300000, // 5分钟缓存
+        enabled: !!resourceId && !!resourceType
     });
 }
 
@@ -53,6 +72,8 @@ export function useAddCollectionMutation() {
         mutationKey: ['addCollection'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserCollections'] });
+            queryClient.invalidateQueries({queryKey: ['getCollectionCount']});
+            queryClient.invalidateQueries({queryKey:['checkUserCollection']});
         }
     });
 }
@@ -67,6 +88,8 @@ export function useDeleteCollectionMutation() {
         mutationKey: ['deleteCollection'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserCollections'] });
+            queryClient.invalidateQueries({ queryKey: ['getCollectionCount'] });
+            queryClient.invalidateQueries({queryKey:['checkUserCollection']});
         }
     });
 }
@@ -123,7 +146,7 @@ export function useGetCollectionListQuery(collectionListId: number) {
 export function useUpdateCollectionListMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: CollectionList) => tuanchat.collectionListController.updateCollectionList(req),
+        mutationFn: (req: CollectionListUpdateRequest) => tuanchat.collectionListController.updateCollectionList(req),
         mutationKey: ['updateCollectionList'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ 
@@ -282,13 +305,13 @@ export function useGetUserCollectionListsQuery(requestBody: PageBaseRequest) {
 /**
  * 获取热门公开收藏列表
  */
-export function useGetPopularCollectionListsQuery(requestBody: PageBaseRequest) {
-    return useQuery({
-        queryKey: ['getPopularCollectionLists', requestBody],
-        queryFn: () => tuanchat.collectionListController.getPopularCollectionLists(requestBody),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
+// export function useGetPopularCollectionListsQuery(requestBody: PageBaseRequest) {
+//     return useQuery({
+//         queryKey: ['getPopularCollectionLists', requestBody],
+//         queryFn: () => tuanchat.collectionListController.getPopularCollectionLists(requestBody),
+//         staleTime: 300000 // 5分钟缓存
+//     });
+// }
 
 // ==================== CollectionListItemControllerService ====================
 
@@ -488,56 +511,56 @@ export function useRemoveFromListMutation() {
 
 // ==================== CollectionTagControllerService ====================
 
-/**
- * 获取收藏的标签
- * @param collectionId 收藏ID
- */
-export function useGetCollectionTagsQuery(collectionId: number) {
-    return useQuery({
-        queryKey: ['getCollectionTags', collectionId],
-        queryFn: () => tuanchat.collectionTagController.getCollectionTags(collectionId),
-        staleTime: 300000, // 5分钟缓存
-        enabled: collectionId > 0
-    });
-}
+// /**
+//  * 获取收藏的标签
+//  * @param collectionId 收藏ID
+//  */
+// export function useGetCollectionTagsQuery(collectionId: number) {
+//     return useQuery({
+//         queryKey: ['getCollectionTags', collectionId],
+//         queryFn: () => tuanchat.collectionTagController.getCollectionTags(collectionId),
+//         staleTime: 300000, // 5分钟缓存
+//         enabled: collectionId > 0
+//     });
+// }
 
 /**
  * 为收藏添加标签
  */
-export function useAddCollectionTagMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: CollectionTagAddRequest) => tuanchat.collectionTagController.addCollectionTag(req),
-        mutationKey: ['addCollectionTag'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getCollectionTags', variables.collectionId] });
-            queryClient.invalidateQueries({ queryKey: ['getUserTags'] });
-        }
-    });
-}
+// export function useAddCollectionTagMutation() {
+//     const queryClient = useQueryClient();
+//     return useMutation({
+//         mutationFn: (req: CollectionTagAddRequest) => tuanchat.collectionTagController.addCollectionTag(req),
+//         mutationKey: ['addCollectionTag'],
+//         onSuccess: (_, variables) => {
+//             queryClient.invalidateQueries({ queryKey: ['getCollectionTags', variables.collectionId] });
+//             queryClient.invalidateQueries({ queryKey: ['getUserTags'] });
+//         }
+//     });
+// }
 
 /**
  * 删除收藏标签
  */
-export function useDeleteCollectionTagMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: CollectionTagDeleteRequest) => tuanchat.collectionTagController.deleteCollectionTag(req),
-        mutationKey: ['deleteCollectionTag'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getCollectionTags', variables.collectionId] });
-            queryClient.invalidateQueries({ queryKey: ['getUserTags'] });
-        }
-    });
-}
+// export function useDeleteCollectionTagMutation() {
+//     const queryClient = useQueryClient();
+//     return useMutation({
+//         mutationFn: (req: CollectionTagDeleteRequest) => tuanchat.collectionTagController.deleteCollectionTag(req),
+//         mutationKey: ['deleteCollectionTag'],
+//         onSuccess: (_, variables) => {
+//             queryClient.invalidateQueries({ queryKey: ['getCollectionTags', variables.collectionId] });
+//             queryClient.invalidateQueries({ queryKey: ['getUserTags'] });
+//         }
+//     });
+// }
 
 /**
  * 获取用户所有标签
  */
-export function useGetUserTagsQuery() {
-    return useQuery({
-        queryKey: ['getUserTags'],
-        queryFn: () => tuanchat.collectionTagController.getUserTags(),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
+// export function useGetUserTagsQuery() {
+//     return useQuery({
+//         queryKey: ['getUserTags'],
+//         queryFn: () => tuanchat.collectionTagController.getUserTags(),
+//         staleTime: 300000 // 5分钟缓存
+//     });
+// }

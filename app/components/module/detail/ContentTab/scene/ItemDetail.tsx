@@ -1,5 +1,6 @@
 import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 import { memo, useMemo, useState } from "react";
+import { useContentPermission } from "../ContentPermissionContext";
 
 interface ItemDetailProps {
   itemName: string;
@@ -9,6 +10,7 @@ interface ItemDetailProps {
 }
 
 function ItemDetail({ itemName, itemList, entityType, moduleInfo }: ItemDetailProps) {
+  const permission = useContentPermission();
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const selectedEntityInfo = useMemo(() => {
     if (!selectedEntity || !Array.isArray(moduleInfo)) {
@@ -99,7 +101,7 @@ function ItemDetail({ itemName, itemList, entityType, moduleInfo }: ItemDetailPr
           </div>
         )}
         {/* KP提示（统一为SceneDetail样式） */}
-        {normalizedItemInfo?.tip && (
+        {permission === "kp" && normalizedItemInfo?.tip && (
           <div className="w-full">
             <h4 className="font-semibold text-base md:text-lg mb-2 text-orange-600">KP提示</h4>
             <div className=" bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200 text-sm md:text-base">
@@ -190,7 +192,7 @@ function ItemDetail({ itemName, itemList, entityType, moduleInfo }: ItemDetailPr
                         </div>
                       </div>
                     )}
-                    {selectedEntityInfo.tip && (
+                    {permission === "kp" && selectedEntityInfo.tip && (
                       <div className="mb-2">
                         <div className="font-semibold text-orange-600 text-xs md:text-sm mb-1">KP提示：</div>
                         <div className="text-xs md:text-sm pl-2 border-l-2 border-orange-300">

@@ -1,16 +1,15 @@
 import type { Dispatch, SetStateAction } from "react";
-
 import type { Role } from "../types";
 import RoleCreationFlow from "./RoleCreationFlow";
 
-interface CreateRoleBySelfProps {
+interface AICreateRoleProps {
   onBack?: () => void;
+  onComplete?: (characterData: Role, ruleId?: number) => void;
   setRoles?: Dispatch<SetStateAction<Role[]>>;
   setSelectedRoleId?: (id: number | null) => void;
   onSave?: (updatedRole: Role) => void;
-  onComplete?: (role: Role, ruleId?: number) => void;
 }
 
-export default function CreateRoleBySelf(props: CreateRoleBySelfProps) {
-  return <RoleCreationFlow mode="self" {...props} />;
+export default function AICreateRole(props: AICreateRoleProps) {
+  return <RoleCreationFlow mode="AI" {...props} />;
 }
