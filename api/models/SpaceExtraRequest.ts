@@ -2,13 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 返回对象
- */
-export type ModuleMap = {
+export type SpaceExtraRequest = {
     /**
-     * 存储场景versionId，到相邻场景的list
+     * 空间ID
      */
-    sceneMap?: Record<string, Array<number>>;
+    spaceId: number;
+    /**
+     * 键
+     */
+    key: string;
 };
 

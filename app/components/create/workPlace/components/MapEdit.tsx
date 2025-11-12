@@ -25,7 +25,7 @@ const nodeTypes = {
 };
 
 export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterSave?: (fn: () => void) => void }) {
-  const { stageId } = useModuleContext();
+  const { stageId, setIsCommitted } = useModuleContext();
   // 接入接口
   const { data, isLoading, error } = useQueryEntitiesQuery(stageId as number);
   const { mutate: updateMap } = useUpdateEntityMutation(stageId as number);
@@ -33,7 +33,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
   // reactflow绘制
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [sceneMap, setSceneMap] = useState<Record<string, string[]>>(map.entityInfo?.sceneMap || {});
+  const [sceneMap, setSceneMap] = useState<Record<number, number[]>>(map.entityInfo?.sceneMap || {});
   const initialized = useRef(false);
 
   // 检测是否为移动端，用于决定布局方向（与 newSceneGraph 保持一致）
@@ -70,14 +70,14 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
           removedEdges.forEach((removedEdge) => {
             const edge = edges.find(e => e.id === removedEdge.id);
             if (edge) {
-              if (updatedSceneMap[edge.source]) {
-                updatedSceneMap[edge.source] = updatedSceneMap[edge.source].filter(
-                  (target: string) => target !== edge.target,
+              if (updatedSceneMap[Number(edge.source)]) {
+                updatedSceneMap[Number(edge.source)] = updatedSceneMap[Number(edge.source)].filter(
+                  (target: number) => target.toString() !== edge.target,
                 );
 
                 // 如果source没有目标了，删除这个source键
-                if (updatedSceneMap[edge.source].length === 0) {
-                  delete updatedSceneMap[edge.source];
+                if (updatedSceneMap[Number(edge.source)].length === 0) {
+                  delete updatedSceneMap[Number(edge.source)];
                 }
               }
             }
@@ -93,6 +93,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
               sceneMap: updatedSceneMap,
             },
           });
+          setIsCommitted(false);
 
           return updatedSceneMap;
         });
@@ -100,6 +101,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
 
       setEdges(eds => applyEdgeChanges(changes, eds));
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [edges, map, updateMap],
   );
 
@@ -108,13 +110,13 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
     (params: Connection) => {
       setSceneMap((prevSceneMap) => {
         let changedMap;
-        if (prevSceneMap[params.source!]) {
-          changedMap = [...prevSceneMap[params.source!], params.target!];
+        if (prevSceneMap[Number(params.source!)]) {
+          changedMap = [...prevSceneMap[Number(params.source!)], Number(params.target!)];
         }
         else {
-          changedMap = [params.target!];
+          changedMap = [Number(params.target!)];
         }
-        const updatedSceneMap = { ...prevSceneMap, [params.source!]: changedMap };
+        const updatedSceneMap = { ...prevSceneMap, [Number(params.source!)]: changedMap };
 
         // 调用API更新
         updateMap({
@@ -144,14 +146,14 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
     if (!edgeReconnectSuccessful.current) {
       setSceneMap((prevSceneMap) => {
         const updatedSceneMap = { ...prevSceneMap };
-        if (updatedSceneMap[edge.source]) {
-          updatedSceneMap[edge.source] = updatedSceneMap[edge.source].filter(
-            (target: string) => target !== edge.target,
+        if (updatedSceneMap[Number(edge.source)]) {
+          updatedSceneMap[Number(edge.source)] = updatedSceneMap[Number(edge.source)].filter(
+            (target: number) => target.toString() !== edge.target,
           );
 
           // 如果source没有目标了，删除这个source键
-          if (updatedSceneMap[edge.source].length === 0) {
-            delete updatedSceneMap[edge.source];
+          if (updatedSceneMap[Number(edge.source)].length === 0) {
+            delete updatedSceneMap[Number(edge.source)];
           }
         }
 
@@ -165,6 +167,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
             sceneMap: updatedSceneMap,
           },
         });
+        setIsCommitted(false);
 
         return updatedSceneMap;
       });
@@ -172,6 +175,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
     }
 
     edgeReconnectSuccessful.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, updateMap]);
 
   // 处理重连操作
@@ -179,26 +183,26 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
     setSceneMap((prevSceneMap) => {
       // 先从旧的连接中移除边
       const updatedSceneMap = { ...prevSceneMap };
-      if (updatedSceneMap[oldEdge.source]) {
-        updatedSceneMap[oldEdge.source] = updatedSceneMap[oldEdge.source].filter(
-          (target: string) => target !== oldEdge.target,
+      if (updatedSceneMap[Number(oldEdge.source)]) {
+        updatedSceneMap[Number(oldEdge.source)] = updatedSceneMap[Number(oldEdge.source)].filter(
+          (target: number) => target.toString() !== oldEdge.target,
         );
 
         // 如果source没有目标了，删除这个source键
-        if (updatedSceneMap[oldEdge.source].length === 0) {
-          delete updatedSceneMap[oldEdge.source];
+        if (updatedSceneMap[Number(oldEdge.source)].length === 0) {
+          delete updatedSceneMap[Number(oldEdge.source)];
         }
       }
 
       // 再添加新的连接
       let changedMap;
-      if (updatedSceneMap[newConnection.source!]) {
-        changedMap = [...updatedSceneMap[newConnection.source!], newConnection.target!];
+      if (updatedSceneMap[Number(newConnection.source!)]) {
+        changedMap = [...updatedSceneMap[Number(newConnection.source!)], Number(newConnection.target!)];
       }
       else {
-        changedMap = [newConnection.target!];
+        changedMap = [Number(newConnection.target!)];
       }
-      updatedSceneMap[newConnection.source!] = changedMap;
+      updatedSceneMap[Number(newConnection.source!)] = changedMap;
 
       // 调用API更新
       updateMap({
@@ -210,79 +214,121 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
           sceneMap: updatedSceneMap,
         },
       });
+      setIsCommitted(false);
 
       return updatedSceneMap;
     });
 
     setEdges(els => reconnectEdge(oldEdge, newConnection, els));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, updateMap]);
 
   // 处理从外部拖拽到节点上的功能
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
+    console.warn("[MapEdit:onDrop] triggered", { target: event.target });
 
     const reactFlowData = event.dataTransfer.getData("application/reactflow");
-    if (!reactFlowData)
+    console.warn("[MapEdit:onDrop] reactFlowData:", reactFlowData);
+    if (!reactFlowData) {
+      console.warn("[MapEdit:onDrop] No reactFlowData found on dataTransfer");
       return;
+    }
 
     try {
       const draggedItem = JSON.parse(reactFlowData);
+      console.warn("[MapEdit:onDrop] draggedItem parsed:", draggedItem);
       const dropTarget = event.target as HTMLElement;
 
       // 查找最近的场景节点
       const sceneNode = dropTarget.closest("[data-id]");
-      if (!sceneNode)
+      console.warn("[MapEdit:onDrop] closest sceneNode:", sceneNode);
+      if (!sceneNode) {
+        console.warn("[MapEdit:onDrop] No scene node (data-id) found from drop target");
         return;
+      }
 
       const sceneId = sceneNode.getAttribute("data-id");
-      if (!sceneId)
+      console.warn("[MapEdit:onDrop] sceneId:", sceneId);
+      if (!sceneId) {
+        console.warn("[MapEdit:onDrop] sceneId attribute missing");
         return;
+      }
 
-      // 查找对应的场景数据
+      // 根据节点上的 label(=场景名称) 查找对应场景实体（SceneNode 的 data-id 固定为名称，不能改）
       const sceneData = data?.data?.find(item =>
         item.entityType === 3 && item.name === sceneId,
       );
-
-      if (!sceneData)
+      console.warn("[MapEdit:onDrop] matched sceneData:", sceneData ? { id: sceneData.id, name: sceneData.name, versionId: sceneData.versionId } : null);
+      if (!sceneData) {
+        console.warn("[MapEdit:onDrop] No scene entity matched for sceneId", sceneId);
         return;
+      }
 
-      // 更新场景数据
+      // 更新场景数据：基于 versionId，后端字段固定为 number[]，不再兼容旧的字符串 name 数组
       const currentEntityInfo = sceneData.entityInfo || {};
-      const updatedEntityInfo = { ...currentEntityInfo };
+      const updatedEntityInfo = { ...currentEntityInfo } as {
+        items?: number[];
+        roles?: number[];
+        locations?: number[];
+        [k: string]: any;
+      };
       let wasAdded = false;
       let alreadyExists = false;
 
+      const idNum: number = draggedItem?.id != null ? Number(draggedItem.id) : Number.NaN;
+      if (Number.isNaN(idNum)) {
+        toast.error("拖拽数据缺少或非法的 versionId，无法添加");
+        console.error("[MapEdit:onDrop] draggedItem.id invalid:", draggedItem);
+        return;
+      }
+
       switch (draggedItem.type) {
         case "item": {
-          const currentItems = updatedEntityInfo.items || [];
-          if (!currentItems.includes(draggedItem.name)) {
-            updatedEntityInfo.items = [...currentItems, draggedItem.name];
+          const currentItems: number[] = Array.isArray(updatedEntityInfo.items)
+            ? updatedEntityInfo.items.map((n: any) => Number(n)).filter(n => !Number.isNaN(n))
+            : [];
+          console.warn("[MapEdit:onDrop] before add item versionIds:", currentItems);
+          if (!currentItems.includes(idNum)) {
+            updatedEntityInfo.items = [...currentItems, idNum];
             wasAdded = true;
+            console.warn("[MapEdit:onDrop] item added:", idNum, "=>", updatedEntityInfo.items);
           }
           else {
             alreadyExists = true;
+            console.warn("[MapEdit:onDrop] item already exists:", idNum);
           }
           break;
         }
         case "role": {
-          const currentRoles = updatedEntityInfo.roles || [];
-          if (!currentRoles.includes(draggedItem.name)) {
-            updatedEntityInfo.roles = [...currentRoles, draggedItem.name];
+          const currentRoles: number[] = Array.isArray(updatedEntityInfo.roles)
+            ? updatedEntityInfo.roles.map((n: any) => Number(n)).filter(n => !Number.isNaN(n))
+            : [];
+          console.warn("[MapEdit:onDrop] before add role versionIds:", currentRoles);
+          if (!currentRoles.includes(idNum)) {
+            updatedEntityInfo.roles = [...currentRoles, idNum];
             wasAdded = true;
+            console.warn("[MapEdit:onDrop] role added:", idNum, "=>", updatedEntityInfo.roles);
           }
           else {
             alreadyExists = true;
+            console.warn("[MapEdit:onDrop] role already exists:", idNum);
           }
           break;
         }
         case "location": {
-          const currentLocations = updatedEntityInfo.locations || [];
-          if (!currentLocations.includes(draggedItem.name)) {
-            updatedEntityInfo.locations = [...currentLocations, draggedItem.name];
+          const currentLocations: number[] = Array.isArray(updatedEntityInfo.locations)
+            ? updatedEntityInfo.locations.map((n: any) => Number(n)).filter(n => !Number.isNaN(n))
+            : [];
+          console.warn("[MapEdit:onDrop] before add location versionIds:", currentLocations);
+          if (!currentLocations.includes(idNum)) {
+            updatedEntityInfo.locations = [...currentLocations, idNum];
             wasAdded = true;
+            console.warn("[MapEdit:onDrop] location added:", idNum, "=>", updatedEntityInfo.locations);
           }
           else {
             alreadyExists = true;
+            console.warn("[MapEdit:onDrop] location already exists:", idNum);
           }
           break;
         }
@@ -294,11 +340,17 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
 
       if (alreadyExists) {
         toast.error(`${typeText}「${draggedItem.name}」已存在于场景「${sceneData.name}」中`);
+        console.warn("[MapEdit:onDrop] duplicate detected, skip update");
         return;
       }
 
       if (wasAdded) {
         // 调用API更新场景
+        console.warn("[MapEdit:onDrop] updating scene with entityType=3:", {
+          id: sceneData.id,
+          name: sceneData.name,
+          updatedEntityInfo,
+        });
         updateMap({
           id: sceneData.id!,
           name: sceneData.name!,
@@ -308,24 +360,27 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
 
         // 显示成功提示
         toast.success(`已将${typeText}「${draggedItem.name}」添加到场景「${sceneData.name}」`);
+        setIsCommitted(false);
       }
     }
     catch (error) {
       console.error("Error handling drop:", error);
       toast.error("拖拽添加失败，请重试");
     }
-  }, [data, updateMap]);
+  }, [data?.data, setIsCommitted, updateMap]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+    // 高频日志可注释，仅首调试阶段开启
+    console.warn("[MapEdit:onDragOver] fired");
   }, []);
 
   // 仅为新增节点计算一个合理位置（使用 dagre），不改变已存在节点的位置
   const computePositionForNewNode = useCallback((
     nodeId: string,
     baseNodes: Node[],
-    currentSceneMap: Record<string, string[]>,
+    currentSceneMap: Record<number, number[]>,
   ): { x: number; y: number } => {
     const NODE_WIDTH = 200;
     const NODE_HEIGHT = 120;
@@ -343,10 +398,10 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
     });
     g.setNode(nodeId, { width: NODE_WIDTH, height: NODE_HEIGHT });
 
-    // sceneMap 边
+    // sceneMap 边（数字 id 转字符串）
     Object.entries(currentSceneMap || {}).forEach(([source, targets]) => {
-      (targets || []).forEach((target: string) => {
-        g.setEdge(source, target);
+      (targets || []).forEach((target: number) => {
+        g.setEdge(String(source), String(target));
       });
     });
 
@@ -388,7 +443,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
     const entityType3Data = data.data.filter(item => item.entityType === 3);
 
     const newNodes: Node[] = entityType3Data.map(item => ({
-      id: item.name!,
+      id: item.versionId!.toString(),
       type: "mapEditNode",
       position: { x: 0, y: 0 },
       data: {
@@ -416,10 +471,10 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
 
     // 从数据中读取当前地图的 sceneMap，并转换为 dagre 的边
     const mapEntity = data.data.find(item => item.entityType === 5);
-    const mapSceneMap: Record<string, string[]> = mapEntity?.entityInfo?.sceneMap || {};
+    const mapSceneMap: Record<number, number[]> = mapEntity?.entityInfo?.sceneMap || {};
     Object.entries(mapSceneMap).forEach(([source, targets]) => {
-      (targets || []).forEach((target: string) => {
-        dagreGraph.setEdge(source, target);
+      (targets || []).forEach((target: number) => {
+        dagreGraph.setEdge(String(source), String(target));
       });
     });
 
@@ -443,17 +498,19 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
   useEffect(() => {
     if (!initialized.current)
       return;
-    setSceneMap(data?.data?.filter(item => item.entityType === 5)[0].entityInfo?.sceneMap);
+    // 使用本地 sceneMap；若为空则回退到后端的 sceneMap
+    const backendMap: Record<number, number[]> = (data?.data?.find(item => item.entityType === 5)?.entityInfo?.sceneMap as Record<number, number[]>) || {};
+    const effectiveMap = (sceneMap && Object.keys(sceneMap).length > 0) ? sceneMap : backendMap;
 
     const newEdges: Edge[] = [];
     let edgeId = 1;
 
-    Object.entries(sceneMap).forEach(([source, targets]) => {
-      targets.forEach((target: string) => {
+    Object.entries(effectiveMap).forEach(([source, targets]) => {
+      (targets || []).forEach((target: number) => {
         newEdges.push({
           id: `e${edgeId++}`,
-          source,
-          target,
+          source: String(source),
+          target: target.toString(),
           animated: true,
           type: "smoothstep",
           markerEnd: {
@@ -481,15 +538,15 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
 
     const entityType3Data = data.data.filter(item => item.entityType === 3);
     const mapEntity = data.data.find(item => item.entityType === 5);
-    const currentSceneMap: Record<string, string[]> = mapEntity?.entityInfo?.sceneMap || {};
+    const currentSceneMap: Record<number, number[]> = mapEntity?.entityInfo?.sceneMap || {};
 
     setNodes((prevNodes) => {
       const accNodes: Node[] = [...prevNodes];
       const built: Node[] = entityType3Data.map((item) => {
-        const existingNode = accNodes.find(node => node.id === item.name);
+        const existingNode = accNodes.find(node => node.id === item.versionId!.toString());
         if (existingNode) {
           const node: Node = {
-            id: item.name!,
+            id: item.versionId!.toString(),
             type: "mapEditNode",
             position: existingNode.position,
             data: {
@@ -515,10 +572,10 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
           }
           return node;
         }
-        // 新增节点：计算一个合适的位置
-        const pos = computePositionForNewNode(item.name!, accNodes, currentSceneMap);
+        // 新增节点：计算一个合适的位置（节点 id 使用 versionId 字符串）
+        const pos = computePositionForNewNode(item.versionId!.toString(), accNodes, currentSceneMap);
         const node: Node = {
-          id: item.name!,
+          id: item.versionId!.toString(),
           type: "mapEditNode",
           position: pos,
           data: {

@@ -33,7 +33,7 @@ function ItemListItem({
         e.dataTransfer.setData("application/reactflow", JSON.stringify({
           type: "item",
           name: item.name,
-          id: item.id,
+          id: item.versionId,
           entityType: item.entityType,
         }));
         e.dataTransfer.effectAllowed = "move";

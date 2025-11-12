@@ -30,7 +30,7 @@ function RoleListItem(
         e.dataTransfer.setData("application/reactflow", JSON.stringify({
           type: "role",
           name: role.name,
-          id: role.id,
+          id: role.versionId,
           entityType: role.entityType,
         }));
         e.dataTransfer.effectAllowed = "move";

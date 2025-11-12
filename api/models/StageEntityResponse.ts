@@ -12,6 +12,7 @@ export type StageEntityResponse = {
      * 实体类型(item, role, scene)
      */
     entityType?: number;
+    versionId?: number;
     /**
      * 实体详情
      */

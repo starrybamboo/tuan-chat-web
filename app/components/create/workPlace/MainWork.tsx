@@ -45,7 +45,7 @@ export default function MainWork() {
   return (
     <ModuleProvider>
       <StageInitializer />
-      <div className="h-[calc(100vh-4rem)] flex bg-base-200 ">
+      <div className="h-[calc(100vh-4rem)] flex bg-base-200">
         <SideTopbar />
         <div className="flex flex-1 h-full">
           <div className="bg-base-200 w-80 flex flex-col h-full">

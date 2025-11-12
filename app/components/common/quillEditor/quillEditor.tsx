@@ -10,8 +10,11 @@ import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlTagWysiwyg";
 import { htmlToMarkdown } from "./htmlToMarkdown";
 import { backendContentToQuillHtml, markdownToHtmlWithEntities } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
+import { registerBlots } from "./modules/quillBlots";
+import { preloadQuill } from "./modules/quillLoader";
 import { restoreRawHtml } from "./restoreRawHtml";
 import { InlineMenu, SelectionMenu } from "./toolbar";
+import { createLogger } from "./utils/logger";
 import {
   detectAlignment,
   detectInlineFormats,
@@ -52,90 +55,21 @@ interface vditorProps {
   debugSelection?: boolean;
 }
 
-// 顶层预加载句柄，避免重复导入
-let vditorPromise: Promise<any> | null = null;
+// 顶层预加载句柄，避免重复导入（由 modules/quillLoader 接管）
 // 全局标记避免重复注册
-let mentionBlotRegistered = false;
-let hrBlotRegistered = false;
-
+// Wrap new blots registration with idempotent module to keep call sites unchanged
 function registerMentionBlot(Q: any) {
-  if (Q && !mentionBlotRegistered) {
-    try {
-      const Embed = Q.import("blots/embed");
-      class MentionBlot extends Embed {
-        static blotName = "mention-span";
-        static tagName = "span";
-        static className = "ql-mention-span";
-
-        static create(value: any) {
-          const node = super.create();
-          node.setAttribute("data-label", value?.label || "");
-          node.setAttribute("data-category", value?.category || "");
-          node.textContent = value?.label || "";
-          const cat = value?.category || "";
-          const colorMap: Record<string, { bg: string; color: string }> = {
-            人物: { bg: "#fef3c7", color: "#92400e" },
-            地点: { bg: "#d1fae5", color: "#065f46" },
-            物品: { bg: "#e0f2fe", color: "#075985" },
-          };
-          let bg = "#eef2ff";
-          let fg = "#4338ca";
-          if (cat && colorMap[cat]) {
-            bg = colorMap[cat].bg;
-            fg = colorMap[cat].color;
-          }
-          (node as HTMLElement).style.background = bg;
-          (node as HTMLElement).style.padding = "0 4px";
-          (node as HTMLElement).style.borderRadius = "4px";
-          (node as HTMLElement).style.color = fg;
-          (node as HTMLElement).style.fontSize = "0.85em";
-          (node as HTMLElement).style.userSelect = "none";
-          return node;
-        }
-
-        static value(node: HTMLElement) {
-          return {
-            label: node.getAttribute("data-label") || node.textContent || "",
-            category: node.getAttribute("data-category") || "",
-          };
-        }
-      }
-      Q.register(MentionBlot);
-      mentionBlotRegistered = true;
-    }
-    catch { /* ignore */ }
+  try {
+    const log = createLogger("CORE/Blots", { domainKey: "CORE" });
+    registerBlots(Q, log);
   }
-  if (Q && !hrBlotRegistered) {
-    try {
-      const BlockEmbed = Q.import("blots/block/embed");
-      class HrBlot extends BlockEmbed {
-        static blotName = "hr";
-        static tagName = "hr";
-        static className = "ql-hr";
-        static create() {
-          const node = super.create();
-          (node as HTMLElement).setAttribute("contenteditable", "false");
-          return node;
-        }
-      }
-      Q.register(HrBlot);
-      hrBlotRegistered = true;
-    }
-    catch { /* ignore */ }
+  catch {
+    // ignore
   }
 }
 
 function preloadVeditor() {
-  if (typeof window === "undefined")
-    return null;
-  if (!vditorPromise) {
-    vditorPromise = import("quill").then((mod) => {
-      const Q = (mod as any)?.default ?? mod;
-      registerMentionBlot(Q);
-      return mod;
-    });
-  }
-  return vditorPromise;
+  return preloadQuill(createLogger("CORE/Loader", { domainKey: "CORE" }));
 }
 
 // 顶层预热：模块加载后尽快预热（空闲时），减少首次打开编辑器的等待

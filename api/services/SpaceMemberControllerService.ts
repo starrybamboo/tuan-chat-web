@@ -172,14 +172,16 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 生成邀请码，过期时间以天为单位，为空则不过期
+     * 生成邀请码，过期时间以天为单位，为空则不过期,type0观战,type1玩家邀请
      * @param spaceId
+     * @param type
      * @param duration
      * @returns ApiResultString OK
      * @throws ApiError
      */
     public inviteCode(
         spaceId: number,
+        type: number,
         duration?: number,
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
@@ -187,6 +189,7 @@ export class SpaceMemberControllerService {
             url: '/capi/space/member/inviteCode',
             query: {
                 'spaceId': spaceId,
+                'type': type,
                 'duration': duration,
             },
             errors: {

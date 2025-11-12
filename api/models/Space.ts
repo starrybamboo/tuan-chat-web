@@ -36,7 +36,15 @@ export type Space = {
     status?: number;
     moduleId?: number;
     stageId?: number;
+    /**
+     * 骰子角色id
+     */
+    dicerRoleId?: number;
     roomMap?: Record<string, Array<number>>;
+    /**
+     * 其他信息
+     */
+    extra?: string;
     createTime?: string;
     updateTime?: string;
 };
