@@ -1,7 +1,8 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
 import type { ItemModuleItem, MapModuleItem, ModuleModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
-import { useRef } from "react";
+import { ChevronSmallTripleUp } from "@/icons";
+import { useEffect, useRef } from "react";
 import ItemEdit from "./components/ItemEdit";
 import LocationEdit from "./components/LocationEdit";
 import MapEdit from "./components/MapEdit";
@@ -334,6 +335,9 @@ function ModuleModuleTabItem({
 export default function EditModule() {
   const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem }
     = useModuleContext();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const startRef = useRef<number>(0);
 
   // 包装 tab 切换：先保存当前，再切换
   const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item" | "module") => {
@@ -362,8 +366,67 @@ export default function EditModule() {
     item.type === ModuleItemEnum.MODULE,
   );
 
+  // 获取最近的可滚动容器（优先检测自身，其次向上冒泡）
+  const getScrollParent = (node: Element | null): HTMLElement => {
+    let current: HTMLElement | null = node as HTMLElement | null;
+    while (current) {
+      const style = getComputedStyle(current);
+      const overflowY = style.overflowY;
+      const canScrollY = (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay")
+        && current.scrollHeight > current.clientHeight;
+      if (canScrollY) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+    return (document.scrollingElement as HTMLElement) || document.documentElement;
+  };
+
+  // 回到顶部（带缓动动画）
+  const handleBackToTop = () => {
+    const root = containerRef.current;
+    const scrollElem = getScrollParent(root);
+    const start = scrollElem.scrollTop || 0;
+    const duration = 600; // ms
+    const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const next = Math.floor(start * (1 - easeOutCubic(progress)));
+      scrollElem.scrollTop = next;
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+
+    requestAnimationFrame(step);
+  };
+
+  // 监听滚动：当处于顶部（startRef 为 0）时隐藏按钮（display: none）
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root)
+      return;
+    const scrollElem = getScrollParent(root);
+    const onScroll = () => {
+      const currentTop = scrollElem.scrollTop || 0;
+      startRef.current = currentTop;
+      if (buttonRef.current) {
+        buttonRef.current.style.display = currentTop < 50 ? "none" : "";
+      }
+    };
+    scrollElem.addEventListener("scroll", onScroll, { passive: true });
+    // 初始化执行一次，确保初始状态正确
+    onScroll();
+    return () => {
+      scrollElem.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
   return (
-    <div className="h-full p-4">
+    <div ref={containerRef} className="h-full p-4 relative">
       <div className="w-full tabs tabs-lift">
         {roleModuleItems.map(item => (
           <RoleModuleTabItem
@@ -449,6 +512,15 @@ export default function EditModule() {
           )
         }
       </div>
+      <button
+        type="button"
+        onClick={handleBackToTop}
+        title="回到顶部"
+        ref={buttonRef}
+        className="fixed bottom-[3vw] right-[3vw] z-50 btn btn-circle btn-primary shadow-lg"
+      >
+        <ChevronSmallTripleUp className="w-10 h-10" />
+      </button>
     </div>
   );
 }

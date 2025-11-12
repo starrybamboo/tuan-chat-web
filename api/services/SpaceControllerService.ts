@@ -6,10 +6,13 @@ import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultListSpace } from '../models/ApiResultListSpace';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
 import type { ApiResultSpace } from '../models/ApiResultSpace';
+import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoomAddRequest } from '../models/RoomAddRequest';
 import type { SpaceAddRequest } from '../models/SpaceAddRequest';
 import type { SpaceArchiveRequest } from '../models/SpaceArchiveRequest';
+import type { SpaceExtraRequest } from '../models/SpaceExtraRequest';
+import type { SpaceExtraSetRequest } from '../models/SpaceExtraSetRequest';
 import type { SpaceOwnerTransferRequest } from '../models/SpaceOwnerTransferRequest';
 import type { SpaceUpdateRequest } from '../models/SpaceUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -28,6 +31,76 @@ export class SpaceControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/space/transfer',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取空间其他信息
+     * @param spaceId
+     * @param key
+     * @returns ApiResultString OK
+     * @throws ApiError
+     */
+    public getSpaceExtra(
+        spaceId: number,
+        key: string,
+    ): CancelablePromise<ApiResultString> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/space/extra',
+            query: {
+                'spaceId': spaceId,
+                'key': key,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 新增或修改空间其他信息
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public setSpaceExtra(
+        requestBody: SpaceExtraSetRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/space/extra',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 删除空间其他信息
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public deleteSpaceExtra(
+        requestBody: SpaceExtraRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/capi/space/extra',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

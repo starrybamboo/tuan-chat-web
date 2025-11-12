@@ -89,6 +89,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 获取所有实体
   const { data: entities } = useQueryEntitiesQuery(stageId as number);
+  const queryClient = useQueryClient();
   // 获取地图
   const mapDataRef = useRef<StageEntityResponse>(entities?.data?.find(item => item.entityType === 5));
 
@@ -117,7 +118,6 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
-  const queryClient = useQueryClient();
 
   // 名称内联编辑（与其他编辑器一致）
   const nameInputRef = useRef(scene.name || "");
@@ -158,7 +158,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   const handleNameChange = (val: string) => {
     beginSelectionLock("editing-scene-name", 10000);
-    const oldName = oldNameRef.current;
+    // oldName 仅用于旧逻辑（基于名称的 sceneMap 重写），已不再需要
     nameInputRef.current = val;
     updateModuleTabLabel(scene.id!.toString(), val || "未命名");
     optimisticUpdateEntityName(val || "未命名");
@@ -169,39 +169,10 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     nameDebounceTimer.current = setTimeout(() => {
       updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: val }, {
         onSuccess: () => {
+          // map.sceneMap 现已改为 versionId 映射，重命名场景无需再同步修改 map
           setIsCommitted(false);
-          if (mapDataRef.current) {
-            const oldMap = { ...mapDataRef.current.entityInfo?.sceneMap } as Record<string, any>;
-            const newMap: Record<string, any> = {};
-            Object.entries(oldMap).forEach(([key, value]) => {
-              if (key === oldName) {
-                newMap[val as string] = value;
-              }
-              else {
-                newMap[key] = value;
-              }
-              if (Array.isArray(value)) {
-                const newArray = [...value] as Array<string>;
-                newArray.forEach((item, index) => {
-                  if (item === oldName) {
-                    newArray[index] = val as string;
-                  }
-                });
-                if (key === oldName) {
-                  newMap[val as string] = newArray;
-                }
-                else {
-                  newMap[key] = newArray;
-                }
-              }
-            });
-            updateScene({ id: mapDataRef.current.id!, entityType: 5, entityInfo: { sceneMap: newMap }, name: mapDataRef.current.name }, {
-              onSuccess: () => {
-                oldNameRef.current = val;
-                setTimeout(() => endSelectionLock(), 600);
-              },
-            });
-          }
+          oldNameRef.current = val;
+          setTimeout(() => endSelectionLock(), 600);
         },
         onError: () => endSelectionLock(),
       });
@@ -233,33 +204,40 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   const handleAddEntity = (entities: StageEntityResponse[]) => {
     beginSelectionLock("adding-entity", 2000);
     const entityType = entities[0]?.entityType;
-    const entitiesNames = entities.map(entity => entity.name);
+    // 后端已固定使用 number[] 存储 versionId，不做字符串兼容
+    const newIds: number[] = entities
+      .map(ent => ent.versionId!)
+      .filter(v => typeof v === "number" && !Number.isNaN(v));
+
     if (entityType === 1) {
+      const merged = [...(localScene.items || []), ...newIds];
       updateScene({
         id: scene.id!,
         name: scene.name!,
         entityType: 3,
-        entityInfo: { ...localScene, items: [...(localScene.items || []), ...entitiesNames] },
+        entityInfo: { ...localScene, items: merged },
       });
-      setLocalScene(prev => ({ ...prev, items: [...(prev.items || []), ...entitiesNames] }));
+      setLocalScene(prev => ({ ...prev, items: merged }));
     }
     if (entityType === 2) {
+      const merged = [...(localScene.roles || []), ...newIds];
       updateScene({
         id: scene.id!,
         name: scene.name!,
         entityType: 3,
-        entityInfo: { ...localScene, roles: [...(localScene.roles || []), ...entitiesNames] },
+        entityInfo: { ...localScene, roles: merged },
       });
-      setLocalScene(prev => ({ ...prev, roles: [...(prev.roles || []), ...entitiesNames] }));
+      setLocalScene(prev => ({ ...prev, roles: merged }));
     }
     if (entityType === 4) {
+      const merged = [...(localScene.locations || []), ...newIds];
       updateScene({
         id: scene.id!,
         name: scene.name!,
         entityType: 3,
-        entityInfo: { ...localScene, locations: [...(localScene.locations || []), ...entitiesNames] },
+        entityInfo: { ...localScene, locations: merged },
       });
-      setLocalScene(prev => ({ ...prev, locations: [...(prev.locations || []), ...entitiesNames] }));
+      setLocalScene(prev => ({ ...prev, locations: merged }));
     }
     setTimeout(() => {
       endSelectionLock();
@@ -269,7 +247,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   const handleDeleteEntity = (entity: StageEntityResponse) => {
     beginSelectionLock("deleting-entity", 2000);
     if (entity.entityType! === 1) {
-      const filteredItems = localScene.items?.filter((item: string | undefined) => item !== entity.name);
+      const filteredItems = localScene.items?.filter((item: number | undefined) => item !== entity.versionId!);
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -281,7 +259,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       setLocalScene(prev => ({ ...prev, items: (filteredItems || []) }));
     }
     if (entity.entityType! === 2) {
-      const filteredRoles = localScene.roles?.filter((item: string | undefined) => item !== entity.name);
+      const filteredRoles = localScene.roles?.filter((item: number | undefined) => item !== entity.versionId!);
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -291,7 +269,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       setLocalScene(prev => ({ ...prev, roles: (filteredRoles || []) }));
     }
     if (entity.entityType! === 4) {
-      const filteredLocations = localScene.locations?.filter((item: string | undefined) => item !== entity.name);
+      const filteredLocations = localScene.locations?.filter((item: number | undefined) => item !== entity.versionId!);
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -308,69 +286,62 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     setIsOpen(false);
   };
 
+  // 初始化/同步本地场景：确保三个引用字段永远是 number[]，避免后续筛选被 undefined 阻断
   useEffect(() => {
-    setLocalScene({ ...entityInfo });
+    setLocalScene({
+      ...entityInfo,
+      items: Array.isArray(entityInfo.items) ? entityInfo.items : [],
+      roles: Array.isArray(entityInfo.roles) ? entityInfo.roles : [],
+      locations: Array.isArray(entityInfo.locations) ? entityInfo.locations : [],
+    });
   }, [scene, entityInfo]);
 
+  // 根据本地 scene 引用直接派生显示列表；不再要求其它数组同时存在
   useEffect(() => {
-    if (entities && localScene.locations && localScene.items && localScene.roles) {
-      const locationsData = entities.data!.filter(item =>
-        item.entityType === 4 && (localScene.locations || []).includes(item.name!));
-      const itemsData = entities.data!.filter(item =>
-        item.entityType === 1 && (localScene.items || []).includes(item.name!));
-      const rolesData = entities.data!.filter(item =>
-        item.entityType === 2 && (localScene.roles || []).includes(item.name!));
-
-      setLocations(locationsData);
-      setItems(itemsData);
-      setRoles(rolesData);
+    if (!entities || !entities.data) {
+      return;
     }
-  }, [entities, localScene, scene]);
+    const all = entities.data;
+    const locIds: number[] = Array.isArray(localScene.locations) ? localScene.locations : [];
+    const itemIds: number[] = Array.isArray(localScene.items) ? localScene.items : [];
+    const roleIds: number[] = Array.isArray(localScene.roles) ? localScene.roles : [];
 
-  // 监听entities变化，当场景中的物品、地点或角色名称发生变化时更新本地状态
+    const locationsData = all.filter(ent => ent.entityType === 4 && roleIds !== undefined && locIds.includes(ent.versionId!));
+    const itemsData = all.filter(ent => ent.entityType === 1 && itemIds.includes(ent.versionId!));
+    const rolesData = all.filter(ent => ent.entityType === 2 && roleIds.includes(ent.versionId!));
+
+    // 调试日志（如需关闭可删除）
+    console.warn("[SceneEdit] derived lists", {
+      locIds,
+      itemIds,
+      roleIds,
+      locationsCount: locationsData.length,
+      itemsCount: itemsData.length,
+      rolesCount: rolesData.length,
+    });
+
+    setLocations(locationsData);
+    setItems(itemsData);
+    setRoles(rolesData);
+  }, [entities, localScene]);
+
+  // 监听 entities 变化：用 versionId 重新收集当前场景引用的实体，更新显示列表
+  // 监听后端 entities 变动时，若对应场景实体发生变化则刷新本地引用（仅覆盖 localScene 的三组引用）
   useEffect(() => {
-    if (entities && entities.data) {
-      // 获取当前场景在entities中的最新数据
-      const currentScene = entities.data.find(item => item.entityType === 3 && item.id === scene.id);
-      if (currentScene && currentScene.entityInfo) {
-        // 从entities中获取当前场景引用的物品、地点、角色的最新数据
-        const sceneItems = currentScene.entityInfo.items || [];
-        const currentItems = entities.data.filter(item =>
-          item.entityType === 1 && sceneItems.includes(item.name!));
-        const currentItemNames = currentItems.map(item => item.name);
-
-        const sceneLocations = currentScene.entityInfo.locations || [];
-        const currentLocations = entities.data.filter(item =>
-          item.entityType === 4 && sceneLocations.includes(item.name!));
-        const currentLocationNames = currentLocations.map(item => item.name);
-
-        const sceneRoles = currentScene.entityInfo.roles || [];
-        const currentRoles = entities.data.filter(item =>
-          item.entityType === 2 && sceneRoles.includes(item.name!));
-        const currentRoleNames = currentRoles.map(item => item.name);
-
-        // 更新显示列表状态
-        setItems(currentItems);
-        setLocations(currentLocations);
-        setRoles(currentRoles);
-
-        // 检查是否有名称变化需要更新本地场景状态
-        const hasItemChanges = JSON.stringify(currentItemNames) !== JSON.stringify(localScene.items || []);
-        const hasLocationChanges = JSON.stringify(currentLocationNames) !== JSON.stringify(localScene.locations || []);
-        const hasRoleChanges = JSON.stringify(currentRoleNames) !== JSON.stringify(localScene.roles || []);
-
-        if (hasItemChanges || hasLocationChanges || hasRoleChanges) {
-          // 更新本地场景状态以反映名称的变化
-          setLocalScene(prev => ({
-            ...prev,
-            items: hasItemChanges ? currentItemNames : prev.items,
-            locations: hasLocationChanges ? currentLocationNames : prev.locations,
-            roles: hasRoleChanges ? currentRoleNames : prev.roles,
-          }));
-        }
-      }
+    if (!entities || !entities.data) {
+      return;
     }
-  }, [entities, scene.id, localScene]);
+    const serverScene = entities.data.find(ent => ent.entityType === 3 && ent.id === scene.id);
+    if (serverScene && serverScene.entityInfo) {
+      const { items: sItems = [], roles: sRoles = [], locations: sLocs = [] } = serverScene.entityInfo as any;
+      setLocalScene(prev => ({
+        ...prev,
+        items: Array.isArray(sItems) ? sItems : [],
+        roles: Array.isArray(sRoles) ? sRoles : [],
+        locations: Array.isArray(sLocs) ? sLocs : [],
+      }));
+    }
+  }, [entities, scene.id]);
 
   // 定时器的更新 (localSceneRef 已在前面声明并更新)
   const handleSave = () => {
@@ -548,7 +519,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
               onClose={handleClose}
               stageId={stageId as number}
               entityType={editEntityType}
-              existIdSet={editEntityType === "item" ? items : editEntityType === "role" ? roles : locations}
+              // 直接传递当前场景已包含的 versionId 数组，避免在弹窗内再从对象取出
+              existIdSet={editEntityType === "item" ? (localScene.items || []) : editEntityType === "role" ? (localScene.roles || []) : (localScene.locations || [])}
               onConfirm={entities => handleAddEntity(entities)}
             />
           </>
