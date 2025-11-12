@@ -25,5 +25,6 @@ export type RuleUpdateRequest = {
     abilityFormula?: Record<string, string>;
     skillDefault?: Record<string, string>;
     basicDefault?: Record<string, string>;
+    dicerConfig?: Record<string, string>;
 };
 

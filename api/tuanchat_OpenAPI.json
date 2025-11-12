@@ -1146,6 +1146,224 @@
         }
       }
     },
+    "/capi/space/extra": {
+      "get": {
+        "tags": [
+          "space-controller"
+        ],
+        "summary": "获取空间其他信息",
+        "operationId": "getSpaceExtra",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "space-controller"
+        ],
+        "summary": "新增或修改空间其他信息",
+        "operationId": "setSpaceExtra",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceExtraSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "space-controller"
+        ],
+        "summary": "删除空间其他信息",
+        "operationId": "deleteSpaceExtra",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceExtraRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/space/archive": {
       "put": {
         "tags": [
@@ -5656,7 +5874,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultLong"
+                  "$ref": "#/components/schemas/ApiResultStageEntityResponse"
                 }
               }
             }
@@ -14342,21 +14560,14 @@
         }
       }
     },
-    "/capi/stage/name": {
+    "/capi/stage/info": {
       "get": {
         "tags": [
           "StageController"
         ],
-        "operationId": "getByName",
+        "summary": "查看最新详情",
+        "operationId": "queryEntities",
         "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "stageId",
             "in": "query",
@@ -14364,6 +14575,15 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -14373,7 +14593,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultStageEntityResponse"
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
                 }
               }
             }
@@ -14421,14 +14641,25 @@
         }
       }
     },
-    "/capi/stage/info": {
+    "/capi/stage/getByVersionIds": {
       "get": {
         "tags": [
           "StageController"
         ],
-        "summary": "查看最新详情",
-        "operationId": "queryEntities",
+        "operationId": "getByVersionIds",
         "parameters": [
+          {
+            "name": "versionIds",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          },
           {
             "name": "stageId",
             "in": "query",
@@ -14436,15 +14667,6 @@
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
-          },
-          {
-            "name": "type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
             }
           }
         ],
@@ -14865,7 +15087,7 @@
         "tags": [
           "space-member-controller"
         ],
-        "summary": "生成邀请码，过期时间以天为单位，为空则不过期",
+        "summary": "生成邀请码，过期时间以天为单位，为空则不过期,type0观战,type1玩家邀请",
         "operationId": "inviteCode",
         "parameters": [
           {
@@ -14875,6 +15097,17 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "maximum": 9,
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -19129,6 +19362,29 @@
           }
         }
       },
+      "SpaceExtraSetRequest": {
+        "required": [
+          "key",
+          "spaceId",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "key": {
+            "type": "string",
+            "description": "键"
+          },
+          "value": {
+            "type": "string",
+            "description": "值"
+          }
+        }
+      },
       "SpaceArchiveRequest": {
         "required": [
           "archived",
@@ -19238,6 +19494,12 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "dicerConfig": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         },
         "description": "规则更新请求对象"
@@ -19343,6 +19605,11 @@
           },
           "voiceUrl": {
             "type": "string"
+          },
+          "type": {
+            "type": "integer",
+            "description": "角色类型,0:角色,1:骰娘",
+            "format": "int32"
           }
         },
         "description": "更新角色请求体"
@@ -19912,7 +20179,7 @@
             "type": "string"
           },
           "description": {
-            "maxLength": 1024,
+            "maxLength": 2048,
             "minLength": 0,
             "type": "string"
           }
@@ -20883,6 +21150,10 @@
             "description": "实体类型(item, role, scene)",
             "format": "int32"
           },
+          "versionId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "entityInfo": {
             "type": "object",
             "description": "实体详情"
@@ -21186,13 +21457,14 @@
             "type": "object",
             "additionalProperties": {
               "type": "array",
-              "description": "存储场景名，到相邻场景的list",
+              "description": "存储场景versionId，到相邻场景的list",
               "items": {
-                "type": "string",
-                "description": "存储场景名，到相邻场景的list"
+                "type": "integer",
+                "description": "存储场景versionId，到相邻场景的list",
+                "format": "int64"
               }
             },
-            "description": "存储场景名，到相邻场景的list"
+            "description": "存储场景versionId，到相邻场景的list"
           }
         },
         "description": "返回对象"
@@ -21461,6 +21733,11 @@
             "type": "integer",
             "format": "int64"
           },
+          "dicerRoleId": {
+            "type": "integer",
+            "description": "骰子角色id",
+            "format": "int64"
+          },
           "roomMap": {
             "type": "object",
             "additionalProperties": {
@@ -21470,6 +21747,10 @@
                 "format": "int64"
               }
             }
+          },
+          "extra": {
+            "type": "string",
+            "description": "其他信息"
           },
           "createTime": {
             "type": "string",
@@ -21619,6 +21900,12 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "dicerConfig": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         },
         "description": "规则创建请求对象"
@@ -21706,6 +21993,12 @@
             }
           },
           "basicDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "dicerConfig": {
             "type": "object",
             "additionalProperties": {
               "type": "string"
@@ -21805,6 +22098,11 @@
           "description": {
             "type": "string",
             "description": "简介"
+          },
+          "type": {
+            "type": "integer",
+            "description": "角色类型,0:角色,1:骰娘",
+            "format": "int32"
           }
         },
         "description": "创建角色请求体"
@@ -21902,6 +22200,7 @@
       "UserRole": {
         "required": [
           "roleId",
+          "type",
           "userId"
         ],
         "type": "object",
@@ -21931,7 +22230,12 @@
           },
           "state": {
             "type": "integer",
-            "description": "角色状态，0正常，1删除",
+            "description": "角色状态,0正常,1删除",
+            "format": "int32"
+          },
+          "type": {
+            "type": "integer",
+            "description": "角色类型,0:角色,1:骰娘",
             "format": "int32"
           },
           "modelName": {
@@ -21952,6 +22256,12 @@
           "updateTime": {
             "type": "string",
             "format": "date-time"
+          },
+          "role": {
+            "type": "boolean"
+          },
+          "diceMaiden": {
+            "type": "boolean"
           }
         },
         "description": "角色实体类"
@@ -22128,18 +22438,15 @@
         "properties": {
           "abilityId": {
             "type": "integer",
-            "format": "int64",
-            "refType": null
+            "format": "int64"
           },
           "roleId": {
             "type": "integer",
-            "format": "int64",
-            "refType": null
+            "format": "int64"
           },
           "ruleId": {
             "type": "integer",
-            "format": "int64",
-            "refType": null
+            "format": "int64"
           },
           "act": {
             "type": "object",
@@ -22152,8 +22459,7 @@
             "example": {
               "外貌": "外貌描述",
               "体型": "体型描述"
-            },
-            "refType": null
+            }
           },
           "basic": {
             "type": "object",
@@ -22166,8 +22472,7 @@
             "example": {
               "str": "50",
               "力量": "$str"
-            },
-            "refType": null
+            }
           },
           "ability": {
             "type": "object",
@@ -22179,8 +22484,7 @@
             "description": "能力字段，不能为空或null，必须为单层",
             "example": {
               "db": "1d4"
-            },
-            "refType": null
+            }
           },
           "skill": {
             "type": "object",
@@ -22192,15 +22496,13 @@
             "description": "技能字段，不能为空或null，必须为单层",
             "example": {
               "侦查": "六十"
-            },
-            "refType": null
+            }
           },
           "record": {
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            },
-            "refType": null
+            }
           }
         },
         "description": "角色能力"
@@ -27218,6 +27520,24 @@
               "description": "删除的用户id",
               "format": "int64"
             }
+          }
+        }
+      },
+      "SpaceExtraRequest": {
+        "required": [
+          "key",
+          "spaceId"
+        ],
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "key": {
+            "type": "string",
+            "description": "键"
           }
         }
       },

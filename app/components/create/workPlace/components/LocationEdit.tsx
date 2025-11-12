@@ -2,7 +2,6 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithSelector } from "@/components/common/uploader/ImgUploaderWithSelector";
 import { useQueryClient } from "@tanstack/react-query";
-import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -18,7 +17,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
   const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
   const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId, setIsCommitted } = useModuleContext();
 
-  const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
+  // 已不再需要通过名称同步引用，scene 与 map 以 versionId 关联
 
   // 本地状态
   const [localLocation, setLocalLocation] = useState({ ...entityInfo });
@@ -42,8 +41,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
   const nameInputRef = useRef(location.name || "");
   const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const nameRef = useRef(location.name);
-  // 记录最近一次已持久化名称，用于 scene 引用同步
-  const lastPersistedNameRef = useRef(location.name || "");
+  // 不再进行基于名称的引用同步
   useLayoutEffect(() => {
     if ((location.name || "") !== nameInputRef.current) {
       nameRef.current = location.name;
@@ -73,44 +71,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
     });
   };
 
-  // 将旧地点名在所有 scene (entityType=3) 的 entityInfo.locations 数组中同步为新名字
-  const propagateNameChange = (oldName: string | undefined, newName: string | undefined) => {
-    if (!stageId) {
-      return;
-    }
-    if (!oldName || !newName || oldName === newName) {
-      return;
-    }
-    // 乐观更新缓存中的所有 scene locations
-    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
-      if (!oldData) {
-        return oldData;
-      }
-      const cloned = { ...oldData };
-      if (Array.isArray(cloned.data)) {
-        cloned.data = cloned.data.map((ent: any) => {
-          if (ent.entityType === 3 && Array.isArray(ent.entityInfo?.locations) && ent.entityInfo.locations.includes(oldName)) {
-            const newLocations = ent.entityInfo.locations.map((loc: string | undefined) => (loc === oldName ? newName : loc));
-            return { ...ent, entityInfo: { ...ent.entityInfo, locations: newLocations } };
-          }
-          return ent;
-        });
-      }
-      return cloned;
-    });
-    // 找出需要持久化更新的 scene
-    const scenesNeedUpdate = (sceneEntities || []).filter(scene => Array.isArray(scene.entityInfo?.locations) && scene.entityInfo.locations.includes(oldName));
-    scenesNeedUpdate.forEach((scene) => {
-      try {
-        const locationsArr = Array.isArray(scene.entityInfo?.locations) ? scene.entityInfo?.locations : [];
-        const newLocations = locationsArr.map((loc: string | undefined) => (loc === oldName ? newName : loc));
-        updateLocation({ id: scene.id!, entityType: 3, entityInfo: { ...scene.entityInfo, locations: newLocations }, name: scene.name });
-      }
-      catch (e) {
-        console.error("更新 scene 引用地点名失败", e);
-      }
-    });
-  };
+  // 不再需要名称级联更新 scene 引用
 
   const handleNameChange = (val: string) => {
     beginSelectionLock("editing-location-name", 1200);
@@ -122,14 +83,12 @@ export default function LocationEdit({ location }: LocationEditProps) {
       clearTimeout(nameDebounceTimer.current);
     }
     nameDebounceTimer.current = setTimeout(() => {
-      const oldName = lastPersistedNameRef.current;
       const newName = val;
       updateLocation(
         { id: location.id!, entityType: 4, entityInfo: localLocationRef.current, name: newName },
         {
           onSuccess: () => {
-            propagateNameChange(oldName, newName);
-            lastPersistedNameRef.current = newName;
+            // scene/map 以 versionId 关联，无需额外联动
             endSelectionLock();
           },
         },

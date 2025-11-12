@@ -2,7 +2,7 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithSelector } from "@/components/common/uploader/ImgUploaderWithSelector";
 import { useQueryClient } from "@tanstack/react-query";
-import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
@@ -17,7 +17,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
   const entityInfo = useMemo(() => item.entityInfo || {}, [item.entityInfo]);
   const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId, setIsCommitted } = useModuleContext();
 
-  const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
+  // 不再需要通过名称同步 scene 引用，场景引用改用 versionId
 
   // 本地状态
   const [localItem, setLocalItem] = useState({ ...entityInfo });
@@ -41,8 +41,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
   const nameInputRef = useRef(item.name || "");
   const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const nameRef = useRef(item.name);
-  // 记录最近一次已持久化名称，用于 scene 引用同步
-  const lastPersistedNameRef = useRef(item.name || "");
+  // 不再进行名称级联更新
   useLayoutEffect(() => {
     if ((item.name || "") !== nameInputRef.current) {
       nameRef.current = item.name;
@@ -72,44 +71,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
     });
   };
 
-  // 将旧物品名在所有 scene (entityType=3) 的 entityInfo.items 数组中同步为新名字
-  const propagateNameChange = (oldName: string | undefined, newName: string | undefined) => {
-    if (!stageId) {
-      return;
-    }
-    if (!oldName || !newName || oldName === newName) {
-      return;
-    }
-    // 乐观更新缓存中的所有 scene items
-    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
-      if (!oldData) {
-        return oldData;
-      }
-      const cloned = { ...oldData };
-      if (Array.isArray(cloned.data)) {
-        cloned.data = cloned.data.map((ent: any) => {
-          if (ent.entityType === 3 && Array.isArray(ent.entityInfo?.items) && ent.entityInfo.items.includes(oldName)) {
-            const newItems = ent.entityInfo.items.map((it: string | undefined) => (it === oldName ? newName : it));
-            return { ...ent, entityInfo: { ...ent.entityInfo, items: newItems } };
-          }
-          return ent;
-        });
-      }
-      return cloned;
-    });
-    // 找出需要持久化更新的 scene
-    const scenesNeedUpdate = (sceneEntities || []).filter(scene => Array.isArray(scene.entityInfo?.items) && scene.entityInfo.items.includes(oldName));
-    scenesNeedUpdate.forEach((scene) => {
-      try {
-        const itemsArr = Array.isArray(scene.entityInfo?.items) ? scene.entityInfo?.items : [];
-        const newItems = itemsArr.map((it: string | undefined) => (it === oldName ? newName : it));
-        updateItem({ id: scene.id!, entityType: 3, entityInfo: { ...scene.entityInfo, items: newItems }, name: scene.name });
-      }
-      catch (e) {
-        console.error("更新 scene 引用物品名失败", e);
-      }
-    });
-  };
+  // 名称级联逻辑移除
 
   const handleNameChange = (val: string) => {
     beginSelectionLock("editing-item-name", 1200);
@@ -121,14 +83,12 @@ export default function ItemEdit({ item }: ItemEditProps) {
       clearTimeout(nameDebounceTimer.current);
     }
     nameDebounceTimer.current = setTimeout(() => {
-      const oldName = lastPersistedNameRef.current;
       const newName = val;
       updateItem(
         { id: item.id!, entityType: 1, entityInfo: localItemRef.current, name: newName },
         {
           onSuccess: () => {
-            propagateNameChange(oldName, newName);
-            lastPersistedNameRef.current = newName;
+            // 场景使用 versionId 引用，不需名称同步
             endSelectionLock();
           },
         },

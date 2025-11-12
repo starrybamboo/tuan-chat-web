@@ -27,9 +27,13 @@ export type UserRole = {
      */
     avatarId?: number;
     /**
-     * 角色状态，0正常，1删除
+     * 角色状态,0正常,1删除
      */
     state?: number;
+    /**
+     * 角色类型,0:角色,1:骰娘
+     */
+    type: number;
     /**
      * tts时使用的模型
      */
@@ -41,5 +45,7 @@ export type UserRole = {
     voiceUrl?: string;
     createTime?: string;
     updateTime?: string;
+    role?: boolean;
+    diceMaiden?: boolean;
 };
 

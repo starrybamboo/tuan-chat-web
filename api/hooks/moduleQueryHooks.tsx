@@ -34,7 +34,7 @@ export function useUpdateItemMutation() {
 export function useAddItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem2(req),
+        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem1(req),
         mutationKey: ['addItem'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -393,6 +393,16 @@ export function useIdToSearchQuery(id: number) {
         queryKey: ['idToSearch'],
         queryFn: async () => {
             const res = await tuanchat.stageController.get(id);
+            return res.data;
+        }
+    });
+}
+
+export function useVersionIdSearchQuery(stageId:number, versionId: number) {
+    return useQuery({
+        queryKey: ['versionIdToSearch'],
+        queryFn: async () => {
+            const res = await tuanchat.stageController.getByVersionIds([versionId],stageId);
             return res.data;
         }
     });
