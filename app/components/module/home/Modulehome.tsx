@@ -4,32 +4,7 @@ import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-// import Carousel from "./carousel";
-// // 导入本地图片
-// import 办公室图片 from "./images/办公室.webp";
-// import 天台图片 from "./images/天台.webp";
-// import 操场图片 from "./images/操场.webp";
 import 教室图片 from "./images/教室.webp";
-// import 楼道图片 from "./images/楼道.webp";
-
-// 示例tag数组，可根据实际数据源替换
-// const tags = [
-//   "TRPG",
-//   "冒险",
-//   "合作",
-//   "推理",
-//   "恐怖",
-//   "短剧本",
-//   "长剧本",
-//   "新手友好",
-//   "高难度",
-//   "单元剧",
-//   "剧情驱动",
-//   "规则轻量",
-//   "规则复杂",
-//   "经典",
-//   "原创",
-// ];
 
 // 卡片内容类型定义
 interface ContentCardProps {
@@ -203,40 +178,6 @@ export function ContentCard({
 export default function ModuleHome() {
   const navigate = useNavigate();
 
-  // 轮播图数据 - 五张图片实现循环显示
-  // const heroImages = useMemo(() => [
-  //   {
-  //     img: 教室图片,
-  //     alt: "教室场景",
-  //     title: "探索无限创意",
-  //     description: "发现精彩的模组内容，开启你的创作之旅",
-  //   },
-  //   {
-  //     img: 操场图片,
-  //     alt: "操场场景",
-  //     title: "分享精彩时刻",
-  //     description: "记录每一个难忘的游戏瞬间，与社区分享你的故事",
-  //   },
-  //   {
-  //     img: 办公室图片,
-  //     alt: "办公室场景",
-  //     title: "创造独特世界",
-  //     description: "用你的想象力构建独一无二的游戏体验",
-  //   },
-  //   {
-  //     img: 天台图片,
-  //     alt: "天台场景",
-  //     title: "社区协作",
-  //     description: "与全球创作者一起构建精彩的内容世界",
-  //   },
-  //   {
-  //     img: 楼道图片,
-  //     alt: "楼道场景",
-  //     title: "创新突破",
-  //     description: "突破传统界限，创造前所未有的游戏体验",
-  //   },
-  // ], []);
-
   const RuleList = useRuleListQuery();
 
   // 分页状态管理
@@ -244,16 +185,6 @@ export default function ModuleHome() {
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const itemsPerPage = 12; // 每页显示12个模组
-
-  // // 当前活跃的背景图片状态
-  // const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
-  //   heroImages.length > 0 ? heroImages[0].img : "",
-  // );
-
-  // // 处理轮播图活跃项变化的回调函数
-  // const handleActiveImageChange = (activeItem: any) => {
-  //   setActiveBackgroundImage(activeItem.img);
-  // };
 
   const ModuleList = useModuleListQuery({
     pageNo: currentPage,
@@ -353,66 +284,7 @@ export default function ModuleHome() {
 
   return (
     <div className="bg-base-100 relative">
-      {/* 创建模组按钮 - 响应式：大屏右上角固定，移动端底部悬浮 */}
-      <button
-        type="button"
-        className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
-        left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
-        md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
-        onClick={() => navigate("/module/create")}
-      >
-        {/* 从左往右的黑色背景遮罩 */}
-        <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
-
-        {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-        <span className="relative z-10  group-hover:text-white transition-colors duration-300">创建模组</span>
-        <svg
-          className="w-8 h-8 relative z-10  group-hover:text-white transition-colors duration-300"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </button>
-      {/* <div className="fixed top-0 left-0 right-0 z-50 mt-32 ml-8">
-        <span className="text-4xl font-black px-8 bg-info py-6 rounded-lg">模组首页</span>
-      </div> */}
-      {/* 轮播图区域 */}
-      {/* 四图并排轮播图区域 */}
-      {/* <div className="w-full py-16 bg-base-200 relative overflow-hidden"> */}
-      {/* 背景层容器 - 限制模糊效果范围 */}
-      {/* <div className="hidden md:block absolute top-0 left-0 w-full h-full overflow-hidden z-0"> */}
-      {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
-      {/* <div
-            className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center transition-all duration-700 ease-out"
-            style={{
-              backgroundImage: `url(${activeBackgroundImage || heroImages[0]?.img})`,
-              filter: "blur(20px)",
-            }}
-          /> */}
-      {/* 遮罩层 */}
-      {/* <div className="absolute top-0 left-0 w-full h-full bg-black/10" /> */}
-      {/* </div> */}
-
-      {/* 轮播图内容 */}
-      {/* <div className="relative z-10">
-          <Carousel
-            items={heroImages}
-            className="w-full"
-            autoPlay={true}
-            interval={4000}
-            onActiveChange={handleActiveImageChange}
-          />
-        </div> */}
-      {/* </div> */}
-      {/* 其他内容区域 */}
+      {/* 内容区域 */}
       <div className="p-8">
 
         {/* 图片卡片区域 */}
@@ -422,7 +294,7 @@ export default function ModuleHome() {
               <h1 className="text-xl md:text-3xl font-bold pl-4 md:pl-8 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 md:before:w-2 before:bg-primary before:rounded-r-md">
                 模组列表
               </h1>
-              <div className="ml-auto flex items-center">
+              <div className="ml-auto flex items-center gap-2">
                 {/* 移动端筛选图标 */}
                 <button
                   type="button"
@@ -465,16 +337,6 @@ export default function ModuleHome() {
                   ))}
                 </div>
               </div>
-              {/* <div className="flex-1">
-                <h2 className="text-lg md:text-xl font-bold mb-4 ">全部标签</h2>
-                <div className="flex flex-wrap gap-3">
-                  {tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-accent/10  text-xs md:text-sm font-semibold">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div> */}
               <div className="divider mt-0 mb-8 md:mb-8"></div>
             </div>
             <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
