@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -30,6 +30,12 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // 使用 ref 保存最新的 roomId，避免依赖变化导致回调重新创建
+  const roomIdRef = useRef<number | null>(roomId);
+  useEffect(() => {
+    roomIdRef.current = roomId;
+  }, [roomId]);
+
   /**
    * 批量添加或更新消息到当前房间，并同步更新UI状态
    * @param newMessages 要处理的消息数组
@@ -41,12 +47,12 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
       // 先更新状态
       // 由于获取消息是异步的，这里的roomId可能是过时的，所以要检查一下。
-      if (newMessages[0].message.roomId === roomId) {
+      if (newMessages[0].message.roomId === roomIdRef.current) {
         setMessages((prevMessages) => {
           const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
           let hasChanges = false;
 
-          newMessages.filter(msg => msg.message.roomId === roomId)
+          newMessages.filter(msg => msg.message.roomId === roomIdRef.current)
             .forEach((msg) => {
               const existingMsg = messageMap.get(msg.message.messageId);
               // 只有在消息真正变化时才更新
@@ -73,10 +79,10 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       }
       catch (err) {
         setError(err as Error);
-        console.error(`Failed to batch save messages for room ${roomId}:`, err);
+        console.error(`Failed to batch save messages for room ${roomIdRef.current}:`, err);
       }
     },
-    [roomId],
+    [], // ← 移除依赖，使用 ref 代替
   );
 
   /**
@@ -85,41 +91,56 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
    */
   const addOrUpdateMessage = useCallback(
     async (message: ChatMessageResponse) => {
-      if (roomId === null)
+      if (roomIdRef.current === null)
         return;
       // 调用批量处理函数
       await addOrUpdateMessages([message]);
     },
-    [addOrUpdateMessages, roomId],
+    [addOrUpdateMessages], // ← 只依赖 addOrUpdateMessages，不依赖 roomId
   );
 
   /**
    * 从服务器全量获取最新的消息
    */
   const fetchNewestMessages = useCallback(async (maxSyncId: number) => {
-    if (roomId === null)
+    if (roomIdRef.current === null)
       return [];
+
     // 从服务器获取最新消息
     const serverResponse = await tuanchat.chatController.getHistoryMessages({
-      roomId,
+      roomId: roomIdRef.current,
       syncId: maxSyncId + 1,
     });
+
     const newMessages = serverResponse.data ?? [];
     if (newMessages.length > 0) {
       await addOrUpdateMessages(newMessages);
     }
+
     return newMessages;
-  }, [addOrUpdateMessages, roomId]);
+  }, [addOrUpdateMessages]); // ← 只依赖 addOrUpdateMessages，不依赖 roomId
 
   /**
    * 按照房间获取消息
    */
+  const currentFetchingRoomId = useRef<number | null>(null);
   const getMessagesByRoomId = useCallback(async (roomId: number) => {
+    if (currentFetchingRoomId.current === roomId)
+      return [];
+    currentFetchingRoomId.current = roomId;
+
     const messages = await dbGetMessagesByRoomId(roomId);
+    if (currentFetchingRoomId.current !== roomId) {
+      return [];
+    }
     const maxSyncId = messages.length > 0
       ? Math.max(...messages.map(msg => msg.message.syncId))
       : -1;
     const newMessages = await fetchNewestMessages(maxSyncId);
+    if (currentFetchingRoomId.current !== roomId) {
+      return [];
+    }
+
     return [...messages, ...newMessages].sort((a, b) => a.message.position - b.message.position);
   }, [fetchNewestMessages]);
 
@@ -179,15 +200,20 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     return () => {
       isCancelled = true;
     };
-  }, [addOrUpdateMessages, roomId]);
+  }, [roomId, fetchNewestMessages]);
 
   // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
+  const messagesRawRef = useRef<ChatMessageResponse[]>([]);
+  useEffect(() => {
+    messagesRawRef.current = messagesRaw;
+  }, [messagesRaw]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       // 当页面从后台切换到前台时
       if (document.visibilityState === "visible") {
-        const maxSyncId = messagesRaw.length > 0
-          ? Math.max(...messagesRaw.map(msg => msg.message.syncId))
+        const maxSyncId = messagesRawRef.current.length > 0
+          ? Math.max(...messagesRawRef.current.map(msg => msg.message.syncId))
           : -1;
         fetchNewestMessages(maxSyncId);
       }
@@ -200,7 +226,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [messagesRaw, fetchNewestMessages]);
+  }, [fetchNewestMessages]);
 
   return {
     messages: messagesWithoutDeletedMessages,
