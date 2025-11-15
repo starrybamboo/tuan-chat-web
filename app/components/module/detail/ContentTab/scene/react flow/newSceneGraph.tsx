@@ -134,6 +134,7 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
           moduleInfo: moduleInfo.data?.responses,
           label: sceneName,
           idx: index,
+          versionId: sceneVersionId,
           description: sceneData?.entityInfo?.description || "",
           tip: sceneData?.entityInfo?.tip || "",
           scenelocations: sceneData?.entityInfo?.locations || [],
