@@ -270,6 +270,8 @@ export type { SpaceArchiveRequest } from './models/SpaceArchiveRequest';
 export type { SpaceClue } from './models/SpaceClue';
 export type { SpaceClueCreateRequest } from './models/SpaceClueCreateRequest';
 export type { SpaceClueUpdateRequest } from './models/SpaceClueUpdateRequest';
+export type { SpaceExtraRequest } from './models/SpaceExtraRequest';
+export type { SpaceExtraSetRequest } from './models/SpaceExtraSetRequest';
 export type { SpaceMember } from './models/SpaceMember';
 export type { SpaceMemberAddRequest } from './models/SpaceMemberAddRequest';
 export type { SpaceMemberDeleteRequest } from './models/SpaceMemberDeleteRequest';

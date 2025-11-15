@@ -2,7 +2,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 
 interface AddEntityToSceneProps {
@@ -11,7 +11,7 @@ interface AddEntityToSceneProps {
   onConfirm: (selectedEntities: StageEntityResponse[]) => void;
   stageId: number;
   entityType: "item" | "role" | "location";
-  existIdSet: StageEntityResponse[]; // 已存在实体集合
+  existIdSet: number[]; // 已存在实体集合
 }
 
 // 实体列表项组件
@@ -82,45 +82,37 @@ export default function AddEntityToScene({
   entityType,
   existIdSet,
 }: AddEntityToSceneProps) {
-  const [entities, setEntities] = useState<StageEntityResponse[]>([]);
   const [selectedEntities, setSelectedEntities] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
 
   // API hooks
   const { data: entitiesQuery, isSuccess } = useQueryEntitiesQuery(stageId);
 
-  // 加载实体数据
-  const loadEntities = useCallback(() => {
-    if (isSuccess && entitiesQuery?.data) {
-      // 筛选出对应类型的实体
-      const filteredEntities = entitiesQuery.data.filter(
-        entity => entity.entityType
-          === (entityType === "item" ? 1 : entityType === "role" ? 2 : 4),
-      );
+  // 基于后端数据与依赖项，动态计算可选实体（不使用副作用写入本地状态）
+  const availableEntities = useMemo<StageEntityResponse[]>(() => {
+    if (!isSuccess || !entitiesQuery?.data)
+      return [];
 
-      // 过滤掉已存在的实体
-      const newEntities = filteredEntities.filter(
-        entity => entity.id !== undefined && !existIdSet.includes(entity),
-      );
+    const typed = entitiesQuery.data.filter(
+      entity => entity.entityType === (entityType === "item" ? 1 : entityType === "role" ? 2 : 4),
+    );
 
-      setEntities(newEntities);
-    }
+    return typed.filter(entity => entity.versionId !== undefined && !existIdSet.includes(entity.versionId!));
   }, [isSuccess, entitiesQuery, entityType, existIdSet]);
 
-  // 初始化实体数据
-  useEffect(() => {
+  // 弹窗开时重置选择/搜索
+  useLayoutEffect(() => {
     if (isOpen) {
-      loadEntities();
       setSelectedEntities(new Set());
       setSearchQuery("");
     }
-  }, [isOpen, loadEntities]);
+  }, [isOpen]);
 
   // 过滤实体列表
-  const filteredEntities = entities.filter(entity =>
+  const filteredEntities = useMemo(() => availableEntities.filter(entity =>
     (entity.name?.toLowerCase().includes(searchQuery.toLowerCase()) || "")
     || (entity.entityInfo?.description?.toLowerCase().includes(searchQuery.toLowerCase()) || ""),
-  );
+  ), [availableEntities, searchQuery]);
 
   // 处理实体选择
   const handleEntitySelect = (entityId: number) => {
@@ -144,10 +136,8 @@ export default function AddEntityToScene({
   }, [onClose]);
   // 确认选择
   const handleConfirm = () => {
-    const selectedEntityList = entities.filter(entity =>
-      entity.id !== undefined && selectedEntities.has(entity.id),
-    );
-
+    // 使用可选实体全集（非搜索过滤后的）来构建已选实体列表，避免搜索变化丢失已选项
+    const selectedEntityList = availableEntities.filter(entity => entity.id !== undefined && selectedEntities.has(entity.id));
     onConfirm(selectedEntityList);
     handleClose();
   };

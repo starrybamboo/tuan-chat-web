@@ -33,7 +33,7 @@ export function LocationListItem({
         e.dataTransfer.setData("application/reactflow", JSON.stringify({
           type: "location",
           name: location.name,
-          id: location.id,
+          id: location.versionId,
           entityType: location.entityType,
         }));
         e.dataTransfer.effectAllowed = "move";

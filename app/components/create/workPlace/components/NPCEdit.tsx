@@ -14,7 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 // API Internal (value) Imports
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
 
-import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
+import { useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useDeleteRoleAvatarMutation, useRoleAvatars } from "api/queryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -377,7 +377,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const entityInfo = role.entityInfo || {};
   const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
 
-  const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
   const [skill, setSkill] = useState<Record<string, string>>(entityInfo.skill || {});
@@ -391,8 +390,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const nameInputRef = useRef(role.name || "");
   const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const queryClient = useQueryClient();
-  // 记录上一次已持久化到后端的名称（用于 scene 引用同步）
-  const lastPersistedNameRef = useRef(role.name || "");
 
   // 头像相关事宜
   const [copperedUrl, setCopperedUrl] = useState<string>("");
@@ -463,45 +460,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
       nameRef.current = role.name;
     }
   }, [role.name]);
-
-  // 将旧名称在所有 scene (entityType=3) 中的引用替换为新名称
-  const propagateNameChange = (oldName: string | undefined, newName: string | undefined) => {
-    if (!stageId) {
-      return;
-    }
-    if (!oldName || !newName || oldName === newName) {
-      return;
-    }
-    // 从当前查询缓存中获取并做乐观更新
-    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
-      if (!oldData) {
-        return oldData;
-      }
-      const cloned = { ...oldData };
-      if (Array.isArray(cloned.data)) {
-        cloned.data = cloned.data.map((ent: any) => {
-          if (ent.entityType === 3 && Array.isArray(ent.entityInfo?.roles) && ent.entityInfo.roles.includes(oldName)) {
-            const newRoles = ent.entityInfo.roles.map((r: string | undefined) => (r === oldName ? newName : r));
-            return { ...ent, entityInfo: { ...ent.entityInfo, roles: newRoles } };
-          }
-          return ent;
-        });
-      }
-      return cloned;
-    });
-    // 找出需要真正持久化更新的 scene 实体（避免对所有 scene 逐个调用接口）
-    const scenesNeedUpdate = (sceneEntities || []).filter(scene => Array.isArray(scene.entityInfo?.roles) && scene.entityInfo.roles.includes(oldName));
-    scenesNeedUpdate.forEach((scene) => {
-      try {
-        const rolesArr = Array.isArray(scene.entityInfo?.roles) ? scene.entityInfo?.roles : [];
-        const newRoles = rolesArr.map((r: string | undefined) => (r === oldName ? newName : r));
-        updateRole({ id: scene.id!, entityType: 3, entityInfo: { ...scene.entityInfo, roles: newRoles }, name: scene.name });
-      }
-      catch (e) {
-        console.error("更新 scene 引用角色名失败", e);
-      }
-    });
-  };
 
   const handleSave = () => {
     setIsTransitioning(true);
@@ -689,15 +647,11 @@ export default function NPCEdit({ role }: NPCEditProps) {
       clearTimeout(nameDebounceTimer.current);
     }
     nameDebounceTimer.current = setTimeout(() => {
-      const oldName = lastPersistedNameRef.current;
       const newName = val;
       updateRole(
         { id: role.id!, entityType: 2, entityInfo: { ...localRoleRef.current, ability: abilityRef.current }, name: newName },
         {
           onSuccess: () => {
-            // 持久化成功后再进行 scene 引用同步（避免无效替换）
-            propagateNameChange(oldName, newName);
-            lastPersistedNameRef.current = newName;
             // 保存成功后解除锁
             endSelectionLock();
             // 可选提示：toast.success("名称已保存");

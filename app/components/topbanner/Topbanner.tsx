@@ -113,14 +113,9 @@ export default function Topbar() {
               </svg>
             </div>
             <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3 text-base-content">
-              <li><Link to="/feed" onClick={() => setIsDropdownOpen(false)}>推荐</Link></li>
-              <li><Link to="/community/1" onClick={() => setIsDropdownOpen(false)}>社区</Link></li>
               <li><Link to="/chat" onClick={() => setIsDropdownOpen(false)}>聊天</Link></li>
               <li><Link to="/role" onClick={() => setIsDropdownOpen(false)}>角色</Link></li>
               <li><Link to="/module" onClick={() => setIsDropdownOpen(false)}>模组</Link></li>
-              <li><Link to="/create" onClick={() => setIsDropdownOpen(false)}>创作</Link></li>
-              <li><Link to="/collection" onClick={() => setIsDropdownOpen(false)}>收藏</Link></li>
-              <li><Link to="/resource" onClick={() => setIsDropdownOpen(false)}>资源</Link></li>
             </ul>
           </div>
 
@@ -136,14 +131,9 @@ export default function Topbar() {
 
           {/* 导航链接 - 在移动端隐藏 */}
           <div className="hidden lg:flex gap-7">
-            <Link to="/feed" className="font-normal text-base hover:underline cursor-default">推荐</Link>
-            <Link to="/community/1" className="font-normal text-base hover:underline cursor-default">社区</Link>
             <Link to="/chat" className="font-normal text-base hover:underline cursor-default">聊天</Link>
             <Link to="/role" className="font-normal text-base hover:underline cursor-default">角色</Link>
             <Link to="/module" className="font-normal text-base hover:underline cursor-default">模组</Link>
-            <Link to="/create" className="font-normal text-base hover:underline cursor-default">创作</Link>
-            <Link to="/collection" className="font-normal text-base hover:underline cursor-default">收藏</Link>
-            <Link to="/resource" className="font-normal text-base hover:underline cursor-default">资源</Link>
           </div>
         </div>
 

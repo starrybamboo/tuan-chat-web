@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { ApiResultListStageEntityResponse } from '../models/ApiResultListStageEntityResponse';
 import type { ApiResultListStageResponse } from '../models/ApiResultListStageResponse';
-import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultStageEntityResponse } from '../models/ApiResultStageEntityResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { CommitRequest } from '../models/CommitRequest';
@@ -130,12 +129,12 @@ export class StageControllerService {
      * 添加实体
      * 同种类型名字不能重复，map只能有一个
      * @param requestBody
-     * @returns ApiResultLong OK
+     * @returns ApiResultStageEntityResponse OK
      * @throws ApiError
      */
     public add(
         requestBody: EntityAddRequest,
-    ): CancelablePromise<ApiResultLong> {
+    ): CancelablePromise<ApiResultStageEntityResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/stage/add',
@@ -190,31 +189,6 @@ export class StageControllerService {
         });
     }
     /**
-     * @param name
-     * @param stageId
-     * @returns ApiResultStageEntityResponse OK
-     * @throws ApiError
-     */
-    public getByName(
-        name: string,
-        stageId: number,
-    ): CancelablePromise<ApiResultStageEntityResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/stage/name',
-            query: {
-                'name': name,
-                'stageId': stageId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
      * 查看最新详情
      * @param stageId
      * @param type
@@ -231,6 +205,31 @@ export class StageControllerService {
             query: {
                 'stageId': stageId,
                 'type': type,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * @param versionIds
+     * @param stageId
+     * @returns ApiResultListStageEntityResponse OK
+     * @throws ApiError
+     */
+    public getByVersionIds(
+        versionIds: Array<number>,
+        stageId: number,
+    ): CancelablePromise<ApiResultListStageEntityResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/stage/getByVersionIds',
+            query: {
+                'versionIds': versionIds,
+                'stageId': stageId,
             },
             errors: {
                 400: `Bad Request`,

@@ -14,5 +14,9 @@ export type RoleCreateRequest = {
      * 简介
      */
     description?: string;
+    /**
+     * 角色类型,0:角色,1:骰娘
+     */
+    type?: number;
 };
 
