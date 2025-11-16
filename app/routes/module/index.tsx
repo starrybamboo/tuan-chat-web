@@ -1,5 +1,5 @@
 import type { Route } from "../+types/home";
-import ModuleHome from "@/components/module/home/Modulehome";
+import ModuleWithTabs from "@/components/module/ModuleWithTabs";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -14,7 +14,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Home() {
   return (
     <div className="bg-base-100 overflow-x-hidden">
-      <ModuleHome />
+      <ModuleWithTabs />
     </div>
   );
 }
