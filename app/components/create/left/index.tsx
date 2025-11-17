@@ -1,5 +1,6 @@
 import { useModuleContext } from "../workPlace/context/_moduleContext";
 import { ModuleListEnum } from "../workPlace/context/types";
+import ClueList from "./clueList";
 import MapModule from "./components/MapModule";
 import ModuleBasicInfo from "./components/ModuleBasicInfo";
 import ModuleItems from "./moduleItems";
@@ -10,15 +11,6 @@ function LeftContent() {
 
   const renderContent = () => {
     switch (activeList) {
-      // case ModuleListEnum.CONTENT:
-      //   return (
-      //     <div className="h-full bg-base-100 p-4">
-      //       <h3 className="text-lg font-semibold mb-4">内容查看</h3>
-      //       {/* 这里可以添加内容管理的具体组件 */}
-      //       <p className="text-gray-600">内容管理功能开发中...</p>
-      //     </div>
-      //   );
-
       case ModuleListEnum.STAGE:
         return (
           <div className="w-80 h-full bg-base-100">
@@ -46,9 +38,20 @@ function LeftContent() {
                 )}
           </div>
         );
-      case ModuleListEnum.BACK:
-        // 返回上一级，跳转回 /create 路由
-        return null; // 不渲染任何内容
+      case ModuleListEnum.CLUE:
+        return (
+          <div className="w-80 h-full bg-base-100">
+            {editingModuleId
+              ? (
+                  <ClueList stageId={editingStageId as number} />
+                )
+              : (
+                  <div className="p-4">
+                    <p className="text-gray-600">请先选择一个模组</p>
+                  </div>
+                )}
+          </div>
+        );
 
       default:
         return (
