@@ -54,7 +54,6 @@ import {
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
-import ClueListForKP from "./sideDrawer/clueListForKP";
 import ClueListForPL from "./sideDrawer/clueListForPL";
 import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
 
@@ -793,7 +792,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             onWidthChange={setClueDrawerWidth}
           >
             {spaceContext.isSpaceOwner
-              ? <ClueListForKP onSend={handleClueSend}></ClueListForKP>
+              ? <ClueListForPL onSend={handleClueSend}></ClueListForPL>
               : <ClueListForPL onSend={handleClueSend}></ClueListForPL>}
           </OpenAbleDrawer>
           <OpenAbleDrawer

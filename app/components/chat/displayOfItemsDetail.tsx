@@ -6,6 +6,7 @@ import { useUpdateClueMutation } from "api/hooks/spaceClueHooks";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import MarkdownMentionViewer from "../common/quillEditor/MarkdownMentionViewer";
+import QuillEditor from "../common/quillEditor/quillEditor";
 
 interface EntityInfo {
   description?: string;
@@ -351,18 +352,18 @@ function DisplayOfItemDetail({
       </div>
 
       {/* 内容区域 */}
-      <div className="p-5 space-y-6">
+      <div className="p-7 space-y-6">
         {(displayData.description || isEditing) && (
           <div>
             <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">描述</h3>
             {isEditing
               ? (
-                  <textarea
-                    value={displayData.description || ""}
-                    onChange={e => handleInputChange("description", e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="请输入描述"
+                  <QuillEditor
+                    id={`item-detail-description-${useManualData ? manualData?.id ?? "clue" : itemId ?? "entity"}`}
+                    placeholder={displayData.description || ""}
+                    onchange={val => handleInputChange("description", val)}
+                    persistSelectionKey={`item-detail-desc-${useManualData ? manualData?.id ?? "clue" : itemId ?? "entity"}`}
+                    height="small"
                   />
                 )
               : (
@@ -383,12 +384,12 @@ function DisplayOfItemDetail({
             </h3>
             {isEditing
               ? (
-                  <textarea
-                    value={displayNoteOrTip || ""}
-                    onChange={e => handleInputChange(useManualData ? "note" : "tip", e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-blue-200 dark:border-blue-700 rounded-md bg-blue-25 dark:bg-blue-800 text-blue-800 dark:text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={useManualData ? "请输入笔记" : "请输入提示"}
+                  <QuillEditor
+                    id={`item-detail-note-${useManualData ? manualData?.id ?? "clue" : itemId ?? "entity"}`}
+                    placeholder={displayNoteOrTip || ""}
+                    onchange={val => handleInputChange(useManualData ? "note" : "tip", val)}
+                    persistSelectionKey={`item-detail-note-${useManualData ? manualData?.id ?? "clue" : itemId ?? "entity"}`}
+                    height="small"
                   />
                 )
               : (
