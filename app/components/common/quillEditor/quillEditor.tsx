@@ -53,6 +53,10 @@ interface vditorProps {
    * 调试：输出选区持久化 / 恢复 / 聚焦 / 滚动相关日志。
    */
   debugSelection?: boolean;
+  /**
+   * （可选）基础高度：'small' 时用于紧凑场景（如物品详情），不传则使用默认高度
+   */
+  height?: "small" | "default";
 }
 
 // 顶层预加载句柄，避免重复导入（由 modules/quillLoader 接管）
@@ -161,7 +165,18 @@ function computeNativeCaretPos(wrapper: HTMLElement | null, root: HTMLElement | 
   }
 }
 
-export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, onDeleteSpecialKey, persistSelectionKey, active, focusOnActive, debugSelection }: vditorProps) {
+export default function QuillEditor({
+  id,
+  placeholder,
+  onchange,
+  onSpecialKey,
+  onDeleteSpecialKey,
+  persistSelectionKey,
+  active,
+  focusOnActive,
+  debugSelection,
+  height = "default",
+}: vditorProps) {
   const quillRef = useRef<quill | null>(null);
   // 旧自定义行宽实现已移除（改为 Visual Line Pack）
   // 从上下文获取 stageId 来拉取实体
@@ -2987,6 +3002,10 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         ref={containerRef}
         className="ql-wrapper text-base-content bg-base-100
         border border-gray-300 rounded-md shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500"
+        // small 时降低基础高度，例如从大约 240px 降到 140px（按需调）
+        style={{
+          minHeight: height === "small" ? 140 : 480,
+        }}
       />
       {/* 光标态：小方块工具栏（始终挂载，按状态显示/隐藏） */}
       <div
@@ -3033,7 +3052,22 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       <div
         ref={selectionTbRef}
         className="ql-selection-toolbar"
-        style={{ position: "absolute", top: selTbTop, left: selTbLeft, zIndex: 1000, background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, boxShadow: "0 2px 8px rgba(0,0,0,0.08)", padding: "4px 6px", display: selTbVisible ? "flex" : "none", gap: 4, alignItems: "center" }}
+        style={{
+          position: "absolute",
+          top: selTbTop,
+          left: selTbLeft,
+          zIndex: 1000,
+          // 加深背景和前景颜色，确保暗色主题下可见
+          background: "#ffffff",
+          border: "1px solid #9ca3af",
+          borderRadius: 6,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+          padding: "4px 6px",
+          display: selTbVisible ? "flex" : "none",
+          gap: 4,
+          alignItems: "center",
+          color: "#111827",
+        }}
         onMouseDown={e => e.preventDefault()}
       >
         <SelectionMenu
