@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
@@ -11,6 +10,22 @@ import EntityDetailList from "./EntityDetailList";
 
 interface ClueEditProps {
   clue: StageEntityResponse;
+}
+
+interface ClueInfo {
+  items?: number[];
+  roles?: number[];
+  locations?: number[];
+  [key: string]: any;
+}
+
+function normalizeClueInfo(info: Partial<ClueInfo> | undefined): ClueInfo {
+  return {
+    ...(info || {}),
+    items: Array.isArray(info?.items) ? info!.items! : [],
+    roles: Array.isArray(info?.roles) ? info!.roles! : [],
+    locations: Array.isArray(info?.locations) ? info!.locations! : [],
+  };
 }
 
 const types = {
@@ -78,17 +93,17 @@ export default function ClueEdit({ clue }: ClueEditProps) {
   const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel, setIsCommitted } = useModuleContext();
   const queryClient = useQueryClient();
 
-  // 本地状态：确保始终是 number[]
+  // 本地状态：懒初始化，确保始终是 number[]
   const entityInfo = useMemo(() => clue.entityInfo || {}, [clue.entityInfo]);
-  const [localClue, setLocalClue] = useState({ ...entityInfo });
-  useEffect(() => {
-    setLocalClue({
-      ...entityInfo,
-      items: Array.isArray(entityInfo.items) ? entityInfo.items : [],
-      roles: Array.isArray(entityInfo.roles) ? entityInfo.roles : [],
-      locations: Array.isArray(entityInfo.locations) ? entityInfo.locations : [],
-    });
-  }, [clue, entityInfo]);
+  const [localClue, setLocalClue] = useState<ClueInfo>(() => normalizeClueInfo(entityInfo as ClueInfo));
+  const prevClueIdRef = useRef<number | undefined>(clue.id);
+  useLayoutEffect(() => {
+    if (prevClueIdRef.current === clue.id) {
+      return;
+    }
+    setLocalClue(normalizeClueInfo(clue.entityInfo as ClueInfo));
+    prevClueIdRef.current = clue.id;
+  }, [clue.id, clue.entityInfo]);
 
   // 弹窗控制
   const [isOpen, setIsOpen] = useState(false);
@@ -102,23 +117,31 @@ export default function ClueEdit({ clue }: ClueEditProps) {
   // 实体数据
   const { data: entities } = useQueryEntitiesQuery(stageId as number);
 
-  // 展示列表
-  const [locations, setLocations] = useState<StageEntityResponse[]>([]);
-  const [items, setItems] = useState<StageEntityResponse[]>([]);
-  const [roles, setRoles] = useState<StageEntityResponse[]>([]);
-
-  useEffect(() => {
-    if (!entities?.data)
-      return;
-    const all = entities.data;
+  // 展示列表用 useMemo 推导，避免 effect 里 setState 产生额外渲染
+  const allEntities = useMemo(() => {
+    return entities?.data ?? [];
+  }, [entities]);
+  const locations = useMemo(() => {
     const locIds: number[] = Array.isArray(localClue.locations) ? localClue.locations : [];
+    if (!locIds.length) {
+      return [] as StageEntityResponse[];
+    }
+    return allEntities.filter(ent => ent.entityType === 4 && ent.versionId != null && locIds.includes(ent.versionId!));
+  }, [allEntities, localClue.locations]);
+  const items = useMemo(() => {
     const itemIds: number[] = Array.isArray(localClue.items) ? localClue.items : [];
+    if (!itemIds.length) {
+      return [] as StageEntityResponse[];
+    }
+    return allEntities.filter(ent => ent.entityType === 1 && ent.versionId != null && itemIds.includes(ent.versionId!));
+  }, [allEntities, localClue.items]);
+  const roles = useMemo(() => {
     const roleIds: number[] = Array.isArray(localClue.roles) ? localClue.roles : [];
-
-    setLocations(all.filter(ent => ent.entityType === 4 && locIds.includes(ent.versionId!)));
-    setItems(all.filter(ent => ent.entityType === 1 && itemIds.includes(ent.versionId!)));
-    setRoles(all.filter(ent => ent.entityType === 2 && roleIds.includes(ent.versionId!)));
-  }, [entities, localClue]);
+    if (!roleIds.length) {
+      return [] as StageEntityResponse[];
+    }
+    return allEntities.filter(ent => ent.entityType === 2 && ent.versionId != null && roleIds.includes(ent.versionId!));
+  }, [allEntities, localClue.roles]);
 
   // 更新接口（线索 entityType: 6）
   const { mutate: updateClue } = useUpdateEntityMutation(stageId as number);
@@ -138,11 +161,13 @@ export default function ClueEdit({ clue }: ClueEditProps) {
   }, [clue.name]);
 
   const optimisticUpdateEntityName = (newName: string) => {
-    if (!stageId)
+    if (!stageId) {
       return;
+    }
     queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
-      if (!oldData)
+      if (!oldData) {
         return oldData;
+      }
       const cloned = { ...oldData };
       if (Array.isArray(cloned.data)) {
         cloned.data = cloned.data.map((ent: any) => (ent.id === clue.id ? { ...ent, name: newName } : ent));
@@ -162,8 +187,9 @@ export default function ClueEdit({ clue }: ClueEditProps) {
     updateModuleTabLabel?.(clue.id!.toString(), val || "未命名");
     optimisticUpdateEntityName(val || "未命名");
     nameRef.current = val;
-    if (nameDebounceTimer.current)
+    if (nameDebounceTimer.current) {
       clearTimeout(nameDebounceTimer.current);
+    }
     nameDebounceTimer.current = setTimeout(() => {
       updateClue({ id: clue.id!, entityType: 6, entityInfo: localClueRef.current, name: val }, {
         onSuccess: () => {
@@ -177,8 +203,9 @@ export default function ClueEdit({ clue }: ClueEditProps) {
   };
 
   const handleNameInputBlur = () => {
-    if (nameDebounceTimer.current)
+    if (nameDebounceTimer.current) {
       return; // 等待提交回调释放锁
+    }
     endSelectionLock();
   };
 
@@ -213,30 +240,37 @@ export default function ClueEdit({ clue }: ClueEditProps) {
   };
 
   const handleAddEntity = (selected: StageEntityResponse[]) => {
-    if (!selected.length)
+    if (!selected.length) {
       return;
+    }
     beginSelectionLock("adding-entity-to-clue", 2000);
     const entityType = selected[0]?.entityType;
     const newIds = selected.map(ent => ent.versionId!).filter(v => typeof v === "number" && !Number.isNaN(v));
 
-    if (entityType === 1)
+    if (entityType === 1) {
       applyAndPersist({ items: Array.from(new Set([...(localClue.items || []), ...newIds])) });
-    if (entityType === 2)
+    }
+    if (entityType === 2) {
       applyAndPersist({ roles: Array.from(new Set([...(localClue.roles || []), ...newIds])) });
-    if (entityType === 4)
+    }
+    if (entityType === 4) {
       applyAndPersist({ locations: Array.from(new Set([...(localClue.locations || []), ...newIds])) });
+    }
 
     setTimeout(() => endSelectionLock(), 800);
   };
 
   const handleDeleteEntity = (entity: StageEntityResponse) => {
     beginSelectionLock("removing-entity-from-clue", 2000);
-    if (entity.entityType === 1)
+    if (entity.entityType === 1) {
       applyAndPersist({ items: (localClue.items || []).filter((id: number) => id !== entity.versionId) });
-    if (entity.entityType === 2)
+    }
+    if (entity.entityType === 2) {
       applyAndPersist({ roles: (localClue.roles || []).filter((id: number) => id !== entity.versionId) });
-    if (entity.entityType === 4)
+    }
+    if (entity.entityType === 4) {
       applyAndPersist({ locations: (localClue.locations || []).filter((id: number) => id !== entity.versionId) });
+    }
     setTimeout(() => endSelectionLock(), 800);
   };
 

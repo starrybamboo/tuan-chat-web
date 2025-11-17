@@ -6,14 +6,12 @@ import { ModuleItemEnum } from "../../workPlace/context/types";
 
 function ItemListItem({
   item,
-  name,
   isSelected,
   onClick,
   onDelete,
   deleteMode,
 }: {
   item: StageEntityResponse;
-  name: string;
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
@@ -50,7 +48,7 @@ function ItemListItem({
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
         <div className="flex flex-col min-w-0 truncate">
-          <p className="text-sm font-medium truncate">{name}</p>
+          <p className="text-sm font-medium truncate">{item.name || "未命名"}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.entityInfo!.description}</p>
         </div>
       </div>
@@ -203,7 +201,6 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
               <ItemListItem
                 key={item.id!.toString()}
                 item={item}
-                name={item.name || "未命名"}
                 isSelected={currentSelectedTabId === item.id!.toString()}
                 onClick={() => handleClick(item)}
                 deleteMode={deleteMode}

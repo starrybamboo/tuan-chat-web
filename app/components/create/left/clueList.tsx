@@ -153,7 +153,7 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
   };
 
   const handleCreate = () => {
-    const name = getUniqueName("新线索板", list || []);
+    const name = getUniqueName("新线索夹", list || []);
     addClue({
       stageId,
       name,
@@ -178,7 +178,7 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
             <input
               type="text"
               className="grow"
-              placeholder="搜索线索板..."
+              placeholder="搜索线索夹..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
@@ -189,7 +189,7 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
       {/* 新建按钮 */}
       <div className="px-4 py-2 border-b border-base-300 flex items-center justify-between gap-2">
         <h3>
-          <span>线索板</span>
+          <span>线索夹</span>
           <span> 列表 </span>
           <span>(</span>
           <span>{ sum }</span>
@@ -205,7 +205,7 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
       {isEmpty
         ? (
             <div className="text-sm text-gray-500 px-2 py-4">
-              暂时没有线索板哦
+              暂时没有线索夹哦
             </div>
           )
         : (
