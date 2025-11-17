@@ -390,6 +390,7 @@ export default function EditModule() {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const startRef = useRef<number>(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // 包装 tab 切换：先保存当前，再切换
   const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item" | "module" | "clue") => {
@@ -459,29 +460,39 @@ export default function EditModule() {
     requestAnimationFrame(step);
   };
 
-  // 监听滚动：当处于顶部（startRef 为 0）时隐藏按钮（display: none）
+  // 使用 IntersectionObserver：顶部哨兵可见 => 隐藏按钮；不可见 => 显示按钮
   useEffect(() => {
-    const root = containerRef.current;
-    if (!root)
+    const rootEl = containerRef.current;
+    const target = sentinelRef.current;
+    if (!rootEl || !target || !buttonRef.current) {
       return;
-    const scrollElem = getScrollParent(root);
-    const onScroll = () => {
-      const currentTop = scrollElem.scrollTop || 0;
-      startRef.current = currentTop;
-      if (buttonRef.current) {
-        buttonRef.current.style.display = currentTop < 50 ? "none" : "";
-      }
-    };
-    scrollElem.addEventListener("scroll", onScroll, { passive: true });
-    // 初始化执行一次，确保初始状态正确
-    onScroll();
-    return () => {
-      scrollElem.removeEventListener("scroll", onScroll);
-    };
+    }
+    const scrollRoot = getScrollParent(rootEl);
+    const isRootDoc = scrollRoot === document.scrollingElement
+      || scrollRoot === document.documentElement
+      || scrollRoot === (document.body as unknown as HTMLElement);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        const atTop = entry.isIntersecting;
+        startRef.current = atTop ? 0 : 51;
+        if (buttonRef.current) {
+          buttonRef.current.style.display = atTop ? "none" : "";
+        }
+      },
+      {
+        root: isRootDoc ? null : scrollRoot,
+        threshold: 0.001,
+      },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
   }, []);
 
   return (
     <div ref={containerRef} className="h-full p-4 relative">
+      <div ref={sentinelRef} aria-hidden className="absolute top-0 left-0 w-px h-px"></div>
       <div className="w-full tabs tabs-lift">
         {roleModuleItems.map(item => (
           <RoleModuleTabItem

@@ -193,7 +193,7 @@ export default function ClueEdit({ clue }: ClueEditProps) {
     nameDebounceTimer.current = setTimeout(() => {
       updateClue({ id: clue.id!, entityType: 6, entityInfo: localClueRef.current, name: val }, {
         onSuccess: () => {
-          setIsCommitted?.(false);
+          setIsCommitted(false);
           oldNameRef.current = val;
           setTimeout(() => endSelectionLock(), 600);
         },
