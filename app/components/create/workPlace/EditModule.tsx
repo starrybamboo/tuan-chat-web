@@ -1,8 +1,9 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
-import type { ItemModuleItem, MapModuleItem, ModuleModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
+import type { ClueModuleItem, ItemModuleItem, MapModuleItem, ModuleModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
 import { ChevronSmallTripleUp } from "@/icons";
 import { useEffect, useRef } from "react";
+import ClueEdit from "./components/ClueEdit";
 import ItemEdit from "./components/ItemEdit";
 import LocationEdit from "./components/LocationEdit";
 import MapEdit from "./components/MapEdit";
@@ -232,6 +233,58 @@ function SceneModuleTabItem({
   );
 }
 
+function ClueModuleTabItem({
+  clueModuleItem,
+  clue,
+  isSelected,
+  onTabClick,
+  onCloseClick,
+}: {
+  clueModuleItem: ClueModuleItem;
+  clue: StageEntityResponse;
+  isSelected: boolean;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item" | "clue") => void;
+  onCloseClick: (id: string) => void;
+}) {
+  const { id, label } = clueModuleItem;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <>
+      <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
+        <input
+          ref={inputRef}
+          type="radio"
+          name="WorkSpaceTab"
+          className="tab"
+          aria-label={label}
+          checked={isSelected}
+          onChange={() => onTabClick(id.toString(), "clue")}
+        />
+        <div
+          className={`
+            absolute right-[10px] invisible
+            w-4 h-4 flex items-center justify-center
+            group-hover:visible ${isSelected ? "visible" : ""}
+            hover:bg-base-content/80 rounded-sm
+          `}
+          onClick={() => {
+            onCloseClick(id.toString());
+          }}
+        >
+          <BaselineClose />
+        </div>
+        {label}
+      </label>
+      <div className="tab-content min-h-[85vh] bg-base-100 border-base-300 p-8 w-full">
+        <ClueEdit
+          clue={clue}
+        />
+      </div>
+    </>
+  );
+}
+
 function MapModuleTabItem({
   mapModuleItem,
   map,
@@ -340,7 +393,7 @@ export default function EditModule() {
   const startRef = useRef<number>(0);
 
   // 包装 tab 切换：先保存当前，再切换
-  const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item" | "module") => {
+  const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item" | "module" | "clue") => {
     setCurrentSelectedTabId(nextId);
   };
   // 关闭标签时，同时清理保存映射，避免脏引用
@@ -364,6 +417,9 @@ export default function EditModule() {
   );
   const moduleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.MODULE,
+  );
+  const clueModuleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.CLUE,
   );
 
   // 获取最近的可滚动容器（优先检测自身，其次向上冒泡）
@@ -494,6 +550,18 @@ export default function EditModule() {
               moduleInfo={item.content}
               isSelected={String(item.id) === String(currentSelectedTabId)}
               onTabClick={handleTabClick as any}
+              onCloseClick={handleCloseTab}
+            />
+          ))
+        }
+        {
+          clueModuleItems.map(item => (
+            <ClueModuleTabItem
+              key={item.id}
+              clueModuleItem={item}
+              clue={item.content}
+              isSelected={String(item.id) === String(currentSelectedTabId)}
+              onTabClick={handleTabClick}
               onCloseClick={handleCloseTab}
             />
           ))

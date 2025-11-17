@@ -44,32 +44,27 @@ type BaseModuleTabItem<T, C = StageEntityResponse> = {
 export type RoleModuleItem = BaseModuleTabItem<ModuleItemEnum.ROLE>;
 export type ItemModuleItem = BaseModuleTabItem<ModuleItemEnum.ITEM>;
 export type SceneModuleItem = BaseModuleTabItem<ModuleItemEnum.SCENE>;
-export type StageModuleItem = BaseModuleTabItem<ModuleItemEnum.STAGE>;
-export type CommitModuleItem = BaseModuleTabItem<ModuleItemEnum.COMMIT>;
+// export type StageModuleItem = BaseModuleTabItem<ModuleItemEnum.STAGE>;
+// export type CommitModuleItem = BaseModuleTabItem<ModuleItemEnum.COMMIT>;
+export type ClueModuleItem = BaseModuleTabItem<ModuleItemEnum.CLUE>;
 export type LocationModuleItem = BaseModuleTabItem<ModuleItemEnum.LOCATION>;
 export type MapModuleItem = BaseModuleTabItem<ModuleItemEnum.MAP>;
 export type ModuleModuleItem = BaseModuleTabItem<ModuleItemEnum.MODULE, Module>;
-export type ModuleTabItem = RoleModuleItem | ItemModuleItem | SceneModuleItem | StageModuleItem | CommitModuleItem | LocationModuleItem | MapModuleItem | ModuleModuleItem;
-
+export type ModuleTabItem = RoleModuleItem | ItemModuleItem | SceneModuleItem | ClueModuleItem | LocationModuleItem | MapModuleItem | ModuleModuleItem;
 export enum ModuleItemEnum {
   ROLE = "role",
   ITEM = "item",
   SCENE = "scene",
-  STAGE = "stage",
-  COMMIT = "commit",
   LOCATION = "location",
   MAP = "map",
   MODULE = "module",
+  CLUE = "clue",
 }
 
 export enum ModuleListEnum {
-  CONTENT = "content",
   STAGE = "stage",
-  HISTORY = "history",
-  BRANCH = "branch",
   MAP = "map",
-  BACK = "back",
-  COMMIT = "commit",
   MODULE = "module",
   BASIC_INFO = "basic_info",
+  CLUE = "clue",
 }

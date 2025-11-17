@@ -157,8 +157,9 @@ export function useAddMutation() {
     return useMutation({
         mutationFn: (req: EntityAddRequest) => tuanchat.stageController.add(req),
         mutationKey: ['addEntity'],
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['staging'] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
         }
     });
 }
