@@ -7,9 +7,8 @@ import { ModuleItemEnum } from "../../workPlace/context/types";
 
 // 角色表单项
 function RoleListItem(
-  { role, name, isSelected, onClick, onDelete, deleteMode }: {
+  { role, isSelected, onClick, onDelete, deleteMode }: {
     role: StageEntityResponse;
-    name: string;
     isSelected: boolean;
     onClick?: () => void;
     onDelete?: () => void;
@@ -49,7 +48,7 @@ function RoleListItem(
         <RoleAvatar avatarId={role.entityInfo!.avatarId || (role.entityInfo!.avatarIds && role.entityInfo!.avatarIds.length > 0 ? role.entityInfo!.avatarIds[0] : 0)} width={10} isRounded={true} stopPopWindow={true} />
 
         <div className="flex flex-col min-w-0 truncate">
-          <p className="text-sm font-medium truncate">{name}</p>
+          <p className="text-sm font-medium truncate">{role.name || "未命名"}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{role.entityInfo!.description}</p>
         </div>
       </div>
@@ -201,7 +200,6 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
             <RoleListItem
               key={i!.id!.toString()}
               role={i!}
-              name={i!.name || "未命名"}
               deleteMode={deleteMode}
               onDelete={() => {
                 removeModuleTabItem(i.id!.toString());

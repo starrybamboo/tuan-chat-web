@@ -6,9 +6,8 @@ import { ModuleItemEnum } from "../../workPlace/context/types";
 
 // 场景表单项
 function SceneListItem(
-  { scene, name, isSelected, onClick, onDelete, deleteMode }: {
+  { scene, isSelected, onClick, onDelete, deleteMode }: {
     scene: StageEntityResponse;
-    name: string;
     isSelected: boolean;
     onClick?: () => void;
     onDelete?: () => void;
@@ -24,7 +23,7 @@ function SceneListItem(
       {/* 左侧内容 */}
       <div className="flex items-center gap-2 min-w-0">
         <div className="flex flex-col min-w-0 truncate">
-          <p className="text-sm font-medium">{name}</p>
+          <p className="text-sm font-medium">{scene.name || "未命名"}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{scene.entityInfo!.description}</p>
         </div>
       </div>
@@ -173,7 +172,6 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
               <SceneListItem
                 key={i!.id!.toString()}
                 scene={i!}
-                name={i!.name || "未命名"}
                 deleteMode={deleteMode}
                 onDelete={() => {
                   removeModuleTabItem(i.id!.toString());

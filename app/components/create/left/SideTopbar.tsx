@@ -1,5 +1,5 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import { StageIcon } from "@/icons";
+import { BaselineAnnouncement, StageIcon } from "@/icons";
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useEffect, useMemo } from "react";
 import { useModuleContext } from "../workPlace/context/_moduleContext";
@@ -63,7 +63,7 @@ export default function SideTopbar() {
       { id: ModuleListEnum.STAGE, icon: StageIcon, label: "素材", tooltip: "素材管理" },
       { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "剧情树", tooltip: "剧情/地点 流程图" },
       { id: ModuleListEnum.MODULE, icon: StageIcon, label: "模组", tooltip: "模组信息与管理" },
-      { id: ModuleListEnum.CLUE, icon: StageIcon, label: "线索", tooltip: "线索管理" },
+      { id: ModuleListEnum.CLUE, icon: BaselineAnnouncement, label: "线索", tooltip: "线索管理" },
     ],
     [],
   );
