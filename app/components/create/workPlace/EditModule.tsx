@@ -226,7 +226,6 @@ function SceneModuleTabItem({
       <div className="tab-content min-h-[85vh] bg-base-100 border-base-300 p-8 w-full">
         <SceneEdit
           scene={scene}
-          id={id}
         />
       </div>
     </>
