@@ -14,6 +14,7 @@ import {
 } from "api/hooks/spaceClueHooks";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import QuillEditor from "../../common/quillEditor/quillEditor";
 import DisplayOfItemDetail from "../displayOfItemsDetail";
 import { RoomContext } from "../roomContext";
 
@@ -477,7 +478,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
         isOpen={showAddClue}
         onClose={() => setShowAddClue(false)}
       >
-        <div className="max-w-md w-full mx-auto bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+        <div className="max-w-2xl w-full mx-auto bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
           <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
             <div className="flex items-center gap-4">
               <ImgUploaderWithCopper
@@ -525,54 +526,55 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
-            <div>
-              <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-                线索名称 *
-              </label>
-              <input
-                type="text"
-                value={newClue.name}
-                onChange={e => handleInputChange("name", e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="请输入线索名称"
-              />
-            </div>
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
+                  线索名称 *
+                </label>
+                <input
+                  type="text"
+                  value={newClue.name}
+                  onChange={e => handleInputChange("name", e.target.value)}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入线索名称"
+                />
+              </div>
 
-            <div>
-              <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-                线索夹
-              </label>
-              <select
-                value={newClue.clueStarsId}
-                onChange={e => handleInputChange("clueStarsId", e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={clueFolders.length === 0}
-              >
-                {clueFolders.length === 0
-                  ? (
-                      <option value={-1}>暂无线索夹</option>
-                    )
-                  : (
-                      clueFolders.map(folder => (
-                        <option key={folder.id} value={folder.id}>
-                          {folder.name}
-                        </option>
-                      ))
-                    )}
-              </select>
+              <div>
+                <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
+                  线索夹
+                </label>
+                <select
+                  value={newClue.clueStarsId}
+                  onChange={e => handleInputChange("clueStarsId", e.target.value)}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={clueFolders.length === 0}
+                >
+                  {clueFolders.length === 0
+                    ? (
+                        <option value={-1}>暂无线索夹</option>
+                      )
+                    : (
+                        clueFolders.map(folder => (
+                          <option key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </option>
+                        ))
+                      )}
+                </select>
+              </div>
             </div>
 
             <div>
               <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
                 描述 *
               </label>
-              <textarea
-                value={newClue.description}
-                onChange={e => handleInputChange("description", e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="请输入线索描述"
+              <QuillEditor
+                id="add-clue-description"
+                placeholder={newClue.description || "请输入线索描述"}
+                onchange={val => handleInputChange("description", val)}
+                height="small"
               />
             </div>
 
@@ -580,12 +582,11 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
               <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
                 笔记
               </label>
-              <textarea
-                value={newClue.note}
-                onChange={e => handleInputChange("note", e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="请输入线索笔记"
+              <QuillEditor
+                id="add-clue-note"
+                placeholder={newClue.note || "请输入线索笔记"}
+                onchange={val => handleInputChange("note", val)}
+                height="small"
               />
             </div>
           </div>
