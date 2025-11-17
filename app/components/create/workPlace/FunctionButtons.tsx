@@ -1,6 +1,6 @@
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ArrowBackThickFill, ChevronSmallTripleUp } from "@/icons";
+import { ArrowBackThickFill, BaselineAssistant, BaselineBackup, ChevronSmallTripleUp } from "@/icons";
 import { useCreateSpaceMutation, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useCommitMutation, useModuleIdQuery, useUpdateModuleMutation } from "api/hooks/moduleAndStageQueryHooks";
 import { useImportFromModuleMutation } from "api/hooks/spaceModuleHooks";
@@ -166,12 +166,12 @@ export default function FunctionButtons() {
           >
             {/* 常态：展示当前状态（已提交/未提交） */}
             <span className="group-hover:hidden inline-flex items-center gap-2">
-              <ChevronSmallTripleUp className="w-4 h-4" />
+              <BaselineBackup className="w-4 h-4" />
               {isCommitted ? "已提交" : "未提交"}
             </span>
             {/* 悬停：展示操作文案（再次提交/提交） */}
             <span className="hidden group-hover:inline-flex items-center gap-2">
-              <ChevronSmallTripleUp className="w-4 h-4" />
+              <BaselineBackup className="w-4 h-4" />
               {isCommitted ? "再次提交" : "提交"}
             </span>
           </button>
@@ -186,12 +186,12 @@ export default function FunctionButtons() {
           >
             {/* 常态：展示当前状态（已发布/未发布） */}
             <span className="group-hover:hidden inline-flex items-center gap-2">
-              <ChevronSmallTripleUp className="w-4 h-4" />
+              <BaselineAssistant className="w-4 h-4" />
               { moduleData.data?.data?.state === 1 ? "已发布" : "未发布"}
             </span>
             {/* 悬停：展示操作文案（取消发布/发布） */}
             <span className="hidden group-hover:inline-flex items-center gap-2">
-              <ChevronSmallTripleUp className="w-4 h-4" />
+              <BaselineAssistant className="w-4 h-4" />
               { moduleData.data?.data?.state === 1 ? "取消发布" : "发布"}
             </span>
           </button>
