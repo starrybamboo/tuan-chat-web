@@ -310,16 +310,6 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     const itemsData = all.filter(ent => ent.entityType === 1 && itemIds.includes(ent.versionId!));
     const rolesData = all.filter(ent => ent.entityType === 2 && roleIds.includes(ent.versionId!));
 
-    // 调试日志（如需关闭可删除）
-    console.warn("[SceneEdit] derived lists", {
-      locIds,
-      itemIds,
-      roleIds,
-      locationsCount: locationsData.length,
-      itemsCount: itemsData.length,
-      rolesCount: rolesData.length,
-    });
-
     setLocations(locationsData);
     setItems(itemsData);
     setRoles(rolesData);

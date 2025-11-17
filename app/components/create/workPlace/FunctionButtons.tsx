@@ -149,7 +149,7 @@ export default function FunctionButtons() {
         <div className="flex-1/3">
           <button
             type="button"
-            onClick={() => navigate("/create", { replace: true })}
+            onClick={() => navigate("/module", { replace: true })}
             className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center border hover:bg-base-300 transition-colors"
           >
             <ArrowBackThickFill className="w-4 h-4" />

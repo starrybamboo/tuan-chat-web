@@ -73,7 +73,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
   const { mutate: attachRoleToStage } = useAddRoleMutation();
   const { mutate: addLocation } = useAddEntityMutation(4);
 
-  const genUniqueName = (base: string, existing: Array<{ name?: string | null }>) => {
+  const getUniqueName = (base: string, existing: Array<{ name?: string | null }>) => {
     let idx = 1;
     let name = `${base}${idx}`;
     const hasName = (n: string) => existing.some(e => e.name === n);
@@ -96,7 +96,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
     }
     if (type === 1) {
       // 物品
-      const name = genUniqueName("新物品", listByType[1]);
+      const name = getUniqueName("新物品", listByType[1]);
       addItem({
         stageId,
         name,
@@ -110,7 +110,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
     }
     if (type === 4) {
       // 地点
-      const name = genUniqueName("新地点", listByType[4]);
+      const name = getUniqueName("新地点", listByType[4]);
       addLocation({
         stageId,
         name,
