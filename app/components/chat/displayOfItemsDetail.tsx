@@ -234,7 +234,7 @@ function DisplayOfItemDetail({
   const isUpdating = useManualData ? updateClueMutation.isPending : updateEntityMutation.isPending;
 
   return (
-    <div className="max-w-md w-full mx-auto mt-6 bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+    <div className="max-w-2xl w-full mx-auto mt-6 bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
       {/* 头部区域 */}
       <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center gap-4">
