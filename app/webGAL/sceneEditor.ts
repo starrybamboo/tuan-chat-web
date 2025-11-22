@@ -1,11 +1,12 @@
-import type { InferRequest } from "@/tts/apis";
-
-import { ttsApi } from "@/tts/apis";
+// GPT-SoVITS 支持 + IndexTTS 支持
+/* eslint-disable perfectionist/sort-imports */
+import type { InferRequest } from "@/tts/engines/index/apiClient";
+import { ttsApi } from "@/tts/engines/index/apiClient";
 import { checkGameExist, terreApis } from "@/webGAL/index";
-
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
-
 import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
+import type { UnifiedEngineOptions } from "@/tts/strategy/ttsEngines";
+import { createEngine } from "@/tts/strategy/ttsEngines";
 
 type Game = {
   name: string;
@@ -165,83 +166,64 @@ export class SceneEditor {
   }
 
   /**
-   * 生成语音 - 基于新的 TTS API
-   * @param message 聊天消息
-   * @param refVocal 参考音频文件
-   * @param options TTS 生成选项
-   * @returns Promise<{ success: boolean; fileName?: string; audioBase64?: string; error?: string }>
+   * 生成语音 (支持 IndexTTS 与 GPT-SoVITS)
+   * @param message 聊天消息对象
+   * @param refVocal 参考音频文件(File)
+   * @param options 生成选项
+   * @param options.emotionMode IndexTTS 情感模式
+   * @param options.emotionWeight IndexTTS 情感权重
+   * @param options.emotionText IndexTTS 情感文本(emo_mode=3)
+   * @param options.emotionVector IndexTTS 情感向量(emo_mode=2)
+   * @param options.temperature IndexTTS 采样温度
+   * @param options.topP IndexTTS top_p
+   * @param options.maxTokensPerSegment IndexTTS 单段最大文本 token
+   * @param options.engine 选择引擎: "index" | "gpt-sovits"
+   * @param options.gptSovitsApiUrl GPT-SoVITS 服务地址 (默认 http://127.0.0.1:9880)
+   * @param options.refAudioPath GPT-SoVITS 参考音频服务器路径(必填)
+   * @param options.promptText GPT-SoVITS prompt_text
+   * @param options.promptLang GPT-SoVITS prompt_lang
+   * @param options.textLang GPT-SoVITS text_lang
+   * @param options.topK GPT-SoVITS top_k
+   * @param options.topPOverride GPT-SoVITS top_p(覆盖 Index 参数)
+   * @param options.temperatureOverride GPT-SoVITS temperature(覆盖 Index 参数)
+   * @param options.textSplitMethod GPT-SoVITS text_split_method
+   * @param options.batchSize GPT-SoVITS batch_size
+   * @param options.speedFactor GPT-SoVITS speed_factor
+   * @param options.streamingMode GPT-SoVITS streaming_mode
+   * @param options.seed GPT-SoVITS seed
+   * @param options.parallelInfer GPT-SoVITS parallel_infer
+   * @param options.repetitionPenalty GPT-SoVITS repetition_penalty
+   * @returns 统一返回 { success, fileName, audioBase64?, error? }
    */
   public async generateVocal(
     message: ChatMessageResponse,
     refVocal: File,
-    options: {
-      emotionMode?: number;
-      emotionWeight?: number;
-      emotionText?: string;
-      emotionVector?: number[];
-      temperature?: number;
-      topP?: number;
-      maxTokensPerSegment?: number;
-    } = {},
+    options: (Partial<UnifiedEngineOptions> & { hashSalt?: string }) = { engine: "index" },
   ): Promise<{ success: boolean; fileName?: string; audioBase64?: string; error?: string }> {
     const text = message.message.content;
-    const {
-      emotionMode = 2, // 默认与音色参考音频相同
-      emotionWeight = 0.8,
-      emotionText,
-      emotionVector,
-      temperature = 0.8,
-      topP = 0.8,
-      maxTokensPerSegment = 120,
-    } = options;
-
-    // 使用hash作为文件名
-    const identifyString = `tts_${text}_${refVocal.name}_${emotionMode}`;
+    const engineName = options.engine ?? "index";
+    const identifyString = `tts_${text}_${refVocal.name}_${engineName}_${options.hashSalt || ""}`;
     const hash = this.simpleHash(identifyString);
     const fileName = `${hash}.wav`;
-
     try {
-      // 将文件转换为 base64
-      const refAudioBase64 = await this.fileToBase64(refVocal);
-
-      // 创建 TTS 请求
-      const ttsRequest: InferRequest = {
-        text,
-        prompt_audio_base64: refAudioBase64,
-        emo_mode: emotionMode,
-        emo_weight: emotionWeight,
-        emo_text: emotionText,
-        emo_vector: emotionVector,
-        emo_random: false,
-        temperature,
-        top_p: topP,
-        max_text_tokens_per_segment: maxTokensPerSegment,
-        return_audio_base64: true, // 返回 base64 编码的音频
-      };
-
-      // 调用 TTS API
-      const response = await ttsApi.infer(ttsRequest);
-
-      if (response.code === 0 && response.data?.audio_base64) {
-        return {
-          success: true,
-          fileName,
-          audioBase64: response.data.audio_base64,
-        };
+      let normalized: UnifiedEngineOptions;
+      if (engineName === "index") {
+        normalized = { engine: "index", ...options } as UnifiedEngineOptions;
       }
       else {
-        return {
-          success: false,
-          error: response.msg || "TTS 生成失败",
-        };
+        // gpt-sovits 必须提供 refAudioPath
+        if (!("refAudioPath" in options) || !options.refAudioPath) {
+          return { success: false, error: "gpt-sovits 需要 refAudioPath" };
+        }
+        normalized = { engine: "gpt-sovits", ...options } as UnifiedEngineOptions;
       }
+      const engine = createEngine(normalized);
+      const { audioBase64 } = await engine.generate(text, refVocal);
+      return { success: true, fileName, audioBase64 };
     }
     catch (error) {
       console.error("语音生成失败:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "未知错误",
-      };
+      return { success: false, error: error instanceof Error ? error.message : "未知错误" };
     }
   }
 
@@ -250,13 +232,13 @@ export class SceneEditor {
    * @param file 文件对象
    * @returns Promise<string> base64 字符串
    */
+  // 兼容旧调用签名, 保留方法 (内部已迁移到策略实现)
   private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // 移除 data URL 前缀，只保留 base64 部分
-        const base64 = result.split(",")[1];
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
         resolve(base64);
       };
       reader.onerror = reject;
@@ -306,10 +288,30 @@ export class SceneEditor {
   }
 
   /**
-   * 上传语音文件
-   * @param message
-   * @param refVocal
-   * @param options 生成选项
+   * 上传语音文件 (本地生成后写入 WebGAL)
+   * @param message 聊天消息
+   * @param refVocal 参考音频文件
+   * @param options 生成与引擎配置
+   * @param options.emotionMode IndexTTS 情感模式
+   * @param options.emotionWeight IndexTTS 情感权重
+   * @param options.emotionText IndexTTS 情感文本(emo_mode=3)
+   * @param options.emotionVector IndexTTS 情感向量(emo_mode=2)
+   * @param options.engine 选择引擎 "index" | "gpt-sovits"
+   * @param options.gptSovitsApiUrl GPT-SoVITS 服务地址
+   * @param options.refAudioPath GPT-SoVITS 参考音频服务器路径
+   * @param options.promptText GPT-SoVITS prompt_text
+   * @param options.promptLang GPT-SoVITS prompt_lang
+   * @param options.textLang GPT-SoVITS text_lang
+   * @param options.topK GPT-SoVITS top_k
+   * @param options.topPOverride GPT-SoVITS top_p(覆盖 Index 值)
+   * @param options.temperatureOverride GPT-SoVITS temperature(覆盖 Index 值)
+   * @param options.textSplitMethod GPT-SoVITS text_split_method
+   * @param options.batchSize GPT-SoVITS batch_size
+   * @param options.speedFactor GPT-SoVITS speed_factor
+   * @param options.streamingMode GPT-SoVITS streaming_mode
+   * @param options.seed GPT-SoVITS seed
+   * @param options.parallelInfer GPT-SoVITS parallel_infer
+   * @param options.repetitionPenalty GPT-SoVITS repetition_penalty
    */
   public async uploadVocal(
     message: ChatMessageResponse,
@@ -319,6 +321,22 @@ export class SceneEditor {
       emotionWeight?: number;
       emotionText?: string;
       emotionVector?: number[];
+      engine?: "index" | "gpt-sovits";
+      gptSovitsApiUrl?: string;
+      refAudioPath?: string;
+      promptText?: string;
+      promptLang?: string;
+      textLang?: string;
+      topK?: number;
+      topPOverride?: number;
+      temperatureOverride?: number;
+      textSplitMethod?: string;
+      batchSize?: number;
+      speedFactor?: number;
+      streamingMode?: boolean;
+      seed?: number;
+      parallelInfer?: boolean;
+      repetitionPenalty?: number;
     } = {},
   ): Promise<string | undefined> {
     const text = message.message.content;
@@ -345,7 +363,7 @@ export class SceneEditor {
         const uploadedFileName = await this.uploadAudioToWebGAL(result.audioBase64, fileName);
 
         if (uploadedFileName) {
-          console.log("语音生成并上传完成，文件名:", uploadedFileName);
+          console.warn("语音生成并上传完成，文件名:", uploadedFileName);
           return uploadedFileName;
         }
         else {
@@ -371,10 +389,15 @@ export async function editScene(game: string, scene: string, content: string) {
 }
 
 /**
- * 生成语音的简化接口，基于新的 TTS API
+ * 生成语音的简化接口 (仅 IndexTTS)
  * @param text 要生成语音的文本
  * @param refVocal 参考音频文件
  * @param options 生成选项
+ * @param options.emotionMode 情感模式
+ * @param options.emotionWeight 情感权重
+ * @param options.emotionText 情感文本
+ * @param options.emotionVector 情感向量
+ * @param options.maxTokensPerSegment 单段最大文本 token 数
  * @returns Promise<{ success: boolean; audioUrl?: string; error?: string }>
  */
 export async function generateSpeechSimple(

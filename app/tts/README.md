@@ -1,67 +1,108 @@
-# TTS API 客户端
+# TTS 引擎集成
 
-这个目录包含了与 IndexTTS2 后端服务通信的前端 API 客户端代码。
+本目录提供了统一的 TTS (Text-to-Speech) 引擎抽象和多后端支持。
 
-## 文件说明
+## 目录结构
 
-- `apis.ts` - 主要的 API 接口定义和客户端类
-- `examples.ts` - 使用示例和工具函数
-- `README.md` - 本说明文件
+```
+app/tts/
+├── engines/                    # 后端引擎实现
+│   ├── index/                 # IndexTTS2 引擎
+│   │   ├── apiClient.ts       # IndexTTS2 API 客户端
+│   │   └── examples.ts        # 使用示例和工具函数
+│   └── gptSovits/            # GPT-SoVITS 引擎
+│       ├── api.ts            # GPT-SoVITS API 工具函数
+│       └── types.ts          # GPT-SoVITS 类型定义
+├── strategy/                  # 策略模式抽象层
+│   └── ttsEngines.ts         # 统一的引擎接口与实现
+└── README.md                  # 本文档
+```
+
+## 功能特点
+
+### IndexTTS2 引擎
+
+- 🎭 **情感控制**: 支持 4 种情感模式 (音色参考、情感参考、情感向量、情感文本)
+- 🎵 **高质量合成**: 基于先进的声学模型
+- 📊 **8 维情感向量**: 喜、怒、哀、惧、厌恶、低落、惊喜、平静
+- 🔧 **丰富参数**: temperature、top_p、top_k、beam search 等
+
+### GPT-SoVITS 引擎
+
+- 🌐 **多语言支持**: 中文、英文、日文、粤语、韩文及混合语言
+- ✂️ **智能分句**: 6 种文本切分方式
+- ⚡ **高性能**: 支持批处理、并行推理、流式输出
+- 🎚️ **参数丰富**: 语速、温度、重复惩罚等精细控制
 
 ## 快速开始
 
-### 1. 创建 API 实例
+### 使用策略模式 (推荐)
 
 ```typescript
-import { createTTSApi } from './apis';
+import { createEngine } from "@/tts/strategy/ttsEngines";
 
-// 创建 TTS API 实例（默认连接到 localhost:9000）
-const ttsApi = createTTSApi('http://localhost:9000');
+// 使用 IndexTTS 引擎
+const indexEngine = createEngine({
+  engine: "index",
+  emotionMode: 2,
+  emotionVector: [0.8, 0.1, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0], // 喜悦情感
+  temperature: 0.8,
+});
+
+// 使用 GPT-SoVITS 引擎
+const gptEngine = createEngine({
+  engine: "gpt-sovits",
+  refAudioPath: "/path/to/reference.wav",
+  textLang: "all_zh",
+  temperature: 1.0,
+});
+
+// 生成语音 (统一接口)
+const result = await indexEngine.generate("你好世界", refVocalFile);
+console.log(result.audioBase64); // 生成的 base64 音频
 ```
 
-### 2. 基础文本转语音
+### 直接使用 IndexTTS API
 
 ```typescript
-import type { InferRequest } from './apis';
+import { ttsApi } from "@/tts/engines/index/apiClient";
+import type { InferRequest } from "@/tts/engines/index/apiClient";
 
+// 基础推理
 const request: InferRequest = {
-  text: "你好，这是一个测试。",
-  prompt_audio_path: "examples/voice_01.wav", // 音色参考音频
-  return_audio_base64: true, // 返回 base64 编码的音频
+  text: "你好,这是一个测试。",
+  prompt_audio_base64: refAudioBase64,
+  emo_mode: 2, // 情感向量模式
+  emo_vector: [0.8, 0.1, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0],
+  return_audio_base64: true,
 };
 
 const result = await ttsApi.infer(request);
-console.log('生成结果:', result);
 ```
 
-### 3. 情感控制
+### 直接使用 GPT-SoVITS API
 
 ```typescript
-// 使用情感向量
-const emotionRequest: InferRequest = {
-  text: "今天真是太开心了！",
-  prompt_audio_path: "examples/voice_01.wav",
-  emo_mode: 2, // 情感向量模式
-  emo_vector: [0.8, 0.1, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0], // 喜悦情感
-  return_audio_base64: true,
+import { generateTTS } from "@/tts/engines/gptSovits/api";
+import type { TTSParams } from "@/tts/engines/gptSovits/types";
+
+const params: TTSParams = {
+  text: "你好世界",
+  text_lang: "all_zh",
+  ref_audio_path: "/path/to/reference.wav",
+  prompt_text: "参考音频的文字内容",
+  prompt_lang: "all_zh",
 };
 
-// 使用情感描述文本
-const textEmotionRequest: InferRequest = {
-  text: "这让我感到很难过。",
-  prompt_audio_path: "examples/voice_01.wav",
-  emo_mode: 3, // 情感文本模式
-  emo_text: "悲伤，失落，沮丧",
-  return_audio_base64: true,
-};
+const audioBlob = await generateTTS("http://127.0.0.1:9880", params);
 ```
 
-## API 接口
+## IndexTTS2 详细说明
 
-### 主要接口
+### API 接口
 
 - `health()` - 健康检查
-- `debug()` - 获取调试信息  
+- `debug()` - 获取调试信息
 - `modelInfo()` - 获取模型信息
 - `infer(request)` - 文本转语音推理
 - `segment(request)` - 文本分句
@@ -70,16 +111,18 @@ const textEmotionRequest: InferRequest = {
 
 ### 情感控制模式
 
-- `0` - 与音色参考音频相同的情感
-- `1` - 使用情感参考音频
-- `2` - 使用情感向量控制
-- `3` - 使用情感描述文本控制
+| 模式 | 说明 |
+|------|------|
+| 0 | 与音色参考音频相同的情感 |
+| 1 | 使用情感参考音频 |
+| 2 | 使用情感向量控制 |
+| 3 | 使用情感描述文本控制 |
 
-### 情感向量
+### 情感向量维度
 
-8 维向量，对应以下情感：
+8 维向量对应以下情感:
 - `[0]` 喜 (joy)
-- `[1]` 怒 (anger)  
+- `[1]` 怒 (anger)
 - `[2]` 哀 (sadness)
 - `[3]` 惧 (fear)
 - `[4]` 厌恶 (disgust)
@@ -87,32 +130,17 @@ const textEmotionRequest: InferRequest = {
 - `[6]` 惊喜 (surprise)
 - `[7]` 平静 (calm)
 
-## 工具函数
-
-### 音频处理
-
-```typescript
-import { base64ToAudioUrl, downloadBase64Audio, playBase64Audio } from './examples';
-
-// 将 base64 转换为音频 URL
-const audioUrl = base64ToAudioUrl(audioBase64);
-
-// 下载音频文件
-downloadBase64Audio(audioBase64, 'my_audio.wav');
-
-// 直接播放音频
-const audio = playBase64Audio(audioBase64);
-```
-
-## 配置说明
-
 ### 默认参数
 
-- `temperature: 0.8` - 控制生成的随机性
-- `top_p: 0.8` - nucleus sampling 参数
-- `top_k: 30` - top-k sampling 参数
-- `num_beams: 3` - beam search 数量
-- `repetition_penalty: 10.0` - 重复惩罚
+```typescript
+{
+  temperature: 0.8,        // 随机性控制
+  top_p: 0.8,             // nucleus sampling
+  top_k: 30,              // top-k sampling
+  num_beams: 3,           // beam search 数量
+  repetition_penalty: 10.0 // 重复惩罚
+}
+```
 
 ### 限制
 
@@ -121,32 +149,222 @@ const audio = playBase64Audio(audioBase64);
 - 最大文本 tokens 通常为 400
 - 最大 Mel tokens 通常为 1500
 
+### 工具函数
+
+```typescript
+import {
+  base64ToAudioUrl,
+  downloadBase64Audio,
+  playBase64Audio,
+} from "@/tts/engines/index/examples";
+
+// 将 base64 转换为音频 URL
+const audioUrl = base64ToAudioUrl(audioBase64);
+
+// 下载音频文件
+downloadBase64Audio(audioBase64, "my_audio.wav");
+
+// 直接播放音频
+const audio = playBase64Audio(audioBase64);
+```
+
+## GPT-SoVITS 详细说明
+
+### 启动后端服务
+
+```bash
+# 使用 GPT-SoVITS-Api-GUI (推荐)
+cd GPT-SoVITS-Api-GUI
+python gsv_api_gui.py
+
+# 或直接运行 GPT-SoVITS API (参考官方文档)
+```
+
+### API 接口
+
+- `checkAPIStatus(apiUrl)` - 检查 API 可用性
+- `generateTTS(apiUrl, params)` - 生成语音
+- `switchGPTModel(apiUrl, weightsPath)` - 切换 GPT 模型
+- `switchSoVITSModel(apiUrl, weightsPath)` - 切换 SoVITS 模型
+- `saveConfig(key, value)` - 保存配置到 localStorage
+- `loadConfig(key, defaultValue)` - 从 localStorage 读取配置
+
+### 参数说明
+
+#### 基础参数
+
+| 参数 | 说明 | 类型 |
+|------|------|------|
+| text | 要转换的文本 | string |
+| text_lang | 文本语言 | string |
+| ref_audio_path | 参考音频路径 | string |
+| prompt_text | 提示文本 | string |
+| prompt_lang | 提示文本语言 | string |
+
+#### 高级参数
+
+| 参数 | 说明 | 默认值 | 范围 |
+|------|------|--------|------|
+| top_k | 采样候选词数量 | 5 | 1-100 |
+| top_p | 核采样概率阈值 | 1.0 | 0-1 |
+| temperature | 生成随机性 | 1.0 | 0-2 |
+| speed_factor | 语速因子 | 1.0 | 0.5-2.0 |
+| repetition_penalty | 重复惩罚 | 1.35 | 1.0-2.0 |
+| seed | 随机种子 | -1 | -1 或正整数 |
+
+### 支持的语言
+
+```typescript
+const LANGUAGES = {
+  all_zh: "中文",
+  en: "英文",
+  all_ja: "日文",
+  all_yue: "粤语",
+  all_ko: "韩文",
+  zh: "中英混合",
+  ja: "日英混合",
+  yue: "粤英混合",
+  ko: "韩英混合",
+  auto: "多语种混合",
+  auto_yue: "多语种混合(粤)",
+};
+```
+
+### 文本切分方法
+
+```typescript
+const SPLIT_METHODS = {
+  cut0: "不切",
+  cut1: "凑四句一切",
+  cut2: "凑50字一切",
+  cut3: "按中文句号。切",
+  cut4: "按英文句号.切",
+  cut5: "按标点符号切",
+};
+```
+
+## 策略模式架构
+
+### 接口定义
+
+```typescript
+export type TtsEngine = {
+  generate: (text: string, refVocalFile: File) => Promise<TtsGenerateResult>;
+};
+
+export type TtsGenerateResult = {
+  audioBase64: string;
+};
+```
+
+### 统一配置
+
+```typescript
+export type UnifiedEngineOptions =
+  | ({ engine: "index" } & IndexTTSOptions)
+  | ({ engine: "gpt-sovits" } & GptSovitsOptions);
+```
+
+### 工厂函数
+
+```typescript
+export function createEngine(options: UnifiedEngineOptions): TtsEngine;
+```
+
+## 使用示例
+
+### WebGAL 场景编辑器集成
+
+```typescript
+import { createEngine } from "@/tts/strategy/ttsEngines";
+
+// 在 SceneEditor 中使用
+async function generateVocal(text: string, refVocalFile: File) {
+  const engine = createEngine({
+    engine: "index", // 或 "gpt-sovits"
+    emotionMode: 2,
+    emotionVector: [0.8, 0.1, 0, 0, 0, 0, 0.1, 0],
+  });
+
+  const result = await engine.generate(text, refVocalFile);
+  return result.audioBase64;
+}
+```
+
+### 长文本处理
+
+```typescript
+// 使用 IndexTTS 分句
+const segmentResult = await ttsApi.segment({
+  text: longText,
+  max_text_tokens_per_segment: 120,
+});
+
+// 为每个片段生成语音
+for (const segment of segmentResult.data.segments) {
+  const result = await engine.generate(segment.content, refVocalFile);
+  // 处理结果...
+}
+```
+
 ## 错误处理
 
 ```typescript
 try {
-  const result = await ttsApi.infer(request);
+  const engine = createEngine(options);
+  const result = await engine.generate(text, refVocalFile);
   // 处理成功结果
-} catch (error) {
-  console.error('TTS 请求失败:', error);
+}
+catch (error) {
+  console.error("TTS 生成失败:", error);
   // 处理错误
 }
 ```
 
 ## 注意事项
 
-1. 确保后端服务正在运行（默认端口 9000）
-2. 音频文件路径需要是服务器可访问的路径
-3. base64 音频数据可能很大，注意内存使用
+### IndexTTS2
+
+1. 确保后端服务正在运行 (默认端口 9000)
+2. 音频文件需要是 PCM/WAV 格式
+3. base64 音频数据可能很大,注意内存使用
 4. 长文本建议先使用 `segment()` 接口分句处理
 5. 生成质量受音色参考音频质量影响
 
-## 完整示例
+### GPT-SoVITS
 
-查看 `examples.ts` 文件获取完整的使用示例，包括：
+1. 参考音频文件需要位于服务器可访问的路径
+2. 首次使用需要确保模型已正确加载
+3. API URL 配置会保存在 localStorage 中
+4. 生成较长文本时可能需要较长等待时间
+5. 默认端口为 9880
 
-- 基础 TTS 推理
-- 高级情感控制
-- 文本分句处理
-- 系统信息获取
-- 音频播放和下载
+## 环境变量
+
+```bash
+# IndexTTS2 API URL (可选,默认 http://localhost:9000)
+VITE_TTS_URL=http://localhost:9000
+```
+
+## 相关链接
+
+- [IndexTTS2 官方仓库](https://github.com/your-repo/IndexTTS2)
+- [GPT-SoVITS 官方仓库](https://github.com/RVC-Boss/GPT-SoVITS)
+- [GPT-SoVITS-Api-GUI](../../GPT-SoVITS-Api-GUI)
+
+## 技术实现
+
+### 策略模式优势
+
+- 解耦不同后端的实现细节
+- 统一的接口便于切换引擎
+- 易于扩展新的 TTS 后端
+- 类型安全的配置选项
+
+### 参考实现
+
+- Python GUI 版本: `APICheckThread`, `TTSThread`, `ConfigManager`
+- 使用 React Hooks 替代 PyQt5 信号槽机制
+- 使用 localStorage 替代本地 JSON 配置文件
+- 使用 Blob URL 进行音频播放
+- 使用 TailwindCSS + DaisyUI 实现界面样式

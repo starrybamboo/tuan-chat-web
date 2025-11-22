@@ -1,8 +1,8 @@
 // TTS API 使用示例
 
-import type { InferRequest } from "./apis";
+import type { InferRequest } from "./apiClient";
 
-import { createTTSApi } from "./apis";
+import { createTTSApi } from "./apiClient";
 
 // 创建 TTS API 实例
 const ttsApi = createTTSApi("http://localhost:9000");
@@ -24,7 +24,7 @@ export async function basicTTSExample() {
 
     // 3. 基础推理请求
     const inferRequest: InferRequest = {
-      text: "你好，这是一个测试。欢迎使用 IndexTTS2！",
+      text: "你好,这是一个测试。欢迎使用 IndexTTS2!",
       // 可以使用本地音频文件路径
       prompt_audio_path: "examples/voice_01.wav",
       // 或使用 base64 编码的音频
@@ -56,7 +56,7 @@ export async function advancedEmotionTTSExample() {
 
     // 使用情感向量控制
     const emotionVectorRequest: InferRequest = {
-      text: "今天真是太开心了！阳光明媚，心情愉悦。",
+      text: "今天真是太开心了!阳光明媚,心情愉悦。",
       prompt_audio_path: "examples/voice_01.wav",
       emo_mode: 2, // 使用情感向量
       emo_vector: [0.8, 0.1, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0], // 喜悦情感
@@ -73,7 +73,7 @@ export async function advancedEmotionTTSExample() {
       text: "这个消息让我感到非常沮丧和失望。",
       prompt_audio_path: "examples/voice_01.wav",
       emo_mode: 3, // 使用情感描述文本
-      emo_text: "悲伤，失落，沮丧",
+      emo_text: "悲伤,失落,沮丧",
       temperature: 0.8,
       return_audio_base64: true,
     };
@@ -92,10 +92,10 @@ export async function advancedEmotionTTSExample() {
 export async function segmentTextExample() {
   try {
     const longText = `
-      这是一段很长的文本，包含多个句子。
+      这是一段很长的文本,包含多个句子。
       我们需要将它分割成适合 TTS 处理的片段。
-      每个片段不应该太长，以确保生成质量。
-      同时也不应该太短，以保持语音的连贯性。
+      每个片段不应该太长,以确保生成质量。
+      同时也不应该太短,以保持语音的连贯性。
     `;
 
     const segmentResult = await ttsApi.segment({
