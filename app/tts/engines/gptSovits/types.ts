@@ -1,5 +1,7 @@
 /**
+ * @author: @starrybamboo
  * GPT-SoVITS TTS 相关类型定义
+ * 主要参考了 https://github.com/AliceNavigator/GPT-SoVITS-Api-GUI 的API封装，没有根据官方整合包进行API封装，太复杂了。
  */
 
 export type TTSParams = {

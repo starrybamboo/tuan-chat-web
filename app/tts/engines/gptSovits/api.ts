@@ -1,5 +1,7 @@
 /**
- * GPT-SoVITS API 工具函数
+ * @author: @starrybamboo
+ * GPT-SoVITS API 工具函数,
+ * 主要参考了 https://github.com/AliceNavigator/GPT-SoVITS-Api-GUI 的API封装，没有根据官方整合包进行API封装，太复杂了。
  */
 
 import type { TTSParams } from "./types";

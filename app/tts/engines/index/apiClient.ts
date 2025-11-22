@@ -1,5 +1,11 @@
-// TTS API 接口类型定义和客户端
-
+/**
+ * @author: @starrybamboo
+ * TTS API 接口类型定义和客户端,
+ * 参考了他们官方提供的GUI进行封装。采用的是index-tts2的API规范。
+ * 需要和群文件中的index-tts2整合包一起使用，整合包内有对应的后端服务，可以与这个对接。
+ * index-tts2 在one-shot的情况下，表现非常优秀，情感迁移非常牛逼，唯一的问题是很吃显存，需要8G显存
+ * https://github.com/index-tts/index-tts
+ */
 export type InferRequest = {
   /** 目标文本 */
   text: string;
