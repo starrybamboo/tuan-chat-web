@@ -1,6 +1,6 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
-import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
+import type { ChatMessageRequest, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
 import executorFu from "@/components/common/dicer/cmdExe/cmdExeFu";
@@ -131,13 +131,19 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
     // 定义cpi接口
     const sendMsg = (prop: ExecutorProp, message: string) => {
-      messageRequest.extra = {
-        result: message,
-      };
       messageRequest.content = prop.originMessage;
       messageRequest.roleId = curRoleId;
       messageRequest.avatarId = curAvatarId;
-      tuanchat.chatController.sendMessageAiResponse(messageRequest);
+      tuanchat.chatController.sendMessage1(messageRequest);
+      UTILS.sleep(100);
+      messageRequest.roleId = 14131;
+      const avatars: RoleAvatar[] = [];
+      tuanchat.avatarController.getRoleAvatars(14131).then((res) => {
+        avatars.push(...(res.data || []));
+        messageRequest.avatarId = avatars[0]?.avatarId ?? 0;
+        messageRequest.content = `${message}`;
+        tuanchat.chatController.sendMessage1(messageRequest);
+      });
     };
 
     const sendToast = (message: string) => {
