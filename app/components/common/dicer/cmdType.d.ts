@@ -89,6 +89,7 @@ interface UserRole { // eslint-disable-line ts/consistent-type-definitions
   description?: string;
   avatarId?: number;
   state?: number;
+  type: number;
   modelName?: string;
   speakerName?: string;
   createTime?: string;

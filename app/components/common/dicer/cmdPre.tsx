@@ -102,6 +102,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       description: role?.description ?? "",
       avatarId: role?.avatarId ?? -1,
       state: 0,
+      type: 0,
       modelName: role?.modelName ?? "",
       speakerName: role?.speakerName ?? "",
       createTime: "",
@@ -119,10 +120,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
         return {};
       }
-      // const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
-      // const abilityList = abilityQuery.data ?? [];
-      // const ability = abilityList.find(a => a.ruleId === ruleId);
-      // return ability || {};
     };
     // 获取所有可能用到的角色能力
     const mentionedRoles = new Map<number, RoleAbility>();
