@@ -89,14 +89,13 @@ export class RuleNameSpace {
    * @param {string[]} args - 命令参数数组
    * @param {UserRole[]} mentioned - At列表信息数组
    * @param {CPI} cpi -CmdPre接口对象
-   * @param {ExecutorProp} prop - 从聊天室获取的原始信息记录
    * @returns {boolean} 命令执行结果
    * @throws {Error} 当命令不存在时抛出错误
    */
-  execute(name: string, args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> {
+  execute(name: string, args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> {
     const cmd = this.cmdMap.get(name);
     if (cmd) {
-      return cmd.solve(args, mentioned, cpi, prop);
+      return cmd.solve(args, mentioned, cpi);
     }
     throw new Error(`${this.name}指令集中没有名为${name}的指令`);
   }
@@ -118,7 +117,7 @@ export class CommandExecutor {
    * @param {ExecutorProp} prop - 从聊天室获取的原始信息记录
    * @returns {boolean} 命令执行结果
    */
-  solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => Promise<boolean>;
+  solve: (args: string[], mentioned: UserRole[], cpi: CPI) => Promise<boolean>;
 
   /**
    * 构造函数
@@ -129,8 +128,8 @@ export class CommandExecutor {
    * @param {string} usage - 用法说明
    * @param {Function} solve - 命令执行函数
    */
-  constructor(name: string, alias: string[], description: string, examples: string[], usage: string, solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean | Promise<boolean>) {
+  constructor(name: string, alias: string[], description: string, examples: string[], usage: string, solve: (args: string[], mentioned: UserRole[], cpi: CPI) => boolean | Promise<boolean>) {
     this.cmdInfo = { name, alias, description, examples, usage };
-    this.solve = (args, mentioned, cpi, prop) => Promise.resolve(solve(args, mentioned, cpi, prop));
+    this.solve = (args, mentioned, cpi) => Promise.resolve(solve(args, mentioned, cpi));
   }
 }

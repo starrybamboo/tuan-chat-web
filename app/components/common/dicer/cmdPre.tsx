@@ -71,6 +71,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
+  const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
 
   const messageRequest: ChatMessageRequest = {
     roomId,
@@ -130,20 +131,20 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     }
 
     // 定义cpi接口
-    const sendMsg = (prop: ExecutorProp, message: string) => {
-      messageRequest.content = prop.originMessage;
-      messageRequest.roleId = curRoleId;
-      messageRequest.avatarId = curAvatarId;
-      tuanchat.chatController.sendMessage1(messageRequest);
-      UTILS.sleep(100);
-      messageRequest.roleId = 14131;
-      const avatars: RoleAvatar[] = [];
-      tuanchat.avatarController.getRoleAvatars(14131).then((res) => {
-        avatars.push(...(res.data || []));
-        messageRequest.avatarId = avatars[0]?.avatarId ?? 0;
-        messageRequest.content = `${message}`;
-        tuanchat.chatController.sendMessage1(messageRequest);
-      });
+    const replyMessage = (message: string) => {
+      // (async (prop: ExecutorProp, message: string) => {
+      //   messageRequest.content = prop.originMessage;
+      //   messageRequest.roleId = curRoleId;
+      //   messageRequest.avatarId = curAvatarId;
+      //   const msgRes = await tuanchat.chatController.sendMessage1(messageRequest);
+      //   messageRequest.roleId = 14131;
+      //   const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(14131))?.data ?? [];
+      //   messageRequest.replayMessageId = msgRes.data?.messageId ?? 0;
+      //   messageRequest.avatarId = avatars[0]?.avatarId ?? 0;
+      //   messageRequest.content = `${message}`;
+      //   tuanchat.chatController.sendMessage1(messageRequest);
+      // })(prop, message);
+      dicerMessageQueue.push(message);
     };
 
     const sendToast = (message: string) => {
@@ -165,7 +166,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     };
 
     const CmdPreInterface = {
-      sendMsg,
+      replyMessage,
       sendToast,
       getRoleAbilityList,
       setRoleAbilityList,
@@ -177,11 +178,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       return;
     }
     try {
-      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface);
     }
     catch (err1) {
       try {
-        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface);
       }
       catch (err2) {
         sendToast(`执行错误：${err1 instanceof Error ? err1.message : String(err1)} 且 ${err2 instanceof Error ? err2.message : String(err2)}`);
@@ -208,6 +209,28 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           ability: {},
           skill: {},
         });
+      }
+    }
+    // 发送消息队列
+    if (dicerMessageQueue.length > 0) {
+      // 当消息队列不为空时，先发送指令消息。
+      messageRequest.content = executorProp.originMessage;
+      messageRequest.roleId = curRoleId;
+      messageRequest.avatarId = curAvatarId;
+      const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
+      const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(14131))?.data ?? [];
+      const dicerMessageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        roleId: 14131,
+        avatarId: avatars[0]?.avatarId ?? 0,
+        content: "",
+        replayMessageId: optMsgRes.data?.messageId ?? undefined,
+        extra: {},
+      };
+      for (const message of dicerMessageQueue) {
+        dicerMessageRequest.content = message;
+        await tuanchat.chatController.sendMessage1(dicerMessageRequest);
       }
     }
   }
