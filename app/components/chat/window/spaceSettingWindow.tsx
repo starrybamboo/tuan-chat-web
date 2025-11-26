@@ -16,6 +16,7 @@ import {
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { tuanchat } from "../../../../api/instance";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -56,6 +57,10 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     avatar: space?.avatar || "",
     ruleId: space?.ruleId || 1,
   });
+
+  // 使用骰娘id数据
+  const extra = JSON.parse(space?.extra ?? "{}");
+  const [diceRollerId, setDiceRollerId] = useState(extra?.dicerRoleId || 2);
 
   // 头像文字颜色
   const [avatarTextColor, setAvatarTextColor] = useState("text-black");
@@ -106,6 +111,11 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       onSuccess: () => {
         onClose();
       },
+    });
+    tuanchat.spaceController.setSpaceExtra({
+      spaceId,
+      key: "dicerRoleId",
+      value: String(diceRollerId),
     });
   };
 
@@ -206,6 +216,20 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               </ul>
             </div>
           </div>
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间骰娘</span>
+            </label>
+            <input
+              type="text"
+              value={String(Number.isNaN(diceRollerId) ? 0 : diceRollerId)}
+              className="input input-bordered w-full"
+              onChange={(e) => {
+                setDiceRollerId(Number(e.target.value));
+              }}
+              placeholder="请输入骰娘id，留空则使用默认骰娘"
+            />
+          </div>
           <div className="flex justify-between items-center mt-16">
             <button
               type="button"
@@ -265,7 +289,10 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   const memberToShow = matchedMember ? [matchedMember] : members;
 
                   return memberToShow.map(member => (
-                    <div key={member.userId} className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full justify-between">
+                    <div
+                      key={member.userId}
+                      className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full justify-between"
+                    >
                       <MemberInfoComponent userId={member.userId ?? -1} />
                       <button
                         type="button"

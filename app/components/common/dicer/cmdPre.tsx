@@ -1,6 +1,6 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
-import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
+import type { ChatMessageRequest, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
 import executorFu from "@/components/common/dicer/cmdExe/cmdExeFu";
@@ -71,6 +71,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
+  const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
 
   const messageRequest: ChatMessageRequest = {
     roomId,
@@ -102,6 +103,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       description: role?.description ?? "",
       avatarId: role?.avatarId ?? -1,
       state: 0,
+      type: 0,
       modelName: role?.modelName ?? "",
       speakerName: role?.speakerName ?? "",
       createTime: "",
@@ -119,10 +121,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
         return {};
       }
-      // const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
-      // const abilityList = abilityQuery.data ?? [];
-      // const ability = abilityList.find(a => a.ruleId === ruleId);
-      // return ability || {};
     };
     // 获取所有可能用到的角色能力
     const mentionedRoles = new Map<number, RoleAbility>();
@@ -133,14 +131,20 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     }
 
     // 定义cpi接口
-    const sendMsg = (prop: ExecutorProp, message: string) => {
-      messageRequest.extra = {
-        result: message,
-      };
-      messageRequest.content = prop.originMessage;
-      messageRequest.roleId = curRoleId;
-      messageRequest.avatarId = curAvatarId;
-      tuanchat.chatController.sendMessageAiResponse(messageRequest);
+    const replyMessage = (message: string) => {
+      // (async (prop: ExecutorProp, message: string) => {
+      //   messageRequest.content = prop.originMessage;
+      //   messageRequest.roleId = curRoleId;
+      //   messageRequest.avatarId = curAvatarId;
+      //   const msgRes = await tuanchat.chatController.sendMessage1(messageRequest);
+      //   messageRequest.roleId = 14131;
+      //   const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(14131))?.data ?? [];
+      //   messageRequest.replayMessageId = msgRes.data?.messageId ?? 0;
+      //   messageRequest.avatarId = avatars[0]?.avatarId ?? 0;
+      //   messageRequest.content = `${message}`;
+      //   tuanchat.chatController.sendMessage1(messageRequest);
+      // })(prop, message);
+      dicerMessageQueue.push(message);
     };
 
     const sendToast = (message: string) => {
@@ -162,7 +166,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     };
 
     const CmdPreInterface = {
-      sendMsg,
+      replyMessage,
       sendToast,
       getRoleAbilityList,
       setRoleAbilityList,
@@ -174,11 +178,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       return;
     }
     try {
-      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface);
     }
     catch (err1) {
       try {
-        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface);
       }
       catch (err2) {
         sendToast(`执行错误：${err1 instanceof Error ? err1.message : String(err1)} 且 ${err2 instanceof Error ? err2.message : String(err2)}`);
@@ -205,6 +209,32 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           ability: {},
           skill: {},
         });
+      }
+    }
+    // 发送消息队列
+    if (dicerMessageQueue.length > 0) {
+      // 当消息队列不为空时，先发送指令消息。
+      messageRequest.content = executorProp.originMessage;
+      messageRequest.roleId = curRoleId;
+      messageRequest.avatarId = curAvatarId;
+      const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
+      const spaceInfo = await tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0);
+      const space = spaceInfo.data;
+      const extra = JSON.parse(space?.extra ?? "{}");
+      const dicerRoleId = extra?.dicerRoleId ?? 14131;
+      const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+      const dicerMessageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        roleId: dicerRoleId,
+        avatarId: avatars[0]?.avatarId ?? 0,
+        content: "",
+        replayMessageId: optMsgRes.data?.messageId ?? undefined,
+        extra: {},
+      };
+      for (const message of dicerMessageQueue) {
+        dicerMessageRequest.content = message;
+        await tuanchat.chatController.sendMessage1(dicerMessageRequest);
       }
     }
   }
