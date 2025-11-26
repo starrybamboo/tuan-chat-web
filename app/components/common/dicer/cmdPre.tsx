@@ -218,11 +218,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       messageRequest.roleId = curRoleId;
       messageRequest.avatarId = curAvatarId;
       const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
-      const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(14131))?.data ?? [];
+      const dicerRoleId = 14131;
+      const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
       const dicerMessageRequest: ChatMessageRequest = {
         roomId,
         messageType: 1,
-        roleId: 14131,
+        roleId: dicerRoleId,
         avatarId: avatars[0]?.avatarId ?? 0,
         content: "",
         replayMessageId: optMsgRes.data?.messageId ?? undefined,
