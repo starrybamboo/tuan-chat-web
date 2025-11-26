@@ -15,6 +15,15 @@ const UTILS = {
   },
 
   /**
+   * 延迟指定毫秒数
+   * @param ms 延迟的毫秒数
+   * @returns 返回一个Promise，在指定时间后resolve
+   */
+  sleep: (ms: number): Promise<void> => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  },
+
+  /**
    * 设置角色能力值
    * @param role 角色能力对象
    * @param key 要设置的键
