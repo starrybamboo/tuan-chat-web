@@ -79,6 +79,7 @@ interface RoleAbility { // eslint-disable-line ts/consistent-type-definitions
   basic?: Record<string, string>;
   ability?: Record<string, string>;
   skill?: Record<string, string>;
+  record?: Record<string, string>;
 }
 
 interface UserRole { // eslint-disable-line ts/consistent-type-definitions
