@@ -528,7 +528,7 @@ function CharacterDetailInner({
               )
             : (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
-                  <Section title="渲染结果预览" defaultOpen={false}>
+                  <Section title="⚙️渲染结果预览" defaultOpen={false}>
                     <SpriteRenderStudio
                       characterName={localRole.name || "未命名角色"}
                       roleAvatars={roleAvatars}

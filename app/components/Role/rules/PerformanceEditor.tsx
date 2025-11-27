@@ -169,7 +169,6 @@ export default function PerformanceEditor({
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-          ⚡
           基本信息
         </h3>
         <button

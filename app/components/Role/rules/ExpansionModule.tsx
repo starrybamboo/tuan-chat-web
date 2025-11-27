@@ -214,7 +214,7 @@ export default function ExpansionModule({
     return (
       <Section
         key="act"
-        // title="表演字段配置"
+        title="表演字段配置"
         className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
         collapsible={false}
       >

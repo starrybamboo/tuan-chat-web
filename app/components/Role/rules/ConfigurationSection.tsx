@@ -205,7 +205,7 @@ export function ConfigurationSection({
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <h4 className="text-lg font-semibold">
-                已自定义的
+                ⚡已自定义的
                 {customLabel}
               </h4>
               <div className="badge badge-success badge-sm">{modifiedCount}</div>
@@ -290,7 +290,7 @@ export function ConfigurationSection({
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <h4 className="text-lg font-semibold">
-                规则模版
+                ⚡规则模版
                 {customLabel}
               </h4>
               <div className="badge badge-info badge-sm">{templateCount}</div>

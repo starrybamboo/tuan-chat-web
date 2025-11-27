@@ -249,7 +249,6 @@ export default function NumericalEditor({
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="card-title text-lg flex items-center gap-2">
-          ⚡
           {title}
         </h3>
         <button
