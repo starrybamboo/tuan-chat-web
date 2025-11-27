@@ -53,6 +53,41 @@ function separateDataByTemplate(
   return { modified, template };
 }
 
+// 能力可视化：从数据里抽取 hp / mp / san
+function extractHpMpSan(data: Record<string, any>) {
+  const entries = Object.entries(data || {});
+  const findKey = (candidates: string[]) =>
+    entries.find(([k]) => candidates.includes(k.toLowerCase()));
+
+  const hpEntry = findKey(["hp", "health", "生命"]);
+  const mpEntry = findKey(["mp", "mana", "魔法"]);
+  const sanEntry = findKey(["san", "sanity", "理智"]);
+
+  const toNum = (v: any) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  return {
+    hpKey: hpEntry?.[0],
+    hpValue: hpEntry ? toNum(hpEntry[1]) : undefined,
+    mpKey: mpEntry?.[0],
+    mpValue: mpEntry ? toNum(mpEntry[1]) : undefined,
+    sanKey: sanEntry?.[0],
+    sanValue: sanEntry ? toNum(sanEntry[1]) : undefined,
+  };
+}
+
+// 映射到 0~100，便于进度条宽度
+function toPercent(value?: number, max = 100) {
+  if (value == null)
+    return 0;
+  if (!Number.isFinite(value) || max <= 0)
+    return 0;
+  const v = Math.max(0, Math.min(value, max));
+  return (v / max) * 100;
+}
+
 export function ConfigurationSection({
   title,
   roleId,
@@ -70,6 +105,16 @@ export function ConfigurationSection({
     const { modified, template } = separateDataByTemplate(currentData, ruleData);
     return { modifiedData: modified, templateData: template };
   }, [abilityData, ruleData, localEdits]);
+
+  // 能力配置可视化数据
+  const modifiedAbilityVisual = useMemo(
+    () => extractHpMpSan(modifiedData),
+    [modifiedData],
+  );
+  const templateAbilityVisual = useMemo(
+    () => extractHpMpSan(templateData),
+    [templateData],
+  );
 
   // 通用的数据合并和更新函数
   const handleDataChange = (
@@ -98,9 +143,12 @@ export function ConfigurationSection({
   const hasNoData = modifiedCount === 0 && templateCount === 0;
 
   return (
-    <Section title={title} className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+    <Section
+      title={title}
+      className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+      collapsible={false}
+    >
       <div className="space-y-6">
-        {/* 已修改的数据区域 */}
         {modifiedCount > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -110,6 +158,65 @@ export function ConfigurationSection({
               </h4>
               <div className="badge badge-success badge-sm">{modifiedCount}</div>
             </div>
+
+            {/* 能力配置 */}
+            {fieldType === "ability" && (
+              (modifiedAbilityVisual.hpValue != null
+                || modifiedAbilityVisual.mpValue != null
+                || modifiedAbilityVisual.sanValue != null) && (
+                <div className="space-y-2">
+                  {modifiedAbilityVisual.hpValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{modifiedAbilityVisual.hpKey || "HP"}</span>
+                        <span>{modifiedAbilityVisual.hpValue}</span>
+                      </div>
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-error"
+                          style={{
+                            width: `${toPercent(modifiedAbilityVisual.hpValue, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {modifiedAbilityVisual.mpValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{modifiedAbilityVisual.mpKey || "MP"}</span>
+                        <span>{modifiedAbilityVisual.mpValue}</span>
+                      </div>
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary"
+                          style={{
+                            width: `${toPercent(modifiedAbilityVisual.mpValue, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {modifiedAbilityVisual.sanValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{modifiedAbilityVisual.sanKey || "SAN"}</span>
+                        <span>{modifiedAbilityVisual.sanValue}</span>
+                      </div>
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500"
+                          style={{
+                            width: `${toPercent(modifiedAbilityVisual.sanValue, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+
             <div className="alert bg-success/40">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -131,42 +238,111 @@ export function ConfigurationSection({
           </div>
         )}
 
-        {/* 规则模版数据区域 - 可折叠 */}
+        {/* 规则模版数据区域：去掉折叠按钮，直接展示 */}
         {templateCount > 0 && (
-          <div className="collapse collapse-arrow bg-base-200">
-            <input type="checkbox" className="peer" />
-            <div className="collapse-title text-lg font-medium flex items-center gap-2">
-              <span>
+          <div className="bg-base-200 rounded-xl">
+            <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+              <span className="text-lg font-medium">
                 规则模版
                 {customLabel}
               </span>
               <div className="badge badge-neutral badge-sm">{templateCount}</div>
               <div className="text-sm text-base-content/60 ml-auto">
-                点击展开查看规则模版中的
+                使用规则模版的默认
                 {customLabel}
               </div>
             </div>
-            <div className="collapse-content">
-              <div className="pt-4 space-y-4">
-                <div className="alert bg-info/40">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <span>
-                    这些
-                    {customLabel}
-                    使用规则模版的默认值，编辑后将移动到上方的自定义区域
-                  </span>
-                </div>
-                <NumericalEditor
-                  data={templateData}
-                  onChange={handleTemplateChange}
-                  roleId={roleId}
-                  ruleId={ruleId}
-                  title={`模版${customLabel}`}
-                  fieldType={fieldType}
-                />
+
+            <div className="px-4 pb-4 space-y-4">
+              {/* 能力配置：模板 HP / MP / SAN 可视化 */}
+              {fieldType === "ability" && (
+                (templateAbilityVisual.hpValue != null
+                  || templateAbilityVisual.mpValue != null
+                  || templateAbilityVisual.sanValue != null) && (
+                  <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
+                    <h5 className="font-semibold text-sm">模板能力可视化</h5>
+                    {templateAbilityVisual.hpValue != null && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>{templateAbilityVisual.hpKey || "HP"}</span>
+                          <span>{templateAbilityVisual.hpValue}</span>
+                        </div>
+                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-error"
+                            style={{
+                              width: `${toPercent(templateAbilityVisual.hpValue, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {templateAbilityVisual.mpValue != null && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>{templateAbilityVisual.mpKey || "MP"}</span>
+                          <span>{templateAbilityVisual.mpValue}</span>
+                        </div>
+                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary"
+                            style={{
+                              width: `${toPercent(templateAbilityVisual.mpValue, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {templateAbilityVisual.sanValue != null && (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>{templateAbilityVisual.sanKey || "SAN"}</span>
+                          <span>{templateAbilityVisual.sanValue}</span>
+                        </div>
+                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-purple-500"
+                            style={{
+                              width: `${toPercent(templateAbilityVisual.sanValue, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+
+              <div className="alert bg-info/40">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="stroke-current shrink-0 w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  >
+                  </path>
+                </svg>
+                <span>
+                  这些
+                  {customLabel}
+                  使用规则模版的默认值，编辑后将移动到上方的自定义区域
+                </span>
               </div>
+
+              <NumericalEditor
+                data={templateData}
+                onChange={handleTemplateChange}
+                roleId={roleId}
+                ruleId={ruleId}
+                title={`模版${customLabel}`}
+                fieldType={fieldType}
+              />
             </div>
           </div>
         )}

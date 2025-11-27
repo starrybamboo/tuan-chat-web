@@ -146,7 +146,7 @@ export default function PerformanceEditor({
       </div>
 
       {/* 表演字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {shortFields.map(key => (
           <div key={key}>
             {isEditing
