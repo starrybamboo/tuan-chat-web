@@ -82,9 +82,9 @@ export default function PerformanceField({
         </button>
       </div>
 
-      <label className="textarea w-full flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0">
+      <label className="textarea w-full flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0 h-full">
         <textarea
-          className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-32"
+          className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-24 h-full resize-none field-sizing-content"
           placeholder={placeholder}
           value={value === "0" ? "" : String(value ?? "")}
           onChange={e => onValueChange(fieldKey, e.target.value)}

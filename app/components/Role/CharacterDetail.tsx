@@ -288,7 +288,7 @@ function CharacterDetailInner({
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
-                    <h1 className="font-semibold text-xl">
+                    <h1 className="font-semibold text-xl max-w-32 truncate">
                       {localRole.name || "未命名角色"}
                     </h1>
                     <p className="text-base-content/60 text-sm">
@@ -368,8 +368,10 @@ function CharacterDetailInner({
                     )}
               </div>
               {!isEditing && (
-                <div className="divider font-bold text-center text-xl">
-                  {localRole.name}
+                <div className="divider font-bold text-center text-xl flex">
+                  <span className="flex-shrink-0 lg:max-w-48 truncate">
+                    {localRole.name}
+                  </span>
                 </div>
               )}
               {isEditing && <div className="divider my-0" />}
