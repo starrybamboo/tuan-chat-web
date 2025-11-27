@@ -59,12 +59,10 @@ export function SpriteRenderStudio({
   const [lastInitialAvatarId, setLastInitialAvatarId] = useState(initialAvatarId);
   // 标记是否是用户手动切换（而非外部initialAvatarId变化）
   const [isManualSwitch, setIsManualSwitch] = useState(false);
-  // 弹窗显示状态
-  const [isPopWindowOpen, setIsPopWindowOpen] = useState(false);
-  // 头像语音弹窗状态
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  // 立绘列表面板收起/展开状态 - 桌面端默认打开，移动端默认关闭
-  const [isSpritePanelOpen, setIsSpritePanelOpen] = useState(false);
+  // 设置弹窗显示状态
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // 设置弹窗当前激活的 tab
+  const [settingsActiveTab, setSettingsActiveTab] = useState<"cropper" | "spriteList" | "mood">("cropper");
 
   // 情绪调节组件需要
   const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
@@ -258,127 +256,32 @@ export function SpriteRenderStudio({
     };
   }, [spriteUrl, previewCanvasRef, currentSprite]);
 
-  // 处理打开弹窗
-  const handleOpenPopWindow = () => {
-    setIsPopWindowOpen(true);
+  // 处理打开设置弹窗
+  const handleOpenSettings = (tab: "cropper" | "spriteList" | "mood" = "cropper") => {
+    setSettingsActiveTab(tab);
+    setIsSettingsOpen(true);
   };
 
-  // 处理关闭弹窗
-  const handleClosePopWindow = () => {
-    setIsPopWindowOpen(false);
+  // 处理关闭设置弹窗
+  const handleCloseSettings = () => {
+    setIsSettingsOpen(false);
   };
 
   return (
     <div className={`${className} flex-col`}>
       <div className="relative flex-1 min-h-0">
-        {/* 按钮 - 定位到右上角，移动端自动缩小 */}
+        {/* 设置按钮 - 齿轮图标，定位到右上角 */}
         <button
           type="button"
-          className="absolute top-2 left-2 sm:right-2 sm:left-auto btn btn-sm md:btn-md btn-accent w-10 md:w-36 z-30"
-          onClick={handleOpenPopWindow}
+          className="absolute top-2 right-2 btn btn-sm md:btn-md btn-circle bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 z-30"
+          onClick={() => handleOpenSettings("cropper")}
+          title="立绘设置"
         >
-          <span className="flex items-center gap-2">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-            </svg>
-            <span className="hidden sm:inline">立绘校正</span>
-          </span>
+          <svg className="w-5 h-5 text-base-content/70" viewBox="0 0 24 24" fill="none">
+            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
-
-        {/* 立绘列表面板 - 可收起/展开 */}
-        {spritesAvatars.length > 0 && (
-          <div className="absolute top-2 md:top-14 right-2 z-30">
-            {/* 收起时显示icon */}
-            {!isSpritePanelOpen && (
-              <button
-                type="button"
-                className="btn btn-sm md:btn-md w-10 md:w-36 items-center justify-center bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
-                title="展开立绘列表"
-                onClick={() => setIsSpritePanelOpen(true)}
-              >
-                <svg className="w-6 md:w-5 h-6 md:h-5 text-base-content/70" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                  <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <span className="hidden sm:inline">立绘列表</span>
-              </button>
-            )}
-            {/* 展开时显示面板 */}
-            {isSpritePanelOpen && (
-              <div className="bg-base-100/90 backdrop-blur-sm rounded-lg shadow-lg border border-base-300 p-2 max-w-xs relative max-h-[20vh] md:max-h-[40vh] overflow-y-auto">
-                <button
-                  type="button"
-                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-base-200 hover:bg-base-300 text-base-content/70"
-                  title="收起立绘列表"
-                  onClick={() => setIsSpritePanelOpen(false)}
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </button>
-                <h4 className="text-sm font-semibold mb-2 text-center">立绘列表</h4>
-                <div className="grid grid-cols-4 gap-2 overflow-y-auto">
-                  {spritesAvatars.map((avatar, index) => (
-                    <button
-                      type="button"
-                      key={avatar.avatarId}
-                      onClick={() => {
-                        setIsManualSwitch(true);
-                        setManualIndexOffset(index);
-                      }}
-                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 ${index === currentSpriteIndex
-                        ? "border-primary shadow-lg"
-                        : "border-base-300 hover:border-primary/50 hover:shadow-md"
-                      }`}
-                      title={`切换到立绘 ${index + 1}`}
-                    >
-                      {avatar.avatarUrl
-                        ? (
-                            <img
-                              src={avatar.avatarUrl}
-                              alt={`头像 ${index + 1}`}
-                              className="w-full h-full object-cover pointer-events-none"
-                              loading="lazy"
-                              style={{ aspectRatio: "1 / 1" }}
-                            />
-                          )
-                        : (
-                            <div className="w-full h-full bg-base-200"></div>
-                          )}
-                    </button>
-                  ))}
-                </div>
-                <div className="text-xs text-center mt-2 text-base-content/70">
-                  {currentSpriteIndex + 1}
-                  {" "}
-                  /
-                  {spritesAvatars.length}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 头像语音按钮 */}
-        {spritesAvatars.length > 0 && (
-          <div className="absolute top-12 md:top-26 right-2 z-20">
-            <button
-              type="button"
-              className="btn btn-sm md:btn-md w-10 md:w-36 items-center justify-center bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
-              title="头像语音设置"
-              onClick={() => setIsVoiceModalOpen(true)}
-            >
-              <svg className="w-4 h-4 text-base-content/70" viewBox="0 0 24 24" fill="none">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="hidden sm:inline ml-2">情感设定</span>
-            </button>
-          </div>
-        )}
 
         {/* 数据加载中的提示 */}
         {!!initialAvatarId && !currentSprite && spritesAvatars.length === 0 && (
@@ -508,53 +411,180 @@ export function SpriteRenderStudio({
         )}
       </div>
 
-      {/* 立绘校正弹窗 */}
-      {isPopWindowOpen && (
+      {/* 设置弹窗 - 包含三个 tab：立绘校正、立绘列表、情感设定 */}
+      {isSettingsOpen && (
         <PopWindow
-          isOpen={isPopWindowOpen}
-          onClose={handleClosePopWindow}
+          isOpen={isSettingsOpen}
+          onClose={handleCloseSettings}
           fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
         >
-          {spriteUrl
-            ? (
-                <SpriteCropper
-                  spriteUrl={spriteUrl}
-                  roleAvatars={roleAvatars}
-                  initialSpriteIndex={currentSpriteIndex}
-                  characterName={characterName}
-                  onClose={handleClosePopWindow}
-                />
-              )
-            : (
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold mb-4">立绘校正</h3>
-                  <p>当前没有可用的立绘进行裁剪</p>
+          <div className="flex flex-col md:flex-row w-full md:w-[80vw] md:max-w-6xl h-[70vh] md:h-[80vh]">
+            {/* 左侧 Tab 列表 */}
+            <div className="md:w-40 flex-shrink-0 border-b md:border-b-0 md:border-r border-base-300 bg-base-200/50">
+              <nav className="flex md:flex-col p-2 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSettingsActiveTab("cropper")}
+                  className={`flex items-center justify-center md:justify-start gap-2 px-3 py-2 rounded-lg text-left transition-colors flex-1 md:flex-none ${
+                    settingsActiveTab === "cropper"
+                      ? "bg-primary text-primary-content"
+                      : "hover:bg-base-300"
+                  }`}
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                    <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                  <span className="hidden md:inline text-sm">立绘校正</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsActiveTab("spriteList")}
+                  className={`flex items-center justify-center md:justify-start gap-2 px-3 py-2 rounded-lg text-left transition-colors flex-1 md:flex-none ${
+                    settingsActiveTab === "spriteList"
+                      ? "bg-primary text-primary-content"
+                      : "hover:bg-base-300"
+                  }`}
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                    <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  <span className="hidden md:inline text-sm">立绘列表</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsActiveTab("mood")}
+                  className={`flex items-center justify-center md:justify-start gap-2 px-3 py-2 rounded-lg text-left transition-colors flex-1 md:flex-none ${
+                    settingsActiveTab === "mood"
+                      ? "bg-primary text-primary-content"
+                      : "hover:bg-base-300"
+                  }`}
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="hidden md:inline text-sm">情感设定</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* 右侧内容区域 - 固定尺寸 */}
+            <div className="flex-1 overflow-auto p-4 min-h-0">
+              {/* 立绘校正内容 */}
+              {settingsActiveTab === "cropper" && (
+                <div className="h-full">
+                  {spriteUrl
+                    ? (
+                        <SpriteCropper
+                          spriteUrl={spriteUrl}
+                          roleAvatars={roleAvatars}
+                          initialSpriteIndex={currentSpriteIndex}
+                          characterName={characterName}
+                          onClose={handleCloseSettings}
+                        />
+                      )
+                    : (
+                        <div className="flex flex-col items-center justify-center h-full text-base-content/70">
+                          <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
+                            <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                            <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                          </svg>
+                          <p>当前没有可用的立绘进行校正</p>
+                        </div>
+                      )}
                 </div>
               )}
-        </PopWindow>
-      )}
 
-      {/* 头像语音设置弹窗 */}
-      {isVoiceModalOpen && (
-        <PopWindow
-          isOpen={isVoiceModalOpen}
-          onClose={() => setIsVoiceModalOpen(false)}
-          fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
-        >
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">调整当前立绘语音参数</h3>
-            </div>
-            <div className="bg-info/10 p-4 rounded-md">
-              <MoodRegulator
-                controlRef={moodControlRef}
-                onChange={handleMoodChange}
-                // 显式传入 labels，避免在没有值时不渲染控件
-                labels={moodLabels}
-                // 仅用于初始显示，不参与受控更新；后续都通过 ref.setValue 同步
-                defaultValue={(roleAvatars[currentSpriteIndex]?.avatarTitle as Record<string, string>) || undefined}
-                fallbackDefaultLabels={true}
-              />
+              {/* 立绘列表内容 */}
+              {settingsActiveTab === "spriteList" && (
+                <div className="h-full flex flex-col">
+                  <h3 className="text-lg font-semibold mb-4 flex-shrink-0">立绘列表</h3>
+                  {spritesAvatars.length > 0
+                    ? (
+                        <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="grid grid-cols-4 md:grid-cols-6 gap-3 overflow-auto flex-1">
+                            {spritesAvatars.map((avatar, index) => (
+                              <button
+                                type="button"
+                                key={avatar.avatarId}
+                                onClick={() => {
+                                  setIsManualSwitch(true);
+                                  setManualIndexOffset(index);
+                                }}
+                                className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 ${
+                                  index === currentSpriteIndex
+                                    ? "border-primary shadow-lg ring-2 ring-primary/30"
+                                    : "border-base-300 hover:border-primary/50 hover:shadow-md"
+                                }`}
+                                title={`切换到立绘 ${index + 1}`}
+                              >
+                                {avatar.avatarUrl
+                                  ? (
+                                      <img
+                                        src={avatar.avatarUrl}
+                                        alt={`头像 ${index + 1}`}
+                                        className="w-full h-full object-cover pointer-events-none"
+                                        loading="lazy"
+                                        style={{ aspectRatio: "1 / 1" }}
+                                      />
+                                    )
+                                  : (
+                                      <div className="w-full h-full bg-base-200 flex items-center justify-center text-base-content/50">
+                                        {index + 1}
+                                      </div>
+                                    )}
+                                {index === currentSpriteIndex && (
+                                  <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none">
+                                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="text-sm text-center mt-4 text-base-content/70 flex-shrink-0">
+                            当前选中:
+                            {" "}
+                            {currentSpriteIndex + 1}
+                            {" "}
+                            /
+                            {" "}
+                            {spritesAvatars.length}
+                          </div>
+                        </div>
+                      )
+                    : (
+                        <div className="flex flex-col items-center justify-center flex-1 text-base-content/70">
+                          <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                            <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                          <p>暂无立绘</p>
+                        </div>
+                      )}
+                </div>
+              )}
+
+              {/* 情感设定内容 */}
+              {settingsActiveTab === "mood" && (
+                <div className="h-full flex flex-col">
+                  <h3 className="text-lg font-semibold mb-4 flex-shrink-0">调整当前立绘语音参数</h3>
+                  <div className="bg-info/10 p-4 rounded-lg flex-1 overflow-auto">
+                    <MoodRegulator
+                      controlRef={moodControlRef}
+                      onChange={handleMoodChange}
+                      labels={moodLabels}
+                      defaultValue={(roleAvatars[currentSpriteIndex]?.avatarTitle as Record<string, string>) || undefined}
+                      fallbackDefaultLabels={true}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </PopWindow>

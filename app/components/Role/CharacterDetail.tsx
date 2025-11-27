@@ -523,20 +523,12 @@ function CharacterDetailInner({
                     <div className="flex items-center gap-3 mb-4">
                       <div className="skeleton h-6 w-32"></div>
                     </div>
-                    <div className="space-y-3">
-                      <div className="skeleton h-48 w-full"></div>
-                      <div className="flex gap-3">
-                        <div className="skeleton h-10 w-20"></div>
-                        <div className="skeleton h-10 w-20"></div>
-                        <div className="skeleton h-10 w-20"></div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )
             : (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
-                  <Section title="渲染结果预览">
+                  <Section title="渲染结果预览" defaultOpen={false}>
                     <SpriteRenderStudio
                       characterName={localRole.name || "未命名角色"}
                       roleAvatars={roleAvatars}
