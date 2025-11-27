@@ -395,9 +395,17 @@ async function getDicerRoleId(roomContext: RoomContextType): Promise<number> {
   if (Number.isNaN(dicerRoleId)) {
     return 2;
   }
-  // 检查当前骰娘id是否有效（通过获取骰娘角色昵称来判断）
-  const dicerRole = await tuanchat.roleController.getRole(dicerRoleId);
-  if (!dicerRole.success) {
+  // 检查当前骰娘id是否有效
+  try {
+    const dicerRoleApiResult = await tuanchat.roleController.getRole(dicerRoleId);
+    if (dicerRoleApiResult.data?.roleName) {
+      return dicerRoleId;
+    }
+  }
+  catch (error) {
+    if (!(error instanceof Error)) {
+      console.error("getDicerRoleId error", error);
+    }
     return 2;
   }
   return dicerRoleId;
