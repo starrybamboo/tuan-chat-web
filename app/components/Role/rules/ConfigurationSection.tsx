@@ -90,7 +90,7 @@ function toPercent(value?: number, max = 100) {
 
 // 可折叠的模板信息提示组件
 function CollapsibleAlert({ customLabel, type, message }: { customLabel: string; type: "info" | "success"; message: string }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const bgClass = type === "success" ? "bg-success/40" : "bg-info/40";
   const bgCollapsedClass = type === "success" ? "bg-success/30 hover:bg-success/50" : "bg-info/30 hover:bg-info/50";
@@ -204,7 +204,7 @@ export function ConfigurationSection({
         {modifiedCount > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="text-lg font-semibold text-success">
+              <h4 className="text-lg font-semibold">
                 已自定义的
                 {customLabel}
               </h4>
@@ -293,7 +293,7 @@ export function ConfigurationSection({
                 规则模版
                 {customLabel}
               </h4>
-              <div className="badge badge-neutral badge-sm">{templateCount}</div>
+              <div className="badge badge-info badge-sm">{templateCount}</div>
             </div>
 
             {/* 能力配置：模板 HP / MP / SAN 可视化 */}

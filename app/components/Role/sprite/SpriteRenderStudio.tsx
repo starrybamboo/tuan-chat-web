@@ -273,7 +273,7 @@ export function SpriteRenderStudio({
         {/* 设置按钮 - 齿轮图标，定位到右上角 */}
         <button
           type="button"
-          className="absolute top-2 right-2 btn btn-sm md:btn-md btn-circle bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 z-30"
+          className="absolute top-2 right-2 btn btn-sm md:btn-md btn-circle border border-base-300 shadow-lg hover:bg-base-200 z-31"
           onClick={() => handleOpenSettings("cropper")}
           title="立绘设置"
         >
@@ -312,7 +312,7 @@ export function SpriteRenderStudio({
         />
 
         {/* 调试信息 - 显示当前状态（移动端隐藏，桌面端显示） */}
-        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs p-2 rounded z-30 hidden sm:block">
+        <div className="absolute top-2 right-2 bg-black/70 text-white text-xs p-2 rounded z-30 hidden sm:block">
           <div>
             立绘数量:
             {spritesAvatars.length}
