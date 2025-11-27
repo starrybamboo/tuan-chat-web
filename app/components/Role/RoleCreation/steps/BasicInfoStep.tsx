@@ -6,7 +6,7 @@ interface BasicInfoStepProps {
 }
 
 export default function BasicInfoStep({ characterData, onCharacterDataChange }: BasicInfoStepProps) {
-  const NAME_MAX = 10;
+  const NAME_MAX = 32;
   const DESC_MAX = 150;
   return (
     <div className="space-y-6 ">
