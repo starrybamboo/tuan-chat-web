@@ -254,58 +254,23 @@ export default function ExpansionModule({
             )
           : isLoading
             ? (
-                <div className="space-y-6">
-                  {/* 表演字段配置加载骨架 */}
-                  <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/4"></div>
-                      <div className="space-y-3">
-                        <div className="h-10 bg-base-300 rounded"></div>
-                        <div className="h-10 bg-base-300 rounded"></div>
-                        <div className="h-10 bg-base-300 rounded"></div>
-                      </div>
+                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                  <div className="card-body">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="skeleton h-6 w-32"></div>
                     </div>
-                  </Section>
-
-                  {/* 基础属性配置加载骨架 */}
-                  <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                    <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="skeleton h-10 w-full"></div>
+                        <div className="skeleton h-10 w-full"></div>
                       </div>
-                    </div>
-                  </Section>
-
-                  {/* 能力配置加载骨架 */}
-                  <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="skeleton h-10 w-full"></div>
+                        <div className="skeleton h-10 w-full"></div>
                       </div>
+                      <div className="skeleton h-20 w-full"></div>
                     </div>
-                  </Section>
-
-                  {/* 技能配置加载骨架 */}
-                  <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                      </div>
-                      <div className="h-10 bg-base-300 rounded w-1/2"></div>
-                    </div>
-                  </Section>
+                  </div>
                 </div>
               )
             : (

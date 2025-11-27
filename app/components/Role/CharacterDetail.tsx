@@ -534,6 +534,7 @@ function CharacterDetailInner({
                       roleAvatars={roleAvatars}
                       initialAvatarId={localRole.avatarId}
                       className="w-full gap-4 flex mb-2"
+                      onAvatarChange={handleAvatarChange}
                     />
                   </Section>
                 </div>
@@ -563,7 +564,7 @@ function CharacterDetailInner({
                     </div>
                   </div>
 
-                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                  {/* <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
                     <div className="card-body">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="skeleton h-6 w-40"></div>
@@ -575,7 +576,7 @@ function CharacterDetailInner({
                         <div className="skeleton h-12 w-full"></div>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               )
             : (
