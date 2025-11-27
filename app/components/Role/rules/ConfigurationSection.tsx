@@ -287,94 +287,88 @@ export function ConfigurationSection({
 
         {/* 规则模版数据区域：去掉折叠按钮，直接展示 */}
         {templateCount > 0 && (
-          <div className="bg-base-200 rounded-xl">
-            <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-              <span className="text-lg font-medium">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h4 className="text-lg font-semibold">
                 规则模版
                 {customLabel}
-              </span>
+              </h4>
               <div className="badge badge-neutral badge-sm">{templateCount}</div>
-              <div className="text-sm text-base-content/60 ml-auto hidden md:block">
-                使用规则模版的默认
-                {customLabel}
-              </div>
             </div>
 
-            <div className="px-4 pb-4 space-y-4">
-              {/* 能力配置：模板 HP / MP / SAN 可视化 */}
-              {fieldType === "ability" && (
-                (templateAbilityVisual.hpValue != null
-                  || templateAbilityVisual.mpValue != null
-                  || templateAbilityVisual.sanValue != null) && (
-                  <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
-                    <h5 className="font-semibold text-sm">模板能力可视化</h5>
-                    {templateAbilityVisual.hpValue != null && (
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>{templateAbilityVisual.hpKey || "HP"}</span>
-                          <span>{templateAbilityVisual.hpValue}</span>
-                        </div>
-                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-error"
-                            style={{
-                              width: `${toPercent(templateAbilityVisual.hpValue, 100)}%`,
-                            }}
-                          />
-                        </div>
+            {/* 能力配置：模板 HP / MP / SAN 可视化 */}
+            {fieldType === "ability" && (
+              (templateAbilityVisual.hpValue != null
+                || templateAbilityVisual.mpValue != null
+                || templateAbilityVisual.sanValue != null) && (
+                <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
+                  <h5 className="font-semibold text-sm">模板能力可视化</h5>
+                  {templateAbilityVisual.hpValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{templateAbilityVisual.hpKey || "HP"}</span>
+                        <span>{templateAbilityVisual.hpValue}</span>
                       </div>
-                    )}
-                    {templateAbilityVisual.mpValue != null && (
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>{templateAbilityVisual.mpKey || "MP"}</span>
-                          <span>{templateAbilityVisual.mpValue}</span>
-                        </div>
-                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{
-                              width: `${toPercent(templateAbilityVisual.mpValue, 100)}%`,
-                            }}
-                          />
-                        </div>
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-error"
+                          style={{
+                            width: `${toPercent(templateAbilityVisual.hpValue, 100)}%`,
+                          }}
+                        />
                       </div>
-                    )}
-                    {templateAbilityVisual.sanValue != null && (
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>{templateAbilityVisual.sanKey || "SAN"}</span>
-                          <span>{templateAbilityVisual.sanValue}</span>
-                        </div>
-                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-purple-500"
-                            style={{
-                              width: `${toPercent(templateAbilityVisual.sanValue, 100)}%`,
-                            }}
-                          />
-                        </div>
+                    </div>
+                  )}
+                  {templateAbilityVisual.mpValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{templateAbilityVisual.mpKey || "MP"}</span>
+                        <span>{templateAbilityVisual.mpValue}</span>
                       </div>
-                    )}
-                  </div>
-                )
-              )}
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary"
+                          style={{
+                            width: `${toPercent(templateAbilityVisual.mpValue, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {templateAbilityVisual.sanValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{templateAbilityVisual.sanKey || "SAN"}</span>
+                        <span>{templateAbilityVisual.sanValue}</span>
+                      </div>
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500"
+                          style={{
+                            width: `${toPercent(templateAbilityVisual.sanValue, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
 
-              <CollapsibleAlert
-                customLabel={customLabel}
-                type="info"
-                message="这些{label}使用规则模版的默认值，编辑后将移动到上方的自定义区域"
-              />
+            <CollapsibleAlert
+              customLabel={customLabel}
+              type="info"
+              message="这些{label}使用规则模版的默认值，编辑后将移动到上方的自定义区域"
+            />
 
-              <NumericalEditor
-                data={templateData}
-                onChange={handleTemplateChange}
-                roleId={roleId}
-                ruleId={ruleId}
-                title={`模版${customLabel}`}
-                fieldType={fieldType}
-              />
-            </div>
+            <NumericalEditor
+              data={templateData}
+              onChange={handleTemplateChange}
+              roleId={roleId}
+              ruleId={ruleId}
+              title={`模版${customLabel}`}
+              fieldType={fieldType}
+            />
           </div>
         )}
 
