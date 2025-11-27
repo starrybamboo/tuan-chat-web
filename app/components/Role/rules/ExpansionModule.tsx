@@ -165,7 +165,8 @@ export default function ExpansionModule({
     if (activeTab === "basic") {
       return (
         <ConfigurationSection
-          title="基础属性配置"
+          key="basic"
+          // title="基础属性配置"
           abilityData={abilityQuery.data?.basicDefault || {}}
           ruleData={ruleDetailQuery.data?.basicDefault || {}}
           localEdits={localEdits.basicDefault}
@@ -180,7 +181,8 @@ export default function ExpansionModule({
     if (activeTab === "ability") {
       return (
         <ConfigurationSection
-          title="能力配置"
+          key="ability"
+          // title="能力配置"
           abilityData={abilityQuery.data?.abilityDefault || {}}
           ruleData={ruleDetailQuery.data?.abilityFormula || {}}
           localEdits={localEdits.abilityFormula}
@@ -195,7 +197,8 @@ export default function ExpansionModule({
     if (activeTab === "skill") {
       return (
         <ConfigurationSection
-          title="技能配置"
+          key="skill"
+          // title="技能配置"
           abilityData={abilityQuery.data?.skillDefault || {}}
           ruleData={ruleDetailQuery.data?.skillDefault || {}}
           localEdits={localEdits.skillDefault}
@@ -210,6 +213,7 @@ export default function ExpansionModule({
     // act
     return (
       <Section
+        key="act"
         title="表演字段配置"
         className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
         collapsible={false}
@@ -250,92 +254,61 @@ export default function ExpansionModule({
             )
           : isLoading
             ? (
-                <div className="space-y-6">
-                  {/* 表演字段配置加载骨架 */}
-                  <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/4"></div>
-                      <div className="space-y-3">
-                        <div className="h-10 bg-base-300 rounded"></div>
-                        <div className="h-10 bg-base-300 rounded"></div>
-                        <div className="h-10 bg-base-300 rounded"></div>
-                      </div>
+                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                  <div className="card-body">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="skeleton h-6 w-32"></div>
                     </div>
-                  </Section>
-
-                  {/* 基础属性配置加载骨架 */}
-                  <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                    <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="skeleton h-10 w-full"></div>
+                        <div className="skeleton h-10 w-full"></div>
                       </div>
-                    </div>
-                  </Section>
-
-                  {/* 能力配置加载骨架 */}
-                  <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="skeleton h-10 w-full"></div>
+                        <div className="skeleton h-10 w-full"></div>
                       </div>
+                      <div className="skeleton h-20 w-full"></div>
                     </div>
-                  </Section>
-
-                  {/* 技能配置加载骨架 */}
-                  <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                      </div>
-                      <div className="h-10 bg-base-300 rounded w-1/2"></div>
-                    </div>
-                  </Section>
+                  </div>
                 </div>
               )
             : (
                 renderData && (
                   <div className="space-y-4">
                     {/* 顶部 Tab 按钮条，简单实现，不用 DaisyUI 的复杂结构 */}
-                    <div className="flex gap-2 border-b border-base-300 pb-2 ">
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        className={`btn btn-sm rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("basic")}
                       >
-                        基础
+                        <span className="md:hidden">基础</span>
+                        <span className="hidden md:inline">基础配置</span>
                       </button>
                       <button
                         type="button"
-                        className={`btn btn-sm rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("ability")}
                       >
-                        能力
+                        <span className="md:hidden">能力</span>
+                        <span className="hidden md:inline">能力配置</span>
                       </button>
                       <button
                         type="button"
-                        className={`btn btn-sm rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("skill")}
                       >
-                        技能
+                        <span className="md:hidden">技能</span>
+                        <span className="hidden md:inline">技能配置</span>
                       </button>
                       <button
                         type="button"
-                        className={`btn btn-sm rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("act")}
                       >
-                        表演
+                        <span className="md:hidden">表演</span>
+                        <span className="hidden md:inline">表演配置</span>
                       </button>
                     </div>
 

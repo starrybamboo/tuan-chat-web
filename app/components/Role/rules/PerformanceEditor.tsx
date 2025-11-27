@@ -2,9 +2,29 @@ import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddFieldForm from "../shared/AddFieldForm";
 import PerformanceField from "../shared/PerformanceField";
+
+/**
+ * 自定义 hook：检测是否为移动端（小于 md 断点 768px）
+ */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined")
+      return false;
+    return window.matchMedia("(max-width: 767px)").matches;
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
+
+  return isMobile;
+}
 
 interface PerformanceEditorProps {
   fields: Record<string, string>;
@@ -15,8 +35,7 @@ interface PerformanceEditorProps {
 }
 
 /**
- * 根据字段内容长度计算 grid span
- * 桌面端4列，移动端2列
+ * 根据字段内容长度计算 grid span（桌面端4列）
  */
 function getGridSpan(value: string): { colSpan: number; rowSpan: number } {
   const length = value?.length || 0;
@@ -39,6 +58,23 @@ function getGridSpan(value: string): { colSpan: number; rowSpan: number } {
 }
 
 /**
+ * 根据字段内容长度计算 grid span（移动端2列）
+ */
+function getGridSpanMobile(value: string): { colSpan: number; rowSpan: number } {
+  const length = value?.length || 0;
+
+  if (length <= 10) {
+    return { colSpan: 1, rowSpan: 1 }; // 极短内容：1x1
+  }
+  else if (length <= 60) {
+    return { colSpan: 2, rowSpan: 1 }; // 短内容：2x1（占满整行）
+  }
+  else {
+    return { colSpan: 2, rowSpan: 2 }; // 中等及以上内容：2x2（占满整行）
+  }
+}
+
+/**
  * 表演字段编辑器组件
  * 负责管理角色的表演相关字段，如性别、年龄、背景故事等
  * 展示方式被划分为了 短字段、长字段和携带物品 三种不同的展示方式
@@ -57,6 +93,8 @@ export default function PerformanceEditor({
   const [isEditing, setIsEditing] = useState(false);
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
+  // 是否移动端
+  const isMobile = useIsMobile();
 
   const longFieldKeys = [""];
   const shortFields = Object.keys(abilityData || fields)
@@ -131,7 +169,6 @@ export default function PerformanceEditor({
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-          ⚡
           基本信息
         </h3>
         <button
@@ -169,7 +206,7 @@ export default function PerformanceEditor({
         </button>
       </div>
 
-      {/* 表演字段区域 - 使用 grid-auto-flow: dense 密集布局 */}
+      {/* 表演字段区域 - 响应式布局 */}
       <div
         className="grid gap-4 grid-cols-2 md:grid-cols-4"
         style={{
@@ -178,7 +215,9 @@ export default function PerformanceEditor({
         }}
       >
         {shortFields.map((key) => {
-          const { colSpan, rowSpan } = getGridSpan(fields[key]);
+          const { colSpan, rowSpan } = isMobile
+            ? getGridSpanMobile(fields[key])
+            : getGridSpan(fields[key]);
 
           return (
             <div
