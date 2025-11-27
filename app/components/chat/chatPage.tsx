@@ -63,13 +63,13 @@ export default function ChatPage() {
     setStoredChatIds({ spaceId, roomId: null });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
-    navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams}`);
+    navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
   };
   const setActiveRoomId = (roomId: number | null) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
-    navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${searchParam}`);
+    navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${newSearchParams.toString()}`);
   };
 
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function ChatPage() {
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     const target = e.target as HTMLElement;
-    // 向上查找包含data-message-id属性的父元素
+    // 向上查找包含data-room-id属性的父元素
     const messageElement = target.closest("[data-room-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
   }
@@ -346,7 +346,8 @@ export default function ChatPage() {
                                 className="size-6 cursor-pointer hover:text-info hover:bg-base-300 rounded"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setActiveRoomSettingId(room.roomId ?? -1);
+                                  // 仅传入真实 roomId，使用 null 表示关闭/未选择
+                                  setActiveRoomSettingId(room.roomId ?? null);
                                 }}
                               />
                             </div>
@@ -419,7 +420,8 @@ export default function ChatPage() {
           isOpen={activeRoomSettingId !== null}
           onClose={() => setActiveRoomSettingId(null)}
         >
-          {activeRoomSettingId && (
+          {/* 严格判定，只有非 null（有效 id）才渲染窗口 */}
+          {activeRoomSettingId !== null && (
             <RoomSettingWindow
               roomId={activeRoomSettingId}
               onClose={() => setActiveRoomSettingId(null)}

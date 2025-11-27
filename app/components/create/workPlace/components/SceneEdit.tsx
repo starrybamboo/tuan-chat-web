@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
@@ -13,7 +12,24 @@ import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
-  id: string | number; // 当前sceneEdit在moduleTabs中的id
+}
+
+interface SceneInfo {
+  items?: number[];
+  roles?: number[];
+  locations?: number[];
+  description?: string;
+  tip?: string;
+  [key: string]: any;
+}
+
+function normalizeSceneInfo(info: Partial<SceneInfo> | undefined): SceneInfo {
+  return {
+    ...(info || {}),
+    items: Array.isArray(info?.items) ? info!.items! : [],
+    roles: Array.isArray(info?.roles) ? info!.roles! : [],
+    locations: Array.isArray(info?.locations) ? info!.locations! : [],
+  };
 }
 
 const types = {
@@ -82,7 +98,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
   );
 }
 
-export default function SceneEdit({ scene, id }: SceneEditProps) {
+export default function SceneEdit({ scene }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
   const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel, setTabSaveFunction, currentSelectedTabId, setIsCommitted } = useModuleContext();
@@ -97,15 +113,17 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     mapDataRef.current = entities?.data?.find(item => item.entityType === 5);
   }, [entities]);
 
-  // 本地状态
-  const [localScene, setLocalScene] = useState({ ...entityInfo });
+  // 归一化工具，确保三组引用永远为 number[]
+  // 本地状态（懒初始化，避免首帧先渲染不完整再回填）
+  const [localScene, setLocalScene] = useState<SceneInfo>(() => normalizeSceneInfo(entityInfo as SceneInfo));
+  const prevSceneIdRef = useRef<number | undefined>(scene.id);
   const initialRef = useRef(true);
   // 名称改为列表侧重命名，这里不再编辑
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
-  const VeditorId = `scene-tip-editor-${id}`;
-  const VeditorIdForDescription = `scene-description-editor-${id}`;
+  const VeditorId = `scene-tip-editor-${scene.id!}`;
+  const VeditorIdForDescription = `scene-description-editor-${scene.id!}`;
 
   useEffect(() => {
     if (initialRef.current) {
@@ -188,10 +206,31 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     endSelectionLock();
   };
 
-  // 新增状态
-  const [locations, setLocations] = useState<StageEntityResponse[]>([]);
-  const [items, setItems] = useState<StageEntityResponse[]>([]);
-  const [roles, setRoles] = useState<StageEntityResponse[]>([]);
+  // 展示列表用 useMemo 推导，避免在 effect 中 setState 产生二次渲染
+  const allEntities = useMemo(() => {
+    return entities?.data ?? [];
+  }, [entities]);
+  const locations = useMemo(() => {
+    const locIds: number[] = Array.isArray(localScene.locations) ? localScene.locations : [];
+    if (!locIds.length) {
+      return [] as StageEntityResponse[];
+    }
+    return allEntities.filter(ent => ent.entityType === 4 && ent.versionId != null && locIds.includes(ent.versionId!));
+  }, [allEntities, localScene.locations]);
+  const items = useMemo(() => {
+    const itemIds: number[] = Array.isArray(localScene.items) ? localScene.items : [];
+    if (!itemIds.length) {
+      return [] as StageEntityResponse[];
+    }
+    return allEntities.filter(ent => ent.entityType === 1 && ent.versionId != null && itemIds.includes(ent.versionId!));
+  }, [allEntities, localScene.items]);
+  const roles = useMemo(() => {
+    const roleIds: number[] = Array.isArray(localScene.roles) ? localScene.roles : [];
+    if (!roleIds.length) {
+      return [] as StageEntityResponse[];
+    }
+    return allEntities.filter(ent => ent.entityType === 2 && ent.versionId != null && roleIds.includes(ent.versionId!));
+  }, [allEntities, localScene.roles]);
 
   // 弹窗相关
   const [isOpen, setIsOpen] = useState(false);
@@ -286,61 +325,76 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     setIsOpen(false);
   };
 
-  // 初始化/同步本地场景：确保三个引用字段永远是 number[]，避免后续筛选被 undefined 阻断
-  useEffect(() => {
-    setLocalScene({
-      ...entityInfo,
-      items: Array.isArray(entityInfo.items) ? entityInfo.items : [],
-      roles: Array.isArray(entityInfo.roles) ? entityInfo.roles : [],
-      locations: Array.isArray(entityInfo.locations) ? entityInfo.locations : [],
-    });
-  }, [scene, entityInfo]);
-
-  // 根据本地 scene 引用直接派生显示列表；不再要求其它数组同时存在
-  useEffect(() => {
-    if (!entities || !entities.data) {
+  // 初始化/切换场景时重置本地状态（layout，同步于首帧前，最小依赖）
+  useLayoutEffect(() => {
+    if (prevSceneIdRef.current === scene.id) {
       return;
     }
-    const all = entities.data;
-    const locIds: number[] = Array.isArray(localScene.locations) ? localScene.locations : [];
-    const itemIds: number[] = Array.isArray(localScene.items) ? localScene.items : [];
-    const roleIds: number[] = Array.isArray(localScene.roles) ? localScene.roles : [];
+    const info = scene.entityInfo as SceneInfo | undefined;
+    setLocalScene(normalizeSceneInfo(info));
+    prevSceneIdRef.current = scene.id;
+  }, [scene.id, scene.entityInfo]);
 
-    const locationsData = all.filter(ent => ent.entityType === 4 && roleIds !== undefined && locIds.includes(ent.versionId!));
-    const itemsData = all.filter(ent => ent.entityType === 1 && itemIds.includes(ent.versionId!));
-    const rolesData = all.filter(ent => ent.entityType === 2 && roleIds.includes(ent.versionId!));
+  // // 根据本地 scene 引用直接派生显示列表；不再要求其它数组同时存在
+  // useEffect(() => {
+  //   if (!entities || !entities.data) {
+  //     return;
+  //   }
+  //   const all = entities.data;
+  //   const locIds: number[] = Array.isArray(localScene.locations) ? localScene.locations : [];
+  //   const itemIds: number[] = Array.isArray(localScene.items) ? localScene.items : [];
+  //   const roleIds: number[] = Array.isArray(localScene.roles) ? localScene.roles : [];
 
-    // 调试日志（如需关闭可删除）
-    console.warn("[SceneEdit] derived lists", {
-      locIds,
-      itemIds,
-      roleIds,
-      locationsCount: locationsData.length,
-      itemsCount: itemsData.length,
-      rolesCount: rolesData.length,
-    });
+  //   const locationsData = all.filter(ent => ent.entityType === 4 && roleIds !== undefined && locIds.includes(ent.versionId!));
+  //   const itemsData = all.filter(ent => ent.entityType === 1 && itemIds.includes(ent.versionId!));
+  //   const rolesData = all.filter(ent => ent.entityType === 2 && roleIds.includes(ent.versionId!));
 
-    setLocations(locationsData);
-    setItems(itemsData);
-    setRoles(rolesData);
-  }, [entities, localScene]);
+  //   setLocations(locationsData);
+  //   setItems(itemsData);
+  //   setRoles(rolesData);
+  // }, [entities, localScene]);
 
-  // 监听 entities 变化：用 versionId 重新收集当前场景引用的实体，更新显示列表
-  // 监听后端 entities 变动时，若对应场景实体发生变化则刷新本地引用（仅覆盖 localScene 的三组引用）
-  useEffect(() => {
+  // 监听后端 entities 变动时，若当前场景实体的三组引用发生变化则轻量刷新本地引用（layout，避免闪烁）
+  useLayoutEffect(() => {
     if (!entities || !entities.data) {
       return;
     }
     const serverScene = entities.data.find(ent => ent.entityType === 3 && ent.id === scene.id);
-    if (serverScene && serverScene.entityInfo) {
-      const { items: sItems = [], roles: sRoles = [], locations: sLocs = [] } = serverScene.entityInfo as any;
-      setLocalScene(prev => ({
-        ...prev,
-        items: Array.isArray(sItems) ? sItems : [],
-        roles: Array.isArray(sRoles) ? sRoles : [],
-        locations: Array.isArray(sLocs) ? sLocs : [],
-      }));
+    if (!serverScene || !serverScene.entityInfo) {
+      return;
     }
+
+    const { items: sItems = [], roles: sRoles = [], locations: sLocs = [] } = serverScene.entityInfo as any;
+    const nextItems = Array.isArray(sItems) ? sItems : [];
+    const nextRoles = Array.isArray(sRoles) ? sRoles : [];
+    const nextLocs = Array.isArray(sLocs) ? sLocs : [];
+
+    const eq = (a?: number[], b?: number[]) => {
+      const aa = Array.isArray(a) ? a : [];
+      const bb = Array.isArray(b) ? b : [];
+      if (aa.length !== bb.length) {
+        return false;
+      }
+      for (let i = 0; i < aa.length; i++) {
+        if (aa[i] !== bb[i]) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    setLocalScene((prev: SceneInfo) => {
+      const same = eq(prev.items, nextItems) && eq(prev.roles, nextRoles) && eq(prev.locations, nextLocs);
+      if (same) {
+        return prev;
+      }
+      return {
+        ...prev,
+        items: nextItems,
+        roles: nextRoles,
+        locations: nextLocs,
+      };
+    });
   }, [entities, scene.id]);
 
   // 定时器的更新 (localSceneRef 已在前面声明并更新)
@@ -477,7 +531,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 }}
                 onSpecialKey={handleAddEntity}
                 onDeleteSpecialKey={handleDeleteEntity}
-                persistSelectionKey={id ? `scene-description-${id}` : undefined}
+                persistSelectionKey={scene.id ? `scene-description-${scene.id}` : undefined}
                 active={currentSelectedTabId === scene.id?.toString() && selectedTab === "description"}
                 focusOnActive
               />
@@ -500,7 +554,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 }}
                 onSpecialKey={handleAddEntity}
                 onDeleteSpecialKey={handleDeleteEntity}
-                persistSelectionKey={id ? `scene-tip-${id}` : undefined}
+                persistSelectionKey={scene.id ? `scene-tip-${scene.id}` : undefined}
                 active={currentSelectedTabId === scene.id?.toString() && selectedTab === "tip"}
                 focusOnActive
               />

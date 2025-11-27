@@ -6,23 +6,28 @@ interface EntityDetailProps {
   moduleInfo: any[];
 }
 
-const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
-  const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
-  const selectedEntityInfo = useMemo(() => {
-    if (selectedEntityId === null || !Array.isArray(moduleInfo)) {
-      return null;
-    }
-    const entity = moduleInfo.find((e: any) => e.id === selectedEntityId);
-    return entity ? entity.entityInfo : null;
-  }, [selectedEntityId, moduleInfo]);
+function getEntityVersionId(entity: any, fallbackIndex: number) {
+  if (!entity) {
+    return fallbackIndex;
+  }
+  if (entity.versionId !== undefined && entity.versionId !== null) {
+    return entity.versionId;
+  }
+  return fallbackIndex;
+}
 
-  const selectedEntityName = useMemo(() => {
-    if (selectedEntityId === null || !Array.isArray(moduleInfo)) {
+const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
+  const [selectedEntityVersionId, setSelectedEntityVersionId] = useState<string | number | null>(null);
+
+  const selectedEntity = useMemo(() => {
+    if (selectedEntityVersionId === null || !Array.isArray(moduleInfo)) {
       return null;
     }
-    const entity = moduleInfo.find((e: any) => e.id === selectedEntityId);
-    return entity ? entity.name : null;
-  }, [selectedEntityId, moduleInfo]);
+    return moduleInfo.find((entity, index) => getEntityVersionId(entity, index) === selectedEntityVersionId) || null;
+  }, [selectedEntityVersionId, moduleInfo]);
+
+  const selectedEntityInfo = selectedEntity?.entityInfo ?? null;
+  const selectedEntityName = selectedEntity?.name ?? null;
 
   const permission = useContentPermission();
 
@@ -33,15 +38,18 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
         <div className="p-4 rounded-lg border border-base-300 bg-base-100">
           <h4 className="font-bold text-lg mb-4">请选择一个实体以查看详情：</h4>
           <div className="flex flex-wrap gap-2">
-            {moduleInfo.map((entity: any, index: number) => (
-              <span
-                key={entity.id ?? `entity-${index}`}
-                className={`bg-base-200 px-3 py-1 rounded-full text-sm font-medium cursor-pointer border border-gray-300 hover:ring-2 hover:ring-accent${selectedEntityId === entity.id ? " ring-2 ring-accent" : ""}`}
-                onClick={() => setSelectedEntityId(entity.id)}
-              >
-                {entity.name}
-              </span>
-            ))}
+            {moduleInfo.map((entity: any, index: number) => {
+              const entityVersionId = getEntityVersionId(entity, index);
+              return (
+                <span
+                  key={entityVersionId ?? `entity-${index}`}
+                  className={`bg-base-200 px-3 py-1 rounded-full text-sm font-medium cursor-pointer border border-gray-300 hover:ring-2 hover:ring-accent${selectedEntityVersionId === entityVersionId ? " ring-2 ring-accent" : ""}`}
+                  onClick={() => setSelectedEntityVersionId(entityVersionId)}
+                >
+                  {entity?.name || `实体${index + 1}`}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
@@ -49,11 +57,10 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
       <div className="p-4 rounded-lg border border-base-300 bg-base-100">
         <div className="flex items-center mb-2">
           <h4 className="font-bold text-lg mr-2">{selectedEntityName}</h4>
-          {selectedEntityId !== null && (
+          {selectedEntity && (
             <span className="px-2 py-1 rounded text-xs font-semibold bg-base-200 border border-base-300 align-middle">
               {(() => {
-                const entity = moduleInfo.find((e: any) => e.id === selectedEntityId);
-                const entityType = entity?.entityType;
+                const entityType = selectedEntity?.entityType;
                 // 数字类型到字符串的映射
                 const typeMap: Record<number, string> = {
                   1: "物品",
@@ -66,7 +73,7 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
             </span>
           )}
         </div>
-        {selectedEntityId !== null
+        {selectedEntity
           ? (
               selectedEntityInfo
                 ? (

@@ -32,6 +32,9 @@ export default function ExpansionModule({
   // 状态
   const selectedRuleId = ruleId ?? 1;
 
+  // 新增：当前选中的Tab，basic / ability / skill / act
+  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
+
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
@@ -154,9 +157,77 @@ export default function ExpansionModule({
     onLoadingChange?.(isLoading);
   }, [isLoading, onLoadingChange]);
 
+  // 渲染当前 Tab 内容
+  const renderActiveTabContent = () => {
+    if (!renderData)
+      return null;
+
+    if (activeTab === "basic") {
+      return (
+        <ConfigurationSection
+          title="基础属性配置"
+          abilityData={abilityQuery.data?.basicDefault || {}}
+          ruleData={ruleDetailQuery.data?.basicDefault || {}}
+          localEdits={localEdits.basicDefault}
+          onDataChange={handleBasicChange}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+          fieldType="basic"
+          customLabel="基础属性"
+        />
+      );
+    }
+    if (activeTab === "ability") {
+      return (
+        <ConfigurationSection
+          title="能力配置"
+          abilityData={abilityQuery.data?.abilityDefault || {}}
+          ruleData={ruleDetailQuery.data?.abilityFormula || {}}
+          localEdits={localEdits.abilityFormula}
+          onDataChange={handleAbilityChange}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+          fieldType="ability"
+          customLabel="能力"
+        />
+      );
+    }
+    if (activeTab === "skill") {
+      return (
+        <ConfigurationSection
+          title="技能配置"
+          abilityData={abilityQuery.data?.skillDefault || {}}
+          ruleData={ruleDetailQuery.data?.skillDefault || {}}
+          localEdits={localEdits.skillDefault}
+          onDataChange={handleSkillChange}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+          fieldType="skill"
+          customLabel="技能"
+        />
+      );
+    }
+    // act
+    return (
+      <Section
+        title="表演字段配置"
+        className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+        collapsible={false}
+      >
+        <PerformanceEditor
+          fields={renderData.actTemplate}
+          onChange={handleActTemplateChange}
+          abilityData={renderData.actTemplate}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+        />
+      </Section>
+    );
+  };
+
   return (
     <>
-      <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-6">
+      <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-4">
         {/* 规则未创建状态 */}
         {isRuleNotCreated
           ? (
@@ -235,54 +306,44 @@ export default function ExpansionModule({
               )
             : (
                 renderData && (
-                  <>
-                    <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                      <PerformanceEditor
-                        fields={renderData.actTemplate}
-                        onChange={handleActTemplateChange}
-                        abilityData={renderData.actTemplate}
-                        roleId={roleId}
-                        ruleId={selectedRuleId}
-                      />
-                    </Section>
+                  <div className="space-y-4">
+                    {/* 顶部 Tab 按钮条，简单实现，不用 DaisyUI 的复杂结构 */}
+                    <div className="flex gap-2 border-b border-base-300 pb-2 ">
+                      <button
+                        type="button"
+                        className={`btn btn-sm rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("basic")}
+                      >
+                        基础
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("ability")}
+                      >
+                        能力
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("skill")}
+                      >
+                        技能
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("act")}
+                      >
+                        表演
+                      </button>
+                    </div>
 
-                    <ConfigurationSection
-                      title="基础属性配置"
-                      abilityData={abilityQuery.data?.basicDefault || {}}
-                      ruleData={ruleDetailQuery.data?.basicDefault || {}}
-                      localEdits={localEdits.basicDefault}
-                      onDataChange={handleBasicChange}
-                      roleId={roleId}
-                      ruleId={selectedRuleId}
-                      fieldType="basic"
-                      customLabel="基础属性"
-                    />
-
-                    <ConfigurationSection
-                      title="能力配置"
-                      abilityData={abilityQuery.data?.abilityDefault || {}}
-                      ruleData={ruleDetailQuery.data?.abilityFormula || {}}
-                      localEdits={localEdits.abilityFormula}
-                      onDataChange={handleAbilityChange}
-                      roleId={roleId}
-                      ruleId={selectedRuleId}
-                      fieldType="ability"
-                      customLabel="能力"
-                    />
-
-                    <ConfigurationSection
-                      title="技能配置"
-                      abilityData={abilityQuery.data?.skillDefault || {}}
-                      ruleData={ruleDetailQuery.data?.skillDefault || {}}
-                      localEdits={localEdits.skillDefault}
-                      onDataChange={handleSkillChange}
-                      roleId={roleId}
-                      ruleId={selectedRuleId}
-                      fieldType="skill"
-                      customLabel="技能"
-                    />
-
-                  </>
+                    {/* 当前 Tab 内容 */}
+                    <div className="mt-2">
+                      {renderActiveTabContent()}
+                    </div>
+                  </div>
                 )
               )}
       </div>
