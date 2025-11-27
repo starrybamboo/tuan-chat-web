@@ -72,13 +72,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
   const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
-
-  const messageRequest: ChatMessageRequest = {
-    roomId,
-    messageType: 1,
-    content: "",
-    extra: {},
-  };
+  const dicePrivateMessageQueue: string[] = []; // 记录本次指令骰娘的私聊消息队列
 
   useEffect(() => {
     try {
@@ -132,19 +126,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
     // 定义cpi接口
     const replyMessage = (message: string) => {
-      // (async (prop: ExecutorProp, message: string) => {
-      //   messageRequest.content = prop.originMessage;
-      //   messageRequest.roleId = curRoleId;
-      //   messageRequest.avatarId = curAvatarId;
-      //   const msgRes = await tuanchat.chatController.sendMessage1(messageRequest);
-      //   messageRequest.roleId = 14131;
-      //   const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(14131))?.data ?? [];
-      //   messageRequest.replayMessageId = msgRes.data?.messageId ?? 0;
-      //   messageRequest.avatarId = avatars[0]?.avatarId ?? 0;
-      //   messageRequest.content = `${message}`;
-      //   tuanchat.chatController.sendMessage1(messageRequest);
-      // })(prop, message);
       dicerMessageQueue.push(message);
+    };
+
+    const replyPrivateMessage = (message: string) => {
+      dicePrivateMessageQueue.push(message);
     };
 
     const sendToast = (message: string) => {
@@ -167,6 +153,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
     const CmdPreInterface = {
       replyMessage,
+      replyPrivateMessage,
       sendToast,
       getRoleAbilityList,
       setRoleAbilityList,
@@ -214,14 +201,17 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     // 发送消息队列
     if (dicerMessageQueue.length > 0) {
       // 当消息队列不为空时，先发送指令消息。
-      messageRequest.content = executorProp.originMessage;
-      messageRequest.roleId = curRoleId;
-      messageRequest.avatarId = curAvatarId;
+      const messageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        content: executorProp.originMessage,
+        roleId: curRoleId,
+        avatarId: curAvatarId,
+        extra: {},
+      };
       const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
-      const spaceInfo = await tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0);
-      const space = spaceInfo.data;
-      const extra = JSON.parse(space?.extra ?? "{}");
-      const dicerRoleId = extra?.dicerRoleId ?? 14131;
+
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
       const dicerMessageRequest: ChatMessageRequest = {
         roomId,
@@ -233,6 +223,35 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         extra: {},
       };
       for (const message of dicerMessageQueue) {
+        dicerMessageRequest.content = message;
+        await tuanchat.chatController.sendMessage1(dicerMessageRequest);
+      }
+    }
+
+    // 发送私聊消息队列
+    if (dicePrivateMessageQueue.length > 0) {
+      const messageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        content: "",
+        extra: {},
+        roleId: curRoleId,
+        avatarId: curAvatarId,
+      };
+      const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
+
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+      const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+      const dicerMessageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        roleId: dicerRoleId,
+        avatarId: avatars[0]?.avatarId ?? 0,
+        content: "",
+        replayMessageId: optMsgRes.data?.messageId ?? undefined,
+        extra: {},
+      };
+      for (const message of dicePrivateMessageQueue) {
         dicerMessageRequest.content = message;
         await tuanchat.chatController.sendMessage1(dicerMessageRequest);
       }
