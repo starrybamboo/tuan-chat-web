@@ -308,34 +308,34 @@ export default function ExpansionModule({
                 renderData && (
                   <div className="space-y-4">
                     {/* 顶部 Tab 按钮条，简单实现，不用 DaisyUI 的复杂结构 */}
-                    <div className="flex gap-2 border-b border-base-300 pb-2">
+                    <div className="flex gap-2 border-b border-base-300 pb-2 ">
                       <button
                         type="button"
-                        className={`btn btn-sm ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-sm rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("basic")}
                       >
-                        基础属性
+                        基础
                       </button>
                       <button
                         type="button"
-                        className={`btn btn-sm ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-sm rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("ability")}
                       >
                         能力
                       </button>
                       <button
                         type="button"
-                        className={`btn btn-sm ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-sm rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("skill")}
                       >
                         技能
                       </button>
                       <button
                         type="button"
-                        className={`btn btn-sm ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+                        className={`btn btn-sm rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("act")}
                       >
-                        表演字段
+                        表演
                       </button>
                     </div>
 
