@@ -165,7 +165,8 @@ export default function ExpansionModule({
     if (activeTab === "basic") {
       return (
         <ConfigurationSection
-          title="基础属性配置"
+          key="basic"
+          // title="基础属性配置"
           abilityData={abilityQuery.data?.basicDefault || {}}
           ruleData={ruleDetailQuery.data?.basicDefault || {}}
           localEdits={localEdits.basicDefault}
@@ -180,7 +181,8 @@ export default function ExpansionModule({
     if (activeTab === "ability") {
       return (
         <ConfigurationSection
-          title="能力配置"
+          key="ability"
+          // title="能力配置"
           abilityData={abilityQuery.data?.abilityDefault || {}}
           ruleData={ruleDetailQuery.data?.abilityFormula || {}}
           localEdits={localEdits.abilityFormula}
@@ -195,7 +197,8 @@ export default function ExpansionModule({
     if (activeTab === "skill") {
       return (
         <ConfigurationSection
-          title="技能配置"
+          key="skill"
+          // title="技能配置"
           abilityData={abilityQuery.data?.skillDefault || {}}
           ruleData={ruleDetailQuery.data?.skillDefault || {}}
           localEdits={localEdits.skillDefault}
@@ -210,7 +213,8 @@ export default function ExpansionModule({
     // act
     return (
       <Section
-        title="表演字段配置"
+        key="act"
+        // title="表演字段配置"
         className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
         collapsible={false}
       >
@@ -314,28 +318,32 @@ export default function ExpansionModule({
                         className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("basic")}
                       >
-                        基础
+                        <span className="md:hidden">基础</span>
+                        <span className="hidden md:inline">基础配置</span>
                       </button>
                       <button
                         type="button"
                         className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("ability")}
                       >
-                        能力
+                        <span className="md:hidden">能力</span>
+                        <span className="hidden md:inline">能力配置</span>
                       </button>
                       <button
                         type="button"
                         className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("skill")}
                       >
-                        技能
+                        <span className="md:hidden">技能</span>
+                        <span className="hidden md:inline">技能配置</span>
                       </button>
                       <button
                         type="button"
                         className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
                         onClick={() => setActiveTab("act")}
                       >
-                        表演
+                        <span className="md:hidden">表演</span>
+                        <span className="hidden md:inline">表演配置</span>
                       </button>
                     </div>
 

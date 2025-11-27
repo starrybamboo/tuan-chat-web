@@ -8,7 +8,7 @@ export default function Section({
   defaultOpen = true,
   collapsible = true,
 }: {
-  title: string;
+  title?: string;
   children: React.ReactNode;
   className?: string;
   defaultOpen?: boolean;

@@ -3,7 +3,7 @@ import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 
 interface ConfigurationSectionProps {
-  title: string;
+  title?: string;
   roleId: number;
   ruleId: number;
   fieldType: "basic" | "ability" | "skill";
