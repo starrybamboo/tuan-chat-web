@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 
 interface ConfigurationSectionProps {
-  title: string;
+  title?: string;
   roleId: number;
   ruleId: number;
   fieldType: "basic" | "ability" | "skill";
@@ -88,6 +88,58 @@ function toPercent(value?: number, max = 100) {
   return (v / max) * 100;
 }
 
+// 可折叠的模板信息提示组件
+function CollapsibleAlert({ customLabel, type, message }: { customLabel: string; type: "info" | "success"; message: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const bgClass = type === "success" ? "bg-success/40" : "bg-info/40";
+  const bgCollapsedClass = type === "success" ? "bg-success/30 hover:bg-success/50" : "bg-info/30 hover:bg-info/50";
+  const iconPath = type === "success"
+    ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    : "m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
+
+  return (
+    <div
+      className={`cursor-pointer select-none transition-all duration-200 rounded-lg overflow-hidden ${
+        isExpanded ? `alert ${bgClass}` : `h-2 ${bgCollapsedClass}`
+      }`}
+      onClick={() => setIsExpanded(!isExpanded)}
+      title={isExpanded ? "点击收起" : "点击展开提示信息"}
+    >
+      {isExpanded && (
+        <>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            className="stroke-current shrink-0 w-6 h-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d={iconPath}
+            />
+          </svg>
+          <span>
+            {message.replace("{label}", customLabel)}
+          </span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="w-4 h-4 ml-auto"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+          </svg>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function ConfigurationSection({
   title,
   roleId,
@@ -152,8 +204,8 @@ export function ConfigurationSection({
         {modifiedCount > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="text-lg font-semibold text-success">
-                已自定义的
+              <h4 className="text-lg font-semibold">
+                ⚡已自定义的
                 {customLabel}
               </h4>
               <div className="badge badge-success badge-sm">{modifiedCount}</div>
@@ -217,16 +269,11 @@ export function ConfigurationSection({
               )
             )}
 
-            <div className="alert bg-success/40">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <span>
-                这些
-                {customLabel}
-                已经过自定义修改，不同于规则模版
-              </span>
-            </div>
+            <CollapsibleAlert
+              customLabel={customLabel}
+              type="success"
+              message="这些{label}已经过自定义修改，不同于规则模版"
+            />
             <NumericalEditor
               data={modifiedData}
               onChange={handleModifiedChange}
@@ -240,110 +287,88 @@ export function ConfigurationSection({
 
         {/* 规则模版数据区域：去掉折叠按钮，直接展示 */}
         {templateCount > 0 && (
-          <div className="bg-base-200 rounded-xl">
-            <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-              <span className="text-lg font-medium">
-                规则模版
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h4 className="text-lg font-semibold">
+                ⚡规则模版
                 {customLabel}
-              </span>
-              <div className="badge badge-neutral badge-sm">{templateCount}</div>
-              <div className="text-sm text-base-content/60 ml-auto">
-                使用规则模版的默认
-                {customLabel}
-              </div>
+              </h4>
+              <div className="badge badge-info badge-sm">{templateCount}</div>
             </div>
 
-            <div className="px-4 pb-4 space-y-4">
-              {/* 能力配置：模板 HP / MP / SAN 可视化 */}
-              {fieldType === "ability" && (
-                (templateAbilityVisual.hpValue != null
-                  || templateAbilityVisual.mpValue != null
-                  || templateAbilityVisual.sanValue != null) && (
-                  <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
-                    <h5 className="font-semibold text-sm">模板能力可视化</h5>
-                    {templateAbilityVisual.hpValue != null && (
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>{templateAbilityVisual.hpKey || "HP"}</span>
-                          <span>{templateAbilityVisual.hpValue}</span>
-                        </div>
-                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-error"
-                            style={{
-                              width: `${toPercent(templateAbilityVisual.hpValue, 100)}%`,
-                            }}
-                          />
-                        </div>
+            {/* 能力配置：模板 HP / MP / SAN 可视化 */}
+            {fieldType === "ability" && (
+              (templateAbilityVisual.hpValue != null
+                || templateAbilityVisual.mpValue != null
+                || templateAbilityVisual.sanValue != null) && (
+                <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
+                  <h5 className="font-semibold text-sm">模板能力可视化</h5>
+                  {templateAbilityVisual.hpValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{templateAbilityVisual.hpKey || "HP"}</span>
+                        <span>{templateAbilityVisual.hpValue}</span>
                       </div>
-                    )}
-                    {templateAbilityVisual.mpValue != null && (
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>{templateAbilityVisual.mpKey || "MP"}</span>
-                          <span>{templateAbilityVisual.mpValue}</span>
-                        </div>
-                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{
-                              width: `${toPercent(templateAbilityVisual.mpValue, 100)}%`,
-                            }}
-                          />
-                        </div>
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-error"
+                          style={{
+                            width: `${toPercent(templateAbilityVisual.hpValue, 100)}%`,
+                          }}
+                        />
                       </div>
-                    )}
-                    {templateAbilityVisual.sanValue != null && (
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>{templateAbilityVisual.sanKey || "SAN"}</span>
-                          <span>{templateAbilityVisual.sanValue}</span>
-                        </div>
-                        <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-purple-500"
-                            style={{
-                              width: `${toPercent(templateAbilityVisual.sanValue, 100)}%`,
-                            }}
-                          />
-                        </div>
+                    </div>
+                  )}
+                  {templateAbilityVisual.mpValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{templateAbilityVisual.mpKey || "MP"}</span>
+                        <span>{templateAbilityVisual.mpValue}</span>
                       </div>
-                    )}
-                  </div>
-                )
-              )}
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary"
+                          style={{
+                            width: `${toPercent(templateAbilityVisual.mpValue, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {templateAbilityVisual.sanValue != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{templateAbilityVisual.sanKey || "SAN"}</span>
+                        <span>{templateAbilityVisual.sanValue}</span>
+                      </div>
+                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500"
+                          style={{
+                            width: `${toPercent(templateAbilityVisual.sanValue, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
 
-              <div className="alert bg-info/40">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="stroke-current shrink-0 w-6 h-6"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  >
-                  </path>
-                </svg>
-                <span>
-                  这些
-                  {customLabel}
-                  使用规则模版的默认值，编辑后将移动到上方的自定义区域
-                </span>
-              </div>
+            <CollapsibleAlert
+              customLabel={customLabel}
+              type="info"
+              message="这些{label}使用规则模版的默认值，编辑后将移动到上方的自定义区域"
+            />
 
-              <NumericalEditor
-                data={templateData}
-                onChange={handleTemplateChange}
-                roleId={roleId}
-                ruleId={ruleId}
-                title={`模版${customLabel}`}
-                fieldType={fieldType}
-              />
-            </div>
+            <NumericalEditor
+              data={templateData}
+              onChange={handleTemplateChange}
+              roleId={roleId}
+              ruleId={ruleId}
+              title={`模版${customLabel}`}
+              fieldType={fieldType}
+            />
           </div>
         )}
 
