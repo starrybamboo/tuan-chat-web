@@ -5,7 +5,12 @@ import { AliasMap } from "@/components/common/dicer/utils/aliasMap";
 import { tuanchat } from "../../../../../api/instance";
 
 const UTILS = {
-  /** 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false */
+  /**
+   * 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false
+   * @param args 参数列表
+   * @param arg 要检查的参数
+   * @returns 是否包含该参数
+   */
   doesHaveArg: (args: string[], arg: string) => {
     // 转化为小写并去除空格
     const argsFmt = args.map(arg => arg.trim().toLowerCase());
@@ -387,6 +392,11 @@ function evaluatePostfix(postfix: (number | string)[]): number {
   return stack[0];
 }
 
+/**
+ * 获取骰子角色ID
+ * @param roomContext 房间上下文对象
+ * @returns 骰子角色ID
+ */
 async function getDicerRoleId(roomContext: RoomContextType): Promise<number> {
   const spaceInfo = await tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0);
   const space = spaceInfo.data;
