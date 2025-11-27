@@ -449,7 +449,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
       data: {
         label: item.name,
         idx: -1,
-        children: <SceneEdit scene={item} id={item.id!}></SceneEdit>,
+        children: <SceneEdit scene={item}></SceneEdit>,
         // 添加场景资源信息
         sceneItems: item.entityInfo?.items || [],
         sceneRoles: item.entityInfo?.roles || [],
@@ -552,7 +552,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
             data: {
               label: item.name,
               idx: -1,
-              children: <SceneEdit scene={item} id={item.id!}></SceneEdit>,
+              children: <SceneEdit scene={item}></SceneEdit>,
               // 更新场景资源信息
               sceneItems: item.entityInfo?.items || [],
               sceneRoles: item.entityInfo?.roles || [],
@@ -581,7 +581,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterS
           data: {
             label: item.name,
             idx: -1,
-            children: <SceneEdit scene={item} id={item.id!}></SceneEdit>,
+            children: <SceneEdit scene={item}></SceneEdit>,
             // 添加场景资源信息
             sceneItems: item.entityInfo?.items || [],
             sceneRoles: item.entityInfo?.roles || [],

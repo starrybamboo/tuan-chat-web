@@ -43,13 +43,12 @@ interface ExecutorProp { // eslint-disable-line ts/consistent-type-definitions
 
 interface CPI { // eslint-disable-line ts/consistent-type-definitions
   /**
-   * 发送消息到聊天框
-   * @param {ExecutorProp} prop - 执行器属性
+   * 回复消息到聊天框
    * @param {string} msg - 要发送的消息
    * @return {void}
-   * 说明：调用此方法发送消息时会同时发送原始指令到群聊中，在需要多次发送消息的场景请注意这一点
+   * 说明：调用此方法发送消息会严格按照调用次序发送，发送的消息会回复原始指令消息。
    */
-  sendMsg: (prop: ExecutorProp, msg: string) => void;
+  replyMessage: (msg: string) => void;
   /**
    * 获取指定用户的角色信息
    * @param {number} userId - 用户ID
@@ -89,6 +88,7 @@ interface UserRole { // eslint-disable-line ts/consistent-type-definitions
   description?: string;
   avatarId?: number;
   state?: number;
+  type: number;
   modelName?: string;
   speakerName?: string;
   createTime?: string;
@@ -168,7 +168,7 @@ interface RuleNameSpace { // eslint-disable-line ts/consistent-type-definitions
    * @returns {boolean} 命令执行结果
    * @throws {Error} 当命令不存在时抛出错误
    */
-  execute: (name: string, args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean;
+  execute: (name: string, args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI) => boolean;
 }
 
 /**
@@ -179,5 +179,5 @@ interface RuleNameSpace { // eslint-disable-line ts/consistent-type-definitions
  */
 interface CommandExecutor { // eslint-disable-line ts/consistent-type-definitions
   cmdInfo: CommandInfo;
-  solve: (args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean;
+  solve: (args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI) => boolean;
 }
