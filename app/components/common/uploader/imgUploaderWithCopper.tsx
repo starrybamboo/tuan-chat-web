@@ -3,11 +3,9 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
-import { PopWindow } from "@/components/common/popWindow";
 
-import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
-import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-import { getCroppedImageFile } from "@/utils/CropperFunctions";
+import { PopWindow } from "@/components/common/popWindow";
+import { canvasPreview, getCroppedImageFileFromImage, useDebounceEffect } from "@/utils/imgCropper";
 
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useRef, useState } from "react";
@@ -232,7 +230,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     if (!image || !previewCanvas || !completedCrop) {
       throw new Error("Crop canvas does not exist");
     }
-    return await getCroppedImageFile(image, previewCanvas, completedCrop, `${fileName}-coppered`);
+    return await getCroppedImageFileFromImage(image, previewCanvas, completedCrop, `${fileName}-coppered`);
   }
 
   async function handleDownload() {

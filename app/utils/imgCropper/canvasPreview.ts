@@ -2,6 +2,14 @@ import type { PixelCrop } from "react-image-crop";
 
 const TO_RADIANS = Math.PI / 180;
 
+/**
+ * 将图片裁剪区域绘制到 Canvas 上
+ * @param image 原始图片元素
+ * @param canvas 目标画布（支持 HTMLCanvasElement 和 OffscreenCanvas）
+ * @param crop 裁剪区域（像素）
+ * @param scale 缩放比例
+ * @param rotate 旋转角度（度）
+ */
 export async function canvasPreview(
   image: HTMLImageElement,
   canvas: HTMLCanvasElement | OffscreenCanvas,
@@ -22,7 +30,6 @@ export async function canvasPreview(
   // size the image back down if you want to download/upload and be
   // true to the images natural size.
   const pixelRatio = window.devicePixelRatio;
-  // const pixelRatio = 1
 
   canvas.width = Math.floor(crop.width * scaleX * pixelRatio);
   canvas.height = Math.floor(crop.height * scaleY * pixelRatio);

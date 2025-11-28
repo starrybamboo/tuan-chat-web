@@ -1,9 +1,8 @@
 import type { RoleAvatar } from "api";
 import type { Crop, PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
-import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
-import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-import { canvasToBlob, getCroppedImageUrl } from "@/utils/CropperFunctions";
+
+import { canvasPreview, canvasToBlob, getCroppedImageUrl, useDebounceEffect } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
 import { useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
