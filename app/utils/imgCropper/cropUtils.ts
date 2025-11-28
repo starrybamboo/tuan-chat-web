@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import type { Crop, PixelCrop } from "react-image-crop";
 
 import { centerCrop, makeAspectCrop } from "react-image-crop";
@@ -174,4 +175,43 @@ export async function getCroppedImageFileFromImage(
     type: "image/png",
     lastModified: Date.now(),
   });
+}
+
+// ============================================================
+// 以下是接收 Ref 的便捷函数，用于组件中直接调用
+// ============================================================
+
+/**
+ * 从 Ref 获取裁剪后的图片文件
+ * @throws 如果 ref 为空或 completedCrop 未定义
+ */
+export async function getCroppedFileFromRefs(
+  imgRef: RefObject<HTMLImageElement | null>,
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+  completedCrop: PixelCrop | undefined,
+  fileName = "cropped.png",
+): Promise<File> {
+  const image = imgRef.current;
+  const previewCanvas = canvasRef.current;
+  if (!image || !previewCanvas || !completedCrop) {
+    throw new Error("Crop canvas does not exist");
+  }
+  return await getCroppedImageFileFromImage(image, previewCanvas, completedCrop, fileName);
+}
+
+/**
+ * 从 Ref 获取裁剪后的 DataURL
+ * @throws 如果 ref 为空或 completedCrop 未定义
+ */
+export async function getCroppedUrlFromRefs(
+  imgRef: RefObject<HTMLImageElement | null>,
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+  completedCrop: PixelCrop | undefined,
+): Promise<string> {
+  const image = imgRef.current;
+  const previewCanvas = canvasRef.current;
+  if (!image || !previewCanvas || !completedCrop) {
+    throw new Error("Crop canvas does not exist");
+  }
+  return await getCroppedImageUrl(image, previewCanvas, completedCrop);
 }

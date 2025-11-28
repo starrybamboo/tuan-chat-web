@@ -8,7 +8,7 @@ import {
   canvasToBlob,
   createCenteredSquareCrop,
   createFullImageCrop,
-  getCroppedImageUrl,
+  getCroppedUrlFromRefs,
   useCropCanvas,
 } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
@@ -425,24 +425,12 @@ export function SpriteCropper({
   });
 
   /**
-   * 获取裁剪后的图片DataURL
-   */
-  async function getCroppedImageDataUrl(): Promise<string> {
-    const image = imgRef.current;
-    const previewCanvas = previewCanvasRef.current;
-    if (!image || !previewCanvas || !completedCrop) {
-      throw new Error("Crop canvas does not exist");
-    }
-    return await getCroppedImageUrl(image, previewCanvas, completedCrop);
-  }
-
-  /**
    * 处理下载裁剪图片
    */
   async function handleDownload() {
     try {
       setIsProcessing(true);
-      const dataUrl = await getCroppedImageDataUrl();
+      const dataUrl = await getCroppedUrlFromRefs(imgRef, previewCanvasRef, completedCrop);
 
       // 创建下载链接
       const a = document.createElement("a");
@@ -513,7 +501,7 @@ export function SpriteCropper({
       }
 
       // --- 共同的回调逻辑 ---
-      const dataUrl = await getCroppedImageDataUrl();
+      const dataUrl = await getCroppedUrlFromRefs(imgRef, previewCanvasRef, completedCrop);
       onCropComplete?.(dataUrl);
     }
     catch (error) {

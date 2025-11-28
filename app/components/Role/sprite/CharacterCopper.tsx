@@ -8,7 +8,7 @@ import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   createCenteredSquareCrop,
   createFullImageCrop,
-  getCroppedImageFileFromImage,
+  getCroppedFileFromRefs,
   useCropCanvas,
 } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -187,7 +187,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
 
       if (currentStep === 1) {
         // 第一步：只保存裁剪后的图片用于第二步使用
-        const firstStepCroppedImage = await getCopperedImg();
+        const firstStepCroppedImage = await getCroppedFileFromRefs(imgRef, previewCanvasRef, completedCrop, `${fileName}-cropped.png`);
         // 移除未使用的状态设置
         // setFirstStepImage(firstStepCroppedImage);
         // 将裁剪后的图片设置为第二步的原始图片
@@ -205,7 +205,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           setDownloadUrl(downloadUrl);
         }
         if (setCopperedDownloadUrl) {
-          const copperedImgFile = await getCopperedImg();
+          const copperedImgFile = await getCroppedFileFromRefs(imgRef, previewCanvasRef, completedCrop, `${fileName}-cropped.png`);
           copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
           setCopperedDownloadUrl(copperedDownloadUrl);
         }
@@ -231,29 +231,11 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   }
 
   /**
-   * 获取裁剪后的图片
-   * 将画布内容转换为文件对象
-   */
-  async function getCopperedImg() {
-    const image = imgRef.current;
-    const previewCanvas = previewCanvasRef.current;
-    if (!image || !previewCanvas || !completedCrop) {
-      throw new Error("Crop canvas does not exist");
-    }
-    return await getCroppedImageFileFromImage(
-      image,
-      previewCanvas,
-      completedCrop,
-      `${fileName}-cropped.png`,
-    );
-  }
-
-  /**
    * 处理裁剪图片下载
    * 创建临时下载链接并触发下载
    */
   async function handleDownload() {
-    const copperedImgFile = await getCopperedImg();
+    const copperedImgFile = await getCroppedFileFromRefs(imgRef, previewCanvasRef, completedCrop, `${fileName}-cropped.png`);
     const url = URL.createObjectURL(copperedImgFile);
     const a = document.createElement("a");
     a.href = url;

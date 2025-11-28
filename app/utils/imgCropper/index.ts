@@ -14,9 +14,11 @@ export {
   createCenteredSquareCrop,
   createFullImageCrop,
   cropImageToBlob,
+  getCroppedFileFromRefs,
   getCroppedImageFile,
   getCroppedImageFileFromImage,
   getCroppedImageUrl,
+  getCroppedUrlFromRefs,
   percentToPixelCrop,
 } from "./cropUtils";
 
