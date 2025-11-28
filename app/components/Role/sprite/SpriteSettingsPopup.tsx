@@ -1,5 +1,7 @@
 import type { RoleAvatar } from "api";
+
 import { PopWindow } from "@/components/common/popWindow";
+import { isMobileScreen } from "@/utils/getScreenSize";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MoodSettingsTab } from "./MoodSettingsTab";
 import { SpriteCropper } from "./SpriteCropper";
@@ -107,7 +109,7 @@ export function SpriteSettingsPopup({
     <PopWindow
       isOpen={isOpen}
       onClose={onClose}
-      fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+      fullScreen={isMobileScreen()}
     >
       <div className="flex flex-col md:flex-row w-full h-full md:w-[80vw] md:max-w-6xl md:h-[80vh]">
         {/* 左侧 Tab 列表 */}

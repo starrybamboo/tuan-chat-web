@@ -2,6 +2,7 @@ import type { RoleAvatar } from "api";
 import type { Crop, PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
 
+import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob, getCroppedImageUrl, useDebounceEffect } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
 import { useEffect, useRef, useState } from "react";
@@ -861,7 +862,7 @@ export function SpriteCropper({
               className="w-full h-full bg-info/30 rounded-lg p-4 gap-4 flex flex-col relative cursor-pointer md:cursor-default"
               onClick={() => {
                 // 仅移动端点击时打开弹窗
-                if (window.innerWidth < 768) {
+                if (isMobileScreen()) {
                   setIsCropModalOpen(true);
                 }
               }}

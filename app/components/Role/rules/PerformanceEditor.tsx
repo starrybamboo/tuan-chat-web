@@ -1,30 +1,12 @@
+import { useIsMobile } from "@/utils/getScreenSize";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
 import AddFieldForm from "../shared/AddFieldForm";
 import PerformanceField from "../shared/PerformanceField";
-
-/**
- * 自定义 hook：检测是否为移动端（小于 md 断点 768px）
- */
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined")
-      return false;
-    return window.matchMedia("(max-width: 767px)").matches;
-  });
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mediaQuery.addEventListener("change", handler);
-    return () => mediaQuery.removeEventListener("change", handler);
-  }, []);
-
-  return isMobile;
-}
 
 interface PerformanceEditorProps {
   fields: Record<string, string>;

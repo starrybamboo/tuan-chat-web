@@ -4,6 +4,7 @@ import type { Transform } from "./TransformControl";
 
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
+import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, useDebounceEffect } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useRef, useState } from "react";
@@ -377,7 +378,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           resetAllStates();
           setIsOpen(false);
         }}
-        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+        fullScreen={isMobileScreen()}
       >
         <div className="flex items-center gap-8">
           <div className="w-full flex items-center">

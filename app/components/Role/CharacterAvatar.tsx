@@ -1,10 +1,12 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
+
 import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { isMobileScreen, useIsMdScreen } from "@/utils/getScreenSize";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
 import { CharacterCopper } from "./sprite/CharacterCopper";
@@ -36,11 +38,12 @@ export default function CharacterAvatar({
 }: CharacterAvatarProps) {
   const queryClient = useQueryClient();
 
-  // 保留一些内部 UI 状态
-  const [showSprite, setShowSprite] = useState(() => {
-    // PC端默认显示立绘，移动端显示头像
-    return window.matchMedia("(min-width: 768px)").matches;
-  });
+  // 是否为中等屏幕及以上
+  const isMdOrLarger = useIsMdScreen();
+
+  // 保留用户手动切换的能力，默认值基于屏幕尺寸
+  // PC端默认显示立绘，移动端显示头像
+  const [showSprite, setShowSprite] = useState(isMdOrLarger);
 
   // 使用传入的状态作为内部 UI 状态（优先通过 selectedAvatarId 在列表中查找，避免因 URL 变化造成回退）
   const selectedAvatar = roleAvatars?.find(a => a.avatarId === selectedAvatarId) || null;
@@ -56,18 +59,6 @@ export default function CharacterAvatar({
 
   // 裁剪弹窗用
   const [isCropModalOpen, setIsCropModalOpen] = useSearchParamsState<boolean>(`cropAvatarPop`, false);
-
-  // 响应式切换显示模式
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)"); // md breakpoint
-
-    const handleResize = (e: MediaQueryListEvent) => {
-      setShowSprite(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleResize);
-    return () => mediaQuery.removeEventListener("change", handleResize);
-  }, []);
 
   // 使用新的 hook
   const { mutate } = useUploadAvatarMutation();
@@ -181,7 +172,7 @@ export default function CharacterAvatar({
       <PopWindow
         isOpen={changeAvatarConfirmOpen}
         onClose={handleCancelChangeAvatar}
-        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+        fullScreen={isMobileScreen()}
       >
         <div className="flex flex-col md:flex-row gap-4 min-h-0 md:justify-center">
           {/* 大图预览 */}
@@ -349,7 +340,7 @@ export default function CharacterAvatar({
       <PopWindow
         isOpen={isCropModalOpen}
         onClose={() => setIsCropModalOpen(false)}
-        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+        fullScreen={isMobileScreen()}
       >
         <SpriteCropper
           roleAvatars={roleAvatars}
