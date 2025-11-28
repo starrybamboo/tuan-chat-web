@@ -5,8 +5,8 @@ import {
 } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 
-import AddFieldForm from "../shared/AddFieldForm";
-import PerformanceField from "../shared/PerformanceField";
+import AddFieldForm from "../Editors/AddFieldForm";
+import PerformanceField from "../Editors/PerformanceField";
 
 interface PerformanceEditorProps {
   fields: Record<string, string>;

@@ -3,9 +3,9 @@ import type { RoleAvatar } from "api";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { MoodSettingsTab } from "./MoodSettingsTab";
-import { SpriteCropper } from "./SpriteCropper";
-import { SpriteListTab } from "./SpriteListTab";
+import { MoodSettingsTab } from "./Tabs/MoodSettingsTab";
+import { SpriteCropper } from "./Tabs/SpriteCropper";
+import { SpriteListTab } from "./Tabs/SpriteListTab";
 
 export type SettingsTab = "cropper" | "avatarCropper" | "spriteList" | "mood";
 

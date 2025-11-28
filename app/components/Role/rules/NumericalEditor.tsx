@@ -3,8 +3,8 @@ import {
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useReducer, useState } from "react";
-import AddFieldForm from "../shared/AddFieldForm";
-import EditableField from "../shared/EditableField";
+import AddFieldForm from "../Editors/AddFieldForm";
+import EditableField from "../Editors/EditableField";
 
 // Type for numerical data - flat structure
 type NumericalData = Record<string, string>;

@@ -1,7 +1,7 @@
 import type { ImageLoadContext } from "@/utils/imgCropper";
 import type { RoleAvatar } from "api";
 import type { PixelCrop } from "react-image-crop";
-import type { Transform } from "./TransformControl";
+import type { Transform } from "../TransformControl";
 
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
@@ -12,11 +12,11 @@ import {
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
-import { AvatarPreview } from "./AvatarPreview";
-import { RenderPreview } from "./RenderPreview";
-import { TransformControl } from "./TransformControl";
-import { useImageCropWorker } from "./useImageCropWorker";
-import { parseTransformFromAvatar } from "./utils";
+import { AvatarPreview } from "../../Preview/AvatarPreview";
+import { RenderPreview } from "../../Preview/RenderPreview";
+import { TransformControl } from "../TransformControl";
+import { parseTransformFromAvatar } from "../utils";
+import { useImageCropWorker } from "../worker/useImageCropWorker";
 import "react-image-crop/dist/ReactCrop.css";
 
 /**

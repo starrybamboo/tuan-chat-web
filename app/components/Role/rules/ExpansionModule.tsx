@@ -2,7 +2,7 @@ import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
-import Section from "../Section";
+import Section from "../Editors/Section";
 import { ConfigurationSection } from "./ConfigurationSection";
 import PerformanceEditor from "./PerformanceEditor";
 

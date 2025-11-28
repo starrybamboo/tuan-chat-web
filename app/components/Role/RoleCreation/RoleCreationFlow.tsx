@@ -14,12 +14,12 @@ import {
   useUploadAvatarMutation,
 } from "api/queryHooks";
 import { useState } from "react";
+import Section from "../Editors/Section";
 import RulesSection from "../rules/RulesSection";
-import Section from "../Section";
-import AIGenerationCard from "./components/AIGenerationCard";
-import AttributeEditor from "./components/AttributeEditor";
-import RoleCreationLayout from "./components/RoleCreationLayout";
 import { AI_STEPS, ST_STEPS, STEPS } from "./constants";
+import RoleCreationLayout from "./RoleCreationLayout";
+import AIGenerationCard from "./steps/AIGenerationCard";
+import AttributeEditor from "./steps/AttributeEditor";
 import AttributeStep from "./steps/AttributeStep";
 import BasicInfoStep from "./steps/BasicInfoStep";
 import STImportStep from "./steps/STImportStep";

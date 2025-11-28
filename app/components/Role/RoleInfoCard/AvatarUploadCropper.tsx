@@ -1,6 +1,6 @@
 // 导入必要的类型和组件
 import type { CropMode } from "@/utils/imgCropper/useCropPreview";
-import type { Transform } from "./TransformControl";
+import type { Transform } from "../sprite/TransformControl";
 
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
@@ -9,9 +9,9 @@ import { useCropPreview } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useCallback, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
-import { AvatarPreview } from "./AvatarPreview";
-import { RenderPreview } from "./RenderPreview";
-import { TransformControl } from "./TransformControl";
+import { AvatarPreview } from "../Preview/AvatarPreview";
+import { RenderPreview } from "../Preview/RenderPreview";
+import { TransformControl } from "../sprite/TransformControl";
 import "react-image-crop/dist/ReactCrop.css";
 
 /**

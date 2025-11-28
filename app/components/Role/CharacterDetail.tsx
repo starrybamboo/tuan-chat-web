@@ -5,12 +5,12 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { Suspense, useMemo, useState } from "react";
 import { Link } from "react-router";
-import AudioPlayer from "./AudioPlayer";
-import AudioUploadModal from "./AudioUploadModal";
-import CharacterAvatar from "./CharacterAvatar";
+import Section from "./Editors/Section";
+import AudioPlayer from "./RoleInfoCard/AudioPlayer";
+import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
+import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
-import Section from "./Section";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 // import Section from "./Section";
 

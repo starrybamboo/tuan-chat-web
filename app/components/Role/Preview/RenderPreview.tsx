@@ -1,4 +1,4 @@
-import type { Transform } from "./TransformControl";
+import type { Transform } from "../sprite/TransformControl";
 import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 React Hooks
 
 // --- 关键步骤 1: 定义你的基准尺寸 ---

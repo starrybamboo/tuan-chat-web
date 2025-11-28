@@ -1,5 +1,5 @@
 import type { RoleAvatar } from "api";
-import type { Role } from "./types";
+import type { Role } from "../types";
 
 import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -7,10 +7,10 @@ import { isMobileScreen, useIsMdScreen } from "@/utils/getScreenSize";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
-import { PopWindow } from "../common/popWindow";
-import { AvatarPreview } from "./sprite/AvatarPreview";
-import { CharacterCopper } from "./sprite/CharacterCropper";
-import { SpriteCropper } from "./sprite/SpriteCropper";
+import { PopWindow } from "../../common/popWindow";
+import { AvatarPreview } from "../Preview/AvatarPreview";
+import { SpriteCropper } from "../sprite/Tabs/SpriteCropper";
+import { CharacterCopper } from "./AvatarUploadCropper";
 
 interface CharacterAvatarProps {
   role: Role;

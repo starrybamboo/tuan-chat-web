@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import Section from "../Section";
+import Section from "../Editors/Section";
 import NumericalEditor from "./NumericalEditor";
 
 interface ConfigurationSectionProps {

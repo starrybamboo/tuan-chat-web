@@ -1,6 +1,6 @@
-import AddFieldForm from "../../shared/AddFieldForm";
-import EditableField from "../../shared/EditableField";
-import PerformanceField from "../../shared/PerformanceField";
+import AddFieldForm from "../../Editors/AddFieldForm";
+import EditableField from "../../Editors/EditableField";
+import PerformanceField from "../../Editors/PerformanceField";
 
 interface AttributeEditorProps {
   title: string;
