@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Module } from "api";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 // import RuleSelect from "../../common/ruleSelect";
 import userContent from "@/components/module/detail/readmeDemo.md?raw";
 import { useUpdateModuleMutation } from "api/hooks/moduleAndStageQueryHooks";

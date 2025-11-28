@@ -2,7 +2,7 @@ import type { SpaceClueCreateRequest } from "api";
 import type { ClueMessage } from "api/models/ClueMessage";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { PopWindow } from "@/components/common/popWindow";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import {
   useAddCluesMutation,
   useCreateClueStarsBatchMutation,
