@@ -19,7 +19,7 @@ export type IndexTTSOptions = {
 
 export type GptSovitsOptions = {
   apiUrl?: string; // 默认 http://127.0.0.1:9880
-  refAudioPath: string; // 服务端可访问路径(必填)
+  refAudioPath?: string; // 服务端可访问路径(如果提供,优先使用;否则上传 refVocalFile)
   promptText?: string;
   promptLang?: string;
   textLang?: string;
@@ -33,6 +33,8 @@ export type GptSovitsOptions = {
   seed?: number;
   parallelInfer?: boolean;
   repetitionPenalty?: number;
+  uploadToServer?: boolean; // 是否将音频上传到服务器(默认 true)
+  gameName?: string; // WebGAL 游戏名称,用于上传路径
 };
 
 export type TtsGenerateResult = { audioBase64: string };
@@ -94,16 +96,13 @@ export class IndexTtsEngine implements TtsEngine {
 
 export class GptSovitsEngine implements TtsEngine {
   constructor(private opts: GptSovitsOptions) {
-    if (!opts.refAudioPath) {
-      throw new Error("GptSovitsEngine 需要 refAudioPath");
-    }
+    // refAudioPath 可以在 generate 时通过上传文件获得,不再强制要求
   }
 
-  async generate(text: string, _refVocalFile: File): Promise<TtsGenerateResult> {
-    // _refVocalFile 暂不直接上传给后端; 仅用于生成唯一文件名的参考。实际模型使用 refAudioPath。
+  async generate(text: string, refVocalFile: File): Promise<TtsGenerateResult> {
     const {
       apiUrl = "http://127.0.0.1:9880",
-      refAudioPath,
+      refAudioPath: providedRefAudioPath,
       promptText = "",
       promptLang = DEFAULT_TTS_PARAMS.prompt_lang,
       textLang = DEFAULT_TTS_PARAMS.text_lang,
@@ -117,7 +116,47 @@ export class GptSovitsEngine implements TtsEngine {
       seed = DEFAULT_TTS_PARAMS.seed,
       parallelInfer = DEFAULT_TTS_PARAMS.parallel_infer,
       repetitionPenalty = DEFAULT_TTS_PARAMS.repetition_penalty,
+      uploadToServer = true,
+      gameName,
     } = this.opts;
+
+    // 确定参考音频路径
+    let refAudioPath = providedRefAudioPath;
+
+    // 如果没有提供 refAudioPath,则尝试上传文件到服务器
+    if (!refAudioPath && uploadToServer && gameName) {
+      try {
+        // 动态导入 uploadFile 避免循环依赖
+        const { uploadFile } = await import("@/webGAL/fileOperator");
+
+        // 将 File 转换为 Blob URL
+        const blobUrl = URL.createObjectURL(refVocalFile);
+
+        // 上传到 WebGAL 服务器的临时目录
+        const uploadedFileName = await uploadFile(
+          blobUrl,
+          `games/${gameName}/game/vocal/ref/`,
+          refVocalFile.name,
+        );
+
+        URL.revokeObjectURL(blobUrl);
+
+        // 构建服务器端可访问的绝对路径
+        // 假设 GPT-SoVITS 和 WebGAL 在同一台机器上,或 GPT-SoVITS 可以访问 WebGAL 的文件系统
+        refAudioPath = `games/${gameName}/game/vocal/ref/${uploadedFileName}`;
+
+        console.log("✅ 音频文件已上传到服务器:", refAudioPath);
+      }
+      catch (uploadError) {
+        console.error("❌ 上传参考音频失败:", uploadError);
+        throw new Error(`无法上传参考音频: ${uploadError}`);
+      }
+    }
+
+    // 如果仍然没有 refAudioPath,抛出错误
+    if (!refAudioPath) {
+      throw new Error("GPT-SoVITS 需要 refAudioPath 或提供 gameName 以上传文件");
+    }
 
     const params = {
       text,

@@ -211,11 +211,12 @@ export class SceneEditor {
         normalized = { engine: "index", ...options } as UnifiedEngineOptions;
       }
       else {
-        // gpt-sovits 必须提供 refAudioPath
-        if (!("refAudioPath" in options) || !options.refAudioPath) {
-          return { success: false, error: "gpt-sovits 需要 refAudioPath" };
-        }
-        normalized = { engine: "gpt-sovits", ...options } as UnifiedEngineOptions;
+        // gpt-sovits 现在支持自动上传音频文件
+        normalized = {
+          engine: "gpt-sovits",
+          gameName: this.game.name, // 传递游戏名称以便上传文件
+          ...options,
+        } as UnifiedEngineOptions;
       }
       const engine = createEngine(normalized);
       const { audioBase64 } = await engine.generate(text, refVocal);

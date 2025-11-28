@@ -33,6 +33,7 @@ app/tts/
 - ✂️ **智能分句**: 6 种文本切分方式
 - ⚡ **高性能**: 支持批处理、并行推理、流式输出
 - 🎚️ **参数丰富**: 语速、温度、重复惩罚等精细控制
+- 🎵 **支持上传音频**: 自动将用户上传的音频文件转换为服务器端路径 ✨新功能
 
 ## 快速开始
 
@@ -49,16 +50,24 @@ const indexEngine = createEngine({
   temperature: 0.8,
 });
 
-// 使用 GPT-SoVITS 引擎
+// 使用 GPT-SoVITS 引擎 (自动上传音频)
 const gptEngine = createEngine({
   engine: "gpt-sovits",
-  refAudioPath: "/path/to/reference.wav",
+  textLang: "all_zh",
+  temperature: 1.0,
+  gameName: "my-game", // 提供游戏名称以便自动上传音频
+});
+
+// 或者使用服务器端路径
+const gptEngineWithPath = createEngine({
+  engine: "gpt-sovits",
+  refAudioPath: "/path/to/reference.wav", // 服务器端路径(优先使用)
   textLang: "all_zh",
   temperature: 1.0,
 });
 
 // 生成语音 (统一接口)
-const result = await indexEngine.generate("你好世界", refVocalFile);
+const result = await gptEngine.generate("你好世界", refVocalFile);
 console.log(result.audioBase64); // 生成的 base64 音频
 ```
 
@@ -333,11 +342,33 @@ catch (error) {
 
 ### GPT-SoVITS
 
-1. 参考音频文件需要位于服务器可访问的路径
+1. ✨ **支持两种音频输入方式**:
+   - **自动上传模式** (推荐): 提供 `gameName` 参数,引擎会自动将 `File` 对象上传到服务器的临时目录
+   - **服务器路径模式**: 直接提供 `refAudioPath`,引擎会使用该服务器端路径
 2. 首次使用需要确保模型已正确加载
 3. API URL 配置会保存在 localStorage 中
 4. 生成较长文本时可能需要较长等待时间
 5. 默认端口为 9880
+
+#### 自动上传音频示例
+
+```typescript
+// 用户上传的音频文件会自动上传到: games/{gameName}/game/vocal/ref/
+const engine = createEngine({
+  engine: "gpt-sovits",
+  gameName: "preview_123", // 必需: 用于构建上传路径
+  textLang: "all_zh",
+});
+
+// File 对象会自动上传,无需手动处理
+const result = await engine.generate("你好世界", userUploadedFile);
+```
+
+#### 音频上传路径
+
+- 上传目标: `games/{gameName}/game/vocal/ref/{filename}`
+- GPT-SoVITS 服务器需要能够访问 WebGAL 的文件系统
+- 如果两个服务在不同机器上,需要配置共享存储或使用 NFS
 
 ## 环境变量
 
