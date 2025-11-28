@@ -814,7 +814,7 @@ const cmdSt = new CommandExecutor(
   "属性设置",
   [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
   ".st [属性名][属性值] / .st show [属性名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, _prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
     // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }
