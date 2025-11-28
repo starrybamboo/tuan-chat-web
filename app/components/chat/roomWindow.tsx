@@ -58,7 +58,7 @@ import ClueListForPL from "./sideDrawer/clueListForPL";
 import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
 
 // const PAGE_SIZE = 50; // 每页消息数量
-export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
+export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -219,6 +219,21 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
     }, 50);
   }, [historyMessages]);
+
+  // 如果 URL 中有 targetMessageId，自动跳转到该消息
+  const hasScrolledToTargetRef = useRef(false);
+  useEffect(() => {
+    if (targetMessageId && historyMessages.length > 0 && !chatHistory?.loading && !hasScrolledToTargetRef.current) {
+      const messageExists = historyMessages.some(m => m.message.messageId === targetMessageId);
+      if (messageExists) {
+        // 延迟一点确保 Virtuoso 已经渲染完成
+        setTimeout(() => {
+          scrollToGivenMessage(targetMessageId);
+        }, 100);
+        hasScrolledToTargetRef.current = true;
+      }
+    }
+  }, [targetMessageId, historyMessages, chatHistory?.loading, scrollToGivenMessage]);
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {

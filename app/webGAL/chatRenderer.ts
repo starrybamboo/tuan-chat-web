@@ -374,6 +374,21 @@ export class ChatRenderer {
                 && !message.content.startsWith(".")
                 && !message.content.startsWith("。")
                 && !message.content.startsWith("%")) {
+                // 构建 TTS 选项
+                const ttsOptions: any = {
+                  engine: this.renderProps.ttsEngine,
+                  emotionVector: this.convertAvatarTitleToEmotionVector(roleAvatar?.avatarTitle ?? {}),
+                };
+
+                // 如果选择 GPT-SoVITS 引擎,添加相关配置
+                if (this.renderProps.ttsEngine === "gpt-sovits" && this.renderProps.gptSovitsConfig) {
+                  ttsOptions.apiUrl = this.renderProps.gptSovitsConfig.apiUrl;
+                  ttsOptions.refAudioPath = this.renderProps.gptSovitsConfig.refAudioPath;
+                  ttsOptions.promptText = this.renderProps.gptSovitsConfig.promptText;
+                  ttsOptions.promptLang = this.renderProps.gptSovitsConfig.promptLang;
+                  ttsOptions.textLang = this.renderProps.gptSovitsConfig.textLang;
+                }
+
                 // 将聊天内容替换为 segment
                 vocalFileName = await this.sceneEditor.uploadVocal(
                   {
@@ -381,9 +396,7 @@ export class ChatRenderer {
                     message: { ...messageResponse.message, content: segment },
                   },
                   this.voiceFileMap.get(message.roleId),
-                  {
-                    emotionVector: this.convertAvatarTitleToEmotionVector(roleAvatar?.avatarTitle ?? {}),
-                  },
+                  ttsOptions,
                 );
               }
               else {

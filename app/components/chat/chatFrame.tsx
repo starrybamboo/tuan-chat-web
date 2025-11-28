@@ -9,6 +9,7 @@ import { ChatBubble } from "@/components/chat/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
 import { RoomContext } from "@/components/chat/roomContext";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -55,6 +56,7 @@ export default function ChatFrame(props: {
 
   // const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
+  const [isExportImageWindowOpen, setIsExportImageWindowOpen] = useState(false);
 
   const sendMessageMutation = useSendMessageMutation(roomId);
 
@@ -648,6 +650,13 @@ export default function ChatFrame(props: {
                 取消
               </button>
               <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => setIsExportImageWindowOpen(true)}
+                type="button"
+              >
+                生成图片
+              </button>
+              <button
                 className="btn btn-sm btn-info"
                 onClick={() => setIsForwardWindowOpen(true)}
                 type="button"
@@ -720,6 +729,18 @@ export default function ChatFrame(props: {
           generateForwardMessage={generateForwardMessage}
         >
         </ForwardWindow>
+      </PopWindow>
+      {/* 导出图片窗口 */}
+      <PopWindow isOpen={isExportImageWindowOpen} onClose={() => setIsExportImageWindowOpen(false)}>
+        <ExportImageWindow
+          selectedMessages={Array.from(selectedMessageIds)
+            .map(id => historyMessages.find(m => m.message.messageId === id))
+            .filter((msg): msg is ChatMessageResponse => msg !== undefined)}
+          onClose={() => {
+            setIsExportImageWindowOpen(false);
+            updateSelectedMessageIds(new Set());
+          }}
+        />
       </PopWindow>
       {/* 右键菜单 */}
       <ChatFrameContextMenu

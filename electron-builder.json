@@ -1,5 +1,5 @@
 {
-  "appId": "com.tuan.chat",
+  "appId": "com.tuanchat.tuanchat",
   "productName": "团剧共创",
   "copyright": "Copyright © 2025 ${tuan-chat}",
   "files": ["./electron", "./build"],
