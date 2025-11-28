@@ -229,8 +229,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               key={message.messageId}
             >
               {/* 圆角矩形头像 */}
-              <div className="flex-shrink-0 pr-3">
-                <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
+              <div className="flex-shrink-0 pr-2 sm:pr-3">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId}
                     width={20}
@@ -242,22 +242,22 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1 overflow-auto p-1 pr-5">
+              <div className="flex-1 min-w-0 p-1 pr-2 sm:pr-5">
                 {/* 角色名 */}
-                <div className="flex justify-between items-center w-full">
+                <div className="flex justify-between items-center w-full gap-2">
                   <div
-                    className={`cursor-pointer font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`}
+                    className={`cursor-pointer font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
                     onClick={handleRoleNameClick}
                   >
-                    <div className="w-[30vw] truncate">
+                    <div className="truncate">
                       { `【${role?.roleName?.trim() || "Undefined"}】`}
                     </div>
                   </div>
-                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
                     {formattedTime}
                   </div>
                 </div>
-                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer">
+                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer break-words">
                   {renderedContent}
                 </div>
               </div>
