@@ -13,6 +13,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
+import { useSendMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 
@@ -62,12 +63,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const roomId = Number(urlRoomId);
 
   const role = useGetRoleQuery(roleId).data?.data;
-
   const defaultDice = useRef(100);
 
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
+  const sendMessageMutation = useSendMessageMutation(roomId); // 发送消息
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
@@ -209,7 +210,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         avatarId: curAvatarId,
         extra: {},
       };
-      const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
+      const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
 
       const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
@@ -224,7 +225,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       };
       for (const message of dicerMessageQueue) {
         dicerMessageRequest.content = message;
-        await tuanchat.chatController.sendMessage1(dicerMessageRequest);
+        await sendMessageMutation.mutateAsync(dicerMessageRequest);
       }
     }
 
@@ -238,7 +239,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         roleId: curRoleId,
         avatarId: curAvatarId,
       };
-      const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
+      const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
 
       const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
@@ -253,7 +254,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       };
       for (const message of dicePrivateMessageQueue) {
         dicerMessageRequest.content = message;
-        await tuanchat.chatController.sendMessage1(dicerMessageRequest);
+        await sendMessageMutation.mutateAsync(dicerMessageRequest);
       }
     }
   }
