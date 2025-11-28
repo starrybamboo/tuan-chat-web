@@ -5,12 +5,12 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { Suspense, useMemo, useState } from "react";
 import { Link } from "react-router";
-import AudioPlayer from "./AudioPlayer";
-import AudioUploadModal from "./AudioUploadModal";
-import CharacterAvatar from "./CharacterAvatar";
+import Section from "./Editors/Section";
+import AudioPlayer from "./RoleInfoCard/AudioPlayer";
+import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
+import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
-import Section from "./Section";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 // import Section from "./Section";
 
@@ -282,13 +282,13 @@ function CharacterDetailInner({
         {/* 左侧：立绘与简介、规则选择（固定） */}
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
           {/* 立绘与简介卡片 */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl md:border-2 md:border-base-content/10">
+          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
             <div className="card-body p-4 max-h-168">
               {/* 移动端显示的头部区域 */}
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
-                    <h1 className="font-semibold text-xl">
+                    <h1 className="font-semibold text-xl max-w-32 truncate">
                       {localRole.name || "未命名角色"}
                     </h1>
                     <p className="text-base-content/60 text-sm">
@@ -368,8 +368,10 @@ function CharacterDetailInner({
                     )}
               </div>
               {!isEditing && (
-                <div className="divider font-bold text-center text-xl">
-                  {localRole.name}
+                <div className="divider font-bold text-center text-xl flex">
+                  <span className="flex-shrink-0 lg:max-w-48 truncate">
+                    {localRole.name}
+                  </span>
                 </div>
               )}
               {isEditing && <div className="divider my-0" />}
@@ -430,7 +432,7 @@ function CharacterDetailInner({
             <div>
 
               <div
-                className="card bg-base-100 rounded-2xl cursor-pointer transition-all duration-200"
+                className="card bg-base-100 rounded-xl cursor-pointer transition-all duration-200"
                 onClick={handleOpenRuleModal}
               >
                 <div className="card-body p-4 hover:bg-base-300">
@@ -461,10 +463,10 @@ function CharacterDetailInner({
               <div className="divider p-4 my-0" />
 
               {/* 音频上传卡片 */}
-              <div className="card bg-base-100 rounded-2xl transition-all duration-200 mb-4">
+              <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
                 <div className="card-body p-4">
                   <div
-                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-lg p-2 -m-2"
+                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
                     onClick={handleOpenAudioModal}
                   >
                     <div className="flex items-center gap-3">
@@ -516,30 +518,43 @@ function CharacterDetailInner({
           {/* 渲染结果预览 */}
           {isQueryLoading
             ? (
-                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
-                  <div className="card-body">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="skeleton h-6 w-32"></div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="skeleton h-48 w-full"></div>
-                      <div className="flex gap-3">
-                        <div className="skeleton h-10 w-20"></div>
-                        <div className="skeleton h-10 w-20"></div>
-                        <div className="skeleton h-10 w-20"></div>
+                <div className="space-y-6">
+                  {/* 骨架屏 - 模拟扩展模块 */}
+                  <div className="flex gap-2">
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                  </div>
+                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                    <div className="card-body">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="skeleton h-6 w-32"></div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="skeleton h-20 w-full"></div>
                       </div>
                     </div>
                   </div>
                 </div>
               )
             : (
-                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
-                  <Section title="渲染结果预览">
+                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                  <Section title="⚙️渲染结果预览" defaultOpen={false}>
                     <SpriteRenderStudio
                       characterName={localRole.name || "未命名角色"}
                       roleAvatars={roleAvatars}
                       initialAvatarId={localRole.avatarId}
-                      className="w-full p-3 gap-4 flex mb-2"
+                      className="w-full gap-4 flex mb-2"
+                      onAvatarChange={handleAvatarChange}
                     />
                   </Section>
                 </div>
@@ -550,7 +565,13 @@ function CharacterDetailInner({
             ? (
                 <div className="space-y-6">
                   {/* 骨架屏 - 模拟扩展模块 */}
-                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
+                  <div className="flex gap-2">
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                  </div>
+                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
                     <div className="card-body">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="skeleton h-6 w-32"></div>
@@ -569,7 +590,7 @@ function CharacterDetailInner({
                     </div>
                   </div>
 
-                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
+                  {/* <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
                     <div className="card-body">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="skeleton h-6 w-40"></div>
@@ -581,7 +602,7 @@ function CharacterDetailInner({
                         <div className="skeleton h-12 w-full"></div>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               )
             : (
@@ -598,7 +619,7 @@ function CharacterDetailInner({
       {/* 规则选择弹窗 */}
       {isRuleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setIsRuleModalOpen(false)}>
-          <div className="bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">选择规则系统</h3>

@@ -61,7 +61,7 @@ const cmdSt = new CommandExecutor(
   "属性设置",
   [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
   ".st [属性名][属性值] / .st show [属性名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, _prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
     // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }
@@ -150,7 +150,7 @@ const cmdSt = new CommandExecutor(
     const updateDetails = `{\n${changeEntries.join("\n")}\n}`;
 
     cpi.setRoleAbilityList(role.roleId, curAbility);
-    cpi.sendMsg(_prop, `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
+    cpi.replyMessage(`属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
     // cpi.sendToast( `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
     return true;
   },
@@ -163,7 +163,7 @@ const cmdFu = new CommandExecutor(
   "最终物语规则的掷骰",
   [".fu 8 10", " .fu mw +2", ".fu mig wlp"],
   ".fu [属性值|属性名] [属性值|属性名] [调整值]?",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
@@ -257,7 +257,7 @@ const cmdFu = new CommandExecutor(
       cpi.sendToast(`检定结果：${diceRes.expand} , HR为${diceRes.hr}`);
       return true;
     }
-    cpi.sendMsg(prop, `检定结果：${diceRes.expand} , HR为${diceRes.hr}`);
+    cpi.replyMessage(`检定结果：${diceRes.expand} , HR为${diceRes.hr}`);
     return true;
   },
 );

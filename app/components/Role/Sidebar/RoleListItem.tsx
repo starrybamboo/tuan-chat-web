@@ -1,4 +1,4 @@
-import type { Role } from "./types";
+import type { Role } from "../types";
 
 // 1. 从 Props 接口中移除 onSelect
 interface RoleListItemProps {
@@ -29,7 +29,7 @@ export function RoleListItem({ role, isSelected, onDelete, isSelectionMode }: Ro
               )}
         </div>
       </div>
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-1 min-w-0 max-w-32 overflow-hidden">
         <h3 className="font-medium truncate">{role.name || "新角色"}</h3>
         <p className="text-xs text-base-content/70 mt-1">
           {(role.description || "暂无描述").length > 25

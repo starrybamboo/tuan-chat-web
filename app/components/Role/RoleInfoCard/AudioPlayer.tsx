@@ -1,4 +1,4 @@
-import type { Role } from "./types";
+import type { Role } from "../types";
 import { useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 

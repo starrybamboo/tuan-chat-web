@@ -10,7 +10,7 @@ import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { formatTimeSmartly } from "@/utils/dataUtil";
+import { formatTimeSmartly } from "@/utils/dateUtil";
 import { useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";

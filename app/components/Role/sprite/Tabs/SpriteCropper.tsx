@@ -1,17 +1,22 @@
+import type { ImageLoadContext } from "@/utils/imgCropper";
 import type { RoleAvatar } from "api";
-import type { Crop, PixelCrop } from "react-image-crop";
-import type { Transform } from "./TransformControl";
-import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
-import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-import { canvasToBlob, getCroppedImageUrl } from "@/utils/CropperFunctions";
+import type { PixelCrop } from "react-image-crop";
+import type { Transform } from "../TransformControl";
+
+import { isMobileScreen } from "@/utils/getScreenSize";
+import {
+  canvasPreview,
+  canvasToBlob,
+  useCropPreview,
+} from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
-import { AvatarPreview } from "./AvatarPreview";
-import { RenderPreview } from "./RenderPreview";
-import { TransformControl } from "./TransformControl";
-import { useImageCropWorker } from "./useImageCropWorker";
-import { parseTransformFromAvatar } from "./utils";
+import { AvatarPreview } from "../../Preview/AvatarPreview";
+import { RenderPreview } from "../../Preview/RenderPreview";
+import { TransformControl } from "../TransformControl";
+import { parseTransformFromAvatar } from "../utils";
+import { useImageCropWorker } from "../worker/useImageCropWorker";
 import "react-image-crop/dist/ReactCrop.css";
 
 /**
@@ -32,6 +37,8 @@ interface SpriteCropperProps {
   onClose?: () => void;
   // 裁剪模式：'sprite' | 'avatar'，默认为 'sprite'
   cropMode?: "sprite" | "avatar";
+  // 立绘索引变更回调（用于同步外部索引）
+  onSpriteIndexChange?: (index: number) => void;
 }
 
 /**
@@ -47,6 +54,7 @@ export function SpriteCropper({
   characterName,
   onCropComplete,
   cropMode = "sprite",
+  onSpriteIndexChange,
 }: SpriteCropperProps) {
   // 确定工作模式
   const isMutiAvatars = roleAvatars.length > 0;
@@ -63,6 +71,19 @@ export function SpriteCropper({
     }
     return 0;
   });
+
+  // 当外部 initialSpriteIndex 变化时，同步内部状态
+  useEffect(() => {
+    if (filteredAvatars.length > 0) {
+      const validIndex = Math.max(0, Math.min(initialSpriteIndex, filteredAvatars.length - 1));
+      if (validIndex !== currentSpriteIndex) {
+        // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+        setCurrentSpriteIndex(validIndex);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSpriteIndex, filteredAvatars.length]);
+
   // 批量裁剪的结果存储
   // 操作模式：'single' | 'batch'
   const [operationMode, setOperationMode] = useState<"single" | "batch">("single");
@@ -85,13 +106,8 @@ export function SpriteCropper({
 
   const currentUrl = getCurrentSpriteUrl();
   const currentAvatarId = getCurrentAvatarId();
-  // Canvas 引用
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  // 裁剪相关状态
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  // 横向滚动容器引用
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // 加载状态
   const [isProcessing, setIsProcessing] = useState(false);
@@ -114,16 +130,57 @@ export function SpriteCropper({
     rotation: 0,
   }));
 
-  // 当前头像URL状态 - 用于头像模式下的实时预览
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
-
   // 添加渲染key用于强制重新渲染
   const [renderKey, setRenderKey] = useState(0);
+
+  // 移动端裁剪弹窗状态
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
 
   // 使用displayTransform作为实际的transform
   const transform = displayTransform;
 
-  // 监听操作模式切换，重新绘制 Canvas
+  // 图片加载后的扩展处理：解析 Transform（仅立绘模式需要）
+  const handleImageLoadExtend = useCallback((_e: React.SyntheticEvent<HTMLImageElement>, _context: ImageLoadContext) => {
+    if (!isAvatarMode) {
+      const currentSprite = filteredAvatars[currentSpriteIndex];
+      if (currentSprite) {
+        const newTransform = parseTransformFromAvatar(currentSprite);
+        setDisplayTransform(newTransform);
+      }
+    }
+  }, [isAvatarMode, filteredAvatars, currentSpriteIndex]);
+
+  // 使用 useCropPreview 管理裁剪状态
+  const {
+    imgRef,
+    previewCanvasRef,
+    crop,
+    completedCrop,
+    setCompletedCrop,
+    previewDataUrl: currentAvatarUrl,
+    onImageLoad,
+    onCropChange,
+  } = useCropPreview({
+    mode: useCallback(() => isAvatarMode ? "avatar" : "sprite", [isAvatarMode]),
+    onImageLoadExtend: handleImageLoadExtend,
+  });
+
+  // 横向滚动容器的 wheel 事件处理（使用非 passive 监听器以支持 preventDefault）
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container)
+      return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      container.scrollLeft += e.deltaY * 0.3;
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  // 监听操作模式切换和裁剪弹窗关闭，重新绘制 Canvas
   useEffect(() => {
     if (completedCrop && imgRef.current && previewCanvasRef.current) {
       const timeoutId = setTimeout(() => {
@@ -135,16 +192,12 @@ export function SpriteCropper({
           0,
         );
 
-        if (isAvatarMode && previewCanvasRef.current) {
-          setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
-        }
-
         setRenderKey(prev => prev + 1);
-      }); // 增加延迟，确保布局完全稳定
+      }, 50); // 增加延迟，确保布局完全稳定
 
       return () => clearTimeout(timeoutId);
     }
-  }, [operationMode, completedCrop, isAvatarMode]);
+  }, [operationMode, completedCrop, isAvatarMode, isCropModalOpen, imgRef, previewCanvasRef]);
 
   /**
    * 处理应用变换（单体模式）
@@ -226,101 +279,6 @@ export function SpriteCropper({
     }
     finally {
       setIsProcessing(false);
-    }
-  }
-
-  /**
-   * 图片加载完成后的处理函数
-   * 设置初始裁剪区域
-   */
-  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const { width, height } = e.currentTarget;
-
-    // 根据裁剪模式设置不同的初始裁剪区域
-    if (isAvatarMode) {
-      // 头像模式：使用1:1宽高比
-      const size = Math.min(width, height);
-      const x = (width - size) / 2;
-      const y = (height - size) / 2;
-      const newCrop = {
-        unit: "%" as const,
-        x: (x / width) * 100,
-        y: (y / height) * 100,
-        width: (size / width) * 100,
-        height: (size / height) * 100,
-      };
-      setCrop(newCrop);
-      setCompletedCrop({
-        unit: "px",
-        x,
-        y,
-        width: size,
-        height: size,
-      });
-    }
-    else {
-      // 立绘模式：覆盖整个原图
-      const newCrop = {
-        unit: "%" as const,
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      };
-      setCrop(newCrop);
-      setCompletedCrop({
-        unit: "px",
-        x: 0,
-        y: 0,
-        width,
-        height,
-      });
-    }
-
-    // 在图片加载完成时设置completedCrop后立即绘制到预览Canvas
-    const initialCompletedCrop: PixelCrop = isAvatarMode
-      ? {
-          unit: "px",
-          x: (width - Math.min(width, height)) / 2,
-          y: (height - Math.min(width, height)) / 2,
-          width: Math.min(width, height),
-          height: Math.min(width, height),
-        }
-      : {
-          unit: "px",
-          x: 0,
-          y: 0,
-          width,
-          height,
-        };
-
-    if (imgRef.current && previewCanvasRef.current) {
-      canvasPreview(
-        imgRef.current,
-        previewCanvasRef.current,
-        initialCompletedCrop, // 使用代表全图的 crop 对象
-        1,
-        0,
-      );
-
-      // 在头像模式下，初始化头像URL状态
-      if (isAvatarMode) {
-        // 延迟一小段时间确保canvas已经更新
-        setTimeout(() => {
-          if (previewCanvasRef.current) {
-            setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
-          }
-        }, 50);
-      }
-    }
-
-    // 从当前头像数据中解析并设置Transform（仅立绘模式需要）
-    if (!isAvatarMode) {
-      const currentSprite = filteredAvatars[currentSpriteIndex];
-      if (currentSprite) {
-        const newTransform = parseTransformFromAvatar(currentSprite);
-        setDisplayTransform(newTransform);
-      }
     }
   }
 
@@ -407,66 +365,27 @@ export function SpriteCropper({
     });
   }
 
-  // 使用防抖效果更新预览画布
-  useDebounceEffect(
-    async () => {
-      if (
-        completedCrop?.width
-        && completedCrop?.height
-        && imgRef.current
-        && previewCanvasRef.current
-      ) {
-        canvasPreview(
-          imgRef.current,
-          previewCanvasRef.current,
-          completedCrop,
-          1,
-          0,
-        );
-
-        // 在头像模式下，更新头像URL状态以实现实时预览
-        if (isAvatarMode) {
-          // 延迟一小段时间确保canvas已经更新
-          const timeoutId = setTimeout(() => {
-            if (previewCanvasRef.current) {
-              setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
-            }
-          }, 50);
-          return () => clearTimeout(timeoutId);
-        }
-      }
-    },
-    100,
-    [completedCrop, isAvatarMode],
-  );
-
-  /**
-   * 获取裁剪后的图片DataURL
-   */
-  async function getCroppedImageDataUrl(): Promise<string> {
-    const image = imgRef.current;
-    const previewCanvas = previewCanvasRef.current;
-    if (!image || !previewCanvas || !completedCrop) {
-      throw new Error("Crop canvas does not exist");
-    }
-    return await getCroppedImageUrl(image, previewCanvas, completedCrop);
-  }
-
   /**
    * 处理下载裁剪图片
    */
   async function handleDownload() {
     try {
       setIsProcessing(true);
-      const dataUrl = await getCroppedImageDataUrl();
+      const canvas = previewCanvasRef.current;
+      if (!canvas || !completedCrop) {
+        throw new Error("Canvas not ready");
+      }
+      const blob = await canvasToBlob(canvas);
+      const url = URL.createObjectURL(blob);
 
       // 创建下载链接
       const a = document.createElement("a");
-      a.href = dataUrl;
+      a.href = url;
       a.download = `${characterName}-sprite-cropped.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
     catch (error) {
       console.error("下载失败:", error);
@@ -529,7 +448,8 @@ export function SpriteCropper({
       }
 
       // --- 共同的回调逻辑 ---
-      const dataUrl = await getCroppedImageDataUrl();
+      const blob = await canvasToBlob(canvas);
+      const dataUrl = URL.createObjectURL(blob);
       onCropComplete?.(dataUrl);
     }
     catch (error) {
@@ -741,20 +661,17 @@ export function SpriteCropper({
             </div>
           </div>
           <div
+            ref={scrollContainerRef}
             className="gap-2 overflow-x-auto justify-start max-w-[96px] md:max-w-[416px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/30 hover:scrollbar-thumb-primary/50 hidden md:flex"
-            onWheel={(e) => {
-              // 防止页面滚动
-              e.preventDefault();
-              // 横向滚动，减小滚动幅度
-              const container = e.currentTarget;
-              container.scrollLeft += e.deltaY * 0.3;
-            }}
           >
             {filteredAvatars.map((avatar, index) => (
               <button
                 key={avatar.avatarId}
                 type="button"
-                onClick={() => setCurrentSpriteIndex(index)}
+                onClick={() => {
+                  setCurrentSpriteIndex(index);
+                  onSpriteIndexChange?.(index);
+                }}
                 className={`flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-all ${index === currentSpriteIndex
                   ? "border-primary"
                   : "border-base-300 hover:border-primary/50"
@@ -773,25 +690,49 @@ export function SpriteCropper({
 
       {isMutiAvatars && filteredAvatars.length > 1 && <div className="divider my-0"></div>}
 
+      {/* 隐藏的图片元素，用于移动端绑定 imgRef 和触发 onImageLoad */}
+      {currentUrl && (
+        <img
+          ref={imgRef}
+          alt="Hidden sprite for processing"
+          src={currentUrl}
+          onLoad={onImageLoad}
+          style={{ display: "none" }}
+          crossOrigin="anonymous"
+        />
+      )}
+
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
-        {/* 左侧：原始图片裁剪区域 */}
-        <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
-          <h2 className="text-xl font-bold">裁剪预览</h2>
+        {/* 左侧：原始图片裁剪区域 - 移动端隐藏，通过弹窗显示 */}
+        <div className="w-full md:w-1/2 p-2 gap-4 flex-col items-center order-2 md:order-1 hidden md:flex">
+          <h2 className="text-xl font-bold hidden md:block">裁剪预览</h2>
           <div className="w-full rounded-lg flex items-center justify-center">
             {currentUrl && (
               <ReactCrop
                 crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
-                onComplete={c => setCompletedCrop(c)}
+                onChange={onCropChange}
+                onComplete={(_, percentCrop) => {
+                  // 使用百分比裁剪计算基于原始图片尺寸的像素值
+                  if (imgRef.current) {
+                    const naturalWidth = imgRef.current.naturalWidth;
+                    const naturalHeight = imgRef.current.naturalHeight;
+                    const pixelCrop: PixelCrop = {
+                      unit: "px",
+                      x: (percentCrop.x / 100) * naturalWidth,
+                      y: (percentCrop.y / 100) * naturalHeight,
+                      width: (percentCrop.width / 100) * naturalWidth,
+                      height: (percentCrop.height / 100) * naturalHeight,
+                    };
+                    setCompletedCrop(pixelCrop);
+                  }
+                }}
                 // 头像模式限制1:1宽高比，立绘模式不限制
                 aspect={isAvatarMode ? 1 : undefined}
                 minHeight={10}
               >
                 <img
-                  ref={imgRef}
                   alt="Sprite to crop"
                   src={currentUrl}
-                  onLoad={onImageLoad}
                   style={{
                     maxHeight: "70vh",
                     minWidth: "20vh",
@@ -803,13 +744,26 @@ export function SpriteCropper({
           </div>
         </div>
 
-        {/* 右侧：裁剪预览和控制 */}
+        {/* 右侧：裁剪预览和控制 - 移动端放上面 */}
         {completedCrop && (
-          <div className="w-full lg:w-2/3 p-2 gap-4 flex flex-col items-center">
-            <h2 className="text-xl font-bold">
+          <div className="w-full lg:w-2/3 p-2 gap-4 flex flex-col items-center order-1 md:order-2">
+            <h2 className="text-xl font-bold hidden md:block">
               {isAvatarMode ? "头像预览" : "渲染预览"}
             </h2>
-            <div className="w-full h-full bg-info/30 rounded-lg p-4 gap-4 flex flex-col relative">
+            {/* 移动端点击提示 */}
+            <div
+              className="w-full h-full bg-info/30 rounded-lg p-4 gap-4 flex flex-col relative cursor-pointer md:cursor-default"
+              onClick={() => {
+                // 仅移动端点击时打开弹窗
+                if (isMobileScreen()) {
+                  setIsCropModalOpen(true);
+                }
+              }}
+            >
+              {/* 移动端点击提示 */}
+              <div className="absolute top-6 right-6 text-xs text-base-content/50 z-10 md:hidden">
+                点击画布调整裁剪
+              </div>
               {isAvatarMode
                 ? (
                     <AvatarPreview
@@ -846,7 +800,10 @@ export function SpriteCropper({
                         <>
                           <button
                             className="btn btn-accent"
-                            onClick={handleApplyCrop}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApplyCrop();
+                            }}
                             type="button"
                             disabled={!completedCrop || isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending)}
                           >
@@ -861,7 +818,10 @@ export function SpriteCropper({
                           {!isAvatarMode && (
                             <button
                               className="btn btn-info"
-                              onClick={handleApplyTransform}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApplyTransform();
+                              }}
                               type="button"
                               disabled={isProcessing}
                             >
@@ -876,7 +836,10 @@ export function SpriteCropper({
                           )}
                           <button
                             className="btn btn-outline"
-                            onClick={handleDownload}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload();
+                            }}
                             type="button"
                             disabled={isProcessing}
                           >
@@ -888,7 +851,10 @@ export function SpriteCropper({
                         <>
                           <button
                             className="btn btn-accent"
-                            onClick={handleBatchCropAll}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBatchCropAll();
+                            }}
                             type="button"
                             disabled={!completedCrop || isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending)}
                           >
@@ -903,7 +869,10 @@ export function SpriteCropper({
                           {!isAvatarMode && (
                             <button
                               className="btn btn-info"
-                              onClick={handleBatchApplyTransform}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBatchApplyTransform();
+                              }}
                               type="button"
                               disabled={isProcessing}
                             >
@@ -918,7 +887,10 @@ export function SpriteCropper({
                           )}
                           <button
                             className="btn btn-outline btn-info"
-                            onClick={handleBatchDownload}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBatchDownload();
+                            }}
                             type="button"
                             disabled={!completedCrop || isProcessing}
                           >
@@ -938,6 +910,67 @@ export function SpriteCropper({
           </div>
         )}
       </div>
+
+      {/* 移动端裁剪弹窗 */}
+      {isCropModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 md:hidden">
+          <div className="bg-base-100 rounded-lg p-4 m-4 max-h-[90vh] overflow-auto w-full max-w-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">调整裁剪区域</h3>
+              <button
+                type="button"
+                className="btn btn-sm btn-circle btn-ghost"
+                onClick={() => setIsCropModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex items-center justify-center">
+              {currentUrl && (
+                <ReactCrop
+                  crop={crop}
+                  onChange={onCropChange}
+                  onComplete={(_, percentCrop) => {
+                    // 使用百分比裁剪计算基于原始图片尺寸的像素值
+                    if (imgRef.current) {
+                      const naturalWidth = imgRef.current.naturalWidth;
+                      const naturalHeight = imgRef.current.naturalHeight;
+                      const pixelCrop: PixelCrop = {
+                        unit: "px",
+                        x: (percentCrop.x / 100) * naturalWidth,
+                        y: (percentCrop.y / 100) * naturalHeight,
+                        width: (percentCrop.width / 100) * naturalWidth,
+                        height: (percentCrop.height / 100) * naturalHeight,
+                      };
+                      setCompletedCrop(pixelCrop);
+                    }
+                  }}
+                  aspect={isAvatarMode ? 1 : undefined}
+                  minHeight={10}
+                >
+                  <img
+                    alt="Sprite to crop modal"
+                    src={currentUrl}
+                    style={{
+                      maxHeight: "60vh",
+                    }}
+                    crossOrigin="anonymous"
+                  />
+                </ReactCrop>
+              )}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setIsCropModalOpen(false)}
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
