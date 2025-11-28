@@ -7,7 +7,6 @@ import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   canvasPreview,
   canvasToBlob,
-  getCroppedUrlFromRefs,
   useCropPreview,
 } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
@@ -372,15 +371,21 @@ export function SpriteCropper({
   async function handleDownload() {
     try {
       setIsProcessing(true);
-      const dataUrl = await getCroppedUrlFromRefs(imgRef, previewCanvasRef, completedCrop);
+      const canvas = previewCanvasRef.current;
+      if (!canvas || !completedCrop) {
+        throw new Error("Canvas not ready");
+      }
+      const blob = await canvasToBlob(canvas);
+      const url = URL.createObjectURL(blob);
 
       // 创建下载链接
       const a = document.createElement("a");
-      a.href = dataUrl;
+      a.href = url;
       a.download = `${characterName}-sprite-cropped.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
     catch (error) {
       console.error("下载失败:", error);
@@ -443,7 +448,8 @@ export function SpriteCropper({
       }
 
       // --- 共同的回调逻辑 ---
-      const dataUrl = await getCroppedUrlFromRefs(imgRef, previewCanvasRef, completedCrop);
+      const blob = await canvasToBlob(canvas);
+      const dataUrl = URL.createObjectURL(blob);
       onCropComplete?.(dataUrl);
     }
     catch (error) {

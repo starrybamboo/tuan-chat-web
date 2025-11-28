@@ -9,18 +9,10 @@ export { canvasPreview } from "./canvasPreview";
 // 裁剪工具函数
 export {
   canvasToBlob,
-  canvasToDataUrl,
   createCenteredAspectCrop,
   createCenteredSquareCrop,
   createFullImageCrop,
-  cropImageToBlob,
-  getCroppedFileFromCanvas,
-  getCroppedFileFromRefs,
   getCroppedImageFile,
-  getCroppedImageFileFromImage,
-  getCroppedImageUrl,
-  getCroppedUrlFromRefs,
-  percentToPixelCrop,
 } from "./cropUtils";
 
 // 裁剪 Canvas 防抖更新 Hook

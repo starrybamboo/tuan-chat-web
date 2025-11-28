@@ -1,7 +1,10 @@
-import type { RefObject } from "react";
 import type { Crop, PixelCrop } from "react-image-crop";
 
 import { centerCrop, makeAspectCrop } from "react-image-crop";
+
+// ============================================================
+// 裁剪区域创建函数
+// ============================================================
 
 /**
  * 创建居中的1:1裁剪区域（用于头像）
@@ -54,25 +57,12 @@ export function createCenteredAspectCrop(
   );
 }
 
-/**
- * 将百分比裁剪转换为像素裁剪
- */
-export function percentToPixelCrop(
-  percentCrop: Crop,
-  naturalWidth: number,
-  naturalHeight: number,
-): PixelCrop {
-  return {
-    unit: "px",
-    x: (percentCrop.x / 100) * naturalWidth,
-    y: (percentCrop.y / 100) * naturalHeight,
-    width: (percentCrop.width / 100) * naturalWidth,
-    height: (percentCrop.height / 100) * naturalHeight,
-  };
-}
+// ============================================================
+// Canvas 导出函数
+// ============================================================
 
 /**
- * Canvas 转 Blob
+ * Canvas 转 Blob（统一处理 HTMLCanvasElement 和 OffscreenCanvas）
  */
 export async function canvasToBlob(
   canvas: HTMLCanvasElement | OffscreenCanvas,
@@ -92,17 +82,8 @@ export async function canvasToBlob(
 }
 
 /**
- * Canvas 转 DataURL
- */
-export function canvasToDataUrl(
-  canvas: HTMLCanvasElement,
-  type = "image/png",
-): string {
-  return canvas.toDataURL(type);
-}
-
-/**
- * 从 Canvas 创建裁剪后的图片文件
+ * 从 Canvas 创建图片文件
+ * 这是核心导出函数，其他导出方式都应基于此
  */
 export async function getCroppedImageFile(
   canvas: HTMLCanvasElement | OffscreenCanvas,
@@ -111,123 +92,4 @@ export async function getCroppedImageFile(
 ): Promise<File> {
   const blob = await canvasToBlob(canvas, type);
   return new File([blob], fileName, { type, lastModified: Date.now() });
-}
-
-/**
- * 裁剪图片并返回 Blob（从图片和 Canvas）
- */
-export async function cropImageToBlob(
-  image: HTMLImageElement,
-  previewCanvas: HTMLCanvasElement,
-  completedCrop: { width: number; height: number; x?: number; y?: number },
-): Promise<Blob> {
-  const scaleX = image.naturalWidth / image.width;
-  const scaleY = image.naturalHeight / image.height;
-  const offscreen = new OffscreenCanvas(
-    completedCrop.width * scaleX,
-    completedCrop.height * scaleY,
-  );
-  const ctx = offscreen.getContext("2d");
-  if (!ctx) {
-    throw new Error("No 2d context");
-  }
-  ctx.drawImage(
-    previewCanvas,
-    0,
-    0,
-    previewCanvas.width,
-    previewCanvas.height,
-    0,
-    0,
-    offscreen.width,
-    offscreen.height,
-  );
-  return await offscreen.convertToBlob({ type: "image/png" });
-}
-
-/**
- * 从图片和裁剪参数获取裁剪后的 DataURL
- */
-export async function getCroppedImageUrl(
-  image: HTMLImageElement,
-  previewCanvas: HTMLCanvasElement,
-  completedCrop: { width: number; height: number; x?: number; y?: number },
-): Promise<string> {
-  const blob = await cropImageToBlob(image, previewCanvas, completedCrop);
-  return new Promise<string>((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(blob);
-  });
-}
-
-/**
- * 从图片和裁剪参数获取裁剪后的 File
- */
-export async function getCroppedImageFileFromImage(
-  image: HTMLImageElement,
-  previewCanvas: HTMLCanvasElement,
-  completedCrop: { width: number; height: number; x?: number; y?: number },
-  fileName = "cropped.png",
-): Promise<File> {
-  const blob = await cropImageToBlob(image, previewCanvas, completedCrop);
-  return new File([blob], fileName, {
-    type: "image/png",
-    lastModified: Date.now(),
-  });
-}
-
-// ============================================================
-// 以下是接收 Ref 的便捷函数，用于组件中直接调用
-// ============================================================
-
-/**
- * 从 Ref 获取裁剪后的图片文件
- * @throws 如果 ref 为空或 completedCrop 未定义
- */
-export async function getCroppedFileFromRefs(
-  imgRef: RefObject<HTMLImageElement | null>,
-  canvasRef: RefObject<HTMLCanvasElement | null>,
-  completedCrop: PixelCrop | undefined,
-  fileName = "cropped.png",
-): Promise<File> {
-  const image = imgRef.current;
-  const previewCanvas = canvasRef.current;
-  if (!image || !previewCanvas || !completedCrop) {
-    throw new Error("Crop canvas does not exist");
-  }
-  return await getCroppedImageFileFromImage(image, previewCanvas, completedCrop, fileName);
-}
-
-/**
- * 从 Ref 获取裁剪后的 DataURL
- * @throws 如果 ref 为空或 completedCrop 未定义
- */
-export async function getCroppedUrlFromRefs(
-  imgRef: RefObject<HTMLImageElement | null>,
-  canvasRef: RefObject<HTMLCanvasElement | null>,
-  completedCrop: PixelCrop | undefined,
-): Promise<string> {
-  const image = imgRef.current;
-  const previewCanvas = canvasRef.current;
-  if (!image || !previewCanvas || !completedCrop) {
-    throw new Error("Crop canvas does not exist");
-  }
-  return await getCroppedImageUrl(image, previewCanvas, completedCrop);
-}
-
-/**
- * 从 Canvas Ref 直接导出裁剪后的图片文件
- * 适用于 canvas 已经绑定且内容已绘制的场景
- * @throws 如果 canvas 为空或尺寸为 0
- */
-export async function getCroppedFileFromCanvas(
-  canvasRef: RefObject<HTMLCanvasElement | null>,
-  fileName = "cropped.png",
-): Promise<File> {
-  const canvas = canvasRef.current;
-  if (!canvas || canvas.width === 0 || canvas.height === 0) {
-    throw new Error("Canvas is not ready");
-  }
-  return await getCroppedImageFile(canvas, fileName);
 }
