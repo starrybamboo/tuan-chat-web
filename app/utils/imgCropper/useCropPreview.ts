@@ -8,7 +8,6 @@ import {
   createCenteredSquareCrop,
   createFullImageCrop,
   getCroppedImageFile,
-  percentToPixelCrop,
 } from "./cropUtils";
 import { useCropCanvas } from "./useCropCanvas";
 
@@ -110,7 +109,9 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
 
   // 图片加载完成，初始化裁剪区域
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { naturalWidth: width, naturalHeight: height } = e.currentTarget;
+    // 使用显示尺寸（受 CSS 限制后的尺寸），而不是 naturalWidth/naturalHeight
+    // 这样裁剪框才能正确覆盖显示的图片区域
+    const { width, height } = e.currentTarget;
     const currentMode = getMode();
 
     const { crop: newCrop, pixelCrop } = currentMode === "avatar"
@@ -122,9 +123,17 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
 
     // 立即绘制初始预览
     if (imgRef.current && previewCanvasRef.current) {
-      canvasPreview(imgRef.current, previewCanvasRef.current, pixelCrop, 1, 0);
-      const dataUrl = previewCanvasRef.current.toDataURL();
-      handlePreviewUpdate(dataUrl);
+      canvasPreview(imgRef.current, previewCanvasRef.current, pixelCrop, 1, 0, { previewMode: true });
+      // 使用 toBlob 异步生成预览 URL（比 toDataURL 更高效）
+      previewCanvasRef.current.toBlob(
+        (blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            handlePreviewUpdate(url);
+          }
+        },
+        "image/png",
+      );
     }
 
     // 调用扩展逻辑
@@ -142,16 +151,10 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   }, []);
 
   // 裁剪完成（拖拽结束）
-  const onCropComplete = useCallback((_: PixelCrop, percentCrop: Crop) => {
-    if (imgRef.current) {
-      const pixelCrop = percentToPixelCrop(
-        percentCrop,
-        imgRef.current.naturalWidth,
-        imgRef.current.naturalHeight,
-      );
-      setCompletedCrop(pixelCrop);
-    }
-  }, [imgRef]);
+  // ReactCrop 的 onComplete 第一个参数已经是 PixelCrop，直接使用即可
+  const onCropComplete = useCallback((pixelCrop: PixelCrop, _percentCrop: Crop) => {
+    setCompletedCrop(pixelCrop);
+  }, []);
 
   // 重置所有状态
   const reset = useCallback(() => {
@@ -164,24 +167,29 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
     }
   }, [previewCanvasRef]);
 
-  // 获取裁剪后的文件 - 直接从已绘制的 previewCanvas 导出
+  // 获取裁剪后的文件 - 重新以全分辨率绘制后导出
   const getCroppedFile = useCallback(async (fileName = "cropped.png"): Promise<File> => {
+    const img = imgRef.current;
     const canvas = previewCanvasRef.current;
-    if (!canvas || !completedCrop) {
+    if (!img || !canvas || !completedCrop) {
       throw new Error("Crop canvas does not exist");
     }
-    // 直接从 canvas 导出，canvas 已经包含正确裁剪的图像
+    // 以全分辨率重新绘制（previewMode: false）
+    await canvasPreview(img, canvas, completedCrop, 1, 0, { previewMode: false });
     return await getCroppedImageFile(canvas, fileName);
-  }, [previewCanvasRef, completedCrop]);
+  }, [imgRef, previewCanvasRef, completedCrop]);
 
-  // 获取裁剪后的 URL - 直接从已绘制的 previewCanvas 导出
+  // 获取裁剪后的 URL - 重新以全分辨率绘制后导出
   const getCroppedUrl = useCallback(async (): Promise<string> => {
+    const img = imgRef.current;
     const canvas = previewCanvasRef.current;
-    if (!canvas || !completedCrop) {
+    if (!img || !canvas || !completedCrop) {
       throw new Error("Crop canvas does not exist");
     }
+    // 以全分辨率重新绘制（previewMode: false）
+    await canvasPreview(img, canvas, completedCrop, 1, 0, { previewMode: false });
     return canvas.toDataURL("image/png");
-  }, [previewCanvasRef, completedCrop]);
+  }, [imgRef, previewCanvasRef, completedCrop]);
 
   // 使用 useCropCanvas 进行防抖更新
   useCropCanvas({

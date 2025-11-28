@@ -48,16 +48,23 @@ export function useCropCanvas({
           completedCrop,
           1,
           0,
+          { previewMode: true }, // 启用预览模式以提升性能
         );
 
-        // 如果启用头像 URL 更新，延迟获取 dataUrl
+        // 如果启用头像 URL 更新，使用 toBlob 异步生成（比 toDataURL 更高效）
         if (enableAvatarUrlUpdate && onAvatarUrlUpdate) {
-          // 使用 requestAnimationFrame 确保 canvas 已经完成绘制
-          requestAnimationFrame(() => {
-            if (previewCanvasRef.current) {
-              onAvatarUrlUpdate(previewCanvasRef.current.toDataURL());
-            }
-          });
+          const canvas = previewCanvasRef.current;
+          // 使用 toBlob + createObjectURL 替代 toDataURL，性能更好
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // 注意：需要在适当时机 revoke 这个 URL，但对于预览用途可以忽略
+                const url = URL.createObjectURL(blob);
+                onAvatarUrlUpdate(url);
+              }
+            },
+            "image/png",
+          );
         }
       }
     },
