@@ -1,8 +1,8 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
 import CreatePageHeader from "./CreatePageHeader";
-import NavigationButtons from "./NavigationButtons";
-import StepIndicator from "./StepIndicator";
+import NavigationButtons from "./steps/NavigationButtons";
+import StepIndicator from "./steps/StepIndicator";
 
 interface StepDescriptor {
   id: number;

@@ -5,12 +5,12 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { Suspense, useMemo, useState } from "react";
 import { Link } from "react-router";
-import AudioPlayer from "./AudioPlayer";
-import AudioUploadModal from "./AudioUploadModal";
-import CharacterAvatar from "./CharacterAvatar";
+import Section from "./Editors/Section";
+import AudioPlayer from "./RoleInfoCard/AudioPlayer";
+import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
+import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
-import Section from "./Section";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 // import Section from "./Section";
 
@@ -518,10 +518,30 @@ function CharacterDetailInner({
           {/* 渲染结果预览 */}
           {isQueryLoading
             ? (
-                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
-                  <div className="card-body">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="skeleton h-6 w-32"></div>
+                <div className="space-y-6">
+                  {/* 骨架屏 - 模拟扩展模块 */}
+                  <div className="flex gap-2">
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                  </div>
+                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                    <div className="card-body">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="skeleton h-6 w-32"></div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="skeleton h-20 w-full"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -545,6 +565,12 @@ function CharacterDetailInner({
             ? (
                 <div className="space-y-6">
                   {/* 骨架屏 - 模拟扩展模块 */}
+                  <div className="flex gap-2">
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                  </div>
                   <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
                     <div className="card-body">
                       <div className="flex items-center gap-3 mb-4">

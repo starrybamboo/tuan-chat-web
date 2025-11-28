@@ -2,7 +2,7 @@ import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
-import Section from "../Section";
+import Section from "../Editors/Section";
 import { ConfigurationSection } from "./ConfigurationSection";
 import PerformanceEditor from "./PerformanceEditor";
 
@@ -254,21 +254,30 @@ export default function ExpansionModule({
             )
           : isLoading
             ? (
-                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
-                  <div className="card-body">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="skeleton h-6 w-32"></div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="skeleton h-10 w-full"></div>
-                        <div className="skeleton h-10 w-full"></div>
+                <div className="space-y-6">
+                  {/* 骨架屏 - 模拟扩展模块 */}
+                  <div className="flex gap-2">
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                  </div>
+                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                    <div className="card-body">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="skeleton h-6 w-32"></div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="skeleton h-10 w-full"></div>
-                        <div className="skeleton h-10 w-full"></div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="skeleton h-20 w-full"></div>
                       </div>
-                      <div className="skeleton h-20 w-full"></div>
                     </div>
                   </div>
                 </div>
@@ -277,7 +286,7 @@ export default function ExpansionModule({
                 renderData && (
                   <div className="space-y-4">
                     {/* 顶部 Tab 按钮条，简单实现，不用 DaisyUI 的复杂结构 */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 rounded-lg">
                       <button
                         type="button"
                         className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}

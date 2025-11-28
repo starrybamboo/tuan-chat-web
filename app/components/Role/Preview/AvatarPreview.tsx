@@ -1,5 +1,5 @@
 import React from "react";
-import { DisplayChatBubble } from "../displayChatBubble";
+import { DisplayChatBubble } from "./displayChatBubble";
 
 /**
  * 头像预览组件的属性接口

@@ -1,5 +1,5 @@
 import type { UserRole } from "api";
-import type { Role } from "./types";
+import type { Role } from "../types";
 import { tuanchat } from "@/../api/instance";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useQueryClient } from "@tanstack/react-query";
@@ -7,8 +7,8 @@ import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryH
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { PopWindow } from "../common/popWindow";
-import { useGlobalContext } from "../globalContextProvider";
+import { PopWindow } from "../../common/popWindow";
+import { useGlobalContext } from "../../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
 
 // ... SidebarProps 接口不再需要 setSelectedRoleId 和 onEnterCreateEntry

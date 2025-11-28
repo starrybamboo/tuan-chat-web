@@ -1,6 +1,6 @@
 import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateSpaceMutation } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";

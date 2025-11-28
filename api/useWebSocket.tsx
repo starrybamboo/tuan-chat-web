@@ -1,7 +1,7 @@
 import type { ChatMessageRequest } from "./models/ChatMessageRequest";
 import type { ChatMessageResponse } from "./models/ChatMessageResponse";
 import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-import { formatLocalDateTime } from "@/utils/dataUtil";
+import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
