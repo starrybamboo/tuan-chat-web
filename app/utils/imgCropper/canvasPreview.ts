@@ -17,7 +17,7 @@ export async function canvasPreview(
   scale = 1,
   rotate = 0,
 ) {
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
 
   if (!ctx) {
     throw new Error("No 2d context");

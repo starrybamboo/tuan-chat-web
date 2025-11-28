@@ -23,6 +23,9 @@ export {
 // 图片预览
 export { imgPreview } from "./imgPreview";
 
+// 裁剪 Canvas 防抖更新 Hook
+export { useCropCanvas } from "./useCropCanvas";
+
 // 裁剪预览 Hook
 export { useCropPreview } from "./useCropPreview";
 export type { CropMode } from "./useCropPreview";

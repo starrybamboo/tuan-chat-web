@@ -5,41 +5,19 @@ import type { Transform } from "./TransformControl";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { canvasPreview, useDebounceEffect } from "@/utils/imgCropper";
+import {
+  createCenteredSquareCrop,
+  createFullImageCrop,
+  getCroppedImageFileFromImage,
+  useCropCanvas,
+} from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useRef, useState } from "react";
-import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
+import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "./AvatarPreview";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
 import "react-image-crop/dist/ReactCrop.css";
-
-/**
- * 创建并居中裁剪区域的辅助函数
- * @param mediaWidth - 媒体宽度
- * @param mediaHeight - 媒体高度
- * @param aspect - 宽高比
- * @returns 居中的裁剪区域配置
- */
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number,
-) {
-  return centerCrop(
-    makeAspectCrop(
-      {
-        unit: "%",
-        width: 100,
-      },
-      aspect,
-      mediaWidth,
-      mediaHeight,
-    ),
-    mediaWidth,
-    mediaHeight,
-  );
-}
 
 /**
  * 图片上传器组件的属性接口
@@ -141,68 +119,26 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
 
     if (currentStep === 1) {
       // 第一步：裁剪框占满整个立绘
-      const newCrop = {
-        unit: "%" as const,
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      };
+      const { crop: newCrop, pixelCrop } = createFullImageCrop(width, height);
       setCrop(newCrop);
-      setCompletedCrop({
-        unit: "px",
-        x: 0,
-        y: 0,
-        width,
-        height,
-      });
+      setCompletedCrop(pixelCrop);
     }
     else {
-      // 第二步：使用1:1宽高比
-      const aspect = 1;
-      const newCrop = centerAspectCrop(width, height, aspect);
+      // 第二步：使用1:1宽高比裁剪头像
+      const { crop: newCrop, pixelCrop } = createCenteredSquareCrop(width, height);
       setCrop(newCrop);
-      // 在图片加载完成时设置completedCrop
-      const cropWidth = (width * newCrop.width) / 100;
-      const cropHeight = (height * newCrop.height) / 100;
-      setCompletedCrop({
-        unit: "px",
-        x: (width - cropWidth) / 2,
-        y: (height - cropHeight) / 2,
-        width: cropWidth,
-        height: cropHeight,
-      });
+      setCompletedCrop(pixelCrop);
     }
   }
 
-  // 使用防抖效果更新预览画布
-  useDebounceEffect(
-    async () => {
-      if (
-        completedCrop?.width
-        && completedCrop?.height
-        && imgRef.current
-        && previewCanvasRef.current
-      ) {
-        canvasPreview(
-          imgRef.current,
-          previewCanvasRef.current,
-          completedCrop,
-          1,
-          0,
-        );
-        // 在 canvas 更新后，更新头像URL状态
-        const timeoutId = setTimeout(() => {
-          if (previewCanvasRef.current) {
-            setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
-          }
-        }, 50);
-        return () => clearTimeout(timeoutId);
-      }
-    },
-    100,
-    [completedCrop],
-  );
+  // 使用防抖 Hook 更新预览画布
+  useCropCanvas({
+    imgRef,
+    previewCanvasRef,
+    completedCrop,
+    enableAvatarUrlUpdate: true,
+    onAvatarUrlUpdate: setCurrentAvatarUrl,
+  });
 
   /**
    * 处理文件选择变化
@@ -304,41 +240,12 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     if (!image || !previewCanvas || !completedCrop) {
       throw new Error("Crop canvas does not exist");
     }
-
-    // This will size relative to the uploaded image
-    // size. If you want to size according to what they
-    // are looking at on screen, remove scaleX + scaleY
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    const offscreen = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
-    const ctx = offscreen.getContext("2d");
-    if (!ctx) {
-      throw new Error("No 2d context");
-    }
-
-    ctx.drawImage(
+    return await getCroppedImageFileFromImage(
+      image,
       previewCanvas,
-      0,
-      0,
-      previewCanvas.width,
-      previewCanvas.height,
-      0,
-      0,
-      offscreen.width,
-      offscreen.height,
+      completedCrop,
+      `${fileName}-cropped.png`,
     );
-    // 可以用 { type: "image/jpeg", quality: <0 to 1> } 来压缩
-    const blob = await offscreen.convertToBlob({
-      type: "image/png",
-    });
-    return new File([blob], `${fileName}-coptered`, {
-      type: "image/png",
-      lastModified: Date.now(),
-    });
   }
 
   /**
