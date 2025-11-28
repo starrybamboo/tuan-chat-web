@@ -37,6 +37,7 @@ export function DisplayChatBubble({
                   />
                 </div>
               </div>
+              {/* Content */}
               <div className="flex flex-col items-start">
                 <div className="text-sm text-base-content/85 pb-1">
                   {roleName || "Undefined"}
