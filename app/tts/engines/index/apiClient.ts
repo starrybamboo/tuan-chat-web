@@ -1,9 +1,15 @@
-// TTS API 接口类型定义和客户端
-
+/**
+ * @author: @starrybamboo
+ * TTS API 接口类型定义和客户端,
+ * 参考了他们官方提供的GUI进行封装。采用的是index-tts2的API规范。
+ * 需要和群文件中的index-tts2整合包一起使用，整合包内有对应的后端服务，可以与这个对接。
+ * index-tts2 在one-shot的情况下，表现非常优秀，情感迁移非常牛逼，唯一的问题是很吃显存，需要8G显存
+ * https://github.com/index-tts/index-tts
+ */
 export type InferRequest = {
   /** 目标文本 */
   text: string;
-  /** 音色参考音频本地路径，与 prompt_audio_base64 二选一 */
+  /** 音色参考音频本地路径,与 prompt_audio_base64 二选一 */
   prompt_audio_path?: string;
   /** 音色参考音频(PCM/WAV)的base64(带或不带data URI头) */
   prompt_audio_base64?: string;
@@ -13,11 +19,11 @@ export type InferRequest = {
   emo_audio_path?: string;
   /** 情感参考音频base64 */
   emo_audio_base64?: string;
-  /** 情感参考权重，emo_mode=1 有效 */
+  /** 情感参考权重,emo_mode=1 有效 */
   emo_weight?: number;
-  /** 长度8的情感向量，emo_mode=2 有效 */
+  /** 长度8的情感向量,emo_mode=2 有效 */
   emo_vector?: number[];
-  /** 情感描述文本，emo_mode=3 有效 */
+  /** 情感描述文本,emo_mode=3 有效 */
   emo_text?: string;
   /** 是否随机情感 */
   emo_random?: boolean;
@@ -52,9 +58,9 @@ export type InferResponse = {
   data?: {
     /** 生成的音频文件路径 */
     audio_path?: string;
-    /** 推理耗时（秒） */
+    /** 推理耗时(秒) */
     inference_time?: number;
-    /** 文件大小（字节） */
+    /** 文件大小(字节) */
     file_size?: number;
     /** base64 编码的音频数据 */
     audio_base64?: string;
@@ -473,6 +479,6 @@ export function createTTSApi(baseURL: string = "http://localhost:9000") {
   return new TTSApi(httpClient);
 }
 
-// 创建 TTS API 实例，从环境变量获取 URL
+// 创建 TTS API 实例,从环境变量获取 URL
 const TTS_API_URL = import.meta.env.VITE_TTS_URL || "http://localhost:9000";
 export const ttsApi = createTTSApi(TTS_API_URL);
