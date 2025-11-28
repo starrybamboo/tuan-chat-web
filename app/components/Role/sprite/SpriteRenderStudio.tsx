@@ -1,6 +1,6 @@
 import type { RoleAvatar } from "api";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { RenderPreview } from "./RenderPreview";
+import { RenderPreview } from "../Preview/RenderPreview";
 import { SpriteSettingsPopup } from "./SpriteSettingsPopup";
 import { parseTransformFromAvatar } from "./utils";
 

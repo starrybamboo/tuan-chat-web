@@ -4,7 +4,7 @@ import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import {
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,

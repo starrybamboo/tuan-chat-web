@@ -1,44 +1,18 @@
 // 导入必要的类型和组件
-import type { Crop, PixelCrop } from "react-image-crop";
-import type { Transform } from "./TransformControl";
+import type { CropMode } from "@/utils/imgCropper/useCropPreview";
+import type { Transform } from "../sprite/TransformControl";
+
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
-import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
+import { isMobileScreen } from "@/utils/getScreenSize";
+import { useCropPreview } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
-import React, { useRef, useState } from "react";
-import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
-import { AvatarPreview } from "./AvatarPreview";
-import { RenderPreview } from "./RenderPreview";
-import { TransformControl } from "./TransformControl";
+import React, { useCallback, useRef, useState } from "react";
+import { ReactCrop } from "react-image-crop";
+import { AvatarPreview } from "../Preview/AvatarPreview";
+import { RenderPreview } from "../Preview/RenderPreview";
+import { TransformControl } from "../sprite/TransformControl";
 import "react-image-crop/dist/ReactCrop.css";
-
-/**
- * 创建并居中裁剪区域的辅助函数
- * @param mediaWidth - 媒体宽度
- * @param mediaHeight - 媒体高度
- * @param aspect - 宽高比
- * @returns 居中的裁剪区域配置
- */
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number,
-) {
-  return centerCrop(
-    makeAspectCrop(
-      {
-        unit: "%",
-        width: 100,
-      },
-      aspect,
-      mediaWidth,
-      mediaHeight,
-    ),
-    mediaWidth,
-    mediaHeight,
-  );
-}
 
 /**
  * 图片上传器组件的属性接口
@@ -76,10 +50,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
 
   // 图片相关状态
   const [imgSrc, setImgSrc] = useState("");
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [crop, setCrop] = useState<Crop>(); // 存储图片裁剪比例
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
 
   // 存储当前选择的图片文件
   const imgFile = useRef<File>(null);
@@ -87,8 +57,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // 提交状态
   const [isSubmiting, setisSubmiting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  // 当前头像URL状态
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
+
   // Transform控制状态
   const [transform, setTransform] = useState<Transform>({
     scale: 1,
@@ -98,8 +67,28 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     rotation: 0,
   });
 
-  // 移除未使用的状态
-  // const [firstStepImage, FirstStepImage] = useState<File | null>(null);
+  // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
+  const getCropMode = useCallback((): CropMode => {
+    return currentStep === 1 ? "sprite" : "avatar";
+  }, [currentStep]);
+
+  // 使用 useCropPreview hook 管理裁剪状态
+  const {
+    imgRef,
+    previewCanvasRef,
+    crop,
+    setCrop,
+    completedCrop,
+    previewDataUrl: currentAvatarUrl,
+    onImageLoad,
+    onCropChange,
+    onCropComplete,
+    reset: resetCropState,
+    getCroppedFile,
+  } = useCropPreview({
+    mode: getCropMode,
+    debounceMs: 100,
+  });
 
   /**
    * 重置所有状态到初始值
@@ -107,18 +96,11 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   function resetAllStates() {
     setCurrentStep(1);
     setImgSrc("");
-    setCrop(undefined);
-    setCompletedCrop(undefined);
     setisSubmiting(false);
     // 重置Transform状态
     setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 });
-    // 重置头像URL状态
-    setCurrentAvatarUrl("");
-    // 清除canvas内容
-    if (previewCanvasRef.current) {
-      const ctx = previewCanvasRef.current.getContext("2d");
-      ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-    }
+    // 重置裁剪状态
+    resetCropState();
     // 清除图片引用
     if (imgRef.current) {
       imgRef.current.src = "";
@@ -131,77 +113,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     imgFile.current = null;
   }
 
-  /**
-   * 图片加载完成后的处理函数
-   * 设置初始裁剪区域为居中1:1比例
-   */
-  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const { width, height } = e.currentTarget;
-
-    if (currentStep === 1) {
-      // 第一步：裁剪框占满整个立绘
-      const newCrop = {
-        unit: "%" as const,
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      };
-      setCrop(newCrop);
-      setCompletedCrop({
-        unit: "px",
-        x: 0,
-        y: 0,
-        width,
-        height,
-      });
-    }
-    else {
-      // 第二步：使用1:1宽高比
-      const aspect = 1;
-      const newCrop = centerAspectCrop(width, height, aspect);
-      setCrop(newCrop);
-      // 在图片加载完成时设置completedCrop
-      const cropWidth = (width * newCrop.width) / 100;
-      const cropHeight = (height * newCrop.height) / 100;
-      setCompletedCrop({
-        unit: "px",
-        x: (width - cropWidth) / 2,
-        y: (height - cropHeight) / 2,
-        width: cropWidth,
-        height: cropHeight,
-      });
-    }
-  }
-
-  // 使用防抖效果更新预览画布
-  useDebounceEffect(
-    async () => {
-      if (
-        completedCrop?.width
-        && completedCrop?.height
-        && imgRef.current
-        && previewCanvasRef.current
-      ) {
-        canvasPreview(
-          imgRef.current,
-          previewCanvasRef.current,
-          completedCrop,
-          1,
-          0,
-        );
-        // 在 canvas 更新后，更新头像URL状态
-        const timeoutId = setTimeout(() => {
-          if (previewCanvasRef.current) {
-            setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
-          }
-        }, 50);
-        return () => clearTimeout(timeoutId);
-      }
-    },
-    100,
-    [completedCrop],
-  );
+  // 使用防抖 Hook 更新预览画布（已集成在 useCropPreview 中）
 
   /**
    * 处理文件选择变化
@@ -250,9 +162,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
 
       if (currentStep === 1) {
         // 第一步：只保存裁剪后的图片用于第二步使用
-        const firstStepCroppedImage = await getCopperedImg();
-        // 移除未使用的状态设置
-        // setFirstStepImage(firstStepCroppedImage);
+        const firstStepCroppedImage = await getCroppedFile(`${fileName}-cropped.png`);
         // 将裁剪后的图片设置为第二步的原始图片
         const reader = new FileReader();
         reader.addEventListener("load", () => setImgSrc(reader.result?.toString() || ""));
@@ -268,7 +178,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           setDownloadUrl(downloadUrl);
         }
         if (setCopperedDownloadUrl) {
-          const copperedImgFile = await getCopperedImg();
+          const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
           copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
           setCopperedDownloadUrl(copperedDownloadUrl);
         }
@@ -294,58 +204,11 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   }
 
   /**
-   * 获取裁剪后的图片
-   * 将画布内容转换为文件对象
-   */
-  async function getCopperedImg() {
-    const image = imgRef.current;
-    const previewCanvas = previewCanvasRef.current;
-    if (!image || !previewCanvas || !completedCrop) {
-      throw new Error("Crop canvas does not exist");
-    }
-
-    // This will size relative to the uploaded image
-    // size. If you want to size according to what they
-    // are looking at on screen, remove scaleX + scaleY
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    const offscreen = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
-    const ctx = offscreen.getContext("2d");
-    if (!ctx) {
-      throw new Error("No 2d context");
-    }
-
-    ctx.drawImage(
-      previewCanvas,
-      0,
-      0,
-      previewCanvas.width,
-      previewCanvas.height,
-      0,
-      0,
-      offscreen.width,
-      offscreen.height,
-    );
-    // 可以用 { type: "image/jpeg", quality: <0 to 1> } 来压缩
-    const blob = await offscreen.convertToBlob({
-      type: "image/png",
-    });
-    return new File([blob], `${fileName}-coptered`, {
-      type: "image/png",
-      lastModified: Date.now(),
-    });
-  }
-
-  /**
    * 处理裁剪图片下载
    * 创建临时下载链接并触发下载
    */
   async function handleDownload() {
-    const copperedImgFile = await getCopperedImg();
+    const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
     const url = URL.createObjectURL(copperedImgFile);
     const a = document.createElement("a");
     a.href = url;
@@ -377,7 +240,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           resetAllStates();
           setIsOpen(false);
         }}
-        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+        fullScreen={isMobileScreen()}
       >
         <div className="flex items-center gap-8">
           <div className="w-full flex items-center">
@@ -420,8 +283,8 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                 <div className="w-full rounded-lg flex items-center justify-center">
                   <ReactCrop
                     crop={crop}
-                    onChange={(_, percentCrop) => setCrop(percentCrop)}
-                    onComplete={c => setCompletedCrop(c)}
+                    onChange={onCropChange}
+                    onComplete={onCropComplete}
                     aspect={currentStep === 2 ? 1 : undefined}// 第一步不限制比例，第二步固定1:1
                     minHeight={10}
                   >

@@ -1,6 +1,6 @@
 import type { RoleAvatar } from "api";
+import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { useEffect, useRef, useState } from "react";
-import { AvatarPreview } from "./AvatarPreview";
 import { SpriteListGrid } from "./SpriteListGrid";
 
 interface SpriteListTabProps {
