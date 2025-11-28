@@ -14,6 +14,7 @@ export {
   createCenteredSquareCrop,
   createFullImageCrop,
   cropImageToBlob,
+  getCroppedFileFromCanvas,
   getCroppedFileFromRefs,
   getCroppedImageFile,
   getCroppedImageFileFromImage,
@@ -22,15 +23,12 @@ export {
   percentToPixelCrop,
 } from "./cropUtils";
 
-// 图片预览
-export { imgPreview } from "./imgPreview";
-
 // 裁剪 Canvas 防抖更新 Hook
 export { useCropCanvas } from "./useCropCanvas";
 
-// 裁剪预览 Hook
+// 裁剪预览 Hook（完整状态管理）
 export { useCropPreview } from "./useCropPreview";
-export type { CropMode } from "./useCropPreview";
+export type { CropMode, ImageLoadContext } from "./useCropPreview";
 
 // 防抖 Hook
 export { useDebounceEffect } from "./useDebounceEffect";

@@ -6,7 +6,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { PopWindow } from "@/components/common/popWindow";
 import QuillEditor from "@/components/common/quillEditor/quillEditor";
 import RoleAvatar from "@/components/common/roleAvatar";
-import { CharacterCopper } from "@/components/Role/sprite/CharacterCopper";
+import { CharacterCopper } from "@/components/Role/sprite/CharacterCropper";
 
 import { SpriteRenderStudio } from "@/components/Role/sprite/SpriteRenderStudio";
 // External Libraries

@@ -9,7 +9,7 @@ import { tuanchat } from "api/instance";
 import { useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
-import { CharacterCopper } from "./sprite/CharacterCopper";
+import { CharacterCopper } from "./sprite/CharacterCropper";
 import { SpriteCropper } from "./sprite/SpriteCropper";
 
 interface CharacterAvatarProps {

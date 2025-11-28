@@ -215,3 +215,19 @@ export async function getCroppedUrlFromRefs(
   }
   return await getCroppedImageUrl(image, previewCanvas, completedCrop);
 }
+
+/**
+ * 从 Canvas Ref 直接导出裁剪后的图片文件
+ * 适用于 canvas 已经绑定且内容已绘制的场景
+ * @throws 如果 canvas 为空或尺寸为 0
+ */
+export async function getCroppedFileFromCanvas(
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+  fileName = "cropped.png",
+): Promise<File> {
+  const canvas = canvasRef.current;
+  if (!canvas || canvas.width === 0 || canvas.height === 0) {
+    throw new Error("Canvas is not ready");
+  }
+  return await getCroppedImageFile(canvas, fileName);
+}

@@ -1,18 +1,17 @@
+import type { ImageLoadContext } from "@/utils/imgCropper";
 import type { RoleAvatar } from "api";
-import type { Crop, PixelCrop } from "react-image-crop";
+import type { PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
 
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   canvasPreview,
   canvasToBlob,
-  createCenteredSquareCrop,
-  createFullImageCrop,
   getCroppedUrlFromRefs,
-  useCropCanvas,
+  useCropPreview,
 } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "./AvatarPreview";
 import { RenderPreview } from "./RenderPreview";
@@ -108,15 +107,8 @@ export function SpriteCropper({
 
   const currentUrl = getCurrentSpriteUrl();
   const currentAvatarId = getCurrentAvatarId();
-  // Canvas 引用
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
   // 横向滚动容器引用
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // 裁剪相关状态
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
 
   // 加载状态
   const [isProcessing, setIsProcessing] = useState(false);
@@ -139,9 +131,6 @@ export function SpriteCropper({
     rotation: 0,
   }));
 
-  // 当前头像URL状态 - 用于头像模式下的实时预览
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
-
   // 添加渲染key用于强制重新渲染
   const [renderKey, setRenderKey] = useState(0);
 
@@ -150,6 +139,32 @@ export function SpriteCropper({
 
   // 使用displayTransform作为实际的transform
   const transform = displayTransform;
+
+  // 图片加载后的扩展处理：解析 Transform（仅立绘模式需要）
+  const handleImageLoadExtend = useCallback((_e: React.SyntheticEvent<HTMLImageElement>, _context: ImageLoadContext) => {
+    if (!isAvatarMode) {
+      const currentSprite = filteredAvatars[currentSpriteIndex];
+      if (currentSprite) {
+        const newTransform = parseTransformFromAvatar(currentSprite);
+        setDisplayTransform(newTransform);
+      }
+    }
+  }, [isAvatarMode, filteredAvatars, currentSpriteIndex]);
+
+  // 使用 useCropPreview 管理裁剪状态
+  const {
+    imgRef,
+    previewCanvasRef,
+    crop,
+    completedCrop,
+    setCompletedCrop,
+    previewDataUrl: currentAvatarUrl,
+    onImageLoad,
+    onCropChange,
+  } = useCropPreview({
+    mode: useCallback(() => isAvatarMode ? "avatar" : "sprite", [isAvatarMode]),
+    onImageLoadExtend: handleImageLoadExtend,
+  });
 
   // 横向滚动容器的 wheel 事件处理（使用非 passive 监听器以支持 preventDefault）
   useEffect(() => {
@@ -178,16 +193,12 @@ export function SpriteCropper({
           0,
         );
 
-        if (isAvatarMode && previewCanvasRef.current) {
-          setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
-        }
-
         setRenderKey(prev => prev + 1);
       }, 50); // 增加延迟，确保布局完全稳定
 
       return () => clearTimeout(timeoutId);
     }
-  }, [operationMode, completedCrop, isAvatarMode, isCropModalOpen]);
+  }, [operationMode, completedCrop, isAvatarMode, isCropModalOpen, imgRef, previewCanvasRef]);
 
   /**
    * 处理应用变换（单体模式）
@@ -273,65 +284,6 @@ export function SpriteCropper({
   }
 
   /**
-   * 图片加载完成后的处理函数
-   * 设置初始裁剪区域
-   */
-  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    // 使用 naturalWidth/naturalHeight 获取图片原始尺寸，因为隐藏图片的 width/height 可能为 0
-    const width = e.currentTarget.naturalWidth;
-    const height = e.currentTarget.naturalHeight;
-
-    // 根据裁剪模式设置不同的初始裁剪区域
-    let newCrop: Crop;
-    let initialCompletedCrop: PixelCrop;
-
-    if (isAvatarMode) {
-      // 头像模式：使用1:1宽高比居中裁剪
-      const result = createCenteredSquareCrop(width, height);
-      newCrop = result.crop;
-      initialCompletedCrop = result.pixelCrop;
-    }
-    else {
-      // 立绘模式：覆盖整个原图
-      const result = createFullImageCrop(width, height);
-      newCrop = result.crop;
-      initialCompletedCrop = result.pixelCrop;
-    }
-
-    setCrop(newCrop);
-    setCompletedCrop(initialCompletedCrop);
-
-    if (imgRef.current && previewCanvasRef.current) {
-      canvasPreview(
-        imgRef.current,
-        previewCanvasRef.current,
-        initialCompletedCrop, // 使用代表全图的 crop 对象
-        1,
-        0,
-      );
-
-      // 在头像模式下，初始化头像URL状态
-      if (isAvatarMode) {
-        // 延迟一小段时间确保canvas已经更新
-        setTimeout(() => {
-          if (previewCanvasRef.current) {
-            setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
-          }
-        }, 50);
-      }
-    }
-
-    // 从当前头像数据中解析并设置Transform（仅立绘模式需要）
-    if (!isAvatarMode) {
-      const currentSprite = filteredAvatars[currentSpriteIndex];
-      if (currentSprite) {
-        const newTransform = parseTransformFromAvatar(currentSprite);
-        setDisplayTransform(newTransform);
-      }
-    }
-  }
-
-  /**
    * 将Img数据转换为Blob
    * 使用 Web Worker 优化,将图像处理转移到后台线程
    */
@@ -413,16 +365,6 @@ export function SpriteCropper({
       reader.readAsDataURL(blob);
     });
   }
-
-  // 使用防抖 Hook 更新预览画布
-  useCropCanvas({
-    imgRef,
-    previewCanvasRef,
-    completedCrop,
-    enableAvatarUrlUpdate: isAvatarMode,
-    onAvatarUrlUpdate: setCurrentAvatarUrl,
-    extraDeps: [isAvatarMode],
-  });
 
   /**
    * 处理下载裁剪图片
@@ -762,7 +704,7 @@ export function SpriteCropper({
             {currentUrl && (
               <ReactCrop
                 crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onChange={onCropChange}
                 onComplete={(_, percentCrop) => {
                   // 使用百分比裁剪计算基于原始图片尺寸的像素值
                   if (imgRef.current) {
@@ -981,7 +923,7 @@ export function SpriteCropper({
               {currentUrl && (
                 <ReactCrop
                   crop={crop}
-                  onChange={(_, percentCrop) => setCrop(percentCrop)}
+                  onChange={onCropChange}
                   onComplete={(_, percentCrop) => {
                     // 使用百分比裁剪计算基于原始图片尺寸的像素值
                     if (imgRef.current) {
