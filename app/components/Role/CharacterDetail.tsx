@@ -519,10 +519,8 @@ function CharacterDetailInner({
           {isQueryLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
-                  <div className="card-body">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="skeleton h-6 w-32"></div>
-                    </div>
+                  <div className="flex items-center gap-3 py-4 px-4">
+                    <div className="skeleton h-6 w-32"></div>
                   </div>
                 </div>
               )
