@@ -2,7 +2,7 @@ import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
-import Section from "../Section";
+import Section from "../Editors/Section";
 import { ConfigurationSection } from "./ConfigurationSection";
 import PerformanceEditor from "./PerformanceEditor";
 
@@ -31,6 +31,9 @@ export default function ExpansionModule({
 }: ExpansionModuleProps) {
   // 状态
   const selectedRuleId = ruleId ?? 1;
+
+  // 新增：当前选中的Tab，basic / ability / skill / act
+  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -154,9 +157,81 @@ export default function ExpansionModule({
     onLoadingChange?.(isLoading);
   }, [isLoading, onLoadingChange]);
 
+  // 渲染当前 Tab 内容
+  const renderActiveTabContent = () => {
+    if (!renderData)
+      return null;
+
+    if (activeTab === "basic") {
+      return (
+        <ConfigurationSection
+          key="basic"
+          // title="基础属性配置"
+          abilityData={abilityQuery.data?.basicDefault || {}}
+          ruleData={ruleDetailQuery.data?.basicDefault || {}}
+          localEdits={localEdits.basicDefault}
+          onDataChange={handleBasicChange}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+          fieldType="basic"
+          customLabel="基础属性"
+        />
+      );
+    }
+    if (activeTab === "ability") {
+      return (
+        <ConfigurationSection
+          key="ability"
+          // title="能力配置"
+          abilityData={abilityQuery.data?.abilityDefault || {}}
+          ruleData={ruleDetailQuery.data?.abilityFormula || {}}
+          localEdits={localEdits.abilityFormula}
+          onDataChange={handleAbilityChange}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+          fieldType="ability"
+          customLabel="能力"
+        />
+      );
+    }
+    if (activeTab === "skill") {
+      return (
+        <ConfigurationSection
+          key="skill"
+          // title="技能配置"
+          abilityData={abilityQuery.data?.skillDefault || {}}
+          ruleData={ruleDetailQuery.data?.skillDefault || {}}
+          localEdits={localEdits.skillDefault}
+          onDataChange={handleSkillChange}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+          fieldType="skill"
+          customLabel="技能"
+        />
+      );
+    }
+    // act
+    return (
+      <Section
+        key="act"
+        title="表演字段配置"
+        className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+        collapsible={false}
+      >
+        <PerformanceEditor
+          fields={renderData.actTemplate}
+          onChange={handleActTemplateChange}
+          abilityData={renderData.actTemplate}
+          roleId={roleId}
+          ruleId={selectedRuleId}
+        />
+      </Section>
+    );
+  };
+
   return (
     <>
-      <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-6">
+      <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-4">
         {/* 规则未创建状态 */}
         {isRuleNotCreated
           ? (
@@ -180,109 +255,77 @@ export default function ExpansionModule({
           : isLoading
             ? (
                 <div className="space-y-6">
-                  {/* 表演字段配置加载骨架 */}
-                  <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/4"></div>
-                      <div className="space-y-3">
-                        <div className="h-10 bg-base-300 rounded"></div>
-                        <div className="h-10 bg-base-300 rounded"></div>
-                        <div className="h-10 bg-base-300 rounded"></div>
+                  {/* 骨架屏 - 模拟扩展模块 */}
+                  <div className="flex gap-2">
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                  </div>
+                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                    <div className="card-body">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="skeleton h-6 w-32"></div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="skeleton h-20 w-full"></div>
                       </div>
                     </div>
-                  </Section>
-
-                  {/* 基础属性配置加载骨架 */}
-                  <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                      </div>
-                    </div>
-                  </Section>
-
-                  {/* 能力配置加载骨架 */}
-                  <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                      </div>
-                    </div>
-                  </Section>
-
-                  {/* 技能配置加载骨架 */}
-                  <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                    <div className="space-y-4 animate-pulse">
-                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                        <div className="h-16 bg-base-300 rounded"></div>
-                      </div>
-                      <div className="h-10 bg-base-300 rounded w-1/2"></div>
-                    </div>
-                  </Section>
+                  </div>
                 </div>
               )
             : (
                 renderData && (
-                  <>
-                    <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                      <PerformanceEditor
-                        fields={renderData.actTemplate}
-                        onChange={handleActTemplateChange}
-                        abilityData={renderData.actTemplate}
-                        roleId={roleId}
-                        ruleId={selectedRuleId}
-                      />
-                    </Section>
+                  <div className="space-y-4">
+                    {/* 顶部 Tab 按钮条，简单实现，不用 DaisyUI 的复杂结构 */}
+                    <div className="flex gap-2 rounded-lg">
+                      <button
+                        type="button"
+                        className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("basic")}
+                      >
+                        <span className="md:hidden">基础</span>
+                        <span className="hidden md:inline">基础配置</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("ability")}
+                      >
+                        <span className="md:hidden">能力</span>
+                        <span className="hidden md:inline">能力配置</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("skill")}
+                      >
+                        <span className="md:hidden">技能</span>
+                        <span className="hidden md:inline">技能配置</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("act")}
+                      >
+                        <span className="md:hidden">表演</span>
+                        <span className="hidden md:inline">表演配置</span>
+                      </button>
+                    </div>
 
-                    <ConfigurationSection
-                      title="基础属性配置"
-                      abilityData={abilityQuery.data?.basicDefault || {}}
-                      ruleData={ruleDetailQuery.data?.basicDefault || {}}
-                      localEdits={localEdits.basicDefault}
-                      onDataChange={handleBasicChange}
-                      roleId={roleId}
-                      ruleId={selectedRuleId}
-                      fieldType="basic"
-                      customLabel="基础属性"
-                    />
-
-                    <ConfigurationSection
-                      title="能力配置"
-                      abilityData={abilityQuery.data?.abilityDefault || {}}
-                      ruleData={ruleDetailQuery.data?.abilityFormula || {}}
-                      localEdits={localEdits.abilityFormula}
-                      onDataChange={handleAbilityChange}
-                      roleId={roleId}
-                      ruleId={selectedRuleId}
-                      fieldType="ability"
-                      customLabel="能力"
-                    />
-
-                    <ConfigurationSection
-                      title="技能配置"
-                      abilityData={abilityQuery.data?.skillDefault || {}}
-                      ruleData={ruleDetailQuery.data?.skillDefault || {}}
-                      localEdits={localEdits.skillDefault}
-                      onDataChange={handleSkillChange}
-                      roleId={roleId}
-                      ruleId={selectedRuleId}
-                      fieldType="skill"
-                      customLabel="技能"
-                    />
-
-                  </>
+                    {/* 当前 Tab 内容 */}
+                    <div className="mt-2">
+                      {renderActiveTabContent()}
+                    </div>
+                  </div>
                 )
               )}
       </div>

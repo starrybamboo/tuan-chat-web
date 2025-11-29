@@ -16,7 +16,13 @@ const ABILITY_MAP: { [key: string]: string } = {
   san: "san值",
   luck: "幸运",
   mp: "魔法",
+  魔法值上限: "mpm",
   体力: "hp",
+  体力值: "hp",
+  生命值: "hp",
+  最大生命值: "hpm",
+  理智值上限: "sanm",
+  理智上限: "sanm",
   cm: "克苏鲁神话",
   克苏鲁: "克苏鲁神话",
   计算机: "计算机使用",
@@ -37,12 +43,45 @@ const ABILITY_MAP: { [key: string]: string } = {
   侦察: "侦查",
 };
 
+// 因变量映射表
+// noinspection NonAsciiCharacters
+const DEPENDENT_VALUE_MAP: { [key: string]: (ability: RoleAbility) => { type: string; value: string | number } } = {
+  hpm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("(体型+体质)/10", ability)) }),
+  mpm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("(意志)/10", ability)) }),
+  sanm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("99-克苏鲁神话", ability)) }),
+  db: (ability: RoleAbility) => ({ type: "dice", value: (
+    () => {
+      const ref = UTILS.calculateExpression("敏捷+力量", ability);
+      if (ref < 65) {
+        return "-2";
+      }
+      else if (ref < 85) {
+        return "-1";
+      }
+      else if (ref < 125) {
+        return "0";
+      }
+      else if (ref < 165) {
+        return "1d4";
+      }
+      else if (ref < 205) {
+        return "1d6";
+      }
+      else {
+        const diceCount = Math.floor((ref - 205) / 80) + 2;
+        return `${diceCount}d6`;
+      }
+    }
+  )() }),
+};
+
 const executorCoc = new RuleNameSpace(
   0,
   "coc7",
   ["coc", "coc7th"],
   "COC7版规则的指令集",
   new Map<string, string>(Object.entries(ABILITY_MAP)),
+  new Map<string, (ability: RoleAbility) => { type: string; value: string | number }>(Object.entries(DEPENDENT_VALUE_MAP)),
 );
 
 export default executorCoc;
@@ -53,7 +92,7 @@ const cmdRc = new CommandExecutor(
   "进行技能检定",
   [".rc 侦查 50", ".rc 侦查 +10", ".rc p 手枪", ".rc 力量", ".rc 敏捷-10"],
   "rc [奖励/惩罚骰]? [技能名] [技能值]?",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
@@ -114,14 +153,14 @@ const cmdRc = new CommandExecutor(
       name = ABILITY_MAP[name.toLowerCase()];
     }
     if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic && unsignedNumbers.length === 0) {
-      cpi.sendMsg(prop, `未设置角色能力？`);
+      cpi.replyMessage(`未设置角色能力？`);
       return false;
     }
 
     let value = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, name) || "");
 
     if ((value === undefined || Number.isNaN(value)) && attr === undefined && !bonus) {
-      cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
+      cpi.replyMessage("错误：未找到技能或属性且未指定技能值");
       return false;
     }
 
@@ -147,10 +186,10 @@ const cmdRc = new CommandExecutor(
     }
     if (isForceToasted) {
       cpi.sendToast(result);
-      cpi.sendMsg(prop, `${mentioned[mentioned.length - 1].roleName}进行了一次暗骰`);
+      cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次暗骰`);
       return true;
     }
-    cpi.sendMsg(prop, result);
+    cpi.replyMessage(result);
     return true;
   },
 );
@@ -162,7 +201,7 @@ const cmdRcb = new CommandExecutor(
   "进行带奖励骰的技能检定",
   [".rcb 侦查", ".rcb 力量+10", ".rcb 力量90 2", ".rcb 手枪 3"],
   "rcb [技能名/技能值] [奖励骰数量]?", // 调整格式说明
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     args = args.map(arg => arg.toLowerCase());
     const isForceToasted = UTILS.doesHaveArg(args, "h");
@@ -210,7 +249,7 @@ const cmdRcb = new CommandExecutor(
 
     let [name] = names;
     if (!name && manualSkillValue === null) {
-      cpi.sendMsg(prop, "错误：缺少技能名称或手动技能值");
+      cpi.replyMessage("错误：缺少技能名称或手动技能值");
       return false;
     }
     // 处理属性简写映射（如ABILITY_MAP定义了“str”→“力量”）
@@ -235,14 +274,14 @@ const cmdRcb = new CommandExecutor(
         skillValue = manualSkillValue;
       }
       else {
-        cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
+        cpi.replyMessage("错误：未找到技能或属性且未指定技能值");
         return false;
       }
     }
     // 情况2：无技能名 → 必须有手动指定的技能值
     else {
       if (manualSkillValue === null) {
-        cpi.sendMsg(prop, "错误：缺少技能名称且未指定技能值");
+        cpi.replyMessage("错误：缺少技能名称且未指定技能值");
         return false;
       }
       skillValue = manualSkillValue;
@@ -264,10 +303,10 @@ const cmdRcb = new CommandExecutor(
 
     if (isForceToasted) {
       cpi.sendToast(result);
-      cpi.sendMsg(prop, `${mentioned[mentioned.length - 1].roleName}进行了一次带奖励骰的暗骰`);
+      cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次带奖励骰的暗骰`);
       return true;
     }
-    cpi.sendMsg(prop, result);
+    cpi.replyMessage(result);
     return true;
   },
 );
@@ -279,7 +318,7 @@ const cmdRcp = new CommandExecutor(
   "进行带惩罚骰的技能检定",
   [".rcp 侦查", ".rcp 力量-10", ".rcp 90 2", ".rcp 手枪 3"],
   "rcp [技能名/技能值] [惩罚骰数量]?",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     args = args.map(arg => arg.toLowerCase());
     const isForceToasted = UTILS.doesHaveArg(args, "h");
@@ -322,7 +361,7 @@ const cmdRcp = new CommandExecutor(
 
     let [name] = names;
     if (!name && manualSkillValue === null) {
-      cpi.sendMsg(prop, "错误：缺少技能名称或手动技能值");
+      cpi.replyMessage("错误：缺少技能名称或手动技能值");
       return false;
     }
     if (name && ABILITY_MAP[name.toLowerCase()]) {
@@ -343,13 +382,13 @@ const cmdRcp = new CommandExecutor(
         skillValue = manualSkillValue;
       }
       else {
-        cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
+        cpi.replyMessage("错误：未找到技能或属性且未指定技能值");
         return false;
       }
     }
     else {
       if (manualSkillValue === null) {
-        cpi.sendMsg(prop, "错误：缺少技能名称且未指定技能值");
+        cpi.replyMessage("错误：缺少技能名称且未指定技能值");
         return false;
       }
       skillValue = manualSkillValue;
@@ -369,10 +408,10 @@ const cmdRcp = new CommandExecutor(
 
     if (isForceToasted) {
       cpi.sendToast(result);
-      cpi.sendMsg(prop, `${mentioned[mentioned.length - 1].roleName}进行了一次带惩罚骰的暗骰`);
+      cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次带惩罚骰的暗骰`);
       return true;
     }
-    cpi.sendMsg(prop, result);
+    cpi.replyMessage(result);
     return true;
   },
 );
@@ -384,7 +423,7 @@ const cmdRh = new CommandExecutor(
   "进行基础暗骰（结果仅自己可见）",
   [".rh", ".rh 20", ".rh 3d6"], // 示例：默认D100 / D20 / 3个D6
   "rh [骰子格式]?", // 格式：可选，默认D100，支持“数字”（Dn）或“ndm”（n个m面骰）
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     // 解析骰子格式（默认D100）
     let diceCount = 1; // 骰子数量
     let diceSides = 100; // 骰子面数
@@ -402,7 +441,7 @@ const cmdRh = new CommandExecutor(
         diceSides = Math.max(2, Number(diceArg));
       }
       else {
-        cpi.sendMsg(prop, "错误：骰子格式无效，支持 .rh（默认D100）、.rh 20（D20）、.rh 3d6（3个6面骰）");
+        cpi.replyMessage("错误：骰子格式无效，支持 .rh（默认D100）、.rh 20（D20）、.rh 3d6（3个6面骰）");
         return false;
       }
     }
@@ -427,7 +466,7 @@ const cmdRh = new CommandExecutor(
 
     // 发送暗骰结果（仅发起者可见）
     cpi.sendToast(result); // 假设sendToast是私聊/提示框发送
-    cpi.sendMsg(prop, `${mentioned[0].roleName}进行了一次暗骰`); // 公开频道提示
+    cpi.replyMessage(`${mentioned[0].roleName}进行了一次暗骰`); // 公开频道提示
     return true;
   },
 );
@@ -439,7 +478,7 @@ const cmdRch = new CommandExecutor(
   "进行技能/属性暗骰检定（无奖惩骰，结果仅自己可见）",
   [".rch 侦查", ".rch 力量+10", ".rch 90", ".rch 力量 90"],
   "rch [技能名] [技能值]?",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     args = args.map(arg => arg.toLowerCase());
 
@@ -486,7 +525,7 @@ const cmdRch = new CommandExecutor(
 
     let [name] = names;
     if (!name && manualSkillValue === null) {
-      cpi.sendMsg(prop, "错误：缺少技能名称或手动技能值");
+      cpi.replyMessage("错误：缺少技能名称或手动技能值");
       return false;
     }
     if (name && ABILITY_MAP[name.toLowerCase()]) {
@@ -507,13 +546,13 @@ const cmdRch = new CommandExecutor(
         skillValue = manualSkillValue;
       }
       else {
-        cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
+        cpi.replyMessage("错误：未找到技能或属性且未指定技能值");
         return false;
       }
     }
     else {
       if (manualSkillValue === null) {
-        cpi.sendMsg(prop, "错误：缺少技能名称且未指定技能值");
+        cpi.replyMessage("错误：缺少技能名称且未指定技能值");
         return false;
       }
       skillValue = manualSkillValue;
@@ -531,7 +570,7 @@ const cmdRch = new CommandExecutor(
     const result = buildCheckResult(name, rollResult, skillValue);
 
     cpi.sendToast(`暗骰检定结果：${result}`);
-    cpi.sendMsg(prop, `${mentioned[0].roleName}进行了一次暗骰检定`);
+    cpi.replyMessage(`${mentioned[0].roleName}进行了一次暗骰检定`);
     return true;
   },
 );
@@ -543,7 +582,7 @@ const cmdEn = new CommandExecutor(
   "进行成长检定",
   [".en 教育"],
   "",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
@@ -573,14 +612,14 @@ const cmdEn = new CommandExecutor(
       name = ABILITY_MAP[name.toLowerCase()];
     }
     if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic && unsignedNumbers.length === 0) {
-      cpi.sendMsg(prop, `未设置角色能力？`);
+      cpi.replyMessage(`未设置角色能力？`);
       return false;
     }
 
     let value = Number.parseInt(UTILS.getRoleAbilityValue(curAbility, name) || "");
 
     if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
-      cpi.sendMsg(prop, `错误：未找到技能或属性`);
+      cpi.replyMessage(`错误：未找到技能或属性`);
       return false;
     }
 
@@ -606,7 +645,7 @@ const cmdEn = new CommandExecutor(
       cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
       result += `\n${name}成长：${value} -> ${value + improveAmount}`;
     }
-    cpi.sendMsg(prop, result);
+    cpi.replyMessage(result);
     return true;
   },
 );
@@ -618,7 +657,7 @@ const cmdSc = new CommandExecutor(
   "进行理智检定",
   [".sc 1/1d6 : 成功扣1，失败扣1d6"],
   ".sc [成功扣除]/[失败扣除]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 解析参数
     const [lossExpr, currentSanArg] = args;
@@ -633,12 +672,12 @@ const cmdSc = new CommandExecutor(
     }
     else {
       if (!curAbility?.ability) {
-        cpi.sendMsg(prop, `未设置角色能力`);
+        cpi.replyMessage(`未设置角色能力`);
         return false;
       }
       currentSan = Number.parseInt(curAbility.ability["san值"]) || Number.parseInt(curAbility.ability.san);
       if (currentSan === undefined) {
-        cpi.sendMsg(prop, `未找到角色的san值`);
+        cpi.replyMessage(`未找到角色的san值`);
         return false;
       }
     }
@@ -646,7 +685,7 @@ const cmdSc = new CommandExecutor(
     // 解析损失表达式
     const [successLossStr, failureLossStr] = lossExpr.split("/");
     if (!successLossStr || !failureLossStr) {
-      cpi.sendMsg(prop, `损失表达式格式错误，应为[成功损失]/[失败损失]`);
+      cpi.replyMessage(`损失表达式格式错误，应为[成功损失]/[失败损失]`);
       return false;
     }
 
@@ -687,7 +726,7 @@ const cmdSc = new CommandExecutor(
     }
 
     if (!curAbility.ability) {
-      cpi.sendMsg(prop, `未设置角色san值`);
+      cpi.replyMessage(`未设置角色san值`);
       return false;
     }
     // 更新角色卡中的san值
@@ -706,7 +745,7 @@ const cmdSc = new CommandExecutor(
     else if (actualLoss >= 5) {
       res += `\n注意：单次失去理智值达到5点，请进行智力检定，若检定成功角色将陷入疯狂。疯狂后请使用\`.ti\`或\`.li\`指令抽取临时症状或总结症状。`;
     }
-    cpi.sendMsg(prop, res);
+    cpi.replyMessage(res);
     return true;
   },
 );
@@ -718,7 +757,7 @@ const cmdTi = new CommandExecutor(
   "抽取临时症状",
   [".ti"],
   "",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const boutsOfMadnessForRealTimeList = [
       {
         name: "失忆",
@@ -751,7 +790,7 @@ const cmdTi = new CommandExecutor(
     ];
     const res = boutsOfMadnessForRealTimeList[rollDice(boutsOfMadnessForRealTimeList.length) - 1];
     const timeOfDuration = rollDice(10);
-    cpi.sendMsg(prop, `疯狂发作-即时症状：\n${res.name}\n持续时间：${timeOfDuration}轮\n${res.desc}`);
+    cpi.replyMessage(`疯狂发作-即时症状：\n${res.name}\n持续时间：${timeOfDuration}轮\n${res.desc}`);
     return true;
   },
 );
@@ -763,7 +802,7 @@ const cmdLi = new CommandExecutor(
   "抽取总结症状",
   [".li"],
   "",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const boutsOfMadnessForSummaryList = [
       { name: "失忆", desc: "调查员恢复神志时身处陌生地点，连自己是谁都不记得。记忆会随时间流逝逐渐恢复。" },
       {
@@ -802,7 +841,7 @@ const cmdLi = new CommandExecutor(
     ];
     const res = boutsOfMadnessForSummaryList[rollDice(boutsOfMadnessForSummaryList.length) - 1];
     const timeOfDuration = rollDice(10);
-    cpi.sendMsg(prop, `疯狂发作-总结症状：\n${res.name}\n已略过时间：${timeOfDuration}小时\n${res.desc}`);
+    cpi.replyMessage(`疯狂发作-总结症状：\n${res.name}\n已略过时间：${timeOfDuration}小时\n${res.desc}`);
     return true;
   },
 );
@@ -814,7 +853,7 @@ const cmdSt = new CommandExecutor(
   "属性设置",
   [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
   ".st [属性名][属性值] / .st show [属性名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, _prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
     // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }
@@ -901,9 +940,8 @@ const cmdSt = new CommandExecutor(
       });
     // 拼接成带花括号和换行的格式
     const updateDetails = `{\n${changeEntries.join("\n")}\n}`;
-
     cpi.setRoleAbilityList(role.roleId, curAbility);
-    cpi.sendMsg(_prop, `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
+    cpi.replyMessage(`属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
     // cpi.sendToast( `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
     return true;
   },

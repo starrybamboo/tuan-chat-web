@@ -1,10 +1,13 @@
+import { useIsMobile } from "@/utils/getScreenSize";
+import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
-import AddFieldForm from "../shared/AddFieldForm";
-import PerformanceField from "../shared/PerformanceField";
+
+import AddFieldForm from "../Editors/AddFieldForm";
+import PerformanceField from "../Editors/PerformanceField";
 
 interface PerformanceEditorProps {
   fields: Record<string, string>;
@@ -33,6 +36,8 @@ export default function PerformanceEditor({
   const [isEditing, setIsEditing] = useState(false);
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
+  // 是否移动端
+  const isMobile = useIsMobile();
 
   const longFieldKeys = [""];
   const shortFields = Object.keys(abilityData || fields)
@@ -107,7 +112,6 @@ export default function PerformanceEditor({
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-          ⚡
           基本信息
         </h3>
         <button
@@ -145,48 +149,68 @@ export default function PerformanceEditor({
         </button>
       </div>
 
-      {/* 表演字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {shortFields.map(key => (
-          <div key={key}>
-            {isEditing
-              ? (
-                  <PerformanceField
-                    fieldKey={key}
-                    value={fields[key] || ""}
-                    onValueChange={handleValueChange}
-                    onDelete={handleDeleteField}
-                    onRename={handleRename}
-                    placeholder="请输入表演描述..."
-                  />
-                )
-              : (
-                  // 非编辑模式下的UI
-                  <div className="card bg-base-100 shadow-sm p-2 h-full">
-                    <div className="divider">{key}</div>
-                    <div className="text-base-content mt-0.5 flex justify-center p-2">
-                      <div className="text-left break-all">
-                        {fields[key] || <span className="text-base-content/50">未设置</span>}
+      {/* 表演字段区域 - 响应式布局 */}
+      <div
+        className="grid gap-4 grid-cols-2 md:grid-cols-4"
+        style={{
+          gridAutoFlow: "dense",
+          gridAutoRows: "minmax(80px, auto)",
+        }}
+      >
+        {shortFields.map((key) => {
+          const { colSpan, rowSpan } = isMobile
+            ? getGridSpanMobile(fields[key])
+            : getGridSpan(fields[key]);
+
+          return (
+            <div
+              key={key}
+              style={{
+                gridColumn: `span ${colSpan}`,
+                gridRow: `span ${rowSpan}`,
+              }}
+            >
+              {isEditing
+                ? (
+                    <PerformanceField
+                      fieldKey={key}
+                      value={fields[key] || ""}
+                      onValueChange={handleValueChange}
+                      onDelete={handleDeleteField}
+                      onRename={handleRename}
+                      placeholder="请输入表演描述..."
+                      rowSpan={rowSpan}
+                    />
+                  )
+                : (
+                    <div className="card bg-base-100 shadow-sm p-2 h-full">
+                      <div className="divider">{key}</div>
+                      <div className="text-base-content mt-0.5 flex justify-center p-2">
+                        <div className="text-left break-all">
+                          {fields[key] || <span className="text-base-content/50">未设置</span>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-          </div>
-        ))}
+                  )}
+            </div>
+          );
+        })}
 
-        {/* 添加新字段区域 - 作为grid的一部分 */}
+        {/* 添加新字段区域 - 占满整行 */}
         {isEditing && (
-          <AddFieldForm
-            onAddField={handleAddField}
-            existingKeys={shortFields}
-            layout="stacked"
-            placeholder={{
-              key: "字段名（如：性格特点、背景故事等）",
-              value: "请输入表演描述...",
-            }}
-            title="添加新表演字段"
-            showTitle={true}
-          />
+          <div className="col-span-full">
+            <AddFieldForm
+              onAddField={handleAddField}
+              existingKeys={shortFields}
+              layout="stacked"
+              placeholder={{
+                key: "字段名（如：性格特点、背景故事等）",
+                value: "请输入表演描述...",
+              }}
+              title="添加新表演字段"
+              showTitle={true}
+            />
+          </div>
         )}
       </div>
     </div>

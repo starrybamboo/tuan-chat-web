@@ -21,6 +21,14 @@ export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
+  ttsEngine: "index" | "gpt-sovits"; // TTS 引擎选择
+  gptSovitsConfig?: {
+    apiUrl: string;
+    refAudioPath: string;
+    promptText: string;
+    promptLang: string;
+    textLang: string;
+  };
 }
 /**
  * 渲染时候所必要的一些信息
@@ -79,7 +87,7 @@ export default function RenderWindow() {
       setChatHistoryMap(map);
     };
     getAllMessages();
-  }, [chatHistory, rooms]);
+  }, [rooms]);
   const roleIds = useMemo(() => {
     const roleIds = new Set<number>();
     Object.values(chatHistoryMap)
@@ -113,6 +121,7 @@ export default function RenderWindow() {
     spritePosition: "left",
     useVocal: false,
     skipRegex: "", // 初始化 skipRegex
+    ttsEngine: "index", // 默认使用 IndexTTS2
   });
   const [excludedRoomIds, setExcludedRoomIds] = useState<Set<number>>(new Set());
   const [roleAudios, setRoleAudios] = useState<{ [roleId: number]: File }>({});

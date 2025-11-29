@@ -1,4 +1,4 @@
-import AttributeEditor from "../components/AttributeEditor";
+import AttributeEditor from "./AttributeEditor";
 
 interface AttributeStepProps {
   title: string;

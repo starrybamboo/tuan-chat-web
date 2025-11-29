@@ -40,5 +40,9 @@ export type UserInfoResponse = {
      * 用户邮箱
      */
     email?: string;
+    /**
+     * 扩展信息
+     */
+    extra?: Record<string, string>;
 };
 

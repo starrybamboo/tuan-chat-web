@@ -1,6 +1,6 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
-import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
+import type { ChatMessageRequest, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
 import executorFu from "@/components/common/dicer/cmdExe/cmdExeFu";
@@ -13,6 +13,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
+import { useSendMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 
@@ -62,22 +63,17 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const roomId = Number(urlRoomId);
 
   const role = useGetRoleQuery(roleId).data?.data;
-
   const defaultDice = useRef(100);
 
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
+  const sendMessageMutation = useSendMessageMutation(roomId); // 发送消息
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
-
-  const messageRequest: ChatMessageRequest = {
-    roomId,
-    messageType: 1,
-    content: "",
-    extra: {},
-  };
+  const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
+  const dicePrivateMessageQueue: string[] = []; // 记录本次指令骰娘的私聊消息队列
 
   useEffect(() => {
     try {
@@ -102,6 +98,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       description: role?.description ?? "",
       avatarId: role?.avatarId ?? -1,
       state: 0,
+      type: 0,
       modelName: role?.modelName ?? "",
       speakerName: role?.speakerName ?? "",
       createTime: "",
@@ -119,28 +116,21 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         console.error(`获取角色能力失败：${e instanceof Error ? e.message : String(e)},roleId:${roleId},ruleId:${ruleId}`);
         return {};
       }
-      // const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
-      // const abilityList = abilityQuery.data ?? [];
-      // const ability = abilityList.find(a => a.ruleId === ruleId);
-      // return ability || {};
     };
     // 获取所有可能用到的角色能力
     const mentionedRoles = new Map<number, RoleAbility>();
     for (const role of mentioned) {
-      mentionedRoles.set(role.userId, role);
       const ability = await getRoleAbility(role.roleId);
       mentionedRoles.set(role.roleId, ability);
     }
 
     // 定义cpi接口
-    const sendMsg = (prop: ExecutorProp, message: string) => {
-      messageRequest.extra = {
-        result: message,
-      };
-      messageRequest.content = prop.originMessage;
-      messageRequest.roleId = curRoleId;
-      messageRequest.avatarId = curAvatarId;
-      tuanchat.chatController.sendMessageAiResponse(messageRequest);
+    const replyMessage = (message: string) => {
+      dicerMessageQueue.push(message);
+    };
+
+    const replyPrivateMessage = (message: string) => {
+      dicePrivateMessageQueue.push(message);
     };
 
     const sendToast = (message: string) => {
@@ -149,20 +139,23 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
     const getRoleAbilityList = (roleId: number): RoleAbility => {
       if (mentionedRoles.has(roleId)) {
-        return mentionedRoles.get(roleId) as RoleAbility;
+        const ability = mentionedRoles.get(roleId) as RoleAbility;
+        ability.roleId = ability.roleId ?? roleId;
+        ability.ruleId = ability.ruleId ?? ruleId;
+        return ability;
       }
-      return {};
+      return { roleId, ruleId };
     };
 
     const setRoleAbilityList = (roleId: number, ability: RoleAbility) => {
-      if (!mentionedRoles.has(roleId)) {
-        return;
-      }
+      ability.roleId = ability.roleId ?? roleId;
+      ability.ruleId = ability.ruleId ?? ruleId;
       mentionedRoles.set(roleId, ability);
     };
 
     const CmdPreInterface = {
-      sendMsg,
+      replyMessage,
+      replyPrivateMessage,
       sendToast,
       getRoleAbilityList,
       setRoleAbilityList,
@@ -174,37 +167,94 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       return;
     }
     try {
-      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface);
     }
     catch (err1) {
       try {
-        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface);
       }
       catch (err2) {
         sendToast(`执行错误：${err1 instanceof Error ? err1.message : String(err1)} 且 ${err2 instanceof Error ? err2.message : String(err2)}`);
       }
     }
-    // 遍历mentionedRoles，更新角色能力
-    for (const [_id, ability] of mentionedRoles) {
-      if (ability) {
-        updateAbilityMutation.mutate({
-          roleId,
-          ruleId,
-          act: ability.act,
-          basic: ability.basic,
-          ability: ability.ability,
-          skill: ability.skill,
-        });
+    // 遍历mentionedRoles，更新或创建角色能力
+    for (const [id, ability] of mentionedRoles) {
+      // 构造请求payload时，确保所有字段为非null对象，避免后端校验失败
+      const payload = {
+        roleId: id,
+        ruleId,
+        act: ability?.act ?? {},
+        basic: ability?.basic ?? {},
+        ability: ability?.ability ?? {},
+        skill: ability?.skill ?? {},
+        record: ability?.record ?? {},
+        extra: ability?.extra ?? {},
+      };
+
+      // 如果后端返回了 abilityId，说明已存在记录，调用更新接口；否则调用创建接口
+      if (ability && (ability.abilityId ?? 0) > 0) {
+        updateAbilityMutation.mutate(payload);
       }
       else {
-        setAbilityMutation.mutate({
-          roleId,
-          ruleId,
-          act: {},
-          basic: {},
-          ability: {},
-          skill: {},
-        });
+        setAbilityMutation.mutate(payload);
+      }
+    }
+    // 发送消息队列
+    if (dicerMessageQueue.length > 0) {
+      // 当消息队列不为空时，先发送指令消息。
+      const messageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        content: executorProp.originMessage,
+        roleId: curRoleId,
+        avatarId: curAvatarId,
+        extra: {},
+      };
+      const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
+
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+      const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+      const dicerMessageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        roleId: dicerRoleId,
+        avatarId: avatars[0]?.avatarId ?? 0,
+        content: "",
+        replayMessageId: optMsgRes.data?.messageId ?? undefined,
+        extra: {},
+      };
+      for (const message of dicerMessageQueue) {
+        dicerMessageRequest.content = message;
+        await sendMessageMutation.mutateAsync(dicerMessageRequest);
+      }
+    }
+
+    // 发送私聊消息队列
+    if (dicePrivateMessageQueue.length > 0) {
+      const messageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        content: "",
+        extra: {},
+        roleId: curRoleId,
+        avatarId: curAvatarId,
+      };
+      const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
+
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+      const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+      const dicerMessageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        roleId: dicerRoleId,
+        avatarId: avatars[0]?.avatarId ?? 0,
+        content: "",
+        replayMessageId: optMsgRes.data?.messageId ?? undefined,
+        extra: {},
+      };
+      for (const message of dicePrivateMessageQueue) {
+        dicerMessageRequest.content = message;
+        await sendMessageMutation.mutateAsync(dicerMessageRequest);
       }
     }
   }

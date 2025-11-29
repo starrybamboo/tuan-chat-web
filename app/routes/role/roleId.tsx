@@ -47,7 +47,62 @@ export default function RoleDetailPage() {
 
   const currentRole = roles.find(r => r.id === numericRoleId);
   if (!currentRole) {
-    return <div>角色未找到或正在加载...</div>;
+    // 角色数据加载中，显示骨架屏
+    return (
+      <div className="p-4">
+        {/* 桌面端头部骨架 */}
+        <div className="hidden md:flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-4">
+            <div className="skeleton h-12 w-24 rounded-md"></div>
+            <div>
+              <div className="skeleton h-8 w-48 mb-2"></div>
+              <div className="skeleton h-4 w-32"></div>
+            </div>
+          </div>
+          <div className="skeleton h-12 w-20 rounded-md"></div>
+        </div>
+
+        <div className="hidden md:block divider"></div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* 左侧骨架 */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="card bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
+              <div className="card-body p-4">
+                <div className="flex justify-center mt-6 mb-2">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="skeleton w-24 h-24 rounded-full"></div>
+                    <div className="skeleton h-4 w-20"></div>
+                  </div>
+                </div>
+                <div className="divider"></div>
+                <div className="skeleton h-4 w-full mb-2"></div>
+                <div className="skeleton h-4 w-3/4"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* 右侧骨架 */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="flex gap-2">
+              <div className="skeleton h-10 w-20 rounded-lg"></div>
+              <div className="skeleton h-10 w-20 rounded-lg"></div>
+              <div className="skeleton h-10 w-20 rounded-lg"></div>
+            </div>
+            <div className="card bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+              <div className="card-body">
+                <div className="skeleton h-6 w-32 mb-4"></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="skeleton h-10 w-full"></div>
+                  <div className="skeleton h-10 w-full"></div>
+                </div>
+                <div className="skeleton h-20 w-full mt-4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handleSave = (updatedRole: Role) => {

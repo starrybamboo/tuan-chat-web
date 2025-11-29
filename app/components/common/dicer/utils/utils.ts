@@ -1,7 +1,18 @@
+import type { RoomContextType } from "@/components/chat/roomContext";
+
 import { AliasMap } from "@/components/common/dicer/utils/aliasMap";
 
+import { tuanchat } from "../../../../../api/instance";
+
+const DEFAULT_DICER_ROLE_ID = 2;
+
 const UTILS = {
-  /** 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false */
+  /**
+   * 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false
+   * @param args 参数列表
+   * @param arg 要检查的参数
+   * @returns 是否包含该参数
+   */
   doesHaveArg: (args: string[], arg: string) => {
     // 转化为小写并去除空格
     const argsFmt = args.map(arg => arg.trim().toLowerCase());
@@ -12,6 +23,15 @@ const UTILS = {
       args.splice(index, 1);
     }
     return res;
+  },
+
+  /**
+   * 延迟指定毫秒数
+   * @param ms 延迟的毫秒数
+   * @returns 返回一个Promise，在指定时间后resolve
+   */
+  sleep: (ms: number): Promise<void> => {
+    return new Promise(resolve => setTimeout(resolve, ms));
   },
 
   /**
@@ -90,6 +110,12 @@ const UTILS = {
   getAlias(alias: string, ruleCode: string) {
     return AliasMap.getInstance().getAlias(alias, ruleCode);
   },
+  /**
+   * 获取骰子角色ID
+   * @param roomContext 房间上下文对象
+   * @returns 骰子角色ID
+   */
+  getDicerRoleId,
 };
 
 export default UTILS;
@@ -366,4 +392,47 @@ function evaluatePostfix(postfix: (number | string)[]): number {
   }
 
   return stack[0];
+}
+
+/**
+ * 获取骰子角色ID
+ * @param roomContext 房间上下文对象
+ * @returns 骰子角色ID
+ */
+async function getDicerRoleIdRaw(roomContext: RoomContextType): Promise<number> {
+  // 首先尝试获取角色绑定的骰娘角色id
+  let dicerRoleId = Number((await tuanchat.roleController.getRole(roomContext.curRoleId ?? 0)).data?.extra?.dicerRoleId) ?? Number.NaN;
+  if (!Number.isNaN(dicerRoleId)) {
+    return dicerRoleId;
+  }
+  // 如果没有绑定，则尝试从用户配置中获取骰娘角色id
+  dicerRoleId = Number((await tuanchat.userController.getUserInfo(roomContext.curMember?.userId ?? 0)).data?.extra?.dicerRoleId) ?? Number.NaN;
+  if (!Number.isNaN(dicerRoleId)) {
+    return dicerRoleId;
+  }
+  // 如果没有绑定，则尝试从空间配置中获取骰娘角色id
+  const spaceInfo = await tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0);
+  const space = spaceInfo.data;
+  const extra: Record<string, string> = JSON.parse(space?.extra ?? "{}");
+  dicerRoleId = Number(extra?.dicerRoleId) ?? DEFAULT_DICER_ROLE_ID;
+  if (Number.isNaN(dicerRoleId)) {
+    return DEFAULT_DICER_ROLE_ID;
+  }
+  return dicerRoleId;
+}
+
+async function getDicerRoleId(roomContext: RoomContextType): Promise<number> {
+  // 检查当前骰娘id是否有效
+  try {
+    const dicerRoleId = await getDicerRoleIdRaw(roomContext);
+    const dicerRoleApiResult = await tuanchat.roleController.getRole(dicerRoleId);
+    if (dicerRoleApiResult.data?.roleName) {
+      return dicerRoleId;
+    }
+    return DEFAULT_DICER_ROLE_ID;
+  }
+  catch (error) {
+    console.error("getDicerRoleId error", error);
+    return DEFAULT_DICER_ROLE_ID;
+  }
 }
