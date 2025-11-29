@@ -1,3 +1,5 @@
+import { useIsMobile } from "@/utils/getScreenSize";
+import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 import AddFieldForm from "../../Editors/AddFieldForm";
 import EditableField from "../../Editors/EditableField";
 import PerformanceField from "../../Editors/PerformanceField";
@@ -19,6 +21,8 @@ export default function AttributeEditor({
   onDeleteField,
   onRenameField,
 }: AttributeEditorProps) {
+  const isMobile = useIsMobile();
+
   // 添加新字段
   const handleAddField = (key: string, value: string) => {
     onAddField?.(key, value);
@@ -46,31 +50,54 @@ export default function AttributeEditor({
 
         {title === "角色表演能力"
           ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                {Object.entries(attributes).map(([key, value]) => (
-                  <PerformanceField
-                    key={key}
-                    fieldKey={key}
-                    value={value}
-                    onValueChange={onChange}
-                    onDelete={handleDeleteField}
-                    onRename={handleRenameField}
-                    placeholder="请输入表演描述..."
-                  />
-                ))}
+              <div
+                className="grid gap-4 grid-cols-2 md:grid-cols-4 mt-4"
+                style={{
+                  gridAutoFlow: "dense",
+                  gridAutoRows: "minmax(80px, auto)",
+                }}
+              >
+                {Object.entries(attributes).map(([key, value]) => {
+                  const { colSpan, rowSpan } = isMobile
+                    ? getGridSpanMobile(value)
+                    : getGridSpan(value);
 
-                {/* 添加新表演字段 */}
-                <div className="form-control w-full">
-                  <AddFieldForm
-                    onAddField={handleAddField}
-                    existingKeys={Object.keys(attributes)}
-                    layout="stacked"
-                    title="添加新表演字段"
-                    placeholder={{
-                      key: "字段名（如：性格特点、背景故事等）",
-                      value: "请输入表演描述...",
-                    }}
-                  />
+                  return (
+                    <div
+                      key={key}
+                      className="h-full"
+                      style={{
+                        gridColumn: `span ${colSpan}`,
+                        gridRow: `span ${rowSpan}`,
+                      }}
+                    >
+                      <PerformanceField
+                        fieldKey={key}
+                        value={value}
+                        onValueChange={onChange}
+                        onDelete={handleDeleteField}
+                        onRename={handleRenameField}
+                        placeholder="请输入表演描述..."
+                        rowSpan={rowSpan}
+                      />
+                    </div>
+                  );
+                })}
+
+                {/* 添加新表演字段 - 占满整行 */}
+                <div className="col-span-full">
+                  <div className="form-control w-full">
+                    <AddFieldForm
+                      onAddField={handleAddField}
+                      existingKeys={Object.keys(attributes)}
+                      layout="stacked"
+                      title="添加新表演字段"
+                      placeholder={{
+                        key: "字段名（如：性格特点、背景故事等）",
+                        value: "请输入表演描述...",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )
