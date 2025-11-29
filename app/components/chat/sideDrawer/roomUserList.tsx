@@ -47,7 +47,7 @@ export default function RoomUserList() {
           </button>
         )}
       </div>
-      <MemberLists members={members} className={getScreenSize() === "sm" ? "w-full" : "w-60"}></MemberLists>
+      <MemberLists members={members} className={getScreenSize() === "sm" ? "w-full" : "w-60"} isSpace={false}></MemberLists>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
         <AddMemberWindow handleAddMember={handleAddMember} showSpace={true}></AddMemberWindow>
       </PopWindow>

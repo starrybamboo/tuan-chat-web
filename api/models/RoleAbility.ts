@@ -25,12 +25,9 @@ export type RoleAbility = {
      * 技能字段，不能为空或null，必须为单层
      */
     skill?: Record<string, string>;
-    /**
-     * 记录字段，不能为空或null，必须为单层
-     */
     record?: Record<string, string>;
     /**
-     * 额外字段，不能为空或null，必须为单层
+     * 角色能力扩展属性
      */
     extra?: Record<string, string>;
 };

@@ -15,7 +15,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
 import {
@@ -41,7 +41,7 @@ function Header() {
  * @param props.setUseChatBubbleStyle 设置气泡样式的函数
  * @param props.virtuosoRef 虚拟列表的 ref
  */
-export default function ChatFrame(props: {
+function ChatFrame(props: {
   useChatBubbleStyle: boolean;
   setUseChatBubbleStyle: (value: boolean | ((prev: boolean) => boolean)) => void;
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
@@ -762,3 +762,5 @@ export default function ChatFrame(props: {
     </div>
   );
 }
+
+export default memo(ChatFrame);
