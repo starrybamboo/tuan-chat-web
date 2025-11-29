@@ -120,7 +120,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     // 获取所有可能用到的角色能力
     const mentionedRoles = new Map<number, RoleAbility>();
     for (const role of mentioned) {
-      mentionedRoles.set(role.userId, role);
       const ability = await getRoleAbility(role.roleId);
       mentionedRoles.set(role.roleId, ability);
     }
@@ -140,15 +139,17 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
     const getRoleAbilityList = (roleId: number): RoleAbility => {
       if (mentionedRoles.has(roleId)) {
-        return mentionedRoles.get(roleId) as RoleAbility;
+        const ability = mentionedRoles.get(roleId) as RoleAbility;
+        ability.roleId = ability.roleId ?? roleId;
+        ability.ruleId = ability.ruleId ?? ruleId;
+        return ability;
       }
-      return {};
+      return { roleId, ruleId };
     };
 
     const setRoleAbilityList = (roleId: number, ability: RoleAbility) => {
-      if (!mentionedRoles.has(roleId)) {
-        return;
-      }
+      ability.roleId = ability.roleId ?? roleId;
+      ability.ruleId = ability.ruleId ?? ruleId;
       mentionedRoles.set(roleId, ability);
     };
 
@@ -176,27 +177,26 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         sendToast(`执行错误：${err1 instanceof Error ? err1.message : String(err1)} 且 ${err2 instanceof Error ? err2.message : String(err2)}`);
       }
     }
-    // 遍历mentionedRoles，更新角色能力
-    for (const [_id, ability] of mentionedRoles) {
-      if (ability) {
-        updateAbilityMutation.mutate({
-          roleId,
-          ruleId,
-          act: ability.act,
-          basic: ability.basic,
-          ability: ability.ability,
-          skill: ability.skill,
-        });
+    // 遍历mentionedRoles，更新或创建角色能力
+    for (const [id, ability] of mentionedRoles) {
+      // 构造请求payload时，确保所有字段为非null对象，避免后端校验失败
+      const payload = {
+        roleId: id,
+        ruleId,
+        act: ability?.act ?? {},
+        basic: ability?.basic ?? {},
+        ability: ability?.ability ?? {},
+        skill: ability?.skill ?? {},
+        record: ability?.record ?? {},
+        extra: ability?.extra ?? {},
+      };
+
+      // 如果后端返回了 abilityId，说明已存在记录，调用更新接口；否则调用创建接口
+      if (ability && (ability.abilityId ?? 0) > 0) {
+        updateAbilityMutation.mutate(payload);
       }
       else {
-        setAbilityMutation.mutate({
-          roleId,
-          ruleId,
-          act: {},
-          basic: {},
-          ability: {},
-          skill: {},
-        });
+        setAbilityMutation.mutate(payload);
       }
     }
     // 发送消息队列
