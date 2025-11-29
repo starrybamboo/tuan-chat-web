@@ -7,6 +7,7 @@ interface PerformanceFieldProps {
   onDelete: (key: string) => void;
   onRename: (oldKey: string, newKey: string) => void;
   placeholder?: string;
+  rowSpan?: number; // 用于根据网格跨行数决定高度
 }
 
 /**
@@ -20,6 +21,7 @@ export default function PerformanceField({
   onDelete,
   onRename,
   placeholder = "请输入描述...",
+  rowSpan = 1,
 }: PerformanceFieldProps) {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [tempFieldKey, setTempFieldKey] = useState("");
@@ -84,7 +86,8 @@ export default function PerformanceField({
 
       <label className="textarea w-full flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0 h-full">
         <textarea
-          className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-24 h-full resize-none field-sizing-content"
+          className="textarea grow focus:outline-none border-none outline-none bg-transparent h-full resize-none"
+          style={{ minHeight: `${rowSpan * 6}rem` }}
           placeholder={placeholder}
           value={value === "0" ? "" : String(value ?? "")}
           onChange={e => onValueChange(fieldKey, e.target.value)}
