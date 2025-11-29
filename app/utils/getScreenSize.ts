@@ -50,16 +50,15 @@ export function isMobileScreen() {
 /**
  * 响应式 Hook：监听是否为移动端
  * 会在屏幕尺寸变化时自动更新
+ * 注意：初始值固定为 false 以避免 SSR hydration mismatch
  */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined")
-      return false;
-    return window.matchMedia("(max-width: 767px)").matches;
-  });
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
+    // 初始化时立即设置正确的值
+    setIsMobile(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
@@ -71,16 +70,15 @@ export function useIsMobile() {
 /**
  * 响应式 Hook：监听是否为中等屏幕及以上
  * 会在屏幕尺寸变化时自动更新
+ * 注意：初始值固定为 true 以避免 SSR hydration mismatch
  */
 export function useIsMdScreen() {
-  const [isMd, setIsMd] = useState(() => {
-    if (typeof window === "undefined")
-      return true;
-    return window.matchMedia("(min-width: 768px)").matches;
-  });
+  const [isMd, setIsMd] = useState(true);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 768px)");
+    // 初始化时立即设置正确的值
+    setIsMd(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMd(e.matches);
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
