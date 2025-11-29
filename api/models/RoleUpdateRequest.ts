@@ -35,5 +35,9 @@ export type RoleUpdateRequest = {
      * 角色类型,0:角色,1:骰娘
      */
     type?: number;
+    /**
+     * 角色扩展属性
+     */
+    extra?: Record<string, string>;
 };
 

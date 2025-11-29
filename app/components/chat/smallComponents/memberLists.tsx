@@ -224,6 +224,7 @@ export default function MemberLists({ members, className, isSpace }: { members: 
     const onRevokePlayer = () => revokePlayerMutation.mutate({ spaceId, uidList: [member.userId ?? 0] });
     const onTransfer = () => transferLeader.mutate({ spaceId, newLeaderId: member.userId ?? 0 });
     return { onRemove, onSetPlayer, onRevokePlayer, onTransfer };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, spaceId, mutateRoomMember, mutateSpaceMember, setPlayerMutation, revokePlayerMutation, transferLeader]);
 
   return (

@@ -46,7 +46,7 @@ export type UserRole = {
     /**
      * 角色扩展属性
      */
-    extra?: Record<string, string>
+    extra?: Record<string, string>;
     createTime?: string;
     updateTime?: string;
     role?: boolean;

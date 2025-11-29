@@ -1,4 +1,4 @@
-import type { ApiResultRoleResponse } from "../../../../api";
+import type { ApiResultUserRole } from "../../../../api";
 import { useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../../../../api/instance";
 
@@ -10,7 +10,7 @@ export default function useGetRoleSmartly() {
   return async (roleId: number) => {
     if (roleId <= 0)
       return null;
-    const roleResponse = await queryClient.fetchQuery<ApiResultRoleResponse>({
+    const roleResponse = await queryClient.fetchQuery<ApiResultUserRole>({
       queryKey: ["getRole", roleId],
       queryFn: () => tuanchat.roleController.getRole(roleId),
       staleTime: 5 * 60 * 1000, // 5 分钟

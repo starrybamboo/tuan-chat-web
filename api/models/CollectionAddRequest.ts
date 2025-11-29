@@ -13,7 +13,7 @@ export type CollectionAddRequest = {
     /**
      * 资源类型
      */
-    resourceType: number; //实际上是byte
+    resourceType: string;
     /**
      * 用户收藏注释
      */

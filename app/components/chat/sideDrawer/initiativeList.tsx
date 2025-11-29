@@ -59,6 +59,7 @@ export default function InitiativeList() {
             onClick={handleAdd}
             className="btn btn-info"
             disabled={!newItem.name || Number.isNaN(Number(newItem.value))}
+            type="button"
           >
             添加
           </button>
@@ -97,6 +98,7 @@ export default function InitiativeList() {
                   onClick={() => handleDelete(index)}
                   className="btn btn-circle btn-ghost btn-sm text-error opacity-0 group-hover:opacity-100 transition-opacity"
                   title="删除"
+                  type="button"
                 >
                   ×
                 </button>

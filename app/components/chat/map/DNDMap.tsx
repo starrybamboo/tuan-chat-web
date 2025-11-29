@@ -211,8 +211,8 @@ export default function DNDMap() {
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId;
   const { data: roomRolesData } = useGetRoomRoleQuery(roomId ?? -1);
-  const roomRoles = roomRolesData?.data ?? [];
-  const uploadUtil = new UploadUtils();
+  const roomRoles = useMemo(() => roomRolesData?.data ?? [], [roomRolesData]);
+  const uploadUtil = useMemo(() => new UploadUtils(), []);
 
   // --- 响应式状态管理 ---
   const isCompactMode = getScreenSize() === "sm";

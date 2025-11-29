@@ -27,7 +27,7 @@ import {
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 /**
@@ -60,18 +60,18 @@ export default function ChatPage() {
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
 
-  const setActiveSpaceId = (spaceId: number | null) => {
+  const setActiveSpaceId = useCallback((spaceId: number | null) => {
     setStoredChatIds({ spaceId, roomId: null });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
-  };
-  const setActiveRoomId = (roomId: number | null) => {
+  }, [isOpenLeftDrawer, navigate, searchParam, setStoredChatIds, screenSize]);
+  const setActiveRoomId = useCallback((roomId: number | null) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${newSearchParams.toString()}`);
-  };
+  }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   useEffect(() => {
     if (!isPrivateChatMode)
@@ -87,10 +87,10 @@ export default function ChatPage() {
     }
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // 在空间模式下，切换空间后默认选中第一个房间
     (!isPrivateChatMode && rooms && !urlRoomId) && setActiveRoomId(rooms[0]?.roomId ?? null);
-  }, [rooms]);
+  }, [isPrivateChatMode, rooms, setActiveRoomId, urlRoomId]);
 
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);

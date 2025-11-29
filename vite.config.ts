@@ -16,7 +16,7 @@ export default defineConfig({
     reactRouter(),
     tsconfigPaths(),
     babel({
-      filter: /app\/(routes\/role|components\/Role).*\.[jt]sx?$/,
+      filter: /app\/(routes\/role|components\/Role|components\/chat).*\.[jt]sx?$/,
       babelConfig: {
         presets: ["@babel/preset-typescript"], // if you use TypeScript
         plugins: [

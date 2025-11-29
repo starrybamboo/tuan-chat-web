@@ -1,4 +1,4 @@
-import type { RoleResponse } from "../../../api";
+import type { UserRole } from "../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
 import SearchedMessage from "@/components/chat/smallComponents/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
@@ -19,7 +19,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
   const debouncedSearchText = useDebounce<string>(searchText, { wait: 300 });
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [roles, setRoles] = useState<RoleResponse[]>([]);
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const getRoleSmartly = useGetRoleSmartly();
 
   useEffect(() => {
