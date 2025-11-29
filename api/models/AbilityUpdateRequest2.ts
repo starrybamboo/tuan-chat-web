@@ -28,5 +28,9 @@ export type AbilityUpdateRequest2 = {
      * 记录字段，不能为null，必须为单层
      */
     record?: Record<string, string>;
+    /**
+     * 额外字段，不能为null，必须为单层
+     */
+    extra?: Record<string, string>;
 };
 

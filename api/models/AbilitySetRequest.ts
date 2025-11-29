@@ -34,5 +34,9 @@ export type AbilitySetRequest = {
      * 记录字段
      */
     record?: Record<string, string>;
+    /**
+     * 额外字段
+     */
+    extra?: Record<string, string>;
 };
 

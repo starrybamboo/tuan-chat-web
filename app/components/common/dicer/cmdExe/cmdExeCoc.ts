@@ -16,7 +16,13 @@ const ABILITY_MAP: { [key: string]: string } = {
   san: "san值",
   luck: "幸运",
   mp: "魔法",
+  魔法值上限: "mpm",
   体力: "hp",
+  体力值: "hp",
+  生命值: "hp",
+  最大生命值: "hpm",
+  理智值上限: "sanm",
+  理智上限: "sanm",
   cm: "克苏鲁神话",
   克苏鲁: "克苏鲁神话",
   计算机: "计算机使用",
@@ -37,12 +43,45 @@ const ABILITY_MAP: { [key: string]: string } = {
   侦察: "侦查",
 };
 
+// 因变量映射表
+// noinspection NonAsciiCharacters
+const DEPENDENT_VALUE_MAP: { [key: string]: (ability: RoleAbility) => { type: string; value: string | number } } = {
+  hpm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("(体型+体质)/10", ability)) }),
+  mpm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("(意志)/10", ability)) }),
+  sanm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("99-克苏鲁神话", ability)) }),
+  db: (ability: RoleAbility) => ({ type: "dice", value: (
+    () => {
+      const ref = UTILS.calculateExpression("敏捷+力量", ability);
+      if (ref < 65) {
+        return "-2";
+      }
+      else if (ref < 85) {
+        return "-1";
+      }
+      else if (ref < 125) {
+        return "0";
+      }
+      else if (ref < 165) {
+        return "1d4";
+      }
+      else if (ref < 205) {
+        return "1d6";
+      }
+      else {
+        const diceCount = Math.floor((ref - 205) / 80) + 2;
+        return `${diceCount}d6`;
+      }
+    }
+  )() }),
+};
+
 const executorCoc = new RuleNameSpace(
   0,
   "coc7",
   ["coc", "coc7th"],
   "COC7版规则的指令集",
   new Map<string, string>(Object.entries(ABILITY_MAP)),
+  new Map<string, (ability: RoleAbility) => { type: string; value: string | number }>(Object.entries(DEPENDENT_VALUE_MAP)),
 );
 
 export default executorCoc;
@@ -814,7 +853,7 @@ const cmdSt = new CommandExecutor(
   "属性设置",
   [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
   ".st [属性名][属性值] / .st show [属性名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, _prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
     // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }

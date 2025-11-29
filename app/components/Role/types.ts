@@ -10,6 +10,7 @@ export type Role = {
   modelName?: string;
   speakerName?: string;
   voiceUrl?: string;
+  extra?: Record<string, string>;
   // 规则ID（后端规则主键）
   ruleId?: number;
   // 角色属性数据

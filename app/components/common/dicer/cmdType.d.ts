@@ -79,6 +79,8 @@ interface RoleAbility { // eslint-disable-line ts/consistent-type-definitions
   basic?: Record<string, string>;
   ability?: Record<string, string>;
   skill?: Record<string, string>;
+  record?: Record<string, string>;
+  extra?: Record<string, string>;
 }
 
 interface UserRole { // eslint-disable-line ts/consistent-type-definitions
@@ -91,6 +93,7 @@ interface UserRole { // eslint-disable-line ts/consistent-type-definitions
   type: number;
   modelName?: string;
   speakerName?: string;
+  extra?: Record<string, string>;
   createTime?: string;
   updateTime?: string;
   voiceUrl?: string;
