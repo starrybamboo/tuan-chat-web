@@ -11,7 +11,7 @@ import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo, useState } from "react";
 // import { useParams } from "react-router";
-import { getEntityListByType } from "../../../../detail/moduleUtils";
+import { getEntityListByType, mapEntitiesByVersionId } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
 
@@ -77,21 +77,64 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
       return { initialNodes: [], initialEdges: [] };
     }
 
-    const sceneMap = moduleInfo?.data?.moduleMap?.sceneMap || {};
-    const enhancedScenes = getEntityListByType(moduleInfo, "scene");
-    const scenes = Object.keys(sceneMap);
+    // 1. rawSceneMap: 后端返回的原始场景关系图，key 是场景的 versionId，value 是该场景指向的下一批场景的 versionId 数组
+    //    数据结构: Record<string, number[]>，例如 { "101": [102, 103], "102": [104] }
+    //    作用: 描述场景之间的有向连接关系（剧情走向）
+    const rawSceneMap = moduleInfo?.data?.moduleMap?.sceneMap || {};
 
-    // 生成节点（先不设置 position）
-    const nodes: Node[] = scenes.map((sceneName) => {
-      const sceneData = enhancedScenes.find(scene => scene.name === sceneName);
+    // 2. enhancedScenes: 所有场景类型的实体列表，每个元素包含 id、versionId、name、entityInfo 等完整字段
+    //    作用: 提供场景的详细数据（名称、描述、包含的角色/物品/地点等），用于填充节点展示内容
+    const enhancedScenes = getEntityListByType(moduleInfo, "scene");
+
+    // 3. sceneMapByVersionId: 将场景实体按 versionId 建立索引，方便后续通过 versionId 快速查找对应实体
+    //    数据结构: Record<string, StageEntityResponse>，例如 { "101": {id:1, versionId:101, name:"开场",...}, ... }
+    //    作用: 从 versionId 映射到完整场景实体对象，用于获取场景名称和详情
+    const sceneMapByVersionId = mapEntitiesByVersionId(enhancedScenes);
+
+    // 4. normalizedSceneMap: 将 rawSceneMap 的 key 和 value 全部转成字符串，适配 ReactFlow 要求
+    //    ReactFlow 节点/边的 id 必须是字符串类型，这里统一转换避免类型不一致导致的渲染问题
+    //    数据结构: Record<string, string[]>，例如 { "101": ["102", "103"], "102": ["104"] }
+    const normalizedSceneMap = Object.entries(rawSceneMap).reduce<Record<string, string[]>>(
+      (acc, [source, targets]) => {
+        const normalizedSource = source.toString();
+        acc[normalizedSource] = (targets || []).map(target => target.toString());
+        return acc;
+      },
+      {},
+    );
+
+    // 5. sceneIds / sceneIdList: 收集所有需要渲染的场景 versionId（字符串形式）
+    //    包含两部分来源：
+    //    a) normalizedSceneMap 中出现的所有 source 和 target（确保有连线关系的场景都有节点）
+    //    b) enhancedScenes 中的所有场景（确保即使没有连线的孤立场景也会显示）
+    //    作用: 作为节点生成的完整清单，避免遗漏任何场景
+    const sceneIds = new Set<string>();
+    Object.entries(normalizedSceneMap).forEach(([source, targets]) => {
+      sceneIds.add(source);
+      targets.forEach(target => sceneIds.add(target));
+    });
+    enhancedScenes.forEach((scene) => {
+      if (scene.versionId !== undefined && scene.versionId !== null) {
+        sceneIds.add(scene.versionId.toString());
+      }
+    });
+    const sceneIdList = Array.from(sceneIds);
+
+    // 6. 生成 ReactFlow 节点：遍历 sceneIdList，通过 sceneMapByVersionId 查找实体详情
+    //    节点 id 使用 versionId（字符串），展示的 label 使用场景的 name 字段
+    //    这样即使场景改名，versionId 不变，节点引用关系依然稳定
+    const nodes: Node[] = sceneIdList.map((sceneVersionId, index) => {
+      const sceneData = sceneMapByVersionId[sceneVersionId];
+      const sceneName = sceneData?.name || "未命名场景";
       return {
-        id: sceneName,
+        id: sceneVersionId,
         type: "location",
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
           moduleInfo: moduleInfo.data?.responses,
           label: sceneName,
-          idx: scenes.indexOf(sceneName),
+          idx: index,
+          versionId: sceneVersionId,
           description: sceneData?.entityInfo?.description || "",
           tip: sceneData?.entityInfo?.tip || "",
           scenelocations: sceneData?.entityInfo?.locations || [],
@@ -116,8 +159,8 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
     // 生成边
     const edges: Edge[] = [];
     let edgeId = 1;
-    Object.entries(sceneMap).forEach(([source, targets]) => {
-      (targets as string[]).forEach((target: string) => {
+    Object.entries(normalizedSceneMap).forEach(([source, targets]) => {
+      targets.forEach((target) => {
         dagreGraph.setEdge(source, target);
         edges.push({
           id: `e${edgeId++}`,
@@ -153,8 +196,8 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
 
     const simpleEdges: { source: string; target: string }[] = [];
 
-    Object.entries(sceneMap).forEach(([source, targets]) => {
-      (targets as string[]).forEach((target: string) => {
+    Object.entries(normalizedSceneMap).forEach(([source, targets]) => {
+      targets.forEach((target) => {
         simpleEdges.push({ source, target });
         edges.push({
           id: `e${edgeId++}`,

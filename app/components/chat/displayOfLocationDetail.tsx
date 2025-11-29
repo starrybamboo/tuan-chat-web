@@ -1,5 +1,5 @@
 import type { ClueMessage } from "api/models/ClueMessage";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useLocationDetailQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";

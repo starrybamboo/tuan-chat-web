@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ImgUploaderWithCopper } from "./imgUploaderWithCopper";
+import { ImgUploaderWithCopper } from "./imgUploaderWithCropper";
 import { ResourceSelectorModal } from "./ResourceSelectorModal";
 
 interface ImgUploaderWithSelectorProps {
