@@ -75,8 +75,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
                 <span className="font-mono text-blue-600 dark:text-blue-400">
                   示例：
                 </span>
-                {commands.get(cmd)?.examples.map((example, index) => (
-                  <div key={`example-${index}`}>
+                {commands.get(cmd)?.examples.map(example => (
+                  <div key={`example-${example}`}>
                     <span className="ml-2 text-sm"><code>{example}</code></span>
                   </div>
                 ))}
