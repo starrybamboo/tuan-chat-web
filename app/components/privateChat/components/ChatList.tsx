@@ -1,8 +1,11 @@
+import type { MessageDirectType } from "../Left​​ChatList​​";
+import { useMemo } from "react";
 import ChatItem from "./ChatItem";
 
 export default function ChatListItem({
   isSmallScreen,
   realTimeContacts,
+  sortedRealTimeMessages,
   updateReadlinePosition,
   setIsOpenLeftDrawer,
   unreadMessageNumbers,
@@ -12,6 +15,7 @@ export default function ChatListItem({
 }: {
   isSmallScreen: boolean;
   realTimeContacts: number[];
+  sortedRealTimeMessages: [string, MessageDirectType[]][];
   friendUserInfos: any[];
   updateReadlinePosition: (id: number) => void;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
@@ -20,8 +24,12 @@ export default function ChatListItem({
   deletedThisContactId: (contactId: number) => void;
   openContextMenu: (x: number, y: number, id: number) => void;
 }) {
+  const messagesMap = useMemo(() => {
+    return new Map(sortedRealTimeMessages.map(([id, msgs]) => [Number(id), msgs]));
+  }, [sortedRealTimeMessages]);
+
   return (
-    <div className="p-2 pt-4 flex flex-col gap-2">
+    <div className="p-2 pt-4 flex flex-col gap-2 w-full">
       {
         realTimeContacts.length === 0
           ? (
@@ -31,19 +39,28 @@ export default function ChatListItem({
               </div>
             )
           : (
-              realTimeContacts.map(contactId => (
-                <ChatItem
-                  key={contactId}
-                  id={contactId}
-                  isSmallScreen={isSmallScreen}
-                  unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
-                  currentContactUserId={currentContactUserId}
-                  setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                  updateReadlinePosition={updateReadlinePosition}
-                  deletedContactId={deletedThisContactId}
-                  openContextMenu={openContextMenu}
-                />
-              ))
+              realTimeContacts.map((contactId) => {
+                const messages = messagesMap.get(contactId) || [];
+                // 过滤掉 messageType === 10000 的消息
+                const validMessages = messages.filter(m => m.messageType !== 10000);
+                // 获取最新的一条消息
+                const lastMessage = validMessages.length > 0 ? validMessages[0] : null;
+
+                return (
+                  <ChatItem
+                    key={contactId}
+                    id={contactId}
+                    lastMessage={lastMessage}
+                    isSmallScreen={isSmallScreen}
+                    unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
+                    currentContactUserId={currentContactUserId}
+                    setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                    updateReadlinePosition={updateReadlinePosition}
+                    deletedContactId={deletedThisContactId}
+                    openContextMenu={openContextMenu}
+                  />
+                );
+              })
             )
       }
     </div>

@@ -4,8 +4,24 @@ import { useGetUserInfoQuery } from "api/queryHooks";
 import { useRef } from "react";
 import { useNavigate } from "react-router";
 
+interface MessageDirectType {
+  messageId?: number;
+  userId?: number;
+  syncId?: number;
+  senderId?: number;
+  receiverId?: number;
+  content?: string;
+  messageType?: number;
+  replyMessageId?: number;
+  status?: number;
+  extra?: Record<string, any>;
+  createTime?: string;
+  updateTime?: string;
+}
+
 export default function ChatItem({
   id,
+  lastMessage,
   isSmallScreen,
   unreadMessageNumber,
   currentContactUserId,
@@ -15,6 +31,7 @@ export default function ChatItem({
   openContextMenu,
 }: {
   id: number;
+  lastMessage: MessageDirectType | null;
   isSmallScreen: boolean;
   unreadMessageNumber: number;
   currentContactUserId: number | null;
@@ -81,98 +98,71 @@ export default function ChatItem({
     }
   }
 
+  const getMessagePreview = (msg: MessageDirectType | null) => {
+    if (!msg)
+      return "";
+    if (msg.messageType === 2)
+      return "[图片]";
+    if (msg.messageType === 3)
+      return "[文件]";
+    return msg.content || "";
+  };
+
   return (
-    <>
+    <div className="relative group w-full">
       <button
-        className={`btn btn-ghost flex justify-start w-full gap-2 ${currentContactUserId === id ? "bg-info-content/30" : ""}`}
+        className={`btn btn-ghost flex flex-row flex-nowrap items-center justify-start w-full h-16 px-2 gap-3 ${currentContactUserId === id ? "bg-base-200" : ""}`}
         type="button"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onClick={handleClick}
       >
-        <div className="indicator">
-          <div className="avatar mask mask-squircle w-8">
-            <img
-              src={userInfo?.avatar}
-              alt={userInfo?.username}
-            />
-          </div>
-          {showedUnreadMessageNumber > 0 && (
-            <span className="indicator-item badge badge-xs bg-error">
-              {showedUnreadMessageNumber > 99 ? "99+" : showedUnreadMessageNumber}
-            </span>
-          )}
+        <div className="avatar mask mask-squircle w-10 h-10 flex-shrink-0">
+          <img
+            src={userInfo?.avatar}
+            alt={userInfo?.username}
+          />
         </div>
-        <div className="flex-1 flex flex-col gap-1 justify-center min-w-0 relative">
-          <div className="flex items-center ">
-            <span className="truncate">
+
+        <div className="flex flex-col flex-1 min-w-0 h-full justify-center gap-1">
+          <div className="flex items-center w-full min-w-0">
+            <span className="font-bold truncate text-base min-w-0 text-left">
               {userInfoQuery.isLoading
-                ? (
-                    <div className="skeleton h-4 w-20"></div>
-                  )
+                ? <div className="skeleton h-4 w-20"></div>
                 : (userInfo?.username || `用户${id}`)}
             </span>
           </div>
-          <div
-            className="flex items-center justify-center absolute w-6 h-6 -right-2 -top-0.5 rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-200"
-            onClick={handleDeletePC}
-          >
-            <XMarkICon />
+
+          <div className="flex items-center w-full gap-2">
+            <span className="text-sm text-base-content/60 truncate text-left flex-1 min-w-0">
+              {getMessagePreview(lastMessage)}
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {showedUnreadMessageNumber > 0 && (
+                <div className="badge badge-sm badge-error">
+                  {showedUnreadMessageNumber > 99 ? "99+" : showedUnreadMessageNumber}
+                </div>
+              )}
+              {/* {lastMessage?.createTime && (
+                <span className="text-xs text-base-content/50 whitespace-nowrap group-hover:opacity-0 transition-opacity duration-200">
+                  {formatTimeSmartly(lastMessage.createTime)}
+                </span>
+              )} */}
+            </div>
           </div>
         </div>
       </button>
-    </>
+
+      {/* Delete button for PC - shows on hover */}
+      {!isSmallScreen && (
+        <div
+          className="absolute right-2 top-3 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer hover:bg-base-300 z-10"
+          onClick={handleDeletePC}
+        >
+          <XMarkICon className="w-4 h-4 text-base-content/50" />
+        </div>
+      )}
+    </div>
   );
 }
-
-// <ChatPageContextMenu
-// contextMenu={contextMenu}
-// unreadMessagesNumber={unreadMessagesNumber}
-// onClose={closeContextMenu}
-// />
-
-// import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../api/hooks/messageSessionQueryHooks";
-
-// interface ChatPageContextMenuProps {
-//   contextMenu: { x: number; y: number; roomId: number } | null;
-//   unreadMessagesNumber: Record<number, number>;
-//   onClose: () => void;
-// }
-
-// export default function ChatPageContextMenu({
-//   contextMenu,
-//   unreadMessagesNumber,
-//   onClose,
-// }: ChatPageContextMenuProps) {
-//   const subscribeRoomMutation = useSubscribeRoomMutation();
-//   const unsubscribeRoomMutation = useUnsubscribeRoomMutation();
-
-//   if (!contextMenu)
-//     return null;
-
-//   const isSubscribed = unreadMessagesNumber[contextMenu.roomId] !== undefined;
-
-//   return (
-//     <div
-//       className="fixed bg-base-100 shadow-lg rounded-md z-40"
-//       style={{ top: contextMenu.y, left: contextMenu.x }}
-//       onClick={e => e.stopPropagation()}
-//     >
-//       <ul className="menu p-2 w-50">
-//         {/* --- Notification Settings Menu --- */}
-//         <li
-//           className="relative group"
-//           onClick={() => {
-//             isSubscribed ? unsubscribeRoomMutation.mutate(contextMenu.roomId) : subscribeRoomMutation.mutate(contextMenu.roomId);
-//             onClose();
-//           }}
-//         >
-//           <div className="flex justify-between items-center w-full">
-//             <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
-//           </div>
-//         </li>
-//       </ul>
-//     </div>
-//   );
-// }

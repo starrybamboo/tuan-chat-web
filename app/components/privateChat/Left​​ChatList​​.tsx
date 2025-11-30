@@ -98,6 +98,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
               <ChatList
                 isSmallScreen={isSmallScreen}
                 realTimeContacts={realTimeContacts}
+                sortedRealTimeMessages={sortedRealTimeMessages}
                 friendUserInfos={friendUserInfos}
                 updateReadlinePosition={updateReadlinePosition}
                 setIsOpenLeftDrawer={setIsOpenLeftDrawer}
