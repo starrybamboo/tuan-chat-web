@@ -69,6 +69,8 @@ type UseRealtimeRenderReturn = {
   updateRooms: (rooms: Room[]) => void;
   /** 跳转到指定消息 */
   jumpToMessage: (messageId: number, roomId?: number) => boolean;
+  /** 刷新场景（让 WebGAL 重新加载文件内容） */
+  refreshScene: (roomId?: number, jumpToEnd?: boolean) => boolean;
 };
 
 export function useRealtimeRender({
@@ -364,6 +366,15 @@ export function useRealtimeRender({
     return rendererRef.current.jumpToMessage(messageId, roomId);
   }, [status]);
 
+  // 刷新场景（让 WebGAL 重新加载文件内容）
+  const refreshScene = useCallback((roomId?: number, jumpToEnd: boolean = true): boolean => {
+    if (!rendererRef.current || status !== "connected") {
+      console.warn("实时渲染器未就绪，无法刷新场景");
+      return false;
+    }
+    return rendererRef.current.refreshScene(roomId, jumpToEnd);
+  }, [status]);
+
   // 自动启动（如果 enabled 为 true）
   useEffect(() => {
     if (enabled && status === "idle") {
@@ -403,6 +414,7 @@ export function useRealtimeRender({
     updateAvatarCache,
     updateRooms,
     jumpToMessage,
+    refreshScene,
   }), [
     status,
     initProgress,
@@ -422,6 +434,7 @@ export function useRealtimeRender({
     updateAvatarCache,
     updateRooms,
     jumpToMessage,
+    refreshScene,
   ]);
 
   return result;

@@ -772,6 +772,54 @@ export class RealtimeRenderer {
   }
 
   /**
+   * 刷新指定房间的场景
+   * 用于在不开启实时同步的情况下，手动让 WebGAL 重新加载场景文件
+   * @param roomId 房间 ID（可选，默认使用当前房间）
+   * @param jumpToEnd 是否跳转到场景末尾（默认 true）
+   * @returns 是否刷新成功
+   */
+  public refreshScene(roomId?: number, jumpToEnd: boolean = true): boolean {
+    const targetRoomId = roomId ?? this.currentRoomId;
+    if (!targetRoomId) {
+      console.warn("[RealtimeRenderer] 无法确定目标房间ID");
+      return false;
+    }
+
+    const context = this.sceneContextMap.get(targetRoomId);
+    if (!context) {
+      console.warn(`[RealtimeRenderer] 房间 ${targetRoomId} 的场景上下文不存在`);
+      return false;
+    }
+
+    const sceneName = this.getSceneName(targetRoomId);
+    const lineNumber = jumpToEnd ? context.lineNumber : 1;
+    // 使用 forceReload = true 强制 WebGAL 重新加载场景
+    const msg = getAsyncMsg(`${sceneName}.txt`, lineNumber, true);
+    const msgStr = JSON.stringify(msg);
+
+    if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
+      this.syncSocket.send(msgStr);
+      return true;
+    }
+    else {
+      console.warn("[RealtimeRenderer] WebSocket 未连接，无法刷新场景");
+      return false;
+    }
+  }
+
+  /**
+   * 获取场景的当前行数
+   * @param roomId 房间 ID
+   */
+  public getSceneLineCount(roomId?: number): number {
+    const targetRoomId = roomId ?? this.currentRoomId;
+    if (!targetRoomId)
+      return 0;
+    const context = this.sceneContextMap.get(targetRoomId);
+    return context?.lineNumber ?? 0;
+  }
+
+  /**
    * 跳转到指定消息
    * @param messageId 消息 ID
    * @param roomId 房间 ID（可选，默认使用当前房间）

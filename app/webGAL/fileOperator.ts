@@ -3,10 +3,11 @@ import type { GameInfoDto } from "@/webGAL/apis";
 import { terreApis } from "@/webGAL/index";
 
 /**
- * 从老前端继承下来的遗产，我不知道是什么。
+ * WebGAL 调试命令枚举
+ * 用于通过 WebSocket 与 WebGAL 引擎通信
  */
 export enum DebugCommand {
-  // 跳转
+  // 跳转到指定场景的指定行
   JUMP,
   // 同步自客户端
   SYNCFC,
@@ -16,6 +17,12 @@ export enum DebugCommand {
   EXE_COMMAND,
   // 重新拉取模板样式文件
   REFETCH_TEMPLATE_FILES,
+  // 执行临时场景（单条命令）
+  TEMP_SCENE,
+  // 设置组件可见性
+  SET_COMPONENT_VISIBILITY,
+  // 字体优化
+  SET_FONT_OPTIMIZATION,
 }
 
 export type IFile = {
@@ -134,7 +141,13 @@ export async function checkFileExist(currentPathString: string, fileName: string
   return files.some(item => item.name === fileName);
 }
 
-export function getAsyncMsg(sceneName: string, lineNumber: number): IDebugMessage {
+/**
+ * 生成 WebGAL JUMP 同步消息
+ * @param sceneName 场景文件名（含 .txt 后缀）
+ * @param lineNumber 跳转到的行号
+ * @param forceReload 是否强制重新加载场景（用于文件内容变更后刷新）
+ */
+export function getAsyncMsg(sceneName: string, lineNumber: number, forceReload: boolean = false): IDebugMessage {
   return {
     event: "message",
     data: {
@@ -144,7 +157,29 @@ export function getAsyncMsg(sceneName: string, lineNumber: number): IDebugMessag
         sentence: lineNumber,
       },
       stageSyncMsg: {},
-      message: "Sync",
+      // 使用 'exp' 模式可以触发更快的同步，'Sync' 是普通同步
+      // 强制重新加载时使用 'Sync' 确保场景完全刷新
+      message: forceReload ? "Sync" : "exp",
+    },
+  };
+}
+
+/**
+ * 生成 WebGAL 临时场景执行命令
+ * 可以用来执行单条 WebGAL 命令而不改变当前场景状态
+ * @param command WebGAL 命令字符串
+ */
+export function getTempSceneMsg(command: string): IDebugMessage {
+  return {
+    event: "message",
+    data: {
+      command: DebugCommand.TEMP_SCENE,
+      sceneMsg: {
+        scene: "",
+        sentence: 0,
+      },
+      stageSyncMsg: {},
+      message: command,
     },
   };
 }
