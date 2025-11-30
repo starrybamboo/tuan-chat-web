@@ -26,5 +26,9 @@ export type RoleAbility = {
      */
     skill?: Record<string, string>;
     record?: Record<string, string>;
+    /**
+     * 角色能力扩展属性
+     */
+    extra?: Record<string, string>;
 };
 

@@ -42,7 +42,7 @@ import { getImageSize } from "@/utils/getImgSize";
 
 import { getScreenSize } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import {
@@ -79,6 +79,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // 提及列表状态，同样由 ChatInputArea 回调更新
   const [mentionedRolesInInput, setMentionedRolesInInput] = useState<UserRole[]>([]);
 
+  const delayTimer = useRef<NodeJS.Timeout | null>(null);
+
   // *** ChatInputArea 的回调处理器 ***
   const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
     setInputTextWithoutUpdateTextArea(plainText);
@@ -107,7 +109,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
   // 切换房间时清空引用消息
-  useEffect(() => {
+  useLayoutEffect(() => {
     setReplyMessage(undefined);
   }, [roomId]);
 
@@ -192,10 +194,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   }, [members, userId]);
 
   // 切换空间时关闭线索侧边栏
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (sideDrawerState === "clue") {
       setSideDrawerState("none");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId]);
 
   /**
@@ -228,13 +231,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     if (targetMessageId && historyMessages.length > 0 && !chatHistory?.loading && !hasScrolledToTargetRef.current) {
       const messageExists = historyMessages.some(m => m.message.messageId === targetMessageId);
       if (messageExists) {
-        // 延迟一点确保 Virtuoso 已经渲染完成
-        setTimeout(() => {
+        // 延迟一点确保 Virtuoso 已经渲染完成，同时避免重复定时器
+        if (delayTimer.current) {
+          clearTimeout(delayTimer.current);
+        }
+        delayTimer.current = setTimeout(() => {
           scrollToGivenMessage(targetMessageId);
+          delayTimer.current = null;
         }, 100);
         hasScrolledToTargetRef.current = true;
       }
     }
+    return () => {
+      if (delayTimer.current) {
+        clearTimeout(delayTimer.current);
+        delayTimer.current = null;
+      }
+    };
   }, [targetMessageId, historyMessages, chatHistory?.loading, scrollToGivenMessage]);
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {

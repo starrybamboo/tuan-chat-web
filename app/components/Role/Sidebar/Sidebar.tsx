@@ -279,7 +279,9 @@ export function Sidebar({
   };
 
   useEffect(() => {
-    if (selectedRoleId && !roles.find(c => c.id === selectedRoleId)) {
+    // 只有当角色列表已加载（非空）且选中的角色不存在时才跳转
+    // 避免在初始加载时（roles 为空）错误触发跳转
+    if (roles.length > 0 && selectedRoleId && !roles.find(c => c.id === selectedRoleId)) {
       // 当前选中角色被删掉了，跳转
       navigate("/role", { replace: true });
     }

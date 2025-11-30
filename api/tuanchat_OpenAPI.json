@@ -16016,6 +16016,87 @@
         }
       }
     },
+    "/capi/role/user/type": {
+      "get": {
+        "tags": [
+          "RoleController"
+        ],
+        "summary": "按类型获取用户角色",
+        "operationId": "getUserRolesByType",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListUserRole"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/role/ability/list": {
       "get": {
         "tags": [
@@ -18956,7 +19037,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResult": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -18982,7 +19063,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultVoid": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -19163,6 +19244,14 @@
           "email": {
             "type": "string",
             "description": "用户邮箱"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "用户"
+            },
+            "description": "用户"
           }
         }
       },
@@ -19610,6 +19699,14 @@
             "type": "integer",
             "description": "角色类型,0:角色,1:骰娘",
             "format": "int32"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色扩展属性"
+            },
+            "description": "角色扩展属性"
           }
         },
         "description": "更新角色请求体"
@@ -22103,6 +22200,14 @@
             "type": "integer",
             "description": "角色类型,0:角色,1:骰娘",
             "format": "int32"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色扩展属性"
+            },
+            "description": "角色扩展属性"
           }
         },
         "description": "创建角色请求体"
@@ -22249,6 +22354,14 @@
           "voiceUrl": {
             "type": "string"
           },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色扩展属性"
+            },
+            "description": "角色扩展属性"
+          },
           "createTime": {
             "type": "string",
             "format": "date-time"
@@ -22345,6 +22458,14 @@
               "记录1": "记录内容1",
               "记录2": "记录内容2"
             }
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "能力扩展属性"
+            },
+            "description": "能力扩展属性"
           }
         },
         "description": "能力设置请求"
@@ -22503,6 +22624,14 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色能力扩展属性"
+            },
+            "description": "角色能力扩展属性"
           }
         },
         "description": "角色能力"

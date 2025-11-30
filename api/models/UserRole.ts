@@ -43,6 +43,10 @@ export type UserRole = {
      */
     speakerName?: string;
     voiceUrl?: string;
+    /**
+     * 角色扩展属性
+     */
+    extra?: Record<string, string>;
     createTime?: string;
     updateTime?: string;
     role?: boolean;

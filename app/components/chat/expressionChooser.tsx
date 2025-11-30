@@ -4,7 +4,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRingLight } from "@/icons";
 import { useGetRoleAvatarsQuery } from "api/queryHooks";
-import React, { use } from "react";
+import { use } from "react";
 
 export function ExpressionChooser({
   roleId,
