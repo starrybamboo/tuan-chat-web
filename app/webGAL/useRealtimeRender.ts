@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * WebGAL 实时渲染 Hook
@@ -41,10 +41,6 @@ type UseRealtimeRenderReturn = {
   isActive: boolean;
   /** 预览 URL */
   previewUrl: string | null;
-  /** 是否自动跳转到最新消息 */
-  autoJump: boolean;
-  /** 设置是否自动跳转 */
-  setAutoJump: (value: boolean) => void;
   /** 开始实时渲染 */
   start: () => Promise<boolean>;
   /** 停止实时渲染 */
@@ -69,8 +65,6 @@ type UseRealtimeRenderReturn = {
   updateRooms: (rooms: Room[]) => void;
   /** 跳转到指定消息 */
   jumpToMessage: (messageId: number, roomId?: number) => boolean;
-  /** 刷新场景（让 WebGAL 重新加载文件内容） */
-  refreshScene: (roomId?: number, jumpToEnd?: boolean) => boolean;
 };
 
 export function useRealtimeRender({
@@ -84,16 +78,9 @@ export function useRealtimeRender({
   const [initProgress, setInitProgress] = useState<InitProgress | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [autoJump, setAutoJump] = useState(true); // 是否自动跳转到最新消息
   const rendererRef = useRef<RealtimeRenderer | null>(null);
   const avatarCacheRef = useRef<Map<number, RoleAvatar>>(new Map());
   const roomsRef = useRef<Room[]>(rooms);
-  const autoJumpRef = useRef(autoJump); // 用 ref 保持最新值
-
-  // 保持 autoJumpRef 最新
-  useEffect(() => {
-    autoJumpRef.current = autoJump;
-  }, [autoJump]);
 
   // 保持 roomsRef 最新
   useEffect(() => {
@@ -273,12 +260,15 @@ export function useRealtimeRender({
 
     // 获取头像信息（如果缓存中没有）
     const avatarId = message.message.avatarId;
-    if (avatarId && !avatarCacheRef.current.has(avatarId)) {
+    console.warn(`[useRealtimeRender] 渲染消息, avatarId=${avatarId}, 缓存中有=${avatarCacheRef.current.has(avatarId)}`);
+
+    if (avatarId && avatarId > 0 && !avatarCacheRef.current.has(avatarId)) {
       try {
         const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
         if (avatarResponse.data) {
           avatarCacheRef.current.set(avatarId, avatarResponse.data);
           rendererRef.current.setAvatarCache([avatarResponse.data]);
+          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarResponse.data.avatarUrl || avatarResponse.data.spriteUrl);
         }
       }
       catch (error) {
@@ -286,8 +276,7 @@ export function useRealtimeRender({
       }
     }
 
-    // 使用 autoJumpRef 获取最新的 autoJump 值
-    await rendererRef.current.renderMessage(message, roomId, true, autoJumpRef.current);
+    await rendererRef.current.renderMessage(message, roomId);
   }, [status]);
 
   // 渲染历史消息
@@ -296,6 +285,35 @@ export function useRealtimeRender({
       console.warn("实时渲染器未就绪，无法渲染历史消息");
       return;
     }
+
+    // 预先获取所有消息中缺失的头像信息
+    // 注意：需要检查 renderer 的 avatarMap 而不是本地缓存，因为 renderer 可能是新实例
+    const missingAvatarIds = new Set<number>();
+    for (const message of messages) {
+      const avatarId = message.message.avatarId;
+      // avatarId 必须是正整数才有效
+      if (avatarId && avatarId > 0) {
+        missingAvatarIds.add(avatarId);
+      }
+    }
+
+    console.warn(`[useRealtimeRender] 需要获取 ${missingAvatarIds.size} 个头像信息:`, Array.from(missingAvatarIds));
+
+    // 批量获取头像信息（始终获取，确保 renderer 有最新数据）
+    for (const avatarId of missingAvatarIds) {
+      try {
+        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        if (avatarResponse.data) {
+          avatarCacheRef.current.set(avatarId, avatarResponse.data);
+          rendererRef.current?.setAvatarCache([avatarResponse.data]);
+          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarResponse.data.avatarUrl || avatarResponse.data.spriteUrl);
+        }
+      }
+      catch (error) {
+        console.error(`获取头像 ${avatarId} 信息失败:`, error);
+      }
+    }
+
     await rendererRef.current.renderHistory(messages, roomId);
   }, [status]);
 
@@ -366,15 +384,6 @@ export function useRealtimeRender({
     return rendererRef.current.jumpToMessage(messageId, roomId);
   }, [status]);
 
-  // 刷新场景（让 WebGAL 重新加载文件内容）
-  const refreshScene = useCallback((roomId?: number, jumpToEnd: boolean = true): boolean => {
-    if (!rendererRef.current || status !== "connected") {
-      console.warn("实时渲染器未就绪，无法刷新场景");
-      return false;
-    }
-    return rendererRef.current.refreshScene(roomId, jumpToEnd);
-  }, [status]);
-
   // 自动启动（如果 enabled 为 true）
   useEffect(() => {
     if (enabled && status === "idle") {
@@ -394,14 +403,11 @@ export function useRealtimeRender({
     };
   }, [isActive]);
 
-  // 使用 useMemo 稳定返回对象，避免每次渲染创建新引用导致依赖该对象的 useEffect 频繁触发
-  const result = useMemo(() => ({
+  return {
     status,
     initProgress,
     isActive,
     previewUrl,
-    autoJump,
-    setAutoJump,
     start,
     stop,
     renderMessage,
@@ -414,30 +420,7 @@ export function useRealtimeRender({
     updateAvatarCache,
     updateRooms,
     jumpToMessage,
-    refreshScene,
-  }), [
-    status,
-    initProgress,
-    isActive,
-    previewUrl,
-    autoJump,
-    setAutoJump,
-    start,
-    stop,
-    renderMessage,
-    renderHistory,
-    resetScene,
-    clearBackground,
-    switchRoom,
-    getRoomPreviewUrl,
-    updateRoleCache,
-    updateAvatarCache,
-    updateRooms,
-    jumpToMessage,
-    refreshScene,
-  ]);
-
-  return result;
+  };
 }
 
 export default useRealtimeRender;

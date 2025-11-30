@@ -8,10 +8,6 @@ interface WebGALPreviewProps {
   isActive: boolean;
   onClose?: () => void;
   className?: string;
-  /** 是否自动跳转到最新消息 */
-  autoJump?: boolean;
-  /** 设置自动跳转 */
-  onAutoJumpChange?: (value: boolean) => void;
 }
 
 export default function WebGALPreview({
@@ -19,8 +15,6 @@ export default function WebGALPreview({
   isActive,
   onClose,
   className,
-  autoJump = true,
-  onAutoJumpChange,
 }: WebGALPreviewProps) {
   if (!isActive || !previewUrl) {
     return (
@@ -53,18 +47,6 @@ export default function WebGALPreview({
       <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
         <span className="font-medium text-sm">WebGAL 实时预览</span>
         <div className="flex items-center gap-1">
-          {/* 自动跳转开关 */}
-          {onAutoJumpChange && (
-            <label className="flex items-center gap-1 cursor-pointer mr-1" title={autoJump ? "自动跟随最新消息" : "手动控制播放进度"}>
-              <span className="text-xs text-base-content/70">输入实时渲染</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-xs toggle-primary"
-                checked={autoJump}
-                onChange={e => onAutoJumpChange(e.target.checked)}
-              />
-            </label>
-          )}
           <a
             href={previewUrl}
             target="_blank"

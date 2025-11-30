@@ -178,21 +178,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const lastRenderedMessageIdRef = useRef<number | null>(null);
   const hasRenderedHistoryRef = useRef<boolean>(false);
   const realtimeStatusRef = useRef(realtimeRender.status);
-  const isRealtimeActiveRef = useRef(realtimeRender.isActive); // 用于同步检查 isActive
   const prevRoomIdRef = useRef<number | null>(null);
   // 跟踪最后一个背景消息的 ID，用于检测背景更新
   const lastBackgroundMessageIdRef = useRef<number | null>(null);
-  // 跟踪消息内容的哈希值，用于检测消息更新/删除/移动
-  const lastMessagesHashRef = useRef<string | null>(null);
 
   useEffect(() => {
     realtimeStatusRef.current = realtimeRender.status;
   }, [realtimeRender.status]);
-
-  // 保持 isRealtimeActiveRef 与 isActive 同步
-  useEffect(() => {
-    isRealtimeActiveRef.current = realtimeRender.isActive;
-  }, [realtimeRender.isActive]);
 
   // 侧边栏宽度状态
   const [userDrawerWidth, setUserDrawerWidth] = useLocalStorage("userDrawerWidth", 300);
@@ -367,13 +359,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 监听新消息，实时渲染到 WebGAL（只渲染历史消息之后的新消息）
   useEffect(() => {
-    // 双重检查：检查用户意图 (isRealtimeRenderEnabled) 和实际状态 (isActive)
-    // 这可以防止在状态转换期间意外触发渲染
-    if (!isRealtimeRenderEnabled || !realtimeRender.isActive) {
+    // 如果实时渲染关闭，重置标记
+    if (!realtimeRender.isActive) {
       hasRenderedHistoryRef.current = false;
       lastRenderedMessageIdRef.current = null;
       isRenderingHistoryRef.current = false;
-      lastMessagesHashRef.current = null;
       return;
     }
 
@@ -397,19 +387,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
-    // 再次检查确保仍然处于活跃状态（避免异步执行期间状态变化）
-    if (!isRealtimeActiveRef.current)
-      return;
-
     // 渲染新消息（传入当前房间 ID）
     realtimeRender.renderMessage(latestMessage, roomId);
     lastRenderedMessageIdRef.current = messageId;
-  }, [historyMessages, realtimeRender, roomId, isRealtimeRenderEnabled]);
+  }, [historyMessages, realtimeRender, roomId]);
 
   // 监听背景消息变化，当用户设置图片为背景时实时渲染更新
   useEffect(() => {
-    // 双重检查：用户意图和实际状态
-    if (!isRealtimeRenderEnabled || !realtimeRender.isActive || !hasRenderedHistoryRef.current) {
+    if (!realtimeRender.isActive || !hasRenderedHistoryRef.current) {
       return;
     }
 
@@ -435,10 +420,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     // 更新 ref
     lastBackgroundMessageIdRef.current = latestBackgroundMessageId;
 
-    // 再次检查确保仍然处于活跃状态
-    if (!isRealtimeActiveRef.current)
-      return;
-
     // 如果有新的背景消息，重新渲染它
     if (latestBackgroundMessage) {
       console.warn("[RealtimeRender] 检测到背景更新，重新渲染背景消息:", latestBackgroundMessageId);
@@ -449,87 +430,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       console.warn("[RealtimeRender] 检测到背景被取消，清除背景");
       realtimeRender.clearBackground(roomId);
     }
-  }, [historyMessages, realtimeRender, roomId, isRealtimeRenderEnabled]);
-
-  // 监听消息更新/删除/移动，当检测到变化时重新渲染整个场景
-  useEffect(() => {
-    // 双重检查：用户意图和实际状态
-    if (!isRealtimeRenderEnabled || !realtimeRender.isActive || !hasRenderedHistoryRef.current) {
-      return;
-    }
-
-    if (!historyMessages || historyMessages.length === 0) {
-      return;
-    }
-
-    // 如果正在渲染历史消息，跳过
-    if (isRenderingHistoryRef.current) {
-      return;
-    }
-
-    // 计算消息列表的特征哈希（包含 ID、内容、状态、位置）
-    // 只取关键字段，避免因为无关字段变化触发重渲染
-    const messagesHash = historyMessages.map((msg) => {
-      const m = msg.message;
-      return `${m.messageId}:${m.content}:${m.status}:${m.position}:${m.avatarId}`;
-    }).join("|");
-
-    // 首次设置哈希值
-    if (lastMessagesHashRef.current === null) {
-      lastMessagesHashRef.current = messagesHash;
-      return;
-    }
-
-    // 如果哈希值没变，跳过
-    if (lastMessagesHashRef.current === messagesHash) {
-      return;
-    }
-
-    // 检测变化类型
-    const oldHash = lastMessagesHashRef.current;
-    const oldCount = oldHash.split("|").length;
-    const newCount = messagesHash.split("|").length;
-
-    // 更新哈希值
-    lastMessagesHashRef.current = messagesHash;
-
-    // 如果只是新增消息（数量增加且最后一条消息ID变了），由新消息监听器处理
-    if (newCount > oldCount) {
-      // 新增消息的情况，不需要重渲染，由上面的 useEffect 处理
-      return;
-    }
-
-    // 再次检查确保仍然处于活跃状态
-    if (!isRealtimeActiveRef.current)
-      return;
-
-    // 消息被更新、删除或移动，需要重新渲染整个场景
-    console.warn("[RealtimeRender] 检测到消息更新/删除/移动，重新渲染场景");
-    toast.loading("正在重新渲染场景...", { id: "webgal-rerender" });
-
-    // 重置场景并重新渲染所有历史消息
-    (async () => {
-      try {
-        // 异步执行前再次检查
-        if (!isRealtimeActiveRef.current)
-          return;
-
-        await realtimeRender.resetScene(roomId);
-        await realtimeRender.renderHistory(historyMessages, roomId);
-
-        // 更新背景消息 ID（因为重渲染后需要同步）
-        const backgroundMessages = historyMessages
-          .filter(msg => msg.message.messageType === 2 && msg.message.extra?.imageMessage?.background);
-        lastBackgroundMessageIdRef.current = backgroundMessages[backgroundMessages.length - 1]?.message.messageId ?? null;
-
-        toast.success("场景重新渲染完成", { id: "webgal-rerender" });
-      }
-      catch (error) {
-        console.error("[RealtimeRender] 重新渲染场景失败:", error);
-        toast.error("重新渲染场景失败", { id: "webgal-rerender" });
-      }
-    })();
-  }, [historyMessages, realtimeRender, roomId, isRealtimeRenderEnabled]);
+  }, [historyMessages, realtimeRender, roomId]);
 
   // 切换实时渲染
   const handleToggleRealtimeRender = useCallback(async () => {
@@ -1205,8 +1106,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <WebGALPreview
               previewUrl={realtimeRender.previewUrl}
               isActive={realtimeRender.isActive}
-              autoJump={realtimeRender.autoJump}
-              onAutoJumpChange={realtimeRender.setAutoJump}
               onClose={() => {
                 realtimeRender.stop();
                 setIsRealtimeRenderEnabled(false);

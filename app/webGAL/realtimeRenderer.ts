@@ -556,11 +556,7 @@ export class RealtimeRenderer {
 
     try {
       const path = `games/${this.gameName}/game/background/`;
-      const fileExtension = getFileExtensionFromUrl(url, "webp");
-      // 使用 URL 的 hash 作为唯一文件名
-      const urlHash = url.split("/").pop()?.split("?")[0] || Date.now().toString();
-      const bgName = `bg_${urlHash.replace(/[^a-z0-9]/gi, "_")}`;
-      const fileName = await uploadFile(url, path, `${bgName}.${fileExtension}`);
+      const fileName = await uploadFile(url, path);
       this.uploadedBackgroundsMap.set(url, fileName);
       return fileName;
     }
@@ -581,24 +577,24 @@ export class RealtimeRenderer {
 
     // 获取头像信息
     const avatar = this.avatarMap.get(avatarId);
-    if (!avatar)
+    if (!avatar) {
+      console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}, avatarMap 中有 ${this.avatarMap.size} 个头像`);
       return null;
+    }
 
     const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
-    if (!spriteUrl)
+    if (!spriteUrl) {
+      console.warn(`[RealtimeRenderer] 头像没有 spriteUrl 或 avatarUrl: avatarId=${avatarId}`);
       return null;
+    }
 
     return this.uploadSprite(avatarId, spriteUrl, roleId);
   }
 
   /**
    * 渲染一条消息到指定房间
-   * @param message 消息
-   * @param roomId 房间ID
-   * @param syncToFile 是否同步到文件
-   * @param autoJump 是否自动跳转到最新行（默认 true）
    */
-  public async renderMessage(message: ChatMessageResponse, roomId?: number, syncToFile: boolean = true, autoJump: boolean = true): Promise<void> {
+  public async renderMessage(message: ChatMessageResponse, roomId?: number, syncToFile: boolean = true): Promise<void> {
     const msg = message.message;
     const targetRoomId = roomId ?? msg.roomId ?? this.currentRoomId;
 
@@ -630,7 +626,7 @@ export class RealtimeRenderer {
         const bgFileName = await this.uploadBackground(imageMessage.url);
         if (bgFileName) {
           await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
-          if (syncToFile && autoJump)
+          if (syncToFile)
             this.sendSyncMessage(targetRoomId);
         }
       }
@@ -648,7 +644,7 @@ export class RealtimeRenderer {
     // 跳过 WebGAL 指令消息（以 % 开头）
     if (msg.content.startsWith("%")) {
       await this.appendLine(targetRoomId, msg.content.slice(1), syncToFile);
-      if (syncToFile && autoJump)
+      if (syncToFile)
         this.sendSyncMessage(targetRoomId);
       return;
     }
@@ -663,12 +659,10 @@ export class RealtimeRenderer {
     // 获取立绘文件名
     const spriteFileName = await this.getAndUploadSprite(msg.avatarId, msg.roleId);
 
-    // 处理立绘显示 - 只有当立绘未显示时才添加 changeFigure 指令
-    if (spriteFileName && !spriteState.has(spriteFileName)) {
+    // 每条对话都指定立绘，确保立绘始终正确显示
+    if (spriteFileName) {
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -left ${transform} -next;`, syncToFile);
-      spriteState.clear();
-      spriteState.add(spriteFileName);
     }
 
     // 处理文本内容
@@ -686,8 +680,8 @@ export class RealtimeRenderer {
       this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, context.lineNumber);
     }
 
-    // 发送同步消息到 WebGAL（仅当 autoJump 为 true 时）
-    if (syncToFile && autoJump) {
+    // 发送同步消息到 WebGAL
+    if (syncToFile) {
       this.sendSyncMessage(targetRoomId);
     }
   }
@@ -769,54 +763,6 @@ export class RealtimeRenderer {
    */
   public getGameName(): string {
     return this.gameName;
-  }
-
-  /**
-   * 刷新指定房间的场景
-   * 用于在不开启实时同步的情况下，手动让 WebGAL 重新加载场景文件
-   * @param roomId 房间 ID（可选，默认使用当前房间）
-   * @param jumpToEnd 是否跳转到场景末尾（默认 true）
-   * @returns 是否刷新成功
-   */
-  public refreshScene(roomId?: number, jumpToEnd: boolean = true): boolean {
-    const targetRoomId = roomId ?? this.currentRoomId;
-    if (!targetRoomId) {
-      console.warn("[RealtimeRenderer] 无法确定目标房间ID");
-      return false;
-    }
-
-    const context = this.sceneContextMap.get(targetRoomId);
-    if (!context) {
-      console.warn(`[RealtimeRenderer] 房间 ${targetRoomId} 的场景上下文不存在`);
-      return false;
-    }
-
-    const sceneName = this.getSceneName(targetRoomId);
-    const lineNumber = jumpToEnd ? context.lineNumber : 1;
-    // 使用 forceReload = true 强制 WebGAL 重新加载场景
-    const msg = getAsyncMsg(`${sceneName}.txt`, lineNumber, true);
-    const msgStr = JSON.stringify(msg);
-
-    if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
-      this.syncSocket.send(msgStr);
-      return true;
-    }
-    else {
-      console.warn("[RealtimeRenderer] WebSocket 未连接，无法刷新场景");
-      return false;
-    }
-  }
-
-  /**
-   * 获取场景的当前行数
-   * @param roomId 房间 ID
-   */
-  public getSceneLineCount(roomId?: number): number {
-    const targetRoomId = roomId ?? this.currentRoomId;
-    if (!targetRoomId)
-      return 0;
-    const context = this.sceneContextMap.get(targetRoomId);
-    return context?.lineNumber ?? 0;
   }
 
   /**
