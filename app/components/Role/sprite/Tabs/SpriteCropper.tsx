@@ -1,6 +1,5 @@
 import type { ImageLoadContext } from "@/utils/imgCropper";
 import type { RoleAvatar } from "api";
-import type { PixelCrop } from "react-image-crop";
 import type { Transform } from "../TransformControl";
 
 import { isMobileScreen } from "@/utils/getScreenSize";
@@ -156,10 +155,10 @@ export function SpriteCropper({
     previewCanvasRef,
     crop,
     completedCrop,
-    setCompletedCrop,
     previewDataUrl: currentAvatarUrl,
     onImageLoad,
     onCropChange,
+    onCropComplete: handleCropComplete,
   } = useCropPreview({
     mode: useCallback(() => isAvatarMode ? "avatar" : "sprite", [isAvatarMode]),
     onImageLoadExtend: handleImageLoadExtend,
@@ -690,18 +689,6 @@ export function SpriteCropper({
 
       {isMutiAvatars && filteredAvatars.length > 1 && <div className="divider my-0"></div>}
 
-      {/* 隐藏的图片元素，用于移动端绑定 imgRef 和触发 onImageLoad */}
-      {currentUrl && (
-        <img
-          ref={imgRef}
-          alt="Hidden sprite for processing"
-          src={currentUrl}
-          onLoad={onImageLoad}
-          style={{ display: "none" }}
-          crossOrigin="anonymous"
-        />
-      )}
-
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
         {/* 左侧：原始图片裁剪区域 - 移动端隐藏，通过弹窗显示 */}
         <div className="w-full md:w-1/2 p-2 gap-4 flex-col items-center order-2 md:order-1 hidden md:flex">
@@ -711,31 +698,18 @@ export function SpriteCropper({
               <ReactCrop
                 crop={crop}
                 onChange={onCropChange}
-                onComplete={(_, percentCrop) => {
-                  // 使用百分比裁剪计算基于原始图片尺寸的像素值
-                  if (imgRef.current) {
-                    const naturalWidth = imgRef.current.naturalWidth;
-                    const naturalHeight = imgRef.current.naturalHeight;
-                    const pixelCrop: PixelCrop = {
-                      unit: "px",
-                      x: (percentCrop.x / 100) * naturalWidth,
-                      y: (percentCrop.y / 100) * naturalHeight,
-                      width: (percentCrop.width / 100) * naturalWidth,
-                      height: (percentCrop.height / 100) * naturalHeight,
-                    };
-                    setCompletedCrop(pixelCrop);
-                  }
-                }}
+                onComplete={handleCropComplete}
                 // 头像模式限制1:1宽高比，立绘模式不限制
                 aspect={isAvatarMode ? 1 : undefined}
                 minHeight={10}
               >
                 <img
+                  ref={imgRef}
                   alt="Sprite to crop"
                   src={currentUrl}
+                  onLoad={onImageLoad}
                   style={{
                     maxHeight: "70vh",
-                    minWidth: "20vh",
                   }}
                   crossOrigin="anonymous"
                 />
@@ -930,27 +904,15 @@ export function SpriteCropper({
                 <ReactCrop
                   crop={crop}
                   onChange={onCropChange}
-                  onComplete={(_, percentCrop) => {
-                    // 使用百分比裁剪计算基于原始图片尺寸的像素值
-                    if (imgRef.current) {
-                      const naturalWidth = imgRef.current.naturalWidth;
-                      const naturalHeight = imgRef.current.naturalHeight;
-                      const pixelCrop: PixelCrop = {
-                        unit: "px",
-                        x: (percentCrop.x / 100) * naturalWidth,
-                        y: (percentCrop.y / 100) * naturalHeight,
-                        width: (percentCrop.width / 100) * naturalWidth,
-                        height: (percentCrop.height / 100) * naturalHeight,
-                      };
-                      setCompletedCrop(pixelCrop);
-                    }
-                  }}
+                  onComplete={handleCropComplete}
                   aspect={isAvatarMode ? 1 : undefined}
                   minHeight={10}
                 >
                   <img
+                    ref={imgRef}
                     alt="Sprite to crop modal"
                     src={currentUrl}
+                    onLoad={onImageLoad}
                     style={{
                       maxHeight: "60vh",
                     }}
