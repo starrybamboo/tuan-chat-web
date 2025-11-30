@@ -798,7 +798,6 @@ export class RealtimeRenderer {
 
     if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
       this.syncSocket.send(msgStr);
-      console.log(`[RealtimeRenderer] 跳转到消息 ${messageId}，行号 ${lineNumber}`);
       return true;
     }
     else {

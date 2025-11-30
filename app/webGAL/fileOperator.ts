@@ -83,7 +83,6 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   if (await checkFileExist(path, safeFileName)) {
     return safeFileName;
   }
-  console.log("上传文件", url, path, safeFileName);
   const response = await fetch(url);
   if (!response.ok)
     throw new Error(`Failed to fetch file: ${response.statusText}`);
@@ -97,7 +96,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   formData.append("files", file);
   formData.append("targetDirectory", path);
 
-  await terreApis.uploadFile(formData);
+  await terreApis.assetsControllerUpload(formData);
   return safeFileName;
 };
 

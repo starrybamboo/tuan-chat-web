@@ -178,6 +178,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const lastRenderedMessageIdRef = useRef<number | null>(null);
   const hasRenderedHistoryRef = useRef<boolean>(false);
   const realtimeStatusRef = useRef(realtimeRender.status);
+  const isRealtimeActiveRef = useRef(realtimeRender.isActive); // 用于同步检查 isActive
   const prevRoomIdRef = useRef<number | null>(null);
   // 跟踪最后一个背景消息的 ID，用于检测背景更新
   const lastBackgroundMessageIdRef = useRef<number | null>(null);
@@ -187,6 +188,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   useEffect(() => {
     realtimeStatusRef.current = realtimeRender.status;
   }, [realtimeRender.status]);
+
+  // 保持 isRealtimeActiveRef 与 isActive 同步
+  useEffect(() => {
+    isRealtimeActiveRef.current = realtimeRender.isActive;
+  }, [realtimeRender.isActive]);
 
   // 侧边栏宽度状态
   const [userDrawerWidth, setUserDrawerWidth] = useLocalStorage("userDrawerWidth", 300);
@@ -361,8 +367,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 监听新消息，实时渲染到 WebGAL（只渲染历史消息之后的新消息）
   useEffect(() => {
-    // 如果实时渲染关闭，重置标记
-    if (!realtimeRender.isActive) {
+    // 双重检查：检查用户意图 (isRealtimeRenderEnabled) 和实际状态 (isActive)
+    // 这可以防止在状态转换期间意外触发渲染
+    if (!isRealtimeRenderEnabled || !realtimeRender.isActive) {
       hasRenderedHistoryRef.current = false;
       lastRenderedMessageIdRef.current = null;
       isRenderingHistoryRef.current = false;
@@ -390,14 +397,19 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
+    // 再次检查确保仍然处于活跃状态（避免异步执行期间状态变化）
+    if (!isRealtimeActiveRef.current)
+      return;
+
     // 渲染新消息（传入当前房间 ID）
     realtimeRender.renderMessage(latestMessage, roomId);
     lastRenderedMessageIdRef.current = messageId;
-  }, [historyMessages, realtimeRender, roomId]);
+  }, [historyMessages, realtimeRender, roomId, isRealtimeRenderEnabled]);
 
   // 监听背景消息变化，当用户设置图片为背景时实时渲染更新
   useEffect(() => {
-    if (!realtimeRender.isActive || !hasRenderedHistoryRef.current) {
+    // 双重检查：用户意图和实际状态
+    if (!isRealtimeRenderEnabled || !realtimeRender.isActive || !hasRenderedHistoryRef.current) {
       return;
     }
 
@@ -423,6 +435,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     // 更新 ref
     lastBackgroundMessageIdRef.current = latestBackgroundMessageId;
 
+    // 再次检查确保仍然处于活跃状态
+    if (!isRealtimeActiveRef.current)
+      return;
+
     // 如果有新的背景消息，重新渲染它
     if (latestBackgroundMessage) {
       console.warn("[RealtimeRender] 检测到背景更新，重新渲染背景消息:", latestBackgroundMessageId);
@@ -433,11 +449,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       console.warn("[RealtimeRender] 检测到背景被取消，清除背景");
       realtimeRender.clearBackground(roomId);
     }
-  }, [historyMessages, realtimeRender, roomId]);
+  }, [historyMessages, realtimeRender, roomId, isRealtimeRenderEnabled]);
 
   // 监听消息更新/删除/移动，当检测到变化时重新渲染整个场景
   useEffect(() => {
-    if (!realtimeRender.isActive || !hasRenderedHistoryRef.current) {
+    // 双重检查：用户意图和实际状态
+    if (!isRealtimeRenderEnabled || !realtimeRender.isActive || !hasRenderedHistoryRef.current) {
       return;
     }
 
@@ -482,6 +499,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
+    // 再次检查确保仍然处于活跃状态
+    if (!isRealtimeActiveRef.current)
+      return;
+
     // 消息被更新、删除或移动，需要重新渲染整个场景
     console.warn("[RealtimeRender] 检测到消息更新/删除/移动，重新渲染场景");
     toast.loading("正在重新渲染场景...", { id: "webgal-rerender" });
@@ -489,6 +510,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     // 重置场景并重新渲染所有历史消息
     (async () => {
       try {
+        // 异步执行前再次检查
+        if (!isRealtimeActiveRef.current)
+          return;
+
         await realtimeRender.resetScene(roomId);
         await realtimeRender.renderHistory(historyMessages, roomId);
 
@@ -504,7 +529,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         toast.error("重新渲染场景失败", { id: "webgal-rerender" });
       }
     })();
-  }, [historyMessages, realtimeRender, roomId]);
+  }, [historyMessages, realtimeRender, roomId, isRealtimeRenderEnabled]);
 
   // 切换实时渲染
   const handleToggleRealtimeRender = useCallback(async () => {

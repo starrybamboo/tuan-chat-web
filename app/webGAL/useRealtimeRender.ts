@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * WebGAL 实时渲染 Hook
@@ -383,7 +383,8 @@ export function useRealtimeRender({
     };
   }, [isActive]);
 
-  return {
+  // 使用 useMemo 稳定返回对象，避免每次渲染创建新引用导致依赖该对象的 useEffect 频繁触发
+  const result = useMemo(() => ({
     status,
     initProgress,
     isActive,
@@ -402,7 +403,28 @@ export function useRealtimeRender({
     updateAvatarCache,
     updateRooms,
     jumpToMessage,
-  };
+  }), [
+    status,
+    initProgress,
+    isActive,
+    previewUrl,
+    autoJump,
+    setAutoJump,
+    start,
+    stop,
+    renderMessage,
+    renderHistory,
+    resetScene,
+    clearBackground,
+    switchRoom,
+    getRoomPreviewUrl,
+    updateRoleCache,
+    updateAvatarCache,
+    updateRooms,
+    jumpToMessage,
+  ]);
+
+  return result;
 }
 
 export default useRealtimeRender;
