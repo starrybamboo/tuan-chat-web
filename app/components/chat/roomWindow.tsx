@@ -86,6 +86,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     setInputTextWithoutUpdateTextArea(plainText);
     setinputTextWithoutMentions(inputTextWithoutMentions);
     setMentionedRolesInInput(roles);
+    // 检查 @ 提及触发
+    atMentionRef.current?.onInput();
   }, []); // 空依赖，因为 setter 函数是稳定的
 
   /**
@@ -229,7 +231,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     if (targetMessageId && historyMessages.length > 0 && !chatHistory?.loading && !hasScrolledToTargetRef.current) {
       const messageExists = historyMessages.some(m => m.message.messageId === targetMessageId);
       if (messageExists) {
-        // 延迟一点确保 Virtuoso 已经渲染完成
+        // 延迟一点确保 Virtuoso 已经渲染完成，同时避免重复定时器
         if (delayTimer.current) {
           clearTimeout(delayTimer.current);
         }
@@ -242,7 +244,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
     return () => {
       if (delayTimer.current) {
-        clearTimeout(delayTimer.current!);
+        clearTimeout(delayTimer.current);
         delayTimer.current = null;
       }
     };
