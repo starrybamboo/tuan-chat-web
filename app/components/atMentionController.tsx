@@ -26,6 +26,7 @@ export interface AtMentionHandle {
   onKeyUp: (e: React.KeyboardEvent) => void;
   onMouseDown: (e: React.MouseEvent) => boolean; // 返回 true 表示事件已被处理
   closeDialog: () => void; // 关闭对话框的方法
+  onInput: () => void; // 处理输入事件
 }
 
 function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
@@ -102,6 +103,10 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
       }
       setSearchKey(keyWord ?? ""); // 如果 keyWord 是 null/undefined，则设置为空字符串
       // 注意：这里我们不设置 setShowDialog(true)，因为那应该由 onKeyUp 触发
+      // 修正：为了支持移动端，如果检测到有效的 @ 模式，也应该尝试打开对话框
+      if (!showDialog) {
+        setShowDialog(true);
+      }
     }
     else {
       setShowDialog(false);
@@ -211,6 +216,11 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
     closeDialog: () => {
       setShowDialog(false);
       setSearchKey("");
+    },
+
+    /** 处理输入事件 */
+    onInput: () => {
+      checkDialogTrigger();
     },
   }));
 

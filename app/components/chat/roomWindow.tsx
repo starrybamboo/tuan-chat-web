@@ -84,6 +84,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     setInputTextWithoutUpdateTextArea(plainText);
     setinputTextWithoutMentions(inputTextWithoutMentions);
     setMentionedRolesInInput(roles);
+    // 检查 @ 提及触发
+    atMentionRef.current?.onInput();
   }, []); // 空依赖，因为 setter 函数是稳定的
 
   /**

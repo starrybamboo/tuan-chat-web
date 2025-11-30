@@ -58,26 +58,16 @@ export function ChatToolbar({
       <div className="flex gap-2">
         {/* 聊天状态选择器 - 观战成员不显示 */}
         {!isSpectator && (
-          <details
+          <div
             className="dropdown dropdown-top"
-            onToggle={(e) => {
-              console.warn("🔄 Dropdown 状态变化", { open: (e.target as HTMLDetailsElement).open });
-            }}
             style={{ pointerEvents: "auto" }}
           >
-            <summary
+            <div
+              role="button"
               tabIndex={0}
+              aria-label="切换聊天状态"
               className="min-w-0 cursor-pointer list-none px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info"
               style={{ pointerEvents: "auto", zIndex: 100, position: "relative" }}
-              onClick={(e) => {
-                console.warn("📋 Dropdown summary 被点击", {
-                  isOpen: (e.currentTarget.parentElement as HTMLDetailsElement)?.open,
-                  target: e.target,
-                  currentTarget: e.currentTarget,
-                });
-              }}
-              onMouseEnter={() => console.warn("🖱️ 鼠标进入 summary")}
-              onMouseDown={() => console.warn("🖱️ 鼠标按下 summary")}
             >
               <span
                 className={
@@ -94,7 +84,7 @@ export function ChatToolbar({
                 {currentChatStatus === "leave" && "暂离"}
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
-            </summary>
+            </div>
             <ul
               tabIndex={0}
               className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm"
@@ -120,9 +110,9 @@ export function ChatToolbar({
                       console.warn("✅ 调用 onChangeChatStatus", item.value);
                       onChangeChatStatus(item.value as any);
                       // 关闭 dropdown
-                      const details = (e.currentTarget as HTMLElement).closest("details");
-                      if (details) {
-                        details.removeAttribute("open");
+                      const elem = document.activeElement as HTMLElement;
+                      if (elem) {
+                        elem.blur();
                       }
                     }}
                   >
@@ -132,7 +122,7 @@ export function ChatToolbar({
                 </li>
               ))}
             </ul>
-          </details>
+          </div>
         )}
         {/* 发送表情 */}
         <div className="dropdown dropdown-top">
