@@ -10,12 +10,13 @@ import {
   SharpDownload,
   SparklesOutline,
   SwordSwing,
+  WebgalIcon,
 } from "@/icons";
 
 interface ChatToolbarProps {
   // 侧边栏状态
-  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export";
-  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export") => void;
+  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal";
+  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal") => void;
 
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
@@ -32,6 +33,9 @@ interface ChatToolbarProps {
   onChangeChatStatus: (status: "idle" | "input" | "wait" | "leave") => void;
   // 是否是观战成员
   isSpectator?: boolean;
+  // 实时渲染相关
+  isRealtimeRenderActive?: boolean;
+  onToggleRealtimeRender?: () => void;
 }
 
 export function ChatToolbar({
@@ -45,6 +49,8 @@ export function ChatToolbar({
   currentChatStatus,
   onChangeChatStatus,
   isSpectator = false,
+  isRealtimeRenderActive = false,
+  onToggleRealtimeRender,
 }: ChatToolbarProps) {
   // 调试日志
   console.warn("🛠️ ChatToolbar 渲染", {
@@ -242,6 +248,17 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2">
+        {/* 实时渲染按钮 */}
+        {onToggleRealtimeRender && (
+          <div
+            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+            data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
+            onClick={onToggleRealtimeRender}
+          >
+            <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+          </div>
+        )}
+
         <div
           className="tooltip tooltip-bottom hover:text-info"
           data-tip="导出记录"

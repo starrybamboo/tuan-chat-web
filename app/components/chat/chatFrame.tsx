@@ -548,15 +548,20 @@ function ChatFrame(props: {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
     const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
+    const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
     return ((
       <div
         key={chatMessageResponse.message.messageId}
         className={`
-        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
+        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
             toggleMessageSelection(chatMessageResponse.message.messageId);
+          }
+          else if (roomContext.jumpToMessageInWebGAL) {
+            // 如果实时渲染已激活，单击消息跳转到 WebGAL 对应位置
+            roomContext.jumpToMessageInWebGAL(chatMessageResponse.message.messageId);
           }
         }}
         onDragOver={handleDragOver}
@@ -586,6 +591,7 @@ function ChatFrame(props: {
   }, [
     selectedMessageIds,
     roomContext.curMember?.memberType,
+    roomContext.jumpToMessageInWebGAL,
     virtuosoIndexToMessageIndex,
     isDragging,
     isSelecting,

@@ -47,6 +47,13 @@ export interface RoomContextType {
    * @param messageId 消息ID
    */
   scrollToGivenMessage?: (messageId: number) => void;
+
+  /**
+   * 在 WebGAL 中跳转到指定消息
+   * @param messageId 消息ID
+   * @returns 是否跳转成功
+   */
+  jumpToMessageInWebGAL?: (messageId: number) => boolean;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -61,4 +68,5 @@ export const RoomContext = createContext<RoomContextType>({
   setReplyMessage: undefined,
   chatHistory: undefined,
   scrollToGivenMessage: undefined,
+  jumpToMessageInWebGAL: undefined,
 });

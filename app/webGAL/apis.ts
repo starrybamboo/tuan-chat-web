@@ -318,6 +318,14 @@ export class Api {
     });
   }
 
+  public manageGameControllerMkDir(data: MkDirDto) {
+    return this.httpClient.request<boolean>({
+      path: `/api/manageGame/mkdir`,
+      method: "POST",
+      body: data,
+    });
+  }
+
   public uploadFile(data: any) {
     return this.httpClient.request<void>({
       path: `/api/assets/upload`,

@@ -38,6 +38,37 @@ export type IDebugMessage = {
     stageSyncMsg: any;
   };
 };
+
+/**
+ * 从 URL 中提取文件扩展名
+ * 支持处理带查询参数的 URL，以及没有扩展名的情况
+ * @param url 文件 URL
+ * @param defaultExt 默认扩展名（当无法提取时使用）
+ * @returns 文件扩展名（不包含点号）
+ */
+export function getFileExtensionFromUrl(url: string, defaultExt: string = "webp"): string {
+  try {
+    // 移除查询参数和 hash
+    const urlWithoutParams = url.split("?")[0].split("#")[0];
+    // 获取路径部分的最后一段
+    const lastSegment = urlWithoutParams.substring(urlWithoutParams.lastIndexOf("/") + 1);
+    // 检查是否包含扩展名
+    const dotIndex = lastSegment.lastIndexOf(".");
+    if (dotIndex > 0 && dotIndex < lastSegment.length - 1) {
+      const ext = lastSegment.substring(dotIndex + 1).toLowerCase();
+      // 验证是否是有效的图片扩展名
+      const validImageExtensions = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"];
+      if (validImageExtensions.includes(ext)) {
+        return ext;
+      }
+    }
+    return defaultExt;
+  }
+  catch {
+    return defaultExt;
+  }
+}
+
 /**
  * 上传文件的通用函数
  * @param url 文件的url

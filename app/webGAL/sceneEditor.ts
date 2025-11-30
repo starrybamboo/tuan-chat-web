@@ -4,7 +4,7 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import { ttsApi } from "@/tts/engines/index/apiClient";
 import { checkGameExist, terreApis } from "@/webGAL/index";
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
-import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
+import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import type { UnifiedEngineOptions } from "@/tts/strategy/ttsEngines";
 import { createEngine } from "@/tts/strategy/ttsEngines";
 
@@ -122,15 +122,19 @@ export class SceneEditor {
 
   public async uploadSprites(url: string, spritesName: string): Promise<string> {
     const path = `games/${this.game.name}/game/figure/`;
-    // 提取URL中的文件后缀
-    const fileExtension = url.split(".").pop() || "webp";
+    // 使用辅助函数正确提取文件后缀
+    const fileExtension = getFileExtensionFromUrl(url, "webp");
     return uploadFile(url, path, `${spritesName}.${fileExtension}`);
   }
 
-  // 上传背景图片，直接使用url当作fileName
+  // 上传背景图片，确保文件有正确的后缀名
   public async uploadBackground(url: string): Promise<string> {
     const path = `games/${this.game.name}/game/background/`;
-    return await uploadFile(url, path);
+    const fileExtension = getFileExtensionFromUrl(url, "webp");
+    // 使用 URL 的最后一段作为基础文件名
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const bgName = `bg_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${bgName}.${fileExtension}`);
   }
 
   public async addLineToRenderer(line: string, sceneName: string): Promise<void> {
