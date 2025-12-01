@@ -1,6 +1,7 @@
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { useGetRoleQuery } from "api/queryHooks";
 import { useEffect, useMemo, useState } from "react";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
@@ -33,8 +34,12 @@ export default function ExpansionModule({
   // 状态
   const selectedRuleId = ruleId ?? 1;
 
-  // 新增：当前选中的Tab，basic / ability / skill / act
-  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act" | "copywriting">("basic");
+  // 角色类型查询（用于条件渲染Tab）
+  const roleQuery = useGetRoleQuery(roleId);
+  const isDiceMaiden = !!(roleQuery.data?.data?.diceMaiden || roleQuery.data?.data?.type === 1);
+
+  // 当前选中的Tab，依据角色类型设置默认
+  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act" | "copywriting">(isDiceMaiden ? "act" : "basic");
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -43,6 +48,24 @@ export default function ExpansionModule({
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const [copywritingSaveMsg, setCopywritingSaveMsg] = useState<string>("");
   const [isCopywritingPreview, setIsCopywritingPreview] = useState<boolean>(true);
+
+  // 保证 activeTab 与角色类型一致
+  useEffect(() => {
+    // 通过事件队列异步更新，避免lint关于直接setState的警告
+    const id = setTimeout(() => {
+      if (isDiceMaiden) {
+        if (activeTab !== "act" && activeTab !== "copywriting") {
+          setActiveTab("act");
+        }
+      }
+      else {
+        if (activeTab === "copywriting") {
+          setActiveTab("basic");
+        }
+      }
+    }, 0);
+    return () => clearTimeout(id);
+  }, [isDiceMaiden, activeTab]);
 
   // 初始化能力数据 - 现在不再自动创建,需要用户手动触发
   // useEffect(() => {
@@ -333,53 +356,70 @@ export default function ExpansionModule({
             : (
                 renderData && (
                   <div className="space-y-4">
-                    {/* 顶部 Tab 按钮条，简单实现，不用 DaisyUI 的复杂结构 */}
+                    {/* 顶部 Tab 按钮条，依据角色类型条件渲染 */}
                     <div className="flex gap-2 rounded-lg">
-                      <button
-                        type="button"
-                        className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setActiveTab("basic")}
-                      >
-                        <span className="md:hidden">基础</span>
-                        <span className="hidden md:inline">基础配置</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setActiveTab("ability")}
-                      >
-                        <span className="md:hidden">能力</span>
-                        <span className="hidden md:inline">能力配置</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setActiveTab("skill")}
-                      >
-                        <span className="md:hidden">技能</span>
-                        <span className="hidden md:inline">技能配置</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setActiveTab("act")}
-                      >
-                        <span className="md:hidden">表演</span>
-                        <span className="hidden md:inline">表演配置</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn btn-md rounded-lg ${activeTab === "copywriting" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setActiveTab("copywriting")}
-                      >
-                        <span className="md:hidden">骰娘文案</span>
-                        <span className="hidden md:inline">骰娘文案</span>
-                      </button>
+                      {isDiceMaiden
+                        ? (
+                            <>
+                              <button
+                                type="button"
+                                className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setActiveTab("act")}
+                              >
+                                <span className="md:hidden">表演</span>
+                                <span className="hidden md:inline">表演配置</span>
+                              </button>
+                              <button
+                                type="button"
+                                className={`btn btn-md rounded-lg ${activeTab === "copywriting" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setActiveTab("copywriting")}
+                              >
+                                <span className="md:hidden">骰娘文案</span>
+                                <span className="hidden md:inline">骰娘文案</span>
+                              </button>
+                            </>
+                          )
+                        : (
+                            <>
+                              <button
+                                type="button"
+                                className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setActiveTab("basic")}
+                              >
+                                <span className="md:hidden">基础</span>
+                                <span className="hidden md:inline">基础配置</span>
+                              </button>
+                              <button
+                                type="button"
+                                className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setActiveTab("ability")}
+                              >
+                                <span className="md:hidden">能力</span>
+                                <span className="hidden md:inline">能力配置</span>
+                              </button>
+                              <button
+                                type="button"
+                                className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setActiveTab("skill")}
+                              >
+                                <span className="md:hidden">技能</span>
+                                <span className="hidden md:inline">技能配置</span>
+                              </button>
+                              <button
+                                type="button"
+                                className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+                                onClick={() => setActiveTab("act")}
+                              >
+                                <span className="md:hidden">表演</span>
+                                <span className="hidden md:inline">表演配置</span>
+                              </button>
+                            </>
+                          )}
                     </div>
 
                     {/* 当前 Tab 内容 */}
                     <div className="mt-2">
-                      {activeTab === "copywriting" && (
+                      {isDiceMaiden && activeTab === "copywriting" && (
                         <Section
                           key="copywriting"
                           title="骰娘文案配置"
@@ -459,7 +499,7 @@ export default function ExpansionModule({
                               )}
                         </Section>
                       )}
-                      {activeTab !== "copywriting" && renderActiveTabContent()}
+                      {renderActiveTabContent()}
                     </div>
                   </div>
                 )
