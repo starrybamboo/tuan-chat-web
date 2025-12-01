@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
 import type {AbilityUpdateRequest} from "../models/AbilityUpdateRequest";
 import {tuanchat} from "../instance";
 import type {AbilityFieldUpdateRequest} from "../models/AbilityFieldUpdateRequest";
@@ -16,6 +16,21 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
         staleTime: 10000,
         enabled: roleId > 0,
     });
+}
+
+/**
+ * 批量获取多个角色的 ability（用于避免在循环中直接调用 Hook）
+ */
+export function useGetRolesAbilitiesQueries(roleIds: number[]) {
+    const results = useQueries({
+        queries: roleIds.map((roleId) => ({
+            queryKey: ["listRoleAbility", roleId],
+            queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
+            staleTime: 10000,
+            enabled: roleId > 0,
+        })),
+    });
+    return results;
 }
 
 /**
