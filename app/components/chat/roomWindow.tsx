@@ -167,11 +167,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 实时渲染相关
   const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
+  // 实时渲染 TTS 配置（默认关闭）
+  const [realtimeTTSEnabled, setRealtimeTTSEnabled] = useState(false);
+  const realtimeTTSConfig = useMemo(() => ({
+    enabled: realtimeTTSEnabled,
+    engine: "index" as const,
+    emotionMode: 2, // 使用情感向量
+    emotionWeight: 0.8,
+    temperature: 0.8,
+    topP: 0.8,
+    maxTokensPerSegment: 120,
+  }), [realtimeTTSEnabled]);
   const realtimeRender = useRealtimeRender({
     spaceId,
     enabled: isRealtimeRenderEnabled,
     roles: roomRoles,
     rooms: room ? [room] : [], // 当前只传入当前房间，后续可以扩展为多房间
+    ttsConfig: realtimeTTSConfig,
   });
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
@@ -1106,6 +1118,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <WebGALPreview
               previewUrl={realtimeRender.previewUrl}
               isActive={realtimeRender.isActive}
+              ttsEnabled={realtimeTTSEnabled}
+              onTTSToggle={setRealtimeTTSEnabled}
               onClose={() => {
                 realtimeRender.stop();
                 setIsRealtimeRenderEnabled(false);

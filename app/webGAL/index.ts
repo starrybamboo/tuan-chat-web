@@ -39,6 +39,9 @@ export type {
   UploadFilesDto,
 } from "./apis";
 
+// 导出实时渲染 TTS 类型
+export type { RealtimeTTSConfig } from "./realtimeRenderer";
+
 // 导出 WebSocket 类型
 export type {
   WebGalSyncMessage,

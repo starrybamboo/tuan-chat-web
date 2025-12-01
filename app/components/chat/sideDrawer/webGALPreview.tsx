@@ -8,6 +8,10 @@ interface WebGALPreviewProps {
   isActive: boolean;
   onClose?: () => void;
   className?: string;
+  /** TTS 是否启用 */
+  ttsEnabled?: boolean;
+  /** TTS 开关回调 */
+  onTTSToggle?: (enabled: boolean) => void;
 }
 
 export default function WebGALPreview({
@@ -15,6 +19,8 @@ export default function WebGALPreview({
   isActive,
   onClose,
   className,
+  ttsEnabled = false,
+  onTTSToggle,
 }: WebGALPreviewProps) {
   if (!isActive || !previewUrl) {
     return (
@@ -46,7 +52,19 @@ export default function WebGALPreview({
     <div className={`flex flex-col h-full ${className ?? ""}`}>
       <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
         <span className="font-medium text-sm">WebGAL 实时预览</span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {/* TTS 开关 */}
+          {onTTSToggle && (
+            <label className="flex items-center gap-1 cursor-pointer" title={ttsEnabled ? "关闭 AI 配音" : "开启 AI 配音"}>
+              <span className="text-xs text-base-content/70">配音</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-xs toggle-primary"
+                checked={ttsEnabled}
+                onChange={e => onTTSToggle(e.target.checked)}
+              />
+            </label>
+          )}
           <a
             href={previewUrl}
             target="_blank"

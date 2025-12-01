@@ -12,9 +12,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - 增量更新新消息
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
+import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { tuanchat } from "../../api/instance";
 import { RealtimeRenderer } from "./realtimeRenderer";
+
+export type { RealtimeTTSConfig };
 
 export type RealtimeRenderStatus = "idle" | "initializing" | "connected" | "disconnected" | "error";
 
@@ -31,6 +34,10 @@ type UseRealtimeRenderOptions = {
   roles?: UserRole[];
   avatars?: RoleAvatar[];
   rooms?: Room[];
+  /** TTS 配置 */
+  ttsConfig?: RealtimeTTSConfig;
+  /** 角色参考音频文件映射 (roleId -> File) */
+  voiceFiles?: Map<number, File>;
 };
 
 type UseRealtimeRenderReturn = {
@@ -66,6 +73,12 @@ type UseRealtimeRenderReturn = {
   updateRooms: (rooms: Room[]) => void;
   /** 跳转到指定消息 */
   jumpToMessage: (messageId: number, roomId?: number) => boolean;
+  /** 更新 TTS 配置 */
+  updateTTSConfig: (config: RealtimeTTSConfig) => void;
+  /** 设置角色参考音频 */
+  setVoiceFile: (roleId: number, file: File) => void;
+  /** 批量设置角色参考音频 */
+  setVoiceFiles: (voiceFiles: Map<number, File>) => void;
 };
 
 export function useRealtimeRender({
@@ -74,6 +87,8 @@ export function useRealtimeRender({
   roles = [],
   avatars = [],
   rooms = [],
+  ttsConfig,
+  voiceFiles,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
   const [initProgress, setInitProgress] = useState<InitProgress | null>(null);
@@ -82,11 +97,28 @@ export function useRealtimeRender({
   const rendererRef = useRef<RealtimeRenderer | null>(null);
   const queryClient = useQueryClient();
   const roomsRef = useRef<Room[]>(rooms);
+  const ttsConfigRef = useRef<RealtimeTTSConfig | undefined>(ttsConfig);
+  const voiceFilesRef = useRef<Map<number, File> | undefined>(voiceFiles);
 
-  // 保持 roomsRef 最新
+  // 保持 refs 最新
   useEffect(() => {
     roomsRef.current = rooms;
   }, [rooms]);
+
+  useEffect(() => {
+    ttsConfigRef.current = ttsConfig;
+    if (rendererRef.current && ttsConfig) {
+      rendererRef.current.setTTSConfig(ttsConfig);
+      console.warn(`[useRealtimeRender] TTS 配置变化: enabled=${ttsConfig.enabled}`);
+    }
+  }, [ttsConfig]);
+
+  useEffect(() => {
+    voiceFilesRef.current = voiceFiles;
+    if (rendererRef.current && voiceFiles) {
+      rendererRef.current.setVoiceFiles(voiceFiles);
+    }
+  }, [voiceFiles]);
 
   // 初始化角色和头像缓存
   useEffect(() => {
@@ -214,6 +246,26 @@ export function useRealtimeRender({
       if (currentRooms.length > 0) {
         renderer.setRooms(currentRooms);
         console.warn(`[useRealtimeRender] 设置了 ${currentRooms.length} 个房间`);
+      }
+
+      // 设置 TTS 配置
+      const currentTTSConfig = ttsConfigRef.current;
+      if (currentTTSConfig) {
+        renderer.setTTSConfig(currentTTSConfig);
+        console.warn(`[useRealtimeRender] TTS 已${currentTTSConfig.enabled ? "启用" : "禁用"}`);
+      }
+
+      // 设置参考音频文件
+      const currentVoiceFiles = voiceFilesRef.current;
+      if (currentVoiceFiles && currentVoiceFiles.size > 0) {
+        renderer.setVoiceFiles(currentVoiceFiles);
+        console.warn(`[useRealtimeRender] 设置了 ${currentVoiceFiles.size} 个角色的参考音频`);
+      }
+
+      // 如果启用了 TTS 但没有提供参考音频，尝试从角色的 voiceUrl 获取
+      if (currentTTSConfig?.enabled && (!currentVoiceFiles || currentVoiceFiles.size === 0)) {
+        console.warn("[useRealtimeRender] 正在从角色 voiceUrl 获取参考音频...");
+        await renderer.fetchVoiceFilesFromRoles();
       }
 
       // 初始化渲染器（会自动预加载立绘并创建房间场景）
@@ -405,6 +457,29 @@ export function useRealtimeRender({
     return rendererRef.current.jumpToMessage(messageId, roomId);
   }, [status]);
 
+  // 更新 TTS 配置
+  const updateTTSConfig = useCallback((config: RealtimeTTSConfig) => {
+    ttsConfigRef.current = config;
+    if (rendererRef.current) {
+      rendererRef.current.setTTSConfig(config);
+    }
+  }, []);
+
+  // 设置角色参考音频
+  const setVoiceFile = useCallback((roleId: number, file: File) => {
+    if (rendererRef.current) {
+      rendererRef.current.setVoiceFile(roleId, file);
+    }
+  }, []);
+
+  // 批量设置角色参考音频
+  const setVoiceFilesCallback = useCallback((newVoiceFiles: Map<number, File>) => {
+    voiceFilesRef.current = newVoiceFiles;
+    if (rendererRef.current) {
+      rendererRef.current.setVoiceFiles(newVoiceFiles);
+    }
+  }, []);
+
   // 自动启动（如果 enabled 为 true）
   useEffect(() => {
     if (enabled && status === "idle") {
@@ -441,6 +516,9 @@ export function useRealtimeRender({
     updateAvatarCache,
     updateRooms,
     jumpToMessage,
+    updateTTSConfig,
+    setVoiceFile,
+    setVoiceFiles: setVoiceFilesCallback,
   };
 }
 
