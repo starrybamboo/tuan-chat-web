@@ -39,7 +39,7 @@ export default function ExpansionModule({
   const isDiceMaiden = !!(roleQuery.data?.data?.diceMaiden || roleQuery.data?.data?.type === 1);
 
   // 当前选中的Tab，依据角色类型设置默认
-  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act" | "copywriting">(isDiceMaiden ? "act" : "basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act" | "copywriting">(isDiceMaiden ? "copywriting" : "basic");
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -54,8 +54,8 @@ export default function ExpansionModule({
     // 通过事件队列异步更新，避免lint关于直接setState的警告
     const id = setTimeout(() => {
       if (isDiceMaiden) {
-        if (activeTab !== "act" && activeTab !== "copywriting") {
-          setActiveTab("act");
+        if (activeTab !== "copywriting") {
+          setActiveTab("copywriting");
         }
       }
       else {
@@ -363,14 +363,6 @@ export default function ExpansionModule({
                             <>
                               <button
                                 type="button"
-                                className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => setActiveTab("act")}
-                              >
-                                <span className="md:hidden">表演</span>
-                                <span className="hidden md:inline">表演配置</span>
-                              </button>
-                              <button
-                                type="button"
                                 className={`btn btn-md rounded-lg ${activeTab === "copywriting" ? "btn-primary" : "btn-ghost"}`}
                                 onClick={() => setActiveTab("copywriting")}
                               >
@@ -419,87 +411,90 @@ export default function ExpansionModule({
 
                     {/* 当前 Tab 内容 */}
                     <div className="mt-2">
-                      {isDiceMaiden && activeTab === "copywriting" && (
-                        <Section
-                          key="copywriting"
-                          title="骰娘文案配置"
-                          className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
-                          collapsible={false}
-                        >
-                          <div className="flex justify-between items-center mb-4">
-                            <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-                              骰娘文案
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              {copywritingSaveMsg && (
-                                <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
-                                className={`btn btn-sm ${
-                                  isCopywritingPreview ? "btn-accent" : "btn-primary"
-                                }`}
-                              >
-                                {isCopywritingPreview
-                                  ? (
-                                      <span className="flex items-center gap-1">
-                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                          <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                                          <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                                        </svg>
-                                        编辑
-                                      </span>
-                                    )
-                                  : (
-                                      <span className="flex items-center gap-1">
-                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                        </svg>
-                                        保存
-                                      </span>
-                                    )}
-                              </button>
-                            </div>
-                          </div>
-                          {isCopywritingPreview
-                            ? (
-                                <div className="space-y-3">
-                                  {Object.keys(renderData.copywritingTemplates || {}).length === 0
-                                    ? (
-                                        <div className="text-base-content/60">暂无文案可预览</div>
-                                      )
-                                    : (
-                                        Object.entries(renderData.copywritingTemplates || {}).map(([group, items]) => (
-                                          <div key={group} className="card bg-base-100 shadow-xs rounded-xl border-2 border-base-content/10">
-                                            <div className="card-body">
-                                              <div className="font-semibold mb-2">{group}</div>
-                                              {(!items || items.length === 0)
-                                                ? (
-                                                    <div className="text-base-content/50 text-sm">该分组暂无文案</div>
-                                                  )
-                                                : (
-                                                    <ul className="list-disc pl-5 space-y-1">
-                                                      {items.map(line => (
-                                                        <li key={`${group}-${line.substring(0, 30)}`} className="text-sm whitespace-pre-wrap break-words">{line}</li>
-                                                      ))}
-                                                    </ul>
-                                                  )}
-                                            </div>
-                                          </div>
-                                        ))
-                                      )}
+                      {isDiceMaiden && activeTab === "copywriting"
+                        ? (
+                            <Section
+                              key="copywriting"
+                              title="骰娘文案配置"
+                              className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+                              collapsible={false}
+                            >
+                              <div className="flex justify-between items-center mb-4">
+                                <h3 className="card-title text-lg flex items-center gap-2 ml-1">
+                                  骰娘文案
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                  {copywritingSaveMsg && (
+                                    <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
+                                    className={`btn btn-sm ${
+                                      isCopywritingPreview ? "btn-accent" : "btn-primary"
+                                    }`}
+                                  >
+                                    {isCopywritingPreview
+                                      ? (
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                                              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                                            </svg>
+                                            编辑
+                                          </span>
+                                        )
+                                      : (
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                            </svg>
+                                            保存
+                                          </span>
+                                        )}
+                                  </button>
                                 </div>
-                              )
-                            : (
-                                <CopywritingEditor
-                                  value={renderData.copywritingTemplates}
-                                  onChange={handleCopywritingChange}
-                                />
-                              )}
-                        </Section>
-                      )}
-                      {renderActiveTabContent()}
+                              </div>
+                              {isCopywritingPreview
+                                ? (
+                                    <div className="space-y-3">
+                                      {Object.keys(renderData.copywritingTemplates || {}).length === 0
+                                        ? (
+                                            <div className="text-base-content/60">暂无文案可预览</div>
+                                          )
+                                        : (
+                                            Object.entries(renderData.copywritingTemplates || {}).map(([group, items]) => (
+                                              <div key={group} className="card bg-base-100 shadow-xs rounded-xl border-2 border-base-content/10">
+                                                <div className="card-body">
+                                                  <div className="font-semibold mb-2">{group}</div>
+                                                  {(!items || items.length === 0)
+                                                    ? (
+                                                        <div className="text-base-content/50 text-sm">该分组暂无文案</div>
+                                                      )
+                                                    : (
+                                                        <ul className="list-disc pl-5 space-y-1">
+                                                          {items.map(line => (
+                                                            <li key={`${group}-${line.substring(0, 30)}`} className="text-sm whitespace-pre-wrap break-words">{line}</li>
+                                                          ))}
+                                                        </ul>
+                                                      )}
+                                                </div>
+                                              </div>
+                                            ))
+                                          )}
+                                    </div>
+                                  )
+                                : (
+                                    <CopywritingEditor
+                                      value={renderData.copywritingTemplates}
+                                      onChange={handleCopywritingChange}
+                                    />
+                                  )}
+                            </Section>
+                          )
+                        : (
+                            renderActiveTabContent()
+                          )}
                     </div>
                   </div>
                 )
