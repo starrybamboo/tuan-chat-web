@@ -167,43 +167,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 实时渲染相关
   const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
-  // 实时渲染 TTS 配置（默认关闭）
-  const [realtimeTTSEnabled, setRealtimeTTSEnabled] = useState(false);
-  // TTS API URL（从 localStorage 读取，默认为空使用环境变量）
-  const [ttsApiUrl, setTtsApiUrl] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("tts_api_url") || "";
-    }
-    return "";
-  });
-  // 保存 TTS API URL 到 localStorage
-  const handleTtsApiUrlChange = (url: string) => {
-    setTtsApiUrl(url);
-    if (typeof window !== "undefined") {
-      if (url) {
-        localStorage.setItem("tts_api_url", url);
-      }
-      else {
-        localStorage.removeItem("tts_api_url");
-      }
-    }
-  };
-  const realtimeTTSConfig = useMemo(() => ({
-    enabled: realtimeTTSEnabled,
-    engine: "index" as const,
-    apiUrl: ttsApiUrl || undefined, // 空字符串转为 undefined
-    emotionMode: 2, // 使用情感向量
-    emotionWeight: 0.8,
-    temperature: 0.8,
-    topP: 0.8,
-    maxTokensPerSegment: 120,
-  }), [realtimeTTSEnabled, ttsApiUrl]);
   const realtimeRender = useRealtimeRender({
     spaceId,
     enabled: isRealtimeRenderEnabled,
     roles: roomRoles,
     rooms: room ? [room] : [], // 当前只传入当前房间，后续可以扩展为多房间
-    ttsConfig: realtimeTTSConfig,
   });
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
@@ -534,14 +502,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     lastRenderedMessageIdRef.current = null;
   }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
 
-  // 在 WebGAL 中跳转到指定消息
-  const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
-    if (!realtimeRender.isActive) {
-      return false;
-    }
-    return realtimeRender.jumpToMessage(messageId, roomId);
-  }, [realtimeRender, roomId]);
-
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
       roomId,
@@ -555,9 +515,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       setReplyMessage,
       chatHistory,
       scrollToGivenMessage,
-      jumpToMessageInWebGAL: realtimeRender.isActive ? jumpToMessageInWebGAL : undefined,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, realtimeRender.isActive, jumpToMessageInWebGAL]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   // 判断是否是观战成员 (memberType >= 3)
@@ -1138,10 +1097,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <WebGALPreview
               previewUrl={realtimeRender.previewUrl}
               isActive={realtimeRender.isActive}
-              ttsEnabled={realtimeTTSEnabled}
-              onTTSToggle={setRealtimeTTSEnabled}
-              ttsApiUrl={ttsApiUrl}
-              onTTSApiUrlChange={handleTtsApiUrlChange}
               onClose={() => {
                 realtimeRender.stop();
                 setIsRealtimeRenderEnabled(false);

@@ -54,6 +54,38 @@ export interface RoomContextType {
    * @returns 是否跳转成功
    */
   jumpToMessageInWebGAL?: (messageId: number) => boolean;
+
+  /**
+   * WebGAL 联动模式
+   * 开启后会在消息气泡中显示立绘位置、情感等设置
+   */
+  webgalLinkMode?: boolean;
+
+  /**
+   * 设置 WebGAL 联动模式
+   */
+  setWebgalLinkMode?: (mode: boolean) => void;
+
+  /**
+   * 角色默认立绘位置 Map
+   * key: roleId, value: "left" | "center" | "right"
+   */
+  defaultFigurePositionMap?: Record<number, "left" | "center" | "right">;
+
+  /**
+   * 设置角色默认立绘位置
+   */
+  setDefaultFigurePosition?: (roleId: number, position: "left" | "center" | "right") => void;
+
+  /**
+   * 自动回复模式（每次发送消息时自动回复最后一条消息）
+   */
+  autoReplyMode?: boolean;
+
+  /**
+   * 设置自动回复模式
+   */
+  setAutoReplyMode?: (mode: boolean) => void;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -69,4 +101,10 @@ export const RoomContext = createContext<RoomContextType>({
   chatHistory: undefined,
   scrollToGivenMessage: undefined,
   jumpToMessageInWebGAL: undefined,
+  webgalLinkMode: false,
+  setWebgalLinkMode: undefined,
+  defaultFigurePositionMap: {},
+  setDefaultFigurePosition: undefined,
+  autoReplyMode: false,
+  setAutoReplyMode: undefined,
 });

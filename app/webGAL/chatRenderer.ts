@@ -353,6 +353,11 @@ export class ChatRenderer {
           const role = await this.fetchRole(message.roleId);
           const roleAvatar = await this.fetchAvatar(message.avatarId);
 
+          // 获取消息级别的语音渲染设置
+          const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
+          const messageEmotionVector = voiceRenderSettings?.emotionVector;
+          const messageFigurePosition = voiceRenderSettings?.figurePosition || "left";
+
           // 以下处理是为了防止被webGal判断为新一段的对话
           const processedContent = message.content
             .replace(/\n/g, " ") // 替换换行符为空格
@@ -374,10 +379,11 @@ export class ChatRenderer {
                 && !message.content.startsWith(".")
                 && !message.content.startsWith("。")
                 && !message.content.startsWith("%")) {
-                // 构建 TTS 选项
+                // 构建 TTS 选项 - 优先使用消息级别的情感向量
                 const ttsOptions: any = {
                   engine: this.renderProps.ttsEngine,
-                  emotionVector: this.convertAvatarTitleToEmotionVector(roleAvatar?.avatarTitle ?? {}),
+                  emotionVector: messageEmotionVector
+                    ?? this.convertAvatarTitleToEmotionVector(roleAvatar?.avatarTitle ?? {}),
                 };
 
                 // 如果选择 GPT-SoVITS 引擎,添加相关配置
@@ -420,6 +426,7 @@ export class ChatRenderer {
                 noNeedChangeSprite ? undefined : messageSpriteName,
                 noNeedChangeSprite ? undefined : repliedSpriteName,
                 vocalFileName,
+                messageFigurePosition, // 传递立绘位置
               );
               if (!noNeedChangeSprite) {
                 spriteState.clear();

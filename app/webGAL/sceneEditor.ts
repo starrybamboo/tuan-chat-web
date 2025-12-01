@@ -86,6 +86,7 @@ export class SceneEditor {
    * @param leftSpriteName 左边立绘的文件名，如果设置为 空字符串，那么会取消这个位置立绘的显示。设置为undefined，则对这个位置的立绘不做任何改变
    * @param rightSpriteName 右边立绘的文件名，规则同上
    * @param vocal 语音文件名
+   * @param figurePosition 主立绘位置：left（默认）、center、right
    */
   public async addDialog(
     roleName: string,
@@ -95,11 +96,25 @@ export class SceneEditor {
     leftSpriteName?: string | undefined,
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
+    figurePosition: "left" | "center" | "right" = "left",
   ): Promise<void> {
     const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
+
+    // 根据指定的立绘位置生成相应的 changeFigure 命令
     if (leftSpriteName) {
+      const position = figurePosition === "center" ? "" : `-${figurePosition}`;
+
+      // 清除其他位置的立绘（避免多个立绘同时显示）
+      const allPositions: Array<"left" | "center" | "right"> = ["left", "center", "right"];
+      for (const pos of allPositions) {
+        if (pos !== figurePosition) {
+          const positionArg = pos === "center" ? "" : `-${pos}`;
+          await this.addLineToRenderer(`changeFigure:none ${positionArg} -next;`, sceneName);
+        }
+      }
+
       await this.addLineToRenderer(
-        `changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} -left ${transform} -next;`,
+        `changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} ${position} ${transform} -next;`,
         sceneName,
       );
     }

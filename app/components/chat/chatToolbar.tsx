@@ -1,10 +1,12 @@
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
+  ArrowBackThickFill,
   Detective,
   EmojiIconWhite,
   GalleryBroken,
   GirlIcon,
+  LinkFilled,
   PointOnMapPerspectiveLinear,
   SendIcon,
   SharpDownload,
@@ -36,6 +38,15 @@ interface ChatToolbarProps {
   // 实时渲染相关
   isRealtimeRenderActive?: boolean;
   onToggleRealtimeRender?: () => void;
+  // WebGAL 联动模式
+  webgalLinkMode?: boolean;
+  onToggleWebgalLinkMode?: () => void;
+  // 自动回复模式
+  autoReplyMode?: boolean;
+  onToggleAutoReplyMode?: () => void;
+  // 默认立绘位置
+  defaultFigurePosition?: "left" | "center" | "right";
+  onSetDefaultFigurePosition?: (position: "left" | "center" | "right") => void;
 }
 
 export function ChatToolbar({
@@ -51,6 +62,12 @@ export function ChatToolbar({
   isSpectator = false,
   isRealtimeRenderActive = false,
   onToggleRealtimeRender,
+  webgalLinkMode = false,
+  onToggleWebgalLinkMode,
+  autoReplyMode = false,
+  onToggleAutoReplyMode,
+  defaultFigurePosition,
+  onSetDefaultFigurePosition,
 }: ChatToolbarProps) {
   return (
     <div className="flex pr-1 pl-2 justify-between ">
@@ -241,6 +258,49 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2">
+        {/* 默认立绘位置选择器（仅在联动模式下显示） */}
+        {webgalLinkMode && onSetDefaultFigurePosition && (
+          <div className="flex items-center gap-1">
+            <div className="tooltip" data-tip="本角色默认位置">
+              <div className="join">
+                {(["left", "center", "right"] as const).map(pos => (
+                  <button
+                    key={pos}
+                    type="button"
+                    className={`join-item btn btn-xs px-2 ${defaultFigurePosition === pos ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => onSetDefaultFigurePosition(pos)}
+                    title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}`}
+                  >
+                    {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 自动回复模式按钮（开关模式） */}
+        {onToggleAutoReplyMode && webgalLinkMode && (
+          <div
+            className={`tooltip tooltip-bottom ${autoReplyMode ? "text-success" : "hover:text-info"}`}
+            data-tip={autoReplyMode ? "关闭自动回复模式" : "开启自动回复模式（每条消息自动回复上一条）"}
+            onClick={onToggleAutoReplyMode}
+          >
+            <ArrowBackThickFill className={`size-6 cursor-pointer ${autoReplyMode ? "animate-pulse" : ""}`} />
+          </div>
+        )}
+
+        {/* WebGAL 联动模式按钮 */}
+        {onToggleWebgalLinkMode && (
+          <div
+            className={`tooltip tooltip-bottom ${webgalLinkMode ? "text-info" : "hover:text-info opacity-50"}`}
+            data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
+            onClick={onToggleWebgalLinkMode}
+          >
+            <LinkFilled className={`size-6 cursor-pointer ${webgalLinkMode ? "" : "grayscale opacity-50"}`} />
+          </div>
+        )}
+
         {/* 实时渲染按钮 */}
         {onToggleRealtimeRender && (
           <div

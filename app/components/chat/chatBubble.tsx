@@ -1,3 +1,4 @@
+import type { FigurePosition } from "@/types/voiceRenderTypes";
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
@@ -5,13 +6,14 @@ import { RoomContext } from "@/components/chat/roomContext";
 import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import { VoiceRenderPanel } from "@/components/chat/voiceRenderPanel";
 import BetterImg from "@/components/common/betterImg";
 import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { formatTimeSmartly } from "@/utils/dateUtil";
-import { useGetRoleQuery } from "api/queryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 import ClueMessage from "./smallComponents/clueMessage";
@@ -24,6 +26,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 }) {
   const message = chatMessageResponse.message;
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
+  // 获取头像详情（包含 avatarTitle）
+  const avatarQuery = useGetRoleAvatarQuery(message.avatarId);
+  const avatar = avatarQuery.data?.data;
 
   const role = useRoleRequest.data?.data;
 
@@ -35,12 +40,27 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   const spaceContext = use(SpaceContext);
   useChatBubbleStyle = useChatBubbleStyle || roomContext.useChatBubbleStyle;
 
+  // 更新消息并同步到本地缓存
+  function updateMessageAndSync(newMessage: Message) {
+    updateMessageMutation.mutate(newMessage, {
+      onSuccess: (response) => {
+        // 更新成功后同步到本地 IndexedDB
+        if (response?.data && roomContext.chatHistory) {
+          roomContext.chatHistory.addOrUpdateMessage({
+            ...chatMessageResponse,
+            message: response.data,
+          });
+        }
+      },
+    });
+  }
+
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
       ...message,
       avatarId,
     };
-    updateMessageMutation.mutate(newMessage);
+    updateMessageAndSync(newMessage);
   }
 
   function handleRoleChange(new_roleId: number) {
@@ -49,7 +69,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
       roleId: new_roleId,
       avatarId: roomContext.roomRolesThatUserOwn.find(role => role.roleId === new_roleId)?.avatarId ?? -1,
     };
-    updateMessageMutation.mutate(newMessage);
+    updateMessageAndSync(newMessage);
   }
 
   const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
@@ -81,11 +101,26 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
   function handleContentUpdate(content: string) {
     if (message.content !== content) {
-      updateMessageMutation.mutate({
+      updateMessageAndSync({
         ...message,
         content,
       });
     }
+  }
+
+  // 处理语音渲染设置更新
+  function handleVoiceRenderSettingsChange(emotionVector: number[], figurePosition: FigurePosition) {
+    const newMessage = {
+      ...message,
+      webgal: {
+        ...message.webgal,
+        voiceRenderSettings: {
+          emotionVector,
+          figurePosition,
+        },
+      },
+    } as Message;
+    updateMessageAndSync(newMessage);
   }
 
   const imgMsg = message.extra?.imageMessage;
@@ -185,6 +220,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
   }, [message.updateTime]);
 
+  // 获取当前的语音渲染设置
+  const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
+
   return (
     <div>
       {useChatBubbleStyle
@@ -219,6 +257,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                   className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
                 >
                   {renderedContent}
+                  {/* 内嵌语音渲染设置面板 - 仅文本消息显示 */}
+                  {message.messageType === 1 && (
+                    <VoiceRenderPanel
+                      emotionVector={voiceRenderSettings?.emotionVector}
+                      figurePosition={voiceRenderSettings?.figurePosition}
+                      avatarTitle={avatar?.avatarTitle}
+                      onChange={handleVoiceRenderSettingsChange}
+                      canEdit={canEdit}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -259,6 +307,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
                 <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer break-words">
                   {renderedContent}
+                  {/* 内嵌语音渲染设置面板 - 仅文本消息显示 */}
+                  {message.messageType === 1 && (
+                    <VoiceRenderPanel
+                      emotionVector={voiceRenderSettings?.emotionVector}
+                      figurePosition={voiceRenderSettings?.figurePosition}
+                      avatarTitle={avatar?.avatarTitle}
+                      onChange={handleVoiceRenderSettingsChange}
+                      canEdit={canEdit}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -354,6 +412,13 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
 
   // 检查 diceResult
   if (JSON.stringify(prevExtra.diceResult) !== JSON.stringify(nextExtra.diceResult)) {
+    return false;
+  }
+
+  // 检查 voiceRenderSettings
+  const prevVoiceSettings = (prevMessage.webgal as any)?.voiceRenderSettings;
+  const nextVoiceSettings = (nextMessage.webgal as any)?.voiceRenderSettings;
+  if (JSON.stringify(prevVoiceSettings) !== JSON.stringify(nextVoiceSettings)) {
     return false;
   }
 
