@@ -100,6 +100,22 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
       queryFn: async () => {
         const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
         if (res.success && res.data) {
+                    // 解析后端返回的 extra.copywriting 为 Record<string, string[]>
+                    let extraCopywriting: Record<string, string[]> | undefined = undefined;
+                    const extra = (res.data as any)?.extra as Record<string, unknown> | undefined;
+                    const cw = extra && (extra as any).copywriting;
+                    if (typeof cw === "string") {
+                        try {
+                            const parsed = JSON.parse(cw);
+                            if (parsed && typeof parsed === "object") {
+                                extraCopywriting = parsed as Record<string, string[]>;
+                            }
+                        } catch {
+                            // ignore parse errors
+                        }
+                    } else if (cw && typeof cw === "object") {
+                        extraCopywriting = cw as Record<string, string[]>;
+                    }
           return {
             abilityId : res.data.abilityId || 0 ,
             roleId: roleId,
@@ -107,7 +123,8 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
             actTemplate: res.data.act || {}, // 表演字段
             basicDefault: res.data.basic || {}, // 基础属性
             abilityDefault: res.data.ability || {}, // 能力数据
-            skillDefault: res.data.skill || {} // 技能数据
+                        skillDefault: res.data.skill || {}, // 技能数据
+                        extraCopywriting,
           }
         }
         return null;

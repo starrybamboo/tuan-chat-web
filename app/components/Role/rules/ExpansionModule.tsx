@@ -1,7 +1,8 @@
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
-import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
+import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
 import { ConfigurationSection } from "./ConfigurationSection";
 import PerformanceEditor from "./PerformanceEditor";
@@ -33,12 +34,15 @@ export default function ExpansionModule({
   const selectedRuleId = ruleId ?? 1;
 
   // 新增：当前选中的Tab，basic / ability / skill / act
-  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act" | "copywriting">("basic");
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
   const setRoleAbilityMutation = useSetRoleAbilityMutation();
+  const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
+  const [copywritingSaveMsg, setCopywritingSaveMsg] = useState<string>("");
+  const [isCopywritingPreview, setIsCopywritingPreview] = useState<boolean>(true);
 
   // 初始化能力数据 - 现在不再自动创建,需要用户手动触发
   // useEffect(() => {
@@ -60,6 +64,7 @@ export default function ExpansionModule({
     basicDefault?: any;
     abilityFormula?: any;
     skillDefault?: any;
+    copywritingTemplates?: Record<string, string[]>;
   }>({});
 
   // 当 roleId 变化时，重置本地编辑状态，防止显示上一个角色的内容
@@ -98,6 +103,9 @@ export default function ExpansionModule({
       ? abilityQuery.data.skillDefault
       : (ruleDetailQuery.data?.skillDefault || {});
 
+    // 解析后端的骰娘文案（extra.copywriting），作为基础值
+    const baseCopywritingTemplates = abilityQuery.data?.extraCopywriting ?? {};
+
     // 合并本地编辑的数据
     return {
       ruleId: ruleDetailQuery.data.ruleId,
@@ -107,6 +115,7 @@ export default function ExpansionModule({
       basicDefault: localEdits.basicDefault ?? baseBasicDefault,
       abilityFormula: localEdits.abilityFormula ?? baseAbilityFormula,
       skillDefault: localEdits.skillDefault ?? baseSkillDefault,
+      copywritingTemplates: localEdits.copywritingTemplates ?? baseCopywritingTemplates,
     };
   }, [abilityQuery.data, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading, localEdits, roleId]);
 
@@ -129,6 +138,45 @@ export default function ExpansionModule({
   // 处理能力变更
   const handleAbilityChange = (newData: Record<string, any>) => {
     setLocalEdits(prev => ({ ...prev, abilityFormula: newData }));
+  };
+
+  // 处理骰娘文案变更（本地临时对象 Record<string, string[]>）
+  const handleCopywritingChange = (newData: Record<string, string[]>) => {
+    setLocalEdits(prev => ({ ...prev, copywritingTemplates: newData }));
+  };
+
+  // 保存骰娘文案到 ability.extra.copywriting（序列化为字符串）
+  const handleCopywritingSave = () => {
+    const copywritingData = localEdits.copywritingTemplates ?? renderData?.copywritingTemplates ?? {};
+    const serializedData = JSON.stringify(copywritingData);
+
+    const payload = {
+      roleId,
+      ruleId: selectedRuleId,
+      act: {}, // 不修改表演字段
+      basic: {}, // 不修改基础属性
+      ability: {}, // 不修改能力字段
+      skill: {}, // 不修改技能字段
+      extra: {
+        copywriting: serializedData,
+      },
+    };
+
+    updateFieldAbility(payload, {
+      onSuccess: () => {
+        setCopywritingSaveMsg("保存成功");
+        // 保存成功后切换回预览模式，并清空本地编辑状态让数据从后端重新加载
+        setIsCopywritingPreview(true);
+        setLocalEdits(prev => ({ ...prev, copywritingTemplates: undefined }));
+        setTimeout(() => setCopywritingSaveMsg(""), 2000);
+      },
+      onError: (e: any) => {
+        console.error("保存骰娘文案失败:", e);
+        console.error("错误详情:", e?.body || e?.message || e);
+        setCopywritingSaveMsg(`保存失败: ${e?.body?.message || e?.message || "请稍后重试"}`);
+        setTimeout(() => setCopywritingSaveMsg(""), 3000);
+      },
+    });
   };
 
   // 检查是否规则未创建
@@ -319,11 +367,99 @@ export default function ExpansionModule({
                         <span className="md:hidden">表演</span>
                         <span className="hidden md:inline">表演配置</span>
                       </button>
+                      <button
+                        type="button"
+                        className={`btn btn-md rounded-lg ${activeTab === "copywriting" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => setActiveTab("copywriting")}
+                      >
+                        <span className="md:hidden">骰娘文案</span>
+                        <span className="hidden md:inline">骰娘文案</span>
+                      </button>
                     </div>
 
                     {/* 当前 Tab 内容 */}
                     <div className="mt-2">
-                      {renderActiveTabContent()}
+                      {activeTab === "copywriting" && (
+                        <Section
+                          key="copywriting"
+                          title="骰娘文案配置"
+                          className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+                          collapsible={false}
+                        >
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="card-title text-lg flex items-center gap-2 ml-1">
+                              骰娘文案
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {copywritingSaveMsg && (
+                                <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
+                                className={`btn btn-sm ${
+                                  isCopywritingPreview ? "btn-accent" : "btn-primary"
+                                }`}
+                              >
+                                {isCopywritingPreview
+                                  ? (
+                                      <span className="flex items-center gap-1">
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                          <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                                          <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                                        </svg>
+                                        编辑
+                                      </span>
+                                    )
+                                  : (
+                                      <span className="flex items-center gap-1">
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                        </svg>
+                                        保存
+                                      </span>
+                                    )}
+                              </button>
+                            </div>
+                          </div>
+                          {isCopywritingPreview
+                            ? (
+                                <div className="space-y-3">
+                                  {Object.keys(renderData.copywritingTemplates || {}).length === 0
+                                    ? (
+                                        <div className="text-base-content/60">暂无文案可预览</div>
+                                      )
+                                    : (
+                                        Object.entries(renderData.copywritingTemplates || {}).map(([group, items]) => (
+                                          <div key={group} className="card bg-base-100 shadow-xs rounded-xl border-2 border-base-content/10">
+                                            <div className="card-body">
+                                              <div className="font-semibold mb-2">{group}</div>
+                                              {(!items || items.length === 0)
+                                                ? (
+                                                    <div className="text-base-content/50 text-sm">该分组暂无文案</div>
+                                                  )
+                                                : (
+                                                    <ul className="list-disc pl-5 space-y-1">
+                                                      {items.map(line => (
+                                                        <li key={`${group}-${line.substring(0, 30)}`} className="text-sm whitespace-pre-wrap break-words">{line}</li>
+                                                      ))}
+                                                    </ul>
+                                                  )}
+                                            </div>
+                                          </div>
+                                        ))
+                                      )}
+                                </div>
+                              )
+                            : (
+                                <CopywritingEditor
+                                  value={renderData.copywritingTemplates}
+                                  onChange={handleCopywritingChange}
+                                />
+                              )}
+                        </Section>
+                      )}
+                      {activeTab !== "copywriting" && renderActiveTabContent()}
                     </div>
                   </div>
                 )
