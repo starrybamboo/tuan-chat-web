@@ -32,6 +32,8 @@ export function Sidebar({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   // 已不再直接在 Sidebar 内创建角色
   const [searchQuery, setSearchQuery] = useState("");
+  // 分类筛选：all | normal | dice
+  const [filterCategory, setFilterCategory] = useState<"all" | "normal" | "dice">("normal");
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const {
@@ -76,6 +78,9 @@ export function Sidebar({
       modelName: role.modelName || "",
       speakerName: role.speakerName || "",
       voiceUrl: role.voiceUrl || undefined, // 添加 voiceUrl 字段
+      // 透传类型，便于侧边栏分类（若后端无该字段则为 0）
+      type: (role as unknown as { type?: number; diceMaiden?: boolean }).type
+        ?? (((role as unknown as { diceMaiden?: boolean }).diceMaiden) ? 1 : 0),
     });
 
     // 有query数据时
@@ -215,11 +220,16 @@ export function Sidebar({
     // 仅在 isSuccess 变化时触发，loadRoles 是稳定引用（未放入依赖防止无限循环）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess]);
-  // 过滤角色列表
-  const filteredRoles = roles.filter(role =>
-    role.name.toLowerCase().includes(searchQuery.toLowerCase())
-    || role.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // 过滤角色列表（按搜索 + 分类）
+  const filteredRoles = roles
+    .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())
+      || role.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((role) => {
+      if (filterCategory === "all")
+        return true;
+      const isDice = role.type === 1;
+      return filterCategory === "dice" ? isDice : !isDice;
+    });
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<Set<number>>(new Set());
@@ -292,7 +302,7 @@ export function Sidebar({
 
       <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 md:bg-base-300/40 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
-        <div className="flex gap-2 mb-4 sticky top-0 bg-transparent z-50 py-2">
+        <div className="flex gap-2 mb-2 sticky top-0 bg-transparent z-50 py-2">
           <label className="input">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
@@ -384,6 +394,41 @@ export function Sidebar({
                 </>
               )}
         </div>
+        {/* 分类切换：全部 / 普通角色 / 骰娘角色 */}
+        <div className="mb-4">
+          <div className="tabs tabs-boxed">
+            <button
+              type="button"
+              className={`tab ${filterCategory === "all" ? "tab-active" : ""}`}
+              onClick={() => {
+                setFilterCategory("all");
+                navigate("/role");
+              }}
+            >
+              全部
+            </button>
+            <button
+              type="button"
+              className={`tab ${filterCategory === "normal" ? "tab-active" : ""}`}
+              onClick={() => {
+                setFilterCategory("normal");
+                navigate("/role");
+              }}
+            >
+              普通角色
+            </button>
+            <button
+              type="button"
+              className={`tab ${filterCategory === "dice" ? "tab-active" : ""}`}
+              onClick={() => {
+                setFilterCategory("dice");
+                navigate("/role");
+              }}
+            >
+              骰娘角色
+            </button>
+          </div>
+        </div>
         {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
 
         {/* 角色列表 - 使用 InfiniteQuery */}
@@ -399,34 +444,73 @@ export function Sidebar({
               }
             }}
           >
-            <Link
-              to="/role"
-              className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-              onClick={closeDrawerOnMobile} // 仅用于关闭移动端抽屉
-              title="进入创建入口"
-            >
-              <div className="avatar shrink-0">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-base-content/40 group-hover:border-base-content/60 bg-base-200/70 text-base-content/40 group-hover:text-base-content/60 transition-colors duration-150 relative">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="12" y1="3" x2="12" y2="21" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                  </svg>
+            {/* 创建普通角色 - 仅在"全部"或"普通角色"时显示 */}
+            {(filterCategory === "all" || filterCategory === "normal") && (
+              <Link
+                to="/role?type=normal"
+                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                onClick={closeDrawerOnMobile}
+                title="创建普通角色"
+              >
+                <div className="avatar shrink-0">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 group-hover:border-primary/60 bg-primary/5 text-primary/60 group-hover:text-primary/80 transition-colors duration-150 relative">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <h3 className="font-medium truncate">创建角色</h3>
-                <p className="text-xs text-base-content/70 mt-1 truncate">进入创建入口</p>
-              </div>
-            </Link>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <h3 className="font-medium truncate">创建普通角色</h3>
+                  <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
+                </div>
+              </Link>
+            )}
+
+            {/* 创建骰娘角色 - 仅在"全部"或"骰娘角色"时显示 */}
+            {(filterCategory === "all" || filterCategory === "dice") && (
+              <Link
+                to="/role?type=dice"
+                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                onClick={closeDrawerOnMobile}
+                title="创建骰娘角色"
+              >
+                <div className="avatar shrink-0">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-success/40 group-hover:border-success/60 bg-success/5 text-success/60 group-hover:text-success/80 transition-colors duration-150 relative">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <circle cx="15.5" cy="8.5" r="1.5" />
+                      <circle cx="8.5" cy="15.5" r="1.5" />
+                      <circle cx="15.5" cy="15.5" r="1.5" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <h3 className="font-medium truncate">创建骰娘</h3>
+                  <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
+                </div>
+              </Link>
+            )}
+
             {filteredRoles.map((role) => {
               // 获取角色存储的规则ID,如果没有则使用默认规则ID=1
               const storedRuleId = getRoleRule(role.id) || 1;
@@ -438,7 +522,11 @@ export function Sidebar({
                   key={role.id}
                   to={roleUrl}
                   // NavLink 让我们能根据路由是否激活来动态设置 className
-                  className={({ isActive }) => `block rounded-lg ${isActive && !isSelectionMode ? "bg-primary text-primary/80" : ""}`}
+                  className={({ isActive }) => `block rounded-lg px-1 ${
+                    isActive && !isSelectionMode
+                      ? "bg-primary/10 text-primary border-l-4 border-success"
+                      : "border-l-4 border-transparent"
+                  }`}
                   onClick={(e) => {
                     // 如果是批量选择模式，阻止导航
                     if (isSelectionMode) {

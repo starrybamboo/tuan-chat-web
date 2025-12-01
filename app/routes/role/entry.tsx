@@ -6,8 +6,8 @@ import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
 import { setRoleRule } from "@/utils/roleRuleStorage";
-import { useState } from "react";
-import { useNavigate, useOutletContext } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useOutletContext, useSearchParams } from "react-router";
 
 interface RoleContext {
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
@@ -17,8 +17,18 @@ export default function RoleCreationPage() {
   // 注意：我们甚至不需要从 context 中解构 roles，因为用不到它
   const { setRoles } = useOutletContext<RoleContext>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [mode, setMode] = useState<"self" | "AI" | "ST" | "entry">("entry");
+
+  // 检测URL参数，如果有type参数则直接进入创建表单
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (typeParam === "normal" || typeParam === "dice") {
+      // 直接进入自主创建模式
+      setMode("self");
+    }
+  }, [searchParams]);
 
   // 当一个角色被创建并保存后，导航到它的详情页
   const handleCreationComplete = (newRole: Role, ruleId?: number) => {
