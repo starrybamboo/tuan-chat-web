@@ -1,6 +1,6 @@
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 
-import { ttsApi } from "@/tts/engines/index/apiClient";
+import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { checkGameExist, terreApis } from "@/webGAL/index";
 
 /**
@@ -25,6 +25,8 @@ export type RealtimeTTSConfig = {
   enabled: boolean;
   /** TTS 引擎：目前仅支持 IndexTTS */
   engine?: "index";
+  /** TTS API 地址（如 http://localhost:9000） */
+  apiUrl?: string;
   /** 情感模式: 0=同音色参考,1=情感参考音频,2=情感向量,3=情感描述文本 */
   emotionMode?: number;
   /** 情感权重 */
@@ -706,7 +708,9 @@ export class RealtimeRenderer {
         };
 
         console.warn(`[RealtimeRenderer] 正在生成语音: "${text.substring(0, 20)}..."`);
-        const response = await ttsApi.infer(ttsRequest);
+        // 使用自定义 API URL 或默认的全局 ttsApi
+        const api = this.ttsConfig.apiUrl ? createTTSApi(this.ttsConfig.apiUrl) : ttsApi;
+        const response = await api.infer(ttsRequest);
 
         if (response.code === 0 && response.data?.audio_base64) {
           // 将 base64 转换为 Blob 并上传

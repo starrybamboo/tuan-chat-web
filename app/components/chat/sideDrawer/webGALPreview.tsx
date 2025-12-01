@@ -3,6 +3,8 @@
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
+import { useState } from "react";
+
 interface WebGALPreviewProps {
   previewUrl: string | null;
   isActive: boolean;
@@ -12,6 +14,74 @@ interface WebGALPreviewProps {
   ttsEnabled?: boolean;
   /** TTS 开关回调 */
   onTTSToggle?: (enabled: boolean) => void;
+  /** TTS API 地址 */
+  ttsApiUrl?: string;
+  /** TTS API 地址变更回调 */
+  onTTSApiUrlChange?: (url: string) => void;
+}
+
+/** TTS 设置对话框 */
+function TTSSettingsModal({
+  isOpen,
+  onClose,
+  apiUrl,
+  onSave,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  apiUrl: string;
+  onSave: (url: string) => void;
+}) {
+  const [inputUrl, setInputUrl] = useState(apiUrl);
+
+  if (!isOpen)
+    return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-base-100 rounded-lg shadow-xl p-4 w-80 max-w-[90vw]">
+        <h3 className="font-medium text-lg mb-4">TTS 配音设置</h3>
+
+        <div className="form-control mb-4">
+          <label className="label">
+            <span className="label-text">TTS API 地址</span>
+          </label>
+          <input
+            type="text"
+            className="input input-bordered input-sm w-full"
+            placeholder="http://localhost:9000"
+            value={inputUrl}
+            onChange={e => setInputUrl(e.target.value)}
+          />
+          <label className="label">
+            <span className="label-text-alt text-base-content/50">
+              留空使用默认地址 (环境变量 VITE_TTS_URL)
+            </span>
+          </label>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onClose}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              onSave(inputUrl.trim());
+              onClose();
+            }}
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function WebGALPreview({
@@ -21,7 +91,10 @@ export default function WebGALPreview({
   className,
   ttsEnabled = false,
   onTTSToggle,
+  ttsApiUrl = "",
+  onTTSApiUrlChange,
 }: WebGALPreviewProps) {
+  const [showSettings, setShowSettings] = useState(false);
   if (!isActive || !previewUrl) {
     return (
       <div className={`flex flex-col h-full ${className ?? ""}`}>
@@ -53,17 +126,31 @@ export default function WebGALPreview({
       <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
         <span className="font-medium text-sm">WebGAL 实时预览</span>
         <div className="flex items-center gap-2">
-          {/* TTS 开关 */}
+          {/* TTS 开关和设置 */}
           {onTTSToggle && (
-            <label className="flex items-center gap-1 cursor-pointer" title={ttsEnabled ? "关闭 AI 配音" : "开启 AI 配音"}>
-              <span className="text-xs text-base-content/70">配音</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-xs toggle-primary"
-                checked={ttsEnabled}
-                onChange={e => onTTSToggle(e.target.checked)}
-              />
-            </label>
+            <>
+              <label className="flex items-center gap-1 cursor-pointer" title={ttsEnabled ? "关闭 AI 配音" : "开启 AI 配音"}>
+                <span className="text-xs text-base-content/70">配音</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-xs toggle-primary"
+                  checked={ttsEnabled}
+                  onChange={e => onTTSToggle(e.target.checked)}
+                />
+              </label>
+              {/* TTS 设置按钮 */}
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                title="配音设置"
+                onClick={() => setShowSettings(true)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </>
           )}
           <a
             href={previewUrl}
@@ -97,6 +184,16 @@ export default function WebGALPreview({
           sandbox="allow-scripts allow-same-origin"
         />
       </div>
+
+      {/* TTS 设置对话框 */}
+      {onTTSApiUrlChange && (
+        <TTSSettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          apiUrl={ttsApiUrl}
+          onSave={onTTSApiUrlChange}
+        />
+      )}
     </div>
   );
 }

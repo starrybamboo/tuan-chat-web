@@ -52,13 +52,6 @@ export function ChatToolbar({
   isRealtimeRenderActive = false,
   onToggleRealtimeRender,
 }: ChatToolbarProps) {
-  // 调试日志
-  console.warn("🛠️ ChatToolbar 渲染", {
-    isSpectator,
-    currentChatStatus,
-    onChangeChatStatusType: typeof onChangeChatStatus,
-  });
-
   return (
     <div className="flex pr-1 pl-2 justify-between ">
       <div className="flex gap-2">
