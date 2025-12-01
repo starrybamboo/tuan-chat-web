@@ -235,7 +235,7 @@ function CharacterDetailInner({
           <button
             type="button"
             onClick={() => setIsStImportModalOpen(true)}
-            className="btn bg-info/70 text-info-content btn-sm md:btn-lg"
+            className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
           >
             <span className="flex items-center gap-1">
               ST导入
@@ -246,7 +246,7 @@ function CharacterDetailInner({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className={`btn btn-primary btn-sm md:btn-lg ${isTransitioning ? "scale-95" : ""}`}
+                  className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
                   disabled={isTransitioning}
                 >
                   {isTransitioning
@@ -264,7 +264,7 @@ function CharacterDetailInner({
                 </button>
               )
             : (
-                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
+                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
                   <span className="flex items-center gap-1">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                       <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
