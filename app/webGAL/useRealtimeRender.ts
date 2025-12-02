@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -11,9 +12,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - 增量更新新消息
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
+import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { tuanchat } from "../../api/instance";
 import { RealtimeRenderer } from "./realtimeRenderer";
+
+export type { RealtimeTTSConfig };
 
 export type RealtimeRenderStatus = "idle" | "initializing" | "connected" | "disconnected" | "error";
 
@@ -30,6 +34,10 @@ type UseRealtimeRenderOptions = {
   roles?: UserRole[];
   avatars?: RoleAvatar[];
   rooms?: Room[];
+  /** TTS 配置 */
+  ttsConfig?: RealtimeTTSConfig;
+  /** 角色参考音频文件映射 (roleId -> File) */
+  voiceFiles?: Map<number, File>;
 };
 
 type UseRealtimeRenderReturn = {
@@ -63,6 +71,16 @@ type UseRealtimeRenderReturn = {
   updateAvatarCache: (avatars: RoleAvatar[]) => void;
   /** 更新房间列表 */
   updateRooms: (rooms: Room[]) => void;
+  /** 跳转到指定消息 */
+  jumpToMessage: (messageId: number, roomId?: number) => boolean;
+  /** 更新 TTS 配置 */
+  updateTTSConfig: (config: RealtimeTTSConfig) => void;
+  /** 设置角色参考音频 */
+  setVoiceFile: (roleId: number, file: File) => void;
+  /** 批量设置角色参考音频 */
+  setVoiceFiles: (voiceFiles: Map<number, File>) => void;
+  /** 更新消息渲染设置并重新渲染跳转 */
+  updateAndRerenderMessage: (message: ChatMessageResponse, roomId?: number, regenerateTTS?: boolean) => Promise<boolean>;
 };
 
 export function useRealtimeRender({
@@ -71,19 +89,38 @@ export function useRealtimeRender({
   roles = [],
   avatars = [],
   rooms = [],
+  ttsConfig,
+  voiceFiles,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
   const [initProgress, setInitProgress] = useState<InitProgress | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const rendererRef = useRef<RealtimeRenderer | null>(null);
-  const avatarCacheRef = useRef<Map<number, RoleAvatar>>(new Map());
+  const queryClient = useQueryClient();
   const roomsRef = useRef<Room[]>(rooms);
+  const ttsConfigRef = useRef<RealtimeTTSConfig | undefined>(ttsConfig);
+  const voiceFilesRef = useRef<Map<number, File> | undefined>(voiceFiles);
 
-  // 保持 roomsRef 最新
+  // 保持 refs 最新
   useEffect(() => {
     roomsRef.current = rooms;
   }, [rooms]);
+
+  useEffect(() => {
+    ttsConfigRef.current = ttsConfig;
+    if (rendererRef.current && ttsConfig) {
+      rendererRef.current.setTTSConfig(ttsConfig);
+      console.warn(`[useRealtimeRender] TTS 配置变化: enabled=${ttsConfig.enabled}`);
+    }
+  }, [ttsConfig]);
+
+  useEffect(() => {
+    voiceFilesRef.current = voiceFiles;
+    if (rendererRef.current && voiceFiles) {
+      rendererRef.current.setVoiceFiles(voiceFiles);
+    }
+  }, [voiceFiles]);
 
   // 初始化角色和头像缓存
   useEffect(() => {
@@ -97,11 +134,11 @@ export function useRealtimeRender({
       rendererRef.current.setAvatarCache(avatars);
       avatars.forEach((avatar) => {
         if (avatar.avatarId) {
-          avatarCacheRef.current.set(avatar.avatarId, avatar);
+          queryClient.setQueryData(["getRoleAvatar", avatar.avatarId], { data: avatar });
         }
       });
     }
-  }, [avatars]);
+  }, [avatars, queryClient]);
 
   // 更新房间信息缓存
   useEffect(() => {
@@ -163,7 +200,7 @@ export function useRealtimeRender({
 
         // 收集所有需要获取的头像ID
         for (const role of roles) {
-          if (role.avatarId && !avatarCacheRef.current.has(role.avatarId)) {
+          if (role.avatarId && !queryClient.getQueryData(["getRoleAvatar", role.avatarId])) {
             avatarIdsToFetch.add(role.avatarId);
           }
         }
@@ -183,7 +220,7 @@ export function useRealtimeRender({
             const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
             if (avatarResponse.data) {
               allAvatars.push(avatarResponse.data);
-              avatarCacheRef.current.set(avatarId, avatarResponse.data);
+              queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
             }
             fetchedCount++;
             setInitProgress({
@@ -213,6 +250,26 @@ export function useRealtimeRender({
         console.warn(`[useRealtimeRender] 设置了 ${currentRooms.length} 个房间`);
       }
 
+      // 设置 TTS 配置
+      const currentTTSConfig = ttsConfigRef.current;
+      if (currentTTSConfig) {
+        renderer.setTTSConfig(currentTTSConfig);
+        console.warn(`[useRealtimeRender] TTS 已${currentTTSConfig.enabled ? "启用" : "禁用"}`);
+      }
+
+      // 设置参考音频文件
+      const currentVoiceFiles = voiceFilesRef.current;
+      if (currentVoiceFiles && currentVoiceFiles.size > 0) {
+        renderer.setVoiceFiles(currentVoiceFiles);
+        console.warn(`[useRealtimeRender] 设置了 ${currentVoiceFiles.size} 个角色的参考音频`);
+      }
+
+      // 如果启用了 TTS 但没有提供参考音频，尝试从角色的 voiceUrl 获取
+      if (currentTTSConfig?.enabled && (!currentVoiceFiles || currentVoiceFiles.size === 0)) {
+        console.warn("[useRealtimeRender] 正在从角色 voiceUrl 获取参考音频...");
+        await renderer.fetchVoiceFilesFromRoles();
+      }
+
       // 初始化渲染器（会自动预加载立绘并创建房间场景）
       const success = await renderer.init();
       if (success) {
@@ -238,7 +295,7 @@ export function useRealtimeRender({
       setInitProgress(null);
       return false;
     }
-  }, [spaceId, status, roles, avatars]);
+  }, [spaceId, status, roles, avatars, queryClient]);
 
   // 停止实时渲染
   const stop = useCallback(() => {
@@ -256,14 +313,21 @@ export function useRealtimeRender({
       return;
     }
 
-    // 获取头像信息（如果缓存中没有）
+    // 获取头像信息（优先从 React Query 缓存读取）
     const avatarId = message.message.avatarId;
-    if (avatarId && !avatarCacheRef.current.has(avatarId)) {
+    const cached = avatarId ? queryClient.getQueryData<any>(["getRoleAvatar", avatarId]) : null;
+    console.warn(`[useRealtimeRender] 渲染消息, avatarId=${avatarId}, queryCache=${Boolean(cached)}`);
+
+    if (cached && cached.data) {
+      rendererRef.current?.setAvatarCache([cached.data]);
+    }
+    else if (avatarId && avatarId > 0) {
       try {
         const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
         if (avatarResponse.data) {
-          avatarCacheRef.current.set(avatarId, avatarResponse.data);
-          rendererRef.current.setAvatarCache([avatarResponse.data]);
+          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
+          rendererRef.current?.setAvatarCache([avatarResponse.data]);
+          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarResponse.data.avatarUrl || avatarResponse.data.spriteUrl);
         }
       }
       catch (error) {
@@ -272,7 +336,7 @@ export function useRealtimeRender({
     }
 
     await rendererRef.current.renderMessage(message, roomId);
-  }, [status]);
+  }, [status, queryClient]);
 
   // 渲染历史消息
   const renderHistory = useCallback(async (messages: ChatMessageResponse[], roomId?: number): Promise<void> => {
@@ -280,8 +344,53 @@ export function useRealtimeRender({
       console.warn("实时渲染器未就绪，无法渲染历史消息");
       return;
     }
+
+    // 预先获取所有消息中缺失的头像信息
+    // 注意：需要检查 renderer 的 avatarMap 而不是本地缓存，因为 renderer 可能是新实例
+    const missingAvatarIds = new Set<number>();
+    for (const message of messages) {
+      const avatarId = message.message.avatarId;
+      // avatarId 必须是正整数才有效
+      if (avatarId && avatarId > 0) {
+        missingAvatarIds.add(avatarId);
+      }
+    }
+
+    console.warn(`[useRealtimeRender] 需要获取 ${missingAvatarIds.size} 个头像信息:`, Array.from(missingAvatarIds));
+
+    // 批量获取头像信息：先从 query 缓存中装载已缓存的头像，再只获取缺失的头像
+    const avatarsFromCache: RoleAvatar[] = [];
+    const idsToFetch: number[] = [];
+    for (const avatarId of missingAvatarIds) {
+      const cached = queryClient.getQueryData<any>(["getRoleAvatar", avatarId]);
+      if (cached && cached.data) {
+        avatarsFromCache.push(cached.data);
+      }
+      else {
+        idsToFetch.push(avatarId);
+      }
+    }
+
+    if (avatarsFromCache.length > 0) {
+      rendererRef.current?.setAvatarCache(avatarsFromCache);
+    }
+
+    for (const avatarId of idsToFetch) {
+      try {
+        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        if (avatarResponse.data) {
+          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
+          rendererRef.current?.setAvatarCache([avatarResponse.data]);
+          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarResponse.data.avatarUrl || avatarResponse.data.spriteUrl);
+        }
+      }
+      catch (error) {
+        console.error(`获取头像 ${avatarId} 信息失败:`, error);
+      }
+    }
+
     await rendererRef.current.renderHistory(messages, roomId);
-  }, [status]);
+  }, [status, queryClient]);
 
   // 重置场景
   const resetScene = useCallback(async (roomId?: number): Promise<void> => {
@@ -328,11 +437,11 @@ export function useRealtimeRender({
       rendererRef.current.setAvatarCache(newAvatars);
       newAvatars.forEach((avatar) => {
         if (avatar.avatarId) {
-          avatarCacheRef.current.set(avatar.avatarId, avatar);
+          queryClient.setQueryData(["getRoleAvatar", avatar.avatarId], { data: avatar });
         }
       });
     }
-  }, []);
+  }, [queryClient]);
 
   // 更新房间列表
   const updateRooms = useCallback((newRooms: Room[]) => {
@@ -340,6 +449,72 @@ export function useRealtimeRender({
       rendererRef.current.setRooms(newRooms);
     }
   }, []);
+
+  // 跳转到指定消息
+  const jumpToMessage = useCallback((messageId: number, roomId?: number): boolean => {
+    if (!rendererRef.current || status !== "connected") {
+      console.warn("实时渲染器未就绪，无法跳转");
+      return false;
+    }
+    return rendererRef.current.jumpToMessage(messageId, roomId);
+  }, [status]);
+
+  // 更新 TTS 配置
+  const updateTTSConfig = useCallback((config: RealtimeTTSConfig) => {
+    ttsConfigRef.current = config;
+    if (rendererRef.current) {
+      rendererRef.current.setTTSConfig(config);
+    }
+  }, []);
+
+  // 设置角色参考音频
+  const setVoiceFile = useCallback((roleId: number, file: File) => {
+    if (rendererRef.current) {
+      rendererRef.current.setVoiceFile(roleId, file);
+    }
+  }, []);
+
+  // 批量设置角色参考音频
+  const setVoiceFilesCallback = useCallback((newVoiceFiles: Map<number, File>) => {
+    voiceFilesRef.current = newVoiceFiles;
+    if (rendererRef.current) {
+      rendererRef.current.setVoiceFiles(newVoiceFiles);
+    }
+  }, []);
+
+  // 更新消息渲染设置并重新渲染跳转
+  const updateAndRerenderMessage = useCallback(async (
+    message: ChatMessageResponse,
+    roomId?: number,
+    regenerateTTS: boolean = false,
+  ): Promise<boolean> => {
+    if (!rendererRef.current || status !== "connected") {
+      console.warn("实时渲染器未就绪，无法更新渲染");
+      return false;
+    }
+
+    // 获取头像信息（优先从 React Query 缓存读取）
+    const avatarId = message.message.avatarId;
+    const cached = avatarId ? queryClient.getQueryData<any>(["getRoleAvatar", avatarId]) : null;
+
+    if (cached && cached.data) {
+      rendererRef.current?.setAvatarCache([cached.data]);
+    }
+    else if (avatarId && avatarId > 0) {
+      try {
+        const avatarResponse = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        if (avatarResponse.data) {
+          queryClient.setQueryData(["getRoleAvatar", avatarId], avatarResponse);
+          rendererRef.current?.setAvatarCache([avatarResponse.data]);
+        }
+      }
+      catch (error) {
+        console.error("获取头像信息失败:", error);
+      }
+    }
+
+    return rendererRef.current.updateAndRerenderMessage(message, roomId, regenerateTTS);
+  }, [status, queryClient]);
 
   // 自动启动（如果 enabled 为 true）
   useEffect(() => {
@@ -376,6 +551,11 @@ export function useRealtimeRender({
     updateRoleCache,
     updateAvatarCache,
     updateRooms,
+    jumpToMessage,
+    updateTTSConfig,
+    setVoiceFile,
+    setVoiceFiles: setVoiceFilesCallback,
+    updateAndRerenderMessage,
   };
 }
 

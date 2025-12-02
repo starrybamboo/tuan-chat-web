@@ -1,3 +1,6 @@
+import type { InferRequest } from "@/tts/engines/index/apiClient";
+
+import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { checkGameExist, terreApis } from "@/webGAL/index";
 
 /**
@@ -12,7 +15,29 @@ import { checkGameExist, terreApis } from "@/webGAL/index";
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 
-import { getAsyncMsg, uploadFile } from "./fileOperator";
+import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
+
+/**
+ * TTS 配置选项
+ */
+export type RealtimeTTSConfig = {
+  /** 是否启用 TTS */
+  enabled: boolean;
+  /** TTS 引擎：目前仅支持 IndexTTS */
+  engine?: "index";
+  /** TTS API 地址（如 http://localhost:9000） */
+  apiUrl?: string;
+  /** 情感模式: 0=同音色参考,1=情感参考音频,2=情感向量,3=情感描述文本 */
+  emotionMode?: number;
+  /** 情感权重 */
+  emotionWeight?: number;
+  /** 温度 */
+  temperature?: number;
+  /** top_p */
+  topP?: number;
+  /** 单段最大 token 数 */
+  maxTokensPerSegment?: number;
+};
 
 type RendererContext = {
   lineNumber: number;
@@ -44,6 +69,13 @@ export class RealtimeRenderer {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
+  private messageLineMap = new Map<string, number>(); // `${roomId}_${messageId}` -> lineNumber (消息在场景中的行号)
+
+  // TTS 相关
+  private ttsConfig: RealtimeTTSConfig = { enabled: false };
+  private voiceFileMap = new Map<number, File>(); // roleId -> 参考音频文件
+  private uploadedVocalsMap = new Map<string, string>(); // hash -> fileName (已上传的语音缓存)
+  private ttsGeneratingMap = new Map<string, Promise<string | null>>(); // hash -> Promise (正在生成的语音，避免重复生成)
 
   private constructor(spaceId: number) {
     this.spaceId = spaceId;
@@ -500,6 +532,235 @@ export class RealtimeRenderer {
   }
 
   /**
+   * 设置 TTS 配置
+   */
+  public setTTSConfig(config: RealtimeTTSConfig): void {
+    const wasEnabled = this.ttsConfig.enabled;
+    this.ttsConfig = config;
+    console.warn(`[RealtimeRenderer] TTS 配置已更新: enabled=${config.enabled}`);
+
+    // 如果从禁用变为启用，且没有参考音频，尝试获取
+    if (!wasEnabled && config.enabled && this.voiceFileMap.size === 0) {
+      console.warn(`[RealtimeRenderer] TTS 已启用，正在获取参考音频...`);
+      this.fetchVoiceFilesFromRoles();
+    }
+  }
+
+  /**
+   * 设置角色的参考音频文件
+   */
+  public setVoiceFile(roleId: number, voiceFile: File): void {
+    this.voiceFileMap.set(roleId, voiceFile);
+  }
+
+  /**
+   * 批量设置角色参考音频
+   */
+  public setVoiceFiles(voiceFiles: Map<number, File>): void {
+    voiceFiles.forEach((file, roleId) => {
+      this.voiceFileMap.set(roleId, file);
+    });
+  }
+
+  /**
+   * 从角色的 voiceUrl 获取参考音频文件
+   */
+  public async fetchVoiceFilesFromRoles(): Promise<void> {
+    for (const [roleId, role] of this.roleMap) {
+      if (role.voiceUrl && !this.voiceFileMap.has(roleId)) {
+        try {
+          const response = await fetch(role.voiceUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File(
+              [blob],
+              role.voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
+              { type: blob.type || "audio/wav" },
+            );
+            this.voiceFileMap.set(roleId, file);
+            console.warn(`[RealtimeRenderer] 获取角色 ${roleId} 的参考音频成功`);
+          }
+        }
+        catch (error) {
+          console.warn(`[RealtimeRenderer] 获取角色 ${roleId} 的参考音频失败:`, error);
+        }
+      }
+    }
+  }
+
+  /**
+   * 简单的字符串哈希函数（用于 TTS 缓存）
+   */
+  private simpleHash(str: string): string {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash * 33) ^ char;
+    }
+    return (hash >>> 0).toString(16).padStart(8, "0")
+      + ((hash * 0x811C9DC5) >>> 0).toString(16).padStart(8, "0");
+  }
+
+  /**
+   * 将 avatarTitle 转换为情感向量
+   */
+  private convertAvatarTitleToEmotionVector(avatarTitle: Record<string, string>): number[] {
+    const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
+    const MAX_SUM = 0.5;
+
+    let emotionVector = emotionOrder.map((emotion) => {
+      const value = avatarTitle[emotion];
+      const numValue = value ? Number.parseFloat(value) * 0.5 : 0.0;
+      return Math.max(0.0, Math.min(1.4, numValue));
+    });
+
+    const currentSum = emotionVector.reduce((sum, val) => sum + val, 0);
+    if (currentSum > MAX_SUM) {
+      const scaleFactor = MAX_SUM / currentSum;
+      emotionVector = emotionVector.map(val => val * scaleFactor);
+    }
+
+    return emotionVector.map(val => Math.round(val * 10000) / 10000);
+  }
+
+  /**
+   * 将 File 转换为 base64
+   */
+  private async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * 生成语音并上传到 WebGAL
+   * @param text 要生成语音的文本
+   * @param roleId 角色 ID（用于获取参考音频）
+   * @param avatarTitle 头像标题（用于情感向量）
+   * @param customEmotionVector 自定义情感向量（优先于 avatarTitle）
+   * @returns 上传后的文件名，如果失败则返回 null
+   */
+  private async generateAndUploadVocal(
+    text: string,
+    roleId: number,
+    avatarTitle?: Record<string, string>,
+    customEmotionVector?: number[],
+  ): Promise<string | null> {
+    if (!this.ttsConfig.enabled) {
+      return null;
+    }
+
+    // 获取参考音频
+    const refVocal = this.voiceFileMap.get(roleId);
+    if (!refVocal) {
+      console.warn(`[RealtimeRenderer] 角色 ${roleId} 没有参考音频，跳过 TTS`);
+      return null;
+    }
+
+    // 生成缓存 key（优先使用自定义情感向量）
+    const emotionVector = customEmotionVector && customEmotionVector.length > 0
+      ? customEmotionVector
+      : (avatarTitle ? this.convertAvatarTitleToEmotionVector(avatarTitle) : []);
+    const cacheKey = this.simpleHash(`tts_${text}_${refVocal.name}_${JSON.stringify(emotionVector)}`);
+    const fileName = `${cacheKey}.wav`;
+
+    // 检查内存缓存
+    if (this.uploadedVocalsMap.has(cacheKey)) {
+      return this.uploadedVocalsMap.get(cacheKey) || null;
+    }
+
+    // 检查是否正在生成（避免重复生成）
+    if (this.ttsGeneratingMap.has(cacheKey)) {
+      return this.ttsGeneratingMap.get(cacheKey) || null;
+    }
+
+    // 检查文件是否已存在于服务器
+    try {
+      const exists = await checkFileExist(`games/${this.gameName}/game/vocal/`, fileName);
+      if (exists) {
+        this.uploadedVocalsMap.set(cacheKey, fileName);
+        return fileName;
+      }
+    }
+    catch {
+      // 忽略检查错误，继续生成
+    }
+
+    // 创建生成 Promise
+    const generatePromise = (async (): Promise<string | null> => {
+      try {
+        const refAudioBase64 = await this.fileToBase64(refVocal);
+
+        const ttsRequest: InferRequest = {
+          text,
+          prompt_audio_base64: refAudioBase64,
+          emo_mode: this.ttsConfig.emotionMode ?? 2,
+          emo_weight: this.ttsConfig.emotionWeight ?? 0.8,
+          emo_vector: emotionVector.length > 0 ? emotionVector : undefined,
+          emo_random: false,
+          temperature: this.ttsConfig.temperature ?? 0.8,
+          top_p: this.ttsConfig.topP ?? 0.8,
+          max_text_tokens_per_segment: this.ttsConfig.maxTokensPerSegment ?? 120,
+          return_audio_base64: true,
+        };
+
+        console.warn(`[RealtimeRenderer] 正在生成语音: "${text.substring(0, 20)}..."`);
+        // 使用自定义 API URL 或默认的全局 ttsApi
+        const api = this.ttsConfig.apiUrl ? createTTSApi(this.ttsConfig.apiUrl) : ttsApi;
+        const response = await api.infer(ttsRequest);
+
+        if (response.code === 0 && response.data?.audio_base64) {
+          // 将 base64 转换为 Blob 并上传
+          const byteCharacters = atob(response.data.audio_base64);
+          const byteNumbers = Array.from({ length: byteCharacters.length }, (_, i) => byteCharacters.charCodeAt(i));
+          const byteArray = new Uint8Array(byteNumbers);
+          const audioBlob = new Blob([byteArray], { type: "audio/wav" });
+          const audioUrl = URL.createObjectURL(audioBlob);
+
+          try {
+            const uploadedFileName = await uploadFile(
+              audioUrl,
+              `games/${this.gameName}/game/vocal/`,
+              fileName,
+            );
+            URL.revokeObjectURL(audioUrl);
+
+            this.uploadedVocalsMap.set(cacheKey, uploadedFileName);
+            console.warn(`[RealtimeRenderer] 语音生成并上传成功: ${uploadedFileName}`);
+            return uploadedFileName;
+          }
+          catch (uploadError) {
+            console.error("[RealtimeRenderer] 语音上传失败:", uploadError);
+            URL.revokeObjectURL(audioUrl);
+            return null;
+          }
+        }
+        else {
+          console.error("[RealtimeRenderer] TTS 生成失败:", response.msg);
+          return null;
+        }
+      }
+      catch (error) {
+        console.error("[RealtimeRenderer] TTS 生成过程中发生错误:", error);
+        return null;
+      }
+      finally {
+        this.ttsGeneratingMap.delete(cacheKey);
+      }
+    })();
+
+    this.ttsGeneratingMap.set(cacheKey, generatePromise);
+    return generatePromise;
+  }
+
+  /**
    * 将 RoleAvatar 转换为 transform 字符串
    */
   private roleAvatarToTransformString(avatar: RoleAvatar): string {
@@ -533,7 +794,7 @@ export class RealtimeRenderer {
 
     try {
       const path = `games/${this.gameName}/game/figure/`;
-      const fileExtension = spriteUrl.split(".").pop() || "webp";
+      const fileExtension = getFileExtensionFromUrl(spriteUrl, "webp");
       const spriteName = `role_${roleId}_sprites_${avatarId}`;
       const fileName = await uploadFile(spriteUrl, path, `${spriteName}.${fileExtension}`);
       this.uploadedSpritesMap.set(avatarId, fileName);
@@ -576,12 +837,16 @@ export class RealtimeRenderer {
 
     // 获取头像信息
     const avatar = this.avatarMap.get(avatarId);
-    if (!avatar)
+    if (!avatar) {
+      console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}, avatarMap 中有 ${this.avatarMap.size} 个头像`);
       return null;
+    }
 
     const spriteUrl = avatar.spriteUrl || avatar.avatarUrl;
-    if (!spriteUrl)
+    if (!spriteUrl) {
+      console.warn(`[RealtimeRenderer] 头像没有 spriteUrl 或 avatarUrl: avatarId=${avatarId}`);
       return null;
+    }
 
     return this.uploadSprite(avatarId, spriteUrl, roleId);
   }
@@ -654,12 +919,20 @@ export class RealtimeRenderer {
     // 获取立绘文件名
     const spriteFileName = await this.getAndUploadSprite(msg.avatarId, msg.roleId);
 
-    // 处理立绘显示 - 只有当立绘未显示时才添加 changeFigure 指令
-    if (spriteFileName && !spriteState.has(spriteFileName)) {
+    // 获取 voiceRenderSettings 中的立绘位置（默认为 left）
+    const voiceRenderSettings = msg.webgal?.voiceRenderSettings as { emotionVector?: number[]; figurePosition?: string } | undefined;
+    const figurePosition = voiceRenderSettings?.figurePosition || "left";
+
+    // 每条对话都指定立绘，确保立绘始终正确显示
+    if (spriteFileName) {
+      // 如果不是回复消息，则清除之前的立绘（单人发言模式）
+      // 如果是回复消息，则保留之前的立绘（多人对话模式）
+      if (!msg.replyMessageId) {
+        await this.appendLine(targetRoomId, "changeFigure:none -next;", syncToFile);
+      }
+
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
-      await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -left ${transform} -next;`, syncToFile);
-      spriteState.clear();
-      spriteState.add(spriteFileName);
+      await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
     }
 
     // 处理文本内容
@@ -668,8 +941,34 @@ export class RealtimeRenderer {
       .replace(/;/g, "；")
       .replace(/:/g, "：");
 
-    // 添加对话行
-    await this.appendLine(targetRoomId, `${roleName}: ${processedContent}`, syncToFile);
+    // 获取 voiceRenderSettings 中的情感向量
+    const customEmotionVector = voiceRenderSettings?.emotionVector;
+
+    // 生成语音（如果启用了 TTS）
+    let vocalFileName: string | null = null;
+    if (this.ttsConfig.enabled
+      && msg.roleId !== 0 // 跳过系统角色
+      && msg.roleId !== 2 // 跳过骰娘
+      && !msg.content.startsWith(".") // 跳过指令
+      && !msg.content.startsWith("。")
+      && !msg.content.startsWith("%")) {
+      vocalFileName = await this.generateAndUploadVocal(
+        processedContent,
+        msg.roleId,
+        avatar?.avatarTitle,
+        customEmotionVector,
+      );
+    }
+
+    // 添加对话行（包含语音）
+    const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
+    await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}`, syncToFile);
+
+    // 记录消息 ID 和行号的映射（用于跳转）
+    const context = this.sceneContextMap.get(targetRoomId);
+    if (context && msg.messageId) {
+      this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, context.lineNumber);
+    }
 
     // 发送同步消息到 WebGAL
     if (syncToFile) {
@@ -754,6 +1053,107 @@ export class RealtimeRenderer {
    */
   public getGameName(): string {
     return this.gameName;
+  }
+
+  /**
+   * 更新消息的渲染设置并重新渲染，然后跳转到该消息
+   * @param message 要更新的消息（应该已经包含最新的 voiceRenderSettings）
+   * @param roomId 房间 ID（可选，默认使用当前房间）
+   * @param regenerateTTS 是否重新生成 TTS（当情感向量变化时设为 true）
+   * @returns 是否操作成功
+   */
+  public async updateAndRerenderMessage(
+    message: ChatMessageResponse,
+    roomId?: number,
+    regenerateTTS: boolean = false,
+  ): Promise<boolean> {
+    const msg = message.message;
+    const targetRoomId = roomId ?? msg.roomId ?? this.currentRoomId;
+
+    if (!targetRoomId) {
+      console.warn("[RealtimeRenderer] 无法确定目标房间ID");
+      return false;
+    }
+
+    // 如果需要重新生成 TTS，清除对应的缓存
+    if (regenerateTTS && msg.content && msg.roleId) {
+      const voiceRenderSettings = msg.webgal?.voiceRenderSettings as { emotionVector?: number[]; figurePosition?: string } | undefined;
+      const customEmotionVector = voiceRenderSettings?.emotionVector;
+      const avatar = this.avatarMap.get(msg.avatarId);
+      const emotionVector = customEmotionVector && customEmotionVector.length > 0
+        ? customEmotionVector
+        : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);
+
+      // 处理文本内容用于生成 cacheKey
+      const processedContent = msg.content
+        .replace(/\n/g, " ")
+        .replace(/;/g, "；")
+        .replace(/:/g, "：");
+
+      const refVocal = this.voiceFileMap.get(msg.roleId);
+      if (refVocal) {
+        const cacheKey = this.simpleHash(`tts_${processedContent}_${refVocal.name}_${JSON.stringify(emotionVector)}`);
+        this.uploadedVocalsMap.delete(cacheKey);
+      }
+    }
+
+    // 获取该消息对应的行号
+    const key = `${targetRoomId}_${msg.messageId}`;
+    const lineNumber = this.messageLineMap.get(key);
+
+    if (lineNumber === undefined) {
+      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将只渲染不跳转`);
+      await this.renderMessage(message, targetRoomId, true);
+      return true;
+    }
+
+    // 获取场景上下文
+    const context = this.sceneContextMap.get(targetRoomId);
+    if (!context) {
+      console.warn(`[RealtimeRenderer] 房间 ${targetRoomId} 的场景上下文不存在`);
+      return false;
+    }
+
+    // 重新渲染该消息（这会更新场景文件）
+    await this.renderMessage(message, targetRoomId, true);
+
+    // 跳转到该消息
+    return this.jumpToMessage(msg.messageId, targetRoomId);
+  }
+
+  /**
+   * 跳转到指定消息
+   * @param messageId 消息 ID
+   * @param roomId 房间 ID（可选，默认使用当前房间）
+   * @returns 是否跳转成功
+   */
+  public jumpToMessage(messageId: number, roomId?: number): boolean {
+    const targetRoomId = roomId ?? this.currentRoomId;
+    if (!targetRoomId) {
+      console.warn("[RealtimeRenderer] 无法确定目标房间ID");
+      return false;
+    }
+
+    const key = `${targetRoomId}_${messageId}`;
+    const lineNumber = this.messageLineMap.get(key);
+
+    if (lineNumber === undefined) {
+      console.warn(`[RealtimeRenderer] 消息 ${messageId} 未找到对应的行号`);
+      return false;
+    }
+
+    const sceneName = this.getSceneName(targetRoomId);
+    const msg = getAsyncMsg(`${sceneName}.txt`, lineNumber);
+    const msgStr = JSON.stringify(msg);
+
+    if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
+      this.syncSocket.send(msgStr);
+      return true;
+    }
+    else {
+      console.warn("[RealtimeRenderer] WebSocket 未连接，无法跳转");
+      return false;
+    }
   }
 
   /**

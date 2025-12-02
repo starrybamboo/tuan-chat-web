@@ -2,6 +2,7 @@ import type { UseChatHistoryReturn } from "@/components/chat/indexedDB/useChatHi
 // src/context/chat-context.tsx
 import type React from "react";
 import type {
+  ChatMessageResponse,
   Message,
   SpaceMember,
   UserRole,
@@ -86,6 +87,14 @@ export interface RoomContextType {
    * 设置自动回复模式
    */
   setAutoReplyMode?: (mode: boolean) => void;
+
+  /**
+   * 更新消息渲染设置并在 WebGAL 中重新渲染跳转
+   * @param message 已更新的消息（包含最新的 voiceRenderSettings）
+   * @param regenerateTTS 是否重新生成 TTS（当情感向量变化时设为 true）
+   * @returns Promise<是否操作成功>
+   */
+  updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -107,4 +116,5 @@ export const RoomContext = createContext<RoomContextType>({
   setDefaultFigurePosition: undefined,
   autoReplyMode: false,
   setAutoReplyMode: undefined,
+  updateAndRerenderMessageInWebGAL: undefined,
 });

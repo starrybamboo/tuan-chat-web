@@ -167,11 +167,43 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 实时渲染相关
   const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
+  // 实时渲染 TTS 配置（默认关闭）
+  const [realtimeTTSEnabled, setRealtimeTTSEnabled] = useState(false);
+  // TTS API URL（从 localStorage 读取，默认为空使用环境变量）
+  const [ttsApiUrl, setTtsApiUrl] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("tts_api_url") || "";
+    }
+    return "";
+  });
+  // 保存 TTS API URL 到 localStorage
+  const handleTtsApiUrlChange = (url: string) => {
+    setTtsApiUrl(url);
+    if (typeof window !== "undefined") {
+      if (url) {
+        localStorage.setItem("tts_api_url", url);
+      }
+      else {
+        localStorage.removeItem("tts_api_url");
+      }
+    }
+  };
+  const realtimeTTSConfig = useMemo(() => ({
+    enabled: realtimeTTSEnabled,
+    engine: "index" as const,
+    apiUrl: ttsApiUrl || undefined, // 空字符串转为 undefined
+    emotionMode: 2, // 使用情感向量
+    emotionWeight: 0.8,
+    temperature: 0.8,
+    topP: 0.8,
+    maxTokensPerSegment: 120,
+  }), [realtimeTTSEnabled, ttsApiUrl]);
   const realtimeRender = useRealtimeRender({
     spaceId,
     enabled: isRealtimeRenderEnabled,
     roles: roomRoles,
     rooms: room ? [room] : [], // 当前只传入当前房间，后续可以扩展为多房间
+    ttsConfig: realtimeTTSConfig,
   });
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
@@ -202,6 +234,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   }, [sideDrawerState]);
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
+
+  // WebGAL 联动模式相关状态
+  const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
+  const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
+  const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right">>(
+    "defaultFigurePositionMap",
+    {},
+  );
+
+  // 获取当前角色的默认立绘位置
+  const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId] ?? "center";
+  const setCurrentDefaultFigurePosition = useCallback((position: "left" | "center" | "right") => {
+    setDefaultFigurePositionMap(prev => ({
+      ...prev,
+      [curRoleId]: position,
+    }));
+  }, [curRoleId, setDefaultFigurePositionMap]);
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
@@ -298,11 +347,35 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       console.warn(`[RealtimeRender] 开始渲染历史消息, 共 ${historyMessages.length} 条`);
       toast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
 
+      // 为所有消息设置默认的立绘位置
+      // 创建消息的深拷贝以避免修改不可扩展的对象
+      const messagesToRender = historyMessages.map((originalMsg) => {
+        // 浅拷贝最外层
+        const msg = { ...originalMsg };
+        // 浅拷贝 message 对象
+        msg.message = { ...originalMsg.message };
+
+        if (msg.message.messageType === 1 && msg.message.roleId > 0) {
+          if (!msg.message.webgal?.voiceRenderSettings?.figurePosition) {
+            const defaultPosition = defaultFigurePositionMap?.[msg.message.roleId] || "left";
+
+            // 确保 webgal 对象存在且是新的引用
+            msg.message.webgal = { ...(msg.message.webgal || {}) };
+
+            // 确保 voiceRenderSettings 对象存在且是新的引用
+            msg.message.webgal.voiceRenderSettings = { ...(msg.message.webgal.voiceRenderSettings || {}) };
+
+            (msg.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+          }
+        }
+        return msg;
+      });
+
       // 使用批量渲染接口
-      await realtimeRender.renderHistory(historyMessages, roomId);
+      await realtimeRender.renderHistory(messagesToRender, roomId);
 
       // 记录最后一条消息的ID
-      const lastMessage = historyMessages[historyMessages.length - 1];
+      const lastMessage = messagesToRender[messagesToRender.length - 1];
       if (lastMessage) {
         lastRenderedMessageIdRef.current = lastMessage.message.messageId;
       }
@@ -317,7 +390,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     finally {
       isRenderingHistoryRef.current = false;
     }
-  }, [historyMessages, realtimeRender, roomId]);
+  }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
 
   // 切换房间时重置实时渲染状态（跳过首次挂载）
   useEffect(() => {
@@ -387,10 +460,29 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
+    // 为消息设置默认的立绘位置（如果还没有设置）
+    // 创建消息的深拷贝以避免修改不可扩展的对象
+    const messageToRender = { ...latestMessage };
+    messageToRender.message = { ...latestMessage.message };
+
+    if (messageToRender.message.messageType === 1 && messageToRender.message.roleId > 0) {
+      if (!messageToRender.message.webgal?.voiceRenderSettings?.figurePosition) {
+        const defaultPosition = defaultFigurePositionMap?.[messageToRender.message.roleId] || "left";
+
+        // 确保 webgal 对象存在且是新的引用
+        messageToRender.message.webgal = { ...(messageToRender.message.webgal || {}) };
+
+        // 确保 voiceRenderSettings 对象存在且是新的引用
+        messageToRender.message.webgal.voiceRenderSettings = { ...(messageToRender.message.webgal.voiceRenderSettings || {}) };
+
+        (messageToRender.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+      }
+    }
+
     // 渲染新消息（传入当前房间 ID）
-    realtimeRender.renderMessage(latestMessage, roomId);
+    realtimeRender.renderMessage(messageToRender, roomId);
     lastRenderedMessageIdRef.current = messageId;
-  }, [historyMessages, realtimeRender, roomId]);
+  }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
 
   // 监听背景消息变化，当用户设置图片为背景时实时渲染更新
   useEffect(() => {
@@ -502,6 +594,25 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     lastRenderedMessageIdRef.current = null;
   }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
 
+  // WebGAL 跳转到指定消息
+  const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
+    if (!realtimeRender.isActive) {
+      return false;
+    }
+    return realtimeRender.jumpToMessage(messageId, roomId);
+  }, [realtimeRender, roomId]);
+
+  // WebGAL 更新消息渲染设置并重新渲染跳转
+  const updateAndRerenderMessageInWebGAL = useCallback(async (
+    message: ChatMessageResponse,
+    regenerateTTS: boolean = false,
+  ): Promise<boolean> => {
+    if (!realtimeRender.isActive) {
+      return false;
+    }
+    return realtimeRender.updateAndRerenderMessage(message, roomId, regenerateTTS);
+  }, [realtimeRender, roomId]);
+
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
       roomId,
@@ -515,8 +626,24 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       setReplyMessage,
       chatHistory,
       scrollToGivenMessage,
+      // WebGAL 联动模式相关
+      webgalLinkMode,
+      setWebgalLinkMode,
+      defaultFigurePositionMap,
+      setDefaultFigurePosition: (roleId: number, position: "left" | "center" | "right") => {
+        setDefaultFigurePositionMap(prev => ({
+          ...prev,
+          [roleId]: position,
+        }));
+      },
+      autoReplyMode,
+      setAutoReplyMode,
+      // WebGAL 跳转功能 - 只有在实时渲染激活时才启用
+      jumpToMessageInWebGAL: realtimeRender.isActive ? jumpToMessageInWebGAL : undefined,
+      // WebGAL 更新渲染并跳转 - 只有在实时渲染激活时才启用
+      updateAndRerenderMessageInWebGAL: realtimeRender.isActive ? updateAndRerenderMessageInWebGAL : undefined,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, webgalLinkMode, setWebgalLinkMode, defaultFigurePositionMap, setDefaultFigurePositionMap, autoReplyMode, setAutoReplyMode, realtimeRender.isActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   // 判断是否是观战成员 (memberType >= 3)
@@ -752,15 +879,31 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
       // 发送文本消息
       if (inputText.trim() !== "") {
+        // 自动回复模式：如果没有手动选择回复消息，自动回复最后一条消息
+        let autoReplyMsgId: number | undefined;
+        if (autoReplyMode && !replyMessage && historyMessages && historyMessages.length > 0) {
+          const lastMessage = historyMessages[historyMessages.length - 1];
+          autoReplyMsgId = lastMessage?.message?.messageId;
+        }
+
         const messageRequest: ChatMessageRequest = {
           roomId,
           roleId: curRoleId,
           content: inputText.trim(), // 直接使用 state
           avatarId: curAvatarId,
           messageType: 1,
-          replayMessageId: replyMessage?.messageId || undefined,
+          replayMessageId: replyMessage?.messageId || autoReplyMsgId || undefined,
           extra: {},
         };
+
+        // 如果开启了 WebGAL 联动模式，附带立绘位置信息
+        if (webgalLinkMode) {
+          messageRequest.webgal = {
+            voiceRenderSettings: {
+              figurePosition: currentDefaultFigurePosition,
+            },
+          };
+        }
 
         if (isCommand(inputText)) {
           // *** 使用 state 中的提及列表 ***
@@ -967,6 +1110,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   isSpectator={isSpectator}
                   isRealtimeRenderActive={realtimeRender.isActive}
                   onToggleRealtimeRender={handleToggleRealtimeRender}
+                  webgalLinkMode={webgalLinkMode}
+                  onToggleWebgalLinkMode={() => setWebgalLinkMode(!webgalLinkMode)}
+                  autoReplyMode={autoReplyMode}
+                  onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
+                  defaultFigurePosition={currentDefaultFigurePosition}
+                  onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch
@@ -1097,6 +1246,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <WebGALPreview
               previewUrl={realtimeRender.previewUrl}
               isActive={realtimeRender.isActive}
+              ttsEnabled={realtimeTTSEnabled}
+              onTTSToggle={setRealtimeTTSEnabled}
+              ttsApiUrl={ttsApiUrl}
+              onTTSApiUrlChange={handleTtsApiUrlChange}
               onClose={() => {
                 realtimeRender.stop();
                 setIsRealtimeRenderEnabled(false);

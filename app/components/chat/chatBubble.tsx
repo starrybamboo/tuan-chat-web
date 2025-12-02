@@ -110,6 +110,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
   // 处理语音渲染设置更新
   function handleVoiceRenderSettingsChange(emotionVector: number[], figurePosition: FigurePosition) {
+    // 判断情感向量是否改变（用于决定是否重新生成 TTS）
+    const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
+    const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
+
     const newMessage = {
       ...message,
       webgal: {
@@ -120,7 +124,31 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
         },
       },
     } as Message;
-    updateMessageAndSync(newMessage);
+
+    updateMessageMutation.mutate(newMessage, {
+      onSuccess: (response) => {
+        // 更新成功后同步到本地 IndexedDB
+        if (response?.data && roomContext.chatHistory) {
+          const updatedChatMessageResponse = {
+            ...chatMessageResponse,
+            message: response.data,
+            webgal: {
+              ...chatMessageResponse.webgal,
+              voiceRenderSettings: {
+                emotionVector,
+                figurePosition,
+              },
+            },
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          // 如果 WebGAL 联动模式开启，则重渲染并跳转
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, emotionVectorChanged);
+          }
+        }
+      },
+    });
   }
 
   const imgMsg = message.extra?.imageMessage;

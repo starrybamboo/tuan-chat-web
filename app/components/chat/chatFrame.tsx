@@ -556,11 +556,15 @@ function ChatFrame(props: {
         pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
+          // 检查点击目标是否是按钮或其子元素，如果是则不触发跳转
+          const target = e.target as HTMLElement;
+          const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
+
           if (isSelecting || e.ctrlKey) {
             toggleMessageSelection(chatMessageResponse.message.messageId);
           }
-          else if (roomContext.jumpToMessageInWebGAL) {
-            // 如果实时渲染已激活，单击消息跳转到 WebGAL 对应位置
+          else if (roomContext.jumpToMessageInWebGAL && !isButtonClick) {
+            // 如果实时渲染已激活且不是点击按钮，单击消息跳转到 WebGAL 对应位置
             roomContext.jumpToMessageInWebGAL(chatMessageResponse.message.messageId);
           }
         }}
