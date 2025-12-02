@@ -12,5 +12,5 @@ interface STCreateRoleProps {
 }
 
 export default function STCreateRole(props: STCreateRoleProps) {
-  return <RoleCreationFlow mode="ST" {...props} />;
+  return <RoleCreationFlow {...props} />;
 }

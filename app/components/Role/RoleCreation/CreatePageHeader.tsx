@@ -1,8 +1,18 @@
+interface ToolButton {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "primary" | "secondary";
+}
+
 interface CreatePageHeaderProps {
   title: string;
   description: string;
   onBack?: () => void;
   children?: React.ReactNode;
+  toolButtons?: ToolButton[];
 }
 
 /**
@@ -14,21 +24,47 @@ export default function CreatePageHeader({
   description,
   onBack,
   children,
+  toolButtons,
 }: CreatePageHeaderProps) {
   return (
-    <div className="flex items-center gap-4 mb-8">
-      {onBack && (
-        <button type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4" onClick={onBack}>
-          ← 返回
-        </button>
-      )}
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold">{title}</h1>
-        <p className="text-base-content/70">
-          {description}
-          {children}
-        </p>
+    <div className="hidden md:flex items-center justify-between gap-3 mb-8">
+      <div className="flex items-center gap-4">
+        {onBack && (
+          <button type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4" onClick={onBack}>
+            ← 返回
+          </button>
+        )}
+        <div>
+          <h1 className="font-semibold text-2xl md:text-3xl my-2">{title}</h1>
+          <p className="text-base-content/60">
+            {description}
+            {children}
+          </p>
+        </div>
       </div>
+
+      {/* 工具按钮区域 */}
+      {toolButtons && toolButtons.length > 0 && (
+        <div className="flex items-center gap-2">
+          {toolButtons.map(button => (
+            <button
+              key={button.id}
+              type="button"
+              className={`btn btn-sm md:btn-lg rounded-lg ${
+                button.variant === "primary"
+                  ? "btn-primary"
+                  : "bg-info/70 text-info-content"
+              }`}
+              onClick={button.onClick}
+              title={button.label}
+            >
+              <span className="flex items-center gap-1">
+                <span className="hidden md:inline">{button.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

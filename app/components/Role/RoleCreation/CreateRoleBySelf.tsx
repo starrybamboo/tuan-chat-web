@@ -11,5 +11,5 @@ interface CreateRoleBySelfProps {
 }
 
 export default function CreateRoleBySelf(props: CreateRoleBySelfProps) {
-  return <RoleCreationFlow mode="self" {...props} />;
+  return <RoleCreationFlow {...props} />;
 }
