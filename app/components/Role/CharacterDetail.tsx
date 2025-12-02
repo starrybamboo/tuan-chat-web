@@ -1,10 +1,12 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
+import { tuanchat } from "api/instance";
+import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { Suspense, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate, useOutletContext } from "react-router";
 import Section from "./Editors/Section";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
@@ -33,6 +35,10 @@ function CharacterDetailInner({
   selectedRuleId,
   onRuleChange,
 }: CharacterDetailProps) {
+  // 从 Outlet Context 获取 setRoles 用于手动更新角色列表
+  const context = useOutletContext<{ setRoles?: React.Dispatch<React.SetStateAction<Role[]>> }>();
+  const setRoles = context?.setRoles;
+
   // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
   const [isEditing, setIsEditing] = useState(false);
 
@@ -46,6 +52,8 @@ function CharacterDetailInner({
 
   // 获取角色所有头像
   const { data: roleAvatarsResponse, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
+  // 获取最新角色数据（用于判断类型）
+  const { data: currentRoleData } = useGetRoleQuery(role.id);
   const queryClient = useQueryClient();
 
   // 直接使用 query 数据,无需额外 state
@@ -53,6 +61,12 @@ function CharacterDetailInner({
     () => roleAvatarsResponse?.data ?? [],
     [roleAvatarsResponse?.data],
   );
+
+  // 判断是否为骰娘角色（使用实时数据）
+  const isDiceMaiden = useMemo(() => {
+    const roleData = currentRoleData?.data;
+    return !!(roleData?.diceMaiden || roleData?.type === 1);
+  }, [currentRoleData]);
 
   // 通过 useMemo 派生展示用的头像/立绘 URL
   const { selectedAvatarUrl, selectedSpriteUrl } = useMemo(() => {
@@ -77,18 +91,24 @@ function CharacterDetailInner({
 
   // 规则选择状态 - 使用 searchParams 替代 state
   // const [searchParams] = useSearchParams();
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
   const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
+  const [isConverting, setIsConverting] = useState(false); // 转换为骰娘的过程状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
 
+  // 能力查询（用于复制当前角色的能力到新骰娘）
+  const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId);
+
   // 接口部分
   // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
+  const createRoleMutation = useCreateRoleMutation();
+  const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
 
   // 处理规则变更
   // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
@@ -210,6 +230,115 @@ function CharacterDetailInner({
     console.warn("头像上传数据:", data);
   };
 
+  // 转换为骰娘：创建新角色并复制头像（含 Transform）与能力，完成后跳转
+  const handleConvertToDiceMaiden = async () => {
+    try {
+      setIsConverting(true);
+      // 1. 创建骰娘角色
+      createRoleMutation.mutate({
+        roleName: localRole.name,
+        description: localRole.description,
+        type: 1,
+      }, {
+        onSuccess: async (newRoleId?: number) => {
+          if (!newRoleId || newRoleId <= 0) {
+            setIsConverting(false);
+            return;
+          }
+
+          let finalAvatarUrl = "/favicon.ico";
+          let finalAvatarId: number | undefined;
+
+          // 2. 复制头像与 Transform 参数（如果当前有选中头像）
+          try {
+            const avatarUrl = selectedAvatarUrl;
+            const spriteUrl = selectedSpriteUrl;
+            if (avatarUrl && avatarUrl !== "/favicon.ico") {
+              // 查找当前角色选中的头像，获取 Transform 参数
+              const currentAvatar = roleAvatars.find(a => a.avatarId === selectedAvatarId);
+              const setRes = await tuanchat.avatarController.setRoleAvatar({ roleId: newRoleId });
+              const avatarId = setRes?.data;
+              if (avatarId) {
+                await tuanchat.avatarController.updateRoleAvatar({
+                  roleId: newRoleId,
+                  avatarId,
+                  avatarUrl,
+                  spriteUrl,
+                  // 复制 Transform 参数
+                  spriteXPosition: currentAvatar?.spriteXPosition ?? 0,
+                  spriteYPosition: currentAvatar?.spriteYPosition ?? 0,
+                  spriteScale: currentAvatar?.spriteScale ?? 1,
+                  spriteTransparency: currentAvatar?.spriteTransparency ?? 1,
+                  spriteRotation: currentAvatar?.spriteRotation ?? 0,
+                });
+                // 更新新角色的头像引用
+                await tuanchat.roleController.updateRole({ roleId: newRoleId, avatarId });
+                finalAvatarUrl = avatarUrl;
+                finalAvatarId = avatarId;
+              }
+            }
+          }
+          catch (e) {
+            console.error("复制头像失败", e);
+          }
+
+          // 3. 仅保留 extra（如骰娘文案），清空 act/basic/ability/skill
+          try {
+            const extraCopywriting = abilityQuery.data?.extraCopywriting ?? {};
+            const serializedData = JSON.stringify(extraCopywriting);
+            updateFieldAbility({
+              roleId: newRoleId,
+              ruleId: selectedRuleId,
+              act: {},
+              basic: {},
+              ability: {},
+              skill: {},
+              extra: { copywriting: serializedData },
+            });
+          }
+          catch (e) {
+            console.error("设置骰娘extra失败", e);
+          }
+
+          // 4. 创建新角色对象并手动更新 roles 状态（立即显示在侧边栏）
+          const newRole: Role = {
+            id: newRoleId,
+            name: localRole.name,
+            description: localRole.description,
+            avatar: finalAvatarUrl,
+            avatarId: finalAvatarId ?? 0,
+            type: 1, // 骰娘类型
+            modelName: localRole.modelName,
+            speakerName: localRole.speakerName,
+            voiceUrl: localRole.voiceUrl,
+          };
+
+          // 手动更新角色列表，让侧边栏立即显示新角色
+          if (setRoles) {
+            setRoles(prevRoles => [newRole, ...prevRoles]);
+          }
+
+          // 5. 刷新缓存
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ["getRole", newRoleId] }),
+            queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
+            queryClient.invalidateQueries({ queryKey: ["roleInfinite"] }),
+            queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRoleId] }),
+          ]);
+
+          // 6. 跳转到新角色页面
+          setIsConverting(false);
+          navigate(`/role/${newRoleId}?rule=${selectedRuleId}`);
+        },
+        onError: () => setIsConverting(false),
+      });
+    }
+    catch (e) {
+      console.error("转换为骰娘失败", e);
+      setIsConverting(false);
+    }
+  };
+
   return (
     <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
     }`}
@@ -226,27 +355,56 @@ function CharacterDetailInner({
               {localRole.name || "未命名角色"}
             </h1>
             <p className="text-base-content/60">
-              角色展示 ·
+              {isDiceMaiden ? "骰娘展示" : "角色展示"}
+              {" "}
+              ·
               {currentRuleData?.ruleName || "未选择规则"}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsStImportModalOpen(true)}
-            className="btn bg-info/70 text-info-content btn-sm md:btn-lg"
-          >
-            <span className="flex items-center gap-1">
-              ST导入
-            </span>
-          </button>
+          {!isDiceMaiden && (
+            <button
+              type="button"
+              onClick={() => setIsStImportModalOpen(true)}
+              className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+            >
+              <span className="flex items-center gap-1">
+                ST导入
+              </span>
+            </button>
+          )}
+          {/* 普通角色显示转换为骰娘按钮 */}
+          {!isDiceMaiden && (
+            <button
+              type="button"
+              onClick={handleConvertToDiceMaiden}
+              className={`btn btn-success btn-sm md:btn-lg rounded-lg ${isConverting ? "scale-95" : ""}`}
+              disabled={isConverting}
+            >
+              {isConverting
+                ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  )
+                : (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
+                        <circle cx="18" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
+                        <circle cx="12" cy="18" r="2" stroke="currentColor" strokeWidth="2" />
+                        <path d="M6 8v4a4 4 0 004 4h4a4 4 0 004-4V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      转换为骰娘
+                    </span>
+                  )}
+            </button>
+          )}
           {isEditing
             ? (
                 <button
                   type="button"
                   onClick={handleSave}
-                  className={`btn btn-primary btn-sm md:btn-lg ${isTransitioning ? "scale-95" : ""}`}
+                  className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
                   disabled={isTransitioning}
                 >
                   {isTransitioning
@@ -264,7 +422,7 @@ function CharacterDetailInner({
                 </button>
               )
             : (
-                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
+                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
                   <span className="flex items-center gap-1">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                       <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
@@ -292,11 +450,38 @@ function CharacterDetailInner({
                       {localRole.name || "未命名角色"}
                     </h1>
                     <p className="text-base-content/60 text-sm">
-                      角色展示 ·
+                      {isDiceMaiden ? "骰娘展示" : "角色展示"}
+                      {" "}
+                      ·
                       {currentRuleData?.ruleName || "未选择规则"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {!isDiceMaiden && (
+                      <button
+                        type="button"
+                        onClick={handleConvertToDiceMaiden}
+                        className={`btn btn-success btn-sm ${isConverting ? "scale-95" : ""}`}
+                        disabled={isConverting}
+                      >
+                        {isConverting
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
+                                  <circle cx="18" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
+                                  <circle cx="12" cy="18" r="2" stroke="currentColor" strokeWidth="2" />
+                                  <path d="M6 8v4a4 4 0 004 4h4a4 4 0 004-4V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                转为骰娘
+                              </span>
+                            )}
+                      </button>
+                    )}
+
                     {isEditing
                       ? (
                           <button
@@ -331,15 +516,17 @@ function CharacterDetailInner({
                           </button>
                         )}
 
-                    <button
-                      type="button"
-                      onClick={() => setIsStImportModalOpen(true)}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <span className="flex items-center gap-1">
-                        ST导入
-                      </span>
-                    </button>
+                    {!isDiceMaiden && (
+                      <button
+                        type="button"
+                        onClick={() => setIsStImportModalOpen(true)}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        <span className="flex items-center gap-1">
+                          ST导入
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="divider my-0" />

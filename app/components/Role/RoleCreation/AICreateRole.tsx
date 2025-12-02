@@ -11,5 +11,5 @@ interface AICreateRoleProps {
 }
 
 export default function AICreateRole(props: AICreateRoleProps) {
-  return <RoleCreationFlow mode="AI" {...props} />;
+  return <RoleCreationFlow {...props} />;
 }
