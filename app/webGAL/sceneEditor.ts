@@ -97,8 +97,17 @@ export class SceneEditor {
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
     figurePosition: "left" | "center" | "right" = "left",
+    miniAvatarName?: string | undefined,
   ): Promise<void> {
     const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
+
+    // 处理小头像
+    if (miniAvatarName) {
+      await this.addLineToRenderer(`miniAvatar:${miniAvatarName};`, sceneName);
+    }
+    else if (miniAvatarName === "") {
+      await this.addLineToRenderer("miniAvatar:none;", sceneName);
+    }
 
     // 根据指定的立绘位置生成相应的 changeFigure 命令
     if (leftSpriteName) {

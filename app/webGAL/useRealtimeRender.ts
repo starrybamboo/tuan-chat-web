@@ -36,6 +36,8 @@ type UseRealtimeRenderOptions = {
   rooms?: Room[];
   /** TTS 配置 */
   ttsConfig?: RealtimeTTSConfig;
+  /** 小头像是否启用 */
+  miniAvatarEnabled?: boolean;
   /** 角色参考音频文件映射 (roleId -> File) */
   voiceFiles?: Map<number, File>;
 };
@@ -90,6 +92,7 @@ export function useRealtimeRender({
   avatars = [],
   rooms = [],
   ttsConfig,
+  miniAvatarEnabled = false,
   voiceFiles,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
@@ -114,6 +117,12 @@ export function useRealtimeRender({
       console.warn(`[useRealtimeRender] TTS 配置变化: enabled=${ttsConfig.enabled}`);
     }
   }, [ttsConfig]);
+
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setMiniAvatarEnabled(miniAvatarEnabled);
+    }
+  }, [miniAvatarEnabled]);
 
   useEffect(() => {
     voiceFilesRef.current = voiceFiles;
@@ -164,6 +173,9 @@ export function useRealtimeRender({
     try {
       const renderer = RealtimeRenderer.getInstance(spaceId);
       rendererRef.current = renderer;
+
+      // 设置小头像配置
+      renderer.setMiniAvatarEnabled(miniAvatarEnabled);
 
       // 设置进度回调
       renderer.setProgressCallback((progress) => {

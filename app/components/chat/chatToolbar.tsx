@@ -312,6 +312,8 @@ export function ChatToolbar({
           </div>
         )}
 
+        {/* miniAvatar 控件已移动到导出/配音设置面板 */}
+
         <div
           className="tooltip tooltip-bottom hover:text-info"
           data-tip="导出记录"

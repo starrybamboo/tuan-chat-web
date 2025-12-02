@@ -61,6 +61,7 @@ export class RealtimeRenderer {
   private sceneContextMap = new Map<number, RendererContext>(); // roomId -> context
   private uploadedSpritesMap = new Map<number, string>(); // avatarId -> fileName
   private uploadedBackgroundsMap = new Map<string, string>(); // url -> fileName
+  private uploadedMiniAvatarsMap = new Map<number, string>(); // avatarId -> fileName
   private roleMap = new Map<number, UserRole>();
   private avatarMap = new Map<number, RoleAvatar>();
   private roomMap = new Map<number, Room>(); // roomId -> Room
@@ -70,6 +71,9 @@ export class RealtimeRenderer {
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
   private messageLineMap = new Map<string, number>(); // `${roomId}_${messageId}` -> lineNumber (消息在场景中的行号)
+
+  // 小头像相关
+  private miniAvatarEnabled: boolean = false;
 
   // TTS 相关
   private ttsConfig: RealtimeTTSConfig = { enabled: false };
@@ -106,6 +110,13 @@ export class RealtimeRenderer {
    */
   public setStatusCallback(callback: (status: "connected" | "disconnected" | "error") => void): void {
     this.onStatusChange = callback;
+  }
+
+  /**
+   * 设置小头像是否启用
+   */
+  public setMiniAvatarEnabled(enabled: boolean): void {
+    this.miniAvatarEnabled = enabled;
   }
 
   /**
@@ -518,6 +529,11 @@ export class RealtimeRenderer {
    */
   public setRoleCache(roles: UserRole[]): void {
     roles.forEach(role => this.roleMap.set(role.roleId, role));
+
+    // 如果 TTS 已启用，尝试获取新角色的参考音频
+    if (this.ttsConfig.enabled) {
+      this.fetchVoiceFilesFromRoles();
+    }
   }
 
   /**
@@ -852,6 +868,40 @@ export class RealtimeRenderer {
   }
 
   /**
+   * 获取小头像文件名（如果未上传则上传）
+   */
+  private async getAndUploadMiniAvatar(avatarId: number, roleId: number): Promise<string | null> {
+    // 已上传的直接返回
+    if (this.uploadedMiniAvatarsMap.has(avatarId)) {
+      return this.uploadedMiniAvatarsMap.get(avatarId) || null;
+    }
+
+    // 获取头像信息
+    const avatar = this.avatarMap.get(avatarId);
+    if (!avatar) {
+      return null;
+    }
+
+    const avatarUrl = avatar.avatarUrl;
+    if (!avatarUrl) {
+      return null;
+    }
+
+    try {
+      const path = `games/${this.gameName}/game/figure/`;
+      const fileExtension = getFileExtensionFromUrl(avatarUrl, "webp");
+      const miniAvatarName = `role_${roleId}_mini_${avatarId}`;
+      const fileName = await uploadFile(avatarUrl, path, `${miniAvatarName}.${fileExtension}`);
+      this.uploadedMiniAvatarsMap.set(avatarId, fileName);
+      return fileName;
+    }
+    catch (error) {
+      console.error("上传小头像失败:", error);
+      return null;
+    }
+  }
+
+  /**
    * 渲染一条消息到指定房间
    */
   public async renderMessage(message: ChatMessageResponse, roomId?: number, syncToFile: boolean = true): Promise<void> {
@@ -928,11 +978,87 @@ export class RealtimeRenderer {
       // 如果不是回复消息，则清除之前的立绘（单人发言模式）
       // 如果是回复消息，则保留之前的立绘（多人对话模式）
       if (!msg.replyMessageId) {
-        await this.appendLine(targetRoomId, "changeFigure:none -next;", syncToFile);
+        // WebGAL 中不同位置的立绘是独立的，需要分别清除
+        await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+        await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+        await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
       }
 
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
+    }
+
+    // 处理小头像
+    const miniAvatarFileName = this.miniAvatarEnabled
+      ? await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId)
+      : null;
+
+    if (miniAvatarFileName) {
+      await this.appendLine(targetRoomId, `miniAvatar:${miniAvatarFileName};`, syncToFile);
+    }
+    else if (this.miniAvatarEnabled) {
+      // 如果启用了小头像但没有找到头像文件，则显示 none
+      await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
+    }
+    // 如果未启用小头像，则不发送 miniAvatar 指令，保持原样（或者也可以强制 none，取决于需求）
+    // 这里假设如果不启用，就不应该改变小头像状态，或者应该隐藏。
+    // 为了安全起见，如果未启用，最好确保不显示小头像。
+    // 但是如果之前显示了，现在关闭了，应该隐藏吗？
+    // 按照通常逻辑，关闭开关意味着不使用该功能，应该隐藏。
+    // 所以如果 !this.miniAvatarEnabled，应该发送 miniAvatar:none; 吗？
+    // 之前的逻辑是：如果不启用，就不生成指令。
+    // 但是实时渲染是增量的，如果之前有，现在没有指令，状态会保留。
+    // 所以如果关闭了开关，应该发送 none。
+    // 但是这里是渲染单条消息。
+    // 让我们简单点：如果启用，尝试显示；如果不启用，不生成指令（或者生成 none）。
+    // 参考 chatRenderer 的逻辑：如果不启用，不生成指令。
+    // 但是实时渲染可能需要覆盖之前的状态。
+    // 让我们先只在启用时生成指令。如果用户想关闭，他们会关闭开关，然后新消息就不会有小头像。
+    // 但是旧消息的小头像还会保留吗？WebGAL 的 miniAvatar 是全局状态吗？是的。
+    // 所以如果下一条消息没有 miniAvatar 指令，上一条消息的小头像会保留吗？
+    // WebGAL 文档说 miniAvatar 是显示在对话框旁边的。
+    // 通常每条消息都会重置或设置。
+    // 如果我不发送指令，它会保持上一次的状态。
+    // 所以如果我关闭了开关，我应该发送 miniAvatar:none; 吗？
+    // 如果我发送 none，那么所有新消息都没有小头像。
+    // 如果我不发送，那么新消息会继承上一次的状态（如果有的话）。
+    // 为了确保关闭开关后不再显示，最好发送 none。
+    // 但是如果我不想干扰其他可能的操作（虽然这里只有我们在控制）。
+    // 让我们修改逻辑：如果启用，发送对应头像或 none；如果不启用，不发送指令（或者发送 none 以确保清除）。
+    // 考虑到 chatRenderer 中是 "如果不启用，不生成指令"，这里也保持一致。
+    // 但是 chatRenderer 是生成整个脚本，不生成指令意味着默认值（通常是 none）。
+    // 实时渲染中，如果不生成指令，状态保持不变。
+    // 如果上一条消息有小头像，这一条没有指令，那么小头像会一直显示吗？
+    // 在 WebGAL 中，miniAvatar 通常伴随对话。
+    // 如果我希望关闭开关后新消息不显示小头像，我应该发送 miniAvatar:none;
+    // 但是如果我只是不发送指令，WebGAL 会怎么做？
+    // 让我们假设不发送指令就是保持不变。
+    // 如果用户在中间关闭了开关，下一条消息不发送指令，那么小头像会继续显示上一条的。这可能不是用户想要的。
+    // 所以如果 !this.miniAvatarEnabled，应该发送 miniAvatar:none; 吗？
+    // 或者根本不处理。
+    // 让我们参考 chatRenderer：
+    // const miniAvatarName = this.renderProps.useMiniAvatar ? ... : undefined;
+    // if (miniAvatarName) ... else if (miniAvatarName === "") ...
+    // 如果 undefined，什么都不做。
+    // 所以这里也一样。
+
+    // 修正：如果未启用，什么都不做。
+    // 但是为了防止状态残留，如果用户从开启切换到关闭，第一条新消息应该清除小头像。
+    // 但我们无法知道状态切换。
+    // 简单起见，如果未启用，就不发送指令。
+
+    // 再次修正：chatRenderer 中，如果 useMiniAvatar 为 false，miniAvatarName 为 undefined。
+    // sceneEditor.addDialog 中，如果 miniAvatarName 为 undefined，则不生成指令。
+    // 所以这里也应该一样。
+
+    if (this.miniAvatarEnabled) {
+      const miniAvatarFileName = await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId);
+      if (miniAvatarFileName) {
+        await this.appendLine(targetRoomId, `miniAvatar:${miniAvatarFileName};`, syncToFile);
+      }
+      else {
+        await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
+      }
     }
 
     // 处理文本内容

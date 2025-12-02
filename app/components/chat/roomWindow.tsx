@@ -169,6 +169,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
   // 实时渲染 TTS 配置（默认关闭）
   const [realtimeTTSEnabled, setRealtimeTTSEnabled] = useState(false);
+  // 实时渲染小头像配置（默认关闭）
+  const [realtimeMiniAvatarEnabled, setRealtimeMiniAvatarEnabled] = useState(false);
   // TTS API URL（从 localStorage 读取，默认为空使用环境变量）
   const [ttsApiUrl, setTtsApiUrl] = useState(() => {
     if (typeof window !== "undefined") {
@@ -204,6 +206,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     roles: roomRoles,
     rooms: room ? [room] : [], // 当前只传入当前房间，后续可以扩展为多房间
     ttsConfig: realtimeTTSConfig,
+    miniAvatarEnabled: realtimeMiniAvatarEnabled,
   });
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
@@ -1250,6 +1253,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onTTSToggle={setRealtimeTTSEnabled}
               ttsApiUrl={ttsApiUrl}
               onTTSApiUrlChange={handleTtsApiUrlChange}
+              miniAvatarEnabled={realtimeMiniAvatarEnabled}
+              onMiniAvatarToggle={setRealtimeMiniAvatarEnabled}
               onClose={() => {
                 realtimeRender.stop();
                 setIsRealtimeRenderEnabled(false);

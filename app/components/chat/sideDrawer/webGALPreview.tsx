@@ -18,6 +18,10 @@ interface WebGALPreviewProps {
   ttsApiUrl?: string;
   /** TTS API 地址变更回调 */
   onTTSApiUrlChange?: (url: string) => void;
+  /** 小头像是否启用 */
+  miniAvatarEnabled?: boolean;
+  /** 小头像开关回调 */
+  onMiniAvatarToggle?: (enabled: boolean) => void;
 }
 
 /** TTS 设置对话框 */
@@ -93,6 +97,8 @@ export default function WebGALPreview({
   onTTSToggle,
   ttsApiUrl = "",
   onTTSApiUrlChange,
+  miniAvatarEnabled = false,
+  onMiniAvatarToggle,
 }: WebGALPreviewProps) {
   const [showSettings, setShowSettings] = useState(false);
   if (!isActive || !previewUrl) {
@@ -126,6 +132,18 @@ export default function WebGALPreview({
       <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
         <span className="font-medium text-sm">WebGAL 实时预览</span>
         <div className="flex items-center gap-2">
+          {/* 小头像开关 */}
+          {onMiniAvatarToggle && (
+            <label className="flex items-center gap-1 cursor-pointer ml-2" title={miniAvatarEnabled ? "关闭小头像" : "开启小头像"}>
+              <span className="text-xs text-base-content/70">小头像</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-xs toggle-primary"
+                checked={miniAvatarEnabled}
+                onChange={e => onMiniAvatarToggle(e.target.checked)}
+              />
+            </label>
+          )}
           {/* TTS 开关和设置 */}
           {onTTSToggle && (
             <>
@@ -152,6 +170,7 @@ export default function WebGALPreview({
               </button>
             </>
           )}
+
           <a
             href={previewUrl}
             target="_blank"

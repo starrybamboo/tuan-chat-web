@@ -18,6 +18,7 @@ export class ChatRenderer {
   private readonly totalMessageNumber: number;
   private renderedMessageNumber = 0;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
+  private uploadedMiniAvatarsFileNameMap = new Map<number, string>(); // avatarId -> miniAvatarFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
   private avatarMap: Map<number, RoleAvatar> = new Map(); // avatarId -> avatar
   private voiceFileMap = new Map<number, File>(); // roleId -> File;
@@ -252,6 +253,24 @@ export class ChatRenderer {
     return this.uploadSprite(message);
   }
 
+  private async getAndUploadMiniAvatar(message: Message): Promise<string | null> {
+    if (this.uploadedMiniAvatarsFileNameMap.has(message.avatarId)) {
+      return this.uploadedMiniAvatarsFileNameMap.get(message.avatarId) ?? null;
+    }
+
+    const avatar = await this.fetchAvatar(message.avatarId);
+    const avatarUrl = avatar?.avatarUrl;
+    if (!avatarUrl || !message.roleId || !message.avatarId) {
+      return null;
+    }
+
+    const miniAvatarName = `role_${message.roleId}_mini_${message.avatarId}`;
+    // Reuse sceneEditor.uploadSprites as it uploads to figure folder
+    const fileName = await this.sceneEditor.uploadSprites(avatarUrl, miniAvatarName);
+    this.uploadedMiniAvatarsFileNameMap.set(message.avatarId, fileName);
+    return fileName;
+  }
+
   /**
    * 对于过长的文本，尽可能按照标点拆分
    * @param content 要渲染的文本
@@ -410,6 +429,9 @@ export class ChatRenderer {
               }
 
               const messageSpriteName = (await this.getAndUploadSprite(message)) ?? undefined;
+              const miniAvatarName = this.renderProps.useMiniAvatar
+                ? ((await this.getAndUploadMiniAvatar(message)) ?? "")
+                : undefined;
               const repliedSpriteName = repliedMessage
                 ? (await this.getAndUploadSprite(repliedMessage)) ?? undefined
                 : undefined;
@@ -427,6 +449,7 @@ export class ChatRenderer {
                 noNeedChangeSprite ? undefined : repliedSpriteName,
                 vocalFileName,
                 messageFigurePosition, // 传递立绘位置
+                miniAvatarName,
               );
               if (!noNeedChangeSprite) {
                 spriteState.clear();
