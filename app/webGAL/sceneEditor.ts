@@ -161,6 +161,15 @@ export class SceneEditor {
     return await uploadFile(url, path, `${bgName}.${fileExtension}`);
   }
 
+  // 上传背景音乐
+  public async uploadBgm(url: string): Promise<string> {
+    const path = `games/${this.game.name}/game/bgm/`;
+    const fileExtension = getFileExtensionFromUrl(url, "mp3");
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const bgmName = `bgm_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${bgmName}.${fileExtension}`);
+  }
+
   public async addLineToRenderer(line: string, sceneName: string): Promise<void> {
     if (!line.trim())
       return; // 跳过空消息

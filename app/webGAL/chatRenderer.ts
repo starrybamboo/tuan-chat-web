@@ -361,6 +361,33 @@ export class ChatRenderer {
           }
         }
 
+        // 处理 BGM：优先识别 soundMessage(purpose==='bgm') 或 content 标记
+        else if (
+          message.extra?.soundMessage && ((typeof message.content === "string" && message.content.includes("[播放BGM]")) || message.extra?.soundMessage?.purpose === "bgm")
+        ) {
+          const soundMsg = message.extra?.soundMessage;
+          const url = soundMsg?.url;
+          if (url) {
+            const bgmFileName = await this.sceneEditor.uploadBgm(url);
+            let command = `bgm:${bgmFileName}`;
+            const vol = soundMsg?.volume;
+            if (vol !== undefined) {
+              command += ` -vol:${vol}`;
+            }
+            command += " -next";
+            await this.sceneEditor.addLineToRenderer(command, sceneName);
+          }
+        }
+
+        // 处理特效消息 (Type 8)
+        else if (message.messageType === 8) {
+          const effectMessage = message.extra?.effectMessage;
+          if (effectMessage && effectMessage.effectName) {
+            const command = `pixiPerform:${effectMessage.effectName} -next`;
+            await this.sceneEditor.addLineToRenderer(command, sceneName);
+          }
+        }
+
         // 处理一般的对话
         else if (message.messageType === 1) {
           // %开头的对话意味着webgal指令，直接写入scene文件内

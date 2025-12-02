@@ -44,6 +44,7 @@ import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
+import { MessageType } from "api/wsModels";
 // *** 导入新组件及其 Handle 类型 ***
 
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
@@ -1049,6 +1050,51 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         ? "请先拉入你的角色，之后才能发送消息。"
         : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"));
 
+  const handleSendBgm = useCallback((url: string, volume?: number) => {
+    if (!curRoleId) {
+      toast.error("请先选择角色");
+      return;
+    }
+    // 使用已有的 soundMessage 字段并标注 purpose: 'bgm' 以兼容后端与现有类型
+    send({
+      roomId,
+      roleId: curRoleId,
+      avatarId: curAvatarId,
+      content: `[播放BGM]`,
+      // messageType 使用 SOUND (7)
+      messageType: MessageType.SOUND,
+      extra: {
+        soundMessage: {
+          url,
+          fileName: url.split("/").pop() || "bgm",
+          size: 0,
+          second: 0,
+          purpose: "bgm",
+          volume,
+        },
+      },
+    });
+  }, [curRoleId, curAvatarId, roomId, send]);
+
+  const handleSendEffect = useCallback((effectName: string) => {
+    if (!curRoleId) {
+      toast.error("请先选择角色");
+      return;
+    }
+    send({
+      roomId,
+      roleId: curRoleId,
+      avatarId: curAvatarId,
+      content: `[特效: ${effectName}]`,
+      messageType: MessageType.EFFECT,
+      extra: {
+        effectMessage: {
+          effectName,
+        },
+      },
+    });
+  }, [curRoleId, curAvatarId, roomId, send]);
+
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
@@ -1119,6 +1165,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
                   defaultFigurePosition={currentDefaultFigurePosition}
                   onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
+                  onSendBgm={handleSendBgm}
+                  onSendEffect={handleSendEffect}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch

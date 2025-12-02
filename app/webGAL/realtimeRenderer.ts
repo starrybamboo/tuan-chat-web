@@ -61,6 +61,7 @@ export class RealtimeRenderer {
   private sceneContextMap = new Map<number, RendererContext>(); // roomId -> context
   private uploadedSpritesMap = new Map<number, string>(); // avatarId -> fileName
   private uploadedBackgroundsMap = new Map<string, string>(); // url -> fileName
+  private uploadedBgmsMap = new Map<string, string>(); // url -> fileName
   private uploadedMiniAvatarsMap = new Map<number, string>(); // avatarId -> fileName
   private roleMap = new Map<number, UserRole>();
   private avatarMap = new Map<number, RoleAvatar>();
@@ -843,6 +844,26 @@ export class RealtimeRenderer {
   }
 
   /**
+   * 上传背景音乐
+   */
+  private async uploadBgm(url: string): Promise<string | null> {
+    if (this.uploadedBgmsMap.has(url)) {
+      return this.uploadedBgmsMap.get(url) || null;
+    }
+
+    try {
+      const path = `games/${this.gameName}/game/bgm/`;
+      const fileName = await uploadFile(url, path);
+      this.uploadedBgmsMap.set(url, fileName);
+      return fileName;
+    }
+    catch (error) {
+      console.error("上传背景音乐失败:", error);
+      return null;
+    }
+  }
+
+  /**
    * 获取立绘文件名（如果未上传则上传）
    */
   private async getAndUploadSprite(avatarId: number, roleId: number): Promise<string | null> {
@@ -939,6 +960,44 @@ export class RealtimeRenderer {
           if (syncToFile)
             this.sendSyncMessage(targetRoomId);
         }
+      }
+      return;
+    }
+
+    // 处理 BGM：优先识别 soundMessage(purpose==='bgm') 或者通过 content 标记
+    const soundMsg = msg.extra?.soundMessage;
+    const isMarkedBgm = (typeof msg.content === "string" && msg.content.includes("[播放BGM]")) || soundMsg?.purpose === "bgm";
+    if (soundMsg && isMarkedBgm) {
+      const url = soundMsg.url;
+      if (url) {
+        const bgmFileName = await this.uploadBgm(url);
+        if (bgmFileName) {
+          let command = `bgm:${bgmFileName}`;
+          const vol = soundMsg.volume;
+          if (vol !== undefined) {
+            command += ` -vol:${vol}`;
+          }
+          command += " -next;";
+          await this.appendLine(targetRoomId, command, syncToFile);
+          if (syncToFile)
+            this.sendSyncMessage(targetRoomId);
+        }
+      }
+      return;
+    }
+
+    // 处理特效消息 (Type 8)
+    if (msg.messageType === 8) {
+      const effectMessage = msg.extra?.effectMessage;
+      if (effectMessage && effectMessage.effectName) {
+        // pixiPerform:rain -next;
+        // pixiPerform:none -next; (清除特效)
+        let command = `pixiPerform:${effectMessage.effectName}`;
+        // 如果有其他参数，可以在这里添加
+        command += " -next;";
+        await this.appendLine(targetRoomId, command, syncToFile);
+        if (syncToFile)
+          this.sendSyncMessage(targetRoomId);
       }
       return;
     }

@@ -2,6 +2,7 @@ import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   ArrowBackThickFill,
+  CommandSolid,
   Detective,
   EmojiIconWhite,
   GalleryBroken,
@@ -14,6 +15,7 @@ import {
   SwordSwing,
   WebgalIcon,
 } from "@/icons";
+import { useState } from "react";
 
 interface ChatToolbarProps {
   // 侧边栏状态
@@ -47,6 +49,10 @@ interface ChatToolbarProps {
   // 默认立绘位置
   defaultFigurePosition?: "left" | "center" | "right";
   onSetDefaultFigurePosition?: (position: "left" | "center" | "right") => void;
+
+  // WebGAL 控制
+  onSendBgm?: (url: string, volume?: number) => void;
+  onSendEffect?: (effectName: string) => void;
 }
 
 export function ChatToolbar({
@@ -68,7 +74,12 @@ export function ChatToolbar({
   onToggleAutoReplyMode,
   defaultFigurePosition,
   onSetDefaultFigurePosition,
+  onSendBgm,
+  onSendEffect,
 }: ChatToolbarProps) {
+  const [isSettingBgm, setIsSettingBgm] = useState(false);
+  const [bgmUrl, setBgmUrl] = useState("");
+
   return (
     <div className="flex pr-1 pl-2 justify-between ">
       <div className="flex gap-2">
@@ -309,6 +320,89 @@ export function ChatToolbar({
             onClick={onToggleRealtimeRender}
           >
             <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+          </div>
+        )}
+
+        {/* WebGAL 导演控制台 */}
+        {webgalLinkMode && (onSendBgm || onSendEffect) && (
+          <div className="dropdown dropdown-top dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="导演控制台"
+            >
+              <CommandSolid className="size-7" />
+            </div>
+            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+              {onSendBgm && (
+                <li>
+                  {!isSettingBgm
+                    ? (
+                        <a
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsSettingBgm(true);
+                          }}
+                        >
+                          🎵 设置 BGM
+                        </a>
+                      )
+                    : (
+                        <div className="flex flex-col gap-2 p-2 bg-base-200 rounded-box cursor-default" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            className="input input-sm input-bordered w-full"
+                            placeholder="BGM URL"
+                            value={bgmUrl}
+                            onChange={e => setBgmUrl(e.target.value)}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                if (bgmUrl)
+                                  onSendBgm(bgmUrl);
+                                setIsSettingBgm(false);
+                                setBgmUrl("");
+                              }
+                            }}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              className="btn btn-xs btn-ghost"
+                              onClick={() => {
+                                setIsSettingBgm(false);
+                                setBgmUrl("");
+                              }}
+                            >
+                              取消
+                            </button>
+                            <button
+                              className="btn btn-xs btn-primary"
+                              onClick={() => {
+                                if (bgmUrl)
+                                  onSendBgm(bgmUrl);
+                                setIsSettingBgm(false);
+                                setBgmUrl("");
+                              }}
+                            >
+                              确定
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                </li>
+              )}
+              {onSendEffect && (
+                <>
+                  <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>
+                  <li><a onClick={() => onSendEffect("snow")}>❄️ 下雪</a></li>
+                  <li><a onClick={() => onSendEffect("sakura")}>🌸 樱花</a></li>
+                  <li><a onClick={() => onSendEffect("none")}>🛑 停止特效</a></li>
+                </>
+              )}
+            </ul>
           </div>
         )}
 
