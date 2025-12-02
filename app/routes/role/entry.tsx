@@ -1,8 +1,9 @@
 import type { Role } from "@/components/Role/types";
 import AICreateRole from "@/components/Role/RoleCreation/AICreateRole";
+import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
+
 // 导入您的创建组件
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
-
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
 import { setRoleRule } from "@/utils/roleRuleStorage";
@@ -19,14 +20,16 @@ export default function RoleCreationPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [mode, setMode] = useState<"self" | "AI" | "ST" | "entry">("entry");
+  const [mode, setMode] = useState<"self" | "dice" | "AI" | "ST" | "entry">("entry");
 
   // 检测URL参数，如果有type参数则直接进入创建表单
   useEffect(() => {
     const typeParam = searchParams.get("type");
-    if (typeParam === "normal" || typeParam === "dice") {
-      // 直接进入自主创建模式
+    if (typeParam === "normal") {
       setMode("self");
+    }
+    else if (typeParam === "dice") {
+      setMode("dice");
     }
   }, [searchParams]);
 
@@ -50,6 +53,14 @@ export default function RoleCreationPage() {
   if (mode === "self") {
     return (
       <CreateRoleBySelf
+        onBack={() => setMode("entry")}
+        onComplete={handleCreationComplete}
+      />
+    );
+  }
+  if (mode === "dice") {
+    return (
+      <CreateDiceMaiden
         onBack={() => setMode("entry")}
         onComplete={handleCreationComplete}
       />

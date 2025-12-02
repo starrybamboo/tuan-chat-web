@@ -402,7 +402,7 @@ export function Sidebar({
               className={`tab ${filterCategory === "all" ? "tab-active" : ""}`}
               onClick={() => {
                 setFilterCategory("all");
-                navigate("/role");
+                navigate("/role", { replace: true });
               }}
             >
               全部
@@ -412,7 +412,7 @@ export function Sidebar({
               className={`tab ${filterCategory === "normal" ? "tab-active" : ""}`}
               onClick={() => {
                 setFilterCategory("normal");
-                navigate("/role");
+                navigate("/role", { replace: true });
               }}
             >
               普通角色
@@ -422,7 +422,7 @@ export function Sidebar({
               className={`tab ${filterCategory === "dice" ? "tab-active" : ""}`}
               onClick={() => {
                 setFilterCategory("dice");
-                navigate("/role");
+                navigate("/role", { replace: true });
               }}
             >
               骰娘角色
