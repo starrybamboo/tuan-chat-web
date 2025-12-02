@@ -952,7 +952,7 @@ export class RealtimeRenderer {
 
     // 处理背景图片消息
     if (msg.messageType === 2) {
-      const imageMessage = msg.extra?.imageMessage;
+      const imageMessage = msg.extra?.imageMessage || (msg.extra?.url ? msg.extra : null);
       if (imageMessage && imageMessage.background) {
         const bgFileName = await this.uploadBackground(imageMessage.url);
         if (bgFileName) {
@@ -965,7 +965,10 @@ export class RealtimeRenderer {
     }
 
     // 处理 BGM：优先识别 soundMessage(purpose==='bgm') 或者通过 content 标记
-    const soundMsg = msg.extra?.soundMessage;
+    let soundMsg = msg.extra?.soundMessage;
+    if (!soundMsg && msg.messageType === 7 && msg.extra?.url) {
+      soundMsg = msg.extra;
+    }
     const isMarkedBgm = (typeof msg.content === "string" && msg.content.includes("[播放BGM]")) || soundMsg?.purpose === "bgm";
     if (soundMsg && isMarkedBgm) {
       const url = soundMsg.url;

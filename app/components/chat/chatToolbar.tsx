@@ -8,6 +8,7 @@ import {
   GalleryBroken,
   GirlIcon,
   LinkFilled,
+  MusicNote,
   PointOnMapPerspectiveLinear,
   SendIcon,
   SharpDownload,
@@ -15,7 +16,7 @@ import {
   SwordSwing,
   WebgalIcon,
 } from "@/icons";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface ChatToolbarProps {
   // 侧边栏状态
@@ -53,6 +54,8 @@ interface ChatToolbarProps {
   // WebGAL 控制
   onSendBgm?: (url: string, volume?: number) => void;
   onSendEffect?: (effectName: string) => void;
+  // 发送语音
+  setAudioFile?: (file: File | null) => void;
 }
 
 export function ChatToolbar({
@@ -76,9 +79,21 @@ export function ChatToolbar({
   onSetDefaultFigurePosition,
   onSendBgm,
   onSendEffect,
+  setAudioFile,
 }: ChatToolbarProps) {
-  const [isSettingBgm, setIsSettingBgm] = useState(false);
   const [bgmUrl, setBgmUrl] = useState("");
+  const bgmModalRef = useRef<HTMLDialogElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !setAudioFile)
+      return;
+
+    setAudioFile(file);
+    // 重置 input value，允许重复选择同一文件
+    e.target.value = "";
+  };
 
   return (
     <div className="flex pr-1 pl-2 justify-between ">
@@ -187,6 +202,23 @@ export function ChatToolbar({
             <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
           </div>
         </ImgUploader>
+
+        {/* 发送语音 */}
+        {setAudioFile && (
+          <div className="tooltip" data-tip="发送语音">
+            <MusicNote
+              className="size-7 cursor-pointer jump_icon"
+              onClick={() => audioInputRef.current?.click()}
+            />
+            <input
+              type="file"
+              ref={audioInputRef}
+              className="hidden"
+              accept="audio/*"
+              onChange={handleAudioSelect}
+            />
+          </div>
+        )}
 
         {/* AI重写分离按钮 */}
         <div className="flex items-center gap-1">
@@ -337,61 +369,9 @@ export function ChatToolbar({
             <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
               {onSendBgm && (
                 <li>
-                  {!isSettingBgm
-                    ? (
-                        <a
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsSettingBgm(true);
-                          }}
-                        >
-                          🎵 设置 BGM
-                        </a>
-                      )
-                    : (
-                        <div className="flex flex-col gap-2 p-2 bg-base-200 rounded-box cursor-default" onClick={e => e.stopPropagation()}>
-                          <input
-                            type="text"
-                            className="input input-sm input-bordered w-full"
-                            placeholder="BGM URL"
-                            value={bgmUrl}
-                            onChange={e => setBgmUrl(e.target.value)}
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                if (bgmUrl)
-                                  onSendBgm(bgmUrl);
-                                setIsSettingBgm(false);
-                                setBgmUrl("");
-                              }
-                            }}
-                          />
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              className="btn btn-xs btn-ghost"
-                              onClick={() => {
-                                setIsSettingBgm(false);
-                                setBgmUrl("");
-                              }}
-                            >
-                              取消
-                            </button>
-                            <button
-                              className="btn btn-xs btn-primary"
-                              onClick={() => {
-                                if (bgmUrl)
-                                  onSendBgm(bgmUrl);
-                                setIsSettingBgm(false);
-                                setBgmUrl("");
-                              }}
-                            >
-                              确定
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                  <a onClick={() => bgmModalRef.current?.showModal()}>
+                    🎵 设置 BGM
+                  </a>
                 </li>
               )}
               {onSendEffect && (
@@ -457,6 +437,41 @@ export function ChatToolbar({
           </SendIcon>
         </div>
       </div>
+
+      {/* BGM 输入弹窗 */}
+      <dialog ref={bgmModalRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg">设置 BGM</h3>
+          <p className="py-4">请输入 BGM 链接 (mp3/wav/ogg):</p>
+          <input
+            type="text"
+            placeholder="https://example.com/music.mp3"
+            className="input input-bordered w-full"
+            value={bgmUrl}
+            onChange={e => setBgmUrl(e.target.value)}
+          />
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn" type="submit">取消</button>
+              <button
+                type="submit"
+                className="btn btn-primary ml-2"
+                onClick={() => {
+                  if (bgmUrl && onSendBgm) {
+                    onSendBgm(bgmUrl);
+                    setBgmUrl("");
+                  }
+                }}
+              >
+                确定
+              </button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button type="submit">close</button>
+        </form>
+      </dialog>
     </div>
   );
 }

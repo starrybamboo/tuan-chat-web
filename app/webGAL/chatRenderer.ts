@@ -354,7 +354,7 @@ export class ChatRenderer {
 
         // 处理背景图片的消息
         if (message.messageType === 2) {
-          const imageMessage = message.extra?.imageMessage;
+          const imageMessage = message.extra?.imageMessage || (message.extra?.url ? message.extra : null);
           if (imageMessage && imageMessage.background) {
             const bgFileName = await this.sceneEditor.uploadBackground(imageMessage.url);
             await this.sceneEditor.addLineToRenderer(`changeBg:${bgFileName}`, sceneName);
@@ -363,9 +363,15 @@ export class ChatRenderer {
 
         // 处理 BGM：优先识别 soundMessage(purpose==='bgm') 或 content 标记
         else if (
-          message.extra?.soundMessage && ((typeof message.content === "string" && message.content.includes("[播放BGM]")) || message.extra?.soundMessage?.purpose === "bgm")
+          (message.extra?.soundMessage || (message.messageType === 7 && message.extra?.url))
+          && ((typeof message.content === "string" && message.content.includes("[播放BGM]"))
+            || message.extra?.soundMessage?.purpose === "bgm"
+            || (message.messageType === 7 && message.extra?.purpose === "bgm"))
         ) {
-          const soundMsg = message.extra?.soundMessage;
+          let soundMsg = message.extra?.soundMessage;
+          if (!soundMsg && message.messageType === 7 && message.extra?.url) {
+            soundMsg = message.extra;
+          }
           const url = soundMsg?.url;
           if (url) {
             const bgmFileName = await this.sceneEditor.uploadBgm(url);

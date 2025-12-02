@@ -36,6 +36,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
+  MusicNote,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -73,7 +74,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
-  const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
+  const send = useCallback((message: ChatMessageRequest) => {
+    webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
+  }, [webSocketUtils]);
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
@@ -111,6 +114,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
   const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
+  // 聊天框中包含的语音
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
@@ -848,7 +853,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [isSubmitting, setIsSubmitting] = useState(false);
   const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 没有权限
   const noRole = curRoleId <= 0;
-  const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0); // 没有内容
+  const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile); // 没有内容
   const disableSendMessage = noRole || notMember || noInput || isSubmitting;
 
   const handleMessageSubmit = async () => {
@@ -869,55 +874,122 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
     setIsSubmitting(true);
     try {
+      const uploadedImages: any[] = [];
+
+      // 1. 上传图片
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         const { width, height, size } = await getImageSize(imgFiles[i]);
-        sendImg(imgDownLoadUrl, width, height, size);
+        uploadedImages.push({ url: imgDownLoadUrl, width, height, size, fileName: imgFiles[i].name });
       }
       updateImgFiles([]);
+
+      // 2. 上传表情 (视为图片)
       for (let i = 0; i < emojiUrls.length; i++) {
         const { width, height, size } = await getImageSize(emojiUrls[i]);
-        sendImg(emojiUrls[i], width, height, size);
+        uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
       }
       updateEmojiUrls([]);
 
-      // 发送文本消息
-      if (inputText.trim() !== "") {
-        // 自动回复模式：如果没有手动选择回复消息，自动回复最后一条消息
-        let autoReplyMsgId: number | undefined;
-        if (autoReplyMode && !replyMessage && historyMessages && historyMessages.length > 0) {
-          const lastMessage = historyMessages[historyMessages.length - 1];
-          autoReplyMsgId = lastMessage?.message?.messageId;
-        }
+      // 3. 上传语音
+      let soundMessageData: any = null;
+      if (audioFile) {
+        const audio = new Audio(URL.createObjectURL(audioFile));
+        await new Promise((resolve) => {
+          audio.onloadedmetadata = () => resolve(null);
+        });
+        const duration = audio.duration;
+        const url = await uploadUtils.uploadAudio(audioFile, 1, 60);
+        soundMessageData = {
+          url,
+          second: Math.round(duration),
+          fileName: audioFile.name,
+          size: audioFile.size,
+        };
+        setAudioFile(null);
+      }
 
-        const messageRequest: ChatMessageRequest = {
+      // 4. 构建并发送消息
+      // 自动回复模式：如果没有手动选择回复消息，自动回复最后一条消息
+      let autoReplyMsgId: number | undefined;
+      if (autoReplyMode && !replyMessage && historyMessages && historyMessages.length > 0) {
+        const lastMessage = historyMessages[historyMessages.length - 1];
+        autoReplyMsgId = lastMessage?.message?.messageId;
+      }
+
+      const finalReplyId = replyMessage?.messageId || autoReplyMsgId || undefined;
+      let isFirstMessage = true;
+
+      const getCommonFields = () => {
+        const fields: Partial<ChatMessageRequest> = {
           roomId,
           roleId: curRoleId,
-          content: inputText.trim(), // 直接使用 state
           avatarId: curAvatarId,
-          messageType: 1,
-          replayMessageId: replyMessage?.messageId || autoReplyMsgId || undefined,
-          extra: {},
         };
 
-        // 如果开启了 WebGAL 联动模式，附带立绘位置信息
-        if (webgalLinkMode) {
-          messageRequest.webgal = {
-            voiceRenderSettings: {
-              figurePosition: currentDefaultFigurePosition,
-            },
-          };
+        if (isFirstMessage) {
+          fields.replayMessageId = finalReplyId;
+          if (webgalLinkMode) {
+            fields.webgal = {
+              voiceRenderSettings: {
+                figurePosition: currentDefaultFigurePosition,
+              },
+            };
+          }
+          isFirstMessage = false;
         }
+        return fields;
+      };
 
-        if (isCommand(inputText)) {
-          // *** 使用 state 中的提及列表 ***
-          commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
-        }
-        else {
-          send(messageRequest);
-        }
-        setInputText(""); // 调用重构的 setInputText 来清空
+      let textContent = inputText.trim();
+      if (textContent && isCommand(textContent)) {
+        commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
+        // 指令执行也被视为一次"发送"，消耗掉 firstMessage 状态
+        isFirstMessage = false;
+        textContent = "";
       }
+
+      // B. 发送图片
+      for (const img of uploadedImages) {
+        const imgMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: textContent,
+          messageType: MessageType.IMG,
+          extra: {
+            url: img.url,
+            width: img.width,
+            height: img.height,
+            size: img.size,
+            fileName: img.fileName,
+          },
+        };
+        send(imgMsg);
+        textContent = "";
+      }
+
+      // C. 发送语音
+      if (soundMessageData) {
+        const audioMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: textContent,
+          messageType: MessageType.SOUND,
+          extra: soundMessageData,
+        };
+        send(audioMsg);
+        textContent = "";
+      }
+
+      // A. 发送文本 (如果前面没有被图片或语音消耗掉)
+      if (textContent) {
+        const textMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: textContent,
+          messageType: MessageType.TEXT,
+        };
+        send(textMsg);
+      }
+
+      setInputText(""); // 调用重构的 setInputText 来清空
       setReplyMessage(undefined);
     }
     catch (e: any) {
@@ -927,19 +999,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       setIsSubmitting(false);
     }
   };
-
-  function sendImg(img: string, width: number, height: number, size: number) {
-    // ... (sendImg logic as-is) ...
-    const messageRequest: ChatMessageRequest = {
-      content: "",
-      roomId,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
-      messageType: 2,
-      extra: { size, url: img, fileName: img.split("/").pop() || "error", width, height },
-    };
-    send(messageRequest);
-  }
 
   // 线索消息发送
   const handleClueSend = (clue: ClueMessage) => {
@@ -1128,7 +1187,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
-            <form className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
+            <div className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
               <div className="relative flex-1 flex flex-col min-w-0">
                 <CommandPanel
                   prefix={inputText} // *** 直接使用 inputText state ***
@@ -1167,6 +1226,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
                   onSendBgm={handleSendBgm}
                   onSendEffect={handleSendEffect}
+                  setAudioFile={setAudioFile}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch
@@ -1180,7 +1240,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   <div
                     className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
                   >
-                    {(imgFiles.length > 0 || emojiUrls.length > 0) && (
+                    {(imgFiles.length > 0 || emojiUrls.length > 0 || audioFile) && (
                       <div className="flex flex-row gap-x-3 overflow-x-auto p-2 pb-1">
                         {imgFiles.map((file, index) => (
                           <BetterImg
@@ -1198,6 +1258,24 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                             key={url}
                           />
                         ))}
+                        {audioFile && (
+                          <div className="relative group flex-shrink-0">
+                            <div className="h-12 w-12 rounded bg-base-200 flex items-center justify-center border border-base-300" title={audioFile.name}>
+                              <MusicNote className="size-6 opacity-70" />
+                            </div>
+                            <div
+                              className="absolute -top-1 -right-1 bg-base-100 rounded-full shadow cursor-pointer hover:bg-error hover:text-white transition-colors z-10"
+                              onClick={() => setAudioFile(null)}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
+                              语音
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     {
@@ -1233,7 +1311,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   </AtMentionController>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
           <div className="w-px bg-base-300 flex-shrink-0"></div>
           <OpenAbleDrawer

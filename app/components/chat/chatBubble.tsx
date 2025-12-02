@@ -3,6 +3,7 @@ import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
+import AudioMessage from "@/components/chat/smallComponents/AudioMessage";
 import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
@@ -133,7 +134,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
             ...chatMessageResponse,
             message: response.data,
             webgal: {
-              ...chatMessageResponse.webgal,
+              ...chatMessageResponse.message.webgal,
               voiceRenderSettings: {
                 emotionVector,
                 figurePosition,
@@ -151,57 +152,103 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     });
   }
 
-  const imgMsg = message.extra?.imageMessage;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
   const renderedContent = useMemo(() => {
-    if (message.messageType === 2) {
-      return (
-        <div className="overflow-hidden">
-          <BetterImg
-            src={imgMsg?.url || message.extra?.fileMessage?.url}
-            size={{ width: imgMsg?.width, height: imgMsg?.height }}
-            className="max-h-[40vh] w-max"
-          />
-          {imgMsg?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
-        </div>
-      );
-    }
-    else if (message.messageType === 5) {
+    // 1. 特殊类型消息（独占显示）
+    if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
     }
     else if (message.messageType === 1000) {
       return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
     }
-    return (
-      <>
-        {
-          message.replyMessageId
-          && (
-            <div
-              className="flex flex-row gap-2 py-1 "
-              onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
-            >
-              <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
-              <PreviewMessage
-                message={message.replyMessageId}
-              >
-              </PreviewMessage>
-            </div>
-          )
-        }
 
+    // 2. 组合消息内容 (文本 + 图片 + 语音)
+    const contentElements: React.ReactNode[] = [];
+
+    // (A) 回复引用
+    if (message.replyMessageId) {
+      contentElements.push(
+        <div
+          key="reply"
+          className="flex flex-row gap-2 py-1 "
+          onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
+        >
+          <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
+          <PreviewMessage
+            message={message.replyMessageId}
+          >
+          </PreviewMessage>
+        </div>,
+      );
+    }
+
+    // (B) 文本内容
+    // 只要有内容或者类型为文本(1)就渲染文本编辑框
+    if (message.content || message.messageType === 1) {
+      contentElements.push(
         <EditableField
+          key="text"
           content={message.content}
           handleContentUpdate={handleContentUpdate}
           className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
           canEdit={canEdit}
           fieldId={`msg${message.messageId}`}
         >
-        </EditableField>
-      </>
+        </EditableField>,
+      );
+    }
 
-    );
+    // (C) 图片内容
+    // 仅支持单图 (Type 2)
+    const images: any[] = [];
+    if (message.messageType === 2) {
+      let legacyImg = message.extra?.imageMessage || message.extra?.fileMessage;
+      // 支持扁平化 extra (如果 extra 本身包含 url)
+      if (!legacyImg && message.extra?.url) {
+        legacyImg = message.extra;
+      }
+      if (legacyImg)
+        images.push(legacyImg);
+    }
+
+    if (images.length > 0) {
+      contentElements.push(
+        <div key="images" className="flex flex-col gap-2 mt-2 items-start">
+          {images.map((img, idx) => (
+            <div key={img.url || idx} className="overflow-hidden">
+              <BetterImg
+                src={img.url}
+                size={{ width: img.width, height: img.height }}
+                className="max-h-[40vh] w-max object-left origin-left"
+              />
+              {img.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
+            </div>
+          ))}
+        </div>,
+      );
+    }
+
+    // (D) 语音内容
+    // 支持 Type 7 和 extra.soundMessage
+    let soundMsg = message.extra?.soundMessage;
+    // 支持扁平化 extra (如果 extra 本身包含 url 且是 SOUND 类型)
+    if (!soundMsg && message.messageType === 7 && message.extra?.url) {
+      soundMsg = message.extra;
+    }
+
+    if (soundMsg) {
+      contentElements.push(
+        <div key="audio" className="mt-2">
+          <AudioMessage
+            url={soundMsg.url || ""}
+            duration={soundMsg.second}
+          />
+        </div>,
+      );
+    }
+
+    return <div className="flex flex-col">{contentElements}</div>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message.content, message.extra, message.messageType, message.messageId, message.replyMessageId]);
 
