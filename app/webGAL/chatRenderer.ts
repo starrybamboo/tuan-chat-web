@@ -389,7 +389,15 @@ export class ChatRenderer {
         else if (message.messageType === 8) {
           const effectMessage = message.extra?.effectMessage;
           if (effectMessage && effectMessage.effectName) {
-            const command = `pixiPerform:${effectMessage.effectName} -next`;
+            let command: string;
+            if (effectMessage.effectName === "none") {
+              // 清除特效：使用 pixiInit 初始化，消除所有已应用的效果
+              command = "pixiInit -next";
+            }
+            else {
+              // 应用特效：pixiPerform:rain -next
+              command = `pixiPerform:${effectMessage.effectName} -next`;
+            }
             await this.sceneEditor.addLineToRenderer(command, sceneName);
           }
         }

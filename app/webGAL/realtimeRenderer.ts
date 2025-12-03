@@ -993,11 +993,15 @@ export class RealtimeRenderer {
     if (msg.messageType === 8) {
       const effectMessage = msg.extra?.effectMessage;
       if (effectMessage && effectMessage.effectName) {
-        // pixiPerform:rain -next;
-        // pixiPerform:none -next; (清除特效)
-        let command = `pixiPerform:${effectMessage.effectName}`;
-        // 如果有其他参数，可以在这里添加
-        command += " -next;";
+        let command: string;
+        if (effectMessage.effectName === "none") {
+          // 清除特效：使用 pixiInit 初始化，消除所有已应用的效果
+          command = "pixiInit -next;";
+        }
+        else {
+          // 应用特效：pixiPerform:rain -next;
+          command = `pixiPerform:${effectMessage.effectName} -next;`;
+        }
         await this.appendLine(targetRoomId, command, syncToFile);
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
@@ -1005,8 +1009,8 @@ export class RealtimeRenderer {
       return;
     }
 
-    // 跳过非文本消息
-    if (msg.messageType !== 1)
+    // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
+    if (msg.messageType !== 1 && msg.messageType !== 9)
       return;
 
     // 跳过空消息
