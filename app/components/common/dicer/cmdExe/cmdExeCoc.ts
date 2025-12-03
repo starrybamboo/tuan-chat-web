@@ -197,7 +197,7 @@ executorCoc.addCmd(cmdRc);
 
 const cmdRcb = new CommandExecutor(
   "rcb",
-  [],
+  ["rab"],
   "进行带奖励骰的技能检定",
   [".rcb 侦查", ".rcb 力量+10", ".rcb 力量90 2", ".rcb 手枪 3"],
   "rcb [技能名/技能值] [奖励骰数量]?", // 调整格式说明
@@ -314,7 +314,7 @@ executorCoc.addCmd(cmdRcb);
 
 const cmdRcp = new CommandExecutor(
   "rcp",
-  [],
+  ["rap"],
   "进行带惩罚骰的技能检定",
   [".rcp 侦查", ".rcp 力量-10", ".rcp 90 2", ".rcp 手枪 3"],
   "rcp [技能名/技能值] [惩罚骰数量]?",
@@ -474,7 +474,7 @@ executorCoc.addCmd(cmdRh);
 
 const cmdRch = new CommandExecutor(
   "rch",
-  ["暗骰检定"],
+  ["rah"],
   "进行技能/属性暗骰检定（无奖惩骰，结果仅自己可见）",
   [".rch 侦查", ".rch 力量+10", ".rch 90", ".rch 力量 90"],
   "rch [技能名] [技能值]?",
