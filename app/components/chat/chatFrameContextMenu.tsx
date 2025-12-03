@@ -21,6 +21,7 @@ interface ContextMenuProps {
   onToggleBackground: (messageId: number) => void;
   onAddEmoji: (imgMessage: ImageMessage) => void;
   onAddClue?: (clueInfo: { img: string; name: string; description: string }) => void;
+  onToggleBgm?: (messageId: number) => void;
 }
 
 export default function ChatFrameContextMenu({
@@ -38,6 +39,7 @@ export default function ChatFrameContextMenu({
   onEditMessage,
   onToggleBackground,
   onAddEmoji,
+  onToggleBgm,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
@@ -283,6 +285,20 @@ export default function ChatFrameContextMenu({
             );
           }
         })()}
+        {/* 音频消息 (Type 7) */}
+        {message?.message.messageType === 7 && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                onToggleBgm?.(contextMenu.messageId);
+                onClose();
+              }}
+            >
+              {message.message.extra?.soundMessage?.purpose === "bgm" ? "取消设为 BGM" : "设为 BGM"}
+            </a>
+          </li>
+        )}
       </ul>
     </div>
   );

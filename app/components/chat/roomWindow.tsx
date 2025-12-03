@@ -62,7 +62,7 @@ import {
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
 import ClueListForPL from "./sideDrawer/clueListForPL";
 import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
-import WebGALPreview from "./sideDrawer/webGALPreview";
+import WebGALPreview from "./sideDrawer/WebGalPreview";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
@@ -116,6 +116,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
   // 聊天框中包含的语音
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  // 发送选项
+  const [sendAsBackground, setSendAsBackground] = useState(false);
+  const [sendAsBgm, setSendAsBgm] = useState(false);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
@@ -961,6 +964,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             height: img.height,
             size: img.size,
             fileName: img.fileName,
+            background: sendAsBackground,
           },
         };
         send(imgMsg);
@@ -973,7 +977,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           ...getCommonFields() as any,
           content: textContent,
           messageType: MessageType.SOUND,
-          extra: soundMessageData,
+          extra: {
+            ...soundMessageData,
+            purpose: sendAsBgm ? "bgm" : undefined,
+          },
         };
         send(audioMsg);
         textContent = "";
@@ -991,6 +998,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
       setInputText(""); // 调用重构的 setInputText 来清空
       setReplyMessage(undefined);
+      setSendAsBackground(false);
+      setSendAsBgm(false);
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -1109,32 +1118,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         ? "请先拉入你的角色，之后才能发送消息。"
         : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"));
 
-  const handleSendBgm = useCallback((url: string, volume?: number) => {
-    if (!curRoleId) {
-      toast.error("请先选择角色");
-      return;
-    }
-    // 使用已有的 soundMessage 字段并标注 purpose: 'bgm' 以兼容后端与现有类型
-    send({
-      roomId,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
-      content: `[播放BGM]`,
-      // messageType 使用 SOUND (7)
-      messageType: MessageType.SOUND,
-      extra: {
-        soundMessage: {
-          url,
-          fileName: url.split("/").pop() || "bgm",
-          size: 0,
-          second: 0,
-          purpose: "bgm",
-          volume,
-        },
-      },
-    });
-  }, [curRoleId, curAvatarId, roomId, send]);
-
   const handleSendEffect = useCallback((effectName: string) => {
     if (!curRoleId) {
       toast.error("请先选择角色");
@@ -1147,9 +1130,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       content: `[特效: ${effectName}]`,
       messageType: MessageType.EFFECT,
       extra: {
-        effectMessage: {
-          effectName,
-        },
+        effectName,
       },
     });
   }, [curRoleId, curAvatarId, roomId, send]);
@@ -1224,7 +1205,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
                   defaultFigurePosition={currentDefaultFigurePosition}
                   onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
-                  onSendBgm={handleSendBgm}
                   onSendEffect={handleSendEffect}
                   setAudioFile={setAudioFile}
                 />
@@ -1241,41 +1221,65 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                     className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
                   >
                     {(imgFiles.length > 0 || emojiUrls.length > 0 || audioFile) && (
-                      <div className="flex flex-row gap-x-3 overflow-x-auto p-2 pb-1">
-                        {imgFiles.map((file, index) => (
-                          <BetterImg
-                            src={file}
-                            className="h-12 w-max rounded"
-                            onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                            key={file.name}
-                          />
-                        ))}
-                        {emojiUrls.map((url, index) => (
-                          <BetterImg
-                            src={url}
-                            className="h-12 w-max rounded"
-                            onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
-                            key={url}
-                          />
-                        ))}
-                        {audioFile && (
-                          <div className="relative group flex-shrink-0">
-                            <div className="h-12 w-12 rounded bg-base-200 flex items-center justify-center border border-base-300" title={audioFile.name}>
-                              <MusicNote className="size-6 opacity-70" />
+                      <div className="flex flex-col gap-1 p-2 pb-1 border-b border-base-200/50">
+                        <div className="flex flex-row gap-x-3 overflow-x-auto">
+                          {imgFiles.map((file, index) => (
+                            <BetterImg
+                              src={file}
+                              className="h-12 w-max rounded"
+                              onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                              key={file.name}
+                            />
+                          ))}
+                          {imgFiles.length > 0 && (
+                            <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-xs checkbox-primary"
+                                checked={sendAsBackground}
+                                onChange={e => setSendAsBackground(e.target.checked)}
+                              />
+                              <span>设为背景</span>
+                            </label>
+                          )}
+                          {emojiUrls.map((url, index) => (
+                            <BetterImg
+                              src={url}
+                              className="h-12 w-max rounded"
+                              onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                              key={url}
+                            />
+                          ))}
+                          {audioFile && (
+                            <div className="relative group flex-shrink-0">
+                              <div className="h-12 w-12 rounded bg-base-200 flex items-center justify-center border border-base-300" title={audioFile.name}>
+                                <MusicNote className="size-6 opacity-70" />
+                              </div>
+                              <div
+                                className="absolute -top-1 -right-1 bg-base-100 rounded-full shadow cursor-pointer hover:bg-error hover:text-white transition-colors z-10"
+                                onClick={() => setAudioFile(null)}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
+                                语音
+                              </div>
                             </div>
-                            <div
-                              className="absolute -top-1 -right-1 bg-base-100 rounded-full shadow cursor-pointer hover:bg-error hover:text-white transition-colors z-10"
-                              onClick={() => setAudioFile(null)}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
-                              语音
-                            </div>
-                          </div>
-                        )}
+                          )}
+                          {audioFile && (
+                            <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-xs checkbox-primary"
+                                checked={sendAsBgm}
+                                onChange={e => setSendAsBgm(e.target.checked)}
+                              />
+                              <span>设为 BGM</span>
+                            </label>
+                          )}
+                        </div>
                       </div>
                     )}
                     {

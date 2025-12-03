@@ -540,6 +540,26 @@ function ChatFrame(props: {
     roomContext.setReplyMessage && roomContext.setReplyMessage(message);
   }
 
+  const toggleBgm = useCallback((messageId: number) => {
+    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
+    if (!message)
+      return;
+    const soundMessage1 = message.extra?.soundMessage;
+    const isBgm = soundMessage1?.purpose === "bgm";
+
+    updateMessage({
+      ...message,
+      extra: {
+        ...message.extra,
+        soundMessage: {
+          ...soundMessage1!,
+          purpose: soundMessage1?.purpose === "bgm" ? "" : "bgm",
+        },
+      },
+    });
+    toast.success(isBgm ? "已取消 BGM" : "已设置为 BGM");
+  }, [historyMessages, updateMessage]);
+
   /**
    * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
    * @param chatMessageResponse
@@ -768,6 +788,7 @@ function ChatFrame(props: {
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
         onAddEmoji={handleAddEmoji}
+        onToggleBgm={toggleBgm}
       />
     </div>
   );

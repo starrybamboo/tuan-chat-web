@@ -203,9 +203,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     // 仅支持单图 (Type 2)
     const images: any[] = [];
     if (message.messageType === 2) {
-      let legacyImg = message.extra?.imageMessage || message.extra?.fileMessage;
+      let legacyImg: any = message.extra?.imageMessage || message.extra?.fileMessage;
       // 支持扁平化 extra (如果 extra 本身包含 url)
-      if (!legacyImg && message.extra?.url) {
+      if (!legacyImg && (message.extra as any)?.url) {
         legacyImg = message.extra;
       }
       if (legacyImg)
@@ -231,9 +231,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
     // (D) 语音内容
     // 支持 Type 7 和 extra.soundMessage
-    let soundMsg = message.extra?.soundMessage;
+    let soundMsg: any = message.extra?.soundMessage;
     // 支持扁平化 extra (如果 extra 本身包含 url 且是 SOUND 类型)
-    if (!soundMsg && message.messageType === 7 && message.extra?.url) {
+    if (!soundMsg && message.messageType === 7 && (message.extra as any)?.url) {
       soundMsg = message.extra;
     }
 
@@ -491,8 +491,8 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
   }
 
   // 检查 voiceRenderSettings
-  const prevVoiceSettings = (prevMessage.webgal as any)?.voiceRenderSettings;
-  const nextVoiceSettings = (nextMessage.webgal as any)?.voiceRenderSettings;
+  const prevVoiceSettings = (prevMsg.webgal as any)?.voiceRenderSettings;
+  const nextVoiceSettings = (nextMsg.webgal as any)?.voiceRenderSettings;
   if (JSON.stringify(prevVoiceSettings) !== JSON.stringify(nextVoiceSettings)) {
     return false;
   }

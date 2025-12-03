@@ -16,7 +16,7 @@ import {
   SwordSwing,
   WebgalIcon,
 } from "@/icons";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 interface ChatToolbarProps {
   // 侧边栏状态
@@ -52,7 +52,6 @@ interface ChatToolbarProps {
   onSetDefaultFigurePosition?: (position: "left" | "center" | "right") => void;
 
   // WebGAL 控制
-  onSendBgm?: (url: string, volume?: number) => void;
   onSendEffect?: (effectName: string) => void;
   // 发送语音
   setAudioFile?: (file: File | null) => void;
@@ -77,12 +76,9 @@ export function ChatToolbar({
   onToggleAutoReplyMode,
   defaultFigurePosition,
   onSetDefaultFigurePosition,
-  onSendBgm,
   onSendEffect,
   setAudioFile,
 }: ChatToolbarProps) {
-  const [bgmUrl, setBgmUrl] = useState("");
-  const bgmModalRef = useRef<HTMLDialogElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -356,7 +352,7 @@ export function ChatToolbar({
         )}
 
         {/* WebGAL 导演控制台 */}
-        {webgalLinkMode && (onSendBgm || onSendEffect) && (
+        {webgalLinkMode && onSendEffect && (
           <div className="dropdown dropdown-top dropdown-end">
             <div
               tabIndex={0}
@@ -367,13 +363,6 @@ export function ChatToolbar({
               <CommandSolid className="size-7" />
             </div>
             <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-              {onSendBgm && (
-                <li>
-                  <a onClick={() => bgmModalRef.current?.showModal()}>
-                    🎵 设置 BGM
-                  </a>
-                </li>
-              )}
               {onSendEffect && (
                 <>
                   <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>
@@ -437,41 +426,6 @@ export function ChatToolbar({
           </SendIcon>
         </div>
       </div>
-
-      {/* BGM 输入弹窗 */}
-      <dialog ref={bgmModalRef} className="modal">
-        <div className="modal-box">
-          <h3 className="font-bold text-lg">设置 BGM</h3>
-          <p className="py-4">请输入 BGM 链接 (mp3/wav/ogg):</p>
-          <input
-            type="text"
-            placeholder="https://example.com/music.mp3"
-            className="input input-bordered w-full"
-            value={bgmUrl}
-            onChange={e => setBgmUrl(e.target.value)}
-          />
-          <div className="modal-action">
-            <form method="dialog">
-              <button className="btn" type="submit">取消</button>
-              <button
-                type="submit"
-                className="btn btn-primary ml-2"
-                onClick={() => {
-                  if (bgmUrl && onSendBgm) {
-                    onSendBgm(bgmUrl);
-                    setBgmUrl("");
-                  }
-                }}
-              >
-                确定
-              </button>
-            </form>
-          </div>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button type="submit">close</button>
-        </form>
-      </dialog>
     </div>
   );
 }
