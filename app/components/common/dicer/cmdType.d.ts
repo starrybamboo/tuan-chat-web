@@ -69,6 +69,13 @@ interface CPI { // eslint-disable-line ts/consistent-type-definitions
    * 说明：调用此方法时原始指令不会发送到群聊中，并且唤起弹窗后会自动关闭
    */
   sendToast: (msg: string) => void;
+
+  /**
+   * 设置文案键，从骰娘 extra.copywriting 中随机抽取对应文案
+   * @param {string | null} key - 文案分组键；传 null 或空字符串表示不附加文案
+   * @return {void}
+   */
+  setCopywritingKey: (key: string | null) => void;
 }
 
 interface RoleAbility { // eslint-disable-line ts/consistent-type-definitions

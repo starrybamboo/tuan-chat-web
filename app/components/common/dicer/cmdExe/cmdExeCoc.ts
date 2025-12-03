@@ -177,7 +177,7 @@ const cmdRc = new CommandExecutor(
     }
 
     const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], value);
+    let result: string = buildCheckResult(name, roll[0], value, cpi);
     if (bp > 0) {
       result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
     }
@@ -197,7 +197,7 @@ executorCoc.addCmd(cmdRc);
 
 const cmdRcb = new CommandExecutor(
   "rcb",
-  [],
+  ["rab"],
   "进行带奖励骰的技能检定",
   [".rcb 侦查", ".rcb 力量+10", ".rcb 力量90 2", ".rcb 手枪 3"],
   "rcb [技能名/技能值] [奖励骰数量]?", // 调整格式说明
@@ -298,7 +298,7 @@ const cmdRcb = new CommandExecutor(
     // 奖励骰逻辑
     const bp = bonusCount;
     const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], skillValue);
+    let result: string = buildCheckResult(name, roll[0], skillValue, cpi);
     result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
 
     if (isForceToasted) {
@@ -314,7 +314,7 @@ executorCoc.addCmd(cmdRcb);
 
 const cmdRcp = new CommandExecutor(
   "rcp",
-  [],
+  ["rap"],
   "进行带惩罚骰的技能检定",
   [".rcp 侦查", ".rcp 力量-10", ".rcp 90 2", ".rcp 手枪 3"],
   "rcp [技能名/技能值] [惩罚骰数量]?",
@@ -403,7 +403,7 @@ const cmdRcp = new CommandExecutor(
 
     const bp = -penaltyCount;
     const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], skillValue);
+    let result: string = buildCheckResult(name, roll[0], skillValue, cpi);
     result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
 
     if (isForceToasted) {
@@ -474,7 +474,7 @@ executorCoc.addCmd(cmdRh);
 
 const cmdRch = new CommandExecutor(
   "rch",
-  ["暗骰检定"],
+  ["rah"],
   "进行技能/属性暗骰检定（无奖惩骰，结果仅自己可见）",
   [".rch 侦查", ".rch 力量+10", ".rch 90", ".rch 力量 90"],
   "rch [技能名] [技能值]?",
@@ -567,7 +567,7 @@ const cmdRch = new CommandExecutor(
 
     const rollResult = Math.floor(Math.random() * 100) + 1;
 
-    const result = buildCheckResult(name, rollResult, skillValue);
+    const result = buildCheckResult(name, rollResult, skillValue, cpi);
 
     cpi.sendToast(`暗骰检定结果：${result}`);
     cpi.replyMessage(`${mentioned[0].roleName}进行了一次暗骰检定`);
@@ -706,16 +706,19 @@ const cmdSc = new CommandExecutor(
     // 大失败判定
     else if (roll >= 96) {
       actualLoss = failureLoss.possibleRange.max; // 大失败时失去最大san值
+      cpi.setCopywritingKey("理智检定_大失败");
       result = "大失败";
     }
     // 普通成功
     else if (roll <= currentSan) {
       actualLoss = successLoss.result.value;
+      cpi.setCopywritingKey("理智检定_成功");
       result = "成功";
     }
     // 普通失败
     else {
       actualLoss = failureLoss.result.value;
+      cpi.setCopywritingKey("理智检定_失败");
       result = "失败";
     }
 
@@ -741,9 +744,11 @@ const cmdSc = new CommandExecutor(
       + `当前san值：${newSan}`;
     if (newSan === 0) {
       res += `\n注意：角色理智值归零，陷入永久性疯狂。`;
+      cpi.setCopywritingKey("陷入疯狂_永久性疯狂");
     }
     else if (actualLoss >= 5) {
       res += `\n注意：单次失去理智值达到5点，请进行智力检定，若检定成功角色将陷入疯狂。疯狂后请使用\`.ti\`或\`.li\`指令抽取临时症状或总结症状。`;
+      cpi.setCopywritingKey("陷入疯狂_临时性疯狂");
     }
     cpi.replyMessage(res);
     return true;
@@ -985,7 +990,7 @@ function connect2D10(tens: number, ones: number) {
   return result;
 }
 
-function buildCheckResult(attr: string, roll: number, value: number): string {
+function buildCheckResult(attr: string, roll: number, value: number, cpi?: CPI): string {
   let result = "";
   const fifth = Math.floor(value / 5);
   const half = Math.floor(value / 2);
@@ -1006,7 +1011,12 @@ function buildCheckResult(attr: string, roll: number, value: number): string {
     result = "困难成功";
   }
   else {
-    result = "普通成功";
+    result = "成功";
+  }
+
+  // 调用 CPI 设置文案键
+  if (cpi) {
+    cpi.setCopywritingKey(result);
   }
 
   return `${attr}检定：D100=${roll}/${value} ${result}`;
