@@ -1,8 +1,8 @@
-import { useMutation, useQuery ,useInfiniteQuery } from "@tanstack/react-query";
+import { useMutation, useQuery ,useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { FeedWithStats } from "@/types/feedTypes";
 import { tuanchat } from "api/instance";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { useEffect, useState,useMemo } from "react";
+import { useEffect, useState,useMemo, useCallback } from "react";
 import type { FeedPageRequest, FeedWithStatsResponse, PostListResponse } from "../index";
 
 /**
@@ -115,3 +115,38 @@ export function useFilterFeeds(allFeeds:FeedWithStats<PostListResponse>[],hidden
     },[allFeeds,hiddenFeeds])
     return displayFeeds;
 }
+
+/**
+ * feed详情预加载
+ */
+export function useFeedPrefetch() {
+  const queryClient = useQueryClient();
+
+  const prefetch = useCallback((feed: FeedWithStats<any>) => {
+    const postId = feed.response?.communityPostId; 
+    const moduleId = feed.response?.moduleId;
+
+    if (!postId && !moduleId) return;
+
+    if (postId) {
+      // 预取帖子
+      queryClient.prefetchQuery({
+        queryKey: ['getPostDetail', postId],
+        queryFn: () => tuanchat.communityPostController.getPostDetail(postId),
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+
+    if (moduleId) {
+      // 预取模组
+      queryClient.prefetchQuery({
+        queryKey:['moduleDetail', moduleId],
+        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+  }, [queryClient]);
+
+  return { prefetch };
+}
+
