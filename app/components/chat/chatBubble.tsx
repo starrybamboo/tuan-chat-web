@@ -13,9 +13,10 @@ import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
-import React, { use, useMemo } from "react";
+import React, { use, useMemo, useState } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 import ClueMessage from "./smallComponents/clueMessage";
 
@@ -40,6 +41,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   useChatBubbleStyle = useChatBubbleStyle || roomContext.useChatBubbleStyle;
+
+  // 角色名编辑状态
+  const [isEditingRoleName, setIsEditingRoleName] = useState(false);
+  const [editingRoleName, setEditingRoleName] = useState("");
+
+  // 判断是否为旁白（无角色）
+  const isNarrator = message.roleId <= 0;
+  // 判断是否为黑屏文字
+  const isIntroText = message.messageType === MESSAGE_TYPE.INTRO_TEXT;
+  // 获取自定义角色名（如果有）
+  const customRoleName = (message.webgal as any)?.customRoleName as string | undefined;
+  // 获取黑屏文字的 hold 设置
+  const introHold = (message.webgal as any)?.introHold as boolean | undefined;
 
   // 更新消息并同步到本地缓存
   function updateMessageAndSync(newMessage: Message) {
@@ -110,7 +124,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   }
 
   // 处理语音渲染设置更新
-  function handleVoiceRenderSettingsChange(emotionVector: number[], figurePosition: FigurePosition, notend: boolean, concat: boolean) {
+  function handleVoiceRenderSettingsChange(
+    emotionVector: number[],
+    figurePosition: FigurePosition,
+    notend: boolean,
+    concat: boolean,
+  ) {
     // 判断情感向量是否改变（用于决定是否重新生成 TTS）
     const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
     const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
@@ -135,21 +154,142 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
           const updatedChatMessageResponse = {
             ...chatMessageResponse,
             message: response.data,
-            webgal: {
-              ...chatMessageResponse.message.webgal,
-              voiceRenderSettings: {
-                emotionVector,
-                figurePosition,
-                notend,
-                concat,
-              },
-            },
           };
           roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
 
           // 如果 WebGAL 联动模式开启，则重渲染并跳转
           if (roomContext.updateAndRerenderMessageInWebGAL) {
             roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, emotionVectorChanged);
+          }
+        }
+      },
+    });
+  }
+
+  // 处理角色名编辑
+  function handleRoleNameClick() {
+    if (canEdit && roomContext.webgalLinkMode) {
+      // WebGAL 联动模式下，点击角色名进入编辑模式
+      setEditingRoleName(customRoleName || role?.roleName || "");
+      setIsEditingRoleName(true);
+    }
+    else if (canEdit) {
+      // 非 WebGAL 联动模式，打开角色选择器
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择新的角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  handleRoleChange(role.roleId);
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
+    }
+    else {
+      // 不可编辑时，@角色
+      const roleName = role?.roleName?.trim() || "Undefined";
+      const inputElement = document.querySelector(".chatInputTextarea") as HTMLTextAreaElement;
+      if (inputElement) {
+        const currentText = inputElement.value;
+        const atText = `@${roleName} `;
+        if (!currentText.includes(atText)) {
+          inputElement.value = currentText + atText;
+          inputElement.focus();
+          const event = new Event("input", { bubbles: true });
+          inputElement.dispatchEvent(event);
+        }
+      }
+    }
+  }
+
+  // 保存自定义角色名
+  function handleRoleNameSave() {
+    const trimmedName = editingRoleName.trim();
+    const newMessage = {
+      ...message,
+      webgal: {
+        ...message.webgal,
+        customRoleName: trimmedName || undefined, // 空字符串时清除自定义名称
+      },
+    } as Message;
+
+    updateMessageMutation.mutate(newMessage, {
+      onSuccess: (response) => {
+        if (response?.data && roomContext.chatHistory) {
+          const updatedChatMessageResponse = {
+            ...chatMessageResponse,
+            message: response.data,
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
+          }
+        }
+      },
+    });
+    setIsEditingRoleName(false);
+  }
+
+  // 处理消息类型切换（普通文本 ↔ 黑屏文字）
+  function handleToggleIntroText() {
+    if (!canEdit)
+      return;
+
+    const newMessageType = isIntroText ? MESSAGE_TYPE.TEXT : MESSAGE_TYPE.INTRO_TEXT;
+    const newMessage = {
+      ...message,
+      messageType: newMessageType,
+    } as Message;
+
+    updateMessageMutation.mutate(newMessage, {
+      onSuccess: (response) => {
+        if (response?.data && roomContext.chatHistory) {
+          const updatedChatMessageResponse = {
+            ...chatMessageResponse,
+            message: response.data,
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
+          }
+        }
+      },
+    });
+  }
+
+  // 处理黑屏文字 -hold 设置切换
+  function handleToggleIntroHold() {
+    if (!canEdit || !isIntroText)
+      return;
+
+    const newMessage = {
+      ...message,
+      webgal: {
+        ...message.webgal,
+        introHold: !introHold,
+      },
+    } as Message;
+
+    updateMessageMutation.mutate(newMessage, {
+      onSuccess: (response) => {
+        if (response?.data && roomContext.chatHistory) {
+          const updatedChatMessageResponse = {
+            ...chatMessageResponse,
+            message: response.data,
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
           }
         }
       },
@@ -188,14 +328,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     }
 
     // (B) 文本内容
-    // 只要有内容或者类型为文本(1)就渲染文本编辑框
-    if (message.content || message.messageType === 1) {
+    // 只要有内容或者类型为文本(1)或黑屏文字(9)就渲染文本编辑框
+    if (message.content || message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT) {
       contentElements.push(
         <EditableField
           key="text"
           content={message.content}
           handleContentUpdate={handleContentUpdate}
-          className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
+          className="whitespace-pre-wrap editable-field overflow-auto"
           canEdit={canEdit}
           fieldId={`msg${message.messageId}`}
         >
@@ -256,45 +396,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message.content, message.extra, message.messageType, message.messageId, message.replyMessageId]);
 
-  // @角色
-  function handleRoleNameClick() {
-    if (canEdit) {
-      // 打开角色选择器的 toast 窗口
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col items-center gap-4">
-              <div>选择新的角色</div>
-              <RoleChooser
-                handleRoleChange={(role) => {
-                  handleRoleChange(role.roleId);
-                  onClose();
-                }}
-                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
-    }
-    else {
-      const roleName = role?.roleName?.trim() || "Undefined";
-      const inputElement = document.querySelector(".chatInputTextarea") as HTMLTextAreaElement;
-      if (inputElement) {
-        const currentText = inputElement.value;
-        const atText = `@${roleName} `;
-        // 如果已经@过这个角色，就不再添加
-        if (!currentText.includes(atText)) {
-          inputElement.value = currentText + atText;
-          inputElement.focus();
-          // 触发React的状态更新
-          const event = new Event("input", { bubbles: true });
-          inputElement.dispatchEvent(event);
-        }
-      }
-    }
-  }
-
   const formattedTime = useMemo(() => {
     return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
   }, [message.updateTime]);
@@ -308,6 +409,105 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
   // 获取当前的语音渲染设置
   const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
+
+  // 获取显示的角色名
+  const displayRoleName = customRoleName || role?.roleName?.trim() || (isNarrator ? "" : "Undefined");
+
+  // 黑屏文字的特殊渲染
+  if (isIntroText) {
+    return (
+      <div className="flex w-full py-2 group">
+        <div className="flex-1 min-w-0 p-2">
+          {/* 黑屏文字样式：黑色背景，白色文字，居中显示 */}
+          <div className="bg-black text-white rounded-lg p-4 text-center relative">
+            {/* 类型标识和操作按钮 */}
+            <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {canEdit && (
+                <>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-xs checkbox-primary"
+                      checked={introHold ?? false}
+                      onChange={handleToggleIntroHold}
+                    />
+                    <span className="text-white/70">保持</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-ghost text-white/70 hover:text-white"
+                    onClick={handleToggleIntroText}
+                    title="切换为普通对话"
+                  >
+                    切换对话
+                  </button>
+                </>
+              )}
+              <span className="badge badge-xs badge-primary">黑屏文字</span>
+            </div>
+            {/* 内容 */}
+            <EditableField
+              content={message.content}
+              handleContentUpdate={handleContentUpdate}
+              className="whitespace-pre-wrap text-lg"
+              canEdit={canEdit}
+              fieldId={`msg${message.messageId}`}
+            />
+            {/* 时间 */}
+            <div className="text-xs text-white/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
+              {formattedTime}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 旁白的特殊渲染（无角色）
+  if (isNarrator) {
+    return (
+      <div className="flex w-full py-2 group">
+        <div className="flex-1 min-w-0 p-2">
+          {/* 旁白样式：无头像，居中或左对齐，斜体 */}
+          <div className="bg-base-200/50 rounded-lg p-3 relative">
+            {/* 类型标识 */}
+            <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="badge badge-xs badge-secondary">旁白</span>
+            </div>
+            {/* 内容 - 斜体 */}
+            <div className="italic text-base-content/80">
+              <EditableField
+                content={message.content}
+                handleContentUpdate={handleContentUpdate}
+                className="whitespace-pre-wrap"
+                canEdit={canEdit}
+                fieldId={`msg${message.messageId}`}
+              />
+            </div>
+            {/* WebGAL 联动模式下显示切换黑屏按钮 - 旁白也是文本消息 */}
+            {message.messageType === MESSAGE_TYPE.TEXT && canEdit && roomContext.webgalLinkMode && (
+              <div className="flex items-center gap-2 mt-2 text-xs">
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary"
+                  onClick={handleToggleIntroText}
+                  title="切换为黑屏文字"
+                >
+                  → 黑屏
+                </button>
+              </div>
+            )}
+            {/* 时间 */}
+            <div className="text-xs text-base-content/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
+              {formattedTime}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -329,12 +529,36 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-4">
-                  <span
-                    onClick={handleRoleNameClick}
-                    className={`text-sm text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
-                  >
-                    {role?.roleName?.trim() || "Undefined"}
-                  </span>
+                  {isEditingRoleName
+                    ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            className="input input-xs input-bordered w-32"
+                            value={editingRoleName}
+                            onChange={e => setEditingRoleName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                handleRoleNameSave();
+                              if (e.key === "Escape")
+                                setIsEditingRoleName(false);
+                            }}
+                            placeholder="输入角色名"
+                            autoFocus
+                          />
+                          <button type="button" className="btn btn-xs btn-primary" onClick={handleRoleNameSave}>✓</button>
+                          <button type="button" className="btn btn-xs btn-ghost" onClick={() => setIsEditingRoleName(false)}>✕</button>
+                        </div>
+                      )
+                    : (
+                        <span
+                          onClick={handleRoleNameClick}
+                          className={`text-sm text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
+                        >
+                          {displayRoleName}
+                          {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
+                        </span>
+                      )}
                   <span className="text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
@@ -344,8 +568,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                   className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
                 >
                   {renderedContent}
-                  {/* 内嵌语音渲染设置面板 - 仅文本消息显示 */}
-                  {message.messageType === 1 && (
+                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
+                  {message.messageType === MESSAGE_TYPE.TEXT && (
                     <VoiceRenderPanel
                       emotionVector={voiceRenderSettings?.emotionVector}
                       figurePosition={voiceRenderSettings?.figurePosition}
@@ -354,6 +578,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       concat={voiceRenderSettings?.concat}
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
+                      isIntroText={isIntroText}
+                      onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
                     />
                   )}
                 </div>
@@ -382,14 +608,38 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               <div className="flex-1 min-w-0 p-1 pr-2 sm:pr-5">
                 {/* 角色名 */}
                 <div className="flex justify-between items-center w-full gap-2">
-                  <div
-                    className={`cursor-pointer font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
-                    onClick={handleRoleNameClick}
-                  >
-                    <div className="truncate">
-                      { `【${role?.roleName?.trim() || "Undefined"}】`}
-                    </div>
-                  </div>
+                  {isEditingRoleName
+                    ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            className="input input-sm input-bordered w-40"
+                            value={editingRoleName}
+                            onChange={e => setEditingRoleName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                handleRoleNameSave();
+                              if (e.key === "Escape")
+                                setIsEditingRoleName(false);
+                            }}
+                            placeholder="输入角色名"
+                            autoFocus
+                          />
+                          <button type="button" className="btn btn-sm btn-primary" onClick={handleRoleNameSave}>✓</button>
+                          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setIsEditingRoleName(false)}>✕</button>
+                        </div>
+                      )
+                    : (
+                        <div
+                          className={`cursor-pointer font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
+                          onClick={handleRoleNameClick}
+                        >
+                          <div className="truncate">
+                            {`【${displayRoleName}】`}
+                            {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
+                          </div>
+                        </div>
+                      )}
                   <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
@@ -397,8 +647,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
                 <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer break-words">
                   {renderedContent}
-                  {/* 内嵌语音渲染设置面板 - 仅文本消息显示 */}
-                  {message.messageType === 1 && (
+                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
+                  {message.messageType === MESSAGE_TYPE.TEXT && (
                     <VoiceRenderPanel
                       emotionVector={voiceRenderSettings?.emotionVector}
                       figurePosition={voiceRenderSettings?.figurePosition}
@@ -407,6 +657,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       concat={voiceRenderSettings?.concat}
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
+                      isIntroText={isIntroText}
+                      onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
                     />
                   )}
                 </div>
@@ -436,8 +688,8 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     && prevMsg.roleId === nextMsg.roleId
     && prevMsg.updateTime === nextMsg.updateTime
     && prevMsg.messageType === nextMsg.messageType
-    && prevMsg.status === nextMsg.status // 新增: 检查消息状态(删除/正常)
-    && prevMsg.replyMessageId === nextMsg.replyMessageId // 新增: 检查回复消息ID
+    && prevMsg.status === nextMsg.status
+    && prevMsg.replyMessageId === nextMsg.replyMessageId
     && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
   );
 
@@ -447,70 +699,62 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
   }
 
   // 深度比较 extra 对象
-  // 如果两者都没有 extra,或者都是同一个引用,则相等
   if (prevMsg.extra === nextMsg.extra) {
-    return true;
+    // 继续检查 webgal
   }
-
-  // 如果一个有 extra 另一个没有,则不相等
-  if (!prevMsg.extra || !nextMsg.extra) {
+  else if (!prevMsg.extra || !nextMsg.extra) {
     return false;
   }
+  else {
+    // 比较 extra 的关键属性
+    const prevExtra = prevMsg.extra;
+    const nextExtra = nextMsg.extra;
 
-  // 比较 extra 的关键属性
-  const prevExtra = prevMsg.extra;
-  const nextExtra = nextMsg.extra;
+    if (prevExtra.imageMessage !== nextExtra.imageMessage) {
+      if (!prevExtra.imageMessage || !nextExtra.imageMessage) {
+        return false;
+      }
+      if (prevExtra.imageMessage.url !== nextExtra.imageMessage.url
+        || prevExtra.imageMessage.background !== nextExtra.imageMessage.background
+        || prevExtra.imageMessage.width !== nextExtra.imageMessage.width
+        || prevExtra.imageMessage.height !== nextExtra.imageMessage.height) {
+        return false;
+      }
+    }
 
-  // 检查 imageMessage
-  if (prevExtra.imageMessage !== nextExtra.imageMessage) {
-    if (!prevExtra.imageMessage || !nextExtra.imageMessage) {
+    if (prevExtra.fileMessage !== nextExtra.fileMessage) {
+      if (!prevExtra.fileMessage && !nextExtra.fileMessage) {
+        // 都没有,继续检查其他属性
+      }
+      else if (!prevExtra.fileMessage || !nextExtra.fileMessage) {
+        return false;
+      }
+      else if (prevExtra.fileMessage.url !== nextExtra.fileMessage.url) {
+        return false;
+      }
+    }
+
+    if (JSON.stringify(prevExtra.forwardMessage) !== JSON.stringify(nextExtra.forwardMessage)) {
       return false;
     }
-    if (prevExtra.imageMessage.url !== nextExtra.imageMessage.url
-      || prevExtra.imageMessage.background !== nextExtra.imageMessage.background
-      || prevExtra.imageMessage.width !== nextExtra.imageMessage.width
-      || prevExtra.imageMessage.height !== nextExtra.imageMessage.height) {
+
+    if (JSON.stringify(prevExtra.clueMessage) !== JSON.stringify(nextExtra.clueMessage)) {
+      return false;
+    }
+
+    if (JSON.stringify(prevExtra.soundMessage) !== JSON.stringify(nextExtra.soundMessage)) {
+      return false;
+    }
+
+    if (JSON.stringify(prevExtra.diceResult) !== JSON.stringify(nextExtra.diceResult)) {
       return false;
     }
   }
 
-  // 检查 fileMessage
-  if (prevExtra.fileMessage !== nextExtra.fileMessage) {
-    if (!prevExtra.fileMessage && !nextExtra.fileMessage) {
-      // 都没有,继续检查其他属性
-    }
-    else if (!prevExtra.fileMessage || !nextExtra.fileMessage) {
-      return false;
-    }
-    else if (prevExtra.fileMessage.url !== nextExtra.fileMessage.url) {
-      return false;
-    }
-  }
-
-  // 检查 forwardMessage - 使用 JSON 序列化比较
-  if (JSON.stringify(prevExtra.forwardMessage) !== JSON.stringify(nextExtra.forwardMessage)) {
-    return false;
-  }
-
-  // 检查 clueMessage
-  if (JSON.stringify(prevExtra.clueMessage) !== JSON.stringify(nextExtra.clueMessage)) {
-    return false;
-  }
-
-  // 检查 soundMessage
-  if (JSON.stringify(prevExtra.soundMessage) !== JSON.stringify(nextExtra.soundMessage)) {
-    return false;
-  }
-
-  // 检查 diceResult
-  if (JSON.stringify(prevExtra.diceResult) !== JSON.stringify(nextExtra.diceResult)) {
-    return false;
-  }
-
-  // 检查 voiceRenderSettings
-  const prevVoiceSettings = (prevMsg.webgal as any)?.voiceRenderSettings;
-  const nextVoiceSettings = (nextMsg.webgal as any)?.voiceRenderSettings;
-  if (JSON.stringify(prevVoiceSettings) !== JSON.stringify(nextVoiceSettings)) {
+  // 检查 webgal 设置
+  const prevWebgal = prevMsg.webgal as any;
+  const nextWebgal = nextMsg.webgal as any;
+  if (JSON.stringify(prevWebgal) !== JSON.stringify(nextWebgal)) {
     return false;
   }
 

@@ -1021,9 +1021,16 @@ export class RealtimeRenderer {
       return;
     }
 
+    // 判断消息类型：黑屏文字（messageType === 9）
+    const isIntroText = (msg.messageType as number) === 9;
+    // 判断是否为旁白：roleId <= 0
+    const isNarrator = msg.roleId <= 0;
+
     // 获取角色信息
     const role = this.roleMap.get(msg.roleId);
-    const roleName = role?.roleName || `角色${msg.roleId}`;
+    // 优先使用自定义角色名
+    const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
+    const roleName = customRoleName || role?.roleName || `角色${msg.roleId}`;
 
     // 获取头像信息
     const avatar = this.avatarMap.get(msg.avatarId);
@@ -1040,8 +1047,14 @@ export class RealtimeRenderer {
     } | undefined;
     const figurePosition = voiceRenderSettings?.figurePosition || "left";
 
-    // 每条对话都指定立绘，确保立绘始终正确显示
-    if (spriteFileName) {
+    // 获取黑屏文字的 -hold 设置
+    const introHold = (msg.webgal as any)?.introHold as boolean ?? false;
+
+    // 旁白和黑屏文字不需要显示立绘和小头像
+    const shouldShowFigure = !isNarrator && !isIntroText;
+
+    // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
+    if (shouldShowFigure && spriteFileName) {
       // 如果不是回复消息，则清除之前的立绘（单人发言模式）
       // 如果是回复消息，则保留之前的立绘（多人对话模式）
       if (!msg.replyMessageId) {
@@ -1054,78 +1067,30 @@ export class RealtimeRenderer {
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
     }
-
-    // 处理小头像
-    const miniAvatarFileName = this.miniAvatarEnabled
-      ? await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId)
-      : null;
-
-    if (miniAvatarFileName) {
-      await this.appendLine(targetRoomId, `miniAvatar:${miniAvatarFileName};`, syncToFile);
+    else if (isIntroText) {
+      // 黑屏文字需要清除立绘
+      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
-    else if (this.miniAvatarEnabled) {
-      // 如果启用了小头像但没有找到头像文件，则显示 none
-      await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
-    }
-    // 如果未启用小头像，则不发送 miniAvatar 指令，保持原样（或者也可以强制 none，取决于需求）
-    // 这里假设如果不启用，就不应该改变小头像状态，或者应该隐藏。
-    // 为了安全起见，如果未启用，最好确保不显示小头像。
-    // 但是如果之前显示了，现在关闭了，应该隐藏吗？
-    // 按照通常逻辑，关闭开关意味着不使用该功能，应该隐藏。
-    // 所以如果 !this.miniAvatarEnabled，应该发送 miniAvatar:none; 吗？
-    // 之前的逻辑是：如果不启用，就不生成指令。
-    // 但是实时渲染是增量的，如果之前有，现在没有指令，状态会保留。
-    // 所以如果关闭了开关，应该发送 none。
-    // 但是这里是渲染单条消息。
-    // 让我们简单点：如果启用，尝试显示；如果不启用，不生成指令（或者生成 none）。
-    // 参考 chatRenderer 的逻辑：如果不启用，不生成指令。
-    // 但是实时渲染可能需要覆盖之前的状态。
-    // 让我们先只在启用时生成指令。如果用户想关闭，他们会关闭开关，然后新消息就不会有小头像。
-    // 但是旧消息的小头像还会保留吗？WebGAL 的 miniAvatar 是全局状态吗？是的。
-    // 所以如果下一条消息没有 miniAvatar 指令，上一条消息的小头像会保留吗？
-    // WebGAL 文档说 miniAvatar 是显示在对话框旁边的。
-    // 通常每条消息都会重置或设置。
-    // 如果我不发送指令，它会保持上一次的状态。
-    // 所以如果我关闭了开关，我应该发送 miniAvatar:none; 吗？
-    // 如果我发送 none，那么所有新消息都没有小头像。
-    // 如果我不发送，那么新消息会继承上一次的状态（如果有的话）。
-    // 为了确保关闭开关后不再显示，最好发送 none。
-    // 但是如果我不想干扰其他可能的操作（虽然这里只有我们在控制）。
-    // 让我们修改逻辑：如果启用，发送对应头像或 none；如果不启用，不发送指令（或者发送 none 以确保清除）。
-    // 考虑到 chatRenderer 中是 "如果不启用，不生成指令"，这里也保持一致。
-    // 但是 chatRenderer 是生成整个脚本，不生成指令意味着默认值（通常是 none）。
-    // 实时渲染中，如果不生成指令，状态保持不变。
-    // 如果上一条消息有小头像，这一条没有指令，那么小头像会一直显示吗？
-    // 在 WebGAL 中，miniAvatar 通常伴随对话。
-    // 如果我希望关闭开关后新消息不显示小头像，我应该发送 miniAvatar:none;
-    // 但是如果我只是不发送指令，WebGAL 会怎么做？
-    // 让我们假设不发送指令就是保持不变。
-    // 如果用户在中间关闭了开关，下一条消息不发送指令，那么小头像会继续显示上一条的。这可能不是用户想要的。
-    // 所以如果 !this.miniAvatarEnabled，应该发送 miniAvatar:none; 吗？
-    // 或者根本不处理。
-    // 让我们参考 chatRenderer：
-    // const miniAvatarName = this.renderProps.useMiniAvatar ? ... : undefined;
-    // if (miniAvatarName) ... else if (miniAvatarName === "") ...
-    // 如果 undefined，什么都不做。
-    // 所以这里也一样。
 
-    // 修正：如果未启用，什么都不做。
-    // 但是为了防止状态残留，如果用户从开启切换到关闭，第一条新消息应该清除小头像。
-    // 但我们无法知道状态切换。
-    // 简单起见，如果未启用，就不发送指令。
+    // 处理小头像（仅普通对话）
+    if (shouldShowFigure) {
+      const miniAvatarFileName = this.miniAvatarEnabled
+        ? await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId)
+        : null;
 
-    // 再次修正：chatRenderer 中，如果 useMiniAvatar 为 false，miniAvatarName 为 undefined。
-    // sceneEditor.addDialog 中，如果 miniAvatarName 为 undefined，则不生成指令。
-    // 所以这里也应该一样。
-
-    if (this.miniAvatarEnabled) {
-      const miniAvatarFileName = await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId);
       if (miniAvatarFileName) {
         await this.appendLine(targetRoomId, `miniAvatar:${miniAvatarFileName};`, syncToFile);
       }
-      else {
+      else if (this.miniAvatarEnabled) {
+        // 如果启用了小头像但没有找到头像文件，则显示 none
         await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
       }
+    }
+    else if (isNarrator || isIntroText) {
+      // 旁白和黑屏文字清除小头像
+      await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
     }
 
     // 处理文本内容
@@ -1141,27 +1106,43 @@ export class RealtimeRenderer {
     const dialogNotend = voiceRenderSettings?.notend ?? false;
     const dialogConcat = voiceRenderSettings?.concat ?? false;
 
-    // 生成语音（如果启用了 TTS）
-    let vocalFileName: string | null = null;
-    if (this.ttsConfig.enabled
-      && msg.roleId !== 0 // 跳过系统角色
-      && msg.roleId !== 2 // 跳过骰娘
-      && !msg.content.startsWith(".") // 跳过指令
-      && !msg.content.startsWith("。")
-      && !msg.content.startsWith("%")) {
-      vocalFileName = await this.generateAndUploadVocal(
-        processedContent,
-        msg.roleId,
-        avatar?.avatarTitle,
-        customEmotionVector,
-      );
+    // 根据消息类型生成不同的指令
+    if (isIntroText) {
+      // 黑屏文字（intro）：intro:文字|换行文字|换行文字;
+      // 使用 | 作为换行分隔符，将空格转换为换行
+      const introContent = processedContent.replace(/ +/g, "|");
+      const holdPart = introHold ? " -hold" : "";
+      await this.appendLine(targetRoomId, `intro:${introContent}${holdPart};`, syncToFile);
     }
+    else if (isNarrator) {
+      // 旁白：冒号前留空，如 :这是一句旁白;
+      // 旁白不显示立绘和小头像
+      await this.appendLine(targetRoomId, `:${processedContent};`, syncToFile);
+    }
+    else {
+      // 普通对话：角色名: 对话内容;
+      // 生成语音（如果启用了 TTS）
+      let vocalFileName: string | null = null;
+      if (this.ttsConfig.enabled
+        && msg.roleId !== 0 // 跳过系统角色
+        && msg.roleId !== 2 // 跳过骰娘
+        && !msg.content.startsWith(".") // 跳过指令
+        && !msg.content.startsWith("。")
+        && !msg.content.startsWith("%")) {
+        vocalFileName = await this.generateAndUploadVocal(
+          processedContent,
+          msg.roleId,
+          avatar?.avatarTitle,
+          customEmotionVector,
+        );
+      }
 
-    // 添加对话行（包含语音和 -notend/-concat 参数）
-    const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
-    const notendPart = dialogNotend ? " -notend" : "";
-    const concatPart = dialogConcat ? " -concat" : "";
-    await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart};`, syncToFile);
+      // 添加对话行（包含语音和 -notend/-concat 参数）
+      const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
+      const notendPart = dialogNotend ? " -notend" : "";
+      const concatPart = dialogConcat ? " -concat" : "";
+      await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart};`, syncToFile);
+    }
 
     // 记录消息 ID 和行号的映射（用于跳转）
     const context = this.sceneContextMap.get(targetRoomId);

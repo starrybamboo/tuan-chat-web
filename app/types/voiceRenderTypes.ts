@@ -25,6 +25,25 @@ export type EmotionLabel = typeof EMOTION_LABELS[number];
 export type FigurePosition = "left" | "center" | "right";
 
 /**
+ * 消息类型常量
+ * 与后端 MessageTypeEnum 保持一致
+ */
+export const MESSAGE_TYPE = {
+  TEXT: 1,
+  IMG: 2,
+  FILE: 3,
+  SYSTEM: 4,
+  FORWARD: 5,
+  DICE: 6,
+  SOUND: 7,
+  EFFECT: 8,
+  /** 黑屏文字消息 - WebGAL intro 语法 */
+  INTRO_TEXT: 9,
+  CLUE_CARD: 1000,
+  READ_LINE: 10000,
+} as const;
+
+/**
  * 语音渲染设置
  * 可以添加到 MessageExtra 中
  */

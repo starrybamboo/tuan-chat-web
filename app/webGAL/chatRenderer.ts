@@ -394,13 +394,18 @@ export class ChatRenderer {
           }
         }
 
-        // 处理一般的对话
-        else if (message.messageType === 1) {
+        // 处理一般的对话（包括普通文本和黑屏文字）
+        else if (message.messageType === 1 || message.messageType === 9) {
           // %开头的对话意味着webgal指令，直接写入scene文件内
           if (message.content.startsWith("%")) {
             await this.sceneEditor.addLineToRenderer(message.content.slice(1), sceneName);
             continue;
           }
+
+          // 判断消息类型：黑屏文字（messageType === 9）
+          const isIntroText = message.messageType === 9;
+          // 判断是否为旁白：roleId <= 0
+          const isNarrator = message.roleId <= 0;
 
           const role = await this.fetchRole(message.roleId);
           const roleAvatar = await this.fetchAvatar(message.avatarId);
@@ -410,13 +415,37 @@ export class ChatRenderer {
           const messageEmotionVector = voiceRenderSettings?.emotionVector;
           const messageFigurePosition = voiceRenderSettings?.figurePosition || "left";
 
+          // 获取自定义角色名和黑屏文字的 -hold 设置
+          const customRoleName = (message.webgal as any)?.customRoleName as string | undefined;
+          const introHold = (message.webgal as any)?.introHold as boolean ?? false;
+
           // 以下处理是为了防止被webGal判断为新一段的对话
           const processedContent = message.content
             .replace(/\n/g, " ") // 替换换行符为空格
             .replace(/;/g, "；") // 替换英文分号为中文分号
             .replace(/:/g, "："); // 替换英文冒号为中文冒号
 
-          if (role && message.content && message.content !== "") {
+          // 根据消息类型生成不同的指令
+          if (isIntroText) {
+            // 黑屏文字（intro）：intro:文字|换行文字|换行文字;
+            // 清除立绘
+            await this.sceneEditor.addLineToRenderer("changeFigure:none -left -next", sceneName);
+            await this.sceneEditor.addLineToRenderer("changeFigure:none -center -next", sceneName);
+            await this.sceneEditor.addLineToRenderer("changeFigure:none -right -next", sceneName);
+            // 使用 | 作为换行分隔符
+            const introContent = processedContent.replace(/ +/g, "|");
+            const holdPart = introHold ? " -hold" : "";
+            await this.sceneEditor.addLineToRenderer(`intro:${introContent}${holdPart}`, sceneName);
+          }
+          else if (isNarrator) {
+            // 旁白：冒号前留空，如 :这是一句旁白;
+            // 旁白不显示立绘和小头像
+            await this.sceneEditor.addLineToRenderer(`miniAvatar:none`, sceneName);
+            await this.sceneEditor.addLineToRenderer(`:${processedContent}`, sceneName);
+          }
+          else if (role && message.content && message.content !== "") {
+            // 优先使用自定义角色名
+            const displayRoleName = customRoleName || role.roleName || "未命名角色";
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
             // 为每个分割后的段落创建对话
@@ -474,7 +503,7 @@ export class ChatRenderer {
                     : (spriteState.has(messageSpriteName || ""));
               const avatar = await this.fetchAvatar(message.avatarId);
               await this.sceneEditor.addDialog(
-                role.roleName ?? "未命名角色",
+                displayRoleName,
                 avatar || undefined,
                 segment, // 使用分割后的段落
                 sceneName,

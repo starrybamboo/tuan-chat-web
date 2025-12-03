@@ -19,6 +19,10 @@ interface VoiceRenderPanelProps {
   onChange: (emotionVector: number[], figurePosition: FigurePosition, notend: boolean, concat: boolean) => void;
   /** 是否可编辑 */
   canEdit?: boolean;
+  /** 是否为黑屏文字 */
+  isIntroText?: boolean;
+  /** 切换黑屏文字回调（仅当 messageType === TEXT 时显示按钮） */
+  onToggleIntroText?: () => void;
 }
 
 // 预设情感 - 使用中文标签
@@ -45,6 +49,8 @@ export function VoiceRenderPanel({
   concat: initialConcat,
   onChange,
   canEdit = true,
+  isIntroText = false,
+  onToggleIntroText,
 }: VoiceRenderPanelProps) {
   const roomContext = use(RoomContext);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -164,7 +170,7 @@ export function VoiceRenderPanel({
 
   return (
     <div className="mt-2 text-xs">
-      {/* 第一行：立绘位置 + 情感预设 */}
+      {/* 第一行：立绘位置 + 对话参数 + 情感预设 */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* 立绘位置 - 紧凑的按钮组 */}
         <div className="flex items-center gap-1">
@@ -185,7 +191,7 @@ export function VoiceRenderPanel({
 
         <span className="text-base-content/30">|</span>
 
-        {/* 对话参数：-notend 和 -concat */}
+        {/* 对话参数：-notend、-concat 和黑屏切换 */}
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
             <input
@@ -205,6 +211,17 @@ export function VoiceRenderPanel({
             />
             <span className="tooltip tooltip-bottom" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
           </label>
+          {/* 黑屏文字切换 - 仅文本消息显示 */}
+          {onToggleIntroText && !isIntroText && (
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary"
+              onClick={onToggleIntroText}
+              title="切换为黑屏文字"
+            >
+              <span className="tooltip tooltip-bottom" data-tip="将此消息转换为黑屏文字（intro）">→ 黑屏</span>
+            </button>
+          )}
         </div>
 
         <span className="text-base-content/30">|</span>
