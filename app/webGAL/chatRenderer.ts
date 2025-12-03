@@ -1,4 +1,5 @@
 import type { RenderInfo, RenderProcess, RenderProps } from "@/components/chat/window/renderWindow";
+import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { SceneEditor } from "@/webGAL/sceneEditor";
 
@@ -422,6 +423,7 @@ export class ChatRenderer {
           const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
           const messageEmotionVector = voiceRenderSettings?.emotionVector;
           const messageFigurePosition = voiceRenderSettings?.figurePosition || "left";
+          const figureAnimation = voiceRenderSettings?.figureAnimation as FigureAnimationSettings | undefined;
 
           // 获取自定义角色名和黑屏文字的 -hold 设置
           const customRoleName = (message.webgal as any)?.customRoleName as string | undefined;
@@ -521,6 +523,25 @@ export class ChatRenderer {
                 messageFigurePosition, // 传递立绘位置
                 miniAvatarName,
               );
+
+              // 处理立绘动画（在立绘显示后）
+              // 只在第一个段落时处理动画，避免重复
+              if (figureAnimation && segment === contentSegments[0]) {
+                const animTarget = `fig-${messageFigurePosition}`; // 根据立绘位置自动推断目标
+
+                // 设置进出场动画（setTransition）
+                if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
+                  const enterPart = figureAnimation.enterAnimation ? ` -enter=${figureAnimation.enterAnimation}` : "";
+                  const exitPart = figureAnimation.exitAnimation ? ` -exit=${figureAnimation.exitAnimation}` : "";
+                  await this.sceneEditor.addLineToRenderer(`setTransition: -target=${animTarget}${enterPart}${exitPart}`, sceneName);
+                }
+
+                // 执行一次性动画（setAnimation）
+                if (figureAnimation.animation) {
+                  await this.sceneEditor.addLineToRenderer(`setAnimation:${figureAnimation.animation} -target=${animTarget} -next`, sceneName);
+                }
+              }
+
               if (!noNeedChangeSprite) {
                 spriteState.clear();
                 if (messageSpriteName)

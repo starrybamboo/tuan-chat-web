@@ -1,4 +1,5 @@
 import type { InferRequest } from "@/tts/engines/index/apiClient";
+import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { checkGameExist, terreApis } from "@/webGAL/index";
@@ -1048,8 +1049,10 @@ export class RealtimeRenderer {
       figurePosition?: string;
       notend?: boolean;
       concat?: boolean;
+      figureAnimation?: FigureAnimationSettings;
     } | undefined;
     const figurePosition = voiceRenderSettings?.figurePosition || "left";
+    const figureAnimation = voiceRenderSettings?.figureAnimation;
 
     // 获取黑屏文字的 -hold 设置
     const introHold = (msg.webgal as any)?.introHold as boolean ?? false;
@@ -1070,6 +1073,23 @@ export class RealtimeRenderer {
 
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
+
+      // 处理立绘动画（在立绘显示后）
+      if (figureAnimation) {
+        const animTarget = `fig-${figurePosition}`; // 根据立绘位置自动推断目标
+
+        // 设置进出场动画（setTransition）
+        if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
+          const enterPart = figureAnimation.enterAnimation ? ` -enter=${figureAnimation.enterAnimation}` : "";
+          const exitPart = figureAnimation.exitAnimation ? ` -exit=${figureAnimation.exitAnimation}` : "";
+          await this.appendLine(targetRoomId, `setTransition: -target=${animTarget}${enterPart}${exitPart};`, syncToFile);
+        }
+
+        // 执行一次性动画（setAnimation）
+        if (figureAnimation.animation) {
+          await this.appendLine(targetRoomId, `setAnimation:${figureAnimation.animation} -target=${animTarget} -next;`, syncToFile);
+        }
+      }
     }
     else if (isIntroText) {
       // 黑屏文字需要清除立绘

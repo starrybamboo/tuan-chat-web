@@ -44,8 +44,59 @@ export const MESSAGE_TYPE = {
 } as const;
 
 /**
- * 语音渲染设置
- * 可以添加到 MessageExtra 中
+ * WebGAL 预置动画名称
+ */
+export const PREDEFINED_ANIMATIONS = [
+  "enter", // 淡入
+  "exit", // 淡出
+  "shake", // 摇动
+  "enter-from-bottom", // 从下进入
+  "enter-from-left", // 从左进入
+  "enter-from-right", // 从右进入
+  "move-front-and-back", // 前后移动
+] as const;
+
+export type PredefinedAnimation = typeof PREDEFINED_ANIMATIONS[number];
+
+/**
+ * WebGAL 动画目标（自动根据立绘位置推断）
+ */
+export const ANIMATION_TARGETS = [
+  "fig-left", // 左侧立绘
+  "fig-center", // 中间立绘
+  "fig-right", // 右侧立绘
+  "bg-main", // 主背景
+] as const;
+
+export type AnimationTarget = typeof ANIMATION_TARGETS[number] | string;
+
+/**
+ * 立绘动画设置
+ * 可以附加到任意消息上，控制立绘的动画效果
+ */
+export type FigureAnimationSettings = {
+  /**
+   * 一次性动画效果（如 shake）
+   * 对应 WebGAL: setAnimation:animationName -target=目标 -next;
+   */
+  animation?: PredefinedAnimation | string;
+
+  /**
+   * 进场动画
+   * 对应 WebGAL: setTransition 的 -enter 参数
+   */
+  enterAnimation?: PredefinedAnimation | string;
+
+  /**
+   * 出场动画
+   * 对应 WebGAL: setTransition 的 -exit 参数
+   */
+  exitAnimation?: PredefinedAnimation | string;
+};
+
+/**
+ * 语音渲染设置（WebGAL 渲染配置）
+ * 可以添加到 MessageExtra 中，控制消息的渲染效果
  */
 export type VoiceRenderSettings = {
   /**
@@ -59,6 +110,12 @@ export type VoiceRenderSettings = {
    * 如果设置，渲染时会使用指定的位置
    */
   figurePosition?: FigurePosition;
+
+  /**
+   * 立绘动画设置
+   * 可以设置一次性动画（如 shake）或进出场动画
+   */
+  figureAnimation?: FigureAnimationSettings;
 };
 
 /**

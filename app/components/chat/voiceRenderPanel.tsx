@@ -1,7 +1,7 @@
-import type { FigurePosition } from "@/types/voiceRenderTypes";
+import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
 
 import { RoomContext } from "@/components/chat/roomContext";
-import { EMOTION_LABELS, emotionRecordToVector, normalizeEmotionVector } from "@/types/voiceRenderTypes";
+import { EMOTION_LABELS, emotionRecordToVector, normalizeEmotionVector, PREDEFINED_ANIMATIONS } from "@/types/voiceRenderTypes";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 
 interface VoiceRenderPanelProps {
@@ -15,8 +15,10 @@ interface VoiceRenderPanelProps {
   notend?: boolean;
   /** 续接上段话（-concat） */
   concat?: boolean;
+  /** 立绘动画设置 */
+  figureAnimation?: FigureAnimationSettings;
   /** 设置变更回调 */
-  onChange: (emotionVector: number[], figurePosition: FigurePosition, notend: boolean, concat: boolean) => void;
+  onChange: (emotionVector: number[], figurePosition: FigurePosition, notend: boolean, concat: boolean, figureAnimation?: FigureAnimationSettings) => void;
   /** 是否可编辑 */
   canEdit?: boolean;
   /** 是否为黑屏文字 */
@@ -47,6 +49,7 @@ export function VoiceRenderPanel({
   avatarTitle,
   notend: initialNotend,
   concat: initialConcat,
+  figureAnimation: initialAnimation,
   onChange,
   canEdit = true,
   isIntroText = false,
@@ -56,6 +59,7 @@ export function VoiceRenderPanel({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [localNotend, setLocalNotend] = useState(initialNotend ?? false);
   const [localConcat, setLocalConcat] = useState(initialConcat ?? false);
+  const [localAnimation, setLocalAnimation] = useState<FigureAnimationSettings | undefined>(initialAnimation);
 
   // 从 avatarTitle 获取头像的默认情感向量
   const defaultVectorFromAvatar = useMemo(() => {
@@ -83,7 +87,8 @@ export function VoiceRenderPanel({
       setLocalPosition(initialPosition);
     setLocalNotend(initialNotend ?? false);
     setLocalConcat(initialConcat ?? false);
-  }, [initialVector, initialPosition, avatarTitle, initialNotend, initialConcat]);
+    setLocalAnimation(initialAnimation);
+  }, [initialVector, initialPosition, avatarTitle, initialNotend, initialConcat, initialAnimation]);
 
   const handleEmotionChange = useCallback((index: number, value: number) => {
     setLocalVector((prev) => {
@@ -96,34 +101,54 @@ export function VoiceRenderPanel({
   const applyPreset = useCallback((vector: number[]) => {
     const newVector = [...vector];
     setLocalVector(newVector);
-    onChange(normalizeEmotionVector(newVector, 1.5), localPosition, localNotend, localConcat);
-  }, [localPosition, localNotend, localConcat, onChange]);
+    onChange(normalizeEmotionVector(newVector, 1.5), localPosition, localNotend, localConcat, localAnimation);
+  }, [localPosition, localNotend, localConcat, localAnimation, onChange]);
 
   const handlePositionChange = useCallback((pos: FigurePosition) => {
     setLocalPosition(pos);
-    onChange(normalizeEmotionVector(localVector, 1.5), pos, localNotend, localConcat);
-  }, [localVector, localNotend, localConcat, onChange]);
+    onChange(normalizeEmotionVector(localVector, 1.5), pos, localNotend, localConcat, localAnimation);
+  }, [localVector, localNotend, localConcat, localAnimation, onChange]);
 
   const handleNotendChange = useCallback((checked: boolean) => {
     setLocalNotend(checked);
-    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, checked, localConcat);
-  }, [localVector, localPosition, localConcat, onChange]);
+    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, checked, localConcat, localAnimation);
+  }, [localVector, localPosition, localConcat, localAnimation, onChange]);
 
   const handleConcatChange = useCallback((checked: boolean) => {
     setLocalConcat(checked);
-    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, checked);
-  }, [localVector, localPosition, localNotend, onChange]);
+    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, checked, localAnimation);
+  }, [localVector, localPosition, localNotend, localAnimation, onChange]);
+
+  const handleAnimationChange = useCallback((field: keyof FigureAnimationSettings, value: string) => {
+    setLocalAnimation((prev) => {
+      const newAnim = { ...prev };
+      if (value) {
+        newAnim[field] = value;
+      }
+      else {
+        delete newAnim[field];
+      }
+      // 如果所有字段都为空，返回 undefined
+      if (!newAnim.animation && !newAnim.enterAnimation && !newAnim.exitAnimation) {
+        onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, localConcat, undefined);
+        return undefined;
+      }
+      onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, localConcat, newAnim);
+      return newAnim;
+    });
+  }, [localVector, localPosition, localNotend, localConcat, onChange]);
 
   const handleSave = useCallback(() => {
-    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, localConcat);
-  }, [localVector, localPosition, localNotend, localConcat, onChange]);
+    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, localConcat, localAnimation);
+  }, [localVector, localPosition, localNotend, localConcat, localAnimation, onChange]);
 
   const handleClear = useCallback(() => {
     setLocalVector([0, 0, 0, 0, 0, 0, 0, 0]);
     setLocalPosition("left");
     setLocalNotend(false);
     setLocalConcat(false);
-    onChange([0, 0, 0, 0, 0, 0, 0, 0], "left", false, false);
+    setLocalAnimation(undefined);
+    onChange([0, 0, 0, 0, 0, 0, 0, 0], "left", false, false, undefined);
   }, [onChange]);
 
   // 如果未开启 WebGAL 联动模式，不显示面板
@@ -268,25 +293,84 @@ export function VoiceRenderPanel({
 
       {/* 高级调节面板（折叠） */}
       {showAdvanced && (
-        <div className="mt-2 p-2 bg-base-200/50 rounded-lg border border-base-300 space-y-2">
-          {EMOTION_LABELS.map((label, index) => (
-            <div key={label} className="flex items-center gap-2">
-              <span className="w-8 text-xs text-base-content/70">{label}</span>
-              <input
-                type="range"
-                min="0"
-                max="1.4"
-                step="0.1"
-                title={`${label}情感强度`}
-                value={localVector[index] ?? 0}
-                onChange={e => handleEmotionChange(index, Number.parseFloat(e.target.value))}
-                className="range range-xs range-primary flex-1"
-              />
-              <span className="w-6 text-xs text-right tabular-nums text-base-content/60">
-                {(localVector[index] ?? 0).toFixed(1)}
-              </span>
+        <div className="mt-2 p-2 bg-base-200/50 rounded-lg border border-base-300 space-y-3">
+          {/* 动画设置 */}
+          <div className="space-y-2">
+            <span className="text-xs text-base-content/70 font-medium">立绘动画</span>
+            <div className="grid grid-cols-3 gap-2">
+              {/* 一次性动画 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-base-content/50">动画效果</span>
+                <select
+                  title="选择动画效果"
+                  className="select select-xs select-bordered w-full"
+                  value={localAnimation?.animation || ""}
+                  onChange={e => handleAnimationChange("animation", e.target.value)}
+                >
+                  <option value="">无</option>
+                  {PREDEFINED_ANIMATIONS.map(anim => (
+                    <option key={anim} value={anim}>{anim}</option>
+                  ))}
+                </select>
+              </div>
+              {/* 进场动画 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-base-content/50">进场动画</span>
+                <select
+                  title="选择进场动画"
+                  className="select select-xs select-bordered w-full"
+                  value={localAnimation?.enterAnimation || ""}
+                  onChange={e => handleAnimationChange("enterAnimation", e.target.value)}
+                >
+                  <option value="">默认</option>
+                  {PREDEFINED_ANIMATIONS.map(anim => (
+                    <option key={anim} value={anim}>{anim}</option>
+                  ))}
+                </select>
+              </div>
+              {/* 出场动画 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-base-content/50">出场动画</span>
+                <select
+                  title="选择出场动画"
+                  className="select select-xs select-bordered w-full"
+                  value={localAnimation?.exitAnimation || ""}
+                  onChange={e => handleAnimationChange("exitAnimation", e.target.value)}
+                >
+                  <option value="">默认</option>
+                  {PREDEFINED_ANIMATIONS.map(anim => (
+                    <option key={anim} value={anim}>{anim}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* 分隔线 */}
+          <div className="border-t border-base-300" />
+
+          {/* 情感向量调节 */}
+          <div className="space-y-2">
+            <span className="text-xs text-base-content/70 font-medium">情感向量</span>
+            {EMOTION_LABELS.map((label, index) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className="w-8 text-xs text-base-content/70">{label}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1.4"
+                  step="0.1"
+                  title={`${label}情感强度`}
+                  value={localVector[index] ?? 0}
+                  onChange={e => handleEmotionChange(index, Number.parseFloat(e.target.value))}
+                  className="range range-xs range-primary flex-1"
+                />
+                <span className="w-6 text-xs text-right tabular-nums text-base-content/60">
+                  {(localVector[index] ?? 0).toFixed(1)}
+                </span>
+              </div>
+            ))}
+          </div>
 
           {/* 总和提示和应用按钮 */}
           <div className={`flex justify-between items-center pt-1 ${isOverLimit ? "text-error" : "text-base-content/50"}`}>

@@ -1,4 +1,4 @@
-import type { FigurePosition } from "@/types/voiceRenderTypes";
+import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
@@ -129,6 +129,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     figurePosition: FigurePosition,
     notend: boolean,
     concat: boolean,
+    figureAnimation?: FigureAnimationSettings,
   ) {
     // 判断情感向量是否改变（用于决定是否重新生成 TTS）
     const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
@@ -143,6 +144,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
           figurePosition,
           notend,
           concat,
+          figureAnimation,
         },
       },
     } as Message;
@@ -576,6 +578,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       avatarTitle={avatar?.avatarTitle}
                       notend={voiceRenderSettings?.notend}
                       concat={voiceRenderSettings?.concat}
+                      figureAnimation={voiceRenderSettings?.figureAnimation}
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
                       isIntroText={isIntroText}
@@ -655,6 +658,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       avatarTitle={avatar?.avatarTitle}
                       notend={voiceRenderSettings?.notend}
                       concat={voiceRenderSettings?.concat}
+                      figureAnimation={voiceRenderSettings?.figureAnimation}
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
                       isIntroText={isIntroText}
