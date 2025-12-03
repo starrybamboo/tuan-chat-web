@@ -2,7 +2,7 @@ import type { FeedWithStats } from "@/types/feedTypes";
 import type { PostListResponse } from "api";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { useState } from "react";
-import { useFeedInfiniteQuery, useFilterFeeds, useFlattenFeeds, useInfiniteScrollObserver } from "../../../api/hooks/FeedQueryHooks";
+import { useFeedInfiniteQuery, useFeedPrefetch, useFilterFeeds, useFlattenFeeds, useInfiniteScrollObserver } from "../../../api/hooks/feedQueryHooks";
 
 export default function FeedPage() {
   // 相关常量
@@ -14,6 +14,9 @@ export default function FeedPage() {
   const feedInfiniteQuery = useFeedInfiniteQuery(PAGE_SIZE, MAX_PAGES);
   const { isFetching, hasNextPage, fetchNextPage } = feedInfiniteQuery;
   const feedRef = useInfiniteScrollObserver(isFetching, hasNextPage, fetchNextPage);
+
+  // 预加载
+  const { prefetch } = useFeedPrefetch();
 
   // 不感兴趣的feed
   const [hiddenFeeds, setHiddenFeeds] = useState<number[]>([]);
@@ -39,6 +42,7 @@ export default function FeedPage() {
             <div
               ref={index === displayFeeds.length - FETCH_ON_REMAIN ? feedRef : null}
               key={feed.stats?.postId ?? `feed-${index}`}
+              onMouseOver={() => prefetch(feed)}
             >
               {feed.stats
                 ? (
