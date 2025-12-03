@@ -74,6 +74,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
   const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
   const dicePrivateMessageQueue: string[] = []; // 记录本次指令骰娘的私聊消息队列
+  // 当前指令期望使用的文案键（不再使用Ref；改为execute内局部变量一次性处理）
 
   useEffect(() => {
     try {
@@ -90,6 +91,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
    */
   async function execute(executorProp: ExecutorProp): Promise<void> {
     const command = executorProp.command;
+    let copywritingKey: string | null = null;
     const [cmdPart, ...args] = parseCommand(command);
     const operator: UserRole = {
       userId: role?.userId ?? -1,
@@ -137,6 +139,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       toast(message);
     };
 
+    // 设置文案键，用于从骰娘 extra.copywriting 中随机抽取文案
+    const setCopywritingKey = (key: string | null) => {
+      copywritingKey = key?.trim() || null;
+    };
+
     const getRoleAbilityList = (roleId: number): RoleAbility => {
       if (mentionedRoles.has(roleId)) {
         const ability = mentionedRoles.get(roleId) as RoleAbility;
@@ -159,6 +166,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       sendToast,
       getRoleAbilityList,
       setRoleAbilityList,
+      setCopywritingKey,
     };
 
     const ruleExecutor = RULES.get(ruleId);
@@ -214,17 +222,87 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
       const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+
+      // 获取文案：从 extra.copywriting 中根据键随机抽取
+      let copywritingSuffix = "";
+      if (copywritingKey) {
+        try {
+          const dicerAbility = await tuanchat.abilityController.getByRuleAndRole(ruleId, dicerRoleId);
+          const copywritingStr = dicerAbility?.data?.extra?.copywriting || "{}";
+          const copywritingMap: Record<string, string[]> = JSON.parse(copywritingStr);
+          const texts = copywritingMap[copywritingKey];
+          if (texts && texts.length > 0) {
+            // 解析权重并构建加权数组
+            const weightedTexts: string[] = [];
+            for (const text of texts) {
+              // 匹配权重语法 ::N::
+              const weightMatch = text.match(/^::(\d+)::/);
+              if (weightMatch) {
+                const weight = Number.parseInt(weightMatch[1]);
+                const actualText = text.slice(weightMatch[0].length); // 移除权重前缀
+                // 根据权重添加多次
+                for (let i = 0; i < weight; i++) {
+                  weightedTexts.push(actualText);
+                }
+              }
+              else {
+                // 无权重语法，默认权重为 1
+                weightedTexts.push(text);
+              }
+            }
+            // 从加权数组中随机选择
+            const randomIdx = Math.floor(Math.random() * weightedTexts.length);
+            copywritingSuffix = `\n${weightedTexts[randomIdx]}`;
+          }
+        }
+        catch (e) {
+          console.error("获取骰娘文案失败:", e);
+        }
+      }
+
+      // 从所有消息中提取标签（格式：#标签#）
+      const allMessages = dicerMessageQueue.join(" ") + copywritingSuffix;
+      const tagMatches = allMessages.match(/#([^#]+)#/g);
+      let lastTag: string | null = null;
+      if (tagMatches && tagMatches.length > 0) {
+        // 取最后一个标签，去除 # 符号
+        const lastMatch = tagMatches[tagMatches.length - 1];
+        lastTag = lastMatch.replace(/#/g, "").trim();
+      }
+
+      // 根据标签选择头像
+      let matchedAvatar: RoleAvatar | null = null;
+      if (lastTag) {
+        const matches = avatars.filter(a => (a.avatarTitle?.label || "") === lastTag);
+        if (matches.length > 1) {
+          // 随机选择一个重复标签的头像
+          const idx = Math.floor(Math.random() * matches.length);
+          matchedAvatar = matches[idx] || null;
+        }
+        else {
+          matchedAvatar = matches[0] || null;
+        }
+      }
+      // 当没有标签或未匹配时，优先使用 label 为"默认"的头像，其次使用第一个头像
+      const fallbackDefaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") || null;
+      const chosenAvatarId = (matchedAvatar?.avatarId)
+        ?? (fallbackDefaultLabelAvatar?.avatarId)
+        ?? (avatars[0]?.avatarId ?? 0);
+
       const dicerMessageRequest: ChatMessageRequest = {
         roomId,
         messageType: 1,
         roleId: dicerRoleId,
-        avatarId: avatars[0]?.avatarId ?? 0,
+        avatarId: chosenAvatarId,
         content: "",
         replayMessageId: optMsgRes.data?.messageId ?? undefined,
         extra: {},
       };
       for (const message of dicerMessageQueue) {
-        dicerMessageRequest.content = message;
+        // 移除消息中的所有标签（格式：#标签#）
+        const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
+        const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
+        dicerMessageRequest.content = cleanMessage + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
         await sendMessageMutation.mutateAsync(dicerMessageRequest);
       }
     }
@@ -243,17 +321,85 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
       const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+
+      // 获取文案：从 extra.copywriting 中根据键随机抽取
+      let copywritingSuffix = "";
+      if (copywritingKey) {
+        try {
+          const dicerAbility = await tuanchat.abilityController.getByRuleAndRole(ruleId, dicerRoleId);
+          const copywritingStr = dicerAbility?.data?.extra?.copywriting || "{}";
+          const copywritingMap: Record<string, string[]> = JSON.parse(copywritingStr);
+          const texts = copywritingMap[copywritingKey];
+          if (texts && texts.length > 0) {
+            // 解析权重并构建加权数组
+            const weightedTexts: string[] = [];
+            for (const text of texts) {
+              // 匹配权重语法 ::N::
+              const weightMatch = text.match(/^::(\d+)::/);
+              if (weightMatch) {
+                const weight = Number.parseInt(weightMatch[1]);
+                const actualText = text.slice(weightMatch[0].length); // 移除权重前缀
+                // 根据权重添加多次
+                for (let i = 0; i < weight; i++) {
+                  weightedTexts.push(actualText);
+                }
+              }
+              else {
+                // 无权重语法，默认权重为 1
+                weightedTexts.push(text);
+              }
+            }
+            // 从加权数组中随机选择
+            const randomIdx = Math.floor(Math.random() * weightedTexts.length);
+            copywritingSuffix = `\n${weightedTexts[randomIdx]}`;
+          }
+        }
+        catch (e) {
+          console.error("获取骰娘文案失败:", e);
+        }
+      }
+
+      // 从所有消息中提取标签（格式：#标签#）
+      const allMessages = dicePrivateMessageQueue.join(" ") + copywritingSuffix;
+      const tagMatches = allMessages.match(/#([^#]+)#/g);
+      let lastTag: string | null = null;
+      if (tagMatches && tagMatches.length > 0) {
+        // 取最后一个标签，去除 # 符号
+        const lastMatch = tagMatches[tagMatches.length - 1];
+        lastTag = lastMatch.replace(/#/g, "").trim();
+      }
+
+      // 根据标签选择头像
+      let matchedAvatar: RoleAvatar | null = null;
+      if (lastTag) {
+        const matches = avatars.filter(a => (a.avatarTitle?.label || "") === lastTag);
+        if (matches.length > 1) {
+          const idx = Math.floor(Math.random() * matches.length);
+          matchedAvatar = matches[idx] || null;
+        }
+        else {
+          matchedAvatar = matches[0] || null;
+        }
+      }
+      const fallbackDefaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") || null;
+      const chosenAvatarId = (matchedAvatar?.avatarId)
+        ?? (fallbackDefaultLabelAvatar?.avatarId)
+        ?? (avatars[0]?.avatarId ?? 0);
+
       const dicerMessageRequest: ChatMessageRequest = {
         roomId,
         messageType: 1,
         roleId: dicerRoleId,
-        avatarId: avatars[0]?.avatarId ?? 0,
+        avatarId: chosenAvatarId,
         content: "",
         replayMessageId: optMsgRes.data?.messageId ?? undefined,
         extra: {},
       };
       for (const message of dicePrivateMessageQueue) {
-        dicerMessageRequest.content = message;
+        // 移除消息中的所有标签（格式：#标签#）
+        const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
+        const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
+        dicerMessageRequest.content = cleanMessage + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
         await sendMessageMutation.mutateAsync(dicerMessageRequest);
       }
     }
