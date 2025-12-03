@@ -8,6 +8,7 @@ import type {
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
 import { RoomContext } from "@/components/chat/roomContext";
+import PixiOverlay from "@/components/chat/smallComponents/pixiOverlay";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
@@ -139,6 +140,27 @@ function ChatFrame(props: {
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     return roomContext.chatHistory?.messages ?? [];
   }, [roomContext.chatHistory?.messages]);
+
+  // 删除消息（逻辑删除：更新本地消息状态为已删除）
+  const deleteMessage = useCallback((messageId: number) => {
+    deleteMessageMutation.mutate(messageId, {
+      onSuccess: () => {
+        // 找到要删除的消息，更新其 status 为 1（已删除）
+        const targetMessage = historyMessages.find(m => m.message.messageId === messageId);
+        if (targetMessage && roomContext.chatHistory) {
+          const updatedMessage = {
+            ...targetMessage,
+            message: {
+              ...targetMessage.message,
+              status: 1, // 逻辑删除状态
+            },
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedMessage);
+        }
+      },
+    });
+  }, [deleteMessageMutation, historyMessages, roomContext.chatHistory]);
+
   /**
    * 虚拟列表
    */
@@ -185,20 +207,36 @@ function ChatFrame(props: {
 
   /**
    * 背景图片随聊天记录而改变
+   * 注意：已删除的消息（status === 1）不应该显示背景图片
    */
   const imgNode = useMemo(() => {
     return historyMessages
       .map((msg, index) => {
-        return { index, imageMessage: msg.message.extra?.imageMessage };
+        return { index, imageMessage: msg.message.extra?.imageMessage, status: msg.message.status };
       })
-      .filter(item => item.imageMessage && item.imageMessage.background);
+      .filter(item => item.imageMessage && item.imageMessage.background && item.status !== 1);
+  }, [historyMessages]);
+
+  /**
+   * 特效随聊天记录而改变
+   * 注意：已删除的消息（status === 1）不应该显示特效
+   */
+  const effectNode = useMemo(() => {
+    return historyMessages
+      .map((msg, index) => {
+        return { index, effectMessage: msg.message.extra?.effectMessage, status: msg.message.status };
+      })
+      .filter(item => item.effectMessage && item.effectMessage.effectName && item.status !== 1);
   }, [historyMessages]);
 
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
+  const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   useEffect(() => {
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
+
+    // Update Background URL
     let newBgUrl: string | null = null;
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex) {
@@ -213,6 +251,24 @@ function ChatFrame(props: {
       return () => clearTimeout(id);
     }
   }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+
+  useEffect(() => {
+    const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
+
+    // Update Effect
+    let newEffect: string | null = null;
+    for (const effect of effectNode) {
+      if (effect.index <= currentMessageIndex) {
+        newEffect = effect.effectMessage?.effectName ?? null;
+      }
+      else {
+        break;
+      }
+    }
+    if (newEffect !== currentEffect) {
+      setCurrentEffect(newEffect);
+    }
+  }, [currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
 
   /**
    * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
@@ -484,7 +540,7 @@ function ChatFrame(props: {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
 
   function handleDelete() {
-    deleteMessageMutation.mutate(contextMenu?.messageId ?? -1);
+    deleteMessage(contextMenu?.messageId ?? -1);
   }
 
   function handleContextMenu(e: React.MouseEvent) {
@@ -506,7 +562,7 @@ function ChatFrame(props: {
 
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
-      deleteMessageMutation.mutate(messageId);
+      deleteMessage(messageId);
     }
     updateSelectedMessageIds(new Set());
   }
@@ -662,6 +718,10 @@ function ChatFrame(props: {
           opacity: currentBackgroundUrl ? 1 : 0,
         }}
       />
+
+      {/* Pixi Overlay */}
+      <PixiOverlay effectName={currentEffect} />
+
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}

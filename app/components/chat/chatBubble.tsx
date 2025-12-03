@@ -295,6 +295,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
   }, [message.updateTime]);
 
+  // 判断消息是否被编辑过（createTime 和 updateTime 不同）
+  const isEdited = useMemo(() => {
+    if (!message.createTime || !message.updateTime)
+      return false;
+    return message.createTime !== message.updateTime;
+  }, [message.createTime, message.updateTime]);
+
   // 获取当前的语音渲染设置
   const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
 
@@ -325,6 +332,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                     {role?.roleName?.trim() || "Undefined"}
                   </span>
                   <span className="text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+                    {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </span>
                 </div>
@@ -377,6 +385,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                     </div>
                   </div>
                   <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
+                    {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </div>
                 </div>

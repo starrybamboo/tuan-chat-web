@@ -328,29 +328,6 @@ export function ChatToolbar({
             <ArrowBackThickFill className={`size-6 cursor-pointer ${autoReplyMode ? "animate-pulse" : ""}`} />
           </div>
         )}
-
-        {/* WebGAL 联动模式按钮 */}
-        {onToggleWebgalLinkMode && (
-          <div
-            className={`tooltip tooltip-bottom ${webgalLinkMode ? "text-info" : "hover:text-info opacity-50"}`}
-            data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
-            onClick={onToggleWebgalLinkMode}
-          >
-            <LinkFilled className={`size-6 cursor-pointer ${webgalLinkMode ? "" : "grayscale opacity-50"}`} />
-          </div>
-        )}
-
-        {/* 实时渲染按钮 */}
-        {onToggleRealtimeRender && (
-          <div
-            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
-            data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
-            onClick={onToggleRealtimeRender}
-          >
-            <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
-          </div>
-        )}
-
         {/* WebGAL 导演控制台 */}
         {webgalLinkMode && onSendEffect && (
           <div className="dropdown dropdown-top dropdown-end">
@@ -372,6 +349,27 @@ export function ChatToolbar({
                 </>
               )}
             </ul>
+          </div>
+        )}
+        {/* WebGAL 联动模式按钮 */}
+        {onToggleWebgalLinkMode && (
+          <div
+            className={`tooltip tooltip-bottom ${webgalLinkMode ? "text-info" : "hover:text-info opacity-50"}`}
+            data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
+            onClick={onToggleWebgalLinkMode}
+          >
+            <LinkFilled className={`size-6 cursor-pointer ${webgalLinkMode ? "" : "grayscale opacity-50"}`} />
+          </div>
+        )}
+
+        {/* 实时渲染按钮 */}
+        {onToggleRealtimeRender && (
+          <div
+            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+            data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
+            onClick={onToggleRealtimeRender}
+          >
+            <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
           </div>
         )}
 
