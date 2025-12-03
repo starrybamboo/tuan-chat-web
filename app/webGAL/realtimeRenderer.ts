@@ -1032,7 +1032,12 @@ export class RealtimeRenderer {
     const spriteFileName = await this.getAndUploadSprite(msg.avatarId, msg.roleId);
 
     // 获取 voiceRenderSettings 中的立绘位置（默认为 left）
-    const voiceRenderSettings = msg.webgal?.voiceRenderSettings as { emotionVector?: number[]; figurePosition?: string } | undefined;
+    const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
+      emotionVector?: number[];
+      figurePosition?: string;
+      notend?: boolean;
+      concat?: boolean;
+    } | undefined;
     const figurePosition = voiceRenderSettings?.figurePosition || "left";
 
     // 每条对话都指定立绘，确保立绘始终正确显示
@@ -1132,6 +1137,10 @@ export class RealtimeRenderer {
     // 获取 voiceRenderSettings 中的情感向量
     const customEmotionVector = voiceRenderSettings?.emotionVector;
 
+    // 获取 WebGAL 对话参数：-notend 和 -concat
+    const dialogNotend = voiceRenderSettings?.notend ?? false;
+    const dialogConcat = voiceRenderSettings?.concat ?? false;
+
     // 生成语音（如果启用了 TTS）
     let vocalFileName: string | null = null;
     if (this.ttsConfig.enabled
@@ -1148,9 +1157,11 @@ export class RealtimeRenderer {
       );
     }
 
-    // 添加对话行（包含语音）
+    // 添加对话行（包含语音和 -notend/-concat 参数）
     const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
-    await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}`, syncToFile);
+    const notendPart = dialogNotend ? " -notend" : "";
+    const concatPart = dialogConcat ? " -concat" : "";
+    await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart};`, syncToFile);
 
     // 记录消息 ID 和行号的映射（用于跳转）
     const context = this.sceneContextMap.get(targetRoomId);
@@ -1265,7 +1276,12 @@ export class RealtimeRenderer {
 
     // 如果需要重新生成 TTS，清除对应的缓存
     if (regenerateTTS && msg.content && msg.roleId) {
-      const voiceRenderSettings = msg.webgal?.voiceRenderSettings as { emotionVector?: number[]; figurePosition?: string } | undefined;
+      const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
+        emotionVector?: number[];
+        figurePosition?: string;
+        notend?: boolean;
+        concat?: boolean;
+      } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
       const avatar = this.avatarMap.get(msg.avatarId);
       const emotionVector = customEmotionVector && customEmotionVector.length > 0

@@ -64,11 +64,6 @@ function ChatFrame(props: {
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
-  const updateMessageMutation = useUpdateMessageMutation();
-  const updateMessage = useCallback((message: Message) => {
-    updateMessageMutation.mutate(message);
-    roomContext.chatHistory?.addOrUpdateMessage({ message });
-  }, [updateMessageMutation, roomContext.chatHistory]);
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -270,6 +265,18 @@ function ChatFrame(props: {
     }
   }, [currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
 
+  const updateMessageMutation = useUpdateMessageMutation();
+  const updateMessage = useCallback((message: Message) => {
+    updateMessageMutation.mutate(message);
+    // 从 historyMessages 中找到完整的 ChatMessageResponse，保留 messageMark 等字段
+    const existingResponse = historyMessages.find(m => m.message.messageId === message.messageId);
+    const newResponse = {
+      ...existingResponse,
+      message,
+    };
+    roomContext.chatHistory?.addOrUpdateMessage(newResponse as ChatMessageResponse);
+  }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
+
   /**
    * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
    * 目的是为了让背景图片从url到null的切换时也能触发transition的动画，如果不加，那么，动画部分的css就会变成这样：
@@ -421,17 +428,18 @@ function ChatFrame(props: {
     targetIndex: number,
     messageIds: number[],
   ) => {
+    const messageIdSet = new Set(messageIds);
     const selectedMessages = Array.from(messageIds)
       .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
       .filter((msg): msg is Message => msg !== undefined)
       .sort((a, b) => a.position - b.position);
-    // 寻找到不位于，messageIds中且离dropPosition最近的消息
+    // 寻找到不位于 messageIds 中且离 dropPosition 最近的消息
     let topMessageIndex: number = targetIndex;
     let bottomMessageIndex: number = targetIndex + 1;
-    while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageId)) {
+    while (messageIdSet.has(historyMessages[topMessageIndex]?.message.messageId)) {
       topMessageIndex--;
     }
-    while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
+    while (messageIdSet.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
       bottomMessageIndex++;
     }
     const topMessagePosition = historyMessages[topMessageIndex]?.message.position
@@ -446,7 +454,7 @@ function ChatFrame(props: {
         position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
       });
     }
-  }, [historyMessages, selectedMessageIds, updateMessage]);
+  }, [historyMessages, updateMessage]);
   /**
    * 检查拖拽的位置
    */

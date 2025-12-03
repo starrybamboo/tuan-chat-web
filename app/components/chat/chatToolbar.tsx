@@ -50,6 +50,11 @@ interface ChatToolbarProps {
   // 默认立绘位置
   defaultFigurePosition?: "left" | "center" | "right";
   onSetDefaultFigurePosition?: (position: "left" | "center" | "right") => void;
+  // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
+  dialogNotend?: boolean;
+  onToggleDialogNotend?: () => void;
+  dialogConcat?: boolean;
+  onToggleDialogConcat?: () => void;
 
   // WebGAL 控制
   onSendEffect?: (effectName: string) => void;
@@ -76,6 +81,10 @@ export function ChatToolbar({
   onToggleAutoReplyMode,
   defaultFigurePosition,
   onSetDefaultFigurePosition,
+  dialogNotend = false,
+  onToggleDialogNotend,
+  dialogConcat = false,
+  onToggleDialogConcat,
   onSendEffect,
   setAudioFile,
 }: ChatToolbarProps) {
@@ -315,6 +324,34 @@ export function ChatToolbar({
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
+        {webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
+          <div className="flex items-center gap-2 text-xs">
+            {onToggleDialogNotend && (
+              <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-xs checkbox-primary rounded-none"
+                  checked={dialogNotend}
+                  onChange={onToggleDialogNotend}
+                />
+                <span className="tooltip tooltip-bottom" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
+              </label>
+            )}
+            {onToggleDialogConcat && (
+              <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-xs checkbox-primary rounded-none"
+                  checked={dialogConcat}
+                  onChange={onToggleDialogConcat}
+                />
+                <span className="tooltip tooltip-bottom" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
+              </label>
+            )}
           </div>
         )}
 

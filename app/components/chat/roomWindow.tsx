@@ -254,6 +254,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     "defaultFigurePositionMap",
     {},
   );
+  // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
+  const [dialogNotend, setDialogNotend] = useState(false);
+  const [dialogConcat, setDialogConcat] = useState(false);
 
   // 获取当前角色的默认立绘位置
   const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId] ?? "center";
@@ -936,6 +939,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             fields.webgal = {
               voiceRenderSettings: {
                 figurePosition: currentDefaultFigurePosition,
+                notend: dialogNotend,
+                concat: dialogConcat,
               },
             };
           }
@@ -1205,6 +1210,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
                   defaultFigurePosition={currentDefaultFigurePosition}
                   onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
+                  dialogNotend={dialogNotend}
+                  onToggleDialogNotend={() => setDialogNotend(!dialogNotend)}
+                  dialogConcat={dialogConcat}
+                  onToggleDialogConcat={() => setDialogConcat(!dialogConcat)}
                   onSendEffect={handleSendEffect}
                   setAudioFile={setAudioFile}
                 />

@@ -11,8 +11,12 @@ interface VoiceRenderPanelProps {
   figurePosition?: FigurePosition;
   /** 头像的 avatarTitle，用于获取默认情感向量 */
   avatarTitle?: Record<string, string>;
+  /** 此话不停顿（-notend） */
+  notend?: boolean;
+  /** 续接上段话（-concat） */
+  concat?: boolean;
   /** 设置变更回调 */
-  onChange: (emotionVector: number[], figurePosition: FigurePosition) => void;
+  onChange: (emotionVector: number[], figurePosition: FigurePosition, notend: boolean, concat: boolean) => void;
   /** 是否可编辑 */
   canEdit?: boolean;
 }
@@ -37,11 +41,15 @@ export function VoiceRenderPanel({
   emotionVector: initialVector,
   figurePosition: initialPosition,
   avatarTitle,
+  notend: initialNotend,
+  concat: initialConcat,
   onChange,
   canEdit = true,
 }: VoiceRenderPanelProps) {
   const roomContext = use(RoomContext);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [localNotend, setLocalNotend] = useState(initialNotend ?? false);
+  const [localConcat, setLocalConcat] = useState(initialConcat ?? false);
 
   // 从 avatarTitle 获取头像的默认情感向量
   const defaultVectorFromAvatar = useMemo(() => {
@@ -67,7 +75,9 @@ export function VoiceRenderPanel({
     }
     if (initialPosition)
       setLocalPosition(initialPosition);
-  }, [initialVector, initialPosition, avatarTitle]);
+    setLocalNotend(initialNotend ?? false);
+    setLocalConcat(initialConcat ?? false);
+  }, [initialVector, initialPosition, avatarTitle, initialNotend, initialConcat]);
 
   const handleEmotionChange = useCallback((index: number, value: number) => {
     setLocalVector((prev) => {
@@ -80,22 +90,34 @@ export function VoiceRenderPanel({
   const applyPreset = useCallback((vector: number[]) => {
     const newVector = [...vector];
     setLocalVector(newVector);
-    onChange(normalizeEmotionVector(newVector, 1.5), localPosition);
-  }, [localPosition, onChange]);
+    onChange(normalizeEmotionVector(newVector, 1.5), localPosition, localNotend, localConcat);
+  }, [localPosition, localNotend, localConcat, onChange]);
 
   const handlePositionChange = useCallback((pos: FigurePosition) => {
     setLocalPosition(pos);
-    onChange(normalizeEmotionVector(localVector, 1.5), pos);
-  }, [localVector, onChange]);
+    onChange(normalizeEmotionVector(localVector, 1.5), pos, localNotend, localConcat);
+  }, [localVector, localNotend, localConcat, onChange]);
+
+  const handleNotendChange = useCallback((checked: boolean) => {
+    setLocalNotend(checked);
+    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, checked, localConcat);
+  }, [localVector, localPosition, localConcat, onChange]);
+
+  const handleConcatChange = useCallback((checked: boolean) => {
+    setLocalConcat(checked);
+    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, checked);
+  }, [localVector, localPosition, localNotend, onChange]);
 
   const handleSave = useCallback(() => {
-    onChange(normalizeEmotionVector(localVector, 1.5), localPosition);
-  }, [localVector, localPosition, onChange]);
+    onChange(normalizeEmotionVector(localVector, 1.5), localPosition, localNotend, localConcat);
+  }, [localVector, localPosition, localNotend, localConcat, onChange]);
 
   const handleClear = useCallback(() => {
     setLocalVector([0, 0, 0, 0, 0, 0, 0, 0]);
     setLocalPosition("left");
-    onChange([0, 0, 0, 0, 0, 0, 0, 0], "left");
+    setLocalNotend(false);
+    setLocalConcat(false);
+    onChange([0, 0, 0, 0, 0, 0, 0, 0], "left", false, false);
   }, [onChange]);
 
   // 如果未开启 WebGAL 联动模式，不显示面板
@@ -159,6 +181,30 @@ export function VoiceRenderPanel({
               </button>
             ))}
           </div>
+        </div>
+
+        <span className="text-base-content/30">|</span>
+
+        {/* 对话参数：-notend 和 -concat */}
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-xs checkbox-primary rounded-none"
+              checked={localNotend}
+              onChange={e => handleNotendChange(e.target.checked)}
+            />
+            <span className="tooltip tooltip-bottom" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
+          </label>
+          <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-xs checkbox-primary rounded-none"
+              checked={localConcat}
+              onChange={e => handleConcatChange(e.target.checked)}
+            />
+            <span className="tooltip tooltip-bottom" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
+          </label>
         </div>
 
         <span className="text-base-content/30">|</span>

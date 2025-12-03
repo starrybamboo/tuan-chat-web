@@ -110,7 +110,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   }
 
   // 处理语音渲染设置更新
-  function handleVoiceRenderSettingsChange(emotionVector: number[], figurePosition: FigurePosition) {
+  function handleVoiceRenderSettingsChange(emotionVector: number[], figurePosition: FigurePosition, notend: boolean, concat: boolean) {
     // 判断情感向量是否改变（用于决定是否重新生成 TTS）
     const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
     const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
@@ -122,6 +122,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
         voiceRenderSettings: {
           emotionVector,
           figurePosition,
+          notend,
+          concat,
         },
       },
     } as Message;
@@ -138,6 +140,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               voiceRenderSettings: {
                 emotionVector,
                 figurePosition,
+                notend,
+                concat,
               },
             },
           };
@@ -346,6 +350,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       emotionVector={voiceRenderSettings?.emotionVector}
                       figurePosition={voiceRenderSettings?.figurePosition}
                       avatarTitle={avatar?.avatarTitle}
+                      notend={voiceRenderSettings?.notend}
+                      concat={voiceRenderSettings?.concat}
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
                     />
@@ -397,6 +403,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       emotionVector={voiceRenderSettings?.emotionVector}
                       figurePosition={voiceRenderSettings?.figurePosition}
                       avatarTitle={avatar?.avatarTitle}
+                      notend={voiceRenderSettings?.notend}
+                      concat={voiceRenderSettings?.concat}
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
                     />
