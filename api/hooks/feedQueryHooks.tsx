@@ -4,6 +4,7 @@ import { tuanchat } from "api/instance";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { useEffect, useState,useMemo, useCallback, useRef } from "react";
 import type { FeedPageRequest, FeedWithStatsResponse, PostListResponse } from "../index";
+import { useDebounceFn } from 'ahooks';
 
 /**
  * 发布图文/聊天消息 Feed
@@ -70,14 +71,28 @@ export function useFeedInfiniteQuery( PAGE_SIZE :number = 10 , MAX_PAGES:number 
 /**
  * 无限滚动监听
  */
-export function useInfiniteScrollObserver(isFetching:boolean,hasNextPage:boolean,fetchNextPage:()=>Promise<unknown>){
-    const [ref , entry] = useIntersectionObserver();
-    useEffect(()=>{
-        if (entry?.isIntersecting&&!isFetching && hasNextPage){
-            void fetchNextPage();
-        }}
-        ,[entry?.isIntersecting,isFetching,hasNextPage]);
-    return ref;
+
+export function useInfiniteScrollObserver(
+  isFetching: boolean,
+  hasNextPage: boolean,
+  fetchNextPage: () => Promise<unknown>
+) {
+  const [ref, entry] = useIntersectionObserver();
+
+  // 防抖 fetchNextPage
+  const { run: debouncedFetch } = useDebounceFn(() => {
+    if (!isFetching && hasNextPage) {
+      void fetchNextPage();
+    }
+  }, { wait: 200 });
+
+  useEffect(() => {
+    if (entry?.isIntersecting) {
+      debouncedFetch();
+    }
+  }, [entry?.isIntersecting, debouncedFetch]);
+
+  return ref;
 }
 
 /**
