@@ -2,7 +2,7 @@ import { useMutation, useQuery ,useInfiniteQuery, useQueryClient } from "@tansta
 import type { FeedWithStats } from "@/types/feedTypes";
 import { tuanchat } from "api/instance";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { useEffect, useState,useMemo, useCallback } from "react";
+import { useEffect, useState,useMemo, useCallback, useRef } from "react";
 import type { FeedPageRequest, FeedWithStatsResponse, PostListResponse } from "../index";
 
 /**
@@ -119,17 +119,22 @@ export function useFilterFeeds(allFeeds:FeedWithStats<PostListResponse>[],hidden
 /**
  * feed详情预加载
  */
+
 export function useFeedPrefetch() {
   const queryClient = useQueryClient();
+  const lastTimeRef = useRef(0);
 
   const prefetch = useCallback((feed: FeedWithStats<any>) => {
-    const postId = feed.response?.communityPostId; 
+    const now = Date.now();
+    if (now - lastTimeRef.current < 1000) return; // 节流 1s
+    lastTimeRef.current = now;
+
+    const postId = feed.response?.communityPostId;
     const moduleId = feed.response?.moduleId;
 
     if (!postId && !moduleId) return;
 
     if (postId) {
-      // 预取帖子
       queryClient.prefetchQuery({
         queryKey: ['getPostDetail', postId],
         queryFn: () => tuanchat.communityPostController.getPostDetail(postId),
@@ -138,9 +143,8 @@ export function useFeedPrefetch() {
     }
 
     if (moduleId) {
-      // 预取模组
       queryClient.prefetchQuery({
-        queryKey:['moduleDetail', moduleId],
+        queryKey: ['moduleDetail', moduleId],
         queryFn: () => tuanchat.moduleController.getById(moduleId),
         staleTime: 5 * 60 * 1000,
       });
@@ -149,4 +153,5 @@ export function useFeedPrefetch() {
 
   return { prefetch };
 }
+
 
