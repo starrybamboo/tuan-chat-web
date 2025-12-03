@@ -1224,6 +1224,25 @@ export function AddRingLight(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 旁白图标（用于 WebGAL 联动模式下无角色的旁白消息）
+export function NarratorIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        {/* 引号符号，表示旁白/叙述 */}
+        <path d="M10 8c-2 0-3 1.5-3 3s1 3 3 3c0 2-1.5 3-3 3" />
+        <path d="M17 8c-2 0-3 1.5-3 3s1 3 3 3c0 2-1.5 3-3 3" />
+      </g>
+    </svg>
+  );
+}
+
 // 物品图标
 export function Items(
   props: SVGProps<SVGSVGElement>,

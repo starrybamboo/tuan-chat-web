@@ -860,13 +860,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 没有权限
   const noRole = curRoleId <= 0;
   const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile); // 没有内容
-  const disableSendMessage = noRole || notMember || noInput || isSubmitting;
+  // WebGAL 联动模式下允许无角色发送（作为旁白）
+  const disableSendMessage = (noRole && !webgalLinkMode) || notMember || noInput || isSubmitting;
 
   const handleMessageSubmit = async () => {
     if (disableSendMessage) {
       if (notMember)
         toast.error("您是观战，不能发送消息");
-      else if (noRole)
+      else if (noRole && !webgalLinkMode)
         toast.error("请先拉入你的角色，之后才能发送消息。");
       else if (noInput)
         toast.error("请输入内容");
