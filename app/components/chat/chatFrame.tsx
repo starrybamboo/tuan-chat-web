@@ -8,6 +8,7 @@ import type {
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
 import { RoomContext } from "@/components/chat/roomContext";
+import PixiOverlay from "@/components/chat/smallComponents/pixiOverlay";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
@@ -63,11 +64,6 @@ function ChatFrame(props: {
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
-  const updateMessageMutation = useUpdateMessageMutation();
-  const updateMessage = useCallback((message: Message) => {
-    updateMessageMutation.mutate(message);
-    roomContext.chatHistory?.addOrUpdateMessage({ message });
-  }, [updateMessageMutation, roomContext.chatHistory]);
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -139,6 +135,27 @@ function ChatFrame(props: {
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     return roomContext.chatHistory?.messages ?? [];
   }, [roomContext.chatHistory?.messages]);
+
+  // 删除消息（逻辑删除：更新本地消息状态为已删除）
+  const deleteMessage = useCallback((messageId: number) => {
+    deleteMessageMutation.mutate(messageId, {
+      onSuccess: () => {
+        // 找到要删除的消息，更新其 status 为 1（已删除）
+        const targetMessage = historyMessages.find(m => m.message.messageId === messageId);
+        if (targetMessage && roomContext.chatHistory) {
+          const updatedMessage = {
+            ...targetMessage,
+            message: {
+              ...targetMessage.message,
+              status: 1, // 逻辑删除状态
+            },
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedMessage);
+        }
+      },
+    });
+  }, [deleteMessageMutation, historyMessages, roomContext.chatHistory]);
+
   /**
    * 虚拟列表
    */
@@ -185,20 +202,36 @@ function ChatFrame(props: {
 
   /**
    * 背景图片随聊天记录而改变
+   * 注意：已删除的消息（status === 1）不应该显示背景图片
    */
   const imgNode = useMemo(() => {
     return historyMessages
       .map((msg, index) => {
-        return { index, imageMessage: msg.message.extra?.imageMessage };
+        return { index, imageMessage: msg.message.extra?.imageMessage, status: msg.message.status };
       })
-      .filter(item => item.imageMessage && item.imageMessage.background);
+      .filter(item => item.imageMessage && item.imageMessage.background && item.status !== 1);
+  }, [historyMessages]);
+
+  /**
+   * 特效随聊天记录而改变
+   * 注意：已删除的消息（status === 1）不应该显示特效
+   */
+  const effectNode = useMemo(() => {
+    return historyMessages
+      .map((msg, index) => {
+        return { index, effectMessage: msg.message.extra?.effectMessage, status: msg.message.status };
+      })
+      .filter(item => item.effectMessage && item.effectMessage.effectName && item.status !== 1);
   }, [historyMessages]);
 
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
+  const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   useEffect(() => {
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
+
+    // Update Background URL
     let newBgUrl: string | null = null;
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex) {
@@ -213,6 +246,36 @@ function ChatFrame(props: {
       return () => clearTimeout(id);
     }
   }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+
+  useEffect(() => {
+    const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
+
+    // Update Effect
+    let newEffect: string | null = null;
+    for (const effect of effectNode) {
+      if (effect.index <= currentMessageIndex) {
+        newEffect = effect.effectMessage?.effectName ?? null;
+      }
+      else {
+        break;
+      }
+    }
+    if (newEffect !== currentEffect) {
+      setCurrentEffect(newEffect);
+    }
+  }, [currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
+
+  const updateMessageMutation = useUpdateMessageMutation();
+  const updateMessage = useCallback((message: Message) => {
+    updateMessageMutation.mutate(message);
+    // 从 historyMessages 中找到完整的 ChatMessageResponse，保留 messageMark 等字段
+    const existingResponse = historyMessages.find(m => m.message.messageId === message.messageId);
+    const newResponse = {
+      ...existingResponse,
+      message,
+    };
+    roomContext.chatHistory?.addOrUpdateMessage(newResponse as ChatMessageResponse);
+  }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
 
   /**
    * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
@@ -365,17 +428,18 @@ function ChatFrame(props: {
     targetIndex: number,
     messageIds: number[],
   ) => {
+    const messageIdSet = new Set(messageIds);
     const selectedMessages = Array.from(messageIds)
       .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
       .filter((msg): msg is Message => msg !== undefined)
       .sort((a, b) => a.position - b.position);
-    // 寻找到不位于，messageIds中且离dropPosition最近的消息
+    // 寻找到不位于 messageIds 中且离 dropPosition 最近的消息
     let topMessageIndex: number = targetIndex;
     let bottomMessageIndex: number = targetIndex + 1;
-    while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageId)) {
+    while (messageIdSet.has(historyMessages[topMessageIndex]?.message.messageId)) {
       topMessageIndex--;
     }
-    while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
+    while (messageIdSet.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
       bottomMessageIndex++;
     }
     const topMessagePosition = historyMessages[topMessageIndex]?.message.position
@@ -390,7 +454,7 @@ function ChatFrame(props: {
         position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
       });
     }
-  }, [historyMessages, selectedMessageIds, updateMessage]);
+  }, [historyMessages, updateMessage]);
   /**
    * 检查拖拽的位置
    */
@@ -484,7 +548,7 @@ function ChatFrame(props: {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
 
   function handleDelete() {
-    deleteMessageMutation.mutate(contextMenu?.messageId ?? -1);
+    deleteMessage(contextMenu?.messageId ?? -1);
   }
 
   function handleContextMenu(e: React.MouseEvent) {
@@ -506,7 +570,7 @@ function ChatFrame(props: {
 
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
-      deleteMessageMutation.mutate(messageId);
+      deleteMessage(messageId);
     }
     updateSelectedMessageIds(new Set());
   }
@@ -548,15 +612,24 @@ function ChatFrame(props: {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
     const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
+    const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
     return ((
       <div
         key={chatMessageResponse.message.messageId}
         className={`
-        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
+        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
+          // 检查点击目标是否是按钮或其子元素，如果是则不触发跳转
+          const target = e.target as HTMLElement;
+          const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
+
           if (isSelecting || e.ctrlKey) {
             toggleMessageSelection(chatMessageResponse.message.messageId);
+          }
+          else if (roomContext.jumpToMessageInWebGAL && !isButtonClick) {
+            // 如果实时渲染已激活且不是点击按钮，单击消息跳转到 WebGAL 对应位置
+            roomContext.jumpToMessageInWebGAL(chatMessageResponse.message.messageId);
           }
         }}
         onDragOver={handleDragOver}
@@ -586,6 +659,7 @@ function ChatFrame(props: {
   }, [
     selectedMessageIds,
     roomContext.curMember?.memberType,
+    roomContext.jumpToMessageInWebGAL,
     virtuosoIndexToMessageIndex,
     isDragging,
     isSelecting,
@@ -632,6 +706,10 @@ function ChatFrame(props: {
           opacity: currentBackgroundUrl ? 1 : 0,
         }}
       />
+
+      {/* Pixi Overlay */}
+      <PixiOverlay effectName={currentEffect} />
+
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
