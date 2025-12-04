@@ -63,7 +63,7 @@ import {
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
 import ClueListForPL from "./sideDrawer/clueListForPL";
 import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
-import WebGALPreview from "./sideDrawer/WebGalPreview";
+import WebGALPreview from "./sideDrawer/webGALPreview";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
