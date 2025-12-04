@@ -865,6 +865,28 @@ export class RealtimeRenderer {
   }
 
   /**
+   * 上传音效到 vocal 文件夹
+   */
+  private uploadedSoundEffectsMap = new Map<string, string>();
+  private async uploadSoundEffect(url: string): Promise<string | null> {
+    if (this.uploadedSoundEffectsMap.has(url)) {
+      return this.uploadedSoundEffectsMap.get(url) || null;
+    }
+
+    try {
+      // WebGAL 的 playEffect 使用 vocal 文件夹
+      const path = `games/${this.gameName}/game/vocal/`;
+      const fileName = await uploadFile(url, path);
+      this.uploadedSoundEffectsMap.set(url, fileName);
+      return fileName;
+    }
+    catch (error) {
+      console.error("上传音效失败:", error);
+      return null;
+    }
+  }
+
+  /**
    * 获取立绘文件名（如果未上传则上传）
    */
   private async getAndUploadSprite(avatarId: number, roleId: number): Promise<string | null> {
@@ -965,21 +987,29 @@ export class RealtimeRenderer {
       return;
     }
 
-    // 处理 BGM：优先识别 soundMessage(purpose==='bgm') 或者通过 content 标记
+    // 处理音频消息（BGM 或 音效）
     let soundMsg = msg.extra?.soundMessage;
-    if (!soundMsg && msg.messageType === 7 && msg.extra?.url) {
-      soundMsg = msg.extra;
+    if (!soundMsg && msg.messageType === 7 && (msg.extra as any)?.url) {
+      soundMsg = msg.extra as any;
     }
-    const isMarkedBgm = (typeof msg.content === "string" && msg.content.includes("[播放BGM]")) || soundMsg?.purpose === "bgm";
-    if (soundMsg && isMarkedBgm) {
+
+    if (soundMsg) {
       const url = soundMsg.url;
-      if (url) {
+      if (!url)
+        return;
+
+      // 判断是 BGM 还是音效
+      const isMarkedBgm = (typeof msg.content === "string" && msg.content.includes("[播放BGM]")) || soundMsg.purpose === "bgm";
+      const isMarkedSE = (typeof msg.content === "string" && msg.content.includes("[播放音效]")) || soundMsg.purpose === "se";
+
+      if (isMarkedBgm) {
+        // 处理 BGM
         const bgmFileName = await this.uploadBgm(url);
         if (bgmFileName) {
           let command = `bgm:${bgmFileName}`;
-          const vol = soundMsg.volume;
+          const vol = (soundMsg as any).volume;
           if (vol !== undefined) {
-            command += ` -vol:${vol}`;
+            command += ` -volume=${vol}`;
           }
           command += " -next;";
           await this.appendLine(targetRoomId, command, syncToFile);
@@ -987,6 +1017,27 @@ export class RealtimeRenderer {
             this.sendSyncMessage(targetRoomId);
         }
       }
+      else if (isMarkedSE) {
+        // 处理音效（playEffect）
+        const seFileName = await this.uploadSoundEffect(url);
+        if (seFileName) {
+          let command = `playEffect:${seFileName}`;
+          const vol = (soundMsg as any).volume;
+          if (vol !== undefined) {
+            command += ` -volume=${vol}`;
+          }
+          // 支持循环音效（通过 loopId）
+          const loopId = (soundMsg as any).loopId;
+          if (loopId) {
+            command += ` -id=${loopId}`;
+          }
+          command += " -next;";
+          await this.appendLine(targetRoomId, command, syncToFile);
+          if (syncToFile)
+            this.sendSyncMessage(targetRoomId);
+        }
+      }
+      // 如果既不是 BGM 也不是音效，则跳过（默认不处理普通语音消息）
       return;
     }
 

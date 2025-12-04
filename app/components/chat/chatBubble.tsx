@@ -168,6 +168,41 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     });
   }
 
+  // 处理音频用途切换（语音/BGM/音效）
+  function handleAudioPurposeChange(purpose: string) {
+    const soundMessage = message.extra?.soundMessage;
+    if (!soundMessage)
+      return;
+
+    const newMessage = {
+      ...message,
+      extra: {
+        ...message.extra,
+        soundMessage: {
+          ...soundMessage,
+          purpose,
+        },
+      },
+    };
+
+    updateMessageMutation.mutate(newMessage, {
+      onSuccess: (response) => {
+        if (response?.data && roomContext.chatHistory) {
+          const updatedChatMessageResponse = {
+            ...chatMessageResponse,
+            message: response.data,
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          // 如果 WebGAL 联动模式开启，则重渲染
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
+          }
+        }
+      },
+    });
+  }
+
   // 处理角色名编辑
   function handleRoleNameClick() {
     if (canEdit && roomContext.webgalLinkMode) {
@@ -384,12 +419,48 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     }
 
     if (soundMsg) {
+      const currentPurpose = soundMsg.purpose || "";
       contentElements.push(
         <div key="audio" className="mt-2">
           <AudioMessage
             url={soundMsg.url || ""}
             duration={soundMsg.second}
           />
+          {/* 音频类型选择器 */}
+          {canEdit && (
+            <div className="flex items-center gap-3 mt-1 text-xs">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`audio-purpose-${message.messageId}`}
+                  className="radio radio-xs"
+                  checked={!currentPurpose}
+                  onChange={() => handleAudioPurposeChange("")}
+                />
+                <span>语音</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`audio-purpose-${message.messageId}`}
+                  className="radio radio-xs"
+                  checked={currentPurpose === "bgm"}
+                  onChange={() => handleAudioPurposeChange("bgm")}
+                />
+                <span>BGM</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`audio-purpose-${message.messageId}`}
+                  className="radio radio-xs"
+                  checked={currentPurpose === "se"}
+                  onChange={() => handleAudioPurposeChange("se")}
+                />
+                <span>音效</span>
+              </label>
+            </div>
+          )}
         </div>,
       );
     }

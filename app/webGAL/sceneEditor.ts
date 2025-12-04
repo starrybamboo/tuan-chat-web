@@ -170,6 +170,15 @@ export class SceneEditor {
     return await uploadFile(url, path, `${bgmName}.${fileExtension}`);
   }
 
+  // 上传音效到 vocal 文件夹（WebGAL 的 playEffect 使用 vocal 文件夹）
+  public async uploadSoundEffect(url: string): Promise<string> {
+    const path = `games/${this.game.name}/game/vocal/`;
+    const fileExtension = getFileExtensionFromUrl(url, "mp3");
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const seName = `se_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${seName}.${fileExtension}`);
+  }
+
   public async addLineToRenderer(line: string, sceneName: string): Promise<void> {
     if (!line.trim())
       return; // 跳过空消息

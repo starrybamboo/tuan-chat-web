@@ -118,7 +118,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [audioFile, setAudioFile] = useState<File | null>(null);
   // 发送选项
   const [sendAsBackground, setSendAsBackground] = useState(false);
-  const [sendAsBgm, setSendAsBgm] = useState(false);
+  // 音频用途：undefined=普通语音, "bgm"=背景音乐, "se"=音效
+  const [audioPurpose, setAudioPurpose] = useState<"bgm" | "se" | undefined>(undefined);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
@@ -985,7 +986,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           messageType: MessageType.SOUND,
           extra: {
             ...soundMessageData,
-            purpose: sendAsBgm ? "bgm" : undefined,
+            purpose: audioPurpose,
           },
         };
         send(audioMsg);
@@ -1005,7 +1006,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       setInputText(""); // 调用重构的 setInputText 来清空
       setReplyMessage(undefined);
       setSendAsBackground(false);
-      setSendAsBgm(false);
+      setAudioPurpose(undefined);
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -1279,15 +1280,19 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                             </div>
                           )}
                           {audioFile && (
-                            <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
-                              <input
-                                type="checkbox"
-                                className="checkbox checkbox-xs checkbox-primary"
-                                checked={sendAsBgm}
-                                onChange={e => setSendAsBgm(e.target.checked)}
-                              />
-                              <span>设为 BGM</span>
-                            </label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-base-content/60">用途:</span>
+                              <select
+                                title="选择音频用途"
+                                className="select select-xs select-bordered"
+                                value={audioPurpose || ""}
+                                onChange={e => setAudioPurpose(e.target.value as "bgm" | "se" | undefined || undefined)}
+                              >
+                                <option value="">普通语音</option>
+                                <option value="bgm">BGM</option>
+                                <option value="se">音效</option>
+                              </select>
+                            </div>
                           )}
                         </div>
                       </div>

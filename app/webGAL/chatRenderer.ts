@@ -362,27 +362,47 @@ export class ChatRenderer {
           }
         }
 
-        // 处理 BGM：优先识别 soundMessage(purpose==='bgm') 或 content 标记
-        else if (
-          (message.extra?.soundMessage || (message.messageType === 7 && message.extra?.url))
-          && ((typeof message.content === "string" && message.content.includes("[播放BGM]"))
-            || message.extra?.soundMessage?.purpose === "bgm"
-            || (message.messageType === 7 && message.extra?.purpose === "bgm"))
-        ) {
+        // 处理音频消息（BGM 或 音效）
+        else if (message.extra?.soundMessage || (message.messageType === 7 && (message.extra as any)?.url)) {
           let soundMsg = message.extra?.soundMessage;
-          if (!soundMsg && message.messageType === 7 && message.extra?.url) {
-            soundMsg = message.extra;
+          if (!soundMsg && message.messageType === 7 && (message.extra as any)?.url) {
+            soundMsg = message.extra as any;
           }
+
           const url = soundMsg?.url;
           if (url) {
-            const bgmFileName = await this.sceneEditor.uploadBgm(url);
-            let command = `bgm:${bgmFileName}`;
-            const vol = soundMsg?.volume;
-            if (vol !== undefined) {
-              command += ` -vol:${vol}`;
+            // 判断是 BGM 还是音效
+            const isMarkedBgm = (typeof message.content === "string" && message.content.includes("[播放BGM]")) || soundMsg?.purpose === "bgm";
+            const isMarkedSE = (typeof message.content === "string" && message.content.includes("[播放音效]")) || soundMsg?.purpose === "se";
+
+            if (isMarkedBgm) {
+              // 处理 BGM
+              const bgmFileName = await this.sceneEditor.uploadBgm(url);
+              let command = `bgm:${bgmFileName}`;
+              const vol = (soundMsg as any)?.volume;
+              if (vol !== undefined) {
+                command += ` -volume=${vol}`;
+              }
+              command += " -next";
+              await this.sceneEditor.addLineToRenderer(command, sceneName);
             }
-            command += " -next";
-            await this.sceneEditor.addLineToRenderer(command, sceneName);
+            else if (isMarkedSE) {
+              // 处理音效（playEffect）
+              const seFileName = await this.sceneEditor.uploadSoundEffect(url);
+              let command = `playEffect:${seFileName}`;
+              const vol = (soundMsg as any)?.volume;
+              if (vol !== undefined) {
+                command += ` -volume=${vol}`;
+              }
+              // 支持循环音效（通过 loopId）
+              const loopId = (soundMsg as any)?.loopId;
+              if (loopId) {
+                command += ` -id=${loopId}`;
+              }
+              command += " -next";
+              await this.sceneEditor.addLineToRenderer(command, sceneName);
+            }
+            // 如果既不是 BGM 也不是音效，则跳过
           }
         }
 
