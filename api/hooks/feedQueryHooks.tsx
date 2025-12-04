@@ -1,9 +1,10 @@
-import { useMutation, useQuery ,useInfiniteQuery } from "@tanstack/react-query";
+import { useMutation, useQuery ,useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { FeedWithStats } from "@/types/feedTypes";
 import { tuanchat } from "api/instance";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { useEffect, useState,useMemo } from "react";
+import { useEffect, useState,useMemo, useCallback, useRef } from "react";
 import type { FeedPageRequest, FeedWithStatsResponse, PostListResponse } from "../index";
+import { useDebounceFn } from 'ahooks';
 
 /**
  * 发布图文/聊天消息 Feed
@@ -70,14 +71,28 @@ export function useFeedInfiniteQuery( PAGE_SIZE :number = 10 , MAX_PAGES:number 
 /**
  * 无限滚动监听
  */
-export function useInfiniteScrollObserver(isFetching:boolean,hasNextPage:boolean,fetchNextPage:()=>Promise<unknown>){
-    const [ref , entry] = useIntersectionObserver();
-    useEffect(()=>{
-        if (entry?.isIntersecting&&!isFetching && hasNextPage){
-            void fetchNextPage();
-        }}
-        ,[entry?.isIntersecting,isFetching,hasNextPage]);
-    return ref;
+
+export function useInfiniteScrollObserver(
+  isFetching: boolean,
+  hasNextPage: boolean,
+  fetchNextPage: () => Promise<unknown>
+) {
+  const [ref, entry] = useIntersectionObserver();
+
+  // 防抖 fetchNextPage
+  const { run: debouncedFetch } = useDebounceFn(() => {
+    if (!isFetching && hasNextPage) {
+      void fetchNextPage();
+    }
+  }, { wait: 200 });
+
+  useEffect(() => {
+    if (entry?.isIntersecting) {
+      debouncedFetch();
+    }
+  }, [entry?.isIntersecting, debouncedFetch]);
+
+  return ref;
 }
 
 /**
@@ -115,3 +130,43 @@ export function useFilterFeeds(allFeeds:FeedWithStats<PostListResponse>[],hidden
     },[allFeeds,hiddenFeeds])
     return displayFeeds;
 }
+
+/**
+ * feed详情预加载
+ */
+
+export function useFeedPrefetch() {
+  const queryClient = useQueryClient();
+  const lastTimeRef = useRef(0);
+
+  const prefetch = useCallback((feed: FeedWithStats<any>) => {
+    const now = Date.now();
+    if (now - lastTimeRef.current < 1000) return; // 节流 1s
+    lastTimeRef.current = now;
+
+    const postId = feed.response?.communityPostId;
+    const moduleId = feed.response?.moduleId;
+
+    if (!postId && !moduleId) return;
+
+    if (postId) {
+      queryClient.prefetchQuery({
+        queryKey: ['getPostDetail', postId],
+        queryFn: () => tuanchat.communityPostController.getPostDetail(postId),
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+
+    if (moduleId) {
+      queryClient.prefetchQuery({
+        queryKey: ['moduleDetail', moduleId],
+        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+  }, [queryClient]);
+
+  return { prefetch };
+}
+
+

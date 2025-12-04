@@ -9,6 +9,15 @@ interface StepDescriptor {
   title: string;
 }
 
+interface ToolButton {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "primary" | "secondary";
+}
+
 interface RoleCreationLayoutProps {
   title: string;
   description: string;
@@ -20,6 +29,7 @@ interface RoleCreationLayoutProps {
   onComplete: () => void | Promise<void>;
   renderContent: () => ReactNode;
   onBack?: () => void;
+  toolButtons?: ToolButton[];
 }
 
 export default function RoleCreationLayout({
@@ -33,6 +43,7 @@ export default function RoleCreationLayout({
   onComplete,
   renderContent,
   onBack,
+  toolButtons,
 }: RoleCreationLayoutProps) {
   const totalSteps = steps.length;
 
@@ -48,7 +59,7 @@ export default function RoleCreationLayout({
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <CreatePageHeader title={title} description={description} onBack={onBack} />
+      <CreatePageHeader title={title} description={description} onBack={onBack} toolButtons={toolButtons} />
       <StepIndicator steps={steps} currentStep={currentStep} />
       <div className="mb-8">{renderContent()}</div>
       <NavigationButtons
