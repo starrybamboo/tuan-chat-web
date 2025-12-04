@@ -62,6 +62,13 @@ export default antfu(
     },
   },
   {
+    // WebGAL Preview 需要 allow-scripts 和 allow-same-origin 才能正常运行
+    files: ["**/webGALPreview.tsx"],
+    rules: {
+      "react-dom/no-unsafe-iframe-sandbox": "off",
+    },
+  },
+  {
     files: ["api/**/*.js", "api/**/*.ts", "services/**/*.ts"],
     rules: {
       "eslint-comments/no-unlimited-disable": "off",

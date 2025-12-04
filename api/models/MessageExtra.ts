@@ -8,6 +8,7 @@ import type { FileMessage } from './FileMessage';
 import type { ForwardMessage } from './ForwardMessage';
 import type { ImageMessage } from './ImageMessage';
 import type { SoundMessage } from './SoundMessage';
+import type { EffectMessage } from './EffectMessage';
 /**
  * 不同类型消息持有的额外信息
  */
@@ -18,5 +19,6 @@ export type MessageExtra = {
     forwardMessage?: ForwardMessage;
     soundMessage?: SoundMessage;
     clueMessage?: ClueMessage;
+    effectMessage?: EffectMessage;
 };
 

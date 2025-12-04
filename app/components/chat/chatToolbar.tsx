@@ -1,21 +1,27 @@
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
+  ArrowBackThickFill,
+  CommandSolid,
   Detective,
   EmojiIconWhite,
   GalleryBroken,
   GirlIcon,
+  LinkFilled,
+  MusicNote,
   PointOnMapPerspectiveLinear,
   SendIcon,
   SharpDownload,
   SparklesOutline,
   SwordSwing,
+  WebgalIcon,
 } from "@/icons";
+import { useRef } from "react";
 
 interface ChatToolbarProps {
   // 侧边栏状态
-  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export";
-  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export") => void;
+  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal";
+  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal") => void;
 
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
@@ -32,6 +38,28 @@ interface ChatToolbarProps {
   onChangeChatStatus: (status: "idle" | "input" | "wait" | "leave") => void;
   // 是否是观战成员
   isSpectator?: boolean;
+  // 实时渲染相关
+  isRealtimeRenderActive?: boolean;
+  onToggleRealtimeRender?: () => void;
+  // WebGAL 联动模式
+  webgalLinkMode?: boolean;
+  onToggleWebgalLinkMode?: () => void;
+  // 自动回复模式
+  autoReplyMode?: boolean;
+  onToggleAutoReplyMode?: () => void;
+  // 默认立绘位置
+  defaultFigurePosition?: "left" | "center" | "right";
+  onSetDefaultFigurePosition?: (position: "left" | "center" | "right") => void;
+  // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
+  dialogNotend?: boolean;
+  onToggleDialogNotend?: () => void;
+  dialogConcat?: boolean;
+  onToggleDialogConcat?: () => void;
+
+  // WebGAL 控制
+  onSendEffect?: (effectName: string) => void;
+  // 发送语音
+  setAudioFile?: (file: File | null) => void;
 }
 
 export function ChatToolbar({
@@ -45,13 +73,32 @@ export function ChatToolbar({
   currentChatStatus,
   onChangeChatStatus,
   isSpectator = false,
+  isRealtimeRenderActive = false,
+  onToggleRealtimeRender,
+  webgalLinkMode = false,
+  onToggleWebgalLinkMode,
+  autoReplyMode = false,
+  onToggleAutoReplyMode,
+  defaultFigurePosition,
+  onSetDefaultFigurePosition,
+  dialogNotend = false,
+  onToggleDialogNotend,
+  dialogConcat = false,
+  onToggleDialogConcat,
+  onSendEffect,
+  setAudioFile,
 }: ChatToolbarProps) {
-  // 调试日志
-  console.warn("🛠️ ChatToolbar 渲染", {
-    isSpectator,
-    currentChatStatus,
-    onChangeChatStatusType: typeof onChangeChatStatus,
-  });
+  const audioInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !setAudioFile)
+      return;
+
+    setAudioFile(file);
+    // 重置 input value，允许重复选择同一文件
+    e.target.value = "";
+  };
 
   return (
     <div className="flex pr-1 pl-2 justify-between ">
@@ -161,6 +208,23 @@ export function ChatToolbar({
           </div>
         </ImgUploader>
 
+        {/* 发送语音 */}
+        {setAudioFile && (
+          <div className="tooltip" data-tip="发送语音">
+            <MusicNote
+              className="size-7 cursor-pointer jump_icon"
+              onClick={() => audioInputRef.current?.click()}
+            />
+            <input
+              type="file"
+              ref={audioInputRef}
+              className="hidden"
+              accept="audio/*"
+              onChange={handleAudioSelect}
+            />
+          </div>
+        )}
+
         {/* AI重写分离按钮 */}
         <div className="flex items-center gap-1">
           {/* 主按钮：默认重写 */}
@@ -242,6 +306,112 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2">
+        {/* 默认立绘位置选择器（仅在联动模式下显示） */}
+        {webgalLinkMode && onSetDefaultFigurePosition && (
+          <div className="flex items-center gap-1">
+            <div className="tooltip" data-tip="本角色默认位置">
+              <div className="join">
+                {(["left", "center", "right"] as const).map(pos => (
+                  <button
+                    key={pos}
+                    type="button"
+                    className={`join-item btn btn-xs px-2 ${defaultFigurePosition === pos ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => onSetDefaultFigurePosition(pos)}
+                    title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}`}
+                  >
+                    {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
+        {webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
+          <div className="flex items-center gap-2 text-xs">
+            {onToggleDialogNotend && (
+              <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-xs checkbox-primary rounded-none"
+                  checked={dialogNotend}
+                  onChange={onToggleDialogNotend}
+                />
+                <span className="tooltip tooltip-bottom" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
+              </label>
+            )}
+            {onToggleDialogConcat && (
+              <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-xs checkbox-primary rounded-none"
+                  checked={dialogConcat}
+                  onChange={onToggleDialogConcat}
+                />
+                <span className="tooltip tooltip-bottom" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
+              </label>
+            )}
+          </div>
+        )}
+
+        {/* 自动回复模式按钮（开关模式） */}
+        {onToggleAutoReplyMode && webgalLinkMode && (
+          <div
+            className={`tooltip tooltip-bottom ${autoReplyMode ? "text-success" : "hover:text-info"}`}
+            data-tip={autoReplyMode ? "关闭自动回复模式" : "开启自动回复模式（每条消息自动回复上一条）"}
+            onClick={onToggleAutoReplyMode}
+          >
+            <ArrowBackThickFill className={`size-6 cursor-pointer ${autoReplyMode ? "animate-pulse" : ""}`} />
+          </div>
+        )}
+        {/* WebGAL 导演控制台 */}
+        {webgalLinkMode && onSendEffect && (
+          <div className="dropdown dropdown-top dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="导演控制台"
+            >
+              <CommandSolid className="size-7" />
+            </div>
+            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+              {onSendEffect && (
+                <>
+                  <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>
+                  <li><a onClick={() => onSendEffect("snow")}>❄️ 下雪</a></li>
+                  <li><a onClick={() => onSendEffect("sakura")}>🌸 樱花</a></li>
+                  <li><a onClick={() => onSendEffect("none")}>🛑 停止特效</a></li>
+                </>
+              )}
+            </ul>
+          </div>
+        )}
+        {/* WebGAL 联动模式按钮 */}
+        {onToggleWebgalLinkMode && (
+          <div
+            className={`tooltip tooltip-bottom ${webgalLinkMode ? "text-info" : "hover:text-info opacity-50"}`}
+            data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
+            onClick={onToggleWebgalLinkMode}
+          >
+            <LinkFilled className={`size-6 cursor-pointer ${webgalLinkMode ? "" : "grayscale opacity-50"}`} />
+          </div>
+        )}
+
+        {/* 实时渲染按钮 */}
+        {onToggleRealtimeRender && (
+          <div
+            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+            data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
+            onClick={onToggleRealtimeRender}
+          >
+            <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+          </div>
+        )}
+
+        {/* miniAvatar 控件已移动到导出/配音设置面板 */}
+
         <div
           className="tooltip tooltip-bottom hover:text-info"
           data-tip="导出记录"

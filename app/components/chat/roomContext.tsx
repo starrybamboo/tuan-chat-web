@@ -2,6 +2,7 @@ import type { UseChatHistoryReturn } from "@/components/chat/indexedDB/useChatHi
 // src/context/chat-context.tsx
 import type React from "react";
 import type {
+  ChatMessageResponse,
   Message,
   SpaceMember,
   UserRole,
@@ -47,6 +48,55 @@ export interface RoomContextType {
    * @param messageId 消息ID
    */
   scrollToGivenMessage?: (messageId: number) => void;
+
+  /**
+   * 在 WebGAL 中跳转到指定消息
+   * @param messageId 消息ID
+   * @returns 是否跳转成功
+   */
+  jumpToMessageInWebGAL?: (messageId: number) => boolean;
+
+  /**
+   * WebGAL 联动模式
+   * 开启后会在消息气泡中显示立绘位置、情感等设置
+   */
+  webgalLinkMode?: boolean;
+
+  /**
+   * 设置 WebGAL 联动模式
+   */
+  setWebgalLinkMode?: (mode: boolean) => void;
+
+  /**
+   * 角色默认立绘位置 Map
+   * key: roleId, value: "left" | "center" | "right" | undefined
+   * undefined 表示不显示立绘
+   */
+  defaultFigurePositionMap?: Record<number, "left" | "center" | "right" | undefined>;
+
+  /**
+   * 设置角色默认立绘位置
+   * position 为 undefined 时表示不显示立绘
+   */
+  setDefaultFigurePosition?: (roleId: number, position: "left" | "center" | "right" | undefined) => void;
+
+  /**
+   * 自动回复模式（每次发送消息时自动回复最后一条消息）
+   */
+  autoReplyMode?: boolean;
+
+  /**
+   * 设置自动回复模式
+   */
+  setAutoReplyMode?: (mode: boolean) => void;
+
+  /**
+   * 更新消息渲染设置并在 WebGAL 中重新渲染跳转
+   * @param message 已更新的消息（包含最新的 voiceRenderSettings）
+   * @param regenerateTTS 是否重新生成 TTS（当情感向量变化时设为 true）
+   * @returns Promise<是否操作成功>
+   */
+  updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -61,4 +111,12 @@ export const RoomContext = createContext<RoomContextType>({
   setReplyMessage: undefined,
   chatHistory: undefined,
   scrollToGivenMessage: undefined,
+  jumpToMessageInWebGAL: undefined,
+  webgalLinkMode: false,
+  setWebgalLinkMode: undefined,
+  defaultFigurePositionMap: {},
+  setDefaultFigurePosition: undefined,
+  autoReplyMode: false,
+  setAutoReplyMode: undefined,
+  updateAndRerenderMessageInWebGAL: undefined,
 });

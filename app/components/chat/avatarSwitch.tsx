@@ -3,7 +3,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { AddRingLight } from "@/icons";
+import { AddRingLight, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import React, { use, useLayoutEffect, useMemo } from "react";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
@@ -33,6 +33,9 @@ export default function AvatarSwitch({
   const roleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const currentRole = useMemo(() => userRoles.find(r => r.roleId === curRoleId), [userRoles, curRoleId]);
 
+  // 判断是否为旁白模式（WebGAL 联动模式下无角色）
+  const isNarratorMode = curRoleId <= 0 && roomContext.webgalLinkMode;
+
   useLayoutEffect(() => {
     if (curAvatarId > 0)
       return;
@@ -44,6 +47,38 @@ export default function AvatarSwitch({
       setCurAvatarId(currentRole?.avatarId ?? -1);
     }
   }, [setCurAvatarId, userRoles, roleAvatars, curAvatarId, currentRole]);
+
+  // WebGAL 联动模式下的旁白模式
+  if (isNarratorMode) {
+    return (
+      <div className="dropdown dropdown-top flex-shrink-0 w-10 md:w-14">
+        <div role="button" tabIndex={0} className="">
+          <div
+            className="tooltip flex justify-center flex-col items-center space-y-2"
+            data-tip="当前为旁白模式，点击切换角色"
+          >
+            <div className="size-10 md:size-14 rounded-full bg-base-300 flex items-center justify-center">
+              <NarratorIcon className="size-6 md:size-8 text-base-content/60" />
+            </div>
+            <div className="text-sm truncate w-full text-center text-base-content/60">
+              旁白
+            </div>
+          </div>
+        </div>
+        <ul
+          tabIndex={0}
+          className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300"
+        >
+          <ExpressionChooser
+            roleId={curRoleId}
+            handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
+            handleRoleChange={roleId => setCurRoleId(roleId)}
+            showNarratorOption={true}
+          />
+        </ul>
+      </div>
+    );
+  }
 
   if (curRoleId <= 0) {
     return (
@@ -88,8 +123,8 @@ export default function AvatarSwitch({
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
-        >
-        </ExpressionChooser>
+          showNarratorOption={roomContext.webgalLinkMode}
+        />
       </ul>
     </div>
   );

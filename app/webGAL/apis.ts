@@ -1,3 +1,32 @@
+// ============================================================================
+// WebGAL Terre API Types
+// 完整匹配 WebGAL Terre 后端的 API 类型定义
+//
+// 此文件基于 WebGAL_Terre 项目的 API 结构生成
+// 参考: packages/origine2/src/api/Api.ts
+// 参考: packages/terre2/src/Modules/
+//
+// API 分类:
+// - App Controller: 基础信息接口 (/api/test, /api/osinfo)
+// - Assets Controller: 资产管理接口 (/api/assets/*)
+// - Manage Game Controller: 游戏管理接口 (/api/manageGame/*)
+// - Manage Template Controller: 模板管理接口 (/api/manageTemplate/*)
+// - Template Preview Controller: 模板预览接口 (/template-preview/*)
+//
+// WebSocket 端点:
+// - /api/webgalsync - 游戏同步消息广播
+// - /api/lsp2 - LSP (Language Server Protocol) 支持
+// ============================================================================
+
+// ===== App Types =====
+export type OsInfoDto = {
+  /** The platform of the operating system */
+  platform: string;
+  /** The architecture of the operating system */
+  arch: string;
+};
+
+// ===== Assets Types =====
 export type CreateNewFileDto = {
   /** The source path where the directory will be created */
   source: string;
@@ -15,7 +44,6 @@ export type CreateNewFolderDto = {
 export type UploadFilesDto = {
   /** Target directory for the uploaded files */
   targetDirectory: string;
-  files: File;
 };
 
 export type DeleteFileOrDirDto = {
@@ -37,6 +65,7 @@ export type EditTextFileDto = {
   textFile: string;
 };
 
+// ===== Template Types =====
 export type TemplateConfigDto = {
   /** The name of the template */
   "name": string;
@@ -46,6 +75,46 @@ export type TemplateConfigDto = {
   "webgal-version": string;
 };
 
+export type TemplateInfoDto = {
+  /** The name of the template */
+  "name": string;
+  /** The id of the template */
+  "id": string;
+  /** The webgal version of the template */
+  "webgal-version": string;
+  /** The dir of the template */
+  "dir": string;
+};
+
+export type CreateTemplateDto = {
+  /** The name of the template to be created */
+  templateName: string;
+  /** The dir of the template */
+  templateDir: string;
+};
+
+export type UpdateTemplateConfigDto = {
+  /** The dir of the template */
+  templateDir: string;
+  /** The new config of the template */
+  newTemplateConfig: TemplateConfigDto;
+};
+
+export type ApplyTemplateToGameDto = {
+  /** The template name to apply */
+  templateDir: string;
+  /** The game name to be applied. */
+  gameDir: string;
+};
+
+export type GetStyleByClassNameDto = {
+  /** The name of class to be fetched */
+  className: string;
+  /** The path of stylesheet file to be fetched */
+  filePath: string;
+};
+
+// ===== Game Types =====
 export type GameInfoDto = {
   /** The name of the game */
   name: string;
@@ -130,44 +199,23 @@ export type IconsDto = {
   platforms: string[];
 };
 
-export type TemplateInfoDto = {
-  /** The name of the template */
-  "name": string;
-  /** The id of the template */
-  "id": string;
-  /** The webgal version of the template */
-  "webgal-version": string;
-  /** The dir of the template */
-  "dir": string;
+// ===== Directory Info Types =====
+export type DirInfo = {
+  name: string;
+  isDir: boolean;
+  extName?: string;
+  path?: string;
 };
 
-export type CreateTemplateDto = {
-  /** The name of the template to be created */
-  templateName: string;
-  /** The dir of the template */
-  templateDir: string;
+export type ReadAssetsResponse = {
+  readDirPath: string;
+  dirPath: string;
+  dirInfo: DirInfo[];
 };
 
-export type UpdateTemplateConfigDto = {
-  /** The dir of the template */
-  templateDir: string;
-  /** The new config of the template */
-  newTemplateConfig: TemplateConfigDto;
-};
-
-export type ApplyTemplateToGameDto = {
-  /** The template name to apply */
-  templateDir: string;
-  /** The game name to be applied. */
-  gameDir: string;
-};
-
-export type GetStyleByClassNameDto = {
-  /** The name of class to be fetched */
-  className: string;
-  /** The path of stylesheet file to be fetched */
-  filePath: string;
-};
+// ============================================================================
+// HTTP Client
+// ============================================================================
 
 export type QueryParamsType = Record<string | number, any>;
 export type FullRequestParams = {
@@ -244,7 +292,7 @@ export class HttpClient {
  * @version 1.0
  * @contact
  *
- * API Refrence of WebGAL Terre Editor
+ * 完整匹配 WebGAL Terre Editor 后端的 API
  */
 type RequestParams = {
   secure?: boolean;
@@ -257,79 +305,527 @@ export class Api {
     this.httpClient = http;
   }
 
+  // ============================================================================
+  // App Controller APIs
+  // ============================================================================
+
+  /**
+   * API 测试接口
+   */
   public appControllerApiTest(params: RequestParams = {}) {
-    return this.httpClient.request({ path: `/api/test`, method: "GET", ...params });
-  }
-
-  public assetsControllerReadAssets(readDirPath: string) {
-    return this.httpClient.request<any>({
-      path: `/api/assets/readAssets/${readDirPath}`,
+    return this.httpClient.request<string>({
+      path: `/api/test`,
       method: "GET",
+      ...params,
     });
   }
 
-  public manageGameControllerGetGameList() {
-    return this.httpClient.request<GameInfoDto[]>({
-      path: `/api/manageGame/gameList`,
+  /**
+   * 获取操作系统信息
+   */
+  public appControllerGetOsInfo(params: RequestParams = {}) {
+    return this.httpClient.request<OsInfoDto>({
+      path: `/api/osinfo`,
       method: "GET",
+      ...params,
     });
   }
 
-  public manageGameControllerOpenGameDict(gameName: string) {
+  // ============================================================================
+  // Assets Controller APIs
+  // ============================================================================
+
+  /**
+   * 读取资产目录
+   * @param readDirPath 目录路径
+   */
+  public assetsControllerReadAssets(readDirPath: string, params: RequestParams = {}) {
+    return this.httpClient.request<ReadAssetsResponse>({
+      path: `/api/assets/readAssets/${encodeURIComponent(readDirPath)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 打开资产目录（在系统文件管理器中）
+   * @param dirPath 目录路径
+   */
+  public assetsControllerOpenDict(dirPath: string, params: RequestParams = {}) {
     return this.httpClient.request<void>({
-      path: `/api/manageGame/openGameDict/${gameName}`,
-      method: "GET",
+      path: `/api/assets/openDict/${encodeURIComponent(dirPath)}`,
+      method: "POST",
+      ...params,
     });
   }
 
-  public assetsControllerUpload(data: FormData, targetDirectory: string) {
-    const formData = new FormData();
-    formData.append("targetDirectory", targetDirectory);
-    if (data instanceof File) {
-      formData.append("files", data);
-    }
+  /**
+   * 创建新文件
+   * @param data 文件创建数据
+   */
+  public assetsControllerCreateNewFile(data: CreateNewFileDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/assets/createNewFile`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 创建新文件夹
+   * @param data 文件夹创建数据
+   */
+  public assetsControllerCreateNewFolder(data: CreateNewFolderDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/assets/createNewFolder`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 上传文件
+   * @param formData 包含文件的 FormData
+   */
+  public assetsControllerUpload(formData: FormData, params: RequestParams = {}) {
     return this.httpClient.request<void>({
       path: `/api/assets/upload`,
       method: "POST",
       body: formData,
+      ...params,
     });
   }
 
-  public manageGameControllerEditTextFile(data: EditTextFileDto) {
+  /**
+   * 删除文件或目录
+   * @param data 删除数据
+   */
+  public assetsControllerDeleteFileOrDir(data: DeleteFileOrDirDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/assets/delete`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 重命名文件或目录
+   * @param data 重命名数据
+   */
+  public assetsControllerRename(data: RenameFileDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/assets/rename`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 编辑文本文件
+   * @param data 文本文件编辑数据
+   */
+  public assetsControllerEditTextFile(data: EditTextFileDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/assets/editTextFile`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  // ============================================================================
+  // Manage Game Controller APIs
+  // ============================================================================
+
+  /**
+   * 获取游戏列表
+   */
+  public manageGameControllerGetGameList(params: RequestParams = {}) {
+    return this.httpClient.request<GameInfoDto[]>({
+      path: `/api/manageGame/gameList`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 创建新游戏
+   * @param data 游戏创建数据
+   */
+  public manageGameControllerCreateGame(data: CreateGameDto, params: RequestParams = {}) {
+    return this.httpClient.request<{ status: string }>({
+      path: `/api/manageGame/createGame`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 打开游戏目录（在系统文件管理器中）
+   * @param gameName 游戏名称
+   */
+  public manageGameControllerOpenGameDict(gameName: string, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/openGameDict/${encodeURIComponent(gameName)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 获取派生引擎列表
+   */
+  public manageGameControllerGetDerivativeEngines(params: RequestParams = {}) {
+    return this.httpClient.request<string[]>({
+      path: `/api/manageGame/derivativeEngines`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 打开游戏资产目录
+   * @param gameName 游戏名称
+   * @param subFolder 子文件夹
+   */
+  public manageGameControllerOpenGameAssetsDict(
+    gameName: string,
+    subFolder: string,
+    params: RequestParams = {},
+  ) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/openGameAssetsDict/${encodeURIComponent(gameName)}`,
+      method: "GET",
+      query: { subFolder },
+      ...params,
+    });
+  }
+
+  /**
+   * 导出游戏为 Web 应用
+   * @param gameName 游戏名称
+   */
+  public manageGameControllerEjectGameAsWeb(gameName: string, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/ejectGameAsWeb/${encodeURIComponent(gameName)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 导出游戏为 EXE（Windows Electron 应用）
+   * @param gameName 游戏名称
+   */
+  public manageGameControllerEjectGameAsExe(gameName: string, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/ejectGameAsExe/${encodeURIComponent(gameName)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 导出游戏为 Android 应用
+   * @param gameName 游戏名称
+   */
+  public manageGameControllerEjectGameAsAndroid(gameName: string, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/ejectGameAsAndroid/${encodeURIComponent(gameName)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 读取游戏资产
+   * @param readDirPath 目录路径
+   */
+  public manageGameControllerReadGameAssets(readDirPath: string, params: RequestParams = {}) {
+    return this.httpClient.request<ReadAssetsResponse>({
+      path: `/api/manageGame/readGameAssets/${encodeURIComponent(readDirPath)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 编辑文件名
+   * @param data 文件名编辑数据
+   */
+  public manageGameControllerEditFileName(data: EditFileNameDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/editFileName`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 删除文件
+   * @param data 文件删除数据
+   */
+  public manageGameControllerDeleteFile(data: DeleteFileDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/deleteFile`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 创建新场景
+   * @param data 场景创建数据
+   */
+  public manageGameControllerCreateNewScene(data: CreateNewSceneDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/createNewScene`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 编辑场景
+   * @param data 场景编辑数据
+   */
+  public manageGameControllerEditScene(data: EditSceneDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/editScene`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 编辑文本文件
+   * @param data 文本文件编辑数据
+   */
+  public manageGameControllerEditTextFile(data: EditTextFileDto, params: RequestParams = {}) {
     return this.httpClient.request<void>({
       path: `/api/manageGame/editTextFile`,
       method: "POST",
       body: data,
+      ...params,
     });
   }
 
-  public templatePreviewControllerGetTemplateAsset(path: string, templateName: string) {
-    return this.httpClient.request<void>({
-      path: `/template-preview/${templateName}/game/template/${path}`,
-      method: "GET",
-    });
-  }
-
-  public manageGameControllerCreateGame(data: CreateGameDto) {
-    return this.httpClient.request<void>({
-      path: `/api/manageGame/createGame`,
-      method: "POST",
-      body: data,
-    });
-  }
-
-  public uploadFile(data: any) {
-    return this.httpClient.request<void>({
-      path: `/api/assets/upload`,
-      method: "POST",
-      body: data,
-    });
-  };
   /**
-   * @title WebGAL Terre API
-   * @version 1.0
-   * @contact
-   *
-   * API Reference of WebGAL Terre Editor
+   * 获取游戏配置
+   * @param gameName 游戏名称
    */
+  public manageGameControllerGetGameConfig(gameName: string, params: RequestParams = {}) {
+    return this.httpClient.request<string>({
+      path: `/api/manageGame/getGameConfig/${encodeURIComponent(gameName)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 设置游戏配置
+   * @param data 游戏配置数据
+   */
+  public manageGameControllerSetGameConfig(data: GameConfigDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/setGameConfig`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 上传文件到游戏目录
+   * @param formData 包含文件的 FormData
+   */
+  public manageGameControllerUploadFiles(formData: FormData, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/uploadFiles`,
+      method: "POST",
+      body: formData,
+      ...params,
+    });
+  }
+
+  /**
+   * 创建目录
+   * @param data 目录创建数据
+   */
+  public manageGameControllerMkDir(data: MkDirDto, params: RequestParams = {}) {
+    return this.httpClient.request<boolean>({
+      path: `/api/manageGame/mkdir`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 删除游戏
+   * @param data 删除数据
+   */
+  public manageGameControllerDelete(data: DeleteDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/delete`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 重命名游戏
+   * @param data 重命名数据
+   */
+  public manageGameControllerRename(data: RenameDto, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/rename`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 获取游戏图标
+   * @param gameDir 游戏目录
+   */
+  public manageGameControllerGetIcons(gameDir: string, params: RequestParams = {}) {
+    return this.httpClient.request<IconsDto>({
+      path: `/api/manageGame/getIcons/${encodeURIComponent(gameDir)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  // ============================================================================
+  // Manage Template Controller APIs
+  // ============================================================================
+
+  /**
+   * 获取模板列表
+   */
+  public manageTemplateControllerGetTemplateList(params: RequestParams = {}) {
+    return this.httpClient.request<TemplateInfoDto[]>({
+      path: `/api/manageTemplate/templateList`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 创建新模板
+   * @param data 模板创建数据
+   */
+  public manageTemplateControllerCreateTemplate(data: CreateTemplateDto, params: RequestParams = {}) {
+    return this.httpClient.request<{ status: string; message: string }>({
+      path: `/api/manageTemplate/createTemplate`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 获取模板配置
+   * @param templateDir 模板目录
+   */
+  public manageTemplateControllerGetTemplateConfig(templateDir: string, params: RequestParams = {}) {
+    return this.httpClient.request<TemplateConfigDto>({
+      path: `/api/manageTemplate/getTemplateConfig/${encodeURIComponent(templateDir)}`,
+      method: "GET",
+      ...params,
+    });
+  }
+
+  /**
+   * 更新模板配置
+   * @param data 模板配置更新数据
+   */
+  public manageTemplateControllerUpdateTemplateConfig(
+    data: UpdateTemplateConfigDto,
+    params: RequestParams = {},
+  ) {
+    return this.httpClient.request<{ status: string; message: string }>({
+      path: `/api/manageTemplate/updateTemplateConfig`,
+      method: "PUT",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 删除模板
+   * @param templateDir 模板目录
+   */
+  public manageTemplateControllerDeleteTemplate(templateDir: string, params: RequestParams = {}) {
+    return this.httpClient.request<void>({
+      path: `/api/manageTemplate/delete/${encodeURIComponent(templateDir)}`,
+      method: "DELETE",
+      ...params,
+    });
+  }
+
+  /**
+   * 将模板应用到游戏
+   * @param data 应用模板数据
+   */
+  public manageTemplateControllerApplyTemplateToGame(
+    data: ApplyTemplateToGameDto,
+    params: RequestParams = {},
+  ) {
+    return this.httpClient.request<void>({
+      path: `/api/manageTemplate/applyTemplateToGame`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  /**
+   * 根据类名获取样式
+   * @param data 样式查询数据
+   */
+  public manageTemplateControllerGetStyleByClassName(
+    data: GetStyleByClassNameDto,
+    params: RequestParams = {},
+  ) {
+    return this.httpClient.request<string>({
+      path: `/api/manageTemplate/getStyleByClassName`,
+      method: "POST",
+      body: data,
+      ...params,
+    });
+  }
+
+  // ============================================================================
+  // Template Preview Controller APIs
+  // ============================================================================
+
+  /**
+   * 获取模板资产预览
+   * @param path 资产路径
+   * @param templateName 模板名称
+   */
+  public templatePreviewControllerGetTemplateAsset(
+    path: string,
+    templateName: string,
+    params: RequestParams = {},
+  ) {
+    return this.httpClient.request<void>({
+      path: `/template-preview/${encodeURIComponent(templateName)}/game/template/${encodeURIComponent(path)}`,
+      method: "GET",
+      ...params,
+    });
+  }
 }

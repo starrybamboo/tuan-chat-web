@@ -1224,6 +1224,25 @@ export function AddRingLight(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 旁白图标（用于 WebGAL 联动模式下无角色的旁白消息）
+export function NarratorIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        {/* 引号符号，表示旁白/叙述 */}
+        <path d="M10 8c-2 0-3 1.5-3 3s1 3 3 3c0 2-1.5 3-3 3" />
+        <path d="M17 8c-2 0-3 1.5-3 3s1 3 3 3c0 2-1.5 3-3 3" />
+      </g>
+    </svg>
+  );
+}
+
 // 物品图标
 export function Items(
   props: SVGProps<SVGSVGElement>,
@@ -1801,6 +1820,54 @@ export function BaselineAssistant(props: SVGProps<SVGSVGElement>) {
         d="M19 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h4l3 3l3-3h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-5.12 10.88L12 17l-1.88-4.12L6 11l4.12-1.88L12 5l1.88 4.12L18 11z"
       >
       </path>
+    </svg>
+  );
+}
+
+// 播放图标
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path fill="currentColor" d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
+// 暂停图标
+export function PauseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+    </svg>
+  );
+}
+
+// 音乐图标
+export function MusicNote(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+      />
     </svg>
   );
 }

@@ -15,6 +15,10 @@ export interface ChatInputAreaHandle {
    */
   setContent: (htmlContent: string) => void;
   /**
+   * 让输入框获得焦点
+   */
+  focus: () => void;
+  /**
    * 在当前光标位置插入一个 DOM 节点或文本。
    * AI 补全和 @提及 功能需要用到此方法。
    */
@@ -248,6 +252,22 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
           selection?.removeAllRanges();
           selection?.addRange(range);
         }
+      }
+    },
+    /**
+     * API: 让输入框获得焦点并将光标移到末尾
+     */
+    focus: () => {
+      const editor = internalTextareaRef.current;
+      if (editor) {
+        editor.focus();
+        // 将光标移到末尾
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
       }
     },
     /**
