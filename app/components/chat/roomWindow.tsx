@@ -24,6 +24,7 @@ import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import TextStyleToolbar from "@/components/chat/textStyleToolbar";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
@@ -251,7 +252,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // WebGAL 联动模式相关状态
   const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
   const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
-  const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right">>(
+  const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right" | undefined>>(
     "defaultFigurePositionMap",
     {},
   );
@@ -259,9 +260,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [dialogNotend, setDialogNotend] = useState(false);
   const [dialogConcat, setDialogConcat] = useState(false);
 
-  // 获取当前角色的默认立绘位置
-  const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId] ?? "center";
-  const setCurrentDefaultFigurePosition = useCallback((position: "left" | "center" | "right") => {
+  // 获取当前角色的默认立绘位置（undefined 表示不显示立绘）
+  const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
+  const setCurrentDefaultFigurePosition = useCallback((position: "left" | "center" | "right" | undefined) => {
     setDefaultFigurePositionMap(prev => ({
       ...prev,
       [curRoleId]: position,
@@ -373,15 +374,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
         if (msg.message.messageType === 1 && msg.message.roleId > 0) {
           if (!msg.message.webgal?.voiceRenderSettings?.figurePosition) {
-            const defaultPosition = defaultFigurePositionMap?.[msg.message.roleId] || "left";
+            const defaultPosition = defaultFigurePositionMap?.[msg.message.roleId];
 
-            // 确保 webgal 对象存在且是新的引用
-            msg.message.webgal = { ...(msg.message.webgal || {}) };
+            // 只有当默认位置存在时才设置
+            if (defaultPosition) {
+              // 确保 webgal 对象存在且是新的引用
+              msg.message.webgal = { ...(msg.message.webgal || {}) };
 
-            // 确保 voiceRenderSettings 对象存在且是新的引用
-            msg.message.webgal.voiceRenderSettings = { ...(msg.message.webgal.voiceRenderSettings || {}) };
+              // 确保 voiceRenderSettings 对象存在且是新的引用
+              msg.message.webgal.voiceRenderSettings = { ...(msg.message.webgal.voiceRenderSettings || {}) };
 
-            (msg.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+              (msg.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+            }
           }
         }
         return msg;
@@ -483,15 +487,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     if (messageToRender.message.messageType === 1 && messageToRender.message.roleId > 0) {
       if (!messageToRender.message.webgal?.voiceRenderSettings?.figurePosition) {
-        const defaultPosition = defaultFigurePositionMap?.[messageToRender.message.roleId] || "left";
+        const defaultPosition = defaultFigurePositionMap?.[messageToRender.message.roleId];
 
-        // 确保 webgal 对象存在且是新的引用
-        messageToRender.message.webgal = { ...(messageToRender.message.webgal || {}) };
+        // 只有当默认位置存在时才设置
+        if (defaultPosition) {
+          // 确保 webgal 对象存在且是新的引用
+          messageToRender.message.webgal = { ...(messageToRender.message.webgal || {}) };
 
-        // 确保 voiceRenderSettings 对象存在且是新的引用
-        messageToRender.message.webgal.voiceRenderSettings = { ...(messageToRender.message.webgal.voiceRenderSettings || {}) };
+          // 确保 voiceRenderSettings 对象存在且是新的引用
+          messageToRender.message.webgal.voiceRenderSettings = { ...(messageToRender.message.webgal.voiceRenderSettings || {}) };
 
-        (messageToRender.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+          (messageToRender.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+        }
       }
     }
 
@@ -646,7 +653,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       webgalLinkMode,
       setWebgalLinkMode,
       defaultFigurePositionMap,
-      setDefaultFigurePosition: (roleId: number, position: "left" | "center" | "right") => {
+      setDefaultFigurePosition: (roleId: number, position: "left" | "center" | "right" | undefined) => {
         setDefaultFigurePositionMap(prev => ({
           ...prev,
           [roleId]: position,
@@ -1319,6 +1326,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                       onCompositionEnd={() => isComposingRef.current = false}
                       disabled={notMember && noRole} // 观战者被禁用
                       placeholder={placeholderText}
+                    />
+
+                    {/* WebGAL 文本样式工具栏 - 紧贴输入框底部 */}
+                    <TextStyleToolbar
+                      chatInputRef={chatInputRef}
+                      className="px-2 pb-1"
                     />
 
                   </div>

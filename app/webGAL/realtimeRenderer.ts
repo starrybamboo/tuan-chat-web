@@ -19,6 +19,168 @@ import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api"
 import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 
 /**
+ * WebGAL 文本拓展语法处理工具
+ *
+ * 支持的语法：
+ * 1. 注音语法: [要注音的词](注音) - 例如 [笑顔](えがお)
+ * 2. 文本增强语法: [文本](style=color:#66327C\; ruby=注音)
+ *
+ * 参数说明：
+ * - style: 文本颜色等样式（仅作用于文本层）
+ * - style-alltext: 作用于所有层（文本、描边、占位）的样式，如斜体、字体大小
+ * - ruby: 注音文本
+ */
+export const TextEnhanceSyntax = {
+  /**
+   * 匹配文本拓展语法的正则表达式
+   * 匹配 [文本](参数) 格式
+   */
+  PATTERN: /\[([^\]]+)\]\(([^)]+)\)/g,
+
+  /**
+   * 检测是否为文本增强语法（而非简单注音）
+   * 如果包含 style= 则为文本增强语法
+   */
+  isEnhancedSyntax(params: string): boolean {
+    return params.includes("style=");
+  },
+
+  /**
+   * 处理消息内容，正确转义 WebGAL 特殊字符
+   *
+   * 处理规则：
+   * 1. 对于文本拓展语法 [文本](参数) 内的分号，保持 \; 转义形式
+   * 2. 对于普通文本中的分号，替换为中文分号 ；
+   * 3. 换行符替换为空格
+   * 4. 普通文本中的冒号替换为中文冒号 ：
+   *
+   * @param content 原始消息内容
+   * @returns 处理后的内容
+   */
+  processContent(content: string): string {
+    // 先找出所有的文本拓展语法块，暂时替换为占位符
+    const syntaxBlocks: string[] = [];
+    let processed = content.replace(this.PATTERN, (match, _text, _params) => {
+      const index = syntaxBlocks.length;
+      syntaxBlocks.push(match);
+      return `\x00SYNTAX_BLOCK_${index}\x00`;
+    });
+
+    // 处理普通文本部分
+    processed = processed
+      .replace(/\n/g, " ")
+      .replace(/;/g, "；")
+      .replace(/:/g, "：");
+
+    // 恢复文本拓展语法块
+    syntaxBlocks.forEach((block, index) => {
+      processed = processed.replace(`\x00SYNTAX_BLOCK_${index}\x00`, block);
+    });
+
+    return processed;
+  },
+
+  /**
+   * 构建文本增强语法字符串
+   */
+  build(text: string, options: {
+    style?: string;
+    styleAllText?: string;
+    ruby?: string;
+  }): string {
+    const params: string[] = [];
+
+    // style-alltext 必须在 style 之前（WebGAL 的要求）
+    if (options.styleAllText) {
+      // 转义分号
+      params.push(`style-alltext=${options.styleAllText.replace(/;/g, "\\;")}`);
+    }
+
+    if (options.style) {
+      // 转义分号
+      params.push(`style=${options.style.replace(/;/g, "\\;")}`);
+    }
+
+    if (options.ruby) {
+      params.push(`ruby=${options.ruby}`);
+    }
+
+    if (params.length === 0) {
+      // 如果没有参数，返回简单注音格式
+      return `[${text}]()`;
+    }
+
+    return `[${text}](${params.join(" ")})`;
+  },
+
+  /**
+   * 构建简单注音语法
+   *
+   * @param text 要注音的文本
+   * @param ruby 注音
+   * @returns WebGAL 注音语法字符串
+   */
+  buildRuby(text: string, ruby: string): string {
+    return `[${text}](${ruby})`;
+  },
+
+  /**
+   * 构建彩色文本
+   *
+   * @param text 文本
+   * @param color 颜色（如 #FF0000 或 red）
+   * @returns WebGAL 文本增强语法字符串
+   */
+  buildColoredText(text: string, color: string): string {
+    return this.build(text, { style: `color:${color}` });
+  },
+
+  /**
+   * 构建斜体文本
+   *
+   * @param text 文本
+   * @returns WebGAL 文本增强语法字符串
+   */
+  buildItalicText(text: string): string {
+    return this.build(text, {
+      styleAllText: "font-style:italic",
+      style: "color:inherit", // 需要 style= 来触发文本增强语法
+    });
+  },
+
+  /**
+   * 构建带样式的文本
+   */
+  buildStyledText(text: string, options: {
+    color?: string;
+    italic?: boolean;
+    fontSize?: string;
+    ruby?: string;
+  }): string {
+    const styleAllTextParts: string[] = [];
+    const styleParts: string[] = [];
+
+    if (options.italic) {
+      styleAllTextParts.push("font-style:italic");
+    }
+
+    if (options.fontSize) {
+      styleAllTextParts.push(`font-size:${options.fontSize}`);
+    }
+
+    if (options.color) {
+      styleParts.push(`color:${options.color}`);
+    }
+
+    return this.build(text, {
+      styleAllText: styleAllTextParts.length > 0 ? styleAllTextParts.join(";") : undefined,
+      style: styleParts.length > 0 ? styleParts.join(";") : "color:inherit",
+      ruby: options.ruby,
+    });
+  },
+};
+
+/**
  * TTS 配置选项
  */
 export type RealtimeTTSConfig = {
@@ -1168,11 +1330,8 @@ export class RealtimeRenderer {
       await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
     }
 
-    // 处理文本内容
-    const processedContent = msg.content
-      .replace(/\n/g, " ")
-      .replace(/;/g, "；")
-      .replace(/:/g, "：");
+    // 处理文本内容（支持 WebGAL 文本拓展语法）
+    const processedContent = TextEnhanceSyntax.processContent(msg.content);
 
     // 获取 voiceRenderSettings 中的情感向量
     const customEmotionVector = voiceRenderSettings?.emotionVector;
@@ -1344,11 +1503,8 @@ export class RealtimeRenderer {
         ? customEmotionVector
         : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);
 
-      // 处理文本内容用于生成 cacheKey
-      const processedContent = msg.content
-        .replace(/\n/g, " ")
-        .replace(/;/g, "；")
-        .replace(/:/g, "：");
+      // 处理文本内容用于生成 cacheKey（支持 WebGAL 文本拓展语法）
+      const processedContent = TextEnhanceSyntax.processContent(msg.content);
 
       const refVocal = this.voiceFileMap.get(msg.roleId);
       if (refVocal) {

@@ -18,7 +18,7 @@ interface VoiceRenderPanelProps {
   /** 立绘动画设置 */
   figureAnimation?: FigureAnimationSettings;
   /** 设置变更回调 */
-  onChange: (emotionVector: number[], figurePosition: FigurePosition, notend: boolean, concat: boolean, figureAnimation?: FigureAnimationSettings) => void;
+  onChange: (emotionVector: number[], figurePosition: FigurePosition | undefined, notend: boolean, concat: boolean, figureAnimation?: FigureAnimationSettings) => void;
   /** 是否可编辑 */
   canEdit?: boolean;
   /** 是否为黑屏文字 */
@@ -73,7 +73,7 @@ export function VoiceRenderPanel({
   const hasMessageLevelVector = !!initialVector && initialVector.some(v => v > 0);
 
   const [localVector, setLocalVector] = useState<number[]>(effectiveVector);
-  const [localPosition, setLocalPosition] = useState<FigurePosition>(initialPosition ?? "left");
+  const [localPosition, setLocalPosition] = useState<FigurePosition | undefined>(initialPosition);
 
   // 同步外部传入的值
   useEffect(() => {
@@ -105,9 +105,11 @@ export function VoiceRenderPanel({
   }, [localPosition, localNotend, localConcat, localAnimation, onChange]);
 
   const handlePositionChange = useCallback((pos: FigurePosition) => {
-    setLocalPosition(pos);
-    onChange(normalizeEmotionVector(localVector, 1.5), pos, localNotend, localConcat, localAnimation);
-  }, [localVector, localNotend, localConcat, localAnimation, onChange]);
+    // 如果点击的是当前选中的位置，则取消选中
+    const newPos = localPosition === pos ? undefined : pos;
+    setLocalPosition(newPos);
+    onChange(normalizeEmotionVector(localVector, 1.5), newPos, localNotend, localConcat, localAnimation);
+  }, [localVector, localPosition, localNotend, localConcat, localAnimation, onChange]);
 
   const handleNotendChange = useCallback((checked: boolean) => {
     setLocalNotend(checked);
@@ -197,21 +199,23 @@ export function VoiceRenderPanel({
     <div className="mt-2 text-xs">
       {/* 第一行：立绘位置 + 对话参数 + 情感预设 */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* 立绘位置 - 紧凑的按钮组 */}
+        {/* 立绘位置 - 紧凑的按钮组，点击已选中的按钮会取消选中 */}
         <div className="flex items-center gap-1">
           <span className="text-base-content/60">位置</span>
           <div className="join">
-            {(["left", "center", "right"] as FigurePosition[]).map(pos => (
+            {(["left", "center", "right"] as const).map(pos => (
               <button
                 key={pos}
                 type="button"
                 className={`join-item btn btn-xs px-2 ${localPosition === pos ? "btn-primary" : "btn-ghost"}`}
                 onClick={() => handlePositionChange(pos)}
+                title={localPosition === pos ? "再次点击取消立绘" : undefined}
               >
                 {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
               </button>
             ))}
           </div>
+          {!localPosition && <span className="text-warning text-xs">无立绘</span>}
         </div>
 
         <span className="text-base-content/30">|</span>

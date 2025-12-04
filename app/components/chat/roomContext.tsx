@@ -69,14 +69,16 @@ export interface RoomContextType {
 
   /**
    * 角色默认立绘位置 Map
-   * key: roleId, value: "left" | "center" | "right"
+   * key: roleId, value: "left" | "center" | "right" | undefined
+   * undefined 表示不显示立绘
    */
-  defaultFigurePositionMap?: Record<number, "left" | "center" | "right">;
+  defaultFigurePositionMap?: Record<number, "left" | "center" | "right" | undefined>;
 
   /**
    * 设置角色默认立绘位置
+   * position 为 undefined 时表示不显示立绘
    */
-  setDefaultFigurePosition?: (roleId: number, position: "left" | "center" | "right") => void;
+  setDefaultFigurePosition?: (roleId: number, position: "left" | "center" | "right" | undefined) => void;
 
   /**
    * 自动回复模式（每次发送消息时自动回复最后一条消息）

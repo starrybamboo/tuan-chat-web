@@ -21,8 +21,9 @@ export type EmotionLabel = typeof EMOTION_LABELS[number];
  * left: 左侧 (对应 -left 参数)
  * center: 中间 (对应 -center 或默认)
  * right: 右侧 (对应 -right 参数)
+ * undefined: 不显示立绘
  */
-export type FigurePosition = "left" | "center" | "right";
+export type FigurePosition = "left" | "center" | "right" | undefined;
 
 /**
  * 消息类型常量
