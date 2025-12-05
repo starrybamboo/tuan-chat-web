@@ -26,7 +26,7 @@ export function useRoomExtra<T>(roomId: number, key: string, defaultValue: T) {
   // 加快相应速度，
   useEffect(() => {
     setValueRaw(JSON.parse(extraQuery.data?.data || "null") as T || defaultValue);
-  }, [defaultValue, extraQuery.data?.data]);
+  }, [extraQuery.data?.data]);
 
   const setValue = (newValue: T) => {
     setValueRaw(newValue);
