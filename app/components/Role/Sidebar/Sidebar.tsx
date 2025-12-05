@@ -81,6 +81,7 @@ export function Sidebar({
       // 透传类型，便于侧边栏分类（若后端无该字段则为 0）
       type: (role as unknown as { type?: number; diceMaiden?: boolean }).type
         ?? (((role as unknown as { diceMaiden?: boolean }).diceMaiden) ? 1 : 0),
+      extra: role.extra || {}, // 添加 extra 字段
     });
 
     // 有query数据时

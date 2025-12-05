@@ -5,6 +5,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import {
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
@@ -14,7 +15,8 @@ import {
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import React, { useEffect, useState } from "react";
+import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { tuanchat } from "../../../../api/instance";
 
@@ -62,6 +64,34 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const extra = JSON.parse(space?.extra ?? "{}");
   const [diceRollerId, setDiceRollerId] = useState(extra?.dicerRoleId || 2);
 
+  // 骰娘关联弹窗状态
+  const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false);
+
+  // 查询当前骰娘信息
+  const currentDicerId = useMemo(() => {
+    const id = Number(diceRollerId);
+    return (Number.isNaN(id) || id <= 0) ? undefined : id;
+  }, [diceRollerId]);
+
+  const { data: linkedDicerData } = useGetRoleQuery(currentDicerId || 0);
+
+  // 查询骰娘头像
+  const dicerAvatarId = linkedDicerData?.data?.avatarId;
+  const { data: dicerAvatarData } = useGetRoleAvatarQuery(dicerAvatarId || 0);
+  const dicerAvatarUrl = dicerAvatarData?.data?.avatarUrl || "/favicon.ico";
+
+  // 验证骰娘是否有效
+  const dicerRoleError = useMemo(() => {
+    if (!currentDicerId)
+      return null;
+    const roleData = linkedDicerData?.data;
+    if (!roleData)
+      return "骰娘角色不存在";
+    if (roleData.type !== 1)
+      return "关联的角色不是骰娘类型";
+    return null;
+  }, [currentDicerId, linkedDicerData]);
+
   // 头像文字颜色
   const [avatarTextColor, setAvatarTextColor] = useState("text-black");
 
@@ -98,6 +128,11 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
   const dissolveSpaceMutation = useDissolveSpaceMutation();
   const updateSpaceMutation = useUpdateSpaceMutation();
+
+  // 处理骰娘关联确认
+  const handleDiceMaidenLinkConfirm = (dicerRoleId: number) => {
+    setDiceRollerId(dicerRoleId);
+  };
 
   // 保存数据函数
   const handleSave = () => {
@@ -220,15 +255,55 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             <label className="label mb-2">
               <span className="label-text">空间骰娘</span>
             </label>
-            <input
-              type="text"
-              value={String(Number.isNaN(diceRollerId) ? 0 : diceRollerId)}
-              className="input input-bordered w-full"
-              onChange={(e) => {
-                setDiceRollerId(Number(e.target.value));
-              }}
-              placeholder="请输入骰娘id，留空则使用默认骰娘"
-            />
+            <div
+              className="card bg-base-200 cursor-pointer hover:bg-base-300 transition-all duration-200"
+              onClick={() => setIsDiceMaidenLinkModalOpen(true)}
+            >
+              <div className="card-body p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* 骰娘头像 */}
+                    {currentDicerId && !dicerRoleError
+                      ? (
+                          <div className="avatar">
+                            <div className="w-10 h-10 rounded-full ring ring-accent ring-offset-base-100 ring-offset-2">
+                              <img src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
+                            </div>
+                          </div>
+                        )
+                      : (
+                          <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
+                              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
+                              <circle cx="7" cy="7" r="1.5" fill="currentColor" />
+                              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                              <circle cx="17" cy="17" r="1.5" fill="currentColor" />
+                              <circle cx="7" cy="17" r="1.5" fill="currentColor" />
+                              <circle cx="17" cy="7" r="1.5" fill="currentColor" />
+                            </svg>
+                          </div>
+                        )}
+                    <div>
+                      <h3 className="font-semibold text-sm">空间骰娘</h3>
+                      <p className={`font-medium text-sm ${
+                        dicerRoleError ? "text-error" : "text-accent"
+                      }`}
+                      >
+                        {currentDicerId
+                          ? dicerRoleError || linkedDicerData?.data?.roleName || `ID: ${currentDicerId}`
+                          : "选择使用的骰娘角色"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-base-content/50">
+                    <span className="text-xs">{currentDicerId ? "更改" : "设置"}</span>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="flex justify-between items-center mt-16">
             <button
@@ -358,6 +433,14 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
           />
         </div>
       )}
+
+      {/* 骰娘关联弹窗 */}
+      <DiceMaidenLinkModal
+        isOpen={isDiceMaidenLinkModalOpen}
+        onClose={() => setIsDiceMaidenLinkModalOpen(false)}
+        currentDicerRoleId={currentDicerId}
+        onConfirm={handleDiceMaidenLinkConfirm}
+      />
     </div>
   );
 }
