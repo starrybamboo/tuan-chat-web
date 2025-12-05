@@ -1,4 +1,5 @@
 import { useQueryState } from "@/components/common/customHooks/useQueryState";
+import { TextEnhanceRenderer } from "@/components/common/textEnhanceRenderer";
 import React, { useCallback, useEffect, useRef } from "react";
 
 interface EditableFieldProps {
@@ -124,7 +125,7 @@ export function EditableField({
         usingInput
           ? (
               <input
-                className={`${className} input`}
+                className={`${className} input border border-base-300 rounded-[8px] px-2 py-1 h-6`}
                 value={editContent}
                 type={type}
                 onChange={e => setEditContent(e.target.value)}
@@ -166,7 +167,7 @@ export function EditableField({
           className={`${className}`}
           onDoubleClick={handleDoubleClick}
         >
-          {content}
+          <TextEnhanceRenderer content={content} />
         </div>
       );
 }

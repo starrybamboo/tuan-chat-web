@@ -7,6 +7,7 @@ export type Role = {
   description: string;
   avatar?: string;
   avatarId: number;
+  type?: number; // 角色类型：0=普通角色，1=骰娘
   modelName?: string;
   speakerName?: string;
   voiceUrl?: string;

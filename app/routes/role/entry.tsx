@@ -1,13 +1,14 @@
 import type { Role } from "@/components/Role/types";
 import AICreateRole from "@/components/Role/RoleCreation/AICreateRole";
+import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
+
 // 导入您的创建组件
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
-
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
 import { setRoleRule } from "@/utils/roleRuleStorage";
-import { useState } from "react";
-import { useNavigate, useOutletContext } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useOutletContext, useSearchParams } from "react-router";
 
 interface RoleContext {
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
@@ -17,8 +18,20 @@ export default function RoleCreationPage() {
   // 注意：我们甚至不需要从 context 中解构 roles，因为用不到它
   const { setRoles } = useOutletContext<RoleContext>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [mode, setMode] = useState<"self" | "AI" | "ST" | "entry">("entry");
+  const [mode, setMode] = useState<"self" | "dice" | "AI" | "ST" | "entry">("entry");
+
+  // 检测URL参数，如果有type参数则直接进入创建表单
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (typeParam === "normal") {
+      setMode("self");
+    }
+    else if (typeParam === "dice") {
+      setMode("dice");
+    }
+  }, [searchParams]);
 
   // 当一个角色被创建并保存后，导航到它的详情页
   const handleCreationComplete = (newRole: Role, ruleId?: number) => {
@@ -40,6 +53,14 @@ export default function RoleCreationPage() {
   if (mode === "self") {
     return (
       <CreateRoleBySelf
+        onBack={() => setMode("entry")}
+        onComplete={handleCreationComplete}
+      />
+    );
+  }
+  if (mode === "dice") {
+    return (
+      <CreateDiceMaiden
         onBack={() => setMode("entry")}
         onComplete={handleCreationComplete}
       />

@@ -36,13 +36,9 @@ export type Message = {
      */
     avatarId: number;
     /**
-     * BA那种，比如说人旁边飘过去一个问号这样子
+     * webgal相关的演出设置
      */
-    animation?: number;
-    /**
-     * 比如说，立绘的抖动，这种
-     */
-    specialEffects?: number;
+    webgal?: Record<string, any>;
     /**
      * 回复的消息id
      */

@@ -426,7 +426,9 @@ async function getDicerRoleId(roomContext: RoomContextType): Promise<number> {
   try {
     const dicerRoleId = await getDicerRoleIdRaw(roomContext);
     const dicerRoleApiResult = await tuanchat.roleController.getRole(dicerRoleId);
-    if (dicerRoleApiResult.data?.roleName) {
+    const roleData = dicerRoleApiResult.data;
+    // 需要确认角色类型是否为1（骰娘）；若不是则改用默认骰娘
+    if (roleData?.roleName && roleData?.type === 1) {
       return dicerRoleId;
     }
     return DEFAULT_DICER_ROLE_ID;

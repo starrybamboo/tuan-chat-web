@@ -4,7 +4,7 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import { ttsApi } from "@/tts/engines/index/apiClient";
 import { checkGameExist, terreApis } from "@/webGAL/index";
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
-import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
+import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import type { UnifiedEngineOptions } from "@/tts/strategy/ttsEngines";
 import { createEngine } from "@/tts/strategy/ttsEngines";
 
@@ -86,6 +86,7 @@ export class SceneEditor {
    * @param leftSpriteName 左边立绘的文件名，如果设置为 空字符串，那么会取消这个位置立绘的显示。设置为undefined，则对这个位置的立绘不做任何改变
    * @param rightSpriteName 右边立绘的文件名，规则同上
    * @param vocal 语音文件名
+   * @param figurePosition 主立绘位置：left（默认）、center、right
    */
   public async addDialog(
     roleName: string,
@@ -95,11 +96,34 @@ export class SceneEditor {
     leftSpriteName?: string | undefined,
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
+    figurePosition: "left" | "center" | "right" = "left",
+    miniAvatarName?: string | undefined,
   ): Promise<void> {
     const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
+
+    // 处理小头像
+    if (miniAvatarName) {
+      await this.addLineToRenderer(`miniAvatar:${miniAvatarName};`, sceneName);
+    }
+    else if (miniAvatarName === "") {
+      await this.addLineToRenderer("miniAvatar:none;", sceneName);
+    }
+
+    // 根据指定的立绘位置生成相应的 changeFigure 命令
     if (leftSpriteName) {
+      const position = figurePosition === "center" ? "" : `-${figurePosition}`;
+
+      // 清除其他位置的立绘（避免多个立绘同时显示）
+      const allPositions: Array<"left" | "center" | "right"> = ["left", "center", "right"];
+      for (const pos of allPositions) {
+        if (pos !== figurePosition) {
+          const positionArg = pos === "center" ? "" : `-${pos}`;
+          await this.addLineToRenderer(`changeFigure:none ${positionArg} -next;`, sceneName);
+        }
+      }
+
       await this.addLineToRenderer(
-        `changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} -left ${transform} -next;`,
+        `changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} ${position} ${transform} -next;`,
         sceneName,
       );
     }
@@ -122,15 +146,37 @@ export class SceneEditor {
 
   public async uploadSprites(url: string, spritesName: string): Promise<string> {
     const path = `games/${this.game.name}/game/figure/`;
-    // 提取URL中的文件后缀
-    const fileExtension = url.split(".").pop() || "webp";
+    // 使用辅助函数正确提取文件后缀
+    const fileExtension = getFileExtensionFromUrl(url, "webp");
     return uploadFile(url, path, `${spritesName}.${fileExtension}`);
   }
 
-  // 上传背景图片，直接使用url当作fileName
+  // 上传背景图片，确保文件有正确的后缀名
   public async uploadBackground(url: string): Promise<string> {
     const path = `games/${this.game.name}/game/background/`;
-    return await uploadFile(url, path);
+    const fileExtension = getFileExtensionFromUrl(url, "webp");
+    // 使用 URL 的最后一段作为基础文件名
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const bgName = `bg_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${bgName}.${fileExtension}`);
+  }
+
+  // 上传背景音乐
+  public async uploadBgm(url: string): Promise<string> {
+    const path = `games/${this.game.name}/game/bgm/`;
+    const fileExtension = getFileExtensionFromUrl(url, "mp3");
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const bgmName = `bgm_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${bgmName}.${fileExtension}`);
+  }
+
+  // 上传音效到 vocal 文件夹（WebGAL 的 playEffect 使用 vocal 文件夹）
+  public async uploadSoundEffect(url: string): Promise<string> {
+    const path = `games/${this.game.name}/game/vocal/`;
+    const fileExtension = getFileExtensionFromUrl(url, "mp3");
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const seName = `se_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${seName}.${fileExtension}`);
   }
 
   public async addLineToRenderer(line: string, sceneName: string): Promise<void> {

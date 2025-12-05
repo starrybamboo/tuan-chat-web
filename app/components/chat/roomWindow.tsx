@@ -24,6 +24,7 @@ import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import TextStyleToolbar from "@/components/chat/textStyleToolbar";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
@@ -36,13 +37,19 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
+  MusicNote,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
+import { getScreenSize } from "@/utils/getScreenSize";
+import { isElectronEnv } from "@/utils/isElectronEnv";
+import launchWebGal from "@/utils/launchWebGal";
+import { pollPort } from "@/utils/pollPort";
+import { UploadUtils } from "@/utils/UploadUtils";
+import useRealtimeRender from "@/webGAL/useRealtimeRender";
+import { MessageType } from "api/wsModels";
 // *** 导入新组件及其 Handle 类型 ***
 
-import { getScreenSize } from "@/utils/getScreenSize";
-import { UploadUtils } from "@/utils/UploadUtils";
-import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import {
@@ -56,6 +63,7 @@ import {
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
 import ClueListForPL from "./sideDrawer/clueListForPL";
 import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
+import WebGALPreview from "./sideDrawer/webGALPreview";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
@@ -67,7 +75,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
-  const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
+  const send = useCallback((message: ChatMessageRequest) => {
+    webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
+  }, [webSocketUtils]);
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
@@ -86,6 +96,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     setInputTextWithoutUpdateTextArea(plainText);
     setinputTextWithoutMentions(inputTextWithoutMentions);
     setMentionedRolesInInput(roles);
+    // 检查 @ 提及触发
+    atMentionRef.current?.onInput();
   }, []); // 空依赖，因为 setter 函数是稳定的
 
   /**
@@ -103,6 +115,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
   const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
+  // 聊天框中包含的语音
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  // 发送选项
+  const [sendAsBackground, setSendAsBackground] = useState(false);
+  // 音频用途：undefined=普通语音, "bgm"=背景音乐, "se"=音效
+  const [audioPurpose, setAudioPurpose] = useState<"bgm" | "se" | undefined>(undefined);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
@@ -158,6 +176,62 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
 
+  // 实时渲染相关
+  const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
+  // 实时渲染 TTS 配置（默认关闭）
+  const [realtimeTTSEnabled, setRealtimeTTSEnabled] = useState(false);
+  // 实时渲染小头像配置（默认关闭）
+  const [realtimeMiniAvatarEnabled, setRealtimeMiniAvatarEnabled] = useState(false);
+  // TTS API URL（从 localStorage 读取，默认为空使用环境变量）
+  const [ttsApiUrl, setTtsApiUrl] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("tts_api_url") || "";
+    }
+    return "";
+  });
+  // 保存 TTS API URL 到 localStorage
+  const handleTtsApiUrlChange = (url: string) => {
+    setTtsApiUrl(url);
+    if (typeof window !== "undefined") {
+      if (url) {
+        localStorage.setItem("tts_api_url", url);
+      }
+      else {
+        localStorage.removeItem("tts_api_url");
+      }
+    }
+  };
+  const realtimeTTSConfig = useMemo(() => ({
+    enabled: realtimeTTSEnabled,
+    engine: "index" as const,
+    apiUrl: ttsApiUrl || undefined, // 空字符串转为 undefined
+    emotionMode: 2, // 使用情感向量
+    emotionWeight: 0.8,
+    temperature: 0.8,
+    topP: 0.8,
+    maxTokensPerSegment: 120,
+  }), [realtimeTTSEnabled, ttsApiUrl]);
+  const realtimeRender = useRealtimeRender({
+    spaceId,
+    enabled: isRealtimeRenderEnabled,
+    roles: roomRoles,
+    rooms: room ? [room] : [], // 当前只传入当前房间，后续可以扩展为多房间
+    ttsConfig: realtimeTTSConfig,
+    miniAvatarEnabled: realtimeMiniAvatarEnabled,
+  });
+  const realtimeStatus = realtimeRender.status;
+  const stopRealtimeRender = realtimeRender.stop;
+  const lastRenderedMessageIdRef = useRef<number | null>(null);
+  const hasRenderedHistoryRef = useRef<boolean>(false);
+  const realtimeStatusRef = useRef(realtimeRender.status);
+  const prevRoomIdRef = useRef<number | null>(null);
+  // 跟踪最后一个背景消息的 ID，用于检测背景更新
+  const lastBackgroundMessageIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    realtimeStatusRef.current = realtimeRender.status;
+  }, [realtimeRender.status]);
+
   // 侧边栏宽度状态
   const [userDrawerWidth, setUserDrawerWidth] = useLocalStorage("userDrawerWidth", 300);
   const [roleDrawerWidth, setRoleDrawerWidth] = useLocalStorage("roleDrawerWidth", 300);
@@ -165,10 +239,35 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [clueDrawerWidth, setClueDrawerWidth] = useLocalStorage("clueDrawerWidth", 300);
   const [mapDrawerWidth, setMapDrawerWidth] = useLocalStorage("mapDrawerWidth", 600);
   const [exportDrawerWidth, setExportDrawerWidth] = useLocalStorage("exportDrawerWidth", 350);
+  const [webgalDrawerWidth, setWebgalDrawerWidth] = useLocalStorage("webgalDrawerWidth", 600);
 
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export">("rightSideDrawer", "none");
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal">("rightSideDrawer", "none");
+  const sideDrawerStateRef = useRef(sideDrawerState);
+  useEffect(() => {
+    sideDrawerStateRef.current = sideDrawerState;
+  }, [sideDrawerState]);
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
+
+  // WebGAL 联动模式相关状态
+  const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
+  const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
+  const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right" | undefined>>(
+    "defaultFigurePositionMap",
+    {},
+  );
+  // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
+  const [dialogNotend, setDialogNotend] = useState(false);
+  const [dialogConcat, setDialogConcat] = useState(false);
+
+  // 获取当前角色的默认立绘位置（undefined 表示不显示立绘）
+  const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
+  const setCurrentDefaultFigurePosition = useCallback((position: "left" | "center" | "right" | undefined) => {
+    setDefaultFigurePositionMap(prev => ({
+      ...prev,
+      [curRoleId]: position,
+    }));
+  }, [curRoleId, setDefaultFigurePositionMap]);
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
@@ -229,7 +328,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     if (targetMessageId && historyMessages.length > 0 && !chatHistory?.loading && !hasScrolledToTargetRef.current) {
       const messageExists = historyMessages.some(m => m.message.messageId === targetMessageId);
       if (messageExists) {
-        // 延迟一点确保 Virtuoso 已经渲染完成
+        // 延迟一点确保 Virtuoso 已经渲染完成，同时避免重复定时器
         if (delayTimer.current) {
           clearTimeout(delayTimer.current);
         }
@@ -242,11 +341,300 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
     return () => {
       if (delayTimer.current) {
-        clearTimeout(delayTimer.current!);
+        clearTimeout(delayTimer.current);
         delayTimer.current = null;
       }
     };
   }, [targetMessageId, historyMessages, chatHistory?.loading, scrollToGivenMessage]);
+
+  // 渲染历史消息的函数（需要在 useEffect 之前定义）
+  const isRenderingHistoryRef = useRef(false);
+  const renderHistoryMessages = useCallback(async () => {
+    if (!historyMessages || historyMessages.length === 0) {
+      return;
+    }
+
+    if (realtimeStatusRef.current !== "connected") {
+      console.warn(`[RealtimeRender] 渲染器尚未就绪，当前状态: ${realtimeStatusRef.current}`);
+      return;
+    }
+
+    isRenderingHistoryRef.current = true;
+    try {
+      console.warn(`[RealtimeRender] 开始渲染历史消息, 共 ${historyMessages.length} 条`);
+      toast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
+
+      // 为所有消息设置默认的立绘位置
+      // 创建消息的深拷贝以避免修改不可扩展的对象
+      const messagesToRender = historyMessages.map((originalMsg) => {
+        // 浅拷贝最外层
+        const msg = { ...originalMsg };
+        // 浅拷贝 message 对象
+        msg.message = { ...originalMsg.message };
+
+        if (msg.message.messageType === 1 && msg.message.roleId > 0) {
+          if (!msg.message.webgal?.voiceRenderSettings?.figurePosition) {
+            const defaultPosition = defaultFigurePositionMap?.[msg.message.roleId];
+
+            // 只有当默认位置存在时才设置
+            if (defaultPosition) {
+              // 确保 webgal 对象存在且是新的引用
+              msg.message.webgal = { ...(msg.message.webgal || {}) };
+
+              // 确保 voiceRenderSettings 对象存在且是新的引用
+              msg.message.webgal.voiceRenderSettings = { ...(msg.message.webgal.voiceRenderSettings || {}) };
+
+              (msg.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+            }
+          }
+        }
+        return msg;
+      });
+
+      // 使用批量渲染接口
+      await realtimeRender.renderHistory(messagesToRender, roomId);
+
+      // 记录最后一条消息的ID
+      const lastMessage = messagesToRender[messagesToRender.length - 1];
+      if (lastMessage) {
+        lastRenderedMessageIdRef.current = lastMessage.message.messageId;
+      }
+      hasRenderedHistoryRef.current = true;
+      toast.success(`历史消息渲染完成`, { id: "webgal-history" });
+      console.warn(`[RealtimeRender] 历史消息渲染完成`);
+    }
+    catch (error) {
+      console.error(`[RealtimeRender] 渲染历史消息失败:`, error);
+      toast.error(`渲染历史消息失败`, { id: "webgal-history" });
+    }
+    finally {
+      isRenderingHistoryRef.current = false;
+    }
+  }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
+
+  // 切换房间时重置实时渲染状态（跳过首次挂载）
+  useEffect(() => {
+    // 首次挂载时记录 roomId，不执行重置
+    if (prevRoomIdRef.current === null) {
+      prevRoomIdRef.current = roomId;
+      return;
+    }
+    // 只有在 roomId 真正变化时才重置
+    if (prevRoomIdRef.current !== roomId) {
+      prevRoomIdRef.current = roomId;
+      setIsRealtimeRenderEnabled(false);
+      hasRenderedHistoryRef.current = false;
+      lastRenderedMessageIdRef.current = null;
+      isRenderingHistoryRef.current = false;
+      if (sideDrawerStateRef.current === "webgal") {
+        setSideDrawerState("none");
+      }
+    }
+  }, [roomId, setIsRealtimeRenderEnabled, setSideDrawerState]);
+
+  // 当渲染器就绪时，自动渲染历史消息（用于页面刷新后从 localStorage 恢复状态）
+  useEffect(() => {
+    // 条件检查
+    if (!realtimeRender.isActive || realtimeRender.status !== "connected" || hasRenderedHistoryRef.current || isRenderingHistoryRef.current) {
+      return;
+    }
+    if (!historyMessages || historyMessages.length === 0 || chatHistory?.loading) {
+      return;
+    }
+    // 确保房间数据已加载，否则场景名会不正确
+    if (!room) {
+      return;
+    }
+
+    // 调用渲染历史消息函数
+    renderHistoryMessages();
+  }, [realtimeRender.isActive, realtimeRender.status, historyMessages, chatHistory?.loading, room, renderHistoryMessages]);
+
+  // 监听新消息，实时渲染到 WebGAL（只渲染历史消息之后的新消息）
+  useEffect(() => {
+    // 如果实时渲染关闭，重置标记
+    if (!realtimeRender.isActive) {
+      hasRenderedHistoryRef.current = false;
+      lastRenderedMessageIdRef.current = null;
+      isRenderingHistoryRef.current = false;
+      return;
+    }
+
+    if (!historyMessages || historyMessages.length === 0) {
+      return;
+    }
+
+    // 如果还没有渲染过历史消息，跳过（等待上面的 useEffect 来处理）
+    if (!hasRenderedHistoryRef.current) {
+      return;
+    }
+
+    // 找到最新的消息
+    const latestMessage = historyMessages[historyMessages.length - 1];
+    if (!latestMessage)
+      return;
+
+    const messageId = latestMessage.message.messageId;
+    // 如果这条消息已经渲染过，跳过
+    if (lastRenderedMessageIdRef.current === messageId) {
+      return;
+    }
+
+    // 为消息设置默认的立绘位置（如果还没有设置）
+    // 创建消息的深拷贝以避免修改不可扩展的对象
+    const messageToRender = { ...latestMessage };
+    messageToRender.message = { ...latestMessage.message };
+
+    if (messageToRender.message.messageType === 1 && messageToRender.message.roleId > 0) {
+      if (!messageToRender.message.webgal?.voiceRenderSettings?.figurePosition) {
+        const defaultPosition = defaultFigurePositionMap?.[messageToRender.message.roleId];
+
+        // 只有当默认位置存在时才设置
+        if (defaultPosition) {
+          // 确保 webgal 对象存在且是新的引用
+          messageToRender.message.webgal = { ...(messageToRender.message.webgal || {}) };
+
+          // 确保 voiceRenderSettings 对象存在且是新的引用
+          messageToRender.message.webgal.voiceRenderSettings = { ...(messageToRender.message.webgal.voiceRenderSettings || {}) };
+
+          (messageToRender.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+        }
+      }
+    }
+
+    // 渲染新消息（传入当前房间 ID）
+    realtimeRender.renderMessage(messageToRender, roomId);
+    lastRenderedMessageIdRef.current = messageId;
+  }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
+
+  // 监听背景消息变化，当用户设置图片为背景时实时渲染更新
+  useEffect(() => {
+    if (!realtimeRender.isActive || !hasRenderedHistoryRef.current) {
+      return;
+    }
+
+    if (!historyMessages || historyMessages.length === 0) {
+      return;
+    }
+
+    // 找到最新的背景消息（background: true 的图片消息）
+    const backgroundMessages = historyMessages
+      .filter(msg => msg.message.messageType === 2 && msg.message.extra?.imageMessage?.background);
+
+    const latestBackgroundMessage = backgroundMessages[backgroundMessages.length - 1];
+    const latestBackgroundMessageId = latestBackgroundMessage?.message.messageId ?? null;
+
+    // 如果背景消息没有变化，跳过
+    if (lastBackgroundMessageIdRef.current === latestBackgroundMessageId) {
+      return;
+    }
+
+    // 保存旧值用于判断是否是取消操作
+    const previousBackgroundMessageId = lastBackgroundMessageIdRef.current;
+
+    // 更新 ref
+    lastBackgroundMessageIdRef.current = latestBackgroundMessageId;
+
+    // 如果有新的背景消息，重新渲染它
+    if (latestBackgroundMessage) {
+      console.warn("[RealtimeRender] 检测到背景更新，重新渲染背景消息:", latestBackgroundMessageId);
+      realtimeRender.renderMessage(latestBackgroundMessage, roomId);
+    }
+    else if (previousBackgroundMessageId !== null) {
+      // 之前有背景，现在没有了，说明用户取消了所有背景，需要清除
+      console.warn("[RealtimeRender] 检测到背景被取消，清除背景");
+      realtimeRender.clearBackground(roomId);
+    }
+  }, [historyMessages, realtimeRender, roomId]);
+
+  // 切换实时渲染
+  const handleToggleRealtimeRender = useCallback(async () => {
+    if (realtimeRender.isActive) {
+      // 关闭实时渲染
+      realtimeRender.stop();
+      setIsRealtimeRenderEnabled(false);
+      setSideDrawerState("none");
+      toast.success("已关闭实时渲染");
+    }
+    else {
+      // 启动 WebGAL
+      launchWebGal();
+
+      // 轮询检测 WebGAL 服务是否启动
+      toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
+      try {
+        await pollPort(
+          Number((import.meta.env.VITE_TERRE_URL as string).split(":").pop()),
+          isElectronEnv() ? 15000 : 500,
+          100,
+        );
+
+        toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
+        const success = await realtimeRender.start();
+        if (success) {
+          toast.success("实时渲染已开启", { id: "webgal-init" });
+          // 开启成功后再设置 enabled 状态，避免过早触发 hook 的自动启动
+          setIsRealtimeRenderEnabled(true);
+          // 打开预览侧边栏
+          setSideDrawerState("webgal");
+          // 直接渲染历史消息
+          await renderHistoryMessages();
+        }
+        else {
+          toast.error("实时渲染启动失败", { id: "webgal-init" });
+          setIsRealtimeRenderEnabled(false);
+        }
+      }
+      catch {
+        toast.error("WebGAL 启动超时", { id: "webgal-init" });
+        setIsRealtimeRenderEnabled(false);
+      }
+    }
+  }, [realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, renderHistoryMessages]);
+
+  // 监听实时渲染初始化进度
+  useEffect(() => {
+    if (realtimeRender.initProgress && realtimeRender.status === "initializing") {
+      const { phase, message } = realtimeRender.initProgress;
+      if (phase !== "ready" && phase !== "idle") {
+        toast.loading(message, { id: "webgal-init" });
+      }
+    }
+  }, [realtimeRender.initProgress, realtimeRender.status]);
+
+  useEffect(() => {
+    if (realtimeStatus !== "error") {
+      return;
+    }
+
+    toast.error("实时渲染连接失败，请确认 WebGAL 已启动", { id: "webgal-error" });
+    stopRealtimeRender();
+    setIsRealtimeRenderEnabled(false);
+    if (sideDrawerState === "webgal") {
+      setSideDrawerState("none");
+    }
+    hasRenderedHistoryRef.current = false;
+    lastRenderedMessageIdRef.current = null;
+  }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
+
+  // WebGAL 跳转到指定消息
+  const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
+    if (!realtimeRender.isActive) {
+      return false;
+    }
+    return realtimeRender.jumpToMessage(messageId, roomId);
+  }, [realtimeRender, roomId]);
+
+  // WebGAL 更新消息渲染设置并重新渲染跳转
+  const updateAndRerenderMessageInWebGAL = useCallback(async (
+    message: ChatMessageResponse,
+    regenerateTTS: boolean = false,
+  ): Promise<boolean> => {
+    if (!realtimeRender.isActive) {
+      return false;
+    }
+    return realtimeRender.updateAndRerenderMessage(message, roomId, regenerateTTS);
+  }, [realtimeRender, roomId]);
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
@@ -261,8 +649,24 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       setReplyMessage,
       chatHistory,
       scrollToGivenMessage,
+      // WebGAL 联动模式相关
+      webgalLinkMode,
+      setWebgalLinkMode,
+      defaultFigurePositionMap,
+      setDefaultFigurePosition: (roleId: number, position: "left" | "center" | "right" | undefined) => {
+        setDefaultFigurePositionMap(prev => ({
+          ...prev,
+          [roleId]: position,
+        }));
+      },
+      autoReplyMode,
+      setAutoReplyMode,
+      // WebGAL 跳转功能 - 只有在实时渲染激活时才启用
+      jumpToMessageInWebGAL: realtimeRender.isActive ? jumpToMessageInWebGAL : undefined,
+      // WebGAL 更新渲染并跳转 - 只有在实时渲染激活时才启用
+      updateAndRerenderMessageInWebGAL: realtimeRender.isActive ? updateAndRerenderMessageInWebGAL : undefined,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, webgalLinkMode, setWebgalLinkMode, defaultFigurePositionMap, setDefaultFigurePositionMap, autoReplyMode, setAutoReplyMode, realtimeRender.isActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   // 判断是否是观战成员 (memberType >= 3)
@@ -463,14 +867,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [isSubmitting, setIsSubmitting] = useState(false);
   const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 没有权限
   const noRole = curRoleId <= 0;
-  const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0); // 没有内容
-  const disableSendMessage = noRole || notMember || noInput || isSubmitting;
+  const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile); // 没有内容
+  // WebGAL 联动模式下允许无角色发送（作为旁白）
+  const disableSendMessage = (noRole && !webgalLinkMode) || notMember || noInput || isSubmitting;
 
   const handleMessageSubmit = async () => {
     if (disableSendMessage) {
       if (notMember)
         toast.error("您是观战，不能发送消息");
-      else if (noRole)
+      else if (noRole && !webgalLinkMode)
         toast.error("请先拉入你的角色，之后才能发送消息。");
       else if (noInput)
         toast.error("请输入内容");
@@ -484,40 +889,131 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
     setIsSubmitting(true);
     try {
+      const uploadedImages: any[] = [];
+
+      // 1. 上传图片
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         const { width, height, size } = await getImageSize(imgFiles[i]);
-        sendImg(imgDownLoadUrl, width, height, size);
+        uploadedImages.push({ url: imgDownLoadUrl, width, height, size, fileName: imgFiles[i].name });
       }
       updateImgFiles([]);
+
+      // 2. 上传表情 (视为图片)
       for (let i = 0; i < emojiUrls.length; i++) {
         const { width, height, size } = await getImageSize(emojiUrls[i]);
-        sendImg(emojiUrls[i], width, height, size);
+        uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
       }
       updateEmojiUrls([]);
 
-      // 发送文本消息
-      if (inputText.trim() !== "") {
-        const messageRequest: ChatMessageRequest = {
+      // 3. 上传语音
+      let soundMessageData: any = null;
+      if (audioFile) {
+        const audio = new Audio(URL.createObjectURL(audioFile));
+        await new Promise((resolve) => {
+          audio.onloadedmetadata = () => resolve(null);
+        });
+        const duration = audio.duration;
+        const url = await uploadUtils.uploadAudio(audioFile, 1, 60);
+        soundMessageData = {
+          url,
+          second: Math.round(duration),
+          fileName: audioFile.name,
+          size: audioFile.size,
+        };
+        setAudioFile(null);
+      }
+
+      // 4. 构建并发送消息
+      // 自动回复模式：如果没有手动选择回复消息，自动回复最后一条消息
+      let autoReplyMsgId: number | undefined;
+      if (autoReplyMode && !replyMessage && historyMessages && historyMessages.length > 0) {
+        const lastMessage = historyMessages[historyMessages.length - 1];
+        autoReplyMsgId = lastMessage?.message?.messageId;
+      }
+
+      const finalReplyId = replyMessage?.messageId || autoReplyMsgId || undefined;
+      let isFirstMessage = true;
+
+      const getCommonFields = () => {
+        const fields: Partial<ChatMessageRequest> = {
           roomId,
           roleId: curRoleId,
-          content: inputText.trim(), // 直接使用 state
           avatarId: curAvatarId,
-          messageType: 1,
-          replayMessageId: replyMessage?.messageId || undefined,
-          extra: {},
         };
 
-        if (isCommand(inputText)) {
-          // *** 使用 state 中的提及列表 ***
-          commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
+        if (isFirstMessage) {
+          fields.replayMessageId = finalReplyId;
+          if (webgalLinkMode) {
+            fields.webgal = {
+              voiceRenderSettings: {
+                figurePosition: currentDefaultFigurePosition,
+                notend: dialogNotend,
+                concat: dialogConcat,
+              },
+            };
+          }
+          isFirstMessage = false;
         }
-        else {
-          send(messageRequest);
-        }
-        setInputText(""); // 调用重构的 setInputText 来清空
+        return fields;
+      };
+
+      let textContent = inputText.trim();
+      if (textContent && isCommand(textContent)) {
+        commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
+        // 指令执行也被视为一次"发送"，消耗掉 firstMessage 状态
+        isFirstMessage = false;
+        textContent = "";
       }
+
+      // B. 发送图片
+      for (const img of uploadedImages) {
+        const imgMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: textContent,
+          messageType: MessageType.IMG,
+          extra: {
+            url: img.url,
+            width: img.width,
+            height: img.height,
+            size: img.size,
+            fileName: img.fileName,
+            background: sendAsBackground,
+          },
+        };
+        send(imgMsg);
+        textContent = "";
+      }
+
+      // C. 发送语音
+      if (soundMessageData) {
+        const audioMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: textContent,
+          messageType: MessageType.SOUND,
+          extra: {
+            ...soundMessageData,
+            purpose: audioPurpose,
+          },
+        };
+        send(audioMsg);
+        textContent = "";
+      }
+
+      // A. 发送文本 (如果前面没有被图片或语音消耗掉)
+      if (textContent) {
+        const textMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: textContent,
+          messageType: MessageType.TEXT,
+        };
+        send(textMsg);
+      }
+
+      setInputText(""); // 调用重构的 setInputText 来清空
       setReplyMessage(undefined);
+      setSendAsBackground(false);
+      setAudioPurpose(undefined);
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -526,19 +1022,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       setIsSubmitting(false);
     }
   };
-
-  function sendImg(img: string, width: number, height: number, size: number) {
-    // ... (sendImg logic as-is) ...
-    const messageRequest: ChatMessageRequest = {
-      content: "",
-      roomId,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
-      messageType: 2,
-      extra: { size, url: img, fileName: img.split("/").pop() || "error", width, height },
-    };
-    send(messageRequest);
-  }
 
   // 线索消息发送
   const handleClueSend = (clue: ClueMessage) => {
@@ -649,6 +1132,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         ? "请先拉入你的角色，之后才能发送消息。"
         : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"));
 
+  const handleSendEffect = useCallback((effectName: string) => {
+    if (!curRoleId) {
+      toast.error("请先选择角色");
+      return;
+    }
+    send({
+      roomId,
+      roleId: curRoleId,
+      avatarId: curAvatarId,
+      content: `[特效: ${effectName}]`,
+      messageType: MessageType.EFFECT,
+      extra: {
+        effectName,
+      },
+    });
+  }, [curRoleId, curAvatarId, roomId, send]);
+
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
@@ -682,7 +1182,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
-            <form className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
+            <div className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
               <div className="relative flex-1 flex flex-col min-w-0">
                 <CommandPanel
                   prefix={inputText} // *** 直接使用 inputText state ***
@@ -711,6 +1211,20 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   currentChatStatus={myStatue as any}
                   onChangeChatStatus={handleManualStatusChange}
                   isSpectator={isSpectator}
+                  isRealtimeRenderActive={realtimeRender.isActive}
+                  onToggleRealtimeRender={handleToggleRealtimeRender}
+                  webgalLinkMode={webgalLinkMode}
+                  onToggleWebgalLinkMode={() => setWebgalLinkMode(!webgalLinkMode)}
+                  autoReplyMode={autoReplyMode}
+                  onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
+                  defaultFigurePosition={currentDefaultFigurePosition}
+                  onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
+                  dialogNotend={dialogNotend}
+                  onToggleDialogNotend={() => setDialogNotend(!dialogNotend)}
+                  dialogConcat={dialogConcat}
+                  onToggleDialogConcat={() => setDialogConcat(!dialogConcat)}
+                  onSendEffect={handleSendEffect}
+                  setAudioFile={setAudioFile}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch
@@ -724,24 +1238,70 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   <div
                     className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
                   >
-                    {(imgFiles.length > 0 || emojiUrls.length > 0) && (
-                      <div className="flex flex-row gap-x-3 overflow-x-auto p-2 pb-1">
-                        {imgFiles.map((file, index) => (
-                          <BetterImg
-                            src={file}
-                            className="h-12 w-max rounded"
-                            onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                            key={file.name}
-                          />
-                        ))}
-                        {emojiUrls.map((url, index) => (
-                          <BetterImg
-                            src={url}
-                            className="h-12 w-max rounded"
-                            onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
-                            key={url}
-                          />
-                        ))}
+                    {(imgFiles.length > 0 || emojiUrls.length > 0 || audioFile) && (
+                      <div className="flex flex-col gap-1 p-2 pb-1 border-b border-base-200/50">
+                        <div className="flex flex-row gap-x-3 overflow-x-auto">
+                          {imgFiles.map((file, index) => (
+                            <BetterImg
+                              src={file}
+                              className="h-12 w-max rounded"
+                              onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                              key={file.name}
+                            />
+                          ))}
+                          {imgFiles.length > 0 && (
+                            <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-xs checkbox-primary"
+                                checked={sendAsBackground}
+                                onChange={e => setSendAsBackground(e.target.checked)}
+                              />
+                              <span>设为背景</span>
+                            </label>
+                          )}
+                          {emojiUrls.map((url, index) => (
+                            <BetterImg
+                              src={url}
+                              className="h-12 w-max rounded"
+                              onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                              key={url}
+                            />
+                          ))}
+                          {audioFile && (
+                            <div className="relative group flex-shrink-0">
+                              <div className="h-12 w-12 rounded bg-base-200 flex items-center justify-center border border-base-300" title={audioFile.name}>
+                                <MusicNote className="size-6 opacity-70" />
+                              </div>
+                              <div
+                                className="absolute -top-1 -right-1 bg-base-100 rounded-full shadow cursor-pointer hover:bg-error hover:text-white transition-colors z-10"
+                                onClick={() => setAudioFile(null)}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
+                                语音
+                              </div>
+                            </div>
+                          )}
+                          {audioFile && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-base-content/60">用途:</span>
+                              <select
+                                title="选择音频用途"
+                                className="select select-xs select-bordered"
+                                value={audioPurpose || ""}
+                                onChange={e => setAudioPurpose(e.target.value as "bgm" | "se" | undefined || undefined)}
+                              >
+                                <option value="">普通语音</option>
+                                <option value="bgm">BGM</option>
+                                <option value="se">音效</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                     {
@@ -768,6 +1328,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                       placeholder={placeholderText}
                     />
 
+                    {/* WebGAL 文本样式工具栏 - 紧贴输入框底部 */}
+                    <TextStyleToolbar
+                      chatInputRef={chatInputRef}
+                      className="px-2 pb-1"
+                    />
+
                   </div>
                   <AtMentionController
                     ref={atMentionRef}
@@ -777,7 +1343,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   </AtMentionController>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
           <div className="w-px bg-base-300 flex-shrink-0"></div>
           <OpenAbleDrawer
@@ -830,6 +1396,29 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             onWidthChange={setExportDrawerWidth}
           >
             <ExportChatDrawer></ExportChatDrawer>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "webgal"}
+            className="h-full bg-base-100 overflow-hidden z-20"
+            initialWidth={webgalDrawerWidth}
+            onWidthChange={setWebgalDrawerWidth}
+            maxWidth={window.innerWidth - 500}
+          >
+            <WebGALPreview
+              previewUrl={realtimeRender.previewUrl}
+              isActive={realtimeRender.isActive}
+              ttsEnabled={realtimeTTSEnabled}
+              onTTSToggle={setRealtimeTTSEnabled}
+              ttsApiUrl={ttsApiUrl}
+              onTTSApiUrlChange={handleTtsApiUrlChange}
+              miniAvatarEnabled={realtimeMiniAvatarEnabled}
+              onMiniAvatarToggle={setRealtimeMiniAvatarEnabled}
+              onClose={() => {
+                realtimeRender.stop();
+                setIsRealtimeRenderEnabled(false);
+                setSideDrawerState("none");
+              }}
+            />
           </OpenAbleDrawer>
         </div>
       </div>

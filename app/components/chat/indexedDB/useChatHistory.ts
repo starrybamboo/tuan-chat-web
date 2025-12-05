@@ -179,7 +179,9 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         const localHistory = await dbGetMessagesByRoomId(roomId);
         if (isCancelled)
           return;
-        setMessages(localHistory);
+        // 按 position 排序后设置消息
+        const sortedLocalHistory = localHistory.sort((a, b) => a.message.position - b.message.position);
+        setMessages(sortedLocalHistory);
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))
           : -1;
