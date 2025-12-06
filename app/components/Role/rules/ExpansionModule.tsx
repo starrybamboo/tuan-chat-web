@@ -39,7 +39,7 @@ export default function ExpansionModule({
   const isDiceMaiden = !!(roleQuery.data?.data?.diceMaiden || roleQuery.data?.data?.type === 1);
 
   // 当前选中的Tab，依据角色类型设置默认
-  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act" | "copywriting">(isDiceMaiden ? "copywriting" : "basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -48,24 +48,6 @@ export default function ExpansionModule({
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const [copywritingSaveMsg, setCopywritingSaveMsg] = useState<string>("");
   const [isCopywritingPreview, setIsCopywritingPreview] = useState<boolean>(true);
-
-  // 保证 activeTab 与角色类型一致
-  useEffect(() => {
-    // 通过事件队列异步更新，避免lint关于直接setState的警告
-    const id = setTimeout(() => {
-      if (isDiceMaiden) {
-        if (activeTab !== "copywriting") {
-          setActiveTab("copywriting");
-        }
-      }
-      else {
-        if (activeTab === "copywriting") {
-          setActiveTab("basic");
-        }
-      }
-    }, 0);
-    return () => clearTimeout(id);
-  }, [isDiceMaiden, activeTab]);
 
   // 初始化能力数据 - 现在不再自动创建,需要用户手动触发
   // useEffect(() => {
@@ -187,11 +169,9 @@ export default function ExpansionModule({
 
     updateFieldAbility(payload, {
       onSuccess: () => {
-        setCopywritingSaveMsg("保存成功");
         // 保存成功后切换回预览模式，并清空本地编辑状态让数据从后端重新加载
         setIsCopywritingPreview(true);
         setLocalEdits(prev => ({ ...prev, copywritingTemplates: undefined }));
-        setTimeout(() => setCopywritingSaveMsg(""), 2000);
       },
       onError: (e: any) => {
         console.error("保存骰娘文案失败:", e);
@@ -358,70 +338,56 @@ export default function ExpansionModule({
                   <div className="space-y-4">
                     {/* 顶部 Tab 按钮条，依据角色类型条件渲染 */}
                     <div className="flex gap-2 rounded-lg">
-                      {isDiceMaiden
-                        ? (
-                            <>
-                              <button
-                                type="button"
-                                className={`btn btn-md rounded-lg ${activeTab === "copywriting" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => setActiveTab("copywriting")}
-                              >
-                                <span className="md:hidden">骰娘文案</span>
-                                <span className="hidden md:inline">骰娘文案</span>
-                              </button>
-                            </>
-                          )
-                        : (
-                            <>
-                              <button
-                                type="button"
-                                className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => setActiveTab("basic")}
-                              >
-                                <span className="md:hidden">基础</span>
-                                <span className="hidden md:inline">基础配置</span>
-                              </button>
-                              <button
-                                type="button"
-                                className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => setActiveTab("ability")}
-                              >
-                                <span className="md:hidden">能力</span>
-                                <span className="hidden md:inline">能力配置</span>
-                              </button>
-                              <button
-                                type="button"
-                                className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => setActiveTab("skill")}
-                              >
-                                <span className="md:hidden">技能</span>
-                                <span className="hidden md:inline">技能配置</span>
-                              </button>
-                              <button
-                                type="button"
-                                className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
-                                onClick={() => setActiveTab("act")}
-                              >
-                                <span className="md:hidden">表演</span>
-                                <span className="hidden md:inline">表演配置</span>
-                              </button>
-                            </>
-                          )}
+                      { !isDiceMaiden && (
+                        <>
+                          <button
+                            type="button"
+                            className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
+                            onClick={() => setActiveTab("basic")}
+                          >
+                            <span className="md:hidden">基础</span>
+                            <span className="hidden md:inline">基础配置</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
+                            onClick={() => setActiveTab("ability")}
+                          >
+                            <span className="md:hidden">能力</span>
+                            <span className="hidden md:inline">能力配置</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
+                            onClick={() => setActiveTab("skill")}
+                          >
+                            <span className="md:hidden">技能</span>
+                            <span className="hidden md:inline">技能配置</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
+                            onClick={() => setActiveTab("act")}
+                          >
+                            <span className="md:hidden">表演</span>
+                            <span className="hidden md:inline">表演配置</span>
+                          </button>
+                        </>
+                      )}
                     </div>
-
                     {/* 当前 Tab 内容 */}
                     <div className="mt-2">
-                      {isDiceMaiden && activeTab === "copywriting"
+                      {isDiceMaiden
                         ? (
                             <Section
                               key="copywriting"
-                              title="骰娘文案配置"
                               className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
                               collapsible={false}
                             >
                               <div className="flex justify-between items-center mb-4">
                                 <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-                                  骰娘文案
+                                  ⚡
+                                  骰娘文案配置
                                 </h3>
                                 <div className="flex items-center gap-2">
                                   {copywritingSaveMsg && (
@@ -457,24 +423,35 @@ export default function ExpansionModule({
                               </div>
                               {isCopywritingPreview
                                 ? (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                       {Object.keys(renderData.copywritingTemplates || {}).length === 0
                                         ? (
                                             <div className="text-base-content/60">暂无文案可预览</div>
                                           )
                                         : (
                                             Object.entries(renderData.copywritingTemplates || {}).map(([group, items]) => (
-                                              <div key={group} className="card bg-base-100 shadow-xs rounded-xl border-2 border-base-content/10">
-                                                <div className="card-body">
-                                                  <div className="font-semibold mb-2">{group}</div>
+                                              <div key={group} className="collapse collapse-arrow bg-base-200 rounded-xl">
+                                                <input type="checkbox" defaultChecked />
+                                                <div className="collapse-title font-semibold">
+                                                  {group}
+                                                  <span className="badge badge-sm badge-primary ml-2">{items?.length || 0}</span>
+                                                </div>
+                                                <div className="collapse-content">
                                                   {(!items || items.length === 0)
                                                     ? (
                                                         <div className="text-base-content/50 text-sm">该分组暂无文案</div>
                                                       )
                                                     : (
-                                                        <ul className="list-disc pl-5 space-y-1">
-                                                          {items.map(line => (
-                                                            <li key={`${group}-${line.substring(0, 30)}`} className="text-sm whitespace-pre-wrap break-words">{line}</li>
+                                                        <ul className="list bg-base-100 rounded-lg">
+                                                          {items.map((line, index) => (
+                                                            <li key={`${group}-${line.substring(0, 50)}-${line.length}`} className="list-row">
+                                                              <div className="text-xs font-mono opacity-50 tabular-nums">
+                                                                {String(index + 1).padStart(2, "0")}
+                                                              </div>
+                                                              <div className="text-sm whitespace-pre-wrap break-words">
+                                                                {line}
+                                                              </div>
+                                                            </li>
                                                           ))}
                                                         </ul>
                                                       )}
