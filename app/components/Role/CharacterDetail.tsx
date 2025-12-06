@@ -425,74 +425,76 @@ function CharacterDetailInner({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!isDiceMaiden && (
-            <button
-              type="button"
-              onClick={() => setIsStImportModalOpen(true)}
-              className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
-            >
-              <span className="flex items-center gap-1">
-                ST导入
-              </span>
-            </button>
-          )}
           {/* 普通角色显示转换为骰娘按钮 */}
           {!isDiceMaiden && (
-            <button
-              type="button"
-              onClick={handleConvertToDiceMaiden}
-              className={`btn btn-success btn-sm md:btn-lg rounded-lg ${isConverting ? "scale-95" : ""}`}
-              disabled={isConverting}
-            >
-              {isConverting
-                ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                        <circle cx="18" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                        <circle cx="12" cy="18" r="2" stroke="currentColor" strokeWidth="2" />
-                        <path d="M6 8v4a4 4 0 004 4h4a4 4 0 004-4V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      转换为骰娘
-                    </span>
-                  )}
-            </button>
+            <div className="tooltip tooltip-bottom" data-tip="将当前角色复制为骰娘角色">
+              <button
+                type="button"
+                onClick={handleConvertToDiceMaiden}
+                className={`btn btn-outline btn-sm md:btn-lg rounded-lg ${isConverting ? "scale-95" : ""}`}
+                disabled={isConverting}
+              >
+                {isConverting
+                  ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    )
+                  : (
+                      <span className="flex items-center gap-1">
+                        To骰娘
+                      </span>
+                    )}
+              </button>
+            </div>
+          )}
+          {!isDiceMaiden && (
+            <div className="tooltip tooltip-bottom" data-tip="从ST格式导入角色数据">
+              <button
+                type="button"
+                onClick={() => setIsStImportModalOpen(true)}
+                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+              >
+                <span className="flex items-center gap-1">
+                  ST导入
+                </span>
+              </button>
+            </div>
           )}
           {isEditing
             ? (
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
-                  disabled={isTransitioning}
-                >
-                  {isTransitioning
-                    ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      )
-                    : (
-                        <span className="flex items-center gap-1">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
-                          保存
-                        </span>
-                      )}
-                </button>
+                <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
+                    disabled={isTransitioning}
+                  >
+                    {isTransitioning
+                      ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        )
+                      : (
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            保存
+                          </span>
+                        )}
+                  </button>
+                </div>
               )
             : (
-                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                    编辑
-                  </span>
-                </button>
+                <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
+                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                      编辑
+                    </span>
+                  </button>
+                </div>
               )}
         </div>
       </div>

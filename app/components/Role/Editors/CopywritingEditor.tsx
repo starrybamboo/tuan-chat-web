@@ -13,6 +13,8 @@ interface CopywritingEditorProps {
  */
 export default function CopywritingEditor({ value, onChange }: CopywritingEditorProps) {
   const [groupNameInput, setGroupNameInput] = useState("");
+  // 每个分组的新文案输入状态
+  const [newEntryInputs, setNewEntryInputs] = useState<Record<string, string>>({});
 
   const groups = useMemo(() => Object.entries(value || {}), [value]);
 
@@ -100,91 +102,145 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* 新增分组 */}
-      <div className="border-t-2 pt-4 border-base-content/10">
-        <span className="text-sm text-base-content/50 mb-2 block">添加新分组</span>
-        <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
-          <input
-            type="text"
-            className="grow focus:outline-none border-none outline-none bg-transparent"
-            placeholder="输入文案组名称，如：成功、失败、问候"
-            value={groupNameInput}
-            onChange={e => setGroupNameInput(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs btn-primary"
-            onClick={addGroup}
-            disabled={!groupNameInput.trim() || !!value[groupNameInput.trim()]}
-            title="添加分组"
-          >
-            ✓
-          </button>
-        </label>
+      <div className="card bg-base-200 rounded-xl">
+        <div className="card-body p-4">
+          <h4 className="text-sm font-medium text-base-content/70 mb-2">添加新分组</h4>
+          <div className="join w-full">
+            <input
+              type="text"
+              className="input input-bordered join-item flex-1"
+              placeholder="输入文案组名称，如：成功、失败、问候"
+              value={groupNameInput}
+              onChange={e => setGroupNameInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addGroup()}
+            />
+            <button
+              type="button"
+              className="btn btn-primary join-item"
+              onClick={addGroup}
+              disabled={!groupNameInput.trim() || !!value[groupNameInput.trim()]}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              添加
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 分组列表 */}
       <div className="space-y-4">
         {groups.length === 0 && (
-          <div className="text-base-content/60 text-sm">还没有文案分组，先新增一个吧。</div>
+          <div className="text-center py-8 text-base-content/50">
+            <div className="text-4xl mb-2">📝</div>
+            <p>还没有文案分组，先新增一个吧。</p>
+          </div>
         )}
         {groups.map(([name, entries]) => (
-          <div key={name} className="space-y-3">
+          <div key={name} className="collapse collapse-open bg-base-200 rounded-xl">
+            <input type="checkbox" defaultChecked />
             {/* 分组标题 */}
-            <div className="flex items-center gap-2">
-              <label className="input input-sm flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 flex-1">
+            <div className="collapse-title p-0 min-h-0">
+              <div className="flex items-center gap-2 p-3">
                 <input
                   type="text"
                   defaultValue={name}
                   onBlur={e => renameGroup(name, e.target.value)}
-                  className="grow focus:outline-none border-none outline-none bg-transparent font-semibold text-base"
+                  className="input input-sm input-ghost font-semibold text-base flex-1 focus:input-bordered"
                   title="点击编辑分组名"
                 />
-              </label>
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                onClick={() => deleteGroup(name)}
-                title="删除分组"
-              >
-                ✕
-              </button>
+                <span className="badge badge-primary badge-sm">{entries.length}</span>
+                <div className="tooltip tooltip-left" data-tip="删除分组">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteGroup(name);
+                    }}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* 组内文案条目 */}
-            <div className="space-y-2 pl-4">
-              {entries.length === 0 && (
-                <div className="text-base-content/50 text-sm">该分组暂无文案</div>
-              )}
-              {entries.map((text, idx) => (
-                <div key={`${name}-${idx}`} className="form-control">
-                  <label className="textarea w-full flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0">
+            <div className="collapse-content px-3 pb-3">
+              <ul className="list bg-base-100 rounded-lg">
+                {entries.map((text, idx) => (
+                  <li key={`${name}-entry-${idx}`} className="list-row items-start gap-3 py-2">
+                    <div className="text-xs font-mono opacity-50 tabular-nums pt-3">
+                      {String(idx + 1).padStart(2, "0")}
+                    </div>
+                    <div className="flex-1">
+                      <textarea
+                        className="textarea w-full focus:outline-none border-none outline-none bg-transparent resize-none"
+                        placeholder={`文案 #${idx + 1}`}
+                        value={text}
+                        onChange={e => updateEntry(name, idx, e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                    <div className="tooltip tooltip-left" data-tip="删除文案">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10 mt-2"
+                        onClick={() => deleteEntry(name, idx)}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </li>
+                ))}
+                {/* 添加新文案的空行 */}
+                <li className="list-row items-start gap-3 py-2">
+                  <div className="text-xs font-mono opacity-50 tabular-nums pt-3">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
                     <textarea
-                      className="textarea grow focus:outline-none border-none outline-none bg-transparent resize-none"
-                      style={{ minHeight: "4rem" }}
-                      placeholder={`文案 #${idx + 1}`}
-                      value={text}
-                      onChange={e => updateEntry(name, idx, e.target.value)}
+                      className="textarea w-full focus:outline-none border-none outline-none bg-transparent resize-none"
+                      placeholder="输入新文案..."
+                      value={newEntryInputs[name] || ""}
+                      onChange={e => setNewEntryInputs(prev => ({ ...prev, [name]: e.target.value }))}
+                      rows={2}
                     />
+                  </div>
+                  <div className="tooltip tooltip-left" data-tip="添加文案">
                     <button
                       type="button"
-                      className="btn btn-ghost btn-xs text-error hover:bg-error/10 mr-2"
-                      onClick={() => deleteEntry(name, idx)}
-                      title="删除文案"
+                      className="btn btn-ghost btn-sm btn-square text-primary hover:bg-primary/10 mt-2"
+                      disabled={!newEntryInputs[name]?.trim()}
+                      onClick={() => {
+                        const text = newEntryInputs[name]?.trim();
+                        if (text) {
+                          addEntry(name);
+                          // 更新刚添加的空条目为输入的内容
+                          const list = value[name] || [];
+                          const nextList = [...list, text];
+                          onChange({ ...value, [name]: nextList });
+                          // 清空输入框
+                          setNewEntryInputs(prev => ({ ...prev, [name]: "" }));
+                        }
+                      }}
                     >
-                      ✕
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                     </button>
-                  </label>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs btn-outline w-full"
-                onClick={() => addEntry(name)}
-              >
-                + 添加文案
-              </button>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
         ))}

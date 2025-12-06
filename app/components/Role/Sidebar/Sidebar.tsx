@@ -34,6 +34,9 @@ export function Sidebar({
   const [searchQuery, setSearchQuery] = useState("");
   // 分类筛选：all | normal | dice
   const [filterCategory, setFilterCategory] = useState<"all" | "normal" | "dice">("normal");
+  // 折叠状态：用于"全部"视图中的分组折叠
+  const [isDiceCollapsed, setIsDiceCollapsed] = useState(false);
+  const [isNormalCollapsed, setIsNormalCollapsed] = useState(false);
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const {
@@ -232,6 +235,10 @@ export function Sidebar({
       return filterCategory === "dice" ? isDice : !isDice;
     });
 
+  // 在"全部"视图中，分离骰娘角色和普通角色
+  const diceRoles = filteredRoles.filter(role => role.type === 1);
+  const normalRoles = filteredRoles.filter(role => role.type !== 1);
+
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<Set<number>>(new Set());
 
@@ -303,7 +310,7 @@ export function Sidebar({
 
       <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 md:bg-base-300/40 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
-        <div className="flex gap-2 mb-2 sticky top-0 bg-transparent z-50 py-2">
+        <div className="flex gap-2 sticky top-0 bg-transparent z-50 py-2">
           <label className="input">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
@@ -395,41 +402,41 @@ export function Sidebar({
                 </>
               )}
         </div>
-        {/* 分类切换：全部 / 普通角色 / 骰娘角色 */}
-        <div className="mb-4">
-          <div className="tabs tabs-boxed">
-            <button
-              type="button"
-              className={`tab ${filterCategory === "all" ? "tab-active" : ""}`}
-              onClick={() => {
-                setFilterCategory("all");
-                navigate("/role", { replace: true });
-              }}
-            >
-              全部
-            </button>
-            <button
-              type="button"
-              className={`tab ${filterCategory === "normal" ? "tab-active" : ""}`}
-              onClick={() => {
-                setFilterCategory("normal");
-                navigate("/role", { replace: true });
-              }}
-            >
-              普通角色
-            </button>
-            <button
-              type="button"
-              className={`tab ${filterCategory === "dice" ? "tab-active" : ""}`}
-              onClick={() => {
-                setFilterCategory("dice");
-                navigate("/role", { replace: true });
-              }}
-            >
-              骰娘角色
-            </button>
-          </div>
+        {/* 分类切换：普通角色 / 骰娘角色 */}
+
+        <div className="tabs tabs-box bg-base-300 rounded-lg flex items-center justify-center gap-2 px-2 py-2">
+          <button
+            type="button"
+            className={`btn btn-md rounded-lg ${filterCategory === "all" ? "tab-active text-primary" : ""}`}
+            onClick={() => {
+              setFilterCategory("all");
+              navigate("/role", { replace: true });
+            }}
+          >
+            全部
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-lg ${filterCategory === "normal" ? "tab-active text-primary" : ""}`}
+            onClick={() => {
+              setFilterCategory("normal");
+              navigate("/role", { replace: true });
+            }}
+          >
+            普通角色
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-lg ${filterCategory === "dice" ? "tab-active text-primary" : ""}`}
+            onClick={() => {
+              setFilterCategory("dice");
+              navigate("/role", { replace: true });
+            }}
+          >
+            骰娘角色
+          </button>
         </div>
+
         {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
 
         {/* 角色列表 - 使用 InfiniteQuery */}
@@ -445,15 +452,205 @@ export function Sidebar({
               }
             }}
           >
-            {/* 创建普通角色 - 仅在"全部"或"普通角色"时显示 */}
-            {(filterCategory === "all" || filterCategory === "normal") && (
+            {/* "全部"视图：分组可折叠列表，骰娘在前，普通角色在后 */}
+            {filterCategory === "all" && (
+              <>
+                {/* 骰娘角色分组 */}
+                <div className="mb-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                    onClick={() => setIsDiceCollapsed(!isDiceCollapsed)}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`w-4 h-4 transition-transform ${isDiceCollapsed ? "" : "rotate-90"}`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                    <span className="font-medium">骰娘角色</span>
+                    <span className="text-xs text-base-content/60">
+                      (
+                      {diceRoles.length}
+                      )
+                    </span>
+                  </button>
+                  {!isDiceCollapsed && (
+                    <div className="ml-2">
+                      {/* 创建骰娘入口 */}
+                      <Link
+                        to="/role?type=dice"
+                        className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                        onClick={closeDrawerOnMobile}
+                        title="创建骰娘角色"
+                      >
+                        <div className="avatar shrink-0 px-1">
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-success/40 group-hover:border-success/60 bg-success/5 text-success/60 group-hover:text-success/80 transition-colors duration-150 relative">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <circle cx="15.5" cy="8.5" r="1.5" />
+                              <circle cx="8.5" cy="15.5" r="1.5" />
+                              <circle cx="15.5" cy="15.5" r="1.5" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <h3 className="font-medium truncate">创建骰娘</h3>
+                          <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
+                        </div>
+                      </Link>
+                      {/* 骰娘角色列表 */}
+                      {diceRoles.map((role) => {
+                        const storedRuleId = getRoleRule(role.id) || 1;
+                        const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
+                        return (
+                          <NavLink
+                            key={role.id}
+                            to={roleUrl}
+                            className={({ isActive }) => `block rounded-lg px-1 ${
+                              isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
+                            }`}
+                            onClick={(e) => {
+                              if (isSelectionMode) {
+                                e.preventDefault();
+                                toggleRoleSelection(role.id);
+                              }
+                              else {
+                                closeDrawerOnMobile();
+                              }
+                            }}
+                          >
+                            <RoleListItem
+                              role={role}
+                              isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                              onDelete={() => handleDelete(role.id)}
+                              isSelectionMode={isSelectionMode}
+                            />
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 普通角色分组 */}
+                <div className="mb-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                    onClick={() => setIsNormalCollapsed(!isNormalCollapsed)}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`w-4 h-4 transition-transform ${isNormalCollapsed ? "" : "rotate-90"}`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                    <span className="font-medium">普通角色</span>
+                    <span className="text-xs text-base-content/60">
+                      (
+                      {normalRoles.length}
+                      )
+                    </span>
+                  </button>
+                  {!isNormalCollapsed && (
+                    <div className="ml-2">
+                      {/* 创建普通角色入口 */}
+                      <Link
+                        to="/role?type=normal"
+                        className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                        onClick={closeDrawerOnMobile}
+                        title="创建普通角色"
+                      >
+                        <div className="avatar shrink-0 px-1">
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 group-hover:border-primary/60 bg-primary/5 text-primary/60 group-hover:text-primary/80 transition-colors duration-150 relative">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                              <circle cx="12" cy="7" r="4" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <h3 className="font-medium truncate">创建普通角色</h3>
+                          <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
+                        </div>
+                      </Link>
+                      {/* 普通角色列表 */}
+                      {normalRoles.map((role) => {
+                        const storedRuleId = getRoleRule(role.id) || 1;
+                        const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
+                        return (
+                          <NavLink
+                            key={role.id}
+                            to={roleUrl}
+                            className={({ isActive }) => `block rounded-lg px-1 ${
+                              isActive && !isSelectionMode ? "bg-primary/10 text-primary" : ""
+                            }`}
+                            onClick={(e) => {
+                              if (isSelectionMode) {
+                                e.preventDefault();
+                                toggleRoleSelection(role.id);
+                              }
+                              else {
+                                closeDrawerOnMobile();
+                              }
+                            }}
+                          >
+                            <RoleListItem
+                              role={role}
+                              isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                              onDelete={() => handleDelete(role.id)}
+                              isSelectionMode={isSelectionMode}
+                            />
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* 创建普通角色 - 仅在"普通角色"时显示 */}
+            {filterCategory === "normal" && (
               <Link
                 to="/role?type=normal"
                 className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
                 onClick={closeDrawerOnMobile}
                 title="创建普通角色"
               >
-                <div className="avatar shrink-0">
+                <div className="avatar shrink-0 px-1">
                   <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 group-hover:border-primary/60 bg-primary/5 text-primary/60 group-hover:text-primary/80 transition-colors duration-150 relative">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -477,15 +674,15 @@ export function Sidebar({
               </Link>
             )}
 
-            {/* 创建骰娘角色 - 仅在"全部"或"骰娘角色"时显示 */}
-            {(filterCategory === "all" || filterCategory === "dice") && (
+            {/* 创建骰娘角色 - 仅在"骰娘角色"时显示 */}
+            {filterCategory === "dice" && (
               <Link
                 to="/role?type=dice"
                 className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
                 onClick={closeDrawerOnMobile}
                 title="创建骰娘角色"
               >
-                <div className="avatar shrink-0">
+                <div className="avatar shrink-0 px-1">
                   <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-success/40 group-hover:border-success/60 bg-success/5 text-success/60 group-hover:text-success/80 transition-colors duration-150 relative">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -512,7 +709,8 @@ export function Sidebar({
               </Link>
             )}
 
-            {filteredRoles.map((role) => {
+            {/* 非"全部"视图时的角色列表 */}
+            {filterCategory !== "all" && filteredRoles.map((role) => {
               // 获取角色存储的规则ID,如果没有则使用默认规则ID=1
               const storedRuleId = getRoleRule(role.id) || 1;
               // 构建保留当前查询参数的 URL,但使用存储的规则ID
@@ -525,8 +723,8 @@ export function Sidebar({
                   // NavLink 让我们能根据路由是否激活来动态设置 className
                   className={({ isActive }) => `block rounded-lg px-1 ${
                     isActive && !isSelectionMode
-                      ? "bg-primary/10 text-primary border-l-4 border-success"
-                      : "border-l-4 border-transparent"
+                      ? "bg-primary/10 text-primary"
+                      : ""
                   }`}
                   onClick={(e) => {
                     // 如果是批量选择模式，阻止导航
