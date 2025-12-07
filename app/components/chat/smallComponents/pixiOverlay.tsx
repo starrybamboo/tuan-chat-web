@@ -162,8 +162,8 @@ export default function PixiOverlay({ effectName }: PixiOverlayProps) {
 function createRainEffect(
   app: Application,
   container: Container,
-  tickerRef: React.MutableRefObject<((ticker: Ticker) => void) | null>,
-  particlesRef: React.MutableRefObject<Particle[]>,
+  tickerRef: React.RefObject<((ticker: Ticker) => void) | null>,
+  particlesRef: React.RefObject<Particle[]>,
 ) {
   const count = 400;
   const particles: Particle[] = [];
@@ -213,8 +213,8 @@ function createRainEffect(
 function createSnowEffect(
   app: Application,
   container: Container,
-  tickerRef: React.MutableRefObject<((ticker: Ticker) => void) | null>,
-  particlesRef: React.MutableRefObject<Particle[]>,
+  tickerRef: React.RefObject<((ticker: Ticker) => void) | null>,
+  particlesRef: React.RefObject<Particle[]>,
   heavy: boolean,
 ) {
   const count = heavy ? 400 : 150;
@@ -274,8 +274,8 @@ function createSnowEffect(
 function createCherryBlossomEffect(
   app: Application,
   container: Container,
-  tickerRef: React.MutableRefObject<((ticker: Ticker) => void) | null>,
-  particlesRef: React.MutableRefObject<Particle[]>,
+  tickerRef: React.RefObject<((ticker: Ticker) => void) | null>,
+  particlesRef: React.RefObject<Particle[]>,
 ) {
   const count = 80;
   const particles: Particle[] = [];
