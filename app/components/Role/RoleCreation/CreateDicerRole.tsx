@@ -50,6 +50,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
         type: 1,
         modelName: "",
         speakerName: "",
+        extra: {},
       };
 
       // 4. 通知完成

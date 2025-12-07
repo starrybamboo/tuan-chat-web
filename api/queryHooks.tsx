@@ -73,6 +73,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
           modelName: data.modelName,
           speakerName: data.speakerName,
           voiceUrl: data.voiceUrl,
+          extra: data.extra,
         });
         return updateRes;
       }
