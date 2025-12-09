@@ -836,6 +836,9 @@ function ChatFrame(props: {
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
         onAddEmoji={handleAddEmoji}
+        onInsertAfter={(messageId) => {
+          roomContext.setInsertAfterMessageId?.(messageId);
+        }}
       />
     </div>
   );

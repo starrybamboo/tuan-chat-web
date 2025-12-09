@@ -58,7 +58,7 @@ interface ChatToolbarProps {
 
   // WebGAL 控制
   onSendEffect?: (effectName: string) => void;
-  // 发送语音
+  // 发送音频
   setAudioFile?: (file: File | null) => void;
 }
 
@@ -208,9 +208,9 @@ export function ChatToolbar({
           </div>
         </ImgUploader>
 
-        {/* 发送语音 */}
+        {/* 发送音频 */}
         {setAudioFile && (
-          <div className="tooltip" data-tip="发送语音">
+          <div className="tooltip" data-tip="发送音频">
             <MusicNote
               className="size-7 cursor-pointer jump_icon"
               onClick={() => audioInputRef.current?.click()}

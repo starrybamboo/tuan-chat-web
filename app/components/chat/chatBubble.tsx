@@ -131,6 +131,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     concat: boolean,
     figureAnimation?: FigureAnimationSettings,
   ) {
+    console.warn("[ChatBubble] 保存语音渲染设置:", {
+      messageId: message.messageId,
+      figurePosition,
+      figurePositionType: typeof figurePosition,
+    });
+
     // 判断情感向量是否改变（用于决定是否重新生成 TTS）
     const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
     const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
@@ -148,6 +154,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
         },
       },
     } as Message;
+
+    console.warn("[ChatBubble] 准备发送的消息:", JSON.stringify(newMessage.webgal?.voiceRenderSettings, null, 2));
 
     updateMessageMutation.mutate(newMessage, {
       onSuccess: (response) => {
@@ -540,12 +548,23 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   // 旁白的特殊渲染（无角色）
   if (isNarrator) {
     return (
-      <div className="flex w-full py-2 group">
-        <div className="flex-1 min-w-0 p-2">
+      <div className="flex w-full py-1 group">
+        <div className="flex-1 min-w-0 px-2 py-1">
           {/* 旁白样式：无头像，居中或左对齐，斜体 */}
-          <div className="bg-base-200/50 rounded-lg p-3 relative">
-            {/* 类型标识 */}
+          <div className="bg-base-200/50 rounded-lg p-2 relative">
+            {/* 类型标识和操作按钮 */}
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* WebGAL 联动模式下显示切换黑屏按钮 */}
+              {message.messageType === MESSAGE_TYPE.TEXT && canEdit && roomContext.webgalLinkMode && (
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
+                  onClick={handleToggleIntroText}
+                  title="切换为黑屏文字"
+                >
+                  → 黑屏
+                </button>
+              )}
               <span className="badge badge-xs badge-secondary">旁白</span>
             </div>
             {/* 内容 - 斜体 */}
@@ -558,21 +577,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                 fieldId={`msg${message.messageId}`}
               />
             </div>
-            {/* WebGAL 联动模式下显示切换黑屏按钮 - 旁白也是文本消息 */}
-            {message.messageType === MESSAGE_TYPE.TEXT && canEdit && roomContext.webgalLinkMode && (
-              <div className="flex items-center gap-2 mt-2 text-xs">
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary"
-                  onClick={handleToggleIntroText}
-                  title="切换为黑屏文字"
-                >
-                  → 黑屏
-                </button>
-              </div>
-            )}
             {/* 时间 */}
-            <div className="text-xs text-base-content/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="text-xs text-base-content/50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
               {formattedTime}
             </div>

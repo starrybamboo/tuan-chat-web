@@ -239,6 +239,9 @@ export class RealtimeRenderer {
   // 小头像相关
   private miniAvatarEnabled: boolean = false;
 
+  // 自动填充立绘相关（没有设置立绘时是否自动填充左侧立绘）
+  private autoFigureEnabled: boolean = false;
+
   // TTS 相关
   private ttsConfig: RealtimeTTSConfig = { enabled: false };
   private voiceFileMap = new Map<number, File>(); // roleId -> 参考音频文件
@@ -281,6 +284,14 @@ export class RealtimeRenderer {
    */
   public setMiniAvatarEnabled(enabled: boolean): void {
     this.miniAvatarEnabled = enabled;
+  }
+
+  /**
+   * 设置自动填充立绘是否启用
+   * @param enabled 是否启用自动填充立绘（没有设置立绘时自动填充左侧立绘）
+   */
+  public setAutoFigureEnabled(enabled: boolean): void {
+    this.autoFigureEnabled = enabled;
   }
 
   /**
@@ -1256,7 +1267,8 @@ export class RealtimeRenderer {
     // 获取立绘文件名
     const spriteFileName = await this.getAndUploadSprite(msg.avatarId, msg.roleId);
 
-    // 获取 voiceRenderSettings 中的立绘位置（默认为 left）
+    console.error(msg.content, msg.webgal?.voiceRenderSettings);
+    // 获取 voiceRenderSettings 中的立绘位置
     const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
       emotionVector?: number[];
       figurePosition?: string;
@@ -1264,14 +1276,27 @@ export class RealtimeRenderer {
       concat?: boolean;
       figureAnimation?: FigureAnimationSettings;
     } | undefined;
-    const figurePosition = voiceRenderSettings?.figurePosition || "left";
+
+    // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
+    // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
+    // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
+    const rawFigurePosition = voiceRenderSettings?.figurePosition;
+    console.error(msg.content, rawFigurePosition);
+
+    // 只有 "left", "center", "right" 才是有效的立绘位置
+    const isValidPosition = rawFigurePosition === "left" || rawFigurePosition === "center" || rawFigurePosition === "right";
+    const figurePosition = isValidPosition
+      ? rawFigurePosition
+      : (this.autoFigureEnabled ? "left" : undefined);
+
     const figureAnimation = voiceRenderSettings?.figureAnimation;
 
     // 获取黑屏文字的 -hold 设置
     const introHold = (msg.webgal as any)?.introHold as boolean ?? false;
 
-    // 旁白和黑屏文字不需要显示立绘和小头像
-    const shouldShowFigure = !isNarrator && !isIntroText;
+    // 旁白和黑屏文字不需要显示立绘
+    // 如果 figurePosition 为 undefined，也不显示立绘
+    const shouldShowFigure = !isNarrator && !isIntroText && !!figurePosition;
 
     // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
     if (shouldShowFigure && spriteFileName) {
@@ -1310,9 +1335,16 @@ export class RealtimeRenderer {
       await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
       await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
+    else if (!isNarrator && !isIntroText) {
+      // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
+      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+    }
 
-    // 处理小头像（仅普通对话）
-    if (shouldShowFigure) {
+    // 处理小头像（普通角色对话，不管是否显示立绘）
+    const isNormalDialog = !isNarrator && !isIntroText;
+    if (isNormalDialog) {
       const miniAvatarFileName = this.miniAvatarEnabled
         ? await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId)
         : null;
@@ -1325,8 +1357,8 @@ export class RealtimeRenderer {
         await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
       }
     }
-    else if (isNarrator || isIntroText) {
-      // 旁白和黑屏文字清除小头像
+    else if ((isNarrator || isIntroText) && this.miniAvatarEnabled) {
+      // 旁白和黑屏文字清除小头像（仅在启用小头像功能时）
       await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
     }
 

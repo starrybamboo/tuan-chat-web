@@ -40,6 +40,8 @@ type UseRealtimeRenderOptions = {
   miniAvatarEnabled?: boolean;
   /** 角色参考音频文件映射 (roleId -> File) */
   voiceFiles?: Map<number, File>;
+  /** 自动填充立绘是否启用（没有设置立绘时自动填充左侧立绘） */
+  autoFigureEnabled?: boolean;
 };
 
 type UseRealtimeRenderReturn = {
@@ -94,6 +96,7 @@ export function useRealtimeRender({
   ttsConfig,
   miniAvatarEnabled = false,
   voiceFiles,
+  autoFigureEnabled = false,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
   const [initProgress, setInitProgress] = useState<InitProgress | null>(null);
@@ -123,6 +126,12 @@ export function useRealtimeRender({
       rendererRef.current.setMiniAvatarEnabled(miniAvatarEnabled);
     }
   }, [miniAvatarEnabled]);
+
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setAutoFigureEnabled(autoFigureEnabled);
+    }
+  }, [autoFigureEnabled]);
 
   useEffect(() => {
     voiceFilesRef.current = voiceFiles;
@@ -176,6 +185,9 @@ export function useRealtimeRender({
 
       // 设置小头像配置
       renderer.setMiniAvatarEnabled(miniAvatarEnabled);
+
+      // 设置自动填充立绘配置
+      renderer.setAutoFigureEnabled(autoFigureEnabled);
 
       // 设置进度回调
       renderer.setProgressCallback((progress) => {
