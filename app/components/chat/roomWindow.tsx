@@ -38,6 +38,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
   MusicNote,
+  SharpDownload,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -264,6 +265,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // WebGAL 联动模式相关状态
   const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
   const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
+  const [runModeEnabled, setRunModeEnabled] = useLocalStorage<boolean>("runModeEnabled", false);
   const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right" | undefined>>(
     "defaultFigurePositionMap",
     {},
@@ -280,6 +282,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       [curRoleId]: position,
     }));
   }, [curRoleId, setDefaultFigurePositionMap]);
+
+  // 跑团模式：折叠跑团相关侧边栏入口
+  const toggleRunMode = useCallback(() => {
+    setRunModeEnabled((prev) => {
+      const next = !prev;
+      if (!next && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerStateRef.current)) {
+        setSideDrawerState("none");
+      }
+      return next;
+    });
+  }, [setRunModeEnabled, setSideDrawerState]);
+
+  useEffect(() => {
+    if (!runModeEnabled && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerState)) {
+      setSideDrawerState("none");
+    }
+  }, [runModeEnabled, sideDrawerState, setSideDrawerState]);
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
@@ -1245,6 +1264,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
           <div className="flex gap-2 items-center">
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="导出记录"
+              onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
+            >
+              <SharpDownload className="size-7" />
+            </div>
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
           </div>
         </div>
@@ -1298,6 +1324,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleWebgalLinkMode={() => setWebgalLinkMode(!webgalLinkMode)}
                   autoReplyMode={autoReplyMode}
                   onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
+                  runModeEnabled={runModeEnabled}
+                  onToggleRunMode={toggleRunMode}
                   defaultFigurePosition={currentDefaultFigurePosition}
                   onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
                   dialogNotend={dialogNotend}
