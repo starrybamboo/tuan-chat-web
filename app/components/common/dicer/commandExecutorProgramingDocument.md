@@ -1,52 +1,5 @@
 # 骰娘指令编写指北
 
-## 目录
-
-- [架构概述](#架构概述)
-  - [架构层次](#架构层次)
-  - [设计优势](#设计优势)
-- [核心组件](#核心组件)
-  - [1. RuleNameSpace（规则命名空间）](#1-rulenamespace规则命名空间)
-  - [2. CommandExecutor（命令执行器）](#2-commandexecutor命令执行器)
-  - [3. Dice Parser（骰子表达式解析器）](#3-dice-parser骰子表达式解析器)
-- [CPI接口](#cpi接口)
-  - [接口定义](#接口定义)
-  - [CPI的作用](#cpi的作用)
-  - [CPI数据流与消息发送流程](#cpi数据流与消息发送流程)
-  - [CPI方法详解](#cpi方法详解)
-    - [replyMessage - 发送公开消息](#replymessage---发送公开消息)
-    - [sendToast - 发送Toast提示](#sendtoast---发送toast提示)
-    - [setCopywritingKey - 设置骰娘文案关键词](#setcopywritingkey---设置骰娘文案关键词)
-    - [getRoleAbilityList - 获取角色数据](#getroleabilitylist---获取角色数据)
-    - [setRoleAbilityList - 更新角色数据](#setroleabilitylist---更新角色数据)
-  - [CPI最佳实践](#cpi最佳实践)
-    - [1. 消息发送策略](#1-消息发送策略)
-    - [2. 文案系统最佳实践](#2-文案系统最佳实践)
-    - [3. 标签系统最佳实践](#3-标签系统最佳实践)
-    - [4. 数据读写顺序](#4-数据读写顺序)
-    - [5. 错误处理](#5-错误处理)
-    - [6. 多角色操作](#6-多角色操作)
-- [UTILS 工具包使用指南](#utils-工具包使用指南)
-  - [快速导入](#快速导入)
-  - [为什么需要UTILS？](#为什么需要utils)
-  - [API 参考](#api-参考)
-  - [UTILS + CPI 完整工作流](#utils--cpi-完整工作流)
-  - [常见问题](#常见问题)
-- [开发指南](#开发指南)
-  - [第一步：创建规则命名空间](#第一步创建规则命名空间)
-  - [第二步：添加命令](#第二步添加命令)
-  - [第三步：注册规则到系统](#第三步注册规则到系统)
-  - [第四步：使用工具函数](#第四步使用工具函数)
-  - [高级技巧](#高级技巧)
-- [示例代码：COC7规则深度解析](#示例代码coc7规则深度解析)
-  - [第一部分：规则初始化](#第一部分规则初始化)
-  - [第二部分：核心命令实现](#第二部分核心命令实现)
-  - [第三部分：工具函数](#第三部分工具函数)
-  - [第四部分：设计模式与最佳实践](#第四部分设计模式与最佳实践)
-- [附录](#附录)
-  - [常用工具函数](#常用工具函数)
-  - [调试技巧](#调试技巧)
-
 ## 架构概述
 
 骰娘模块采用**分层架构**设计，将命令解析、规则管理、执行逻辑和数据持久化分离，提供了灵活且可扩展的TRPG骰子系统。
@@ -263,16 +216,22 @@ interface CPI {
   // 骰娘文案系统
   setCopywritingKey: (key: string | null) => void;      // 设置文案关键词
   
-  // 数据访问
+  // 角色数据访问
   getRoleAbilityList: (roleId: number) => RoleAbility;  // 获取角色能力
   setRoleAbilityList: (roleId: number, ability: RoleAbility) => void;  // 设置角色能力
+  
+  // 空间数据访问
+  getSpaceInfo: () => Space | null | undefined;         // 获取空间信息
+  getSpaceData: (key: string) => string | undefined;    // 获取空间 dicerData 字段
+  setSpaceData: (key: string, value: string | null) => void;  // 设置/删除空间 dicerData 字段
 }
 ```
 
 **版本变更：**
 
 - 原版本：4个方法（replyMessage、sendToast、getRoleAbilityList、setRoleAbilityList）
-- 当前版本：5个方法（新增 setCopywritingKey）
+- v2：5个方法（新增 setCopywritingKey）
+- 当前版本：8个方法（新增 getSpaceInfo、getSpaceData、setSpaceData）
 
 ### CPI的作用
 
@@ -2806,11 +2765,7 @@ if (isHidden) {
 
 ## 附录
 
----
-
-## 附录
-
-### 常用工具函数
+### 1. 常用工具函数
 
 | 函数                                             | 说明                     | 示例                                                     |
 | ------------------------------------------------ | ------------------------ | -------------------------------------------------------- |
@@ -2847,7 +2802,7 @@ interface UserRole {
 }
 ```
 
-### 调试技巧
+### 2. 调试技巧
 
 1. **在CPI回调中添加日志**
 

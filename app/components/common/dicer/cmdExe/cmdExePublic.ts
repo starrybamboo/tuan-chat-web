@@ -15,13 +15,15 @@ const cmdR = new CommandExecutor(
   "r",
   ["r"],
   "掷骰",
-  [".r 1d100", ".r 3d6*5"],
+  [".r 1d100", ".r 3d6*5", ".r"],
   ".r [掷骰表达式]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const isForceToast = UTILS.doesHaveArg(args, "h");
     let input = args.join("");
     if (!input) {
-      input = "1d100";
+      // 从空间数据中获取默认骰子面数，默认为 100
+      const defaultDice = cpi.getSpaceData("defaultDice") || "100";
+      input = `1d${defaultDice}`;
     }
     try {
       const diceResult = roll(input);
@@ -256,3 +258,38 @@ const cmdGet = new CommandExecutor(
   },
 );
 executorPublic.addCmd(cmdGet);
+
+/**
+ * 设置默认骰子面数指令
+ */
+const cmdSetDice = new CommandExecutor(
+  "setdice",
+  ["sd"],
+  "设置默认骰子",
+  [".setdice 100", ".setdice 20", ".sd 6"],
+  ".setdice [面数]",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    const input = args.join("").trim();
+
+    // 如果没有参数，显示当前默认骰子
+    if (!input) {
+      const currentDice = cpi.getSpaceData("defaultDice") || "100";
+      cpi.sendToast(`当前默认骰子面数：D${currentDice}`);
+      return true;
+    }
+
+    // 验证输入是否为有效数字
+    const diceValue = Number.parseInt(input, 10);
+    if (Number.isNaN(diceValue) || diceValue <= 0) {
+      cpi.sendToast("错误：请输入有效的正整数");
+      return false;
+    }
+
+    // 设置默认骰子面数
+    cpi.setSpaceData("defaultDice", String(diceValue));
+    cpi.replyMessage(`已设置默认骰子面数为 D${diceValue}`);
+
+    return true;
+  },
+);
+executorPublic.addCmd(cmdSetDice);

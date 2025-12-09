@@ -13,7 +13,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
-import { useSendMessageMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 
@@ -63,17 +63,18 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const roomId = Number(urlRoomId);
 
   const role = useGetRoleQuery(roleId).data?.data;
+  const space = useGetSpaceInfoQuery(roomContext.spaceId ?? -1).data?.data;
   const defaultDice = useRef(100);
 
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
   const sendMessageMutation = useSendMessageMutation(roomId); // 发送消息
+  const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 设置空间 extra 字段
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
   const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
-  // 当前指令期望使用的文案键（不再使用Ref；改为execute内局部变量一次性处理）
 
   useEffect(() => {
     try {
@@ -125,6 +126,27 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       mentionedRoles.set(role.roleId, ability);
     }
 
+    // 初始化 Space dicerData 缓存
+    let spaceExtra: Record<string, any> = {};
+    try {
+      spaceExtra = JSON.parse(space?.extra || "{}");
+    }
+    catch (e) {
+      console.error("解析 space.extra 失败，使用空对象", e);
+      spaceExtra = {};
+    }
+
+    const dicerDataStr = spaceExtra.dicerData || "{}";
+    let spaceDicerData: Record<string, string> = {};
+    try {
+      spaceDicerData = typeof dicerDataStr === "string" ? JSON.parse(dicerDataStr) : dicerDataStr;
+    }
+    catch (e) {
+      console.error("解析 dicerData 失败，使用空对象", e);
+      spaceDicerData = {};
+    }
+    let spaceDicerDataModified = false;
+
     // 定义cpi接口
     const replyMessage = (message: string) => {
       dicerMessageQueue.push(message);
@@ -155,12 +177,33 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       mentionedRoles.set(roleId, ability);
     };
 
+    const getSpaceInfo = () => {
+      return space;
+    };
+
+    const getSpaceData = (key: string): string | undefined => {
+      return spaceDicerData[key];
+    };
+
+    const setSpaceData = (key: string, value: string | null) => {
+      if (value === null) {
+        delete spaceDicerData[key];
+      }
+      else {
+        spaceDicerData[key] = value;
+      }
+      spaceDicerDataModified = true;
+    };
+
     const CmdPreInterface = {
       replyMessage,
       sendToast,
       getRoleAbilityList,
       setRoleAbilityList,
       setCopywritingKey,
+      getSpaceInfo,
+      getSpaceData,
+      setSpaceData,
     };
 
     // 执行命令，如果规则执行器存在则先尝试规则执行器，失败则回退到公共执行器
@@ -205,6 +248,14 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       else {
         setAbilityMutation.mutate(payload);
       }
+    }
+    // 更新 Space dicerData（如果被修改）
+    if (spaceDicerDataModified && space && space.spaceId) {
+      setSpaceExtraMutation.mutate({
+        spaceId: space.spaceId,
+        key: "dicerData",
+        value: JSON.stringify(spaceDicerData),
+      });
     }
     // 发送消息队列
     if (dicerMessageQueue.length > 0) {
