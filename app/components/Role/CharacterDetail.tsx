@@ -7,6 +7,7 @@ import { tuanchat } from "api/instance";
 import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { Suspense, useMemo, useState } from "react";
 import { Link, useNavigate, useOutletContext } from "react-router";
+import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
 import Section from "./Editors/Section";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
@@ -56,6 +57,30 @@ function CharacterDetailInner({
   const { data: currentRoleData } = useGetRoleQuery(role.id);
   const queryClient = useQueryClient();
 
+  // 获取当前关联的骰娘ID
+  const currentDicerRoleId = useMemo(() => {
+    const extra = localRole.extra;
+    if (!extra || !extra.dicerRoleId)
+      return undefined;
+    const id = Number(extra.dicerRoleId);
+    return (Number.isNaN(id) || id <= 0) ? undefined : id;
+  }, [localRole.extra]);
+
+  // 查询关联的骰娘信息
+  const { data: linkedDicerRoleData } = useGetRoleQuery(currentDicerRoleId || 0);
+
+  // 检查骰娘是否有效
+  const dicerRoleError = useMemo(() => {
+    if (!currentDicerRoleId)
+      return null;
+    const roleData = linkedDicerRoleData?.data;
+    if (!roleData)
+      return "骰娘角色不存在";
+    if (roleData.type !== 1)
+      return "关联的角色不是骰娘类型";
+    return null;
+  }, [currentDicerRoleId, linkedDicerRoleData]);
+
   // 直接使用 query 数据,无需额外 state
   const roleAvatars = useMemo(
     () => roleAvatarsResponse?.data ?? [],
@@ -96,6 +121,7 @@ function CharacterDetailInner({
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
   const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
+  const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false); // 骰娘关联弹窗状态
   const [isConverting, setIsConverting] = useState(false); // 转换为骰娘的过程状态
 
   // 获取当前规则详情
@@ -126,6 +152,41 @@ function CharacterDetailInner({
   // 打开音频上传弹窗
   const handleOpenAudioModal = () => {
     setIsAudioModalOpen(true);
+  };
+
+  // 打开骰娘关联弹窗
+  const handleOpenDiceMaidenLinkModal = () => {
+    setIsDiceMaidenLinkModalOpen(true);
+  };
+
+  // 处理骰娘关联确认
+  const handleDiceMaidenLinkConfirm = (dicerRoleId: number) => {
+    const newExtra = { ...localRole.extra };
+
+    if (dicerRoleId === 0) {
+      // 清除绑定
+      delete newExtra.dicerRoleId;
+    }
+    else {
+      // 设置或更新绑定
+      newExtra.dicerRoleId = String(dicerRoleId);
+    }
+
+    const updatedRole = {
+      ...localRole,
+      extra: newExtra,
+    };
+    setLocalRole(updatedRole);
+
+    // 使用updateRole保存到后端
+    updateRole(updatedRole, {
+      onSuccess: () => {
+        // 骰娘关联成功
+      },
+      onError: (error) => {
+        console.error("保存骰娘关联失败:", error);
+      },
+    });
   };
 
   // 处理音频上传成功
@@ -311,6 +372,7 @@ function CharacterDetailInner({
             modelName: localRole.modelName,
             speakerName: localRole.speakerName,
             voiceUrl: localRole.voiceUrl,
+            extra: {}, // 新骰娘初始化空的extra
           };
 
           // 手动更新角色列表，让侧边栏立即显示新角色
@@ -363,74 +425,76 @@ function CharacterDetailInner({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!isDiceMaiden && (
-            <button
-              type="button"
-              onClick={() => setIsStImportModalOpen(true)}
-              className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
-            >
-              <span className="flex items-center gap-1">
-                ST导入
-              </span>
-            </button>
-          )}
           {/* 普通角色显示转换为骰娘按钮 */}
           {!isDiceMaiden && (
-            <button
-              type="button"
-              onClick={handleConvertToDiceMaiden}
-              className={`btn btn-success btn-sm md:btn-lg rounded-lg ${isConverting ? "scale-95" : ""}`}
-              disabled={isConverting}
-            >
-              {isConverting
-                ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                        <circle cx="18" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                        <circle cx="12" cy="18" r="2" stroke="currentColor" strokeWidth="2" />
-                        <path d="M6 8v4a4 4 0 004 4h4a4 4 0 004-4V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      转换为骰娘
-                    </span>
-                  )}
-            </button>
+            <div className="tooltip tooltip-bottom" data-tip="将当前角色复制为骰娘角色">
+              <button
+                type="button"
+                onClick={handleConvertToDiceMaiden}
+                className={`btn btn-outline btn-sm md:btn-lg rounded-lg ${isConverting ? "scale-95" : ""}`}
+                disabled={isConverting}
+              >
+                {isConverting
+                  ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    )
+                  : (
+                      <span className="flex items-center gap-1">
+                        To骰娘
+                      </span>
+                    )}
+              </button>
+            </div>
+          )}
+          {!isDiceMaiden && (
+            <div className="tooltip tooltip-bottom" data-tip="从ST格式导入角色数据">
+              <button
+                type="button"
+                onClick={() => setIsStImportModalOpen(true)}
+                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+              >
+                <span className="flex items-center gap-1">
+                  ST导入
+                </span>
+              </button>
+            </div>
           )}
           {isEditing
             ? (
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
-                  disabled={isTransitioning}
-                >
-                  {isTransitioning
-                    ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      )
-                    : (
-                        <span className="flex items-center gap-1">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
-                          保存
-                        </span>
-                      )}
-                </button>
+                <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
+                    disabled={isTransitioning}
+                  >
+                    {isTransitioning
+                      ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        )
+                      : (
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            保存
+                          </span>
+                        )}
+                  </button>
+                </div>
               )
             : (
-                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                    编辑
-                  </span>
-                </button>
+                <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
+                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                      编辑
+                    </span>
+                  </button>
+                </div>
               )}
         </div>
       </div>
@@ -695,6 +759,46 @@ function CharacterDetailInner({
                 </div>
               </div>
 
+              {/* 关联骰娘卡片 */}
+              <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
+                <div className="card-body p-4">
+                  <div
+                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
+                    onClick={handleOpenDiceMaidenLinkModal}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
+                          <circle cx="7" cy="7" r="1.5" fill="currentColor" />
+                          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                          <circle cx="17" cy="17" r="1.5" fill="currentColor" />
+                          <circle cx="7" cy="17" r="1.5" fill="currentColor" />
+                          <circle cx="17" cy="7" r="1.5" fill="currentColor" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">关联骰娘</h3>
+                        <p className={`font-medium text-sm ${
+                          dicerRoleError ? "text-error" : "text-accent"
+                        }`}
+                        >
+                          {currentDicerRoleId
+                            ? dicerRoleError || linkedDicerRoleData?.data?.roleName || `ID: ${currentDicerRoleId}`
+                            : "选择使用的骰娘角色"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-base-content/50">
+                      <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -825,6 +929,14 @@ function CharacterDetailInner({
         isOpen={isAudioModalOpen}
         onClose={() => setIsAudioModalOpen(false)}
         onSuccess={handleAudioUploadSuccess}
+      />
+
+      {/* 骰娘关联弹窗 */}
+      <DiceMaidenLinkModal
+        isOpen={isDiceMaidenLinkModalOpen}
+        onClose={() => setIsDiceMaidenLinkModalOpen(false)}
+        currentDicerRoleId={currentDicerRoleId}
+        onConfirm={handleDiceMaidenLinkConfirm}
       />
     </div>
   );

@@ -19,9 +19,5 @@ export type SoundMessage = {
      * 时长（秒）
      */
     second: number;
-    /**
-     * 目的
-     */
-    purpose: string;
 };
 
