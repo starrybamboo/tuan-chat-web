@@ -76,6 +76,27 @@ interface CPI { // eslint-disable-line ts/consistent-type-definitions
    * @return {void}
    */
   setCopywritingKey: (key: string | null) => void;
+
+  /**
+   * 获取空间信息
+   * @returns {Space | null | undefined} 完整的空间信息对象
+   */
+  getSpaceInfo: () => Space | null | undefined;
+
+  /**
+   * 获取空间 dicerData 中指定键的值
+   * @param {string} key - 要获取的键名
+   * @returns {string | undefined} 键对应的值，如果不存在则返回 undefined
+   */
+  getSpaceData: (key: string) => string | undefined;
+
+  /**
+   * 设置或删除空间 dicerData 中的键值
+   * @param {string} key - 要设置的键名
+   * @param {string | null} value - 要设置的值；传 null 时删除该键
+   * @return {void}
+   */
+  setSpaceData: (key: string, value: string | null) => void;
 }
 
 interface RoleAbility { // eslint-disable-line ts/consistent-type-definitions

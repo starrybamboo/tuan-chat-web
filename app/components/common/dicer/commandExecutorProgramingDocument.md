@@ -1,53 +1,5 @@
 # 骰娘指令编写指北
 
-## 目录
-
-- [架构概述](#架构概述)
-  - [架构层次](#架构层次)
-  - [设计优势](#设计优势)
-- [核心组件](#核心组件)
-  - [1. RuleNameSpace（规则命名空间）](#1-rulenamespace规则命名空间)
-  - [2. CommandExecutor（命令执行器）](#2-commandexecutor命令执行器)
-  - [3. Dice Parser（骰子表达式解析器）](#3-dice-parser骰子表达式解析器)
-- [CPI接口](#cpi接口)
-  - [接口定义](#接口定义)
-  - [CPI的作用](#cpi的作用)
-  - [CPI数据流与消息发送流程](#cpi数据流与消息发送流程)
-  - [CPI方法详解](#cpi方法详解)
-    - [replyMessage - 发送公开消息](#replymessage---发送公开消息)
-    - [replyPrivateMessage - 发送私聊消息](#replyprivatemessage---发送私聊消息)
-    - [sendToast - 发送Toast提示](#sendtoast---发送toast提示)
-    - [setCopywritingKey - 设置骰娘文案关键词](#setcopywritingkey---设置骰娘文案关键词)
-    - [getRoleAbilityList - 获取角色数据](#getroleabilitylist---获取角色数据)
-    - [setRoleAbilityList - 更新角色数据](#setroleabilitylist---更新角色数据)
-  - [CPI最佳实践](#cpi最佳实践)
-    - [1. 消息发送策略](#1-消息发送策略)
-    - [2. 文案系统最佳实践](#2-文案系统最佳实践)
-    - [3. 标签系统最佳实践](#3-标签系统最佳实践)
-    - [4. 数据读写顺序](#4-数据读写顺序)
-    - [5. 错误处理](#5-错误处理)
-    - [6. 多角色操作](#6-多角色操作)
-- [UTILS 工具包使用指南](#utils-工具包使用指南)
-  - [快速导入](#快速导入)
-  - [为什么需要UTILS？](#为什么需要utils)
-  - [API 参考](#api-参考)
-  - [UTILS + CPI 完整工作流](#utils--cpi-完整工作流)
-  - [常见问题](#常见问题)
-- [开发指南](#开发指南)
-  - [第一步：创建规则命名空间](#第一步创建规则命名空间)
-  - [第二步：添加命令](#第二步添加命令)
-  - [第三步：注册规则到系统](#第三步注册规则到系统)
-  - [第四步：使用工具函数](#第四步使用工具函数)
-  - [高级技巧](#高级技巧)
-- [示例代码：COC7规则深度解析](#示例代码coc7规则深度解析)
-  - [第一部分：规则初始化](#第一部分规则初始化)
-  - [第二部分：核心命令实现](#第二部分核心命令实现)
-  - [第三部分：工具函数](#第三部分工具函数)
-  - [第四部分：设计模式与最佳实践](#第四部分设计模式与最佳实践)
-- [附录](#附录)
-  - [常用工具函数](#常用工具函数)
-  - [调试技巧](#调试技巧)
-
 ## 架构概述
 
 骰娘模块采用**分层架构**设计，将命令解析、规则管理、执行逻辑和数据持久化分离，提供了灵活且可扩展的TRPG骰子系统。
@@ -259,22 +211,27 @@ const cmdRc = new CommandExecutor(
 interface CPI {
   // 消息发送
   replyMessage: (msg: string) => void;                  // 发送公开消息
-  replyPrivateMessage: (msg: string) => void;           // 发送私聊消息（NEW）
   sendToast: (msg: string) => void;                     // 发送Toast提示
   
   // 骰娘文案系统
-  setCopywritingKey: (key: string | null) => void;      // 设置文案关键词（NEW）
+  setCopywritingKey: (key: string | null) => void;      // 设置文案关键词
   
-  // 数据访问
+  // 角色数据访问
   getRoleAbilityList: (roleId: number) => RoleAbility;  // 获取角色能力
   setRoleAbilityList: (roleId: number, ability: RoleAbility) => void;  // 设置角色能力
+  
+  // 空间数据访问
+  getSpaceInfo: () => Space | null | undefined;         // 获取空间信息
+  getSpaceData: (key: string) => string | undefined;    // 获取空间 dicerData 字段
+  setSpaceData: (key: string, value: string | null) => void;  // 设置/删除空间 dicerData 字段
 }
 ```
 
 **版本变更：**
 
 - 原版本：4个方法（replyMessage、sendToast、getRoleAbilityList、setRoleAbilityList）
-- 当前版本：6个方法（新增 replyPrivateMessage、setCopywritingKey）
+- v2：5个方法（新增 setCopywritingKey）
+- 当前版本：8个方法（新增 getSpaceInfo、getSpaceData、setSpaceData）
 
 ### CPI的作用
 
@@ -394,13 +351,13 @@ cmdPre解析并构建CPI
     ↓
 执行器通过CPI读写数据
     ↓                     ↓
-CPI.getRoleAbilityList   CPI.replyMessage / replyPrivateMessage
+CPI.getRoleAbilityList   CPI.replyMessage
     ↓                     ↓
-本地Map缓存            消息队列（dicerMessageQueue / dicePrivateMessageQueue）
+本地Map缓存            消息队列（dicerMessageQueue）
     ↓                     ↓
 CPI.setRoleAbilityList   批量发送（带文案和标签处理）
     ↓                     ↓
-更新本地缓存          显示在聊天室 / 私聊
+更新本地缓存          显示在聊天室
     ↓
 命令执行完成，cmdPre批量提交到后端
     ↓
@@ -668,7 +625,7 @@ if (dicePrivateMessageQueue.length > 0) {
 
 | 特性               | 说明                     | 使用方式                                   |
 | ------------------ | ------------------------ | ------------------------------------------ |
-| **双队列**   | 公开/私聊消息独立管理    | `replyMessage` / `replyPrivateMessage` |
+| **消息队列** | 公开消息统一管理         | `replyMessage` |
 | **文案系统** | 加权随机选择风味文本     | `setCopywritingKey(key)` + 文案库        |
 | **标签系统** | 动态控制头像显示         | 消息中嵌入 `#标签#`                      |
 | **批量发送** | 保证消息顺序             | 命令执行完成后统一发送                     |
@@ -726,109 +683,6 @@ const cmdRc = new CommandExecutor("rc", [], "技能检定", [], "",
     result += roll <= target ? "成功" : "失败";
   
     cpi.replyMessage(result);
-    return true;
-  }
-);
-```
-
-#### replyPrivateMessage - 发送私聊消息（开发中......请勿使用）
-
-向指定接收者发送私聊消息（1v1消息），仅发送者和接收者可见。
-
-```typescript
-replyPrivateMessage(msg: string): void
-```
-
-**使用场景:**
-
-- 私密检定结果（暗骰、对抗等）
-- GM向特定玩家发送提示
-- 敏感信息传递
-
-**与sendToast的区别:**
-
-- `sendToast`: 轻量级提示，不记录到消息历史，仅发送者可见
-- `replyPrivateMessage`: 完整私聊消息，记录到消息历史，发送者和接收者可见
-
-**消息队列:**
-私聊消息使用独立队列 `dicePrivateMessageQueue`，与公开消息队列 `dicerMessageQueue` 分离。
-
-**使用示例:**
-
-```typescript
-// 暗骰（只有发起者知道结果）
-const cmdHiddenRc = new CommandExecutor("hrc", [], "暗骰检定", [], "",
-  async (args, mentioned, cpi) => {
-    const role = mentioned[0];
-    const skillName = args[0] || "未知技能";
-    const target = Number(args[1]) || 50;
-    const roll = Math.floor(Math.random() * 100) + 1;
-  
-    const result = roll <= target ? "成功" : "失败";
-    const detail = `${skillName}检定：D100=${roll}/${target} ${result}`;
-  
-    // 向发起者发送私聊（暗骰结果）
-    cpi.replyPrivateMessage(detail);
-  
-    // 向聊天室发送公开提示
-    cpi.replyMessage(`${role.roleName}进行了一次暗骰`);
-  
-    return true;
-  }
-);
-
-// GM指令：向特定玩家发送线索
-const cmdGiveClue = new CommandExecutor("clue", [], "给予线索", [], "",
-  async (args, mentioned, cpi) => {
-    if (mentioned.length < 2) {
-      cpi.sendToast("请@目标玩家");
-      return false;
-    }
-  
-    const target = mentioned[0];  // 第一个@的角色
-    const clue = args.join(" ");
-  
-    // 发送私聊线索
-    cpi.replyPrivateMessage(`[线索] ${clue}`);
-  
-    // 向GM确认
-    cpi.sendToast(`已向 ${target.roleName} 发送线索`);
-  
-    return true;
-  }
-);
-
-// 对抗检定（双方看到结果）
-const cmdOppose = new CommandExecutor("oppose", [], "对抗检定", [], "",
-  async (args, mentioned, cpi) => {
-    const [role1, role2] = mentioned;
-    const skill1 = Number(args[0]) || 50;
-    const skill2 = Number(args[1]) || 50;
-  
-    const roll1 = Math.floor(Math.random() * 100) + 1;
-    const roll2 = Math.floor(Math.random() * 100) + 1;
-  
-    const success1 = roll1 <= skill1;
-    const success2 = roll2 <= skill2;
-  
-    let result = "";
-    if (success1 && !success2) result = `${role1.roleName}胜出`;
-    else if (!success1 && success2) result = `${role2.roleName}胜出`;
-    else result = "平局";
-  
-    // 双方都看到完整结果
-    const detail = [
-      `对抗检定结果：`,
-      `${role1.roleName}：${roll1}/${skill1} ${success1 ? "成功" : "失败"}`,
-      `${role2.roleName}：${roll2}/${skill2} ${success2 ? "成功" : "失败"}`,
-      `胜负：${result}`
-    ].join("\n");
-  
-    cpi.replyPrivateMessage(detail);
-  
-    // 公开提示
-    cpi.replyMessage(`${role1.roleName}与${role2.roleName}进行了对抗检定`);
-  
     return true;
   }
 );
@@ -898,7 +752,6 @@ cpi.sendToast("暗骰已投掷，结果已私聊发送");
 | 方法                    | 可见范围      | 记录历史 | 使用场景                     |
 | ----------------------- | ------------- | -------- | ---------------------------- |
 | `replyMessage`        | 所有人        | ✅       | 公开检定、属性设置、系统提示 |
-| `replyPrivateMessage` | 发送者+接收者 | ✅       | 暗骰、私密线索、对抗检定     |
 | `sendToast`           | 仅发送者      | ❌       | 错误提示、参数验证、临时反馈 |
 
 #### setCopywritingKey - 设置骰娘文案关键词
@@ -1248,7 +1101,7 @@ cpi.setRoleAbilityList(roleId, ability);  // 第3次更新
 | 错误提示     | `sendToast`           | 不污染聊天记录，仅发送者可见 |
 | 参数验证失败 | `sendToast`           | 即时反馈，不影响其他人       |
 | 公开检定结果 | `replyMessage`        | 所有人需要看到               |
-| 暗骰结果     | `replyPrivateMessage` | 结果保密，记录到历史         |
+| 暗骰结果     | `replyMessage`        | 公开提示，所有人都能看到             |
 | 操作确认     | `sendToast`           | 轻量级反馈                   |
 | 属性查询     | `sendToast`           | 个人信息，不公开             |
 
@@ -1256,8 +1109,6 @@ cpi.setRoleAbilityList(roleId, ability);  // 第3次更新
 // ✅ 推荐：根据场景选择发送方式
 const cmdCheck = new CommandExecutor("check", [], "检定", [], "",
   async (args, mentioned, cpi) => {
-    const isHidden = UTILS.doesHaveArg(args, "h");
-  
     // 错误提示 → 用 sendToast
     if (!args[0]) {
       cpi.sendToast("错误：缺少参数");
@@ -1268,13 +1119,8 @@ const cmdCheck = new CommandExecutor("check", [], "检定", [], "",
     const roll = Math.floor(Math.random() * 100) + 1;
     const result = `检定结果：D100=${roll}`;
   
-    // 根据是否暗骰选择发送方式
-    if (isHidden) {
-      cpi.replyPrivateMessage(result);  // 私聊结果（记录到历史）
-      cpi.replyMessage(`${mentioned[0].roleName}进行了暗骰`);  // 公开提示
-    } else {
-      cpi.replyMessage(result);  // 公开结果
-    }
+    // 公开发送结果
+    cpi.replyMessage(result);
   
     return true;
   }
@@ -1297,7 +1143,6 @@ if (isHidden) {
 | 方法                    | 可见范围      | 记录历史 | 使用场景                     |
 | ----------------------- | ------------- | -------- | ---------------------------- |
 | `replyMessage`        | 所有人        | ✅       | 公开检定、属性设置、系统提示 |
-| `replyPrivateMessage` | 发送者+接收者 | ✅       | 暗骰、私密线索、对抗检定     |
 | `sendToast`           | 仅发送者      | ❌       | 错误提示、参数验证、临时反馈 |
 
 #### 2. 文案系统最佳实践
@@ -2920,11 +2765,7 @@ if (isHidden) {
 
 ## 附录
 
----
-
-## 附录
-
-### 常用工具函数
+### 1. 常用工具函数
 
 | 函数                                             | 说明                     | 示例                                                     |
 | ------------------------------------------------ | ------------------------ | -------------------------------------------------------- |
@@ -2961,7 +2802,7 @@ interface UserRole {
 }
 ```
 
-### 调试技巧
+### 2. 调试技巧
 
 1. **在CPI回调中添加日志**
 
