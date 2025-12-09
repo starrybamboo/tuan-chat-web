@@ -206,7 +206,7 @@ executorPublic.addCmd(cmdSet);
  */
 const cmdGet = new CommandExecutor(
   "get",
-  ["get", "read"],
+  [],
   "读取自定义变量",
   [".get 手枪", ".get 闪电旋风劈"],
   ".get [变量名]",
