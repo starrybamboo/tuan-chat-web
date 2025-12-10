@@ -76,7 +76,7 @@ export function useAddSpaceMemberMutation() {
 export function useSpaceInviteCodeQuery(spaceId: number, duration?: number) {
     return useQuery({
         queryKey: ['inviteCode', duration],
-        queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, duration)
+        queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, duration as number)
     })
 }
 

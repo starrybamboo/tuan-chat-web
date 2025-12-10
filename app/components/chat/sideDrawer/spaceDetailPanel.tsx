@@ -6,14 +6,15 @@ import RenderWindow from "@/components/chat/window/renderWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import { MemberIcon, Setting, WebgalIcon } from "@/icons";
-import React, { use } from "react";
+import { MapPlaceHolderIcon, MemberIcon, Setting, WebgalIcon } from "@/icons";
+import { use } from "react";
 import toast from "react-hot-toast";
 import {
   useAddSpaceMemberMutation,
   useAddSpaceRoleMutation,
   useGetSpaceMembersQuery,
 } from "../../../../api/hooks/chatQueryHooks";
+import WorkflowWindow from "../window/workflowWindow";
 
 export default function SpaceDetailPanel() {
   const spaceContext = use(SpaceContext);
@@ -55,7 +56,7 @@ export default function SpaceDetailPanel() {
     });
   }
   return (
-    <div className="flex flex-row gap-4 h-full w-full max-w-3xl">
+    <div className="flex flex-row gap-4 h-full w-full">
       {/* name of each tab group should be unique */}
       <div className="tabs tabs-lift h-full">
         {/* 群成员列表 */}
@@ -155,6 +156,17 @@ export default function SpaceDetailPanel() {
         </label>
         <div className="tab-content p-4 overflow-y-auto">
           <RenderWindow></RenderWindow>
+        </div>
+        <label className="tab">
+          <input
+            type="radio"
+            name="space_detail_tabs"
+          />
+          <MapPlaceHolderIcon className="size-4 mr-1" />
+          流程图
+        </label>
+        <div className="tab-content p-4 overflow-y-auto">
+          <WorkflowWindow></WorkflowWindow>
         </div>
       </div>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>

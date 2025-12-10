@@ -1,23 +1,9 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import { BaselineAnnouncement, StageIcon } from "@/icons";
+import { BaselineAnnouncement, MapPlaceHolderIcon, StageIcon } from "@/icons";
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useEffect, useMemo } from "react";
 import { useModuleContext } from "../workPlace/context/_moduleContext";
 import { ModuleItemEnum, ModuleListEnum } from "../workPlace/context/types";
-
-// 简易 Map 图标，占位用
-function MapPlaceholderIcon(props: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={props.className ?? "w-5 h-5"}
-    >
-      <path d="M9.5 4.5 3 6.75v12l6.5-2.25 6 2.25L21 16.5v-12l-5.5 2.25-6-2.25zM9.5 6.9v11.1L4.5 19.5V8.4l5-1.5zm1.5.45 5 1.875V20.1l-5-1.875V7.35zM19.5 6.6v10.95l-2.5 1v-11l2.5-0.95z" />
-    </svg>
-  );
-}
 
 export default function SideTopbar() {
   const { activeList, setActiveList, moduleId, pushModuleTabItem, setCurrentSelectedTabId } = useModuleContext();
@@ -61,7 +47,7 @@ export default function SideTopbar() {
   const items = useMemo(
     () => [
       { id: ModuleListEnum.STAGE, icon: StageIcon, label: "素材", tooltip: "素材管理" },
-      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "剧情树", tooltip: "剧情/地点 流程图" },
+      { id: ModuleListEnum.MAP, icon: MapPlaceHolderIcon, label: "剧情树", tooltip: "剧情/地点 流程图" },
       { id: ModuleListEnum.MODULE, icon: StageIcon, label: "模组", tooltip: "模组信息与管理" },
       { id: ModuleListEnum.CLUE, icon: BaselineAnnouncement, label: "线索", tooltip: "线索管理" },
     ],
