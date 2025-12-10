@@ -1236,6 +1236,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   const handleSendEffect = useCallback((effectName: string) => {
     // 特效消息不需要角色信息，类似旁白
+    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
     send({
       roomId,
       roleId: undefined,
@@ -1243,15 +1244,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       content: `[特效: ${effectName}]`,
       messageType: MessageType.EFFECT,
       extra: {
-        effectMessage: {
-          effectName,
-        },
+        effectName,
       },
     });
   }, [roomId, send]);
 
   const handleClearBackground = useCallback(() => {
     // 清除背景不需要角色信息，类似旁白
+    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
     send({
       roomId,
       roleId: undefined,
@@ -1259,13 +1259,31 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       content: "[清除背景]",
       messageType: MessageType.EFFECT,
       extra: {
-        effectMessage: {
-          effectName: "clearBackground",
-        },
+        effectName: "clearBackground",
       },
     });
     toast.success("已清除背景");
   }, [roomId, send]);
+
+  const handleClearFigure = useCallback(() => {
+    // 清除角色立绘不需要角色信息，类似旁白
+    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
+    send({
+      roomId,
+      roleId: undefined,
+      avatarId: undefined,
+      content: "[清除立绘]",
+      messageType: MessageType.EFFECT,
+      extra: {
+        effectName: "clearFigure",
+      },
+    });
+    // 如果实时渲染开启，立即清除立绘
+    if (realtimeRender.isActive) {
+      realtimeRender.clearFigure(roomId);
+    }
+    toast.success("已清除立绘");
+  }, [roomId, send, realtimeRender]);
 
   return (
     <RoomContext value={roomContext}>
@@ -1352,6 +1370,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleDialogConcat={() => setDialogConcat(!dialogConcat)}
                   onSendEffect={handleSendEffect}
                   onClearBackground={handleClearBackground}
+                  onClearFigure={handleClearFigure}
                   setAudioFile={setAudioFile}
                 />
                 <div className="flex gap-2 items-stretch">

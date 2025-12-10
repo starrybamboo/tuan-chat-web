@@ -61,6 +61,7 @@ interface ChatToolbarProps {
   // WebGAL 控制
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
+  onClearFigure?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
 }
@@ -92,6 +93,7 @@ export function ChatToolbar({
   onToggleDialogConcat,
   onSendEffect,
   onClearBackground,
+  onClearFigure,
   setAudioFile,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -391,10 +393,11 @@ export function ChatToolbar({
                   <li><a onClick={() => onSendEffect("none")}>🛑 停止特效</a></li>
                 </>
               )}
-              {onClearBackground && (
+              {(onClearBackground || onClearFigure) && (
                 <>
                   <div className="divider my-1"></div>
-                  <li><a onClick={onClearBackground}>🗑️ 清除背景</a></li>
+                  {onClearBackground && <li><a onClick={onClearBackground}>🗑️ 清除背景</a></li>}
+                  {onClearFigure && <li><a onClick={onClearFigure}>👤 清除立绘</a></li>}
                 </>
               )}
             </ul>

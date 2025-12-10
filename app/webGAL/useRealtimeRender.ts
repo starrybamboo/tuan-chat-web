@@ -65,6 +65,8 @@ type UseRealtimeRenderReturn = {
   resetScene: (roomId?: number) => Promise<void>;
   /** 清除背景 */
   clearBackground: (roomId?: number) => Promise<void>;
+  /** 清除立绘 */
+  clearFigure: (roomId?: number) => Promise<void>;
   /** 切换当前房间 */
   switchRoom: (roomId: number) => Promise<void>;
   /** 获取指定房间的预览 URL */
@@ -432,6 +434,14 @@ export function useRealtimeRender({
     await rendererRef.current.clearBackground(roomId);
   }, []);
 
+  // 清除立绘
+  const clearFigure = useCallback(async (roomId?: number): Promise<void> => {
+    if (!rendererRef.current) {
+      return;
+    }
+    await rendererRef.current.clearFigure(roomId);
+  }, []);
+
   // 切换当前房间
   const switchRoom = useCallback(async (roomId: number): Promise<void> => {
     if (!rendererRef.current) {
@@ -570,6 +580,7 @@ export function useRealtimeRender({
     renderHistory,
     resetScene,
     clearBackground,
+    clearFigure,
     switchRoom,
     getRoomPreviewUrl,
     updateRoleCache,

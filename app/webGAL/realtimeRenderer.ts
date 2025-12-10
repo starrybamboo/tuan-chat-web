@@ -1227,6 +1227,15 @@ export class RealtimeRenderer {
           // 清除背景
           command = "changeBg:none -next;";
         }
+        else if (effectMessage.effectName === "clearFigure") {
+          // 清除立绘：清除所有位置的立绘
+          await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+          await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+          await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+          if (syncToFile)
+            this.sendSyncMessage(targetRoomId);
+          return;
+        }
         else {
           // 应用特效：pixiPerform:rain -next;
           command = `pixiPerform:${effectMessage.effectName} -next;`;
@@ -1460,6 +1469,27 @@ export class RealtimeRenderer {
     }
 
     await this.appendLine(targetRoomId, "changeBg:none -next;", true);
+    this.sendSyncMessage(targetRoomId);
+  }
+
+  /**
+   * 清除指定房间的所有立绘
+   */
+  public async clearFigure(roomId?: number): Promise<void> {
+    const targetRoomId = roomId ?? this.currentRoomId;
+    if (!targetRoomId) {
+      console.warn("[RealtimeRenderer] 无法确定目标房间ID");
+      return;
+    }
+
+    // 确保该房间的场景已初始化
+    if (!this.sceneContextMap.has(targetRoomId)) {
+      await this.initRoomScene(targetRoomId);
+    }
+
+    await this.appendLine(targetRoomId, "changeFigure:none -left -next;", true);
+    await this.appendLine(targetRoomId, "changeFigure:none -center -next;", true);
+    await this.appendLine(targetRoomId, "changeFigure:none -right -next;", true);
     this.sendSyncMessage(targetRoomId);
   }
 
