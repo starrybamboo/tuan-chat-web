@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Role } from "../types";
+import type { AIGeneratedData } from "./steps/AIGenerateModal";
 import type { CharacterData } from "./types";
 import type { SetSelectedRoleIdFn } from "./utils/roleCreationHelpers";
 
@@ -14,23 +15,18 @@ import {
   useUploadAvatarMutation,
 } from "api/queryHooks";
 import { useState } from "react";
+import toast from "react-hot-toast";
 import RulesSection from "../rules/RulesSection";
-import Section from "../Section";
-import AIGenerationCard from "./components/AIGenerationCard";
-import AttributeEditor from "./components/AttributeEditor";
-import RoleCreationLayout from "./components/RoleCreationLayout";
-import { AI_STEPS, ST_STEPS, STEPS } from "./constants";
+import { UNIFIED_STEPS } from "./constants";
+import RoleCreationLayout from "./RoleCreationLayout";
+import AIGenerateModal from "./steps/AIGenerateModal";
 import AttributeStep from "./steps/AttributeStep";
 import BasicInfoStep from "./steps/BasicInfoStep";
-import STImportStep from "./steps/STImportStep";
+import STImportModal from "./steps/STImportModal";
 import { completeRoleCreation, evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
-// import { completeRoleCreation } from "./utils/roleCreationHelpers";
 import { useCharacterData } from "./utils/useCharacterData";
 
-export type RoleCreationMode = "self" | "AI" | "ST";
-
 interface RoleCreationFlowProps {
-  mode: RoleCreationMode;
   onBack?: () => void;
   onComplete?: (role: Role, ruleId?: number) => void;
   setRoles?: Dispatch<SetStateAction<Role[]>>;
@@ -38,26 +34,7 @@ interface RoleCreationFlowProps {
   onSave?: (updatedRole: Role) => void;
 }
 
-const MODE_META: Record<RoleCreationMode, { title: string; description: string; steps: typeof STEPS }> = {
-  self: {
-    title: "逐步自主创建",
-    description: "手动填写角色信息，完全自定义角色的每一个细节",
-    steps: STEPS,
-  },
-  AI: {
-    title: "AI智能创建角色",
-    description: "通过AI辅助，分步完成角色创建",
-    steps: AI_STEPS,
-  },
-  ST: {
-    title: "ST指令创建角色",
-    description: "通过ST指令快速导入角色属性",
-    steps: ST_STEPS,
-  },
-};
-
 export default function RoleCreationFlow({
-  mode,
   onBack,
   onComplete,
   setRoles,
@@ -67,11 +44,14 @@ export default function RoleCreationFlow({
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
 
+  // 弹窗状态
+  const [isSTModalOpen, setIsSTModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+
   const {
     characterData,
     setCharacterData,
     selectedRuleId,
-    isValidRuleId,
     handleCharacterDataChange,
     handleAttributeChange,
     handleAddField,
@@ -80,19 +60,12 @@ export default function RoleCreationFlow({
     handleRuleChange,
   } = useCharacterData();
 
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [hasGenerated, setHasGenerated] = useState(false);
-  const [hasImported, setHasImported] = useState(false);
-
   const { mutateAsync: createRole } = useCreateRoleMutation();
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
-  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => { }));
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
   const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
   const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
-
-  const { title, description, steps } = MODE_META[mode];
 
   const hasBasicInfo = characterData.name.trim().length > 0 && characterData.description.trim().length > 0;
   const hasRule = characterData.ruleId > 0;
@@ -102,110 +75,24 @@ export default function RoleCreationFlow({
     canProceedCurrent = hasBasicInfo;
   else if (currentStep === 2)
     canProceedCurrent = hasRule;
-  else if (mode === "AI" && currentStep === 3)
-    canProceedCurrent = hasGenerated;
-  else if (mode === "ST" && currentStep === 4)
-    canProceedCurrent = hasImported;
 
-  const handleAIGenerate = async () => {
-    if (mode !== "AI")
-      return;
-    if (!aiPrompt.trim() || !isValidRuleId)
-      return;
-
-    setIsGenerating(true);
-
-    try {
-      const ruleId = selectedRuleId;
-
-      await new Promise((resolve) => {
-        generateBasicInfoByRule(
-          { ruleId, prompt: aiPrompt },
-          {
-            onSuccess: (data) => {
-              if (data?.data) {
-                const actData: Record<string, string> = {};
-                Object.entries(data.data).forEach(([key, value]) => {
-                  actData[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
-                });
-                setCharacterData(prev => ({
-                  ...prev,
-                  act: { ...prev.act, ...actData },
-                }));
-              }
-              resolve(data);
-            },
-            onError: (error) => {
-              console.error("生成角色表演能力失败:", error);
-              resolve(null);
-            },
-          },
-        );
-      });
-
-      await new Promise((resolve) => {
-        generateAbilityByRule(
-          { ruleId, prompt: aiPrompt },
-          {
-            onSuccess: (data) => {
-              if (data?.data) {
-                const responseData = data.data;
-                const basicData: Record<string, string> = {};
-                if (responseData.basic) {
-                  Object.entries(responseData.basic).forEach(([key, value]) => {
-                    basicData[key] = String(value);
-                  });
-                }
-                const abilityData: Record<string, string> = {};
-                if (responseData.属性 || responseData.ability) {
-                  const abilitySource = responseData.属性 || responseData.ability;
-                  Object.entries(abilitySource).forEach(([key, value]) => {
-                    abilityData[key] = String(value);
-                  });
-                }
-                const skillData: Record<string, string> = {};
-                if (responseData.技能 || responseData.skill) {
-                  const skillSource = responseData.技能 || responseData.skill;
-                  Object.entries(skillSource).forEach(([key, value]) => {
-                    skillData[key] = String(value);
-                  });
-                }
-                setCharacterData(prev => ({
-                  ...prev,
-                  basic: { ...prev.basic, ...basicData },
-                  ability: { ...prev.ability, ...abilityData },
-                  skill: { ...prev.skill, ...skillData },
-                }));
-              }
-              resolve(data);
-            },
-            onError: (error) => {
-              console.error("生成能力数据失败:", error);
-              resolve(null);
-            },
-          },
-        );
-      });
-
-      setHasGenerated(true);
-    }
-    catch (error) {
-      console.error("AI生成失败:", error);
-    }
-    finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleImportSuccess = (importedData: Partial<CharacterData>) => {
-    if (mode !== "ST")
-      return;
-
+  // ST导入成功回调
+  const handleSTImportSuccess = (importedData: Partial<CharacterData>) => {
     setCharacterData(prev => ({
       ...prev,
       ...importedData,
     }));
-    setHasImported(true);
+  };
+
+  // AI生成数据应用回调
+  const handleAIApply = (data: AIGeneratedData) => {
+    setCharacterData(prev => ({
+      ...prev,
+      act: { ...prev.act, ...(data.act || {}) },
+      basic: { ...prev.basic, ...(data.basic || {}) },
+      ability: { ...prev.ability, ...(data.ability || {}) },
+      skill: { ...prev.skill, ...(data.skill || {}) },
+    }));
   };
 
   const handleComplete = async () => {
@@ -240,56 +127,47 @@ export default function RoleCreationFlow({
     }
   };
 
-  const renderActSection = () => (
-    <Section title="角色表演能力" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-      <AttributeEditor
-        title="角色表演能力"
-        attributes={characterData.act}
-        onChange={(key: string, value: string) => handleAttributeChange("act", key, value)}
-        onAddField={(key: string, value: string) => handleAddField("act", key, value)}
-        onDeleteField={(key: string) => handleDeleteField("act", key)}
-        onRenameField={(oldKey: string, newKey: string) => handleRenameField("act", oldKey, newKey)}
-      />
-    </Section>
-  );
+  // 工具按钮点击处理 - 没有规则时显示提示
+  const handleSTImportClick = () => {
+    if (!hasRule) {
+      toast.error("请先选择规则", { position: "top-center" });
+      return;
+    }
+    setIsSTModalOpen(true);
+  };
 
-  const renderBasicAndAbilitySections = () => (
-    <>
-      <Section title="基础属性配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100 mb-6">
-        <AttributeEditor
-          title="基础能力值"
-          attributes={characterData.basic}
-          onChange={(key: string, value: string) => handleAttributeChange("basic", key, value)}
-          onAddField={(key: string, value: string) => handleAddField("basic", key, value)}
-          onDeleteField={(key: string) => handleDeleteField("basic", key)}
-          onRenameField={(oldKey: string, newKey: string) => handleRenameField("basic", oldKey, newKey)}
-        />
-      </Section>
-      <Section title="能力配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-        <AttributeEditor
-          title="计算能力值"
-          attributes={characterData.ability}
-          onChange={(key: string, value: string) => handleAttributeChange("ability", key, value)}
-          onAddField={(key: string, value: string) => handleAddField("ability", key, value)}
-          onDeleteField={(key: string) => handleDeleteField("ability", key)}
-          onRenameField={(oldKey: string, newKey: string) => handleRenameField("ability", oldKey, newKey)}
-        />
-      </Section>
-    </>
-  );
+  const handleAIGenerateClick = () => {
+    if (!hasRule) {
+      toast.error("请先选择规则", { position: "top-center" });
+      return;
+    }
+    setIsAIModalOpen(true);
+  };
 
-  const renderSkillSection = () => (
-    <Section title="技能设定" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-      <AttributeEditor
-        title="技能设定"
-        attributes={characterData.skill}
-        onChange={(key: string, value: string) => handleAttributeChange("skill", key, value)}
-        onAddField={(key: string, value: string) => handleAddField("skill", key, value)}
-        onDeleteField={(key: string) => handleDeleteField("skill", key)}
-        onRenameField={(oldKey: string, newKey: string) => handleRenameField("skill", oldKey, newKey)}
-      />
-    </Section>
-  );
+  // 工具按钮配置 - 始终显示
+  const toolButtons = [
+    {
+      id: "st-import",
+      label: "ST导入",
+      icon: (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      onClick: handleSTImportClick,
+    },
+    {
+      id: "ai-generate",
+      label: "AI生成",
+      icon: (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      onClick: handleAIGenerateClick,
+      variant: "primary" as const,
+    },
+  ];
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -301,59 +179,6 @@ export default function RoleCreationFlow({
         return (
           <RulesSection large currentRuleId={characterData.ruleId} onRuleChange={handleRuleChange} />
         );
-      default:
-        break;
-    }
-
-    if (mode === "AI") {
-      switch (currentStep) {
-        case 3:
-          return (
-            <AIGenerationCard
-              title="描述你的角色想法"
-              description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
-              placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
-              prompt={aiPrompt}
-              isGenerating={isGenerating}
-              disabled={false}
-              onPromptChange={setAiPrompt}
-              onGenerate={handleAIGenerate}
-            />
-          );
-        case 4:
-          return renderActSection();
-        case 5:
-          return renderBasicAndAbilitySections();
-        case 6:
-          return renderSkillSection();
-        default:
-          return null;
-      }
-    }
-
-    if (mode === "ST") {
-      switch (currentStep) {
-        case 3:
-          return renderActSection();
-        case 4:
-          return (
-            <STImportStep
-              ruleId={characterData.ruleId}
-              characterData={characterData}
-              onImportSuccess={handleImportSuccess}
-            />
-          );
-        case 5:
-          return renderBasicAndAbilitySections();
-        case 6:
-          return renderSkillSection();
-        default:
-          return null;
-      }
-    }
-
-    // self mode
-    switch (currentStep) {
       case 3:
         return (
           <AttributeStep
@@ -406,17 +231,38 @@ export default function RoleCreationFlow({
   };
 
   return (
-    <RoleCreationLayout
-      title={title}
-      description={description}
-      steps={steps}
-      currentStep={currentStep}
-      onStepChange={setCurrentStep}
-      canProceedCurrent={canProceedCurrent}
-      isSaving={isSaving}
-      onComplete={handleComplete}
-      renderContent={renderStepContent}
-      onBack={onBack}
-    />
+    <>
+      <RoleCreationLayout
+        title="创建角色"
+        description="填写角色信息，完成角色创建"
+        steps={UNIFIED_STEPS}
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+        canProceedCurrent={canProceedCurrent}
+        isSaving={isSaving}
+        onComplete={handleComplete}
+        renderContent={renderStepContent}
+        onBack={onBack}
+        toolButtons={toolButtons}
+      />
+
+      {/* ST导入弹窗 */}
+      <STImportModal
+        isOpen={isSTModalOpen}
+        onClose={() => setIsSTModalOpen(false)}
+        characterData={characterData}
+        onImportSuccess={handleSTImportSuccess}
+      />
+
+      {/* AI生成弹窗 */}
+      <AIGenerateModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        ruleId={selectedRuleId}
+        onApply={handleAIApply}
+        generateBasicInfoByRule={generateBasicInfoByRule}
+        generateAbilityByRule={generateAbilityByRule}
+      />
+    </>
   );
 }

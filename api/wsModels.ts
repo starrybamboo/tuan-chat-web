@@ -4,6 +4,21 @@
 // websocket-types.ts
 
 /**
+ * 消息类型枚举
+ */
+export enum MessageType {
+    TEXT = 1,
+    IMG = 2,
+    FILE = 3,
+    SYSTEM = 4,
+    FORWARD = 5,
+    DICE = 6,
+    SOUND = 7,
+    EFFECT = 8,
+    CLUE_CARD = 1000,
+}
+
+/**
  * WebSocket消息基础接口
  */
 export interface BaseMessage<T> {
@@ -59,8 +74,9 @@ export interface PrivateMessage extends BaseMessage<{
         fileMessage?: { size: number; url: string; fileName: string };
         imageMessage?: { background: boolean; width: number; height: number };
         forwardMessage?: { messageList: any[] };
-        soundMessage?: { second: number };
+        soundMessage?: { second: number; url?: string; fileName?: string; size?: number; purpose?: string; volume?: number };
         clueMessage?: { img: string; name: string; description: string };
+        effectMessage?: { effectName: string; duration?: number; strength?: number };
     };
     createTime: string;
     updateTime: string;
@@ -173,6 +189,7 @@ export interface GroupMessagePush extends BaseMessage<{
             forwardMessage?: any;
             soundMessage?: any;
             clueMessage?: any;
+            effectMessage?: any;
         };
         createTime: string;
         updateTime: string;

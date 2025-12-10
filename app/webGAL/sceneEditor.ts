@@ -1,11 +1,12 @@
-import type { InferRequest } from "@/tts/apis";
-
-import { ttsApi } from "@/tts/apis";
+// GPT-SoVITS 支持 + IndexTTS 支持
+/* eslint-disable perfectionist/sort-imports */
+import type { InferRequest } from "@/tts/engines/index/apiClient";
+import { ttsApi } from "@/tts/engines/index/apiClient";
 import { checkGameExist, terreApis } from "@/webGAL/index";
-
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
-
-import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
+import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
+import type { UnifiedEngineOptions } from "@/tts/strategy/ttsEngines";
+import { createEngine } from "@/tts/strategy/ttsEngines";
 
 type Game = {
   name: string;
@@ -85,6 +86,7 @@ export class SceneEditor {
    * @param leftSpriteName 左边立绘的文件名，如果设置为 空字符串，那么会取消这个位置立绘的显示。设置为undefined，则对这个位置的立绘不做任何改变
    * @param rightSpriteName 右边立绘的文件名，规则同上
    * @param vocal 语音文件名
+   * @param figurePosition 主立绘位置：left（默认）、center、right
    */
   public async addDialog(
     roleName: string,
@@ -94,11 +96,34 @@ export class SceneEditor {
     leftSpriteName?: string | undefined,
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
+    figurePosition: "left" | "center" | "right" = "left",
+    miniAvatarName?: string | undefined,
   ): Promise<void> {
     const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
+
+    // 处理小头像
+    if (miniAvatarName) {
+      await this.addLineToRenderer(`miniAvatar:${miniAvatarName};`, sceneName);
+    }
+    else if (miniAvatarName === "") {
+      await this.addLineToRenderer("miniAvatar:none;", sceneName);
+    }
+
+    // 根据指定的立绘位置生成相应的 changeFigure 命令
     if (leftSpriteName) {
+      const position = figurePosition === "center" ? "" : `-${figurePosition}`;
+
+      // 清除其他位置的立绘（避免多个立绘同时显示）
+      const allPositions: Array<"left" | "center" | "right"> = ["left", "center", "right"];
+      for (const pos of allPositions) {
+        if (pos !== figurePosition) {
+          const positionArg = pos === "center" ? "" : `-${pos}`;
+          await this.addLineToRenderer(`changeFigure:none ${positionArg} -next;`, sceneName);
+        }
+      }
+
       await this.addLineToRenderer(
-        `changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} -left ${transform} -next;`,
+        `changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} ${position} ${transform} -next;`,
         sceneName,
       );
     }
@@ -121,15 +146,37 @@ export class SceneEditor {
 
   public async uploadSprites(url: string, spritesName: string): Promise<string> {
     const path = `games/${this.game.name}/game/figure/`;
-    // 提取URL中的文件后缀
-    const fileExtension = url.split(".").pop() || "webp";
+    // 使用辅助函数正确提取文件后缀
+    const fileExtension = getFileExtensionFromUrl(url, "webp");
     return uploadFile(url, path, `${spritesName}.${fileExtension}`);
   }
 
-  // 上传背景图片，直接使用url当作fileName
+  // 上传背景图片，确保文件有正确的后缀名
   public async uploadBackground(url: string): Promise<string> {
     const path = `games/${this.game.name}/game/background/`;
-    return await uploadFile(url, path);
+    const fileExtension = getFileExtensionFromUrl(url, "webp");
+    // 使用 URL 的最后一段作为基础文件名
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const bgName = `bg_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${bgName}.${fileExtension}`);
+  }
+
+  // 上传背景音乐
+  public async uploadBgm(url: string): Promise<string> {
+    const path = `games/${this.game.name}/game/bgm/`;
+    const fileExtension = getFileExtensionFromUrl(url, "mp3");
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const bgmName = `bgm_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${bgmName}.${fileExtension}`);
+  }
+
+  // 上传音效到 vocal 文件夹（WebGAL 的 playEffect 使用 vocal 文件夹）
+  public async uploadSoundEffect(url: string): Promise<string> {
+    const path = `games/${this.game.name}/game/vocal/`;
+    const fileExtension = getFileExtensionFromUrl(url, "mp3");
+    const urlSegment = url.split("/").pop()?.split("?")[0] || Date.now().toString();
+    const seName = `se_${urlSegment.replace(/[^a-z0-9]/gi, "_")}`;
+    return await uploadFile(url, path, `${seName}.${fileExtension}`);
   }
 
   public async addLineToRenderer(line: string, sceneName: string): Promise<void> {
@@ -165,83 +212,65 @@ export class SceneEditor {
   }
 
   /**
-   * 生成语音 - 基于新的 TTS API
-   * @param message 聊天消息
-   * @param refVocal 参考音频文件
-   * @param options TTS 生成选项
-   * @returns Promise<{ success: boolean; fileName?: string; audioBase64?: string; error?: string }>
+   * 生成语音 (支持 IndexTTS 与 GPT-SoVITS)
+   * @param message 聊天消息对象
+   * @param refVocal 参考音频文件(File)
+   * @param options 生成选项
+   * @param options.emotionMode IndexTTS 情感模式
+   * @param options.emotionWeight IndexTTS 情感权重
+   * @param options.emotionText IndexTTS 情感文本(emo_mode=3)
+   * @param options.emotionVector IndexTTS 情感向量(emo_mode=2)
+   * @param options.temperature IndexTTS 采样温度
+   * @param options.topP IndexTTS top_p
+   * @param options.maxTokensPerSegment IndexTTS 单段最大文本 token
+   * @param options.engine 选择引擎: "index" | "gpt-sovits"
+   * @param options.gptSovitsApiUrl GPT-SoVITS 服务地址 (默认 http://127.0.0.1:9880)
+   * @param options.refAudioPath GPT-SoVITS 参考音频服务器路径(必填)
+   * @param options.promptText GPT-SoVITS prompt_text
+   * @param options.promptLang GPT-SoVITS prompt_lang
+   * @param options.textLang GPT-SoVITS text_lang
+   * @param options.topK GPT-SoVITS top_k
+   * @param options.topPOverride GPT-SoVITS top_p(覆盖 Index 参数)
+   * @param options.temperatureOverride GPT-SoVITS temperature(覆盖 Index 参数)
+   * @param options.textSplitMethod GPT-SoVITS text_split_method
+   * @param options.batchSize GPT-SoVITS batch_size
+   * @param options.speedFactor GPT-SoVITS speed_factor
+   * @param options.streamingMode GPT-SoVITS streaming_mode
+   * @param options.seed GPT-SoVITS seed
+   * @param options.parallelInfer GPT-SoVITS parallel_infer
+   * @param options.repetitionPenalty GPT-SoVITS repetition_penalty
+   * @returns 统一返回 { success, fileName, audioBase64?, error? }
    */
   public async generateVocal(
     message: ChatMessageResponse,
     refVocal: File,
-    options: {
-      emotionMode?: number;
-      emotionWeight?: number;
-      emotionText?: string;
-      emotionVector?: number[];
-      temperature?: number;
-      topP?: number;
-      maxTokensPerSegment?: number;
-    } = {},
+    options: (Partial<UnifiedEngineOptions> & { hashSalt?: string }) = { engine: "index" },
   ): Promise<{ success: boolean; fileName?: string; audioBase64?: string; error?: string }> {
     const text = message.message.content;
-    const {
-      emotionMode = 2, // 默认与音色参考音频相同
-      emotionWeight = 0.8,
-      emotionText,
-      emotionVector,
-      temperature = 0.8,
-      topP = 0.8,
-      maxTokensPerSegment = 120,
-    } = options;
-
-    // 使用hash作为文件名
-    const identifyString = `tts_${text}_${refVocal.name}_${emotionMode}`;
+    const engineName = options.engine ?? "index";
+    const identifyString = `tts_${text}_${refVocal.name}_${engineName}_${options.hashSalt || ""}`;
     const hash = this.simpleHash(identifyString);
     const fileName = `${hash}.wav`;
-
     try {
-      // 将文件转换为 base64
-      const refAudioBase64 = await this.fileToBase64(refVocal);
-
-      // 创建 TTS 请求
-      const ttsRequest: InferRequest = {
-        text,
-        prompt_audio_base64: refAudioBase64,
-        emo_mode: emotionMode,
-        emo_weight: emotionWeight,
-        emo_text: emotionText,
-        emo_vector: emotionVector,
-        emo_random: false,
-        temperature,
-        top_p: topP,
-        max_text_tokens_per_segment: maxTokensPerSegment,
-        return_audio_base64: true, // 返回 base64 编码的音频
-      };
-
-      // 调用 TTS API
-      const response = await ttsApi.infer(ttsRequest);
-
-      if (response.code === 0 && response.data?.audio_base64) {
-        return {
-          success: true,
-          fileName,
-          audioBase64: response.data.audio_base64,
-        };
+      let normalized: UnifiedEngineOptions;
+      if (engineName === "index") {
+        normalized = { engine: "index", ...options } as UnifiedEngineOptions;
       }
       else {
-        return {
-          success: false,
-          error: response.msg || "TTS 生成失败",
-        };
+        // gpt-sovits 现在支持自动上传音频文件
+        normalized = {
+          engine: "gpt-sovits",
+          gameName: this.game.name, // 传递游戏名称以便上传文件
+          ...options,
+        } as UnifiedEngineOptions;
       }
+      const engine = createEngine(normalized);
+      const { audioBase64 } = await engine.generate(text, refVocal);
+      return { success: true, fileName, audioBase64 };
     }
     catch (error) {
       console.error("语音生成失败:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "未知错误",
-      };
+      return { success: false, error: error instanceof Error ? error.message : "未知错误" };
     }
   }
 
@@ -250,13 +279,13 @@ export class SceneEditor {
    * @param file 文件对象
    * @returns Promise<string> base64 字符串
    */
+  // 兼容旧调用签名, 保留方法 (内部已迁移到策略实现)
   private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // 移除 data URL 前缀，只保留 base64 部分
-        const base64 = result.split(",")[1];
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
         resolve(base64);
       };
       reader.onerror = reject;
@@ -306,10 +335,30 @@ export class SceneEditor {
   }
 
   /**
-   * 上传语音文件
-   * @param message
-   * @param refVocal
-   * @param options 生成选项
+   * 上传语音文件 (本地生成后写入 WebGAL)
+   * @param message 聊天消息
+   * @param refVocal 参考音频文件
+   * @param options 生成与引擎配置
+   * @param options.emotionMode IndexTTS 情感模式
+   * @param options.emotionWeight IndexTTS 情感权重
+   * @param options.emotionText IndexTTS 情感文本(emo_mode=3)
+   * @param options.emotionVector IndexTTS 情感向量(emo_mode=2)
+   * @param options.engine 选择引擎 "index" | "gpt-sovits"
+   * @param options.gptSovitsApiUrl GPT-SoVITS 服务地址
+   * @param options.refAudioPath GPT-SoVITS 参考音频服务器路径
+   * @param options.promptText GPT-SoVITS prompt_text
+   * @param options.promptLang GPT-SoVITS prompt_lang
+   * @param options.textLang GPT-SoVITS text_lang
+   * @param options.topK GPT-SoVITS top_k
+   * @param options.topPOverride GPT-SoVITS top_p(覆盖 Index 值)
+   * @param options.temperatureOverride GPT-SoVITS temperature(覆盖 Index 值)
+   * @param options.textSplitMethod GPT-SoVITS text_split_method
+   * @param options.batchSize GPT-SoVITS batch_size
+   * @param options.speedFactor GPT-SoVITS speed_factor
+   * @param options.streamingMode GPT-SoVITS streaming_mode
+   * @param options.seed GPT-SoVITS seed
+   * @param options.parallelInfer GPT-SoVITS parallel_infer
+   * @param options.repetitionPenalty GPT-SoVITS repetition_penalty
    */
   public async uploadVocal(
     message: ChatMessageResponse,
@@ -319,6 +368,22 @@ export class SceneEditor {
       emotionWeight?: number;
       emotionText?: string;
       emotionVector?: number[];
+      engine?: "index" | "gpt-sovits";
+      gptSovitsApiUrl?: string;
+      refAudioPath?: string;
+      promptText?: string;
+      promptLang?: string;
+      textLang?: string;
+      topK?: number;
+      topPOverride?: number;
+      temperatureOverride?: number;
+      textSplitMethod?: string;
+      batchSize?: number;
+      speedFactor?: number;
+      streamingMode?: boolean;
+      seed?: number;
+      parallelInfer?: boolean;
+      repetitionPenalty?: number;
     } = {},
   ): Promise<string | undefined> {
     const text = message.message.content;
@@ -345,7 +410,7 @@ export class SceneEditor {
         const uploadedFileName = await this.uploadAudioToWebGAL(result.audioBase64, fileName);
 
         if (uploadedFileName) {
-          console.log("语音生成并上传完成，文件名:", uploadedFileName);
+          console.warn("语音生成并上传完成，文件名:", uploadedFileName);
           return uploadedFileName;
         }
         else {
@@ -371,10 +436,15 @@ export async function editScene(game: string, scene: string, content: string) {
 }
 
 /**
- * 生成语音的简化接口，基于新的 TTS API
+ * 生成语音的简化接口 (仅 IndexTTS)
  * @param text 要生成语音的文本
  * @param refVocal 参考音频文件
  * @param options 生成选项
+ * @param options.emotionMode 情感模式
+ * @param options.emotionWeight 情感权重
+ * @param options.emotionText 情感文本
+ * @param options.emotionVector 情感向量
+ * @param options.maxTokensPerSegment 单段最大文本 token 数
  * @returns Promise<{ success: boolean; audioUrl?: string; error?: string }>
  */
 export async function generateSpeechSimple(

@@ -16,7 +16,13 @@ const ABILITY_MAP: { [key: string]: string } = {
   san: "san值",
   luck: "幸运",
   mp: "魔法",
+  魔法值上限: "mpm",
   体力: "hp",
+  体力值: "hp",
+  生命值: "hp",
+  最大生命值: "hpm",
+  理智值上限: "sanm",
+  理智上限: "sanm",
   cm: "克苏鲁神话",
   克苏鲁: "克苏鲁神话",
   计算机: "计算机使用",
@@ -37,15 +43,68 @@ const ABILITY_MAP: { [key: string]: string } = {
   侦察: "侦查",
 };
 
+// 因变量映射表
+// noinspection NonAsciiCharacters
+const DEPENDENT_VALUE_MAP: { [key: string]: (ability: RoleAbility) => { type: string; value: string | number } } = {
+  hpm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("(体型+体质)/10", ability)) }),
+  mpm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("(意志)/10", ability)) }),
+  sanm: (ability: RoleAbility) => ({ type: "number", value: Number(UTILS.calculateExpression("99-克苏鲁神话", ability)) }),
+  db: (ability: RoleAbility) => ({ type: "dice", value: (
+    () => {
+      const ref = UTILS.calculateExpression("敏捷+力量", ability);
+      if (ref < 65) {
+        return "-2";
+      }
+      else if (ref < 85) {
+        return "-1";
+      }
+      else if (ref < 125) {
+        return "0";
+      }
+      else if (ref < 165) {
+        return "1d4";
+      }
+      else if (ref < 205) {
+        return "1d6";
+      }
+      else {
+        const diceCount = Math.floor((ref - 205) / 80) + 2;
+        return `${diceCount}d6`;
+      }
+    }
+  )() }),
+};
+
 const executorCoc = new RuleNameSpace(
   0,
   "coc7",
   ["coc", "coc7th"],
   "COC7版规则的指令集",
   new Map<string, string>(Object.entries(ABILITY_MAP)),
+  new Map<string, (ability: RoleAbility) => { type: string; value: string | number }>(Object.entries(DEPENDENT_VALUE_MAP)),
 );
 
 export default executorCoc;
+
+/**
+ * COC 房规类型定义
+ * 0: CoC7th 规则书 - 出1大成功，不满50出96-100大失败，满50出100大失败
+ * 1: 不满50出1大成功版 - 不满50出1大成功，不满50出96-100大失败，满50出100大失败
+ * 2: 常用房规 - 出1-5且判定成功为大成功，出96-100且判定失败为大失败
+ * 3: 极端房规 - 出1-5大成功，出96-100大失败（无视判定结果）
+ * 4: 困难房规 - 出1-5且≤(成功率/10)为大成功，不满50出>=96+(成功率/10)为大失败，满50出100大失败
+ * 5: 极限房规 - 出1-2且≤(成功率/5)为大成功，不满50出96-100大失败，满50出99-100大失败
+ */
+type CocRuleType = 0 | 1 | 2 | 3 | 4 | 5;
+
+const COC_RULE_DESCRIPTIONS: Record<CocRuleType, string> = {
+  0: " [COC7官方规则书] 出1大成功，不满50出96-100大失败，满50出100大失败",
+  1: " 不满50出1大成功，不满50出96-100大失败，满50出100大失败",
+  2: " [常用房规] 出1-5且判定成功为大成功，出96-100且判定失败为大失败",
+  3: " 出1-5大成功，出96-100大失败，无视判定结果",
+  4: " 出1-5且≤成功率/10为大成功，不满50出>=96+成功率/10大失败，满50出100大失败",
+  5: " 出1-2且≤成功率/5为大成功，不满50出96-100大失败，满50出99-100大失败",
+};
 
 const cmdRc = new CommandExecutor(
   "rc",
@@ -138,7 +197,7 @@ const cmdRc = new CommandExecutor(
     }
 
     const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], value);
+    let result: string = buildCheckResult(name, roll[0], value, cpi);
     if (bp > 0) {
       result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
     }
@@ -158,7 +217,7 @@ executorCoc.addCmd(cmdRc);
 
 const cmdRcb = new CommandExecutor(
   "rcb",
-  [],
+  ["rab"],
   "进行带奖励骰的技能检定",
   [".rcb 侦查", ".rcb 力量+10", ".rcb 力量90 2", ".rcb 手枪 3"],
   "rcb [技能名/技能值] [奖励骰数量]?", // 调整格式说明
@@ -259,7 +318,7 @@ const cmdRcb = new CommandExecutor(
     // 奖励骰逻辑
     const bp = bonusCount;
     const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], skillValue);
+    let result: string = buildCheckResult(name, roll[0], skillValue, cpi);
     result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
 
     if (isForceToasted) {
@@ -275,7 +334,7 @@ executorCoc.addCmd(cmdRcb);
 
 const cmdRcp = new CommandExecutor(
   "rcp",
-  [],
+  ["rap"],
   "进行带惩罚骰的技能检定",
   [".rcp 侦查", ".rcp 力量-10", ".rcp 90 2", ".rcp 手枪 3"],
   "rcp [技能名/技能值] [惩罚骰数量]?",
@@ -364,7 +423,7 @@ const cmdRcp = new CommandExecutor(
 
     const bp = -penaltyCount;
     const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], skillValue);
+    let result: string = buildCheckResult(name, roll[0], skillValue, cpi);
     result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
 
     if (isForceToasted) {
@@ -435,7 +494,7 @@ executorCoc.addCmd(cmdRh);
 
 const cmdRch = new CommandExecutor(
   "rch",
-  ["暗骰检定"],
+  ["rah"],
   "进行技能/属性暗骰检定（无奖惩骰，结果仅自己可见）",
   [".rch 侦查", ".rch 力量+10", ".rch 90", ".rch 力量 90"],
   "rch [技能名] [技能值]?",
@@ -528,7 +587,7 @@ const cmdRch = new CommandExecutor(
 
     const rollResult = Math.floor(Math.random() * 100) + 1;
 
-    const result = buildCheckResult(name, rollResult, skillValue);
+    const result = buildCheckResult(name, rollResult, skillValue, cpi);
 
     cpi.sendToast(`暗骰检定结果：${result}`);
     cpi.replyMessage(`${mentioned[0].roleName}进行了一次暗骰检定`);
@@ -598,7 +657,7 @@ const cmdEn = new CommandExecutor(
 
     // 掷d100检定
     const checkValue = Math.floor(Math.random() * 100) + 1;
-    let { result, doNeedImprove } = buildEnCheckResult(name, checkValue, value);
+    let { result, doNeedImprove } = buildEnCheckResult(name, checkValue, value, cpi);
     let improveAmount = 0;
     if (doNeedImprove) {
       improveAmount = Math.floor(Math.random() * 10) + 1;
@@ -659,24 +718,35 @@ const cmdSc = new CommandExecutor(
     let result: string;
     let actualLoss: number;
 
+    // 从空间数据读取当前房规，默认为0
+    const ruleStr = cpi.getSpaceData("cocRule") || "0";
+    const rule = Number.parseInt(ruleStr) as CocRuleType;
+
+    // 根据房规判断大成功/大失败
+    const isCritSuccess = isCriticalSuccess(roll, currentSan, rule);
+    const isCritFailure = isCriticalFailure(roll, currentSan, rule);
+
     // 大成功判定
-    if (roll <= 5) {
+    if (isCritSuccess) {
       actualLoss = successLoss.possibleRange.min; // 大成功时失去最小san值
       result = "大成功";
     }
     // 大失败判定
-    else if (roll >= 96) {
+    else if (isCritFailure) {
       actualLoss = failureLoss.possibleRange.max; // 大失败时失去最大san值
+      cpi.setCopywritingKey("理智检定_大失败");
       result = "大失败";
     }
     // 普通成功
     else if (roll <= currentSan) {
       actualLoss = successLoss.result.value;
+      cpi.setCopywritingKey("理智检定_成功");
       result = "成功";
     }
     // 普通失败
     else {
       actualLoss = failureLoss.result.value;
+      cpi.setCopywritingKey("理智检定_失败");
       result = "失败";
     }
 
@@ -702,9 +772,11 @@ const cmdSc = new CommandExecutor(
       + `当前san值：${newSan}`;
     if (newSan === 0) {
       res += `\n注意：角色理智值归零，陷入永久性疯狂。`;
+      cpi.setCopywritingKey("陷入疯狂_永久性疯狂");
     }
     else if (actualLoss >= 5) {
       res += `\n注意：单次失去理智值达到5点，请进行智力检定，若检定成功角色将陷入疯狂。疯狂后请使用\`.ti\`或\`.li\`指令抽取临时症状或总结症状。`;
+      cpi.setCopywritingKey("陷入疯狂_临时性疯狂");
     }
     cpi.replyMessage(res);
     return true;
@@ -814,7 +886,7 @@ const cmdSt = new CommandExecutor(
   "属性设置",
   [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
   ".st [属性名][属性值] / .st show [属性名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI, _prop: ExecutorProp): Promise<boolean> => {
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
     // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }
@@ -835,7 +907,6 @@ const cmdSt = new CommandExecutor(
         return false;
       }
 
-      // TODO: 展示全部属性的功能
       const showProps = args.slice(1).filter(arg => arg.trim() !== "");
       if (showProps.length === 0) {
         cpi.sendToast("请指定要展示的属性");
@@ -909,6 +980,112 @@ const cmdSt = new CommandExecutor(
 );
 executorCoc.addCmd(cmdSt);
 
+const cmdSetCoc = new CommandExecutor(
+  "setcoc",
+  [],
+  "设置COC房规",
+  [".setcoc 2", ".setcoc"],
+  "setcoc [房规编号]?",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    const ruleKey = "cocRule";
+
+    if (args.length === 0) {
+      // 显示当前房规和可选列表
+      const currentRule = cpi.getSpaceData(ruleKey) || "0";
+      const currentRuleNum = Number.parseInt(currentRule) as CocRuleType;
+      let message = `当前房规：${currentRuleNum} - ${COC_RULE_DESCRIPTIONS[currentRuleNum]}\n\n可选房规列表：\n`;
+      for (let i = 0; i <= 5; i++) {
+        const ruleNum = i as CocRuleType;
+        message += `${i}: ${COC_RULE_DESCRIPTIONS[ruleNum]}\n`;
+      }
+      cpi.replyMessage(message);
+      return true;
+    }
+
+    const ruleArg = args[0].trim();
+    const ruleNum = Number.parseInt(ruleArg);
+
+    if (Number.isNaN(ruleNum) || ruleNum < 0 || ruleNum > 5) {
+      cpi.replyMessage(`错误：房规编号必须为 0-5 之间的整数\n请使用 .setcoc 查看可选房规列表`);
+      return false;
+    }
+
+    const newRule = ruleNum as CocRuleType;
+    cpi.setSpaceData(ruleKey, String(newRule));
+    cpi.replyMessage(`房规已设置为：${newRule} - ${COC_RULE_DESCRIPTIONS[newRule]}`);
+    return true;
+  },
+);
+executorCoc.addCmd(cmdSetCoc);
+
+// ============================================================================
+// 工具函数区域
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// 房规判定函数
+// ----------------------------------------------------------------------------
+
+/**
+ * 判断是否大成功（基于房规）
+ */
+function isCriticalSuccess(roll: number, value: number, rule: CocRuleType): boolean {
+  switch (rule) {
+    case 0:
+      // 仅出1为大成功
+      return roll === 1;
+    case 1:
+      // 不满50出1大成功
+      return value < 50 && roll === 1;
+    case 2:
+      // 出1-5且判定成功
+      return roll >= 1 && roll <= 5 && roll <= value;
+    case 3:
+      // 出1-5大成功
+      return roll >= 1 && roll <= 5;
+    case 4:
+      // 出1-5且≤(成功率/10)
+      return roll >= 1 && roll <= 5 && roll <= Math.ceil(value / 10);
+    case 5:
+      // 出1-2且≤(成功率/5)
+      return roll >= 1 && roll <= 2 && roll <= Math.ceil(value / 5);
+    default:
+      return false;
+  }
+}
+
+/**
+ * 判断是否大失败（基于房规）
+ */
+function isCriticalFailure(roll: number, value: number, rule: CocRuleType): boolean {
+  switch (rule) {
+    case 0:
+      // 不满50出96-100，满50出100
+      return value < 50 ? roll >= 96 : roll === 100;
+    case 1:
+      // 不满50出96-100，满50出100
+      return value < 50 ? roll >= 96 : roll === 100;
+    case 2:
+      // 出96-100且判定失败
+      return roll >= 96 && roll > value;
+    case 3:
+      // 出96-100大失败
+      return roll >= 96;
+    case 4:
+      // 不满50出>=96+(成功率/10)，满50出100
+      return value < 50 ? roll >= Math.min(96 + Math.floor(value / 10), 100) : roll === 100;
+    case 5:
+      // 不满50出96-100，满50出99-100
+      return value < 50 ? roll >= 96 : roll >= 99;
+    default:
+      return false;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 骰子掷骰函数
+// ----------------------------------------------------------------------------
+
 /**
  * 带奖励骰和惩罚骰的检定掷骰
  * @param bp 奖励骰数，负数表示惩罚骰数
@@ -936,7 +1113,7 @@ function rollDiceWithBP(bp: number = 0): number[] {
 }
 
 /**
- * 将d100的个位数和十位数连接起来，其中‘00’会被替换为‘100’
+ * 将d100的个位数和十位数连接起来，其中'00'会被替换为'100'
  */
 function connect2D10(tens: number, ones: number) {
   let result = tens * 10 + ones;
@@ -946,15 +1123,35 @@ function connect2D10(tens: number, ones: number) {
   return result;
 }
 
-function buildCheckResult(attr: string, roll: number, value: number): string {
+// ----------------------------------------------------------------------------
+// 检定结果构建函数
+// ----------------------------------------------------------------------------
+
+/**
+ * 构建检定结果字符串
+ * @param attr 属性/技能名称
+ * @param roll 骰子结果
+ * @param value 技能值
+ * @param cpi CPI接口
+ * @returns 检定结果字符串
+ */
+function buildCheckResult(attr: string, roll: number, value: number, cpi: CPI): string {
   let result = "";
   const fifth = Math.floor(value / 5);
   const half = Math.floor(value / 2);
 
-  if (roll <= 5) {
+  // 从空间数据读取当前房规，默认为0
+  const ruleStr = cpi.getSpaceData("cocRule") || "0";
+  const rule = Number.parseInt(ruleStr) as CocRuleType;
+
+  // 根据房规判断大成功/大失败
+  const isCritSuccess = isCriticalSuccess(roll, value, rule);
+  const isCritFailure = isCriticalFailure(roll, value, rule);
+
+  if (isCritSuccess) {
     result = "大成功";
   }
-  else if (roll >= 96) {
+  else if (isCritFailure) {
     result = "大失败";
   }
   else if (roll > value) {
@@ -967,15 +1164,37 @@ function buildCheckResult(attr: string, roll: number, value: number): string {
     result = "困难成功";
   }
   else {
-    result = "普通成功";
+    result = "成功";
   }
+
+  // 调用 CPI 设置文案键
+  cpi.setCopywritingKey(result);
 
   return `${attr}检定：D100=${roll}/${value} ${result}`;
 }
 
-function buildEnCheckResult(attr: string, roll: number, value: number): { result: string; doNeedImprove: boolean } {
-  if (roll > 95 || roll > value) {
-    return { result: `${attr}教育检定：D100=${roll}/${value}，检定成功`, doNeedImprove: true };
+/**
+ * 构建成长检定结果
+ * @param attr 属性名称
+ * @param roll 骰子结果
+ * @param value 当前技能值
+ * @param cpi CPI接口
+ * @returns 检定结果和是否需要成长
+ */
+function buildEnCheckResult(attr: string, roll: number, value: number, cpi: CPI): { result: string; doNeedImprove: boolean } {
+  // 从空间数据读取当前房规，默认为0
+  const ruleStr = cpi.getSpaceData("cocRule") || "0";
+  const rule = Number.parseInt(ruleStr) as CocRuleType;
+
+  // 判断是否大失败
+  const isCritFailure = isCriticalFailure(roll, value, rule);
+
+  // 成长检定的规则：检定失败时可以成长（包括大失败）
+  // 检定失败条件：roll > value 或者大失败
+  if (roll > value || isCritFailure) {
+    return { result: `${attr}成长检定：D100=${roll}/${value}，检定失败`, doNeedImprove: true };
   }
-  return { result: `${attr}教育检定：D100=${roll}/${value}，检定失败`, doNeedImprove: false };
+
+  // 检定成功，不能成长
+  return { result: `${attr}成长检定：D100=${roll}/${value}，检定成功，无法成长`, doNeedImprove: false };
 }

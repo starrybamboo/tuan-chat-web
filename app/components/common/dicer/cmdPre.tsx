@@ -13,6 +13,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
+import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 
@@ -62,23 +63,18 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const roomId = Number(urlRoomId);
 
   const role = useGetRoleQuery(roleId).data?.data;
-
+  const space = useGetSpaceInfoQuery(roomContext.spaceId ?? -1).data?.data;
   const defaultDice = useRef(100);
 
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
+  const sendMessageMutation = useSendMessageMutation(roomId); // 发送消息
+  const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 设置空间 extra 字段
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
   const dicerMessageQueue: string[] = []; // 记录本次指令骰娘的消息队列
-
-  const messageRequest: ChatMessageRequest = {
-    roomId,
-    messageType: 1,
-    content: "",
-    extra: {},
-  };
 
   useEffect(() => {
     try {
@@ -95,6 +91,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
    */
   async function execute(executorProp: ExecutorProp): Promise<void> {
     const command = executorProp.command;
+    let copywritingKey: string | null = null;
     const [cmdPart, ...args] = parseCommand(command);
     const operator: UserRole = {
       userId: role?.userId ?? -1,
@@ -125,25 +122,33 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     // 获取所有可能用到的角色能力
     const mentionedRoles = new Map<number, RoleAbility>();
     for (const role of mentioned) {
-      mentionedRoles.set(role.userId, role);
       const ability = await getRoleAbility(role.roleId);
       mentionedRoles.set(role.roleId, ability);
     }
 
+    // 初始化 Space dicerData 缓存
+    let spaceExtra: Record<string, any> = {};
+    try {
+      spaceExtra = JSON.parse(space?.extra || "{}");
+    }
+    catch (e) {
+      console.error("解析 space.extra 失败，使用空对象", e);
+      spaceExtra = {};
+    }
+
+    const dicerDataStr = spaceExtra.dicerData || "{}";
+    let spaceDicerData: Record<string, string> = {};
+    try {
+      spaceDicerData = typeof dicerDataStr === "string" ? JSON.parse(dicerDataStr) : dicerDataStr;
+    }
+    catch (e) {
+      console.error("解析 dicerData 失败，使用空对象", e);
+      spaceDicerData = {};
+    }
+    let spaceDicerDataModified = false;
+
     // 定义cpi接口
     const replyMessage = (message: string) => {
-      // (async (prop: ExecutorProp, message: string) => {
-      //   messageRequest.content = prop.originMessage;
-      //   messageRequest.roleId = curRoleId;
-      //   messageRequest.avatarId = curAvatarId;
-      //   const msgRes = await tuanchat.chatController.sendMessage1(messageRequest);
-      //   messageRequest.roleId = 14131;
-      //   const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(14131))?.data ?? [];
-      //   messageRequest.replayMessageId = msgRes.data?.messageId ?? 0;
-      //   messageRequest.avatarId = avatars[0]?.avatarId ?? 0;
-      //   messageRequest.content = `${message}`;
-      //   tuanchat.chatController.sendMessage1(messageRequest);
-      // })(prop, message);
       dicerMessageQueue.push(message);
     };
 
@@ -151,18 +156,43 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       toast(message);
     };
 
+    // 设置文案键，用于从骰娘 extra.copywriting 中随机抽取文案
+    const setCopywritingKey = (key: string | null) => {
+      copywritingKey = key?.trim() || null;
+    };
+
     const getRoleAbilityList = (roleId: number): RoleAbility => {
       if (mentionedRoles.has(roleId)) {
-        return mentionedRoles.get(roleId) as RoleAbility;
+        const ability = mentionedRoles.get(roleId) as RoleAbility;
+        ability.roleId = ability.roleId ?? roleId;
+        ability.ruleId = ability.ruleId ?? ruleId;
+        return ability;
       }
-      return {};
+      return { roleId, ruleId };
     };
 
     const setRoleAbilityList = (roleId: number, ability: RoleAbility) => {
-      if (!mentionedRoles.has(roleId)) {
-        return;
-      }
+      ability.roleId = ability.roleId ?? roleId;
+      ability.ruleId = ability.ruleId ?? ruleId;
       mentionedRoles.set(roleId, ability);
+    };
+
+    const getSpaceInfo = () => {
+      return space;
+    };
+
+    const getSpaceData = (key: string): string | undefined => {
+      return spaceDicerData[key];
+    };
+
+    const setSpaceData = (key: string, value: string | null) => {
+      if (value === null) {
+        delete spaceDicerData[key];
+      }
+      else {
+        spaceDicerData[key] = value;
+      }
+      spaceDicerDataModified = true;
     };
 
     const CmdPreInterface = {
@@ -170,71 +200,160 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       sendToast,
       getRoleAbilityList,
       setRoleAbilityList,
+      setCopywritingKey,
+      getSpaceInfo,
+      getSpaceData,
+      setSpaceData,
     };
 
-    const ruleExecutor = RULES.get(ruleId);
-    if (!ruleExecutor) {
-      sendToast(`未知规则 ${ruleId}`);
-      return;
-    }
-    try {
-      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface);
-    }
-    catch (err1) {
-      try {
-        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface);
+    // 执行命令，如果规则执行器存在则先尝试规则执行器，失败则回退到公共执行器
+    const executeWithFallback = async () => {
+      const ruleExecutor = RULES.get(ruleId);
+      // 如果规则存在，先尝试规则执行器；否则直接使用公共执行器
+      const executors = ruleExecutor ? [ruleExecutor, executorPublic] : [executorPublic];
+
+      for (const executor of executors) {
+        try {
+          await executor.execute(cmdPart, args, mentioned, CmdPreInterface);
+          return; // 执行成功，退出
+        }
+        catch (err) {
+          // 只在最后一个执行器也失败时才显示错误提示
+          if (executor === executors[executors.length - 1]) {
+            sendToast(`执行错误：${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
       }
-      catch (err2) {
-        sendToast(`执行错误：${err1 instanceof Error ? err1.message : String(err1)} 且 ${err2 instanceof Error ? err2.message : String(err2)}`);
-      }
-    }
-    // 遍历mentionedRoles，更新角色能力
-    for (const [_id, ability] of mentionedRoles) {
-      if (ability) {
-        updateAbilityMutation.mutate({
-          roleId,
-          ruleId,
-          act: ability.act,
-          basic: ability.basic,
-          ability: ability.ability,
-          skill: ability.skill,
-        });
+    };
+
+    await executeWithFallback();
+    // 遍历mentionedRoles，更新或创建角色能力
+    for (const [id, ability] of mentionedRoles) {
+      // 构造请求payload时，确保所有字段为非null对象，避免后端校验失败
+      const payload = {
+        roleId: id,
+        ruleId,
+        act: ability?.act ?? {},
+        basic: ability?.basic ?? {},
+        ability: ability?.ability ?? {},
+        skill: ability?.skill ?? {},
+        record: ability?.record ?? {},
+        extra: ability?.extra ?? {},
+      };
+
+      // 如果后端返回了 abilityId，说明已存在记录，调用更新接口；否则调用创建接口
+      if (ability && (ability.abilityId ?? 0) > 0) {
+        updateAbilityMutation.mutate(payload);
       }
       else {
-        setAbilityMutation.mutate({
-          roleId,
-          ruleId,
-          act: {},
-          basic: {},
-          ability: {},
-          skill: {},
-        });
+        setAbilityMutation.mutate(payload);
       }
+    }
+    // 更新 Space dicerData（如果被修改）
+    if (spaceDicerDataModified && space && space.spaceId) {
+      setSpaceExtraMutation.mutate({
+        spaceId: space.spaceId,
+        key: "dicerData",
+        value: JSON.stringify(spaceDicerData),
+      });
     }
     // 发送消息队列
     if (dicerMessageQueue.length > 0) {
       // 当消息队列不为空时，先发送指令消息。
-      messageRequest.content = executorProp.originMessage;
-      messageRequest.roleId = curRoleId;
-      messageRequest.avatarId = curAvatarId;
-      const optMsgRes = await tuanchat.chatController.sendMessage1(messageRequest);
-      const spaceInfo = await tuanchat.spaceController.getSpaceInfo(roomContext.spaceId ?? 0);
-      const space = spaceInfo.data;
-      const extra = JSON.parse(space?.extra ?? "{}");
-      const dicerRoleId = extra?.dicerRoleId ?? 14131;
+      const messageRequest: ChatMessageRequest = {
+        roomId,
+        messageType: 1,
+        content: executorProp.originMessage,
+        roleId: curRoleId,
+        avatarId: curAvatarId,
+        extra: {},
+      };
+      const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
+
+      const dicerRoleId = await UTILS.getDicerRoleId(roomContext);
       const avatars: RoleAvatar[] = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+
+      // 获取文案：从 extra.copywriting 中根据键随机抽取
+      let copywritingSuffix = "";
+      if (copywritingKey) {
+        try {
+          const dicerAbility = await tuanchat.abilityController.getByRuleAndRole(ruleId, dicerRoleId);
+          const copywritingStr = dicerAbility?.data?.extra?.copywriting || "{}";
+          const copywritingMap: Record<string, string[]> = JSON.parse(copywritingStr);
+          const texts = copywritingMap[copywritingKey];
+          if (texts && texts.length > 0) {
+            // 解析权重并构建加权数组
+            const weightedTexts: string[] = [];
+            for (const text of texts) {
+              // 匹配权重语法 ::N::
+              const weightMatch = text.match(/^::(\d+)::/);
+              if (weightMatch) {
+                const weight = Number.parseInt(weightMatch[1]);
+                const actualText = text.slice(weightMatch[0].length); // 移除权重前缀
+                // 根据权重添加多次
+                for (let i = 0; i < weight; i++) {
+                  weightedTexts.push(actualText);
+                }
+              }
+              else {
+                // 无权重语法，默认权重为 1
+                weightedTexts.push(text);
+              }
+            }
+            // 从加权数组中随机选择
+            const randomIdx = Math.floor(Math.random() * weightedTexts.length);
+            copywritingSuffix = `\n${weightedTexts[randomIdx]}`;
+          }
+        }
+        catch (e) {
+          console.error("获取骰娘文案失败:", e);
+        }
+      }
+
+      // 从所有消息中提取标签（格式：#标签#）
+      const allMessages = dicerMessageQueue.join(" ") + copywritingSuffix;
+      const tagMatches = allMessages.match(/#([^#]+)#/g);
+      let lastTag: string | null = null;
+      if (tagMatches && tagMatches.length > 0) {
+        // 取最后一个标签，去除 # 符号
+        const lastMatch = tagMatches[tagMatches.length - 1];
+        lastTag = lastMatch.replace(/#/g, "").trim();
+      }
+
+      // 根据标签选择头像
+      let matchedAvatar: RoleAvatar | null = null;
+      if (lastTag) {
+        const matches = avatars.filter(a => (a.avatarTitle?.label || "") === lastTag);
+        if (matches.length > 1) {
+          // 随机选择一个重复标签的头像
+          const idx = Math.floor(Math.random() * matches.length);
+          matchedAvatar = matches[idx] || null;
+        }
+        else {
+          matchedAvatar = matches[0] || null;
+        }
+      }
+      // 当没有标签或未匹配时，优先使用 label 为"默认"的头像，其次使用第一个头像
+      const fallbackDefaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") || null;
+      const chosenAvatarId = (matchedAvatar?.avatarId)
+        ?? (fallbackDefaultLabelAvatar?.avatarId)
+        ?? (avatars[0]?.avatarId ?? 0);
+
       const dicerMessageRequest: ChatMessageRequest = {
         roomId,
         messageType: 1,
         roleId: dicerRoleId,
-        avatarId: avatars[0]?.avatarId ?? 0,
+        avatarId: chosenAvatarId,
         content: "",
         replayMessageId: optMsgRes.data?.messageId ?? undefined,
         extra: {},
       };
       for (const message of dicerMessageQueue) {
-        dicerMessageRequest.content = message;
-        await tuanchat.chatController.sendMessage1(dicerMessageRequest);
+        // 移除消息中的所有标签（格式：#标签#）
+        const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
+        const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
+        dicerMessageRequest.content = cleanMessage + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
+        await sendMessageMutation.mutateAsync(dicerMessageRequest);
       }
     }
   }

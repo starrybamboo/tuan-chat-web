@@ -16016,6 +16016,87 @@
         }
       }
     },
+    "/capi/role/user/type": {
+      "get": {
+        "tags": [
+          "RoleController"
+        ],
+        "summary": "按类型获取用户角色",
+        "operationId": "getUserRolesByType",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListUserRole"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/role/ability/list": {
       "get": {
         "tags": [
@@ -18956,6 +19037,32 @@
   },
   "components": {
     "schemas": {
+      "ApiResultObject": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "object",
+            "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
+      },
       "ApiResult": {
         "required": [
           "success"
@@ -18983,32 +19090,6 @@
         "description": "基础返回体"
       },
       "ApiResultVoid": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -19163,6 +19244,14 @@
           "email": {
             "type": "string",
             "description": "用户邮箱"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "用户"
+            },
+            "description": "用户"
           }
         }
       },
@@ -19610,6 +19699,14 @@
             "type": "integer",
             "description": "角色类型,0:角色,1:骰娘",
             "format": "int32"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色扩展属性"
+            },
+            "description": "角色扩展属性"
           }
         },
         "description": "更新角色请求体"
@@ -19687,6 +19784,19 @@
               "记录1": "记录内容1",
               "记录2": "记录内容2"
             }
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "扩展属性字段，不能为空或null，必须为单层",
+              "example": "{\"key1\":\"value1\",\"key2\":\"value2\"}"
+            },
+            "description": "扩展属性字段，不能为空或null，必须为单层",
+            "example": {
+              "key1": "value1",
+              "key2": "value2"
+            }
           }
         },
         "description": "能力更新请求"
@@ -19754,6 +19864,19 @@
             }
           },
           "recordFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
+          "extraFields": {
             "type": "object",
             "additionalProperties": {
               "type": "string",
@@ -20323,15 +20446,9 @@
             "description": "说话人的这个时候的立绘",
             "format": "int64"
           },
-          "animation": {
-            "type": "integer",
-            "description": "BA那种，比如说人旁边飘过去一个问号这样子",
-            "format": "int32"
-          },
-          "specialEffects": {
-            "type": "integer",
-            "description": "比如说，立绘的抖动，这种",
-            "format": "int32"
+          "webgal": {
+            "type": "object",
+            "description": "webgal相关的演出设置"
           },
           "replyMessageId": {
             "type": "integer",
@@ -22103,6 +22220,14 @@
             "type": "integer",
             "description": "角色类型,0:角色,1:骰娘",
             "format": "int32"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色扩展属性"
+            },
+            "description": "角色扩展属性"
           }
         },
         "description": "创建角色请求体"
@@ -22249,6 +22374,14 @@
           "voiceUrl": {
             "type": "string"
           },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色扩展属性"
+            },
+            "description": "角色扩展属性"
+          },
           "createTime": {
             "type": "string",
             "format": "date-time"
@@ -22345,6 +22478,14 @@
               "记录1": "记录内容1",
               "记录2": "记录内容2"
             }
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "能力扩展属性"
+            },
+            "description": "能力扩展属性"
           }
         },
         "description": "能力设置请求"
@@ -22503,6 +22644,14 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "角色能力扩展属性"
+            },
+            "description": "角色能力扩展属性"
           }
         },
         "description": "角色能力"
@@ -22584,6 +22733,19 @@
               "记录1": "记录内容1",
               "记录2": "记录内容2"
             }
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "扩展属性字段，不能为null，必须为单层",
+              "example": "{\"key1\":\"value1\",\"key2\":\"value2\"}"
+            },
+            "description": "扩展属性字段，不能为null，必须为单层",
+            "example": {
+              "key1": "value1",
+              "key2": "value2"
+            }
           }
         },
         "description": "能力更新请求"
@@ -22656,6 +22818,19 @@
             }
           },
           "recordFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
+          "extraFields": {
             "type": "object",
             "additionalProperties": {
               "type": "string",
@@ -25620,6 +25795,10 @@
             "type": "integer",
             "description": "回复的消息id,如果没有别传就好",
             "format": "int64"
+          },
+          "webgal": {
+            "type": "object",
+            "description": "webgal相关的演出设置"
           },
           "extra": {
             "type": "object",

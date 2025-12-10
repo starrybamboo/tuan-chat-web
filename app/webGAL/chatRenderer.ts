@@ -1,4 +1,5 @@
 import type { RenderInfo, RenderProcess, RenderProps } from "@/components/chat/window/renderWindow";
+import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { SceneEditor } from "@/webGAL/sceneEditor";
 
@@ -18,6 +19,7 @@ export class ChatRenderer {
   private readonly totalMessageNumber: number;
   private renderedMessageNumber = 0;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
+  private uploadedMiniAvatarsFileNameMap = new Map<number, string>(); // avatarId -> miniAvatarFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
   private avatarMap: Map<number, RoleAvatar> = new Map(); // avatarId -> avatar
   private voiceFileMap = new Map<number, File>(); // roleId -> File;
@@ -252,6 +254,24 @@ export class ChatRenderer {
     return this.uploadSprite(message);
   }
 
+  private async getAndUploadMiniAvatar(message: Message): Promise<string | null> {
+    if (this.uploadedMiniAvatarsFileNameMap.has(message.avatarId)) {
+      return this.uploadedMiniAvatarsFileNameMap.get(message.avatarId) ?? null;
+    }
+
+    const avatar = await this.fetchAvatar(message.avatarId);
+    const avatarUrl = avatar?.avatarUrl;
+    if (!avatarUrl || !message.roleId || !message.avatarId) {
+      return null;
+    }
+
+    const miniAvatarName = `role_${message.roleId}_mini_${message.avatarId}`;
+    // Reuse sceneEditor.uploadSprites as it uploads to figure folder
+    const fileName = await this.sceneEditor.uploadSprites(avatarUrl, miniAvatarName);
+    this.uploadedMiniAvatarsFileNameMap.set(message.avatarId, fileName);
+    return fileName;
+  }
+
   /**
    * 对于过长的文本，尽可能按照标点拆分
    * @param content 要渲染的文本
@@ -335,23 +355,99 @@ export class ChatRenderer {
 
         // 处理背景图片的消息
         if (message.messageType === 2) {
-          const imageMessage = message.extra?.imageMessage;
+          const imageMessage = message.extra?.imageMessage || (message.extra?.url ? message.extra : null);
           if (imageMessage && imageMessage.background) {
             const bgFileName = await this.sceneEditor.uploadBackground(imageMessage.url);
             await this.sceneEditor.addLineToRenderer(`changeBg:${bgFileName}`, sceneName);
           }
         }
 
-        // 处理一般的对话
-        else if (message.messageType === 1) {
+        // 处理音频消息（BGM 或 音效）
+        else if (message.extra?.soundMessage || (message.messageType === 7 && (message.extra as any)?.url)) {
+          let soundMsg = message.extra?.soundMessage;
+          if (!soundMsg && message.messageType === 7 && (message.extra as any)?.url) {
+            soundMsg = message.extra as any;
+          }
+
+          const url = soundMsg?.url;
+          if (url) {
+            // 判断是 BGM 还是音效
+            const isMarkedBgm = (typeof message.content === "string" && message.content.includes("[播放BGM]")) || soundMsg?.purpose === "bgm";
+            const isMarkedSE = (typeof message.content === "string" && message.content.includes("[播放音效]")) || soundMsg?.purpose === "se";
+
+            if (isMarkedBgm) {
+              // 处理 BGM
+              const bgmFileName = await this.sceneEditor.uploadBgm(url);
+              let command = `bgm:${bgmFileName}`;
+              const vol = (soundMsg as any)?.volume;
+              if (vol !== undefined) {
+                command += ` -volume=${vol}`;
+              }
+              command += " -next";
+              await this.sceneEditor.addLineToRenderer(command, sceneName);
+            }
+            else if (isMarkedSE) {
+              // 处理音效（playEffect）
+              const seFileName = await this.sceneEditor.uploadSoundEffect(url);
+              let command = `playEffect:${seFileName}`;
+              const vol = (soundMsg as any)?.volume;
+              if (vol !== undefined) {
+                command += ` -volume=${vol}`;
+              }
+              // 支持循环音效（通过 loopId）
+              const loopId = (soundMsg as any)?.loopId;
+              if (loopId) {
+                command += ` -id=${loopId}`;
+              }
+              command += " -next";
+              await this.sceneEditor.addLineToRenderer(command, sceneName);
+            }
+            // 如果既不是 BGM 也不是音效，则跳过
+          }
+        }
+
+        // 处理特效消息 (Type 8)
+        else if (message.messageType === 8) {
+          const effectMessage = message.extra?.effectMessage;
+          if (effectMessage && effectMessage.effectName) {
+            let command: string;
+            if (effectMessage.effectName === "none") {
+              // 清除特效：使用 pixiInit 初始化，消除所有已应用的效果
+              command = "pixiInit -next";
+            }
+            else {
+              // 应用特效：pixiPerform:rain -next
+              command = `pixiPerform:${effectMessage.effectName} -next`;
+            }
+            await this.sceneEditor.addLineToRenderer(command, sceneName);
+          }
+        }
+
+        // 处理一般的对话（包括普通文本和黑屏文字）
+        else if (message.messageType === 1 || message.messageType === 9) {
           // %开头的对话意味着webgal指令，直接写入scene文件内
           if (message.content.startsWith("%")) {
             await this.sceneEditor.addLineToRenderer(message.content.slice(1), sceneName);
             continue;
           }
 
+          // 判断消息类型：黑屏文字（messageType === 9）
+          const isIntroText = message.messageType === 9;
+          // 判断是否为旁白：roleId <= 0
+          const isNarrator = message.roleId <= 0;
+
           const role = await this.fetchRole(message.roleId);
           const roleAvatar = await this.fetchAvatar(message.avatarId);
+
+          // 获取消息级别的语音渲染设置
+          const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
+          const messageEmotionVector = voiceRenderSettings?.emotionVector;
+          const messageFigurePosition = voiceRenderSettings?.figurePosition || "left";
+          const figureAnimation = voiceRenderSettings?.figureAnimation as FigureAnimationSettings | undefined;
+
+          // 获取自定义角色名和黑屏文字的 -hold 设置
+          const customRoleName = (message.webgal as any)?.customRoleName as string | undefined;
+          const introHold = (message.webgal as any)?.introHold as boolean ?? false;
 
           // 以下处理是为了防止被webGal判断为新一段的对话
           const processedContent = message.content
@@ -359,7 +455,27 @@ export class ChatRenderer {
             .replace(/;/g, "；") // 替换英文分号为中文分号
             .replace(/:/g, "："); // 替换英文冒号为中文冒号
 
-          if (role && message.content && message.content !== "") {
+          // 根据消息类型生成不同的指令
+          if (isIntroText) {
+            // 黑屏文字（intro）：intro:文字|换行文字|换行文字;
+            // 清除立绘
+            await this.sceneEditor.addLineToRenderer("changeFigure:none -left -next", sceneName);
+            await this.sceneEditor.addLineToRenderer("changeFigure:none -center -next", sceneName);
+            await this.sceneEditor.addLineToRenderer("changeFigure:none -right -next", sceneName);
+            // 使用 | 作为换行分隔符
+            const introContent = processedContent.replace(/ +/g, "|");
+            const holdPart = introHold ? " -hold" : "";
+            await this.sceneEditor.addLineToRenderer(`intro:${introContent}${holdPart}`, sceneName);
+          }
+          else if (isNarrator) {
+            // 旁白：冒号前留空，如 :这是一句旁白;
+            // 旁白不显示立绘和小头像
+            await this.sceneEditor.addLineToRenderer(`miniAvatar:none`, sceneName);
+            await this.sceneEditor.addLineToRenderer(`:${processedContent}`, sceneName);
+          }
+          else if (role && message.content && message.content !== "") {
+            // 优先使用自定义角色名
+            const displayRoleName = customRoleName || role.roleName || "未命名角色";
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
             // 为每个分割后的段落创建对话
@@ -374,6 +490,22 @@ export class ChatRenderer {
                 && !message.content.startsWith(".")
                 && !message.content.startsWith("。")
                 && !message.content.startsWith("%")) {
+                // 构建 TTS 选项 - 优先使用消息级别的情感向量
+                const ttsOptions: any = {
+                  engine: this.renderProps.ttsEngine,
+                  emotionVector: messageEmotionVector
+                    ?? this.convertAvatarTitleToEmotionVector(roleAvatar?.avatarTitle ?? {}),
+                };
+
+                // 如果选择 GPT-SoVITS 引擎,添加相关配置
+                if (this.renderProps.ttsEngine === "gpt-sovits" && this.renderProps.gptSovitsConfig) {
+                  ttsOptions.apiUrl = this.renderProps.gptSovitsConfig.apiUrl;
+                  ttsOptions.refAudioPath = this.renderProps.gptSovitsConfig.refAudioPath;
+                  ttsOptions.promptText = this.renderProps.gptSovitsConfig.promptText;
+                  ttsOptions.promptLang = this.renderProps.gptSovitsConfig.promptLang;
+                  ttsOptions.textLang = this.renderProps.gptSovitsConfig.textLang;
+                }
+
                 // 将聊天内容替换为 segment
                 vocalFileName = await this.sceneEditor.uploadVocal(
                   {
@@ -381,9 +513,7 @@ export class ChatRenderer {
                     message: { ...messageResponse.message, content: segment },
                   },
                   this.voiceFileMap.get(message.roleId),
-                  {
-                    emotionVector: this.convertAvatarTitleToEmotionVector(roleAvatar?.avatarTitle ?? {}),
-                  },
+                  ttsOptions,
                 );
               }
               else {
@@ -391,6 +521,9 @@ export class ChatRenderer {
               }
 
               const messageSpriteName = (await this.getAndUploadSprite(message)) ?? undefined;
+              const miniAvatarName = this.renderProps.useMiniAvatar
+                ? ((await this.getAndUploadMiniAvatar(message)) ?? "")
+                : undefined;
               const repliedSpriteName = repliedMessage
                 ? (await this.getAndUploadSprite(repliedMessage)) ?? undefined
                 : undefined;
@@ -400,14 +533,35 @@ export class ChatRenderer {
                     : (spriteState.has(messageSpriteName || ""));
               const avatar = await this.fetchAvatar(message.avatarId);
               await this.sceneEditor.addDialog(
-                role.roleName ?? "未命名角色",
+                displayRoleName,
                 avatar || undefined,
                 segment, // 使用分割后的段落
                 sceneName,
                 noNeedChangeSprite ? undefined : messageSpriteName,
                 noNeedChangeSprite ? undefined : repliedSpriteName,
                 vocalFileName,
+                messageFigurePosition, // 传递立绘位置
+                miniAvatarName,
               );
+
+              // 处理立绘动画（在立绘显示后）
+              // 只在第一个段落时处理动画，避免重复
+              if (figureAnimation && segment === contentSegments[0]) {
+                const animTarget = `fig-${messageFigurePosition}`; // 根据立绘位置自动推断目标
+
+                // 设置进出场动画（setTransition）
+                if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
+                  const enterPart = figureAnimation.enterAnimation ? ` -enter=${figureAnimation.enterAnimation}` : "";
+                  const exitPart = figureAnimation.exitAnimation ? ` -exit=${figureAnimation.exitAnimation}` : "";
+                  await this.sceneEditor.addLineToRenderer(`setTransition: -target=${animTarget}${enterPart}${exitPart}`, sceneName);
+                }
+
+                // 执行一次性动画（setAnimation）
+                if (figureAnimation.animation) {
+                  await this.sceneEditor.addLineToRenderer(`setAnimation:${figureAnimation.animation} -target=${animTarget} -next`, sceneName);
+                }
+              }
+
               if (!noNeedChangeSprite) {
                 spriteState.clear();
                 if (messageSpriteName)

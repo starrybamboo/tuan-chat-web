@@ -69,6 +69,34 @@ interface CPI { // eslint-disable-line ts/consistent-type-definitions
    * 说明：调用此方法时原始指令不会发送到群聊中，并且唤起弹窗后会自动关闭
    */
   sendToast: (msg: string) => void;
+
+  /**
+   * 设置文案键，从骰娘 extra.copywriting 中随机抽取对应文案
+   * @param {string | null} key - 文案分组键；传 null 或空字符串表示不附加文案
+   * @return {void}
+   */
+  setCopywritingKey: (key: string | null) => void;
+
+  /**
+   * 获取空间信息
+   * @returns {Space | null | undefined} 完整的空间信息对象
+   */
+  getSpaceInfo: () => Space | null | undefined;
+
+  /**
+   * 获取空间 dicerData 中指定键的值
+   * @param {string} key - 要获取的键名
+   * @returns {string | undefined} 键对应的值，如果不存在则返回 undefined
+   */
+  getSpaceData: (key: string) => string | undefined;
+
+  /**
+   * 设置或删除空间 dicerData 中的键值
+   * @param {string} key - 要设置的键名
+   * @param {string | null} value - 要设置的值；传 null 时删除该键
+   * @return {void}
+   */
+  setSpaceData: (key: string, value: string | null) => void;
 }
 
 interface RoleAbility { // eslint-disable-line ts/consistent-type-definitions
@@ -79,6 +107,8 @@ interface RoleAbility { // eslint-disable-line ts/consistent-type-definitions
   basic?: Record<string, string>;
   ability?: Record<string, string>;
   skill?: Record<string, string>;
+  record?: Record<string, string>;
+  extra?: Record<string, string>;
 }
 
 interface UserRole { // eslint-disable-line ts/consistent-type-definitions
@@ -91,6 +121,7 @@ interface UserRole { // eslint-disable-line ts/consistent-type-definitions
   type: number;
   modelName?: string;
   speakerName?: string;
+  extra?: Record<string, string>;
   createTime?: string;
   updateTime?: string;
   voiceUrl?: string;

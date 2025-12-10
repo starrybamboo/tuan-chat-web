@@ -6,7 +6,7 @@ import { CURRENT_WINDOW_ID, handleWindowBlur, shouldSendStatusUpdate } from "@/u
 import type { ChatStatusEvent, ChatStatusType } from "../../../../api/wsModels";
 
 // ==================== 日志系统 ====================
-const DEBUG_ENABLED = true; // 设置为 false 可关闭所有日志
+const DEBUG_ENABLED = false; // 设置为 false 可关闭所有日志
 
 enum LogLevel {
   DEBUG = "🔍 DEBUG",

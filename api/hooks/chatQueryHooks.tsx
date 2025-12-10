@@ -20,6 +20,7 @@ import type { Message } from "../models/Message";
 import type { SpaceRoleAddRequest } from "../models/SpaceRoleAddRequest";
 import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
+import type { SpaceExtraSetRequest } from "../models/SpaceExtraSetRequest";
 import type { FightRoomAddRequest } from "../models/FightRoomAddRequest";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
@@ -203,6 +204,20 @@ export function useGetSpaceInfoQuery(spaceId: number) {
         queryFn: () => tuanchat.spaceController.getSpaceInfo(spaceId),
         staleTime: 300000, // 5分钟缓存
         enabled: spaceId >= 0
+    });
+}
+
+/**
+ * 设置空间 extra 字段
+ */
+export function useSetSpaceExtraMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceExtraSetRequest) => tuanchat.spaceController.setSpaceExtra(req),
+        mutationKey: ['setSpaceExtra'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getSpaceInfo', variables.spaceId] });
+        }
     });
 }
 

@@ -27,16 +27,17 @@ import {
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 /**
  * chat板块的主组件
  */
 export default function ChatPage() {
-  const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
+  const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
   const activeRoomId = Number(urlRoomId) || null;
   const activeSpaceId = Number(urlSpaceId) || null;
+  const targetMessageId = Number(urlMessageId) || null;
 
   const navigate = useNavigate();
   const [searchParam, _] = useSearchParams();
@@ -59,18 +60,18 @@ export default function ChatPage() {
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
 
-  const setActiveSpaceId = (spaceId: number | null) => {
+  const setActiveSpaceId = useCallback((spaceId: number | null) => {
     setStoredChatIds({ spaceId, roomId: null });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
-  };
-  const setActiveRoomId = (roomId: number | null) => {
+  }, [isOpenLeftDrawer, navigate, searchParam, setStoredChatIds, screenSize]);
+  const setActiveRoomId = useCallback((roomId: number | null) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${newSearchParams.toString()}`);
-  };
+  }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   useEffect(() => {
     if (!isPrivateChatMode)
@@ -86,10 +87,10 @@ export default function ChatPage() {
     }
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // 在空间模式下，切换空间后默认选中第一个房间
     (!isPrivateChatMode && rooms && !urlRoomId) && setActiveRoomId(rooms[0]?.roomId ?? null);
-  }, [rooms]);
+  }, [isPrivateChatMode, rooms, setActiveRoomId, urlRoomId]);
 
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);
@@ -383,7 +384,7 @@ export default function ChatPage() {
               <>
                 {
                   activeSpaceId
-                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} />
+                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} targetMessageId={targetMessageId} />
                     : (
                         <div className="flex items-center justify-center w-full h-full font-bold">
                           <span className="text-center lg:hidden">请从右侧选择房间</span>

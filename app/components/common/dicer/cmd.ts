@@ -7,6 +7,7 @@
  * @property {string} description - 命名空间描述
  * @property {Map<string, CommandExecutor>} cmdMap - 命令映射表，存储命令名称/别名与执行器的映射
  * @property {Map<string, string>} aliasMap - 别名映射表，存储角色能力字段的映射
+ * @property {Map<string, (ability: RoleAbility) => { type: string; value: string | number }>} dependentValueMap - 因变量映射表，存储因变量字段名与其方程的映射
  *
  * @example
  * // 创建一个coc7th命名空间
@@ -33,6 +34,7 @@ export class RuleNameSpace {
   description: string;
   cmdMap: Map<string, CommandExecutor>;
   aliasMap: Map<string, string>;
+  dependentValueMap: Map<string, (ability: RoleAbility) => { type: string; value: string | number }>;
 
   /**
    * 构造函数
@@ -41,14 +43,16 @@ export class RuleNameSpace {
    * @param {string[]} alias - 命名空间别名
    * @param {string} description - 命名空间描述
    * @param {Map<string, string>} aliasMap - 角色能力字段映射表
+   * @param {Map<string, (ability: RoleAbility) => { type: string; value: string | number }>} dependentValueMap - 因变量映射表，存储因变量字段名与其方程的映射
    */
-  constructor(id: number, name: string, alias: string[], description: string, aliasMap: Map<string, string> = new Map()) {
+  constructor(id: number, name: string, alias: string[], description: string, aliasMap: Map<string, string> = new Map(), dependentValueMap: Map<string, (ability: RoleAbility) => { type: string; value: string | number }> = new Map()) {
     this.id = id;
     this.name = name;
     this.alias = alias;
     this.description = description;
     this.cmdMap = new Map();
     this.aliasMap = aliasMap;
+    this.dependentValueMap = dependentValueMap;
   }
 
   /**
@@ -98,6 +102,16 @@ export class RuleNameSpace {
       return cmd.solve(args, mentioned, cpi);
     }
     throw new Error(`${this.name}指令集中没有名为${name}的指令`);
+  }
+
+  /**
+   * 获取因变量值
+   * @param key - 因变量字段名
+   * @param ability - 角色能力对象
+   * @returns {string | number} 因变量值
+   */
+  getDependentValue(key: string, ability: RoleAbility): { type: string; value: string | number } | undefined {
+    return this.dependentValueMap.get(key)?.(ability);
   }
 }
 

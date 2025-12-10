@@ -11,10 +11,10 @@ function HighlightText({ text, keyword }: { text: string; keyword: string }) {
   const parts = text.split(new RegExp(`(${keyword})`, "gi"));
   return (
     <>
-      {parts.map((part, i) =>
+      {parts.map(part =>
         part.toLowerCase() === keyword.toLowerCase()
           ? (
-              <span key={i} className="bg-info/70 text-info-content rounded px-1">
+              <span key={part} className="bg-info/70 text-info-content rounded px-1">
                 {part}
               </span>
             )

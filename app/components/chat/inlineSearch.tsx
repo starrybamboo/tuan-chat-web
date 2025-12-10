@@ -1,4 +1,4 @@
-import type { RoleResponse } from "../../../api";
+import type { UserRole } from "../../../api";
 import MobileSearchPage from "@/components/chat/mobileSearchPage";
 import { RoomContext } from "@/components/chat/roomContext";
 import SearchedMessage from "@/components/chat/smallComponents/searchedMessage";
@@ -6,13 +6,13 @@ import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName"
 import { SearchFilled, XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useDebounce } from "ahooks";
-import { use, useEffect, useMemo, useState } from "react";
+import { memo, use, useEffect, useMemo, useState } from "react";
 
 interface SearchBarProps {
   className?: string;
 }
 
-export default function SearchBar({ className = "" }: SearchBarProps) {
+function SearchBar({ className = "" }: SearchBarProps) {
   const roomContext = use(RoomContext);
   const historyMessages = useMemo(() => roomContext.chatHistory?.messages ?? [], [roomContext.chatHistory?.messages]);
 
@@ -21,7 +21,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const debouncedSearchText = useDebounce<string>(searchText, { wait: 300 });
 
-  const [roles, setRoles] = useState<RoleResponse[]>([]);
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const getRoleSmartly = useGetRoleSmartly();
 
   // 检测是否为移动端
@@ -85,6 +85,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
         <button
           onClick={handleSearch}
           className="p-2 text-base-content/60 hover:text-info hover:bg-base-300 rounded-lg transition-colors"
+          type="button"
         >
           <SearchFilled className="size-6" />
         </button>
@@ -114,6 +115,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
             <button
               onClick={handleClear}
               className="text-base-content/60 hover:text-base-content transition-colors ml-2"
+              type="button"
             >
               <XMarkICon className="size-4" />
             </button>
@@ -123,6 +125,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
           onClick={handleSearch}
           className="px-3 py-2 text-base-content/60 hover:text-info hover:bg-base-300 transition-colors"
           disabled={!searchText.trim()}
+          type="button"
         >
           <SearchFilled className="size-5" />
         </button>
@@ -141,6 +144,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
             <button
               onClick={() => setIsSearching(false)}
               className="float-right text-base-content/60 hover:text-base-content"
+              type="button"
             >
               <XMarkICon className="size-3" />
             </button>
@@ -175,3 +179,5 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
     </div>
   );
 }
+
+export default memo(SearchBar);

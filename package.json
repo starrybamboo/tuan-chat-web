@@ -8,7 +8,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev",
+    "dev": "react-router dev --open",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "lint": "eslint .",
@@ -19,8 +19,8 @@
     "electron:build": "electron-builder build --config electron-builder.json"
   },
   "build": {
-    "appId": "com.yourcompany.yourappname",
-    "productName": "你的应用名称",
+    "appId": "com.tuanchat.tuanchat",
+    "productName": "团剧共创",
     "copyright": "Copyright © 2024 ${author}",
     "directories": {
       "output": "release"
@@ -71,6 +71,7 @@
     "js-yaml": "^4.1.0",
     "jsonc-parser": "^3.3.1",
     "openapi-typescript-codegen": "^0.29.0",
+    "pixi.js": "^8.6.6",
     "qrcode": "^1.5.4",
     "quill": "^2.0.3",
     "react": "^19.0.0",

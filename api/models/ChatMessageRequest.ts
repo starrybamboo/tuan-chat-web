@@ -28,6 +28,10 @@ export type ChatMessageRequest = {
      */
     replayMessageId?: number;
     /**
+     * webgal相关的演出设置
+     */
+    webgal?: Record<string, any>;
+    /**
      * 消息内容，类型不同传值不同.
      */
     extra: Record<string, any>;

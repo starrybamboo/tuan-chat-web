@@ -1,6 +1,6 @@
 import type { ClueMessage } from "api/models/ClueMessage";
 import BetterImg from "@/components/common/betterImg";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useModuleItemDetailQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useUpdateClueMutation } from "api/hooks/spaceClueHooks";
 import { useEffect, useState } from "react";

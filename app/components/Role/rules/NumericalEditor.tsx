@@ -3,8 +3,8 @@ import {
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useReducer, useState } from "react";
-import AddFieldForm from "../shared/AddFieldForm";
-import EditableField from "../shared/EditableField";
+import AddFieldForm from "../Editors/AddFieldForm";
+import EditableField from "../Editors/EditableField";
 
 // Type for numerical data - flat structure
 type NumericalData = Record<string, string>;
@@ -249,7 +249,6 @@ export default function NumericalEditor({
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="card-title text-lg flex items-center gap-2">
-          ⚡
           {title}
         </h3>
         <button

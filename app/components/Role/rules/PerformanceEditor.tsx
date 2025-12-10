@@ -1,10 +1,13 @@
+import { useIsMobile } from "@/utils/getScreenSize";
+import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
-import AddFieldForm from "../shared/AddFieldForm";
-import PerformanceField from "../shared/PerformanceField";
+
+import AddFieldForm from "../Editors/AddFieldForm";
+import PerformanceField from "../Editors/PerformanceField";
 
 interface PerformanceEditorProps {
   fields: Record<string, string>;
@@ -12,30 +15,6 @@ interface PerformanceEditorProps {
   abilityData: Record<string, string>;
   roleId: number;
   ruleId: number;
-}
-
-/**
- * 根据字段内容长度计算 grid span
- * 桌面端4列，移动端2列
- */
-function getGridSpan(value: string): { colSpan: number; rowSpan: number } {
-  const length = value?.length || 0;
-
-  if (length <= 10) {
-    return { colSpan: 1, rowSpan: 1 }; // 极短内容：1x1
-  }
-  else if (length <= 60) {
-    return { colSpan: 2, rowSpan: 1 }; // 短内容：2x1
-  }
-  else if (length <= 120) {
-    return { colSpan: 2, rowSpan: 2 }; // 中等内容：2x2
-  }
-  else if (length <= 240) {
-    return { colSpan: 3, rowSpan: 2 }; // 较长内容：3x2
-  }
-  else {
-    return { colSpan: 4, rowSpan: 2 }; // 长内容：4x2（占满整行）
-  }
 }
 
 /**
@@ -57,6 +36,8 @@ export default function PerformanceEditor({
   const [isEditing, setIsEditing] = useState(false);
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
+  // 是否移动端
+  const isMobile = useIsMobile();
 
   const longFieldKeys = [""];
   const shortFields = Object.keys(abilityData || fields)
@@ -131,7 +112,6 @@ export default function PerformanceEditor({
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-          ⚡
           基本信息
         </h3>
         <button
@@ -169,7 +149,7 @@ export default function PerformanceEditor({
         </button>
       </div>
 
-      {/* 表演字段区域 - 使用 grid-auto-flow: dense 密集布局 */}
+      {/* 表演字段区域 - 响应式布局 */}
       <div
         className="grid gap-4 grid-cols-2 md:grid-cols-4"
         style={{
@@ -178,7 +158,9 @@ export default function PerformanceEditor({
         }}
       >
         {shortFields.map((key) => {
-          const { colSpan, rowSpan } = getGridSpan(fields[key]);
+          const { colSpan, rowSpan } = isMobile
+            ? getGridSpanMobile(fields[key])
+            : getGridSpan(fields[key]);
 
           return (
             <div
@@ -197,6 +179,7 @@ export default function PerformanceEditor({
                       onDelete={handleDeleteField}
                       onRename={handleRename}
                       placeholder="请输入表演描述..."
+                      rowSpan={rowSpan}
                     />
                   )
                 : (
@@ -213,9 +196,9 @@ export default function PerformanceEditor({
           );
         })}
 
-        {/* 添加新字段区域 */}
+        {/* 添加新字段区域 - 占满整行 */}
         {isEditing && (
-          <div style={{ gridColumn: "span 2", gridRow: "span 2" }}>
+          <div className="col-span-full">
             <AddFieldForm
               onAddField={handleAddField}
               existingKeys={shortFields}

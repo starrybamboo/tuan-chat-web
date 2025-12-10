@@ -20,7 +20,16 @@ import { useGetRolesQueries } from "../../../../api/queryHooks";
 export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
+  useMiniAvatar: boolean; // 是否使用小头像功能
   skipRegex?: string; // 跳过语句的正则表达式
+  ttsEngine: "index" | "gpt-sovits"; // TTS 引擎选择
+  gptSovitsConfig?: {
+    apiUrl: string;
+    refAudioPath: string;
+    promptText: string;
+    promptLang: string;
+    textLang: string;
+  };
 }
 /**
  * 渲染时候所必要的一些信息
@@ -112,7 +121,9 @@ export default function RenderWindow() {
   const [renderProps, updateRenderProps] = useImmer<RenderProps>({
     spritePosition: "left",
     useVocal: false,
+    useMiniAvatar: false,
     skipRegex: "", // 初始化 skipRegex
+    ttsEngine: "index", // 默认使用 IndexTTS2
   });
   const [excludedRoomIds, setExcludedRoomIds] = useState<Set<number>>(new Set());
   const [roleAudios, setRoleAudios] = useState<{ [roleId: number]: File }>({});
@@ -292,7 +303,7 @@ export default function RenderWindow() {
           </div>
         )}
       </div>
-      <div className="divider">语音合成</div>
+      <div className="divider">语音合成与小头像</div>
       {/* 语音合成开关 */}
       <div className="form-control">
         <label className="label cursor-pointer justify-between p-0">
@@ -307,6 +318,26 @@ export default function RenderWindow() {
               checked={renderProps.useVocal}
               onChange={() => updateRenderProps((draft) => {
                 draft.useVocal = !draft.useVocal;
+              })}
+            />
+          </div>
+        </label>
+      </div>
+
+      {/* 小头像开关 */}
+      <div className="form-control mt-4">
+        <label className="label cursor-pointer justify-between p-0">
+          <span className="label-text text-base-content font-medium">使用小头像</span>
+          <div className="flex items-center gap-3">
+            <span className={`text-sm ${renderProps.useMiniAvatar ? "text-primary" : "text-neutral"}`}>
+              {renderProps.useMiniAvatar ? "ON" : "OFF"}
+            </span>
+            <input
+              type="checkbox"
+              className="toggle toggle-lg toggle-primary"
+              checked={renderProps.useMiniAvatar}
+              onChange={() => updateRenderProps((draft) => {
+                draft.useMiniAvatar = !draft.useMiniAvatar;
               })}
             />
           </div>

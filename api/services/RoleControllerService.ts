@@ -149,4 +149,30 @@ export class RoleControllerService {
             },
         });
     }
+    /**
+     * 按类型获取用户角色
+     * @param userId
+     * @param type
+     * @returns ApiResultListUserRole OK
+     * @throws ApiError
+     */
+    public getUserRolesByType(
+        userId: number,
+        type?: number,
+    ): CancelablePromise<ApiResultListUserRole> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/role/user/type',
+            query: {
+                'userId': userId,
+                'type': type,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
 }
