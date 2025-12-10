@@ -1871,3 +1871,17 @@ export function MusicNote(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// 简易 Map 图标，占位用
+export function MapPlaceHolderIcon(props: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={props.className ?? "w-5 h-5"}
+    >
+      <path d="M9.5 4.5 3 6.75v12l6.5-2.25 6 2.25L21 16.5v-12l-5.5 2.25-6-2.25zM9.5 6.9v11.1L4.5 19.5V8.4l5-1.5zm1.5.45 5 1.875V20.1l-5-1.875V7.35zM19.5 6.6v10.95l-2.5 1v-11l2.5-0.95z" />
+    </svg>
+  );
+}
