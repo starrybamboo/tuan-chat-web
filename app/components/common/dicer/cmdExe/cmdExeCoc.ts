@@ -86,6 +86,26 @@ const executorCoc = new RuleNameSpace(
 
 export default executorCoc;
 
+/**
+ * COC 房规类型定义
+ * 0: CoC7th 规则书 - 出1大成功，不满50出96-100大失败，满50出100大失败
+ * 1: 不满50出1大成功版 - 不满50出1大成功，不满50出96-100大失败，满50出100大失败
+ * 2: 常用房规 - 出1-5且判定成功为大成功，出96-100且判定失败为大失败
+ * 3: 极端房规 - 出1-5大成功，出96-100大失败（无视判定结果）
+ * 4: 困难房规 - 出1-5且≤(成功率/10)为大成功，不满50出>=96+(成功率/10)为大失败，满50出100大失败
+ * 5: 极限房规 - 出1-2且≤(成功率/5)为大成功，不满50出96-100大失败，满50出99-100大失败
+ */
+type CocRuleType = 0 | 1 | 2 | 3 | 4 | 5;
+
+const COC_RULE_DESCRIPTIONS: Record<CocRuleType, string> = {
+  0: " [COC7官方规则书] 出1大成功，不满50出96-100大失败，满50出100大失败",
+  1: " 不满50出1大成功，不满50出96-100大失败，满50出100大失败",
+  2: " [常用房规] 出1-5且判定成功为大成功，出96-100且判定失败为大失败",
+  3: " 出1-5大成功，出96-100大失败，无视判定结果",
+  4: " 出1-5且≤成功率/10为大成功，不满50出>=96+成功率/10大失败，满50出100大失败",
+  5: " 出1-2且≤成功率/5为大成功，不满50出96-100大失败，满50出99-100大失败",
+};
+
 const cmdRc = new CommandExecutor(
   "rc",
   ["ra"],
@@ -637,7 +657,7 @@ const cmdEn = new CommandExecutor(
 
     // 掷d100检定
     const checkValue = Math.floor(Math.random() * 100) + 1;
-    let { result, doNeedImprove } = buildEnCheckResult(name, checkValue, value);
+    let { result, doNeedImprove } = buildEnCheckResult(name, checkValue, value, cpi);
     let improveAmount = 0;
     if (doNeedImprove) {
       improveAmount = Math.floor(Math.random() * 10) + 1;
@@ -698,13 +718,21 @@ const cmdSc = new CommandExecutor(
     let result: string;
     let actualLoss: number;
 
+    // 从空间数据读取当前房规，默认为0
+    const ruleStr = cpi.getSpaceData("cocRule") || "0";
+    const rule = Number.parseInt(ruleStr) as CocRuleType;
+
+    // 根据房规判断大成功/大失败
+    const isCritSuccess = isCriticalSuccess(roll, currentSan, rule);
+    const isCritFailure = isCriticalFailure(roll, currentSan, rule);
+
     // 大成功判定
-    if (roll <= 5) {
+    if (isCritSuccess) {
       actualLoss = successLoss.possibleRange.min; // 大成功时失去最小san值
       result = "大成功";
     }
     // 大失败判定
-    else if (roll >= 96) {
+    else if (isCritFailure) {
       actualLoss = failureLoss.possibleRange.max; // 大失败时失去最大san值
       cpi.setCopywritingKey("理智检定_大失败");
       result = "大失败";
@@ -879,7 +907,6 @@ const cmdSt = new CommandExecutor(
         return false;
       }
 
-      // TODO: 展示全部属性的功能
       const showProps = args.slice(1).filter(arg => arg.trim() !== "");
       if (showProps.length === 0) {
         cpi.sendToast("请指定要展示的属性");
@@ -953,6 +980,112 @@ const cmdSt = new CommandExecutor(
 );
 executorCoc.addCmd(cmdSt);
 
+const cmdSetCoc = new CommandExecutor(
+  "setcoc",
+  [],
+  "设置COC房规",
+  [".setcoc 2", ".setcoc"],
+  "setcoc [房规编号]?",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    const ruleKey = "cocRule";
+
+    if (args.length === 0) {
+      // 显示当前房规和可选列表
+      const currentRule = cpi.getSpaceData(ruleKey) || "0";
+      const currentRuleNum = Number.parseInt(currentRule) as CocRuleType;
+      let message = `当前房规：${currentRuleNum} - ${COC_RULE_DESCRIPTIONS[currentRuleNum]}\n\n可选房规列表：\n`;
+      for (let i = 0; i <= 5; i++) {
+        const ruleNum = i as CocRuleType;
+        message += `${i}: ${COC_RULE_DESCRIPTIONS[ruleNum]}\n`;
+      }
+      cpi.replyMessage(message);
+      return true;
+    }
+
+    const ruleArg = args[0].trim();
+    const ruleNum = Number.parseInt(ruleArg);
+
+    if (Number.isNaN(ruleNum) || ruleNum < 0 || ruleNum > 5) {
+      cpi.replyMessage(`错误：房规编号必须为 0-5 之间的整数\n请使用 .setcoc 查看可选房规列表`);
+      return false;
+    }
+
+    const newRule = ruleNum as CocRuleType;
+    cpi.setSpaceData(ruleKey, String(newRule));
+    cpi.replyMessage(`房规已设置为：${newRule} - ${COC_RULE_DESCRIPTIONS[newRule]}`);
+    return true;
+  },
+);
+executorCoc.addCmd(cmdSetCoc);
+
+// ============================================================================
+// 工具函数区域
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// 房规判定函数
+// ----------------------------------------------------------------------------
+
+/**
+ * 判断是否大成功（基于房规）
+ */
+function isCriticalSuccess(roll: number, value: number, rule: CocRuleType): boolean {
+  switch (rule) {
+    case 0:
+      // 仅出1为大成功
+      return roll === 1;
+    case 1:
+      // 不满50出1大成功
+      return value < 50 && roll === 1;
+    case 2:
+      // 出1-5且判定成功
+      return roll >= 1 && roll <= 5 && roll <= value;
+    case 3:
+      // 出1-5大成功
+      return roll >= 1 && roll <= 5;
+    case 4:
+      // 出1-5且≤(成功率/10)
+      return roll >= 1 && roll <= 5 && roll <= Math.ceil(value / 10);
+    case 5:
+      // 出1-2且≤(成功率/5)
+      return roll >= 1 && roll <= 2 && roll <= Math.ceil(value / 5);
+    default:
+      return false;
+  }
+}
+
+/**
+ * 判断是否大失败（基于房规）
+ */
+function isCriticalFailure(roll: number, value: number, rule: CocRuleType): boolean {
+  switch (rule) {
+    case 0:
+      // 不满50出96-100，满50出100
+      return value < 50 ? roll >= 96 : roll === 100;
+    case 1:
+      // 不满50出96-100，满50出100
+      return value < 50 ? roll >= 96 : roll === 100;
+    case 2:
+      // 出96-100且判定失败
+      return roll >= 96 && roll > value;
+    case 3:
+      // 出96-100大失败
+      return roll >= 96;
+    case 4:
+      // 不满50出>=96+(成功率/10)，满50出100
+      return value < 50 ? roll >= Math.min(96 + Math.floor(value / 10), 100) : roll === 100;
+    case 5:
+      // 不满50出96-100，满50出99-100
+      return value < 50 ? roll >= 96 : roll >= 99;
+    default:
+      return false;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 骰子掷骰函数
+// ----------------------------------------------------------------------------
+
 /**
  * 带奖励骰和惩罚骰的检定掷骰
  * @param bp 奖励骰数，负数表示惩罚骰数
@@ -980,7 +1113,7 @@ function rollDiceWithBP(bp: number = 0): number[] {
 }
 
 /**
- * 将d100的个位数和十位数连接起来，其中‘00’会被替换为‘100’
+ * 将d100的个位数和十位数连接起来，其中'00'会被替换为'100'
  */
 function connect2D10(tens: number, ones: number) {
   let result = tens * 10 + ones;
@@ -990,15 +1123,35 @@ function connect2D10(tens: number, ones: number) {
   return result;
 }
 
-function buildCheckResult(attr: string, roll: number, value: number, cpi?: CPI): string {
+// ----------------------------------------------------------------------------
+// 检定结果构建函数
+// ----------------------------------------------------------------------------
+
+/**
+ * 构建检定结果字符串
+ * @param attr 属性/技能名称
+ * @param roll 骰子结果
+ * @param value 技能值
+ * @param cpi CPI接口
+ * @returns 检定结果字符串
+ */
+function buildCheckResult(attr: string, roll: number, value: number, cpi: CPI): string {
   let result = "";
   const fifth = Math.floor(value / 5);
   const half = Math.floor(value / 2);
 
-  if (roll <= 5) {
+  // 从空间数据读取当前房规，默认为0
+  const ruleStr = cpi.getSpaceData("cocRule") || "0";
+  const rule = Number.parseInt(ruleStr) as CocRuleType;
+
+  // 根据房规判断大成功/大失败
+  const isCritSuccess = isCriticalSuccess(roll, value, rule);
+  const isCritFailure = isCriticalFailure(roll, value, rule);
+
+  if (isCritSuccess) {
     result = "大成功";
   }
-  else if (roll >= 96) {
+  else if (isCritFailure) {
     result = "大失败";
   }
   else if (roll > value) {
@@ -1015,16 +1168,33 @@ function buildCheckResult(attr: string, roll: number, value: number, cpi?: CPI):
   }
 
   // 调用 CPI 设置文案键
-  if (cpi) {
-    cpi.setCopywritingKey(result);
-  }
+  cpi.setCopywritingKey(result);
 
   return `${attr}检定：D100=${roll}/${value} ${result}`;
 }
 
-function buildEnCheckResult(attr: string, roll: number, value: number): { result: string; doNeedImprove: boolean } {
-  if (roll > 95 || roll > value) {
-    return { result: `${attr}教育检定：D100=${roll}/${value}，检定成功`, doNeedImprove: true };
+/**
+ * 构建成长检定结果
+ * @param attr 属性名称
+ * @param roll 骰子结果
+ * @param value 当前技能值
+ * @param cpi CPI接口
+ * @returns 检定结果和是否需要成长
+ */
+function buildEnCheckResult(attr: string, roll: number, value: number, cpi: CPI): { result: string; doNeedImprove: boolean } {
+  // 从空间数据读取当前房规，默认为0
+  const ruleStr = cpi.getSpaceData("cocRule") || "0";
+  const rule = Number.parseInt(ruleStr) as CocRuleType;
+
+  // 判断是否大失败
+  const isCritFailure = isCriticalFailure(roll, value, rule);
+
+  // 成长检定的规则：检定失败时可以成长（包括大失败）
+  // 检定失败条件：roll > value 或者大失败
+  if (roll > value || isCritFailure) {
+    return { result: `${attr}成长检定：D100=${roll}/${value}，检定失败`, doNeedImprove: true };
   }
-  return { result: `${attr}教育检定：D100=${roll}/${value}，检定失败`, doNeedImprove: false };
+
+  // 检定成功，不能成长
+  return { result: `${attr}成长检定：D100=${roll}/${value}，检定成功，无法成长`, doNeedImprove: false };
 }
