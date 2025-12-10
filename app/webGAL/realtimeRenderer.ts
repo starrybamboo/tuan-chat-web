@@ -1223,6 +1223,10 @@ export class RealtimeRenderer {
           // 清除特效：使用 pixiInit 初始化，消除所有已应用的效果
           command = "pixiInit -next;";
         }
+        else if (effectMessage.effectName === "clearBackground") {
+          // 清除背景
+          command = "changeBg:none -next;";
+        }
         else {
           // 应用特效：pixiPerform:rain -next;
           command = `pixiPerform:${effectMessage.effectName} -next;`;

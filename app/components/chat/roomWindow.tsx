@@ -1043,13 +1043,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
           if (webgalLinkMode) {
-            fields.webgal = {
-              voiceRenderSettings: {
-                figurePosition: currentDefaultFigurePosition,
-                notend: dialogNotend,
-                concat: dialogConcat,
-              },
+            const voiceRenderSettings = {
+              ...(currentDefaultFigurePosition ? { figurePosition: currentDefaultFigurePosition } : {}),
+              ...(dialogNotend ? { notend: true } : {}),
+              ...(dialogConcat ? { concat: true } : {}),
             };
+
+            if (Object.keys(voiceRenderSettings).length > 0) {
+              fields.webgal = { voiceRenderSettings };
+            }
           }
           isFirstMessage = false;
         }
@@ -1233,21 +1235,37 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"));
 
   const handleSendEffect = useCallback((effectName: string) => {
-    if (!curRoleId) {
-      toast.error("请先选择角色");
-      return;
-    }
+    // 特效消息不需要角色信息，类似旁白
     send({
       roomId,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
+      roleId: undefined,
+      avatarId: undefined,
       content: `[特效: ${effectName}]`,
       messageType: MessageType.EFFECT,
       extra: {
-        effectName,
+        effectMessage: {
+          effectName,
+        },
       },
     });
-  }, [curRoleId, curAvatarId, roomId, send]);
+  }, [roomId, send]);
+
+  const handleClearBackground = useCallback(() => {
+    // 清除背景不需要角色信息，类似旁白
+    send({
+      roomId,
+      roleId: undefined,
+      avatarId: undefined,
+      content: "[清除背景]",
+      messageType: MessageType.EFFECT,
+      extra: {
+        effectMessage: {
+          effectName: "clearBackground",
+        },
+      },
+    });
+    toast.success("已清除背景");
+  }, [roomId, send]);
 
   return (
     <RoomContext value={roomContext}>
@@ -1333,6 +1351,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   dialogConcat={dialogConcat}
                   onToggleDialogConcat={() => setDialogConcat(!dialogConcat)}
                   onSendEffect={handleSendEffect}
+                  onClearBackground={handleClearBackground}
                   setAudioFile={setAudioFile}
                 />
                 <div className="flex gap-2 items-stretch">

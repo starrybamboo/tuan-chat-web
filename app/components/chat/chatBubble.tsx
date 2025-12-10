@@ -46,8 +46,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
   const [editingRoleName, setEditingRoleName] = useState("");
 
-  // 判断是否为旁白（无角色）
-  const isNarrator = message.roleId <= 0;
+  // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
+  const isNarrator = !message.roleId || message.roleId <= 0;
   // 判断是否为黑屏文字
   const isIntroText = message.messageType === MESSAGE_TYPE.INTRO_TEXT;
   // 获取自定义角色名（如果有）
@@ -565,7 +565,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                   → 黑屏
                 </button>
               )}
-              <span className="badge badge-xs badge-secondary">旁白</span>
+              {/* 根据消息类型显示不同标签 */}
+              {message.messageType === MESSAGE_TYPE.EFFECT
+                ? <span className="badge badge-xs badge-info">特效</span>
+                : <span className="badge badge-xs badge-secondary">旁白</span>}
             </div>
             {/* 内容 - 斜体 */}
             <div className="italic text-base-content/80">
