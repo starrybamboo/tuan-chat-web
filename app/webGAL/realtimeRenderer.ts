@@ -234,7 +234,7 @@ export class RealtimeRenderer {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
-  private messageLineMap = new Map<string, number>(); // `${roomId}_${messageId}` -> lineNumber (消息在场景中的行号)
+  private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
 
   // 小头像相关
   private miniAvatarEnabled: boolean = false;
@@ -680,6 +680,59 @@ export class RealtimeRenderer {
       ? `${context.text}\n${line}`
       : line;
     context.lineNumber += 1;
+
+    if (syncToFile) {
+      await this.syncContextToFile(roomId);
+    }
+  }
+
+  /**
+   * 替换指定房间场景中的指定行
+   * @param roomId 房间ID
+   * @param startLine 起始行号（1-based）
+   * @param endLine 结束行号（1-based，包含）
+   * @param newLines 新的内容行数组
+   * @param syncToFile 是否同步到文件
+   */
+  private async replaceLinesInContext(
+    roomId: number,
+    startLine: number,
+    endLine: number,
+    newLines: string[],
+    syncToFile: boolean = true,
+  ): Promise<void> {
+    const context = this.sceneContextMap.get(roomId);
+    if (!context) {
+      console.warn(`[RealtimeRenderer] 房间 ${roomId} 的场景上下文不存在`);
+      return;
+    }
+
+    // 将场景文本分割为行
+    const lines = context.text.split("\n");
+
+    // 替换指定范围的行（注意：lineNumber 是 1-based，数组索引是 0-based）
+    const before = lines.slice(0, startLine - 1);
+    const after = lines.slice(endLine);
+
+    // 合并新内容
+    const newContent = [...before, ...newLines, ...after];
+    context.text = newContent.join("\n");
+
+    // 更新行号（总行数变化）
+    const oldLineCount = endLine - startLine + 1;
+    const newLineCount = newLines.length;
+    const lineDiff = newLineCount - oldLineCount;
+    context.lineNumber += lineDiff;
+
+    // 更新所有在被替换区域之后的消息的行号
+    if (lineDiff !== 0) {
+      this.messageLineMap.forEach((range, key) => {
+        if (key.startsWith(`${roomId}_`) && range.startLine > endLine) {
+          range.startLine += lineDiff;
+          range.endLine += lineDiff;
+        }
+      });
+    }
 
     if (syncToFile) {
       await this.syncContextToFile(roomId);
@@ -1423,10 +1476,14 @@ export class RealtimeRenderer {
       await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart};`, syncToFile);
     }
 
-    // 记录消息 ID 和行号的映射（用于跳转）
+    // 记录消息 ID 和行号范围的映射（用于跳转和更新）
     const context = this.sceneContextMap.get(targetRoomId);
     if (context && msg.messageId) {
-      this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, context.lineNumber);
+      const endLine = context.lineNumber;
+      // 计算起始行号：如果已经有记录，使用已有的起始行；否则使用当前结束行
+      const existingRange = this.messageLineMap.get(`${targetRoomId}_${msg.messageId}`);
+      const startLine = existingRange?.startLine ?? endLine;
+      this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, { startLine, endLine });
     }
 
     // 发送同步消息到 WebGAL
@@ -1579,12 +1636,12 @@ export class RealtimeRenderer {
       }
     }
 
-    // 获取该消息对应的行号
+    // 获取该消息对应的行号范围
     const key = `${targetRoomId}_${msg.messageId}`;
-    const lineNumber = this.messageLineMap.get(key);
+    const lineRange = this.messageLineMap.get(key);
 
-    if (lineNumber === undefined) {
-      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将只渲染不跳转`);
+    if (!lineRange) {
+      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 模式`);
       await this.renderMessage(message, targetRoomId, true);
       return true;
     }
@@ -1596,8 +1653,40 @@ export class RealtimeRenderer {
       return false;
     }
 
-    // 重新渲染该消息（这会更新场景文件）
-    await this.renderMessage(message, targetRoomId, true);
+    // 保存当前的行号和文本状态
+    const savedLineNumber = context.lineNumber;
+    const savedText = context.text;
+
+    // 临时重置上下文，用于收集新渲染的内容
+    context.lineNumber = 0;
+    context.text = "";
+
+    // 重新渲染该消息（不同步到文件）
+    await this.renderMessage(message, targetRoomId, false);
+
+    // 获取新渲染的内容
+    const newContent = context.text;
+    const newLines = newContent.split("\n").filter(line => line.trim());
+
+    // 恢复上下文状态
+    context.lineNumber = savedLineNumber;
+    context.text = savedText;
+
+    // 使用替换方法更新指定行
+    await this.replaceLinesInContext(
+      targetRoomId,
+      lineRange.startLine,
+      lineRange.endLine,
+      newLines,
+      true,
+    );
+
+    // 更新消息的行号范围
+    const newEndLine = lineRange.startLine + newLines.length - 1;
+    this.messageLineMap.set(key, {
+      startLine: lineRange.startLine,
+      endLine: newEndLine,
+    });
 
     // 跳转到该消息
     return this.jumpToMessage(msg.messageId, targetRoomId);
@@ -1617,15 +1706,16 @@ export class RealtimeRenderer {
     }
 
     const key = `${targetRoomId}_${messageId}`;
-    const lineNumber = this.messageLineMap.get(key);
+    const lineRange = this.messageLineMap.get(key);
 
-    if (lineNumber === undefined) {
+    if (!lineRange) {
       console.warn(`[RealtimeRenderer] 消息 ${messageId} 未找到对应的行号`);
       return false;
     }
 
     const sceneName = this.getSceneName(targetRoomId);
-    const msg = getAsyncMsg(`${sceneName}.txt`, lineNumber);
+    // 跳转到消息的起始行
+    const msg = getAsyncMsg(`${sceneName}.txt`, lineRange.startLine);
     const msgStr = JSON.stringify(msg);
 
     if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {

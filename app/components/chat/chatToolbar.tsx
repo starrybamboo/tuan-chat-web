@@ -317,15 +317,23 @@ export function ChatToolbar({
         {/* 默认立绘位置选择器（仅在联动模式下显示） */}
         {webgalLinkMode && onSetDefaultFigurePosition && (
           <div className="flex items-center gap-1">
-            <div className="tooltip" data-tip="本角色默认位置">
+            <div className="tooltip" data-tip="本角色默认位置（点击取消选择）">
               <div className="join">
                 {(["left", "center", "right"] as const).map(pos => (
                   <button
                     key={pos}
                     type="button"
                     className={`join-item btn btn-xs px-2 ${defaultFigurePosition === pos ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => onSetDefaultFigurePosition(pos)}
-                    title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}`}
+                    onClick={() => {
+                      // 如果点击的是当前选中的位置，则取消选择
+                      if (defaultFigurePosition === pos) {
+                        onSetDefaultFigurePosition(undefined as any);
+                      }
+                      else {
+                        onSetDefaultFigurePosition(pos);
+                      }
+                    }}
+                    title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}（再次点击取消）`}
                   >
                     {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
                   </button>

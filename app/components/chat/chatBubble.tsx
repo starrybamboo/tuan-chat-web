@@ -61,10 +61,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
       onSuccess: (response) => {
         // 更新成功后同步到本地 IndexedDB
         if (response?.data && roomContext.chatHistory) {
-          roomContext.chatHistory.addOrUpdateMessage({
+          const updatedChatMessageResponse = {
             ...chatMessageResponse,
             message: response.data,
-          });
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          // 如果 WebGAL 联动模式开启，则重渲染并跳转
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
+          }
         }
       },
     });
@@ -570,15 +576,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                 ? <span className="badge badge-xs badge-info">特效</span>
                 : <span className="badge badge-xs badge-secondary">旁白</span>}
             </div>
-            {/* 内容 - 斜体 */}
+            {/* 内容 - 支持文本、图片、音频等 */}
             <div className="italic text-base-content/80">
-              <EditableField
-                content={message.content}
-                handleContentUpdate={handleContentUpdate}
-                className="whitespace-pre-wrap"
-                canEdit={canEdit}
-                fieldId={`msg${message.messageId}`}
-              />
+              {renderedContent}
             </div>
             {/* 时间 */}
             <div className="text-xs text-base-content/50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
