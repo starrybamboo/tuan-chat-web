@@ -233,19 +233,30 @@ function ChatFrame(props: {
 
     // Update Background URL
     let newBgUrl: string | null = null;
+
+    // 找到最后一个清除背景的位置
+    let lastClearIndex = -1;
+    for (const effect of effectNode) {
+      if (effect.index <= currentMessageIndex && effect.effectMessage?.effectName === "clearBackground") {
+        lastClearIndex = effect.index;
+      }
+    }
+
+    // 从清除背景之后（或从头）开始找最新的背景图片
     for (const bg of imgNode) {
-      if (bg.index <= currentMessageIndex) {
+      if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
         newBgUrl = bg.imageMessage?.url ?? null;
       }
-      else {
+      else if (bg.index > currentMessageIndex) {
         break;
       }
     }
+
     if (newBgUrl !== currentBackgroundUrl) {
       const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
       return () => clearTimeout(id);
     }
-  }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+  }, [currentVirtuosoIndex, imgNode, effectNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
   useEffect(() => {
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
@@ -836,6 +847,9 @@ function ChatFrame(props: {
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
         onAddEmoji={handleAddEmoji}
+        onInsertAfter={(messageId) => {
+          roomContext.setInsertAfterMessageId?.(messageId);
+        }}
       />
     </div>
   );

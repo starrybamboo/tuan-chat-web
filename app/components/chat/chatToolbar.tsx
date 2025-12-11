@@ -11,7 +11,6 @@ import {
   MusicNote,
   PointOnMapPerspectiveLinear,
   SendIcon,
-  SharpDownload,
   SparklesOutline,
   SwordSwing,
   WebgalIcon,
@@ -47,6 +46,9 @@ interface ChatToolbarProps {
   // 自动回复模式
   autoReplyMode?: boolean;
   onToggleAutoReplyMode?: () => void;
+  // 跑团模式
+  runModeEnabled?: boolean;
+  onToggleRunMode?: () => void;
   // 默认立绘位置
   defaultFigurePosition?: "left" | "center" | "right";
   onSetDefaultFigurePosition?: (position: "left" | "center" | "right") => void;
@@ -58,7 +60,9 @@ interface ChatToolbarProps {
 
   // WebGAL 控制
   onSendEffect?: (effectName: string) => void;
-  // 发送语音
+  onClearBackground?: () => void;
+  onClearFigure?: () => void;
+  // 发送音频
   setAudioFile?: (file: File | null) => void;
 }
 
@@ -79,6 +83,8 @@ export function ChatToolbar({
   onToggleWebgalLinkMode,
   autoReplyMode = false,
   onToggleAutoReplyMode,
+  runModeEnabled = false,
+  onToggleRunMode,
   defaultFigurePosition,
   onSetDefaultFigurePosition,
   dialogNotend = false,
@@ -86,6 +92,8 @@ export function ChatToolbar({
   dialogConcat = false,
   onToggleDialogConcat,
   onSendEffect,
+  onClearBackground,
+  onClearFigure,
   setAudioFile,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -208,9 +216,9 @@ export function ChatToolbar({
           </div>
         </ImgUploader>
 
-        {/* 发送语音 */}
+        {/* 发送音频 */}
         {setAudioFile && (
-          <div className="tooltip" data-tip="发送语音">
+          <div className="tooltip" data-tip="发送音频">
             <MusicNote
               className="size-7 cursor-pointer jump_icon"
               onClick={() => audioInputRef.current?.click()}
@@ -309,15 +317,23 @@ export function ChatToolbar({
         {/* 默认立绘位置选择器（仅在联动模式下显示） */}
         {webgalLinkMode && onSetDefaultFigurePosition && (
           <div className="flex items-center gap-1">
-            <div className="tooltip" data-tip="本角色默认位置">
+            <div className="tooltip" data-tip="本角色默认位置（点击取消选择）">
               <div className="join">
                 {(["left", "center", "right"] as const).map(pos => (
                   <button
                     key={pos}
                     type="button"
                     className={`join-item btn btn-xs px-2 ${defaultFigurePosition === pos ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => onSetDefaultFigurePosition(pos)}
-                    title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}`}
+                    onClick={() => {
+                      // 如果点击的是当前选中的位置，则取消选择
+                      if (defaultFigurePosition === pos) {
+                        onSetDefaultFigurePosition(undefined as any);
+                      }
+                      else {
+                        onSetDefaultFigurePosition(pos);
+                      }
+                    }}
+                    title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}（再次点击取消）`}
                   >
                     {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
                   </button>
@@ -385,9 +401,28 @@ export function ChatToolbar({
                   <li><a onClick={() => onSendEffect("none")}>🛑 停止特效</a></li>
                 </>
               )}
+              {(onClearBackground || onClearFigure) && (
+                <>
+                  <div className="divider my-1"></div>
+                  {onClearBackground && <li><a onClick={onClearBackground}>🗑️ 清除背景</a></li>}
+                  {onClearFigure && <li><a onClick={onClearFigure}>👤 清除立绘</a></li>}
+                </>
+              )}
             </ul>
           </div>
         )}
+
+        {/* 实时渲染按钮：仅在联动模式开启时展示 */}
+        {webgalLinkMode && onToggleRealtimeRender && (
+          <div
+            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+            data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
+            onClick={onToggleRealtimeRender}
+          >
+            <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+          </div>
+        )}
+
         {/* WebGAL 联动模式按钮 */}
         {onToggleWebgalLinkMode && (
           <div
@@ -399,58 +434,56 @@ export function ChatToolbar({
           </div>
         )}
 
-        {/* 实时渲染按钮 */}
-        {onToggleRealtimeRender && (
-          <div
-            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
-            data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
-            onClick={onToggleRealtimeRender}
-          >
-            <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
-          </div>
+        {runModeEnabled && (
+          <>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="查看线索"
+              onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
+            >
+              <Detective className="size-7"></Detective>
+            </div>
+
+            <div
+              className="tooltip"
+              data-tip="展示先攻表"
+              onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
+            >
+              <SwordSwing className="size-7 jump_icon"></SwordSwing>
+            </div>
+
+            <div
+              className="tooltip"
+              data-tip="地图"
+              onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
+            >
+              <PointOnMapPerspectiveLinear className="size-7 jump_icon"></PointOnMapPerspectiveLinear>
+            </div>
+
+            <div
+              className="tooltip"
+              data-tip="展示角色"
+              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
+            >
+              <GirlIcon className="size-7 jump_icon"></GirlIcon>
+            </div>
+          </>
         )}
 
-        {/* miniAvatar 控件已移动到导出/配音设置面板 */}
-
-        <div
-          className="tooltip tooltip-bottom hover:text-info"
-          data-tip="导出记录"
-          onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
-        >
-          <SharpDownload className="size-7"></SharpDownload>
-        </div>
-
-        <div
-          className="tooltip tooltip-bottom hover:text-info"
-          data-tip="查看线索"
-          onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
-        >
-          <Detective className="size-7"></Detective>
-        </div>
-
-        <div
-          className="tooltip"
-          data-tip="展示先攻表"
-          onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
-        >
-          <SwordSwing className="size-7 jump_icon"></SwordSwing>
-        </div>
-
-        <div
-          className="tooltip"
-          data-tip="地图"
-          onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
-        >
-          <PointOnMapPerspectiveLinear className="size-7 jump_icon"></PointOnMapPerspectiveLinear>
-        </div>
-
-        <div
-          className="tooltip"
-          data-tip="展示角色"
-          onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
-        >
-          <GirlIcon className="size-7 jump_icon"></GirlIcon>
-        </div>
+        {onToggleRunMode && (
+          <div
+            className="tooltip tooltip-bottom"
+            data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
+          >
+            <button
+              type="button"
+              className={`btn btn-xs ${runModeEnabled ? "btn-primary" : "btn-ghost border border-base-300"}`}
+              onClick={onToggleRunMode}
+            >
+              <SwordSwing className="size-7" />
+            </button>
+          </div>
+        )}
 
         {/* 发送按钮 */}
         <div className="tooltip" data-tip="发送">

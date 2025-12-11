@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../WebGAL_Terre"
+		},
+		{
+			"path": "../WebGAL_Doc"
+		},
+		{
+			"path": "../TuanChat"
+		}
+	],
+	"settings": {}
+}

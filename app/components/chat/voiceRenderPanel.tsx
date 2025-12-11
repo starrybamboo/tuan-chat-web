@@ -83,8 +83,8 @@ export function VoiceRenderPanel({
     else if (avatarTitle) {
       setLocalVector(emotionRecordToVector(avatarTitle));
     }
-    if (initialPosition)
-      setLocalPosition(initialPosition);
+    // 同步立绘位置：显式处理 undefined 的情况
+    setLocalPosition(initialPosition);
     setLocalNotend(initialNotend ?? false);
     setLocalConcat(initialConcat ?? false);
     setLocalAnimation(initialAnimation);
@@ -146,11 +146,11 @@ export function VoiceRenderPanel({
 
   const handleClear = useCallback(() => {
     setLocalVector([0, 0, 0, 0, 0, 0, 0, 0]);
-    setLocalPosition("left");
+    setLocalPosition(undefined);
     setLocalNotend(false);
     setLocalConcat(false);
     setLocalAnimation(undefined);
-    onChange([0, 0, 0, 0, 0, 0, 0, 0], "left", false, false, undefined);
+    onChange([0, 0, 0, 0, 0, 0, 0, 0], undefined, false, false, undefined);
   }, [onChange]);
 
   // 如果未开启 WebGAL 联动模式，不显示面板
