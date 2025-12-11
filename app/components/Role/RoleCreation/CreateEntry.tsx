@@ -56,21 +56,18 @@ export default function CreateEntry({
             </p>
           </Link>
 
-          {/* 去扮演卡片 */}
-          <Link
-            to="/chat"
-            className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 h-auto md:h-100 cursor-pointer transform hover:scale-105"
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-info/40 bg-info/5 text-info/60 flex items-center justify-center">
+          {/* 占位符 */}
+          <div className="bg-base-100 rounded-xl p-6 shadow-sm border-2 border-dashed border-base-300 h-auto md:h-100">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-base-300 bg-base-200/30 text-base-content/40 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-base-content mb-2 text-center">去扮演</h3>
+            <h3 className="text-lg font-semibold text-base-content mb-2 text-center">更多功能</h3>
             <p className="text-sm text-base-content/70 text-center leading-relaxed">
-              选择已有角色开始聊天扮演
+              敬请期待
             </p>
-          </Link>
+          </div>
         </div>
 
         <p className="mt-10 text-xs text-base-content/70 text-center">
