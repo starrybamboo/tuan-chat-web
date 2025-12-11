@@ -390,6 +390,7 @@ function ChatFrame(props: {
     updateMessage({
       ...message,
       extra: {
+        ...message.extra,
         imageMessage: {
           ...message.extra.imageMessage,
           background: !message.extra.imageMessage.background,
