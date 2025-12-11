@@ -109,8 +109,8 @@ export function ChatToolbar({
   };
 
   return (
-    <div className="flex pr-1 pl-2 justify-between ">
-      <div className="flex gap-2">
+    <div className="flex pr-1 pl-2 justify-between flex-wrap gap-y-2">
+      <div className="flex gap-2 flex-wrap items-center">
         {/* 聊天状态选择器 - 观战成员不显示 */}
         {!isSpectator && (
           <div
@@ -313,7 +313,7 @@ export function ChatToolbar({
       </div>
 
       {/* 右侧按钮组 */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap justify-end items-center flex-grow">
         {/* 默认立绘位置选择器（仅在联动模式下显示） */}
         {webgalLinkMode && onSetDefaultFigurePosition && (
           <div className="flex items-center gap-1">

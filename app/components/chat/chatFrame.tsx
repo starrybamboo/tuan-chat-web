@@ -25,6 +25,7 @@ import {
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
+import { tuanchat } from "../../../api/instance";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header() {
@@ -115,7 +116,32 @@ function ChatFrame(props: {
         return;
       const lastLength = lastLengthMapRef.current[roomId] ?? 0;
       if (lastLength < receivedMessages.length) {
-        await chatHistory.addOrUpdateMessages(receivedMessages.slice(lastLength));
+        const newMessages = receivedMessages.slice(lastLength);
+
+        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连续
+        const historyMsgs = chatHistory.messages;
+        if (historyMsgs.length > 0 && newMessages.length > 0) {
+          const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
+          const firstNewMsg = newMessages[0];
+
+          if (firstNewMsg.message.syncId > lastHistoryMsg.message.syncId + 1) {
+            console.warn(`[ChatFrame] Detected gap between history (${lastHistoryMsg.message.syncId}) and new messages (${firstNewMsg.message.syncId}). Fetching missing messages...`);
+            try {
+              const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
+                roomId,
+                syncId: lastHistoryMsg.message.syncId + 1,
+              });
+              if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
+                await chatHistory.addOrUpdateMessages(missingMessagesRes.data);
+              }
+            }
+            catch (e) {
+              console.error("[ChatFrame] Failed to fetch missing messages:", e);
+            }
+          }
+        }
+
+        await chatHistory.addOrUpdateMessages(newMessages);
         lastLengthMapRef.current[roomId] = receivedMessages.length;
       }
     }
@@ -364,6 +390,7 @@ function ChatFrame(props: {
     updateMessage({
       ...message,
       extra: {
+        ...message.extra,
         imageMessage: {
           ...message.extra.imageMessage,
           background: !message.extra.imageMessage.background,
