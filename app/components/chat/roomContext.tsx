@@ -81,16 +81,6 @@ export interface RoomContextType {
   setDefaultFigurePosition?: (roleId: number, position: "left" | "center" | "right" | undefined) => void;
 
   /**
-   * 自动回复模式（每次发送消息时自动回复最后一条消息）
-   */
-  autoReplyMode?: boolean;
-
-  /**
-   * 设置自动回复模式
-   */
-  setAutoReplyMode?: (mode: boolean) => void;
-
-  /**
    * 更新消息渲染设置并在 WebGAL 中重新渲染跳转
    * @param message 已更新的消息（包含最新的 voiceRenderSettings）
    * @param regenerateTTS 是否重新生成 TTS（当情感向量变化时设为 true）
