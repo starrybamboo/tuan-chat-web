@@ -1201,13 +1201,26 @@ export class RealtimeRenderer {
 
     // 处理背景图片消息
     if (msg.messageType === 2) {
-      const imageMessage = msg.extra?.imageMessage || (msg.extra?.url ? msg.extra : null);
-      if (imageMessage && imageMessage.background) {
-        const bgFileName = await this.uploadBackground(imageMessage.url);
-        if (bgFileName) {
-          await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
-          if (syncToFile)
-            this.sendSyncMessage(targetRoomId);
+      const imageMessage = msg.extra?.imageMessage;
+      if (imageMessage) {
+        if (imageMessage.background) {
+          const bgFileName = await this.uploadBackground(imageMessage.url);
+          if (bgFileName) {
+            await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
+            if (syncToFile)
+              this.sendSyncMessage(targetRoomId);
+          }
+        }
+        // 处理解锁CG
+        const unlockCg = (msg.webgal as any)?.unlockCg;
+        if (unlockCg) {
+          const cgFileName = await this.uploadBackground(imageMessage.url);
+          if (cgFileName) {
+            const cgName = imageMessage.fileName ? imageMessage.fileName.split(".")[0] : "CG";
+            await this.appendLine(targetRoomId, `unlockCg:${cgFileName} -name=${cgName};`, syncToFile);
+            if (syncToFile)
+              this.sendSyncMessage(targetRoomId);
+          }
         }
       }
       return;
@@ -1225,8 +1238,8 @@ export class RealtimeRenderer {
         return;
 
       // 判断是 BGM 还是音效
-      const isMarkedBgm = (typeof msg.content === "string" && msg.content.includes("[播放BGM]")) || soundMsg.purpose === "bgm";
-      const isMarkedSE = (typeof msg.content === "string" && msg.content.includes("[播放音效]")) || soundMsg.purpose === "se";
+      const isMarkedBgm = msg.content.includes("[播放BGM]") || soundMsg.purpose === "bgm";
+      const isMarkedSE = msg.content.includes("[播放音效]") || soundMsg.purpose === "se";
 
       if (isMarkedBgm) {
         // 处理 BGM

@@ -19,9 +19,11 @@ interface ContextMenuProps {
   onToggleChatBubbleStyle: () => void;
   onEditMessage: (messageId: number) => void;
   onToggleBackground: (messageId: number) => void;
+  onUnlockCg: (messageId: number) => void;
   onAddEmoji: (imgMessage: ImageMessage) => void;
   onAddClue?: (clueInfo: { img: string; name: string; description: string }) => void;
   onInsertAfter: (messageId: number) => void;
+  onToggleNarrator: (messageId: number) => void;
 }
 
 export default function ChatFrameContextMenu({
@@ -38,8 +40,10 @@ export default function ChatFrameContextMenu({
   onToggleChatBubbleStyle,
   onEditMessage,
   onToggleBackground,
+  onUnlockCg,
   onAddEmoji,
   onInsertAfter,
+  onToggleNarrator,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
@@ -216,6 +220,20 @@ export default function ChatFrameContextMenu({
           </a>
         </li>
         {
+          (spaceContext.isSpaceOwner || message?.message.userId === globalContext.userId) && (
+            <li>
+              <a onClick={(e) => {
+                e.preventDefault();
+                onToggleNarrator(contextMenu.messageId);
+                onClose();
+              }}
+              >
+                切换旁白/角色
+              </a>
+            </li>
+          )
+        }
+        {
           (isSelecting) && (
             <li>
               <a onClick={(e) => {
@@ -276,6 +294,19 @@ export default function ChatFrameContextMenu({
                   >
                     {
                       message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
+                    }
+                  </a>
+                </li>
+                <li>
+                  <a
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onUnlockCg(contextMenu.messageId);
+                      onClose();
+                    }}
+                  >
+                    {
+                      (message?.message.webgal as any)?.unlockCg ? "取消解锁CG" : "解锁CG"
                     }
                   </a>
                 </li>

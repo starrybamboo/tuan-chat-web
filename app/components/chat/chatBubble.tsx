@@ -347,6 +347,40 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     });
   }
 
+  // 切换旁白状态
+  function handleToggleNarrator() {
+    if (!canEdit)
+      return;
+
+    if (isNarrator) {
+      // 如果当前是旁白，切换回普通角色 -> 打开角色选择器
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  handleRoleChange(role.roleId);
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
+    }
+    else {
+      // 如果当前是普通角色，切换为旁白 -> roleId设为-1
+      const newMessage = {
+        ...message,
+        roleId: -1,
+      };
+      updateMessageAndSync(newMessage);
+    }
+  }
+
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
   const renderedContent = useMemo(() => {
@@ -571,6 +605,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                   → 黑屏
                 </button>
               )}
+              {/* 切换为角色对话按钮 */}
+              {canEdit && (
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
+                  onClick={handleToggleNarrator}
+                  title="切换为角色对话"
+                >
+                  → 角色
+                </button>
+              )}
               {/* 根据消息类型显示不同标签 */}
               {message.messageType === MESSAGE_TYPE.EFFECT
                 ? <span className="badge badge-xs badge-info">特效</span>
@@ -663,6 +708,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       canEdit={canEdit}
                       isIntroText={isIntroText}
                       onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
+                      onToggleNarrator={canEdit && roomContext.webgalLinkMode ? handleToggleNarrator : undefined}
                     />
                   )}
                 </div>
@@ -743,6 +789,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       canEdit={canEdit}
                       isIntroText={isIntroText}
                       onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
+                      onToggleNarrator={canEdit && roomContext.webgalLinkMode ? handleToggleNarrator : undefined}
                     />
                   )}
                 </div>

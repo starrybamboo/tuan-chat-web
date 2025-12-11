@@ -1,7 +1,6 @@
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
-  ArrowBackThickFill,
   CommandSolid,
   Detective,
   EmojiIconWhite,
@@ -43,9 +42,6 @@ interface ChatToolbarProps {
   // WebGAL 联动模式
   webgalLinkMode?: boolean;
   onToggleWebgalLinkMode?: () => void;
-  // 自动回复模式
-  autoReplyMode?: boolean;
-  onToggleAutoReplyMode?: () => void;
   // 跑团模式
   runModeEnabled?: boolean;
   onToggleRunMode?: () => void;
@@ -81,8 +77,6 @@ export function ChatToolbar({
   onToggleRealtimeRender,
   webgalLinkMode = false,
   onToggleWebgalLinkMode,
-  autoReplyMode = false,
-  onToggleAutoReplyMode,
   runModeEnabled = false,
   onToggleRunMode,
   defaultFigurePosition,
@@ -371,16 +365,6 @@ export function ChatToolbar({
           </div>
         )}
 
-        {/* 自动回复模式按钮（开关模式） */}
-        {onToggleAutoReplyMode && webgalLinkMode && (
-          <div
-            className={`tooltip tooltip-bottom ${autoReplyMode ? "text-success" : "hover:text-info"}`}
-            data-tip={autoReplyMode ? "关闭自动回复模式" : "开启自动回复模式（每条消息自动回复上一条）"}
-            onClick={onToggleAutoReplyMode}
-          >
-            <ArrowBackThickFill className={`size-6 cursor-pointer ${autoReplyMode ? "animate-pulse" : ""}`} />
-          </div>
-        )}
         {/* WebGAL 导演控制台 */}
         {webgalLinkMode && onSendEffect && (
           <div className="dropdown dropdown-top dropdown-end">

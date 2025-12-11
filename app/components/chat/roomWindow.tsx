@@ -264,7 +264,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // WebGAL 联动模式相关状态
   const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
-  const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
   const [runModeEnabled, setRunModeEnabled] = useLocalStorage<boolean>("runModeEnabled", false);
   const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right" | undefined>>(
     "defaultFigurePositionMap",
@@ -694,8 +693,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           [roleId]: position,
         }));
       },
-      autoReplyMode,
-      setAutoReplyMode,
       // WebGAL 跳转功能 - 只有在实时渲染激活时才启用
       jumpToMessageInWebGAL: realtimeRender.isActive ? jumpToMessageInWebGAL : undefined,
       // WebGAL 更新渲染并跳转 - 只有在实时渲染激活时才启用
@@ -704,7 +701,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       insertAfterMessageId,
       setInsertAfterMessageId,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, webgalLinkMode, setWebgalLinkMode, defaultFigurePositionMap, setDefaultFigurePositionMap, autoReplyMode, setAutoReplyMode, realtimeRender.isActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, insertAfterMessageId]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, webgalLinkMode, setWebgalLinkMode, defaultFigurePositionMap, setDefaultFigurePositionMap, realtimeRender.isActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, insertAfterMessageId]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   // 判断是否是观战成员 (memberType >= 3)
@@ -717,7 +714,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     inputText,
     isSpectator, // 观战成员不发送状态
   });
-  // 移除旧的输入状态即时 effect 和单独 idle 定时器（统一由 snapshot 驱动）
 
   /**
    * ai自动补全
@@ -1023,14 +1019,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       }
 
       // 4. 构建并发送消息
-      // 自动回复模式：如果没有手动选择回复消息，自动回复最后一条消息
-      let autoReplyMsgId: number | undefined;
-      if (autoReplyMode && !replyMessage && historyMessages && historyMessages.length > 0) {
-        const lastMessage = historyMessages[historyMessages.length - 1];
-        autoReplyMsgId = lastMessage?.message?.messageId;
-      }
-
-      const finalReplyId = replyMessage?.messageId || autoReplyMsgId || undefined;
+      const finalReplyId = replyMessage?.messageId || undefined;
       let isFirstMessage = true;
 
       const getCommonFields = () => {
@@ -1358,8 +1347,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleRealtimeRender={handleToggleRealtimeRender}
                   webgalLinkMode={webgalLinkMode}
                   onToggleWebgalLinkMode={() => setWebgalLinkMode(!webgalLinkMode)}
-                  autoReplyMode={autoReplyMode}
-                  onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
                   runModeEnabled={runModeEnabled}
                   onToggleRunMode={toggleRunMode}
                   defaultFigurePosition={currentDefaultFigurePosition}

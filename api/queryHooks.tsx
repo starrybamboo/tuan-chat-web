@@ -37,7 +37,7 @@ export function useGetRoleQuery(roleId: number) {
     queryKey: ['getRole', roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
     staleTime: 600000, // 10分钟缓存
-    enabled: roleId > 0
+    enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
   });
 }
 
@@ -50,7 +50,7 @@ export function useGetRolesQueries(roleIds: number[]) {
       queryKey: ["getRole", roleId],
       queryFn: () => tuanchat.roleController.getRole(roleId),
       staleTime: 600000, // 10分钟缓存
-      enabled: roleId > 0
+      enabled: typeof roleId === 'number' && !isNaN(roleId) && roleId > 0
     }))
   });
 }
@@ -683,7 +683,8 @@ export function useGetUserRolesQuery(userId: number) {
   return useQuery({
     queryKey: ['getUserRoles', userId],
     queryFn: () => tuanchat.roleController.getUserRoles(userId),
-    staleTime: 600000 // 10分钟缓存
+    staleTime: 600000, // 10分钟缓存
+    enabled: typeof userId === 'number' && !isNaN(userId) && userId > 0
   });
 }
 
