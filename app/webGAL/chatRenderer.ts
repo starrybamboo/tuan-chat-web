@@ -355,10 +355,19 @@ export class ChatRenderer {
 
         // 处理背景图片的消息
         if (message.messageType === 2) {
-          const imageMessage = message.extra?.imageMessage || (message.extra?.url ? message.extra : null);
-          if (imageMessage && imageMessage.background) {
-            const bgFileName = await this.sceneEditor.uploadBackground(imageMessage.url);
-            await this.sceneEditor.addLineToRenderer(`changeBg:${bgFileName}`, sceneName);
+          const imageMessage = message.extra?.imageMessage;
+          if (imageMessage) {
+            if (imageMessage.background) {
+              const bgFileName = await this.sceneEditor.uploadBackground(imageMessage.url);
+              await this.sceneEditor.addLineToRenderer(`changeBg:${bgFileName}`, sceneName);
+            }
+            // 处理解锁CG
+            const unlockCg = (message.webgal as any)?.unlockCg;
+            if (unlockCg) {
+              const cgFileName = await this.sceneEditor.uploadBackground(imageMessage.url);
+              const cgName = imageMessage.fileName ? imageMessage.fileName.split(".")[0] : "CG";
+              await this.sceneEditor.addLineToRenderer(`unlockCg:${cgFileName} -name=${cgName}`, sceneName);
+            }
           }
         }
 

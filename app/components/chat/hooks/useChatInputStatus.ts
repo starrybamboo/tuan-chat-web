@@ -1,12 +1,12 @@
 /* eslint-disable no-console */
-import { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 import { CURRENT_WINDOW_ID, handleWindowBlur, shouldSendStatusUpdate } from "@/utils/windowInstance";
 
 import type { ChatStatusEvent, ChatStatusType } from "../../../../api/wsModels";
 
 // ==================== 日志系统 ====================
-const DEBUG_ENABLED = false; // 设置为 false 可关闭所有日志
+const DEBUG_ENABLED = true; // 设置为 false 可关闭所有日志
 
 enum LogLevel {
   DEBUG = "🔍 DEBUG",
@@ -96,6 +96,11 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
   const updateChatStatusRef = useRef(webSocketUtils.updateChatStatus);
   const sendRef = useRef(webSocketUtils.send);
   const chatStatusRef = useRef(webSocketUtils.chatStatus);
+
+  // 获取当前用户状态的回调函数
+  const getCurrentStatus = useCallback((): ChatStatusType => {
+    return chatStatusRef.current[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+  }, [roomId, userId]);
 
   // 🔍 Hook 初始化日志（只执行一次）
   useEffect(() => {
@@ -189,7 +194,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
       // ⚡ 使用防抖：延迟 300ms 后才发送状态更新
       inputDebounceTimerRef.current = setTimeout(() => {
         const now = Date.now();
-        const currentStatus = chatStatusRef.current[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+        const currentStatus = getCurrentStatus();
 
         logGroup("⏰ 防抖计时器触发", () => {
           log(LogLevel.INFO, "当前状态", { currentStatus });
@@ -255,7 +260,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
         inputDebounceTimerRef.current = null;
       }
     };
-  }, [inputText, roomId, userId, lockDurationMs, sendStatusUpdate]);
+  }, [inputText, roomId, userId, lockDurationMs, sendStatusUpdate, getCurrentStatus]);
 
   // 快照轮询
   useEffect(() => {
@@ -280,7 +285,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
       }
 
       const now = Date.now();
-      const currentStatus = chatStatusRef.current[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+      const currentStatus = getCurrentStatus();
       const trimmed = inputValueRef.current.trim();
       const inactiveFor = now - lastActivityRef.current;
 
@@ -380,7 +385,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
       window.removeEventListener("blur", handleBlur);
       log(LogLevel.DEBUG, "✅ 已移除窗口失焦监听器");
     };
-  }, [roomId, userId, snapshotIntervalMs, idleThresholdMs, leaveThresholdMs, lockDurationMs, sendStatusUpdate]);
+  }, [roomId, userId, snapshotIntervalMs, idleThresholdMs, leaveThresholdMs, lockDurationMs, sendStatusUpdate, getCurrentStatus]);
 
   const handleManualStatusChange = useCallback((newStatus: ChatStatusType) => {
     logGroup(`👆 手动切换状态: ${newStatus}`, () => {
@@ -406,7 +411,12 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
     });
   }, [roomId, userId, sendStatusUpdate]);
 
-  const myStatus: ChatStatusType = webSocketUtils.chatStatus[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+  // 使用 useMemo 确保 myStatus 响应式更新
+  const myStatus: ChatStatusType = React.useMemo(() => {
+    const status = webSocketUtils.chatStatus[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+    log(LogLevel.DEBUG, "📊 计算 myStatus", { status, roomId, userId });
+    return status;
+  }, [webSocketUtils.chatStatus, roomId, userId]);
 
   return { myStatus, handleManualStatusChange };
 }

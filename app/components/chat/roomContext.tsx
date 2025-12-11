@@ -81,22 +81,24 @@ export interface RoomContextType {
   setDefaultFigurePosition?: (roleId: number, position: "left" | "center" | "right" | undefined) => void;
 
   /**
-   * 自动回复模式（每次发送消息时自动回复最后一条消息）
-   */
-  autoReplyMode?: boolean;
-
-  /**
-   * 设置自动回复模式
-   */
-  setAutoReplyMode?: (mode: boolean) => void;
-
-  /**
    * 更新消息渲染设置并在 WebGAL 中重新渲染跳转
    * @param message 已更新的消息（包含最新的 voiceRenderSettings）
    * @param regenerateTTS 是否重新生成 TTS（当情感向量变化时设为 true）
    * @returns Promise<是否操作成功>
    */
   updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
+
+  /**
+   * 在指定消息下方插入新消息
+   * 当此值不为 undefined 时，下一条发送的消息将被插入到该消息下方
+   */
+  insertAfterMessageId?: number;
+
+  /**
+   * 设置插入位置
+   * @param messageId 要在其下方插入的消息ID，传 undefined 取消插入模式
+   */
+  setInsertAfterMessageId?: (messageId: number | undefined) => void;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -119,4 +121,6 @@ export const RoomContext = createContext<RoomContextType>({
   autoReplyMode: false,
   setAutoReplyMode: undefined,
   updateAndRerenderMessageInWebGAL: undefined,
+  insertAfterMessageId: undefined,
+  setInsertAfterMessageId: undefined,
 });

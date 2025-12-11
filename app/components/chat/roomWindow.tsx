@@ -38,6 +38,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
   MusicNote,
+  SharpDownload,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -59,6 +60,8 @@ import {
   useGetRoomModuleRoleQuery,
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
+  useSendMessageMutation,
+  useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
 import ClueListForPL from "./sideDrawer/clueListForPL";
@@ -78,6 +81,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const send = useCallback((message: ChatMessageRequest) => {
     webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
   }, [webSocketUtils]);
+
+  // 用于插入消息功能的 mutations
+  const sendMessageMutation = useSendMessageMutation(roomId);
+  const updateMessageMutation = useUpdateMessageMutation();
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
@@ -123,10 +130,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [audioPurpose, setAudioPurpose] = useState<"bgm" | "se" | undefined>(undefined);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
+  // 插入消息位置（在该消息下方插入新消息）
+  const [insertAfterMessageId, setInsertAfterMessageId] = useState<number | undefined>(undefined);
 
-  // 切换房间时清空引用消息
+  // 切换房间时清空引用消息和插入位置
   useLayoutEffect(() => {
     setReplyMessage(undefined);
+    setInsertAfterMessageId(undefined);
   }, [roomId]);
 
   // 获取用户的所有角色
@@ -182,6 +192,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [realtimeTTSEnabled, setRealtimeTTSEnabled] = useState(false);
   // 实时渲染小头像配置（默认关闭）
   const [realtimeMiniAvatarEnabled, setRealtimeMiniAvatarEnabled] = useState(false);
+  // 实时渲染自动填充立绘配置（默认开启，与原行为一致）
+  const [realtimeAutoFigureEnabled, setRealtimeAutoFigureEnabled] = useState(false);
   // TTS API URL（从 localStorage 读取，默认为空使用环境变量）
   const [ttsApiUrl, setTtsApiUrl] = useState(() => {
     if (typeof window !== "undefined") {
@@ -218,6 +230,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     rooms: room ? [room] : [], // 当前只传入当前房间，后续可以扩展为多房间
     ttsConfig: realtimeTTSConfig,
     miniAvatarEnabled: realtimeMiniAvatarEnabled,
+    autoFigureEnabled: realtimeAutoFigureEnabled,
   });
   const realtimeStatus = realtimeRender.status;
   const stopRealtimeRender = realtimeRender.stop;
@@ -252,6 +265,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // WebGAL 联动模式相关状态
   const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
   const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
+  const [runModeEnabled, setRunModeEnabled] = useLocalStorage<boolean>("runModeEnabled", false);
   const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right" | undefined>>(
     "defaultFigurePositionMap",
     {},
@@ -268,6 +282,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       [curRoleId]: position,
     }));
   }, [curRoleId, setDefaultFigurePositionMap]);
+
+  // 跑团模式：折叠跑团相关侧边栏入口
+  const toggleRunMode = useCallback(() => {
+    setRunModeEnabled((prev) => {
+      const next = !prev;
+      if (!next && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerStateRef.current)) {
+        setSideDrawerState("none");
+      }
+      return next;
+    });
+  }, [setRunModeEnabled, setSideDrawerState]);
+
+  useEffect(() => {
+    if (!runModeEnabled && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerState)) {
+      setSideDrawerState("none");
+    }
+  }, [runModeEnabled, sideDrawerState, setSideDrawerState]);
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
@@ -373,7 +404,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         msg.message = { ...originalMsg.message };
 
         if (msg.message.messageType === 1 && msg.message.roleId > 0) {
-          if (!msg.message.webgal?.voiceRenderSettings?.figurePosition) {
+          // 只有当消息完全没有 voiceRenderSettings 时，才使用默认立绘位置
+          // 如果已经存在 voiceRenderSettings（即使没有 figurePosition），说明用户已经手动配置过，不应该自动添加
+          if (!msg.message.webgal?.voiceRenderSettings) {
             const defaultPosition = defaultFigurePositionMap?.[msg.message.roleId];
 
             // 只有当默认位置存在时才设置
@@ -381,10 +414,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               // 确保 webgal 对象存在且是新的引用
               msg.message.webgal = { ...(msg.message.webgal || {}) };
 
-              // 确保 voiceRenderSettings 对象存在且是新的引用
-              msg.message.webgal.voiceRenderSettings = { ...(msg.message.webgal.voiceRenderSettings || {}) };
-
-              (msg.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+              // 创建新的 voiceRenderSettings 对象
+              msg.message.webgal.voiceRenderSettings = {
+                figurePosition: defaultPosition,
+              };
             }
           }
         }
@@ -486,7 +519,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     messageToRender.message = { ...latestMessage.message };
 
     if (messageToRender.message.messageType === 1 && messageToRender.message.roleId > 0) {
-      if (!messageToRender.message.webgal?.voiceRenderSettings?.figurePosition) {
+      // 只有当消息完全没有 voiceRenderSettings 时，才使用默认立绘位置
+      // 如果已经存在 voiceRenderSettings（即使没有 figurePosition），说明用户已经手动配置过，不应该自动添加
+      if (!messageToRender.message.webgal?.voiceRenderSettings) {
         const defaultPosition = defaultFigurePositionMap?.[messageToRender.message.roleId];
 
         // 只有当默认位置存在时才设置
@@ -494,10 +529,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           // 确保 webgal 对象存在且是新的引用
           messageToRender.message.webgal = { ...(messageToRender.message.webgal || {}) };
 
-          // 确保 voiceRenderSettings 对象存在且是新的引用
-          messageToRender.message.webgal.voiceRenderSettings = { ...(messageToRender.message.webgal.voiceRenderSettings || {}) };
-
-          (messageToRender.message.webgal.voiceRenderSettings as any).figurePosition = defaultPosition;
+          // 创建新的 voiceRenderSettings 对象
+          messageToRender.message.webgal.voiceRenderSettings = {
+            figurePosition: defaultPosition,
+          };
         }
       }
     }
@@ -659,14 +694,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           [roleId]: position,
         }));
       },
-      autoReplyMode,
-      setAutoReplyMode,
       // WebGAL 跳转功能 - 只有在实时渲染激活时才启用
       jumpToMessageInWebGAL: realtimeRender.isActive ? jumpToMessageInWebGAL : undefined,
       // WebGAL 更新渲染并跳转 - 只有在实时渲染激活时才启用
       updateAndRerenderMessageInWebGAL: realtimeRender.isActive ? updateAndRerenderMessageInWebGAL : undefined,
+      // 插入消息位置
+      insertAfterMessageId,
+      setInsertAfterMessageId,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, webgalLinkMode, setWebgalLinkMode, defaultFigurePositionMap, setDefaultFigurePositionMap, autoReplyMode, setAutoReplyMode, realtimeRender.isActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, webgalLinkMode, setWebgalLinkMode, defaultFigurePositionMap, setDefaultFigurePositionMap, realtimeRender.isActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, insertAfterMessageId]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   // 判断是否是观战成员 (memberType >= 3)
@@ -679,7 +715,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     inputText,
     isSpectator, // 观战成员不发送状态
   });
-  // 移除旧的输入状态即时 effect 和单独 idle 定时器（统一由 snapshot 驱动）
 
   /**
    * ai自动补全
@@ -871,6 +906,66 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // WebGAL 联动模式下允许无角色发送（作为旁白）
   const disableSendMessage = (noRole && !webgalLinkMode) || notMember || noInput || isSubmitting;
 
+  /**
+   * 发送消息的辅助函数
+   * 如果设置了 insertAfterMessageId，则使用 HTTP API 发送并更新 position
+   * 否则使用 WebSocket 发送
+   */
+  const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
+    if (insertAfterMessageId && historyMessages) {
+      // 找到目标消息的索引
+      const targetIndex = historyMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
+      if (targetIndex === -1) {
+        // 如果找不到目标消息，降级为普通发送
+        send(message);
+        return;
+      }
+
+      try {
+        // 使用 HTTP API 发送消息
+        const result = await sendMessageMutation.mutateAsync(message);
+        if (!result.success || !result.data) {
+          toast.error("发送消息失败");
+          return;
+        }
+
+        const newMessage = result.data;
+
+        // 计算新消息的 position
+        const targetMessage = historyMessages[targetIndex];
+        const nextMessage = historyMessages[targetIndex + 1];
+        const targetPosition = targetMessage.message.position;
+        const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
+        const newPosition = (targetPosition + nextPosition) / 2;
+
+        // 更新消息的 position
+        await updateMessageMutation.mutateAsync({
+          ...newMessage,
+          position: newPosition,
+        });
+
+        // 手动更新本地缓存（构建 ChatMessageResponse 格式）
+        if (chatHistory) {
+          const updatedMessage: ChatMessageResponse = {
+            message: {
+              ...newMessage,
+              position: newPosition,
+            },
+          };
+          chatHistory.addOrUpdateMessage(updatedMessage);
+        }
+      }
+      catch (error) {
+        console.error("插入消息失败:", error);
+        toast.error("插入消息失败");
+      }
+    }
+    else {
+      // 普通发送
+      send(message);
+    }
+  }, [insertAfterMessageId, historyMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
+
   const handleMessageSubmit = async () => {
     if (disableSendMessage) {
       if (notMember)
@@ -925,14 +1020,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       }
 
       // 4. 构建并发送消息
-      // 自动回复模式：如果没有手动选择回复消息，自动回复最后一条消息
-      let autoReplyMsgId: number | undefined;
-      if (autoReplyMode && !replyMessage && historyMessages && historyMessages.length > 0) {
-        const lastMessage = historyMessages[historyMessages.length - 1];
-        autoReplyMsgId = lastMessage?.message?.messageId;
-      }
-
-      const finalReplyId = replyMessage?.messageId || autoReplyMsgId || undefined;
+      const finalReplyId = replyMessage?.messageId || undefined;
       let isFirstMessage = true;
 
       const getCommonFields = () => {
@@ -945,13 +1033,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
           if (webgalLinkMode) {
-            fields.webgal = {
-              voiceRenderSettings: {
-                figurePosition: currentDefaultFigurePosition,
-                notend: dialogNotend,
-                concat: dialogConcat,
-              },
+            const voiceRenderSettings = {
+              ...(currentDefaultFigurePosition ? { figurePosition: currentDefaultFigurePosition } : {}),
+              ...(dialogNotend ? { notend: true } : {}),
+              ...(dialogConcat ? { concat: true } : {}),
             };
+
+            if (Object.keys(voiceRenderSettings).length > 0) {
+              fields.webgal = { voiceRenderSettings };
+            }
           }
           isFirstMessage = false;
         }
@@ -981,11 +1071,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             background: sendAsBackground,
           },
         };
-        send(imgMsg);
+        await sendMessageWithInsert(imgMsg);
         textContent = "";
       }
 
-      // C. 发送语音
+      // C. 发送音频
       if (soundMessageData) {
         const audioMsg: ChatMessageRequest = {
           ...getCommonFields() as any,
@@ -996,7 +1086,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             purpose: audioPurpose,
           },
         };
-        send(audioMsg);
+        await sendMessageWithInsert(audioMsg);
         textContent = "";
       }
 
@@ -1006,14 +1096,16 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           ...getCommonFields() as any,
           content: textContent,
           messageType: MessageType.TEXT,
+          extra: {},
         };
-        send(textMsg);
+        await sendMessageWithInsert(textMsg);
       }
 
       setInputText(""); // 调用重构的 setInputText 来清空
       setReplyMessage(undefined);
       setSendAsBackground(false);
       setAudioPurpose(undefined);
+      setInsertAfterMessageId(undefined); // 清除插入位置
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -1133,21 +1225,55 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"));
 
   const handleSendEffect = useCallback((effectName: string) => {
-    if (!curRoleId) {
-      toast.error("请先选择角色");
-      return;
-    }
+    // 特效消息不需要角色信息，类似旁白
+    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
     send({
       roomId,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
+      roleId: undefined,
+      avatarId: undefined,
       content: `[特效: ${effectName}]`,
       messageType: MessageType.EFFECT,
       extra: {
         effectName,
       },
     });
-  }, [curRoleId, curAvatarId, roomId, send]);
+  }, [roomId, send]);
+
+  const handleClearBackground = useCallback(() => {
+    // 清除背景不需要角色信息，类似旁白
+    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
+    send({
+      roomId,
+      roleId: undefined,
+      avatarId: undefined,
+      content: "[清除背景]",
+      messageType: MessageType.EFFECT,
+      extra: {
+        effectName: "clearBackground",
+      },
+    });
+    toast.success("已清除背景");
+  }, [roomId, send]);
+
+  const handleClearFigure = useCallback(() => {
+    // 清除角色立绘不需要角色信息，类似旁白
+    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
+    send({
+      roomId,
+      roleId: undefined,
+      avatarId: undefined,
+      content: "[清除立绘]",
+      messageType: MessageType.EFFECT,
+      extra: {
+        effectName: "clearFigure",
+      },
+    });
+    // 如果实时渲染开启，立即清除立绘
+    if (realtimeRender.isActive) {
+      realtimeRender.clearFigure(roomId);
+    }
+    toast.success("已清除立绘");
+  }, [roomId, send, realtimeRender]);
 
   return (
     <RoomContext value={roomContext}>
@@ -1164,6 +1290,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
           <div className="flex gap-2 items-center">
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="导出记录"
+              onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
+            >
+              <SharpDownload className="size-7" />
+            </div>
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
           </div>
         </div>
@@ -1217,6 +1350,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleWebgalLinkMode={() => setWebgalLinkMode(!webgalLinkMode)}
                   autoReplyMode={autoReplyMode}
                   onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
+                  runModeEnabled={runModeEnabled}
+                  onToggleRunMode={toggleRunMode}
                   defaultFigurePosition={currentDefaultFigurePosition}
                   onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
                   dialogNotend={dialogNotend}
@@ -1224,6 +1359,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   dialogConcat={dialogConcat}
                   onToggleDialogConcat={() => setDialogConcat(!dialogConcat)}
                   onSendEffect={handleSendEffect}
+                  onClearBackground={handleClearBackground}
+                  onClearFigure={handleClearFigure}
                   setAudioFile={setAudioFile}
                 />
                 <div className="flex gap-2 items-stretch">
@@ -1311,6 +1448,25 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                             replyMessage={replyMessage}
                             className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm p-1"
                           />
+                        </div>
+                      )
+                    }
+                    {/* 插入消息模式指示器 */}
+                    {
+                      insertAfterMessageId && (
+                        <div className="p-2 pb-1">
+                          <div className="flex flex-row gap-2 items-center bg-info/20 rounded-box shadow-sm text-sm p-2 justify-between">
+                            <span className="text-info-content">
+                              📍 将在消息后插入
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-ghost"
+                              onClick={() => setInsertAfterMessageId(undefined)}
+                            >
+                              取消
+                            </button>
+                          </div>
                         </div>
                       )
                     }
@@ -1413,6 +1569,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onTTSApiUrlChange={handleTtsApiUrlChange}
               miniAvatarEnabled={realtimeMiniAvatarEnabled}
               onMiniAvatarToggle={setRealtimeMiniAvatarEnabled}
+              autoFigureEnabled={realtimeAutoFigureEnabled}
+              onAutoFigureToggle={setRealtimeAutoFigureEnabled}
               onClose={() => {
                 realtimeRender.stop();
                 setIsRealtimeRenderEnabled(false);

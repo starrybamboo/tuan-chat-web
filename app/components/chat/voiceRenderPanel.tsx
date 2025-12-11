@@ -25,6 +25,8 @@ interface VoiceRenderPanelProps {
   isIntroText?: boolean;
   /** 切换黑屏文字回调（仅当 messageType === TEXT 时显示按钮） */
   onToggleIntroText?: () => void;
+  /** 切换旁白回调 */
+  onToggleNarrator?: () => void;
 }
 
 // 预设情感 - 使用中文标签
@@ -54,6 +56,7 @@ export function VoiceRenderPanel({
   canEdit = true,
   isIntroText = false,
   onToggleIntroText,
+  onToggleNarrator,
 }: VoiceRenderPanelProps) {
   const roomContext = use(RoomContext);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -83,8 +86,8 @@ export function VoiceRenderPanel({
     else if (avatarTitle) {
       setLocalVector(emotionRecordToVector(avatarTitle));
     }
-    if (initialPosition)
-      setLocalPosition(initialPosition);
+    // 同步立绘位置：显式处理 undefined 的情况
+    setLocalPosition(initialPosition);
     setLocalNotend(initialNotend ?? false);
     setLocalConcat(initialConcat ?? false);
     setLocalAnimation(initialAnimation);
@@ -146,11 +149,11 @@ export function VoiceRenderPanel({
 
   const handleClear = useCallback(() => {
     setLocalVector([0, 0, 0, 0, 0, 0, 0, 0]);
-    setLocalPosition("left");
+    setLocalPosition(undefined);
     setLocalNotend(false);
     setLocalConcat(false);
     setLocalAnimation(undefined);
-    onChange([0, 0, 0, 0, 0, 0, 0, 0], "left", false, false, undefined);
+    onChange([0, 0, 0, 0, 0, 0, 0, 0], undefined, false, false, undefined);
   }, [onChange]);
 
   // 如果未开启 WebGAL 联动模式，不显示面板
@@ -251,8 +254,20 @@ export function VoiceRenderPanel({
               <span className="tooltip tooltip-bottom" data-tip="将此消息转换为黑屏文字（intro）">→ 黑屏</span>
             </button>
           )}
+          {/* 旁白切换 */}
+          {onToggleNarrator && (
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary"
+              onClick={onToggleNarrator}
+              title="切换为旁白"
+            >
+              <span className="tooltip tooltip-bottom" data-tip="将此消息转换为旁白">→ 旁白</span>
+            </button>
+          )}
         </div>
 
+        <span className="text-base-content/30">|</span>
         <span className="text-base-content/30">|</span>
 
         {/* 情感预设 - 紧凑的按钮组 */}

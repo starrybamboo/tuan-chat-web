@@ -46,8 +46,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
   const [editingRoleName, setEditingRoleName] = useState("");
 
-  // 判断是否为旁白（无角色）
-  const isNarrator = message.roleId <= 0;
+  // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
+  const isNarrator = !message.roleId || message.roleId <= 0;
   // 判断是否为黑屏文字
   const isIntroText = message.messageType === MESSAGE_TYPE.INTRO_TEXT;
   // 获取自定义角色名（如果有）
@@ -61,10 +61,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
       onSuccess: (response) => {
         // 更新成功后同步到本地 IndexedDB
         if (response?.data && roomContext.chatHistory) {
-          roomContext.chatHistory.addOrUpdateMessage({
+          const updatedChatMessageResponse = {
             ...chatMessageResponse,
             message: response.data,
-          });
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          // 如果 WebGAL 联动模式开启，则重渲染并跳转
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
+          }
         }
       },
     });
@@ -131,6 +137,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
     concat: boolean,
     figureAnimation?: FigureAnimationSettings,
   ) {
+    console.warn("[ChatBubble] 保存语音渲染设置:", {
+      messageId: message.messageId,
+      figurePosition,
+      figurePositionType: typeof figurePosition,
+    });
+
     // 判断情感向量是否改变（用于决定是否重新生成 TTS）
     const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
     const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
@@ -148,6 +160,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
         },
       },
     } as Message;
+
+    console.warn("[ChatBubble] 准备发送的消息:", JSON.stringify(newMessage.webgal?.voiceRenderSettings, null, 2));
 
     updateMessageMutation.mutate(newMessage, {
       onSuccess: (response) => {
@@ -331,6 +345,40 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
         }
       },
     });
+  }
+
+  // 切换旁白状态
+  function handleToggleNarrator() {
+    if (!canEdit)
+      return;
+
+    if (isNarrator) {
+      // 如果当前是旁白，切换回普通角色 -> 打开角色选择器
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  handleRoleChange(role.roleId);
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
+    }
+    else {
+      // 如果当前是普通角色，切换为旁白 -> roleId设为-1
+      const newMessage = {
+        ...message,
+        roleId: -1,
+      };
+      updateMessageAndSync(newMessage);
+    }
   }
 
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
@@ -540,39 +588,45 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   // 旁白的特殊渲染（无角色）
   if (isNarrator) {
     return (
-      <div className="flex w-full py-2 group">
-        <div className="flex-1 min-w-0 p-2">
+      <div className="flex w-full py-1 group">
+        <div className="flex-1 min-w-0 px-2 py-1">
           {/* 旁白样式：无头像，居中或左对齐，斜体 */}
-          <div className="bg-base-200/50 rounded-lg p-3 relative">
-            {/* 类型标识 */}
+          <div className="bg-base-200/50 rounded-lg p-2 relative">
+            {/* 类型标识和操作按钮 */}
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <span className="badge badge-xs badge-secondary">旁白</span>
-            </div>
-            {/* 内容 - 斜体 */}
-            <div className="italic text-base-content/80">
-              <EditableField
-                content={message.content}
-                handleContentUpdate={handleContentUpdate}
-                className="whitespace-pre-wrap"
-                canEdit={canEdit}
-                fieldId={`msg${message.messageId}`}
-              />
-            </div>
-            {/* WebGAL 联动模式下显示切换黑屏按钮 - 旁白也是文本消息 */}
-            {message.messageType === MESSAGE_TYPE.TEXT && canEdit && roomContext.webgalLinkMode && (
-              <div className="flex items-center gap-2 mt-2 text-xs">
+              {/* WebGAL 联动模式下显示切换黑屏按钮 */}
+              {message.messageType === MESSAGE_TYPE.TEXT && canEdit && roomContext.webgalLinkMode && (
                 <button
                   type="button"
-                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary"
+                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
                   onClick={handleToggleIntroText}
                   title="切换为黑屏文字"
                 >
                   → 黑屏
                 </button>
-              </div>
-            )}
+              )}
+              {/* 切换为角色对话按钮 */}
+              {canEdit && (
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
+                  onClick={handleToggleNarrator}
+                  title="切换为角色对话"
+                >
+                  → 角色
+                </button>
+              )}
+              {/* 根据消息类型显示不同标签 */}
+              {message.messageType === MESSAGE_TYPE.EFFECT
+                ? (<span className="badge badge-xs badge-info">特效</span>)
+                : (<span className="badge badge-xs badge-secondary">旁白</span>)}
+            </div>
+            {/* 内容 - 支持文本、图片、音频等 */}
+            <div className="italic text-base-content/80">
+              {renderedContent}
+            </div>
             {/* 时间 */}
-            <div className="text-xs text-base-content/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="text-xs text-base-content/50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
               {formattedTime}
             </div>
@@ -654,6 +708,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       canEdit={canEdit}
                       isIntroText={isIntroText}
                       onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
+                      onToggleNarrator={canEdit && roomContext.webgalLinkMode ? handleToggleNarrator : undefined}
                     />
                   )}
                 </div>
@@ -734,6 +789,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       canEdit={canEdit}
                       isIntroText={isIntroText}
                       onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
+                      onToggleNarrator={canEdit && roomContext.webgalLinkMode ? handleToggleNarrator : undefined}
                     />
                   )}
                 </div>

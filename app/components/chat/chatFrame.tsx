@@ -7,12 +7,14 @@ import type {
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
+import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import PixiOverlay from "@/components/chat/smallComponents/pixiOverlay";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
@@ -25,6 +27,7 @@ import {
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
+import { tuanchat } from "../../../api/instance";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header() {
@@ -64,6 +67,66 @@ function ChatFrame(props: {
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
+  const updateMessageMutation = useUpdateMessageMutation();
+
+  const handleToggleNarrator = useCallback((messageId: number) => {
+    const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
+    if (!message)
+      return;
+
+    const isNarrator = !message.roleId || message.roleId <= 0;
+
+    if (isNarrator) {
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  const newMessage = {
+                    ...message,
+                    roleId: role.roleId,
+                    avatarId: roomContext.roomRolesThatUserOwn.find(r => r.roleId === role.roleId)?.avatarId ?? -1,
+                  };
+                  updateMessageMutation.mutate(newMessage, {
+                    onSuccess: (response) => {
+                      if (response?.data && roomContext.chatHistory) {
+                        const updatedChatMessageResponse = {
+                          ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
+                          message: response.data,
+                        };
+                        roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+                      }
+                    },
+                  });
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
+    }
+    else {
+      const newMessage = {
+        ...message,
+        roleId: -1,
+      };
+      updateMessageMutation.mutate(newMessage, {
+        onSuccess: (response) => {
+          if (response?.data && roomContext.chatHistory) {
+            const updatedChatMessageResponse = {
+              ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
+              message: response.data,
+            };
+            roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+          }
+        },
+      });
+    }
+  }, [roomContext, updateMessageMutation]);
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -115,7 +178,32 @@ function ChatFrame(props: {
         return;
       const lastLength = lastLengthMapRef.current[roomId] ?? 0;
       if (lastLength < receivedMessages.length) {
-        await chatHistory.addOrUpdateMessages(receivedMessages.slice(lastLength));
+        const newMessages = receivedMessages.slice(lastLength);
+
+        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连续
+        const historyMsgs = chatHistory.messages;
+        if (historyMsgs.length > 0 && newMessages.length > 0) {
+          const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
+          const firstNewMsg = newMessages[0];
+
+          if (firstNewMsg.message.syncId > lastHistoryMsg.message.syncId + 1) {
+            console.warn(`[ChatFrame] Detected gap between history (${lastHistoryMsg.message.syncId}) and new messages (${firstNewMsg.message.syncId}). Fetching missing messages...`);
+            try {
+              const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
+                roomId,
+                syncId: lastHistoryMsg.message.syncId + 1,
+              });
+              if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
+                await chatHistory.addOrUpdateMessages(missingMessagesRes.data);
+              }
+            }
+            catch (e) {
+              console.error("[ChatFrame] Failed to fetch missing messages:", e);
+            }
+          }
+        }
+
+        await chatHistory.addOrUpdateMessages(newMessages);
         lastLengthMapRef.current[roomId] = receivedMessages.length;
       }
     }
@@ -233,19 +321,30 @@ function ChatFrame(props: {
 
     // Update Background URL
     let newBgUrl: string | null = null;
+
+    // 找到最后一个清除背景的位置
+    let lastClearIndex = -1;
+    for (const effect of effectNode) {
+      if (effect.index <= currentMessageIndex && effect.effectMessage?.effectName === "clearBackground") {
+        lastClearIndex = effect.index;
+      }
+    }
+
+    // 从清除背景之后（或从头）开始找最新的背景图片
     for (const bg of imgNode) {
-      if (bg.index <= currentMessageIndex) {
+      if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
         newBgUrl = bg.imageMessage?.url ?? null;
       }
-      else {
+      else if (bg.index > currentMessageIndex) {
         break;
       }
     }
+
     if (newBgUrl !== currentBackgroundUrl) {
       const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
       return () => clearTimeout(id);
     }
-  }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+  }, [currentVirtuosoIndex, imgNode, effectNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
   useEffect(() => {
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
@@ -265,7 +364,6 @@ function ChatFrame(props: {
     }
   }, [currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
 
-  const updateMessageMutation = useUpdateMessageMutation();
   const updateMessage = useCallback((message: Message) => {
     updateMessageMutation.mutate(message);
     // 从 historyMessages 中找到完整的 ChatMessageResponse，保留 messageMark 等字段
@@ -353,10 +451,28 @@ function ChatFrame(props: {
     updateMessage({
       ...message,
       extra: {
+        ...message.extra,
         imageMessage: {
           ...message.extra.imageMessage,
           background: !message.extra.imageMessage.background,
         },
+      },
+    });
+  }
+
+  function toggleUnlockCg(messageId: number) {
+    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
+    if (!message || message.messageType !== 2)
+      return;
+
+    const currentWebgal = message.webgal || {};
+    const isUnlocked = !!currentWebgal.unlockCg;
+
+    updateMessage({
+      ...message,
+      webgal: {
+        ...currentWebgal,
+        unlockCg: !isUnlocked,
       },
     });
   }
@@ -835,7 +951,12 @@ function ChatFrame(props: {
         onToggleChatBubbleStyle={toggleChatBubbleStyle}
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
+        onUnlockCg={toggleUnlockCg}
         onAddEmoji={handleAddEmoji}
+        onInsertAfter={(messageId) => {
+          roomContext.setInsertAfterMessageId?.(messageId);
+        }}
+        onToggleNarrator={handleToggleNarrator}
       />
     </div>
   );

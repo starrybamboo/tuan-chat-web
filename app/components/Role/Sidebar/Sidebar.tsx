@@ -221,9 +221,9 @@ export function Sidebar({
     if (isSuccess) {
       loadRoles();
     }
-    // 仅在 isSuccess 变化时触发，loadRoles 是稳定引用（未放入依赖防止无限循环）
+    // 监听 roleQuery.pages 的变化，当 infinite query 加载新页面时也会触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSuccess]);
+  }, [isSuccess, roleQuery?.pages.length]);
   // 过滤角色列表（按搜索 + 分类）
   const filteredRoles = roles
     .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())

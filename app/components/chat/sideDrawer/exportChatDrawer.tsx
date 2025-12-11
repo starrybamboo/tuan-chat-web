@@ -86,13 +86,14 @@ export default function ExportChatDrawer() {
       const allRoleMap = new Map<number, string>(roleMap);
       const roleIds = new Set<number>();
       historyMessages.forEach((msg) => {
-        roleIds.add(msg.message.roleId);
+        if (msg.message.roleId > 0) {
+          roleIds.add(msg.message.roleId);
+        }
       });
 
       // 获取所有角色的信息
       for (const roleId of roleIds) {
-        // 如果已经在map中，跳过
-        if (allRoleMap.has(roleId)) {
+        if (roleId <= 0 || allRoleMap.has(roleId)) {
           continue;
         }
         const roleInfo = await queryClient.fetchQuery({
