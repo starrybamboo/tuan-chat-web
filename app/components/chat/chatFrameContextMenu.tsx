@@ -21,6 +21,7 @@ interface ContextMenuProps {
   onToggleBackground: (messageId: number) => void;
   onAddEmoji: (imgMessage: ImageMessage) => void;
   onAddClue?: (clueInfo: { img: string; name: string; description: string }) => void;
+  onInsertAfter: (messageId: number) => void;
 }
 
 export default function ChatFrameContextMenu({
@@ -38,6 +39,7 @@ export default function ChatFrameContextMenu({
   onEditMessage,
   onToggleBackground,
   onAddEmoji,
+  onInsertAfter,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
@@ -201,6 +203,16 @@ export default function ChatFrameContextMenu({
           }}
           >
             回复
+          </a>
+        </li>
+        <li>
+          <a onClick={(e) => {
+            e.preventDefault();
+            onInsertAfter(contextMenu.messageId);
+            onClose();
+          }}
+          >
+            在此处插入消息
           </a>
         </li>
         {

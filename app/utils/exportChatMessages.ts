@@ -1,4 +1,6 @@
-import type { ChatMessageResponse } from "../../api";
+import type { ChatMessageResponse, Message } from "../../api";
+
+import { MessageType } from "../../api/wsModels";
 
 /**
  * 聊天记录导出配置
@@ -8,6 +10,130 @@ export type ExportOptions = {
   includeUsername?: boolean; // 是否包含用户名
   dateFormat?: "full" | "short"; // 日期格式：完整或简短
 };
+
+const UNKNOWN_LABEL = "未知";
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || Number.isNaN(bytes)) {
+    return "";
+  }
+
+  const sizeUnits = ["B", "KB", "MB", "GB"] as const;
+  let value = bytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < sizeUnits.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${value.toFixed(1)}${sizeUnits[unitIndex]}`;
+}
+
+function buildSenderLabel(
+  message: Message | undefined,
+  roleMap: Map<number, string>,
+  userMap: Map<number, string>,
+  includeUsername: boolean,
+): string {
+  if (!message) {
+    return `[${UNKNOWN_LABEL}消息]`;
+  }
+
+  const roleName = roleMap.get(message.roleId) || `角色${message.roleId ?? UNKNOWN_LABEL}`;
+  if (!includeUsername) {
+    return roleName;
+  }
+
+  const username = userMap.get(message.userId) || `用户${message.userId ?? UNKNOWN_LABEL}`;
+  return `${roleName}(${username})`;
+}
+
+function formatForwardContent(
+  message: Message,
+  roleMap: Map<number, string>,
+  userMap: Map<number, string>,
+  includeUsername: boolean,
+): string {
+  const forwardedMessages = message.extra?.forwardMessage?.messageList;
+  if (!Array.isArray(forwardedMessages) || forwardedMessages.length === 0) {
+    return "[转发消息]";
+  }
+
+  const forwardedContent = forwardedMessages
+    .map((raw) => {
+      const forwardedMessage: Message | undefined = (raw as any)?.message ?? raw;
+      const sender = buildSenderLabel(forwardedMessage, roleMap, userMap, includeUsername);
+      const body = formatMessageContent(forwardedMessage, roleMap, userMap, includeUsername);
+      return `${sender}: ${body}`;
+    })
+    .join("\n  ");
+
+  return `[转发消息]\n  ${forwardedContent}`;
+}
+
+function formatMessageContent(
+  message: Message | undefined,
+  roleMap: Map<number, string>,
+  userMap: Map<number, string>,
+  includeUsername: boolean,
+): string {
+  if (!message) {
+    return "[消息缺失]";
+  }
+
+  const { messageType, extra, content } = message;
+
+  switch (messageType) {
+    case MessageType.TEXT:
+      return content || "[空白文本]";
+    case MessageType.IMG: {
+      const imageMessage = extra?.imageMessage;
+      if (imageMessage?.background) {
+        return "[背景图片]";
+      }
+      return "[图片]";
+    }
+    case MessageType.FILE: {
+      const fileMessage = extra?.fileMessage;
+      const name = fileMessage?.fileName || content || "文件";
+      const size = formatFileSize(fileMessage?.size);
+      return `[文件] ${name}${size ? ` (${size})` : ""}`;
+    }
+    case MessageType.FORWARD:
+      return formatForwardContent(message, roleMap, userMap, includeUsername);
+    case MessageType.DICE: {
+      const diceResult = extra?.diceResult;
+      const result = diceResult?.result || content;
+      return result ? `[骰子] ${result}` : "[骰子]";
+    }
+    case MessageType.SOUND: {
+      const sound = extra?.soundMessage as { second?: number; duration?: number; fileName?: string } | undefined;
+      const seconds = sound?.second ?? sound?.duration;
+      const parts = [] as string[];
+      if (sound?.fileName)
+        parts.push(sound.fileName);
+      if (typeof seconds === "number")
+        parts.push(`${seconds}s`);
+      return `[语音]${parts.length ? ` ${parts.join(" / ")}` : ""}`;
+    }
+    case MessageType.EFFECT: {
+      const effect = (extra as any)?.effectMessage;
+      const name = effect?.effectName || content;
+      return `[演出效果]${name ? ` ${name}` : ""}`;
+    }
+    case MessageType.CLUE_CARD: {
+      const clue = extra?.clueMessage as { name?: string; description?: string } | undefined;
+      const name = clue?.name || content || "线索卡";
+      const description = clue?.description ? ` - ${clue.description}` : "";
+      return `[线索卡] ${name}${description}`;
+    }
+    case MessageType.SYSTEM:
+      return content || "[系统消息]";
+    default:
+      return content || `[未知类型:${messageType ?? UNKNOWN_LABEL}]`;
+  }
+}
 
 /**
  * 将聊天记录导出为文本格式
@@ -32,69 +158,33 @@ export function formatChatMessages(
 
   return messages
     .map((msg) => {
-      const message = msg.message;
-      const roleId = message.roleId;
-      const roleName = roleMap.get(roleId) || `角色${roleId}`;
-      const userId = message.userId;
-      const username = userMap.get(userId) || `用户${userId}`;
+      try {
+        const message = msg?.message;
+        const senderLabel = buildSenderLabel(message, roleMap, userMap, includeUsername);
 
-      // 构建消息头（用户名和时间）
-      let header = "";
+        let header = senderLabel;
 
-      if (includeTimestamp && message.createTime) {
-        const date = new Date(message.createTime);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
-        const seconds = String(date.getSeconds()).padStart(2, "0");
+        if (includeTimestamp && message?.createTime) {
+          const date = new Date(message.createTime);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          const hours = String(date.getHours()).padStart(2, "0");
+          const minutes = String(date.getMinutes()).padStart(2, "0");
+          const seconds = String(date.getSeconds()).padStart(2, "0");
 
-        if (dateFormat === "full") {
-          header = `${roleName}${includeUsername ? `(${username})` : ""} ${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+          header = dateFormat === "full"
+            ? `${senderLabel} ${year}/${month}/${day} ${hours}:${minutes}:${seconds}`
+            : `${senderLabel} ${hours}:${minutes}:${seconds}`;
         }
-        else {
-          header = `${roleName}${includeUsername ? `(${username})` : ""} ${hours}:${minutes}:${seconds}`;
-        }
-      }
-      else {
-        header = `${roleName}${includeUsername ? `(${username})` : ""}`;
-      }
 
-      // 获取消息内容
-      let content = "";
-
-      // 处理文本消息
-      if (message.messageType === 1 && message.content) {
-        content = message.content;
+        const content = formatMessageContent(message, roleMap, userMap, includeUsername);
+        return `${header}\n${content}`;
       }
-      // 处理转发消息
-      else if (message.extra?.forwardMessage?.messageList) {
-        const forwardedMessages = message.extra.forwardMessage.messageList;
-        const forwardedContent = forwardedMessages
-          .map((fMsg: ChatMessageResponse) => {
-            const fRoleName = roleMap.get(fMsg.message.roleId) || `角色${fMsg.message.roleId}`;
-            return `${fRoleName}: ${fMsg.message.content}`;
-          })
-          .join("\n  ");
-        content = `[转发消息]\n  ${forwardedContent}`;
+      catch (error) {
+        console.error("格式化消息失败", msg, error);
+        return `[消息导出失败 messageId=${msg?.message?.messageId ?? UNKNOWN_LABEL}]`;
       }
-      // 处理图片消息
-      else if (message.messageType === 2) {
-        const imageMessage = message.extra?.imageMessage;
-        if (imageMessage?.background) {
-          content = "[背景图片]";
-        }
-        else {
-          content = "[图片]";
-        }
-      }
-      // 其他消息类型
-      else {
-        content = "[系统消息]";
-      }
-
-      return `${header}\n${content}`;
     })
     .join("\n\n");
 }

@@ -22,6 +22,10 @@ interface WebGALPreviewProps {
   miniAvatarEnabled?: boolean;
   /** 小头像开关回调 */
   onMiniAvatarToggle?: (enabled: boolean) => void;
+  /** 自动填充立绘是否启用（没有设置立绘位置时自动填充左侧立绘） */
+  autoFigureEnabled?: boolean;
+  /** 自动填充立绘开关回调 */
+  onAutoFigureToggle?: (enabled: boolean) => void;
 }
 
 /** TTS 设置对话框 */
@@ -99,6 +103,8 @@ export default function WebGALPreview({
   onTTSApiUrlChange,
   miniAvatarEnabled = false,
   onMiniAvatarToggle,
+  autoFigureEnabled = true,
+  onAutoFigureToggle,
 }: WebGALPreviewProps) {
   const [showSettings, setShowSettings] = useState(false);
   if (!isActive || !previewUrl) {
@@ -132,6 +138,18 @@ export default function WebGALPreview({
       <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
         <span className="font-medium text-sm">WebGAL 实时预览</span>
         <div className="flex items-center gap-2">
+          {/* 自动填充立绘开关 */}
+          {onAutoFigureToggle && (
+            <label className="flex items-center gap-1 cursor-pointer" title={autoFigureEnabled ? "关闭自动填充立绘（没有设置立绘时不显示）" : "开启自动填充立绘（没有设置立绘时自动显示左侧立绘）"}>
+              <span className="text-xs text-base-content/70">自动填充立绘</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-xs toggle-primary"
+                checked={autoFigureEnabled}
+                onChange={e => onAutoFigureToggle(e.target.checked)}
+              />
+            </label>
+          )}
           {/* 小头像开关 */}
           {onMiniAvatarToggle && (
             <label className="flex items-center gap-1 cursor-pointer ml-2" title={miniAvatarEnabled ? "关闭小头像" : "开启小头像"}>

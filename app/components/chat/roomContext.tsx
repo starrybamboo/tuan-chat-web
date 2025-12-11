@@ -97,6 +97,18 @@ export interface RoomContextType {
    * @returns Promise<是否操作成功>
    */
   updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
+
+  /**
+   * 在指定消息下方插入新消息
+   * 当此值不为 undefined 时，下一条发送的消息将被插入到该消息下方
+   */
+  insertAfterMessageId?: number;
+
+  /**
+   * 设置插入位置
+   * @param messageId 要在其下方插入的消息ID，传 undefined 取消插入模式
+   */
+  setInsertAfterMessageId?: (messageId: number | undefined) => void;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -119,4 +131,6 @@ export const RoomContext = createContext<RoomContextType>({
   autoReplyMode: false,
   setAutoReplyMode: undefined,
   updateAndRerenderMessageInWebGAL: undefined,
+  insertAfterMessageId: undefined,
+  setInsertAfterMessageId: undefined,
 });
