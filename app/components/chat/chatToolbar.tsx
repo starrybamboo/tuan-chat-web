@@ -42,6 +42,9 @@ interface ChatToolbarProps {
   // WebGAL 联动模式
   webgalLinkMode?: boolean;
   onToggleWebgalLinkMode?: () => void;
+  // 自动回复模式
+  autoReplyMode?: boolean;
+  onToggleAutoReplyMode?: () => void;
   // 跑团模式
   runModeEnabled?: boolean;
   onToggleRunMode?: () => void;

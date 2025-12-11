@@ -618,8 +618,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               )}
               {/* 根据消息类型显示不同标签 */}
               {message.messageType === MESSAGE_TYPE.EFFECT
-                ? <span className="badge badge-xs badge-info">特效</span>
-                : <span className="badge badge-xs badge-secondary">旁白</span>}
+                ? (<span className="badge badge-xs badge-info">特效</span>)
+                : (<span className="badge badge-xs badge-secondary">旁白</span>)}
             </div>
             {/* 内容 - 支持文本、图片、音频等 */}
             <div className="italic text-base-content/80">

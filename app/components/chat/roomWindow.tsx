@@ -264,6 +264,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // WebGAL 联动模式相关状态
   const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
+  const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
   const [runModeEnabled, setRunModeEnabled] = useLocalStorage<boolean>("runModeEnabled", false);
   const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right" | undefined>>(
     "defaultFigurePositionMap",
@@ -1347,6 +1348,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onToggleRealtimeRender={handleToggleRealtimeRender}
                   webgalLinkMode={webgalLinkMode}
                   onToggleWebgalLinkMode={() => setWebgalLinkMode(!webgalLinkMode)}
+                  autoReplyMode={autoReplyMode}
+                  onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
                   runModeEnabled={runModeEnabled}
                   onToggleRunMode={toggleRunMode}
                   defaultFigurePosition={currentDefaultFigurePosition}
