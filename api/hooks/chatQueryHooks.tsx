@@ -73,10 +73,10 @@ export function useAddSpaceMemberMutation() {
 /**
  * 生成空间邀请码
  */
-export function useSpaceInviteCodeQuery(spaceId: number, duration?: number) {
+export function useSpaceInviteCodeQuery(spaceId: number, duration?: number, type: number = 0) {
     return useQuery({
-        queryKey: ['inviteCode', duration],
-        queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, duration)
+        queryKey: ['inviteCode', duration, type],
+        queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, type, duration)
     })
 }
 
