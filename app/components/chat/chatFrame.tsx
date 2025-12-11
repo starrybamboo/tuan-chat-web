@@ -7,12 +7,14 @@ import type {
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
+import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import PixiOverlay from "@/components/chat/smallComponents/pixiOverlay";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
@@ -65,6 +67,66 @@ function ChatFrame(props: {
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
+  const updateMessageMutation = useUpdateMessageMutation();
+
+  const handleToggleNarrator = useCallback((messageId: number) => {
+    const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
+    if (!message)
+      return;
+
+    const isNarrator = !message.roleId || message.roleId <= 0;
+
+    if (isNarrator) {
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  const newMessage = {
+                    ...message,
+                    roleId: role.roleId,
+                    avatarId: roomContext.roomRolesThatUserOwn.find(r => r.roleId === role.roleId)?.avatarId ?? -1,
+                  };
+                  updateMessageMutation.mutate(newMessage, {
+                    onSuccess: (response) => {
+                      if (response?.data && roomContext.chatHistory) {
+                        const updatedChatMessageResponse = {
+                          ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
+                          message: response.data,
+                        };
+                        roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+                      }
+                    },
+                  });
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
+    }
+    else {
+      const newMessage = {
+        ...message,
+        roleId: -1,
+      };
+      updateMessageMutation.mutate(newMessage, {
+        onSuccess: (response) => {
+          if (response?.data && roomContext.chatHistory) {
+            const updatedChatMessageResponse = {
+              ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
+              message: response.data,
+            };
+            roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+          }
+        },
+      });
+    }
+  }, [roomContext, updateMessageMutation]);
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -302,7 +364,6 @@ function ChatFrame(props: {
     }
   }, [currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
 
-  const updateMessageMutation = useUpdateMessageMutation();
   const updateMessage = useCallback((message: Message) => {
     updateMessageMutation.mutate(message);
     // 从 historyMessages 中找到完整的 ChatMessageResponse，保留 messageMark 等字段
@@ -395,6 +456,23 @@ function ChatFrame(props: {
           ...message.extra.imageMessage,
           background: !message.extra.imageMessage.background,
         },
+      },
+    });
+  }
+
+  function toggleUnlockCg(messageId: number) {
+    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
+    if (!message || message.messageType !== 2)
+      return;
+
+    const currentWebgal = message.webgal || {};
+    const isUnlocked = !!currentWebgal.unlockCg;
+
+    updateMessage({
+      ...message,
+      webgal: {
+        ...currentWebgal,
+        unlockCg: !isUnlocked,
       },
     });
   }
@@ -873,10 +951,12 @@ function ChatFrame(props: {
         onToggleChatBubbleStyle={toggleChatBubbleStyle}
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
+        onUnlockCg={toggleUnlockCg}
         onAddEmoji={handleAddEmoji}
         onInsertAfter={(messageId) => {
           roomContext.setInsertAfterMessageId?.(messageId);
         }}
+        onToggleNarrator={handleToggleNarrator}
       />
     </div>
   );
