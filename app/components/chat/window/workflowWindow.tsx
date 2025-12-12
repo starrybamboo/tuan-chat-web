@@ -44,6 +44,62 @@ const nodeTypes = {
 };
 
 const DEFAULT_NODE_WIDTH = 300;
+const WORKFLOW_STORAGE_PREFIX = "workflow";
+
+interface PersistedNodePosition {
+  nodeId: number;
+  x: number;
+  y: number;
+}
+
+function getWorkflowStorageKey(spaceId: number): string {
+  return `${WORKFLOW_STORAGE_PREFIX}${spaceId}`;
+}
+
+function loadPersistedPositions(spaceId: number): Map<number, { x: number; y: number }> {
+  if (typeof window === "undefined" || spaceId <= 0)
+    return new Map();
+  const key = getWorkflowStorageKey(spaceId);
+  const raw = window.localStorage.getItem(key);
+  if (!raw)
+    return new Map();
+  try {
+    const parsed = JSON.parse(raw) as PersistedNodePosition[];
+    if (!Array.isArray(parsed))
+      return new Map();
+    const result = new Map<number, { x: number; y: number }>();
+    parsed.forEach((entry) => {
+      if (!entry)
+        return;
+      const { nodeId, x, y } = entry;
+      if (typeof nodeId !== "number" || Number.isNaN(nodeId))
+        return;
+      if (typeof x !== "number" || typeof y !== "number" || Number.isNaN(x) || Number.isNaN(y))
+        return;
+      result.set(nodeId, { x, y });
+    });
+    return result;
+  }
+  catch {
+    return new Map();
+  }
+}
+
+function savePersistedPositions(spaceId: number, positions: Map<number, { x: number; y: number }>): void {
+  if (typeof window === "undefined" || spaceId <= 0)
+    return;
+  const key = getWorkflowStorageKey(spaceId);
+  const payload: PersistedNodePosition[] = [];
+  positions.forEach((value, nodeId) => {
+    payload.push({ nodeId, x: value.x, y: value.y });
+  });
+  try {
+    window.localStorage.setItem(key, JSON.stringify(payload));
+  }
+  catch {
+    // noop
+  }
+}
 
 // 分离条件
 // eslint-disable-next-line regexp/no-super-linear-backtracking
@@ -261,6 +317,19 @@ export default function WorkflowWindow() {
   const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
   const lastFitKeyRef = useRef<string>("");
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
+  const persistedPositionsRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const [positionsLoaded, setPositionsLoaded] = useState(false);
+
+  useEffect(() => {
+    setPositionsLoaded(false);
+    if (spaceId <= 0) {
+      persistedPositionsRef.current = new Map();
+      setPositionsLoaded(true);
+      return;
+    }
+    persistedPositionsRef.current = loadPersistedPositions(spaceId);
+    setPositionsLoaded(true);
+  }, [spaceId]);
 
   useLayoutEffect(() => {
     if (!spaceInfo)
@@ -321,6 +390,26 @@ export default function WorkflowWindow() {
     hideContextMenu();
   }, [hideContextMenu]);
 
+  const persistNodePositions = useCallback((nodeList: Node[]) => {
+    if (spaceId <= 0)
+      return;
+    const map = new Map<number, { x: number; y: number }>();
+    nodeList.forEach((node) => {
+      const nodeId = Number(node.id);
+      if (Number.isNaN(nodeId))
+        return;
+      const position = node.position;
+      if (!position)
+        return;
+      const { x, y } = position;
+      if (typeof x !== "number" || typeof y !== "number" || Number.isNaN(x) || Number.isNaN(y))
+        return;
+      map.set(nodeId, { x, y });
+    });
+    persistedPositionsRef.current = map;
+    savePersistedPositions(spaceId, map);
+  }, [spaceId]);
+
   const syncRoomMap = useCallback((nextMap: RoomMap) => {
     if (!roomMapsEqual(roomMapRef.current, nextMap)) {
       roomMapRef.current = nextMap;
@@ -342,8 +431,16 @@ export default function WorkflowWindow() {
   const edgeReconnectSuccessful = useRef(true);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes(nds => applyNodeChanges(changes, nds));
-  }, []);
+    let shouldPersist = false;
+    if (changes.some(change => change.type === "position" || change.type === "dimensions"))
+      shouldPersist = true;
+    setNodes((nds) => {
+      const next = applyNodeChanges(changes, nds);
+      if (shouldPersist)
+        persistNodePositions(next);
+      return next;
+    });
+  }, [persistNodePositions]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     const removedEdges = changes.filter(change => change.type === "remove" && "id" in change) as Array<{ id: string; type: "remove" }>;
@@ -699,6 +796,9 @@ export default function WorkflowWindow() {
   }, []);
 
   useEffect(() => {
+    if (!positionsLoaded)
+      return;
+
     if (allRoomIds.length === 0) {
       setNodes([]);
       return;
@@ -725,6 +825,7 @@ export default function WorkflowWindow() {
       const initialNodes: Node[] = allRoomIds.map((roomId) => {
         const nodePosition = graph.node(roomId.toString());
         const info = roomInfoMap.get(roomId);
+        const storedPosition = persistedPositionsRef.current.get(roomId);
         return {
           id: roomId.toString(),
           type: "mapEditNode",
@@ -739,13 +840,17 @@ export default function WorkflowWindow() {
             tip: "",
             isStart: currentStart != null && roomId === currentStart,
           },
-          position: nodePosition
-            ? { x: nodePosition.x - 100, y: nodePosition.y - 60 }
-            : { x: 0, y: 0 },
+          position: storedPosition
+            ? { x: storedPosition.x, y: storedPosition.y }
+            : nodePosition
+              ? { x: nodePosition.x - 100, y: nodePosition.y - 60 }
+              : { x: 0, y: 0 },
         };
       });
 
       setNodes(initialNodes);
+      if (initialNodes.length > 0)
+        persistNodePositions(initialNodes);
       initialized.current = true;
       return;
     }
@@ -808,9 +913,10 @@ export default function WorkflowWindow() {
 
       if (!changed && nextNodes.length === prevNodes.length)
         return prevNodes;
+      persistNodePositions(nextNodes);
       return nextNodes;
     });
-  }, [allRoomIds, computePositionForNewNode, roomLabelMap, roomInfoMap, roomMapState, startRoomId]);
+  }, [allRoomIds, computePositionForNewNode, persistNodePositions, positionsLoaded, roomLabelMap, roomInfoMap, roomMapState, startRoomId]);
 
   if (spaceId < 0) {
     return (
