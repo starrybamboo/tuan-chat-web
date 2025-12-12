@@ -1149,6 +1149,54 @@ const cachedMessages = await chatHistory.loadHistory(roomId);
 - 快速加载（无需网络请求）
 - 减轻服务器压力
 
+### 2.5. GZIP 压缩传输
+
+对于批量获取消息的接口（`getAllMessage`、`getHistoryMessages`），使用 GZIP 压缩来优化带宽传输：
+
+**后端实现**：
+```java
+@GetMapping("/message/all")
+public void getAllMessage(@Valid @RequestParam Long roomId, HttpServletResponse response) throws Exception {
+    // 获取消息列表
+    List<ChatMessageResponse> messages = chatService.getAllMessage(roomId, uid);
+    
+    // 将数据转换为JSON并压缩
+    String jsonData = objectMapper.writeValueAsString(ApiResult.success(messages));
+    
+    // 设置响应头
+    response.setContentType("application/json;charset=UTF-8");
+    response.setHeader("Content-Encoding", "gzip");
+    
+    // GZIP压缩输出
+    try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(response.getOutputStream())) {
+        gzipOutputStream.write(jsonData.getBytes(StandardCharsets.UTF_8));
+    }
+}
+```
+
+**前端处理**：
+```typescript
+// 浏览器自动处理 gzip 解压，无需额外代码
+public getAllMessage(roomId: number): CancelablePromise<ApiResultListChatMessageResponse> {
+    return this.httpRequest.request({
+        method: 'GET',
+        url: '/capi/chat/message/all',
+        query: { 'roomId': roomId },
+    });
+}
+```
+
+**优势**：
+- 大幅减少网络传输数据量（通常可压缩 70-90%）
+- 降低带宽成本
+- 提升加载速度，特别是在弱网环境下
+- 浏览器原生支持，无需额外依赖
+- 完全透明，自动处理压缩和解压
+
+**依赖**：
+- 前端：无需额外依赖，浏览器原生支持
+- 后端：Java 标准库自带 `java.util.zip.GZIPOutputStream`
+
 ### 3. useMemo 优化
 
 使用 `useMemo` 缓存计算结果：

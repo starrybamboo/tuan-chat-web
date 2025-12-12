@@ -181,7 +181,7 @@ export class ChatControllerService {
     }
     /**
      * 获取历史消息
-     * 返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息
+     * 返回房间下syncId大于等于请求中syncId的消息，返回gzip压缩的数据（浏览器自动解压）
      * @param requestBody
      * @returns ApiResultListChatMessageResponse OK
      * @throws ApiError
@@ -227,7 +227,7 @@ export class ChatControllerService {
     }
     /**
      * 获取一个群的所有消息
-     * 根据 position 降序排序
+     * 根据 position 降序排序，返回gzip压缩的数据（浏览器自动解压）
      * @param roomId
      * @returns ApiResultListChatMessageResponse OK
      * @throws ApiError
