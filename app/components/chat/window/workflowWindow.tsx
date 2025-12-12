@@ -390,6 +390,7 @@ export default function WorkflowWindow() {
     hideContextMenu();
   }, [hideContextMenu]);
 
+  // 持久化本地存储节点位置
   const persistNodePositions = useCallback((nodeList: Node[]) => {
     if (spaceId <= 0)
       return;
