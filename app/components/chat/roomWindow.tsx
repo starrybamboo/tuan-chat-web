@@ -395,34 +395,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       console.warn(`[RealtimeRender] 开始渲染历史消息, 共 ${historyMessages.length} 条`);
       toast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
 
-      // 为所有消息设置默认的立绘位置
-      // 创建消息的深拷贝以避免修改不可扩展的对象
-      const messagesToRender = historyMessages.map((originalMsg) => {
-        // 浅拷贝最外层
-        const msg = { ...originalMsg };
-        // 浅拷贝 message 对象
-        msg.message = { ...originalMsg.message };
-
-        if (msg.message.messageType === 1 && msg.message.roleId > 0) {
-          // 只有当消息完全没有 voiceRenderSettings 时，才使用默认立绘位置
-          // 如果已经存在 voiceRenderSettings（即使没有 figurePosition），说明用户已经手动配置过，不应该自动添加
-          if (!msg.message.webgal?.voiceRenderSettings) {
-            const defaultPosition = defaultFigurePositionMap?.[msg.message.roleId];
-
-            // 只有当默认位置存在时才设置
-            if (defaultPosition) {
-              // 确保 webgal 对象存在且是新的引用
-              msg.message.webgal = { ...(msg.message.webgal || {}) };
-
-              // 创建新的 voiceRenderSettings 对象
-              msg.message.webgal.voiceRenderSettings = {
-                figurePosition: defaultPosition,
-              };
-            }
-          }
-        }
-        return msg;
-      });
+      const messagesToRender = historyMessages;
 
       // 使用批量渲染接口
       await realtimeRender.renderHistory(messagesToRender, roomId);
@@ -443,7 +416,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     finally {
       isRenderingHistoryRef.current = false;
     }
-  }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
+  }, [historyMessages, realtimeRender, roomId]);
 
   // 切换房间时重置实时渲染状态（跳过首次挂载）
   useEffect(() => {
@@ -513,32 +486,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
-    // 为消息设置默认的立绘位置（如果还没有设置）
-    // 创建消息的深拷贝以避免修改不可扩展的对象
-    const messageToRender = { ...latestMessage };
-    messageToRender.message = { ...latestMessage.message };
-
-    if (messageToRender.message.messageType === 1 && messageToRender.message.roleId > 0) {
-      // 只有当消息完全没有 voiceRenderSettings 时，才使用默认立绘位置
-      // 如果已经存在 voiceRenderSettings（即使没有 figurePosition），说明用户已经手动配置过，不应该自动添加
-      if (!messageToRender.message.webgal?.voiceRenderSettings) {
-        const defaultPosition = defaultFigurePositionMap?.[messageToRender.message.roleId];
-
-        // 只有当默认位置存在时才设置
-        if (defaultPosition) {
-          // 确保 webgal 对象存在且是新的引用
-          messageToRender.message.webgal = { ...(messageToRender.message.webgal || {}) };
-
-          // 创建新的 voiceRenderSettings 对象
-          messageToRender.message.webgal.voiceRenderSettings = {
-            figurePosition: defaultPosition,
-          };
-        }
-      }
-    }
-
+    // 只有消息明确设置了立绘位置时才会显示立绘
     // 渲染新消息（传入当前房间 ID）
-    realtimeRender.renderMessage(messageToRender, roomId);
+    realtimeRender.renderMessage(latestMessage, roomId);
     lastRenderedMessageIdRef.current = messageId;
   }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
 
