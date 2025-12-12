@@ -40,7 +40,7 @@ export type Space = {
      * 骰子角色id
      */
     dicerRoleId?: number;
-    roomMap?: Record<string, Array<number>>;
+    roomMap?: Record<string, Array<string>>;
     /**
      * 其他信息
      */

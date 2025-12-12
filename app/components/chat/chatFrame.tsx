@@ -772,6 +772,7 @@ function ChatFrame(props: {
       </div>
     )
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedMessageIds,
     roomContext.curMember?.memberType,

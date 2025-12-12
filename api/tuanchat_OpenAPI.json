@@ -13021,7 +13021,7 @@
           "ChatController"
         ],
         "summary": "获取历史消息",
-        "description": "返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息",
+        "description": "返回房间下syncId大于等于请求中syncId的消息，返回gzip压缩的数据",
         "operationId": "getHistoryMessages",
         "requestBody": {
           "content": {
@@ -13035,86 +13035,7 @@
         },
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListChatMessageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/chat/message/ai": {
-      "post": {
-        "tags": [
-          "ChatController"
-        ],
-        "summary": "发送消息（备用）,骰娘回复",
-        "description": "从设计上是为了弱网环境的处理，但实际上没怎么用",
-        "operationId": "sendMessageAiResponse",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatMessageRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMessage"
-                }
-              }
-            }
+            "description": "OK"
           },
           "400": {
             "description": "Bad Request",
@@ -18005,7 +17926,7 @@
           "ChatController"
         ],
         "summary": "获取一个群的所有消息",
-        "description": "根据 position 降序排序",
+        "description": "根据 position 降序排序，返回gzip压缩的数据",
         "operationId": "getAllMessage",
         "parameters": [
           {
@@ -18020,14 +17941,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListChatMessageResponse"
-                }
-              }
-            }
+            "description": "OK"
           },
           "400": {
             "description": "Bad Request",
@@ -19037,7 +18951,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultObject": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -19089,7 +19003,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultVoid": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -19526,9 +19440,8 @@
               "type": "array",
               "description": "房间（场景）地图",
               "items": {
-                "type": "integer",
-                "description": "房间（场景）地图",
-                "format": "int64"
+                "type": "string",
+                "description": "房间（场景）地图"
               }
             },
             "description": "房间（场景）地图"
@@ -20320,6 +20233,28 @@
           }
         }
       },
+      "EffectMessage": {
+        "required": [
+          "effectName"
+        ],
+        "type": "object",
+        "properties": {
+          "effectName": {
+            "type": "string",
+            "description": "特效名称"
+          },
+          "duration": {
+            "type": "integer",
+            "description": "持续时间（毫秒）",
+            "format": "int32"
+          },
+          "strength": {
+            "type": "integer",
+            "description": "强度",
+            "format": "int32"
+          }
+        }
+      },
       "FileMessage": {
         "required": [
           "fileName",
@@ -20399,12 +20334,10 @@
       },
       "Message": {
         "required": [
-          "avatarId",
           "content",
           "messageId",
           "messageType",
           "position",
-          "roleId",
           "roomId",
           "status",
           "syncId",
@@ -20504,6 +20437,9 @@
           },
           "clueMessage": {
             "$ref": "#/components/schemas/ClueMessage"
+          },
+          "effectMessage": {
+            "$ref": "#/components/schemas/EffectMessage"
           }
         },
         "description": "不同类型消息持有的额外信息"
@@ -20573,6 +20509,15 @@
           "second": {
             "type": "integer",
             "description": "时长（秒）",
+            "format": "int32"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "用途（如：bgm）"
+          },
+          "volume": {
+            "type": "integer",
+            "description": "音量（0-100）",
             "format": "int32"
           }
         }
@@ -21860,8 +21805,7 @@
             "additionalProperties": {
               "type": "array",
               "items": {
-                "type": "integer",
-                "format": "int64"
+                "type": "string"
               }
             }
           },
@@ -25942,35 +25886,6 @@
           }
         },
         "description": "根据房间ID和syncId获取历史消息的请求"
-      },
-      "ApiResultListChatMessageResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/ChatMessageResponse"
-            }
-          }
-        },
-        "description": "基础返回体"
       },
       "RoleAvatarCreateRequest": {
         "type": "object",

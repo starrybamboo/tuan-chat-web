@@ -29,6 +29,6 @@ export type SpaceUpdateRequest = {
     /**
      * 房间（场景）地图
      */
-    roomMap?: Record<string, Array<number>>;
+    roomMap?: Record<string, Array<string>>;
 };
 

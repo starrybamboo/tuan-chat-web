@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 特效消息
- */
 export type EffectMessage = {
     /**
      * 特效名称
