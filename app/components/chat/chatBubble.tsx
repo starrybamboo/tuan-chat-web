@@ -27,9 +27,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   useChatBubbleStyle?: boolean;
 }) {
   const message = chatMessageResponse.message;
-  const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
+  const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
   // 获取头像详情（包含 avatarTitle）
-  const avatarQuery = useGetRoleAvatarQuery(message.avatarId);
+  const avatarQuery = useGetRoleAvatarQuery(message.avatarId ?? 0);
   const avatar = avatarQuery.data?.data;
 
   const role = useRoleRequest.data?.data;
@@ -103,7 +103,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
           <RoomContext value={roomContext}>
             <div className="flex flex-col">
               <ExpressionChooser
-                roleId={message.roleId}
+                roleId={message.roleId as number}
                 handleExpressionChange={(avatarId) => {
                   handleExpressionChange(avatarId);
                   onClose();
@@ -647,7 +647,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               {/* Avatar */}
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
-                  avatarId={message.avatarId}
+                  avatarId={message.avatarId ?? 0}
                   width={10}
                   isRounded={true}
                   withTitle={false}
@@ -724,7 +724,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               <div className="flex-shrink-0 pr-2 sm:pr-3">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
-                    avatarId={message.avatarId}
+                    avatarId={message.avatarId ?? 0}
                     width={20}
                     isRounded={false}
                     withTitle={false}

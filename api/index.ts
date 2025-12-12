@@ -37,7 +37,6 @@ export type { ApiResultEmoji } from './models/ApiResultEmoji';
 export type { ApiResultFeedWithStatsResponse } from './models/ApiResultFeedWithStatsResponse';
 export type { ApiResultInteger } from './models/ApiResultInteger';
 export type { ApiResultItemResponse } from './models/ApiResultItemResponse';
-export type { ApiResultListChatMessageResponse } from './models/ApiResultListChatMessageResponse';
 export type { ApiResultListClassificationItemResponse } from './models/ApiResultListClassificationItemResponse';
 export type { ApiResultListClassificationResponse } from './models/ApiResultListClassificationResponse';
 export type { ApiResultListClueStars } from './models/ApiResultListClueStars';
@@ -151,6 +150,7 @@ export type { CursorPageBaseResponseFeedWithStatsResponse } from './models/Curso
 export type { CursorPageBaseResponsePostListWithStatsResponse } from './models/CursorPageBaseResponsePostListWithStatsResponse';
 export type { DiceResult } from './models/DiceResult';
 export { DistributedTask } from './models/DistributedTask';
+export type { EffectMessage } from './models/EffectMessage';
 export type { Emoji } from './models/Emoji';
 export type { EmojiCreateRequest } from './models/EmojiCreateRequest';
 export type { EntityAddRequest } from './models/EntityAddRequest';
