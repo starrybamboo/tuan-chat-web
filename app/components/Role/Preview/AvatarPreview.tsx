@@ -81,6 +81,8 @@ function AvatarPreviewComponent({
           key={`chat-${message}`}
           roleName={characterName}
           avatarCanvasRef={previewCanvasRef}
+          avatarUrl={displayAvatarUrl}
+          renderKey={previewRenderKey}
           content={message}
           useChatBubbleStyle={true}
         />
@@ -127,6 +129,7 @@ function AvatarPreviewComponent({
                 key={`bubble-${message}`}
                 roleName={characterName}
                 avatarCanvasRef={previewCanvasRef}
+                avatarUrl={displayAvatarUrl}
                 content={message}
                 useChatBubbleStyle={true}
                 renderKey={previewRenderKey}
@@ -142,6 +145,7 @@ function AvatarPreviewComponent({
                 key={`traditional-${message}`}
                 roleName={characterName}
                 avatarCanvasRef={previewCanvasRef}
+                avatarUrl={displayAvatarUrl}
                 content={message}
                 useChatBubbleStyle={false}
                 renderKey={previewRenderKey}

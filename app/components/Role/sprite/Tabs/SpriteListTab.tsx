@@ -123,7 +123,7 @@ export function SpriteListTab({
                     <AvatarPreview
                       currentAvatarUrl={avatarUrl}
                       characterName={characterName}
-                      mode="image"
+                      mode="full"
                       className="h-full md:space-y-4"
                       hideTitle={true}
                     />
