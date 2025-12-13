@@ -1,6 +1,9 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "../../types";
+import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
 import { useEffect, useRef, useState } from "react";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
 import { useAvatarNameEditing } from "../hooks/useAvatarNameEditing";
@@ -93,6 +96,57 @@ export function SpriteListTab({
   const nameEditingHook = useAvatarNameEditing({
     roleId: role?.id,
     avatars: avatarsForDeletion,
+  });
+
+  // Avatar upload mutation
+  const queryClient = useQueryClient();
+  const { mutate: uploadAvatar } = useUploadAvatarMutation();
+
+  // Notification state for upload feedback
+  const [uploadNotification, setUploadNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // Auto-dismiss notification after 3 seconds
+  useEffect(() => {
+    if (uploadNotification) {
+      const timer = setTimeout(() => {
+        setUploadNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadNotification]);
+
+  // Update avatar title mutation for first avatar auto-naming
+  const { mutate: updateAvatarTitle } = useMutation({
+    mutationKey: ["updateAvatarTitle"],
+    mutationFn: async ({ avatarId, title }: { avatarId: number; title: string }) => {
+      const targetAvatar = avatarsForDeletion.find(a => a.avatarId === avatarId);
+      if (!targetAvatar) {
+        console.error("未找到要更新的头像");
+        return;
+      }
+
+      const res = await tuanchat.avatarController.updateRoleAvatar({
+        ...targetAvatar,
+        avatarTitle: {
+          ...targetAvatar.avatarTitle,
+          label: title,
+        },
+      });
+
+      if (res.success) {
+        console.warn("更新头像名称成功");
+        queryClient.invalidateQueries({
+          queryKey: ["getRoleAvatars", role?.id],
+          exact: true,
+        });
+      }
+      else {
+        console.error("更新头像名称失败");
+      }
+    },
   });
 
   // 当 spriteUrl 变化时重置加载状态
@@ -238,6 +292,79 @@ export function SpriteListTab({
   // 取消批量删除
   const handleCancelBatchDelete = () => {
     setBatchDeleteConfirmOpen(false);
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = async (data: any) => {
+    if (!role?.id) {
+      setUploadNotification({
+        type: "error",
+        message: "角色信息缺失，无法上传头像",
+      });
+      return;
+    }
+
+    try {
+      // Upload avatar with transform data
+      uploadAvatar(
+        { ...data, roleId: role.id },
+        {
+          onSuccess: async () => {
+            try {
+              // Refresh avatar list
+              await queryClient.invalidateQueries({
+                queryKey: ["getRoleAvatars", role.id],
+                exact: true,
+              });
+
+              // Get updated avatar list
+              const list = await tuanchat.avatarController.getRoleAvatars(role.id);
+              const avatars = list?.data ?? [];
+
+              // If this is the first avatar, auto-name it "默认"
+              if (avatars.length === 1) {
+                const firstAvatar = avatars[0];
+                const currentLabel = firstAvatar?.avatarTitle?.label;
+
+                // Only set default name if no label exists
+                if (!currentLabel || currentLabel.trim() === "") {
+                  updateAvatarTitle(
+                    { avatarId: firstAvatar.avatarId!, title: "默认" },
+                  );
+                }
+              }
+
+              setUploadNotification({
+                type: "success",
+                message: "头像上传成功",
+              });
+            }
+            catch (error) {
+              console.error("首次头像自动命名失败", error);
+              // Still show success since upload succeeded
+              setUploadNotification({
+                type: "success",
+                message: "头像上传成功",
+              });
+            }
+          },
+          onError: (error) => {
+            console.error("头像上传失败:", error);
+            setUploadNotification({
+              type: "error",
+              message: "头像上传失败，请重试",
+            });
+          },
+        },
+      );
+    }
+    catch (error) {
+      console.error("头像上传处理失败:", error);
+      setUploadNotification({
+        type: "error",
+        message: "头像上传失败，请重试",
+      });
+    }
   };
 
   // 预览区域内容渲染
@@ -406,6 +533,26 @@ export function SpriteListTab({
 
   return (
     <>
+      {/* Upload notification toast */}
+      {uploadNotification && (
+        <div className="toast toast-top toast-center z-50">
+          <div className={`alert ${uploadNotification.type === "success" ? "alert-success" : "alert-error"} shadow-lg flex flex-row items-center gap-2`}>
+            {uploadNotification.type === "success"
+              ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )
+              : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+            <span>{uploadNotification.message}</span>
+          </div>
+        </div>
+      )}
+
       <div className="h-full flex flex-col md:flex-row gap-4">
         {/* 移动端：预览区域在上方，固定高度 */}
         <div className="md:hidden flex flex-col flex-shrink-0">
@@ -439,6 +586,8 @@ export function SpriteListTab({
               selectedIndices={selectedIndices}
               onToggleSelection={handleToggleSelection}
               onSelectAll={handleSelectAll}
+              onUpload={handleAvatarUpload}
+              fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
             />
           </div>
         </div>
