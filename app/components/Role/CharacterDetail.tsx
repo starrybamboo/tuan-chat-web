@@ -827,6 +827,7 @@ function CharacterDetailInner({
                       initialAvatarId={localRole.avatarId}
                       className="w-full gap-4 flex mb-2"
                       onAvatarChange={handleAvatarChange}
+                      role={localRole}
                     />
                   </Section>
                 </div>

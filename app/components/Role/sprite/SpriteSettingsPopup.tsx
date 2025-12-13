@@ -1,4 +1,5 @@
 import type { RoleAvatar } from "api";
+import type { Role } from "../types";
 
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
@@ -24,6 +25,8 @@ interface SpriteSettingsPopupProps {
   onAvatarChange?: (avatarUrl: string, avatarId: number) => void;
   // 同步外部立绘索引
   onSpriteIndexChange?: (index: number) => void;
+  // 角色信息（用于删除功能）
+  role?: Role;
 }
 
 /**
@@ -41,6 +44,7 @@ export function SpriteSettingsPopup({
   characterName,
   onAvatarChange,
   onSpriteIndexChange,
+  role,
 }: SpriteSettingsPopupProps) {
   // 内部维护 tab 状态
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
@@ -202,6 +206,15 @@ export function SpriteSettingsPopup({
               onAvatarChange={handleAvatarChange}
               onPreview={handlePreview}
               onApply={handleApply}
+              role={role}
+              allAvatars={roleAvatars}
+              onAvatarSelect={(avatarId) => {
+                // Find the index of the selected avatar in spritesAvatars
+                const index = spritesAvatars.findIndex(a => a.avatarId === avatarId);
+                if (index !== -1) {
+                  handleInternalIndexChange(index);
+                }
+              }}
             />
           )}
 

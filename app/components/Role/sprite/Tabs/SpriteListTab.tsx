@@ -1,6 +1,9 @@
 import type { RoleAvatar } from "api";
+import type { Role } from "../../types";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { useEffect, useRef, useState } from "react";
+import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
+import { useAvatarNameEditing } from "../hooks/useAvatarNameEditing";
 import { SpriteListGrid } from "./SpriteListGrid";
 
 interface SpriteListTabProps {
@@ -24,6 +27,12 @@ interface SpriteListTabProps {
   onOpenAvatarCorrection?: () => void;
   /** 打开情感设定面板的回调 */
   onOpenEmotionSettings?: () => void;
+  /** 角色信息（用于删除逻辑） */
+  role?: Role;
+  /** 所有头像列表（包括没有立绘的） */
+  allAvatars?: RoleAvatar[];
+  /** 头像选择回调 */
+  onAvatarSelect?: (avatarId: number) => void;
 }
 
 /**
@@ -41,6 +50,9 @@ export function SpriteListTab({
   onOpenSpriteCorrection,
   onOpenAvatarCorrection,
   onOpenEmotionSettings,
+  role,
+  allAvatars,
+  onAvatarSelect,
 }: SpriteListTabProps) {
   // 是否显示立绘预览（true）还是头像预览（false）
   const [showSpritePreview, setShowSpritePreview] = useState(true);
@@ -48,11 +60,40 @@ export function SpriteListTab({
   const [isImageLoading, setIsImageLoading] = useState(false);
   // 用于存储加载的立绘图片
   const spriteImgRef = useRef<HTMLImageElement | null>(null);
+  // 删除确认对话框状态
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [avatarToDelete, setAvatarToDelete] = useState<number | null>(null);
+
+  // 批量删除确认对话框状态
+  const [batchDeleteConfirmOpen, setBatchDeleteConfirmOpen] = useState(false);
+
+  // 多选模式状态
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
   // 当前选中的头像数据
   const currentAvatar = spritesAvatars[selectedIndex] || null;
   const spriteUrl = currentAvatar?.spriteUrl || null;
   const avatarUrl = currentAvatar?.avatarUrl || null;
+
+  // Use avatar deletion hook if role and allAvatars are provided
+  const avatarsForDeletion = allAvatars || spritesAvatars;
+  const selectedAvatarId = currentAvatar?.avatarId || 0;
+
+  const deletionHook = useAvatarDeletion({
+    role,
+    avatars: avatarsForDeletion,
+    selectedAvatarId,
+    onAvatarChange,
+    onAvatarSelect,
+  });
+
+  // Use avatar name editing hook for Dice Maiden mode
+  const isDiceMaiden = role?.type === 1;
+  const nameEditingHook = useAvatarNameEditing({
+    roleId: role?.id,
+    avatars: avatarsForDeletion,
+  });
 
   // 当 spriteUrl 变化时重置加载状态
   useEffect(() => {
@@ -96,6 +137,107 @@ export function SpriteListTab({
     }
     // 应用头像后关闭弹窗
     onApply?.();
+  };
+
+  // 处理删除头像请求
+  const handleDeleteRequest = (index: number) => {
+    const avatar = spritesAvatars[index];
+    if (avatar?.avatarId) {
+      setAvatarToDelete(avatar.avatarId);
+      setDeleteConfirmOpen(true);
+    }
+  };
+
+  // 确认删除头像
+  const handleConfirmDelete = async () => {
+    if (avatarToDelete && deletionHook) {
+      await deletionHook.handleDeleteAvatar(avatarToDelete);
+      setDeleteConfirmOpen(false);
+      setAvatarToDelete(null);
+    }
+  };
+
+  // 取消删除
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setAvatarToDelete(null);
+  };
+
+  // 切换多选模式
+  const handleToggleMultiSelectMode = () => {
+    setMultiSelectMode(!multiSelectMode);
+    setSelectedIndices(new Set()); // Clear selections when toggling mode
+  };
+
+  // 切换单个头像的选中状态
+  const handleToggleSelection = (index: number) => {
+    const newSelected = new Set(selectedIndices);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    }
+    else {
+      newSelected.add(index);
+    }
+    setSelectedIndices(newSelected);
+  };
+
+  // 全选/取消全选
+  const handleSelectAll = () => {
+    if (selectedIndices.size === spritesAvatars.length) {
+      setSelectedIndices(new Set());
+    }
+    else {
+      setSelectedIndices(new Set(spritesAvatars.length > 0 ? Array.from({ length: spritesAvatars.length }, (_, i) => i) : []));
+    }
+  };
+
+  // 请求批量删除
+  const handleBatchDeleteRequest = () => {
+    if (selectedIndices.size === 0) {
+      return;
+    }
+
+    // Prevent deleting all avatars
+    if (selectedIndices.size >= avatarsForDeletion.length) {
+      console.error("无法删除所有头像，至少需要保留一个");
+      return;
+    }
+
+    setBatchDeleteConfirmOpen(true);
+  };
+
+  // 确认批量删除
+  const handleConfirmBatchDelete = async () => {
+    if (selectedIndices.size === 0 || !deletionHook) {
+      return;
+    }
+
+    // Get avatar IDs from selected indices
+    const avatarIdsToDelete = Array.from(selectedIndices)
+      .map(index => spritesAvatars[index]?.avatarId)
+      .filter((id): id is number => id !== undefined);
+
+    if (avatarIdsToDelete.length === 0) {
+      return;
+    }
+
+    try {
+      await deletionHook.handleBatchDelete(avatarIdsToDelete);
+
+      // Exit multi-select mode and clear selections
+      setMultiSelectMode(false);
+      setSelectedIndices(new Set());
+      setBatchDeleteConfirmOpen(false);
+    }
+    catch (error) {
+      console.error("批量删除失败:", error);
+      // Keep dialog open on error so user can retry or cancel
+    }
+  };
+
+  // 取消批量删除
+  const handleCancelBatchDelete = () => {
+    setBatchDeleteConfirmOpen(false);
   };
 
   // 预览区域内容渲染
@@ -168,86 +310,238 @@ export function SpriteListTab({
   );
 
   // 操作按钮
-  const renderActionButtons = () => (
-    <div className="mt-2 md:mt-4 flex justify-end gap-2 flex-shrink-0">
-      <div className="flex gap-2 items-center">
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm md:btn-sm"
-          onClick={() => onOpenSpriteCorrection?.()}
-          title="前往立绘校正"
-        >
-          立绘校正
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm md:btn-sm"
-          onClick={() => onOpenAvatarCorrection?.()}
-          title="前往头像校正"
-        >
-          头像校正
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm md:btn-sm"
-          onClick={() => onOpenEmotionSettings?.()}
-          title="前往情感设定"
-        >
-          情感设定
-        </button>
+  const renderActionButtons = () => {
+    // Multi-select mode buttons
+    if (multiSelectMode) {
+      return (
+        <div className="mt-2 md:mt-4 flex justify-between gap-2 flex-shrink-0">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm md:btn-md"
+            onClick={handleToggleMultiSelectMode}
+          >
+            退出多选
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-error btn-sm md:btn-md"
+              onClick={handleBatchDeleteRequest}
+              disabled={selectedIndices.size === 0 || deletionHook?.isDeleting}
+            >
+              {deletionHook?.isDeleting
+                ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      删除中...
+                    </>
+                  )
+                : (
+                    `批量删除 (${selectedIndices.size})`
+                  )}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Normal mode buttons
+    return (
+      <div className="mt-2 md:mt-4 flex justify-between gap-2 flex-shrink-0">
+        <div className="flex gap-2 items-center">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm md:btn-sm"
+            onClick={handleToggleMultiSelectMode}
+            title="启用多选模式"
+          >
+            多选
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm md:btn-sm"
+            onClick={() => onOpenSpriteCorrection?.()}
+            title="前往立绘校正"
+          >
+            立绘校正
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm md:btn-sm"
+            onClick={() => onOpenAvatarCorrection?.()}
+            title="前往头像校正"
+          >
+            头像校正
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm md:btn-sm"
+            onClick={() => onOpenEmotionSettings?.()}
+            title="前往情感设定"
+          >
+            情感设定
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm md:btn-md"
+            onClick={handlePreview}
+            disabled={!currentAvatar}
+          >
+            展示预览
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm md:btn-md"
+            onClick={handleApplyAvatar}
+            disabled={!currentAvatar}
+          >
+            应用头像
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        className="btn btn-secondary btn-sm md:btn-md"
-        onClick={handlePreview}
-        disabled={!currentAvatar}
-      >
-        展示预览
-      </button>
-      <button
-        type="button"
-        className="btn btn-primary btn-sm md:btn-md"
-        onClick={handleApplyAvatar}
-        disabled={!currentAvatar}
-      >
-        应用头像
-      </button>
-    </div>
-  );
+    );
+  };
 
   return (
-    <div className="h-full flex flex-col md:flex-row gap-4">
-      {/* 移动端：预览区域在上方，固定高度 */}
-      <div className="md:hidden flex flex-col flex-shrink-0">
-        {renderPreviewHeader()}
-        <div className="h-48 relative bg-base-200 rounded-lg overflow-hidden flex-shrink-0">
-          {renderPreviewContent()}
+    <>
+      <div className="h-full flex flex-col md:flex-row gap-4">
+        {/* 移动端：预览区域在上方，固定高度 */}
+        <div className="md:hidden flex flex-col flex-shrink-0">
+          {renderPreviewHeader()}
+          <div className="h-48 relative bg-base-200 rounded-lg overflow-hidden flex-shrink-0">
+            {renderPreviewContent()}
+          </div>
+          {renderActionButtons()}
         </div>
-        {renderActionButtons()}
+
+        {/* 立绘列表 - 移动端可滚动，桌面端固定宽度 */}
+        <div className="flex-1 md:w-1/3 md:flex-none flex flex-col min-h-0 border-t md:border-t-0 border-base-300 pt-4 md:pt-0">
+          <h3 className="text-lg font-semibold mb-4 flex-shrink-0">头像列表</h3>
+          <div className="flex-1 min-h-0 overflow-auto">
+            <SpriteListGrid
+              avatars={spritesAvatars}
+              selectedIndex={selectedIndex}
+              onSelect={onIndexChange}
+              mode="manage"
+              className="h-full"
+              onDelete={deletionHook ? handleDeleteRequest : undefined}
+              isDiceMaiden={isDiceMaiden}
+              editingAvatarId={nameEditingHook?.editingAvatarId || null}
+              editingName={nameEditingHook?.editingName || ""}
+              onStartEditName={nameEditingHook?.startEditName}
+              onUpdateEditingName={nameEditingHook?.updateEditingName}
+              onSaveAvatarName={nameEditingHook?.saveAvatarName}
+              onCancelEditName={nameEditingHook?.cancelEditName}
+              onKeyDown={nameEditingHook?.handleKeyDown}
+              multiSelectMode={multiSelectMode}
+              selectedIndices={selectedIndices}
+              onToggleSelection={handleToggleSelection}
+              onSelectAll={handleSelectAll}
+            />
+          </div>
+        </div>
+
+        {/* 桌面端：右侧预览区域 */}
+        <div className="hidden md:flex flex-1 min-h-0 flex-col border-l border-base-300 pl-4">
+          {renderPreviewHeader()}
+          <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
+            {renderPreviewContent()}
+          </div>
+          {renderActionButtons()}
+        </div>
       </div>
 
-      {/* 立绘列表 - 移动端可滚动，桌面端固定宽度 */}
-      <div className="flex-1 md:w-1/3 md:flex-none flex flex-col min-h-0 border-t md:border-t-0 border-base-300 pt-4 md:pt-0">
-        <h3 className="text-lg font-semibold mb-4 flex-shrink-0">头像列表</h3>
-        <div className="flex-1 min-h-0 overflow-auto">
-          <SpriteListGrid
-            avatars={spritesAvatars}
-            selectedIndex={selectedIndex}
-            onSelect={onIndexChange}
-            showUpload={true}
-            className="h-full"
-          />
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">确认删除头像</h3>
+            <p className="py-4">确定要删除这个头像吗？此操作无法撤销。</p>
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleCancelDelete}
+                disabled={deletionHook?.isDeleting}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn btn-error"
+                onClick={handleConfirmDelete}
+                disabled={deletionHook?.isDeleting}
+              >
+                {deletionHook?.isDeleting
+                  ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        删除中...
+                      </>
+                    )
+                  : (
+                      "删除"
+                    )}
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={handleCancelDelete}></div>
         </div>
-      </div>
+      )}
 
-      {/* 桌面端：右侧预览区域 */}
-      <div className="hidden md:flex flex-1 min-h-0 flex-col border-l border-base-300 pl-4">
-        {renderPreviewHeader()}
-        <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
-          {renderPreviewContent()}
+      {/* Batch Delete Confirmation Dialog */}
+      {batchDeleteConfirmOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">确认批量删除</h3>
+            <p className="py-4">
+              确定要删除选中的
+              {" "}
+              <span className="font-bold text-error">{selectedIndices.size}</span>
+              {" "}
+              个头像吗？此操作无法撤销。
+            </p>
+            {selectedIndices.size >= avatarsForDeletion.length && (
+              <div className="alert alert-warning mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>无法删除所有头像，至少需要保留一个</span>
+              </div>
+            )}
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleCancelBatchDelete}
+                disabled={deletionHook?.isDeleting}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn btn-error"
+                onClick={handleConfirmBatchDelete}
+                disabled={deletionHook?.isDeleting || selectedIndices.size >= avatarsForDeletion.length}
+              >
+                {deletionHook?.isDeleting
+                  ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        删除中...
+                      </>
+                    )
+                  : (
+                      "确认删除"
+                    )}
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={handleCancelBatchDelete}></div>
         </div>
-        {renderActionButtons()}
-      </div>
-    </div>
+      )}
+    </>
   );
 }
