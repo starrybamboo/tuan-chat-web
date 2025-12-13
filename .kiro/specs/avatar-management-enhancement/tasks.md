@@ -187,6 +187,9 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 15. Replace CharacterAvatar usage with enhanced SpriteListTab
+
+
+
   - Identify all usages of CharacterAvatar component
   - Create wrapper component if needed for backward compatibility
   - Replace CharacterAvatar with enhanced SpriteListTab
