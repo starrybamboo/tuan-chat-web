@@ -31,6 +31,7 @@ export function DisplayChatBubble({
   renderKey,
 }: DisplayChatBubbleProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
   const avatarUrlRef = useRef<string | null>(null);
   useEffect(() => {
     avatarUrlRef.current = avatarUrl ?? null;

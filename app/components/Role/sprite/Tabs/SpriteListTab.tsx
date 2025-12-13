@@ -18,6 +18,12 @@ interface SpriteListTabProps {
   onPreview?: () => void;
   /** 应用完成后的回调（用于关闭弹窗等） */
   onApply?: () => void;
+  /** 打开立绘校正面板的回调 */
+  onOpenSpriteCorrection?: () => void;
+  /** 打开头像校正面板的回调 */
+  onOpenAvatarCorrection?: () => void;
+  /** 打开情感设定面板的回调 */
+  onOpenEmotionSettings?: () => void;
 }
 
 /**
@@ -32,6 +38,9 @@ export function SpriteListTab({
   onAvatarChange,
   onPreview,
   onApply,
+  onOpenSpriteCorrection,
+  onOpenAvatarCorrection,
+  onOpenEmotionSettings,
 }: SpriteListTabProps) {
   // 是否显示立绘预览（true）还是头像预览（false）
   const [showSpritePreview, setShowSpritePreview] = useState(true);
@@ -161,6 +170,32 @@ export function SpriteListTab({
   // 操作按钮
   const renderActionButtons = () => (
     <div className="mt-2 md:mt-4 flex justify-end gap-2 flex-shrink-0">
+      <div className="flex gap-2 items-center">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm md:btn-sm"
+          onClick={() => onOpenSpriteCorrection?.()}
+          title="前往立绘校正"
+        >
+          立绘校正
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm md:btn-sm"
+          onClick={() => onOpenAvatarCorrection?.()}
+          title="前往头像校正"
+        >
+          头像校正
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm md:btn-sm"
+          onClick={() => onOpenEmotionSettings?.()}
+          title="前往情感设定"
+        >
+          情感设定
+        </button>
+      </div>
       <button
         type="button"
         className="btn btn-secondary btn-sm md:btn-md"
@@ -193,12 +228,13 @@ export function SpriteListTab({
 
       {/* 立绘列表 - 移动端可滚动，桌面端固定宽度 */}
       <div className="flex-1 md:w-1/3 md:flex-none flex flex-col min-h-0 border-t md:border-t-0 border-base-300 pt-4 md:pt-0">
-        <h3 className="text-lg font-semibold mb-4 flex-shrink-0">立绘列表</h3>
+        <h3 className="text-lg font-semibold mb-4 flex-shrink-0">头像列表</h3>
         <div className="flex-1 min-h-0 overflow-auto">
           <SpriteListGrid
             avatars={spritesAvatars}
             selectedIndex={selectedIndex}
             onSelect={onIndexChange}
+            showUpload={true}
             className="h-full"
           />
         </div>

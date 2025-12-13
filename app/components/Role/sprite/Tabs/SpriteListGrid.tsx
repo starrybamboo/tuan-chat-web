@@ -1,4 +1,5 @@
 import type { RoleAvatar } from "api";
+import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 
 interface SpriteListGridProps {
   /** 头像/立绘列表 */
@@ -11,6 +12,12 @@ interface SpriteListGridProps {
   className?: string;
   /** 网格列数类名，默认 "grid-cols-4 md:grid-cols-3" */
   gridCols?: string;
+  /** 是否展示上传新头像的项 */
+  showUpload?: boolean;
+  /** 上传触发后的回调 */
+  onUpload?: (data: any) => void;
+  /** 传给上传组件的文件名（可选） */
+  fileName?: string;
 }
 
 /**
@@ -23,6 +30,9 @@ export function SpriteListGrid({
   onSelect,
   className = "",
   gridCols = "grid-cols-4 md:grid-cols-3",
+  showUpload = false,
+  onUpload,
+  fileName,
 }: SpriteListGridProps) {
   if (avatars.length === 0) {
     return (
@@ -75,6 +85,33 @@ export function SpriteListGrid({
             )}
           </button>
         ))}
+        {showUpload && (
+          <CharacterCopper
+            setDownloadUrl={() => { }}
+            setCopperedDownloadUrl={() => { }}
+            fileName={fileName ?? `avatar-upload-${Date.now()}`}
+            scene={3}
+            mutate={(data) => {
+              try {
+                onUpload?.(data);
+              }
+              catch (e) {
+                // 保持轻量：调用方处理错误
+                console.error("onUpload 回调执行失败", e);
+              }
+            }}
+          >
+            <button
+              type="button"
+              className="w-full h-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group overflow-hidden"
+              title="上传新头像"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </CharacterCopper>
+        )}
       </div>
       <div className="text-sm text-center mt-3 text-base-content/70 flex-shrink-0">
         当前选中:

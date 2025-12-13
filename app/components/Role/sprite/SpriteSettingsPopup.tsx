@@ -132,7 +132,7 @@ export function SpriteSettingsPopup({
                 <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
                 <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
               </svg>
-              <span className="hidden md:inline">立绘列表</span>
+              <span className="hidden md:inline">头像列表</span>
             </button>
             {/* 立绘校正 Tab */}
             <button
