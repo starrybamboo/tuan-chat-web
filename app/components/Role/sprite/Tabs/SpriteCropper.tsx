@@ -741,8 +741,8 @@ export function SpriteCropper({
               {isAvatarMode
                 ? (
                     <AvatarPreview
-                      key={`avatar-${renderKey}`}
                       previewCanvasRef={previewCanvasRef}
+                      previewRenderKey={renderKey}
                       currentAvatarUrl={currentAvatarUrl}
                       characterName={characterName}
                       hideTitle={true}
