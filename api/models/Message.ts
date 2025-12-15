@@ -26,7 +26,7 @@ export type Message = {
     /**
      * 角色id
      */
-    roleId: number;
+    roleId?: number;
     /**
      * 内容
      */
@@ -34,7 +34,7 @@ export type Message = {
     /**
      * 说话人的这个时候的立绘
      */
-    avatarId: number;
+    avatarId?: number;
     /**
      * webgal相关的演出设置
      */

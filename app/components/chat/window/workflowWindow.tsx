@@ -2,6 +2,8 @@
 import type { Connection, Edge, EdgeChange, Node, NodeChange, ReactFlowInstance } from "@xyflow/react";
 import type { Room } from "api/models/Room";
 import type { Space } from "api/models/Space";
+import type { MouseEvent } from "react";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import SceneNode from "@/components/module/detail/ContentTab/scene/react flow/NewSceneNode";
 import {
   addEdge,
@@ -19,30 +21,209 @@ import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState
 import { SpaceContext } from "../spaceContext";
 import "@xyflow/react/dist/style.css";
 
-type RoomMap = Record<number, number[]>;
+interface RoomLink {
+  targetId: number;
+  condition?: string;
+}
+
+interface NormalizedRoomMap {
+  links: Record<number, RoomLink[]>;
+  startRoomId?: number;
+}
+
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+  nodeId?: string;
+}
+
+type RoomMap = NormalizedRoomMap["links"];
 const nodeTypes = {
   mapEditNode: SceneNode,
 };
 
-function normalizeRoomMap(roomMap: Space["roomMap"]): RoomMap {
+const DEFAULT_NODE_WIDTH = 300;
+const WORKFLOW_STORAGE_PREFIX = "workflow";
+
+interface PersistedNodePosition {
+  nodeId: number;
+  x: number;
+  y: number;
+}
+
+function getWorkflowStorageKey(spaceId: number): string {
+  return `${WORKFLOW_STORAGE_PREFIX}${spaceId}`;
+}
+
+function loadPersistedPositions(spaceId: number): Map<number, { x: number; y: number }> {
+  if (typeof window === "undefined" || spaceId <= 0)
+    return new Map();
+  const key = getWorkflowStorageKey(spaceId);
+  const raw = window.localStorage.getItem(key);
+  if (!raw)
+    return new Map();
+  try {
+    const parsed = JSON.parse(raw) as PersistedNodePosition[];
+    if (!Array.isArray(parsed))
+      return new Map();
+    const result = new Map<number, { x: number; y: number }>();
+    parsed.forEach((entry) => {
+      if (!entry)
+        return;
+      const { nodeId, x, y } = entry;
+      if (typeof nodeId !== "number" || Number.isNaN(nodeId))
+        return;
+      if (typeof x !== "number" || typeof y !== "number" || Number.isNaN(x) || Number.isNaN(y))
+        return;
+      result.set(nodeId, { x, y });
+    });
+    return result;
+  }
+  catch {
+    return new Map();
+  }
+}
+
+function savePersistedPositions(spaceId: number, positions: Map<number, { x: number; y: number }>): void {
+  if (typeof window === "undefined" || spaceId <= 0)
+    return;
+  const key = getWorkflowStorageKey(spaceId);
+  const payload: PersistedNodePosition[] = [];
+  positions.forEach((value, nodeId) => {
+    payload.push({ nodeId, x: value.x, y: value.y });
+  });
+  try {
+    window.localStorage.setItem(key, JSON.stringify(payload));
+  }
+  catch {
+    // noop
+  }
+}
+
+// 分离条件
+// eslint-disable-next-line regexp/no-super-linear-backtracking
+const TARGET_PATTERN = /^(\d+)(.*)$/s;
+
+function parseRoomLink(raw: unknown): RoomLink | null {
+  if (raw == null)
+    return null;
+  const value = typeof raw === "number" ? String(raw) : String(raw ?? "").trim();
+  if (value.length === 0)
+    return null;
+  const match = TARGET_PATTERN.exec(value);
+  if (!match)
+    return null;
+  const targetId = Number(match[1]);
+  if (Number.isNaN(targetId))
+    return null;
+  const conditionRaw = match[2]?.trim();
+  return {
+    targetId,
+    condition: conditionRaw || undefined,
+  };
+}
+
+function sortLinks(links: RoomLink[]): RoomLink[] {
+  return [...links].sort((a, b) => {
+    if (a.targetId !== b.targetId)
+      return a.targetId - b.targetId;
+    const condA = a.condition ?? "";
+    const condB = b.condition ?? "";
+    return condA.localeCompare(condB);
+  });
+}
+
+function formatRoomLink(link: RoomLink): string {
+  const condition = link.condition?.trim();
+  if (!condition)
+    return String(link.targetId);
+  return `${link.targetId}${condition}`;
+}
+
+interface ConditionEditorProps {
+  initialValue: string;
+  onCancel: () => void;
+  onConfirm: (value: string) => void;
+}
+
+function ConditionEditor({ initialValue, onCancel, onConfirm }: ConditionEditorProps) {
+  const [value, setValue] = useState(initialValue);
+
+  return (
+    <div className="p-4 max-w-sm flex flex-col min-h-[24vh]">
+      <h3 className="text-lg font-bold mb-4 text-center">是否确认修改条件？</h3>
+      <div className="flex-1 flex items-center justify-center mb-4">
+        <div className="w-full">
+          <label className="block mb-2 text-sm font-medium text-base-content/70 text-center">条件：</label>
+          <input
+            type="text"
+            className="input input-bordered w-full"
+            value={value}
+            onChange={event => setValue(event.target.value)}
+            placeholder="请输入修改后的条件"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={onCancel}
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => onConfirm(value)}
+        >
+          确认提交
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 转化roomMap
+function normalizeRoomMap(roomMap: Space["roomMap"]): NormalizedRoomMap {
+  const result: NormalizedRoomMap = { links: {} };
   if (!roomMap)
-    return {};
-  const normalized: RoomMap = {};
+    return result;
+
   Object.entries(roomMap).forEach(([key, value]) => {
+    if (key === "start") {
+      const startValue = Array.isArray(value) ? value[0] : undefined;
+      const startId = typeof startValue === "number" ? startValue : Number(startValue);
+      if (!Number.isNaN(startId))
+        result.startRoomId = startId;
+      return;
+    }
+
     const roomId = Number(key);
     if (Number.isNaN(roomId))
       return;
-    const targets = Array.isArray(value) ? value : [];
-    const deduped = Array.from(new Set(targets.map(Number).filter(id => !Number.isNaN(id)))).sort((a, b) => a - b);
-    normalized[roomId] = deduped;
+    const rawTargets = Array.isArray(value) ? value : [];
+    const dedupeMap = new Map<string, RoomLink>();
+    rawTargets.forEach((entry) => {
+      const parsed = parseRoomLink(entry);
+      if (!parsed)
+        return;
+      const dedupeKey = `${parsed.targetId}|${parsed.condition ?? ""}`;
+      if (!dedupeMap.has(dedupeKey))
+        dedupeMap.set(dedupeKey, parsed);
+    });
+    const links = sortLinks(Array.from(dedupeMap.values()));
+    result.links[roomId] = links;
   });
-  return normalized;
+  return result;
 }
 
+// 备份
 function cloneRoomMap(map: RoomMap): RoomMap {
   const cloned: RoomMap = {};
   Object.entries(map).forEach(([key, value]) => {
-    cloned[Number(key)] = [...value];
+    cloned[Number(key)] = value.map(link => ({ ...link }));
   });
   return cloned;
 }
@@ -55,28 +236,36 @@ function roomMapsEqual(a: RoomMap, b: RoomMap): boolean {
   for (let i = 0; i < keysA.length; i += 1) {
     if (keysA[i] !== keysB[i])
       return false;
-    const arrA = [...(a[keysA[i]] ?? [])].sort((x, y) => x - y);
-    const arrB = [...(b[keysA[i]] ?? [])].sort((x, y) => x - y);
+    const arrA = sortLinks(a[keysA[i]] ?? []);
+    const arrB = sortLinks(b[keysA[i]] ?? []);
     if (arrA.length !== arrB.length)
       return false;
     for (let j = 0; j < arrA.length; j += 1) {
-      if (arrA[j] !== arrB[j])
+      if (arrA[j].targetId !== arrB[j].targetId)
+        return false;
+      const condA = arrA[j].condition ?? "";
+      const condB = arrB[j].condition ?? "";
+      if (condA !== condB)
         return false;
     }
   }
   return true;
 }
 
-function toStringRoomMap(map: RoomMap): Record<string, number[]> {
-  const serialized: Record<string, number[]> = {};
+function serializeRoomMap(map: RoomMap, startRoomId?: number): Record<string, string[]> {
+  const serialized: Record<string, string[]> = {};
   Object.entries(map).forEach(([key, value]) => {
-    const sorted = [...value].sort((a, b) => a - b);
-    serialized[key] = sorted;
+    if (!value || value.length === 0)
+      return;
+    const formatted = sortLinks(value).map(link => formatRoomLink(link));
+    serialized[key] = formatted;
   });
+  if (startRoomId != null && !Number.isNaN(startRoomId))
+    serialized.start = [String(startRoomId)];
   return serialized;
 }
 
-function collectAllRoomIds(roomMap: RoomMap, rooms: Room[]): number[] {
+function collectAllRoomIds(roomMap: RoomMap, rooms: Room[], startRoomId?: number): number[] {
   const acc = new Set<number>();
   rooms.forEach((room) => {
     if (room.roomId != null)
@@ -86,11 +275,13 @@ function collectAllRoomIds(roomMap: RoomMap, rooms: Room[]): number[] {
     const sourceId = Number(source);
     if (!Number.isNaN(sourceId))
       acc.add(sourceId);
-    targets.forEach((target) => {
-      if (!Number.isNaN(target))
-        acc.add(target);
+    targets.forEach(({ targetId }) => {
+      if (!Number.isNaN(targetId))
+        acc.add(targetId);
     });
   });
+  if (startRoomId != null && !Number.isNaN(startRoomId))
+    acc.add(startRoomId);
   return Array.from(acc).sort((a, b) => a - b);
 }
 
@@ -116,6 +307,8 @@ export default function WorkflowWindow() {
 
   const [roomMapState, setRoomMapState] = useState<RoomMap>({});
   const roomMapRef = useRef<RoomMap>({});
+  const [startRoomId, setStartRoomId] = useState<number | undefined>(undefined);
+  const startRoomIdRef = useRef<number | undefined>(undefined);
 
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -123,14 +316,30 @@ export default function WorkflowWindow() {
   const initialized = useRef(false);
   const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
   const lastFitKeyRef = useRef<string>("");
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
+  const persistedPositionsRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const [positionsLoaded, setPositionsLoaded] = useState(false);
+
+  useEffect(() => {
+    setPositionsLoaded(false);
+    if (spaceId <= 0) {
+      persistedPositionsRef.current = new Map();
+      setPositionsLoaded(true);
+      return;
+    }
+    persistedPositionsRef.current = loadPersistedPositions(spaceId);
+    setPositionsLoaded(true);
+  }, [spaceId]);
 
   useLayoutEffect(() => {
     if (!spaceInfo)
       return;
     const normalized = normalizeRoomMap(spaceInfo.roomMap);
-    if (!roomMapsEqual(roomMapRef.current, normalized)) {
-      roomMapRef.current = normalized;
-      setRoomMapState(normalized);
+    setStartRoomId(normalized.startRoomId);
+    startRoomIdRef.current = normalized.startRoomId;
+    if (!roomMapsEqual(roomMapRef.current, normalized.links)) {
+      roomMapRef.current = normalized.links;
+      setRoomMapState(normalized.links);
       initialized.current = false;
     }
   }, [spaceInfo]);
@@ -138,8 +347,24 @@ export default function WorkflowWindow() {
   useEffect(() => {
     edgesRef.current = edges;
   }, [edges]);
+  const hideContextMenu = useCallback(() => {
+    setContextMenu(prev => (prev.visible ? { visible: false, x: 0, y: 0 } : prev));
+  }, []);
 
-  const allRoomIds = useMemo(() => collectAllRoomIds(roomMapState, userRooms), [roomMapState, userRooms]);
+  useEffect(() => {
+    if (!contextMenu.visible)
+      return;
+    const handleGlobalClick = () => {
+      hideContextMenu();
+    };
+    window.addEventListener("click", handleGlobalClick);
+    return () => {
+      window.removeEventListener("click", handleGlobalClick);
+    };
+  }, [contextMenu.visible, hideContextMenu]);
+
+  const allRoomIds = useMemo(() =>
+    collectAllRoomIds(roomMapState, userRooms, startRoomIdRef.current), [roomMapState, userRooms]);
 
   const roomInfoMap = useMemo(() => {
     const map = new Map<number, Room>();
@@ -161,6 +386,31 @@ export default function WorkflowWindow() {
     return labels;
   }, [allRoomIds, roomInfoMap, userRoomNameMap]);
 
+  const handleFlowMoveStart = useCallback(() => {
+    hideContextMenu();
+  }, [hideContextMenu]);
+
+  // 持久化本地存储节点位置
+  const persistNodePositions = useCallback((nodeList: Node[]) => {
+    if (spaceId <= 0)
+      return;
+    const map = new Map<number, { x: number; y: number }>();
+    nodeList.forEach((node) => {
+      const nodeId = Number(node.id);
+      if (Number.isNaN(nodeId))
+        return;
+      const position = node.position;
+      if (!position)
+        return;
+      const { x, y } = position;
+      if (typeof x !== "number" || typeof y !== "number" || Number.isNaN(x) || Number.isNaN(y))
+        return;
+      map.set(nodeId, { x, y });
+    });
+    persistedPositionsRef.current = map;
+    savePersistedPositions(spaceId, map);
+  }, [spaceId]);
+
   const syncRoomMap = useCallback((nextMap: RoomMap) => {
     if (!roomMapsEqual(roomMapRef.current, nextMap)) {
       roomMapRef.current = nextMap;
@@ -168,7 +418,7 @@ export default function WorkflowWindow() {
       if (spaceId > 0) {
         updateSpaceMutation({
           spaceId,
-          roomMap: toStringRoomMap(nextMap),
+          roomMap: serializeRoomMap(nextMap, startRoomIdRef.current),
         });
       }
     }
@@ -182,8 +432,16 @@ export default function WorkflowWindow() {
   const edgeReconnectSuccessful = useRef(true);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes(nds => applyNodeChanges(changes, nds));
-  }, []);
+    let shouldPersist = false;
+    if (changes.some(change => change.type === "position" || change.type === "dimensions"))
+      shouldPersist = true;
+    setNodes((nds) => {
+      const next = applyNodeChanges(changes, nds);
+      if (shouldPersist)
+        persistNodePositions(next);
+      return next;
+    });
+  }, [persistNodePositions]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     const removedEdges = changes.filter(change => change.type === "remove" && "id" in change) as Array<{ id: string; type: "remove" }>;
@@ -198,8 +456,14 @@ export default function WorkflowWindow() {
           const targetId = Number(edge.target);
           if (Number.isNaN(sourceId) || Number.isNaN(targetId))
             return;
-          const targets = next[sourceId] ?? [];
-          next[sourceId] = targets.filter(target => target !== targetId);
+          const edgeData = (edge.data ?? {}) as { condition?: string };
+          const edgeCondition = (edgeData.condition ?? (typeof edge.label === "string" ? edge.label : "")).trim();
+          const links = next[sourceId] ?? [];
+          const filtered = links.filter(link => !(link.targetId === targetId && (link.condition ?? "").trim() === edgeCondition));
+          if (filtered.length > 0)
+            next[sourceId] = filtered;
+          else
+            delete next[sourceId];
         });
         return next;
       });
@@ -217,9 +481,10 @@ export default function WorkflowWindow() {
 
     applyRoomMapUpdate((current) => {
       const next = cloneRoomMap(current);
-      const targets = next[sourceId] ? new Set(next[sourceId]) : new Set<number>();
-      targets.add(targetId);
-      next[sourceId] = Array.from(targets).sort((a, b) => a - b);
+      const links = next[sourceId] ?? [];
+      const exists = links.some(link => link.targetId === targetId && (link.condition ?? "").trim().length === 0);
+      if (!exists)
+        next[sourceId] = sortLinks([...links, { targetId }]);
       return next;
     });
 
@@ -255,8 +520,14 @@ export default function WorkflowWindow() {
 
       applyRoomMapUpdate((current) => {
         const next = cloneRoomMap(current);
-        const targets = next[sourceId] ?? [];
-        next[sourceId] = targets.filter(id => id !== targetId);
+        const edgeData = (edge.data ?? {}) as { condition?: string };
+        const currentCondition = (edgeData.condition ?? (typeof edge.label === "string" ? edge.label : "")).trim();
+        const links = next[sourceId] ?? [];
+        const filtered = links.filter(link => !(link.targetId === targetId && (link.condition ?? "").trim() === currentCondition));
+        if (filtered.length > 0)
+          next[sourceId] = filtered;
+        else
+          delete next[sourceId];
         return next;
       });
 
@@ -275,14 +546,24 @@ export default function WorkflowWindow() {
     if ([oldSourceId, oldTargetId, newSourceId, newTargetId].some(id => Number.isNaN(id)))
       return;
 
+    const edgeData = (oldEdge.data ?? {}) as { condition?: string };
+    const currentCondition = (edgeData.condition ?? (typeof oldEdge.label === "string" ? oldEdge.label : "")).trim();
+
     applyRoomMapUpdate((current) => {
       const next = cloneRoomMap(current);
-      const oldTargets = next[oldSourceId] ?? [];
-      next[oldSourceId] = oldTargets.filter(id => id !== oldTargetId);
+      const oldLinks = next[oldSourceId] ?? [];
+      const remainingOld = oldLinks.filter(link => !(link.targetId === oldTargetId && (link.condition ?? "").trim() === currentCondition));
+      if (remainingOld.length > 0)
+        next[oldSourceId] = remainingOld;
+      else
+        delete next[oldSourceId];
 
-      const updatedTargets = next[newSourceId] ? new Set(next[newSourceId]) : new Set<number>();
-      updatedTargets.add(newTargetId);
-      next[newSourceId] = Array.from(updatedTargets).sort((a, b) => a - b);
+      const newLinks = next[newSourceId] ?? [];
+      const desiredCondition = currentCondition;
+      const exists = newLinks.some(link => link.targetId === newTargetId && (link.condition ?? "").trim() === desiredCondition);
+      if (!exists) {
+        next[newSourceId] = sortLinks([...newLinks, desiredCondition ? { targetId: newTargetId, condition: desiredCondition } : { targetId: newTargetId }]);
+      }
       return next;
     });
 
@@ -290,6 +571,127 @@ export default function WorkflowWindow() {
     edgeReconnectSuccessful.current = true;
   }, [applyRoomMapUpdate]);
 
+  const onNodeContextMenu = useCallback((event: MouseEvent, node: Node) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const nodeWidth = typeof node.width === "number" && node.width > 0 ? node.width : DEFAULT_NODE_WIDTH;
+    const adjustedX = event.clientX - nodeWidth / 2;
+    setContextMenu({
+      visible: true,
+      x: adjustedX,
+      y: event.clientY - (node.height ?? 0) / 2,
+      nodeId: node.id,
+    });
+  }, []);
+
+  const handleSetStartNode = useCallback((nodeId?: string) => {
+    hideContextMenu();
+    if (!nodeId)
+      return;
+    const roomId = Number(nodeId);
+    if (Number.isNaN(roomId))
+      return;
+    if (startRoomIdRef.current === roomId)
+      return;
+    startRoomIdRef.current = roomId;
+    setStartRoomId(roomId);
+    setNodes(prevNodes => prevNodes.map((node) => {
+      if (!node?.data)
+        return node;
+      return {
+        ...node,
+        data: {
+          ...(node.data as Record<string, unknown>),
+          isStart: node.id === String(roomId),
+        },
+      };
+    }));
+    if (spaceId > 0) {
+      updateSpaceMutation({
+        spaceId,
+        roomMap: serializeRoomMap(roomMapRef.current, roomId),
+      });
+    }
+  }, [hideContextMenu, spaceId, updateSpaceMutation]);
+
+  // 控制弹窗
+  const [close, setClose] = useState<boolean>(false);
+
+  const updateEdgeCondition = useCallback((sourceId: number, targetId: number, currentCondition: string, nextConditionRaw: string) => {
+    const normalizedCurrent = currentCondition.trim();
+    const normalizedNext = nextConditionRaw.trim();
+
+    applyRoomMapUpdate((current) => {
+      const links = current[sourceId] ?? [];
+      const matchIndex = links.findIndex(link => link.targetId === targetId && (link.condition ?? "").trim() === normalizedCurrent);
+      if (matchIndex !== -1 && normalizedCurrent === normalizedNext)
+        return current;
+
+      const next = cloneRoomMap(current);
+      const nextLinks = next[sourceId] ?? [];
+      const updated = [...nextLinks];
+
+      if (matchIndex !== -1)
+        updated.splice(matchIndex, 1);
+
+      const conditionToApply = normalizedNext;
+      const hasDuplicate = updated.some(link => link.targetId === targetId && (link.condition ?? "").trim() === conditionToApply);
+
+      if (!hasDuplicate) {
+        if (conditionToApply.length > 0)
+          updated.push({ targetId, condition: conditionToApply });
+        else
+          updated.push({ targetId });
+      }
+
+      if (updated.length > 0)
+        next[sourceId] = sortLinks(updated);
+      else
+        delete next[sourceId];
+
+      return next;
+    });
+  }, [applyRoomMapUpdate]);
+
+  // 双击编辑条件
+  const onEdgeDoubleClick = useCallback((event: MouseEvent, edge: Edge) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const sourceId = Number(edge.source);
+    const targetId = Number(edge.target);
+    if (Number.isNaN(sourceId) || Number.isNaN(targetId))
+      return;
+
+    if (close)
+      return;
+
+    const edgeData = (edge.data ?? {}) as { condition?: string };
+    const currentCondition = (edgeData.condition ?? (typeof edge.label === "string" ? edge.label : "")).trim();
+
+    setClose(true);
+
+    toastWindow(
+      onClose => (
+        <ConditionEditor
+          initialValue={currentCondition}
+          onCancel={() => {
+            onClose();
+          }}
+          onConfirm={(nextValue) => {
+            updateEdgeCondition(sourceId, targetId, currentCondition, nextValue);
+            onClose();
+          }}
+        />
+      ),
+      {
+        onclose: () => {
+          setClose(false);
+        },
+      },
+    );
+  }, [close, setClose, updateEdgeCondition]);
+
+  // 初始化边
   useEffect(() => {
     const sources = Object.keys(roomMapState)
       .map(Number)
@@ -297,16 +699,16 @@ export default function WorkflowWindow() {
       .sort((a, b) => a - b);
 
     const newEdges: Edge[] = [];
-    let edgeId = 1;
-
     sources.forEach((sourceId) => {
-      const targets = [...(roomMapState[sourceId] ?? [])]
-        .filter(target => !Number.isNaN(target))
-        .sort((a, b) => a - b);
-
-      targets.forEach((targetId) => {
+      const links = roomMapState[sourceId] ?? [];
+      links.forEach((link, index) => {
+        const targetId = link.targetId;
+        if (Number.isNaN(targetId))
+          return;
+        const condition = (link.condition ?? "").trim();
+        const conditionKey = condition.length > 0 ? encodeURIComponent(condition) : "plain";
         newEdges.push({
-          id: `e${edgeId++}`,
+          id: `e${sourceId}-${targetId}-${conditionKey}-${index}`,
           source: String(sourceId),
           target: String(targetId),
           type: "smoothstep",
@@ -320,19 +722,19 @@ export default function WorkflowWindow() {
           style: {
             strokeWidth: 2,
           },
+          label: condition || undefined,
+          labelStyle: condition ? { fill: "#333", fontWeight: 500, fontSize: 12 } : undefined,
+          labelBgPadding: condition ? [6, 4] : undefined,
+          labelBgBorderRadius: condition ? 4 : undefined,
+          labelShowBg: condition ? true : undefined,
+          labelBgStyle: condition ? { fill: "rgba(255,255,255,0.9)", stroke: "#999" } : undefined,
+          data: {
+            condition,
+          },
         });
       });
     });
-    setEdges((prev) => {
-      const sameLength = prev.length === newEdges.length;
-      const unchanged = sameLength && prev.every((edge, idx) => {
-        const next = newEdges[idx];
-        return edge.id === next.id && edge.source === next.source && edge.target === next.target;
-      });
-      if (unchanged)
-        return prev;
-      return newEdges;
-    });
+    setEdges(newEdges);
   }, [roomMapState]);
 
   useEffect(() => {
@@ -368,8 +770,8 @@ export default function WorkflowWindow() {
     graph.setNode(nodeId, { width: NODE_WIDTH, height: NODE_HEIGHT });
 
     Object.entries(currentRoomMap).forEach(([source, targets]) => {
-      targets.forEach((target) => {
-        graph.setEdge(String(source), String(target));
+      targets.forEach((link) => {
+        graph.setEdge(String(source), String(link.targetId));
       });
     });
 
@@ -395,6 +797,9 @@ export default function WorkflowWindow() {
   }, []);
 
   useEffect(() => {
+    if (!positionsLoaded)
+      return;
+
     if (allRoomIds.length === 0) {
       setNodes([]);
       return;
@@ -410,16 +815,18 @@ export default function WorkflowWindow() {
       });
 
       Object.entries(roomMapState).forEach(([source, targets]) => {
-        targets.forEach((target) => {
-          graph.setEdge(source, target.toString());
+        targets.forEach((link) => {
+          graph.setEdge(source, link.targetId.toString());
         });
       });
 
       dagre.layout(graph);
 
+      const currentStart = startRoomIdRef.current;
       const initialNodes: Node[] = allRoomIds.map((roomId) => {
         const nodePosition = graph.node(roomId.toString());
         const info = roomInfoMap.get(roomId);
+        const storedPosition = persistedPositionsRef.current.get(roomId);
         return {
           id: roomId.toString(),
           type: "mapEditNode",
@@ -432,19 +839,25 @@ export default function WorkflowWindow() {
             sceneLocations: [],
             description: info?.description ?? "",
             tip: "",
+            isStart: currentStart != null && roomId === currentStart,
           },
-          position: nodePosition
-            ? { x: nodePosition.x - 100, y: nodePosition.y - 60 }
-            : { x: 0, y: 0 },
+          position: storedPosition
+            ? { x: storedPosition.x, y: storedPosition.y }
+            : nodePosition
+              ? { x: nodePosition.x - 100, y: nodePosition.y - 60 }
+              : { x: 0, y: 0 },
         };
       });
 
       setNodes(initialNodes);
+      if (initialNodes.length > 0)
+        persistNodePositions(initialNodes);
       initialized.current = true;
       return;
     }
 
     setNodes((prevNodes) => {
+      const currentStart = startRoomIdRef.current;
       const nodeMap = new Map(prevNodes.map(node => [node.id, node]));
       const nextNodes: Node[] = [];
       const baseNodes = [...prevNodes];
@@ -471,6 +884,7 @@ export default function WorkflowWindow() {
               sceneLocations: [],
               description: info?.description ?? "",
               tip: "",
+              isStart: currentStart != null && roomId === currentStart,
             },
           });
         }
@@ -489,6 +903,7 @@ export default function WorkflowWindow() {
               sceneLocations: [],
               description: info?.description ?? "",
               tip: "",
+              isStart: currentStart != null && roomId === currentStart,
             },
             position,
           };
@@ -499,9 +914,10 @@ export default function WorkflowWindow() {
 
       if (!changed && nextNodes.length === prevNodes.length)
         return prevNodes;
+      persistNodePositions(nextNodes);
       return nextNodes;
     });
-  }, [allRoomIds, computePositionForNewNode, roomLabelMap, roomInfoMap, roomMapState]);
+  }, [allRoomIds, computePositionForNewNode, persistNodePositions, positionsLoaded, roomLabelMap, roomInfoMap, roomMapState, startRoomId]);
 
   if (spaceId < 0) {
     return (
@@ -528,7 +944,7 @@ export default function WorkflowWindow() {
   }
 
   return (
-    <div className="w-full min-w-[50vw] h-[75vh]">
+    <div className="relative w-full min-w-[50vw] h-[75vh]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -538,6 +954,14 @@ export default function WorkflowWindow() {
         onReconnect={onEdgesReconnect}
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
+        onEdgeDoubleClick={onEdgeDoubleClick}
+        onNodeContextMenu={onNodeContextMenu}
+        onPaneClick={hideContextMenu}
+        onPaneContextMenu={(event) => {
+          event.preventDefault();
+          hideContextMenu();
+        }}
+        onMoveStart={handleFlowMoveStart}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.1 }}
@@ -554,6 +978,21 @@ export default function WorkflowWindow() {
         <Controls />
         <Background gap={16} color="#aaa" />
       </ReactFlow>
+      {contextMenu.visible && (
+        <div
+          className="fixed z-50 bg-base-100 border border-base-300 rounded-md shadow-lg min-w-[160px] py-1"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={event => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="w-full px-4 py-2 text-left text-sm hover:bg-base-200"
+            onClick={() => handleSetStartNode(contextMenu.nodeId)}
+          >
+            设置为开始节点
+          </button>
+        </div>
+      )}
     </div>
   );
 }
