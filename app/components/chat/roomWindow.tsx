@@ -37,6 +37,8 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
+  GirlIcon,
+  MemberIcon,
   MusicNote,
   SharpDownload,
 } from "@/icons";
@@ -287,7 +289,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const toggleRunMode = useCallback(() => {
     setRunModeEnabled((prev) => {
       const next = !prev;
-      if (!next && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerStateRef.current)) {
+      const runModeDrawers: Array<typeof sideDrawerStateRef.current> = ["clue", "initiative", "map", "role"];
+      if (!next && runModeDrawers.includes(sideDrawerStateRef.current)) {
         setSideDrawerState("none");
       }
       return next;
@@ -295,7 +298,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   }, [setRunModeEnabled, setSideDrawerState]);
 
   useEffect(() => {
-    if (!runModeEnabled && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerState)) {
+    const runModeDrawers: Array<typeof sideDrawerState> = ["clue", "initiative", "map", "role"];
+    if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
       setSideDrawerState("none");
     }
   }, [runModeEnabled, sideDrawerState, setSideDrawerState]);
@@ -1246,6 +1250,20 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
             >
               <SharpDownload className="size-7" />
+            </div>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="房间成员"
+              onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
+            >
+              <MemberIcon className="size-7" />
+            </div>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="房间角色"
+              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
+            >
+              <GirlIcon className="size-7" />
             </div>
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
           </div>

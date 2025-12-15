@@ -5,7 +5,6 @@ import {
   Detective,
   EmojiIconWhite,
   GalleryBroken,
-  GirlIcon,
   LinkFilled,
   MusicNote,
   PointOnMapPerspectiveLinear,
@@ -445,14 +444,6 @@ export function ChatToolbar({
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
             >
               <PointOnMapPerspectiveLinear className="size-7 jump_icon"></PointOnMapPerspectiveLinear>
-            </div>
-
-            <div
-              className="tooltip"
-              data-tip="展示角色"
-              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
-            >
-              <GirlIcon className="size-7 jump_icon"></GirlIcon>
             </div>
           </>
         )}
