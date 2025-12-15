@@ -129,10 +129,11 @@ export default function ChatPage() {
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
   // 房间设置窗口状态
   const [activeRoomSettingId, setActiveRoomSettingId] = useState<number | null>(null);
+  const [activeRoomSettingTab, setActiveRoomSettingTab] = useState<"role" | "setting" | "render">("role");
   // 房间邀请窗口状态
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
-  const [_sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
-  const [_isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
+  const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  const [_isRenderWindowOpen, _setIsRenderWindowOpen] = useState(false);
 
   // 获取当前用户信息
   const globalContext = useGlobalContext();
@@ -354,7 +355,10 @@ export default function ChatPage() {
                 setActiveRoomId(roomId);
               }}
               onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
-              onOpenRoomSetting={setActiveRoomSettingId}
+              onOpenRoomSetting={(roomId, tab) => {
+                setActiveRoomSettingId(roomId);
+                tab && setActiveRoomSettingTab(tab);
+              }}
               setIsOpenLeftDrawer={setIsOpenLeftDrawer}
               onCreateRoom={() => {
                 if (activeSpaceId) {
@@ -417,14 +421,7 @@ export default function ChatPage() {
             <RoomSettingWindow
               roomId={activeRoomSettingId}
               onClose={() => setActiveRoomSettingId(null)}
-              onShowMembers={() => {
-                setSideDrawerState("user");
-                setActiveRoomSettingId(null);
-              }}
-              onRenderDialog={() => {
-                setIsRenderWindowOpen(true);
-                setActiveRoomSettingId(null);
-              }}
+              defaultTab={activeRoomSettingTab}
             />
           )}
         </PopWindow>

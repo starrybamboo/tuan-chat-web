@@ -289,7 +289,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const toggleRunMode = useCallback(() => {
     setRunModeEnabled((prev) => {
       const next = !prev;
-      const runModeDrawers: Array<typeof sideDrawerStateRef.current> = ["clue", "initiative", "map", "role"];
+      const runModeDrawers: Array<typeof sideDrawerStateRef.current> = ["clue", "initiative", "map"];
       if (!next && runModeDrawers.includes(sideDrawerStateRef.current)) {
         setSideDrawerState("none");
       }
@@ -298,7 +298,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   }, [setRunModeEnabled, setSideDrawerState]);
 
   useEffect(() => {
-    const runModeDrawers: Array<typeof sideDrawerState> = ["clue", "initiative", "map", "role"];
+    const runModeDrawers: Array<typeof sideDrawerState> = ["clue", "initiative", "map"];
     if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
       setSideDrawerState("none");
     }
@@ -737,7 +737,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     const historyMessagesString = (await Promise.all(
       historyMessages.slice(historyMessages.length - 20).map(async (m) => {
-        const role = await getRoleSmartly(m.message.roleId);
+        const roleId = m.message.roleId;
+        if (typeof roleId !== "number") {
+          return `旁白: ${m.message.content}`;
+        }
+
+        const role = await getRoleSmartly(roleId);
         return `${role?.roleName ?? role?.roleId}: ${m.message.content}`;
       }),
     )).join("\n");
@@ -1298,8 +1303,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   ruleId={space?.ruleId ?? -1}
                   className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                 />
+
                 {/* 底部工具栏 */}
                 {/* 状态显示条 */}
+
                 <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
                 <ChatToolbar
                   sideDrawerState={sideDrawerState}

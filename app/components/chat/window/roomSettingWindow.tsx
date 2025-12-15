@@ -20,11 +20,10 @@ import { use, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "../spaceContext";
 
-function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDialog: _onRenderDialog, roomId: propRoomId }: {
+function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
   onClose: () => void;
-  onShowMembers: () => void;
-  onRenderDialog: () => void;
   roomId?: number;
+  defaultTab?: "role" | "setting" | "render";
 }) {
   const navigate = useNavigate();
   const globalContext = useGlobalContext();
@@ -165,7 +164,7 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
               <input
                 type="radio"
                 name="room_setting_tabs"
-                defaultChecked
+                defaultChecked={defaultTab === "role"}
               />
               <GirlIcon className="size-4" />
               角色
@@ -182,7 +181,7 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
 
             {/* 基本设置 */}
             <label className="tab">
-              <input type="radio" name="room_setting_tabs" />
+              <input type="radio" name="room_setting_tabs" defaultChecked={defaultTab === "setting"} />
               <Setting className="size-4" />
               设置
             </label>
@@ -267,6 +266,7 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
               <input
                 type="radio"
                 name="room_setting_tabs"
+                defaultChecked={defaultTab === "render"}
               />
               <WebgalIcon className="size-4 mr-1" />
               渲染

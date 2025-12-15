@@ -3,7 +3,7 @@ import type { Room } from "api";
 import SpaceHeaderBar from "@/components/chat/components/spaceHeaderBar";
 import RoomButton from "@/components/chat/smallComponents/roomButton";
 import LeftChatList from "@/components/privateChat/Left​​ChatList​​";
-import { Setting } from "@/icons";
+import { ChevronDown, Setting, WebgalIcon } from "@/icons";
 import React from "react";
 
 export interface ChatRoomListPanelProps {
@@ -23,7 +23,7 @@ export interface ChatRoomListPanelProps {
 
   onSelectRoom: (roomId: number) => void;
   onCloseLeftDrawer: () => void;
-  onOpenRoomSetting: (roomId: number | null) => void;
+  onOpenRoomSetting: (roomId: number | null, tab?: "role" | "setting" | "render") => void;
 
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 
@@ -85,19 +85,52 @@ export default function ChatRoomListPanel({
                       isActive={activeRoomId === room.roomId}
                     >
                     </RoomButton>
-                    {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
-                    <div
-                      className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                      data-tip="房间设置"
-                    >
-                      <Setting
-                        className="size-6 cursor-pointer hover:text-info hover:bg-base-300 rounded"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // 仅传入真实 roomId，使用 null 表示关闭/未选择
-                          onOpenRoomSetting(room.roomId ?? null);
-                        }}
-                      />
+                    {/* 房间操作菜单 - 交互参考 SpaceHeaderBar 的 dropdown */}
+                    <div className="dropdown dropdown-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <div className="tooltip tooltip-left" data-tip="房间操作">
+                        <button
+                          type="button"
+                          tabIndex={0}
+                          className="btn btn-ghost btn-sm btn-square"
+                          aria-label="房间操作"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <ChevronDown className="size-5 opacity-70" />
+                        </button>
+                      </div>
+
+                      <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2">
+                        <li>
+                          <button
+                            type="button"
+                            className="gap-3"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenRoomSetting(room.roomId ?? null, "setting");
+                              (document.activeElement as HTMLElement | null)?.blur?.();
+                            }}
+                          >
+                            <Setting className="size-4 opacity-70" />
+                            <span className="flex-1 text-left">房间信息</span>
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            className="gap-3"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenRoomSetting(room.roomId ?? null, "render");
+                              (document.activeElement as HTMLElement | null)?.blur?.();
+                            }}
+                          >
+                            <WebgalIcon className="size-4 opacity-70" />
+                            <span className="flex-1 text-left">渲染</span>
+                          </button>
+                        </li>
+                      </ul>
                     </div>
                   </div>
                 ))}
