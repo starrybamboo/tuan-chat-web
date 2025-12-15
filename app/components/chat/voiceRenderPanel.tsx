@@ -312,14 +312,14 @@ export function VoiceRenderPanel({
 
       {/* 高级调节面板（折叠） */}
       {showAdvanced && (
-        <div className="mt-2 p-2 bg-base-200/50 rounded-lg border border-base-300 space-y-3">
+        <div className="mt-3 p-3 bg-base-200/50 rounded-lg border border-base-300 space-y-4">
           {/* 动画设置 */}
           <div className="space-y-2">
-            <span className="text-xs text-base-content/70 font-medium">立绘动画</span>
-            <div className="grid grid-cols-3 gap-2">
+            <span className="text-xs text-base-content/70 font-semibold">立绘动画</span>
+            <div className="grid grid-cols-3 gap-3">
               {/* 一次性动画 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-base-content/50">动画效果</span>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs text-base-content/60">动画效果</span>
                 <select
                   title="选择动画效果"
                   className="select select-xs select-bordered w-full"
@@ -333,8 +333,8 @@ export function VoiceRenderPanel({
                 </select>
               </div>
               {/* 进场动画 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-base-content/50">进场动画</span>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs text-base-content/60">进场动画</span>
                 <select
                   title="选择进场动画"
                   className="select select-xs select-bordered w-full"
@@ -348,8 +348,8 @@ export function VoiceRenderPanel({
                 </select>
               </div>
               {/* 出场动画 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-base-content/50">出场动画</span>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs text-base-content/60">出场动画</span>
                 <select
                   title="选择出场动画"
                   className="select select-xs select-bordered w-full"
@@ -369,34 +369,38 @@ export function VoiceRenderPanel({
           <div className="border-t border-base-300" />
 
           {/* 情感向量调节 */}
-          <div className="space-y-2">
-            <span className="text-xs text-base-content/70 font-medium">情感向量</span>
-            {EMOTION_LABELS.map((label, index) => (
-              <div key={label} className="flex items-center gap-2">
-                <span className="w-8 text-xs text-base-content/70">{label}</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="1.4"
-                  step="0.1"
-                  title={`${label}情感强度`}
-                  value={localVector[index] ?? 0}
-                  onChange={e => handleEmotionChange(index, Number.parseFloat(e.target.value))}
-                  className="range range-xs range-primary flex-1"
-                />
-                <span className="w-6 text-xs text-right tabular-nums text-base-content/60">
-                  {(localVector[index] ?? 0).toFixed(1)}
-                </span>
-              </div>
-            ))}
+          <div className="space-y-2.5">
+            <span className="text-xs text-base-content/70 font-semibold">情感向量</span>
+            <div className="space-y-2">
+              {EMOTION_LABELS.map((label, index) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="w-10 text-xs text-base-content/70 font-medium shrink-0">{label}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1.4"
+                    step="0.1"
+                    title={`${label}情感强度`}
+                    value={localVector[index] ?? 0}
+                    onChange={e => handleEmotionChange(index, Number.parseFloat(e.target.value))}
+                    className="range range-xs range-primary flex-1"
+                  />
+                  <span className="w-8 text-xs text-right font-mono text-base-content/70 font-semibold shrink-0">
+                    {(localVector[index] ?? 0).toFixed(1)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* 总和提示和应用按钮 */}
-          <div className={`flex justify-between items-center pt-1 ${isOverLimit ? "text-error" : "text-base-content/50"}`}>
-            <span className="text-xs">
+          <div className={`flex justify-between items-center pt-2 border-t border-base-300 ${isOverLimit ? "text-error" : "text-base-content/60"}`}>
+            <span className="text-xs font-medium">
               总和:
-              {currentSum.toFixed(2)}
-              /1.5
+              {" "}
+              <span className="font-mono font-semibold">{currentSum.toFixed(2)}</span>
+              {" "}
+              / 1.5
             </span>
             <button
               type="button"
