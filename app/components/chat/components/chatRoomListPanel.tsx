@@ -47,6 +47,18 @@ export default function ChatRoomListPanel({
   setIsOpenLeftDrawer,
   onCreateRoom,
 }: ChatRoomListPanelProps) {
+  const roomsInSpace = rooms.filter(room => room.spaceId === activeSpaceId);
+  const rootRooms = roomsInSpace.filter(room => !room.parentRoomId);
+  const threadRoomsByParentId = roomsInSpace.reduce<Record<number, Room[]>>((acc, room) => {
+    if (!room.parentRoomId) {
+      return acc;
+    }
+    const parentId = room.parentRoomId;
+    acc[parentId] ??= [];
+    acc[parentId].push(room);
+    return acc;
+  }, {});
+
   return (
     <div
       className="flex flex-col gap-2 py-2 w-full md:w-[360px] h-full flex-1 bg-base-200/40 min-h-0"
@@ -73,67 +85,87 @@ export default function ChatRoomListPanel({
               )}
 
               <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
-                {rooms.filter(room => room.spaceId === activeSpaceId).map(room => (
-                  <div className="flex items-center gap-1 group w-full" key={room.roomId} data-room-id={room.roomId}>
-                    <RoomButton
-                      room={room}
-                      unreadMessageNumber={unreadMessagesNumber[room.roomId ?? -1]}
-                      onclick={() => {
-                        onSelectRoom(room.roomId ?? -1);
-                        onCloseLeftDrawer();
-                      }}
-                      isActive={activeRoomId === room.roomId}
-                    >
-                    </RoomButton>
-                    {/* 房间操作菜单 - 交互参考 SpaceHeaderBar 的 dropdown */}
-                    <div className="dropdown dropdown-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      <div className="tooltip tooltip-left" data-tip="房间操作">
-                        <button
-                          type="button"
-                          tabIndex={0}
-                          className="btn btn-ghost btn-sm btn-square"
-                          aria-label="房间操作"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                {rootRooms.map((room) => {
+                  const threadRooms = threadRoomsByParentId[room.roomId ?? -1] ?? [];
+
+                  return (
+                    <React.Fragment key={room.roomId}>
+                      <div className="flex items-center gap-1 group w-full" data-room-id={room.roomId}>
+                        <RoomButton
+                          room={room}
+                          unreadMessageNumber={unreadMessagesNumber[room.roomId ?? -1]}
+                          onclick={() => {
+                            onSelectRoom(room.roomId ?? -1);
+                            onCloseLeftDrawer();
                           }}
+                          isActive={activeRoomId === room.roomId}
                         >
-                          <ChevronDown className="size-5 opacity-70" />
-                        </button>
+                        </RoomButton>
+                        {/* 房间操作菜单 - 交互参考 SpaceHeaderBar 的 dropdown */}
+                        <div className="dropdown dropdown-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                          <div className="tooltip tooltip-left" data-tip="房间操作">
+                            <button
+                              type="button"
+                              tabIndex={0}
+                              className="btn btn-ghost btn-sm btn-square"
+                              aria-label="房间操作"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                            >
+                              <ChevronDown className="size-5 opacity-70" />
+                            </button>
+                          </div>
+
+                          <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2">
+                            <li>
+                              <button
+                                type="button"
+                                className="gap-3"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenRoomSetting(room.roomId ?? null, "setting");
+                                  (document.activeElement as HTMLElement | null)?.blur?.();
+                                }}
+                              >
+                                <Setting className="size-4 opacity-70" />
+                                <span className="flex-1 text-left">房间信息</span>
+                              </button>
+                            </li>
+                            <li>
+                              <button
+                                type="button"
+                                className="gap-3"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenRoomSetting(room.roomId ?? null, "render");
+                                  (document.activeElement as HTMLElement | null)?.blur?.();
+                                }}
+                              >
+                                <WebgalIcon className="size-4 opacity-70" />
+                                <span className="flex-1 text-left">渲染</span>
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
                       </div>
 
-                      <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2">
-                        <li>
-                          <button
-                            type="button"
-                            className="gap-3"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenRoomSetting(room.roomId ?? null, "setting");
-                              (document.activeElement as HTMLElement | null)?.blur?.();
+                      {threadRooms.map(threadRoom => (
+                        <div className="pl-6" key={threadRoom.roomId} data-room-id={threadRoom.roomId}>
+                          <RoomButton
+                            room={threadRoom}
+                            unreadMessageNumber={unreadMessagesNumber[threadRoom.roomId ?? -1]}
+                            onclick={() => {
+                              onSelectRoom(threadRoom.roomId ?? -1);
+                              onCloseLeftDrawer();
                             }}
-                          >
-                            <Setting className="size-4 opacity-70" />
-                            <span className="flex-1 text-left">房间信息</span>
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            className="gap-3"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenRoomSetting(room.roomId ?? null, "render");
-                              (document.activeElement as HTMLElement | null)?.blur?.();
-                            }}
-                          >
-                            <WebgalIcon className="size-4 opacity-70" />
-                            <span className="flex-1 text-left">渲染</span>
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                ))}
+                            isActive={activeRoomId === threadRoom.roomId}
+                          />
+                        </div>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
               </div>
 
               {activeSpaceId !== null && isSpaceOwner && (

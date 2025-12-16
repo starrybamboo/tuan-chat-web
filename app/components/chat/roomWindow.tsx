@@ -27,6 +27,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import TextStyleToolbar from "@/components/chat/textStyleToolbar";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import BetterImg from "@/components/common/betterImg";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -51,7 +52,6 @@ import { UploadUtils } from "@/utils/UploadUtils";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { MessageType } from "api/wsModels";
 // *** 导入新组件及其 Handle 类型 ***
-
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
@@ -71,7 +71,7 @@ import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
 import WebGALPreview from "./sideDrawer/webGALPreview";
 
 // const PAGE_SIZE = 50; // 每页消息数量
-export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
+export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: { roomId: number; spaceId: number; targetMessageId?: number | null; onSelectRoom?: (roomId: number) => void }) {
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -187,6 +187,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
+
+  // 创建子区(Thread)
+  const [isThreadHandleOpen, setIsThreadHandleOpen] = useState(false);
 
   // 实时渲染相关
   const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
@@ -1337,6 +1340,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onClearBackground={handleClearBackground}
                   onClearFigure={handleClearFigure}
                   setAudioFile={setAudioFile}
+                  onCreateThread={() => setIsThreadHandleOpen(true)}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch
@@ -1555,6 +1559,24 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           </OpenAbleDrawer>
         </div>
       </div>
+
+      {/* 创建子区(Thread) */}
+      <PopWindow
+        isOpen={isThreadHandleOpen}
+        onClose={() => setIsThreadHandleOpen(false)}
+      >
+        <CreateRoomWindow
+          spaceId={spaceId}
+          spaceAvatar={space?.avatar}
+          parentRoomId={roomId}
+          onSuccess={(newRoomId) => {
+            if (newRoomId) {
+              onSelectRoom?.(newRoomId);
+            }
+            setIsThreadHandleOpen(false);
+          }}
+        />
+      </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
