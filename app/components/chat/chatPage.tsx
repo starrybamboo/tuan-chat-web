@@ -8,6 +8,7 @@ import RoomWindow from "@/components/chat/roomWindow";
 import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceContextMenu from "@/components/chat/spaceContextMenu";
+import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
@@ -50,6 +51,9 @@ export default function ChatPage() {
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
     !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (screenSize === "sm" && !isPrivateChatMode),
   );
+
+  const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
+  const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
 
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
@@ -314,11 +318,13 @@ export default function ChatPage() {
         <OpenAbleDrawer
           isOpen={screenSize === "sm" ? isOpenLeftDrawer : true}
           className="h-full z-10 w-full bg-base-100"
-          initialWidth={430}
-          minWidth={430}
-          maxWidth={600}
+          initialWidth={chatLeftPanelWidth}
+          minWidth={200}
+          maxWidth={700}
+          onWidthChange={setChatLeftPanelWidth}
+          handlePosition="right"
         >
-          <div className="h-full flex flex-row w-full md:w-max">
+          <div className="h-full flex flex-row w-full min-w-0">
             {/* 空间列表 */}
             <ChatSpaceSidebar
               isPrivateChatMode={isPrivateChatMode}

@@ -1,60 +1,40 @@
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
 
+import type { RealtimeRenderOrchestratorApi } from "@/components/chat/realtimeRenderOrchestrator";
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { ClueMessage } from "api/models/ClueMessage";
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMember, UserRole } from "../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, SpaceMember, UserRole } from "../../../api";
 // hooks (local)
-import AtMentionController from "@/components/atMentionController";
-import AvatarSwitch from "@/components/chat/avatarSwitch";
 import ChatFrame from "@/components/chat/chatFrame";
-import ChatInputArea from "@/components/chat/chatInputArea";
-import ChatStatusBar from "@/components/chat/chatStatusBar";
-import ChatToolbar from "@/components/chat/chatToolbar";
-import CommandPanel from "@/components/chat/commandPanel";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
-import SearchBar from "@/components/chat/inlineSearch";
-import DNDMap from "@/components/chat/map/DNDMap";
+import RealtimeRenderOrchestrator from "@/components/chat/realtimeRenderOrchestrator";
+import RoomComposerPanel from "@/components/chat/roomComposerPanel";
 import { RoomContext } from "@/components/chat/roomContext";
-import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
-import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
-import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
-import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
+import RoomHeaderBar from "@/components/chat/roomHeaderBar";
+import RoomPopWindows from "@/components/chat/roomPopWindows";
+import RoomSideDrawerGuards from "@/components/chat/roomSideDrawerGuards";
+import RoomSideDrawers from "@/components/chat/roomSideDrawers";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
-import TextStyleToolbar from "@/components/chat/textStyleToolbar";
+import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
+import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
-import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
-import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
-import RenderWindow from "@/components/chat/window/renderWindow";
-import BetterImg from "@/components/common/betterImg";
-import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
-import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import {
-  BaselineArrowBackIosNew,
-  GirlIcon,
-  MemberIcon,
-  MusicNote,
-  SharpDownload,
-} from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
-import { getScreenSize } from "@/utils/getScreenSize";
-import { isElectronEnv } from "@/utils/isElectronEnv";
-import launchWebGal from "@/utils/launchWebGal";
-import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
-import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { MessageType } from "api/wsModels";
 // *** 导入新组件及其 Handle 类型 ***
-import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useImmer } from "use-immer";
 import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,
@@ -66,9 +46,6 @@ import {
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
-import ClueListForPL from "./sideDrawer/clueListForPL";
-import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
-import WebGALPreview from "./sideDrawer/webGALPreview";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: { roomId: number; spaceId: number; targetMessageId?: number | null; onSelectRoom?: (roomId: number) => void }) {
@@ -91,20 +68,20 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
 
-  // 纯文本状态，由 ChatInputArea 通过 onInputSync 回调更新
-  const [inputText, setInputTextWithoutUpdateTextArea] = useState("");
-  // 不包含@角色的文本
-  const [inputTextWithoutMentions, setinputTextWithoutMentions] = useState("");
-  // 提及列表状态，同样由 ChatInputArea 回调更新
-  const [mentionedRolesInInput, setMentionedRolesInInput] = useState<UserRole[]>([]);
+  // 输入区编辑态：放入 zustand store，避免 RoomWindow 每次敲字重渲染
+  const resetChatInputUi = useChatInputUiStore(state => state.reset);
+  // 附件/发送选项：放入 zustand store，避免 RoomWindow 因附件变化整体重渲染
+  const resetChatComposer = useChatComposerStore(state => state.reset);
 
   const delayTimer = useRef<NodeJS.Timeout | null>(null);
 
   // *** ChatInputArea 的回调处理器 ***
   const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
-    setInputTextWithoutUpdateTextArea(plainText);
-    setinputTextWithoutMentions(inputTextWithoutMentions);
-    setMentionedRolesInInput(roles);
+    useChatInputUiStore.getState().setSnapshot({
+      plainText,
+      textWithoutMentions: inputTextWithoutMentions,
+      mentionedRoles: roles,
+    });
     // 检查 @ 提及触发
     atMentionRef.current?.onInput();
   }, []); // 空依赖，因为 setter 函数是稳定的
@@ -115,30 +92,25 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
    * @param text 想要重置的inputText (注意：这里现在只接受纯文本，如果需要 HTML 请修改)
    */
   const setInputText = (text: string) => {
-    setInputTextWithoutUpdateTextArea(text); // 更新 React 状态
     chatInputRef.current?.setContent(text); // 命令子组件更新其 DOM
+    chatInputRef.current?.triggerSync(); // 同步到 store
   };
+
+  // 切换房间时清空输入区编辑态，避免跨房间串输入
+  useEffect(() => {
+    resetChatInputUi();
+    resetChatComposer();
+    return () => {
+      resetChatInputUi();
+      resetChatComposer();
+    };
+  }, [resetChatInputUi, resetChatComposer, roomId]);
 
   const uploadUtils = new UploadUtils();
 
-  // 聊天框中包含的图片
-  const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
-  const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
-  // 聊天框中包含的语音
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  // 发送选项
-  const [sendAsBackground, setSendAsBackground] = useState(false);
-  // 音频用途：undefined=普通语音, "bgm"=背景音乐, "se"=音效
-  const [audioPurpose, setAudioPurpose] = useState<"bgm" | "se" | undefined>(undefined);
-  // 引用的聊天记录id
-  const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
-  // 插入消息位置（在该消息下方插入新消息）
-  const [insertAfterMessageId, setInsertAfterMessageId] = useState<number | undefined>(undefined);
-
-  // 切换房间时清空引用消息和插入位置
+  // 切换房间时清空引用消息 / 插入位置 / Thread 弹窗开关
   useLayoutEffect(() => {
-    setReplyMessage(undefined);
-    setInsertAfterMessageId(undefined);
+    useRoomUiStore.getState().reset();
   }, [roomId]);
 
   // 获取用户的所有角色
@@ -160,152 +132,40 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     return [...playerRoles, ...roomNpcRoles];
   }, [roomRoles, roomNpcRoles, spaceContext.isSpaceOwner, userRoles]);
 
-  // 房间ID到角色ID的映射
-  const [curRoleIdMap, setCurRoleIdMap] = useLocalStorage<Record<number, number>>(
-    "curRoleIdMap",
-    {},
-  );
-  // 角色ID到头像ID的映射
-  const [curAvatarIdMap, setCurAvatarIdMap] = useLocalStorage<Record<number, number>>(
-    "curAvatarIdMap",
-    {},
-  );
+  // 房间ID到角色ID、角色ID到头像ID 的映射（持久化）
+  const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
+  const curAvatarIdMap = useRoomRoleSelectionStore(state => state.curAvatarIdMap);
+  const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
+  const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
+
   const curRoleId = curRoleIdMap[roomId] ?? roomRolesThatUserOwn[0]?.roleId ?? -1;
   const setCurRoleId = useCallback((roleId: number) => {
-    setCurRoleIdMap(prevMap => ({
-      ...prevMap,
-      [roomId]: roleId,
-    }));
-  }, [roomId, setCurRoleIdMap]);
+    setCurRoleIdForRoom(roomId, roleId);
+  }, [roomId, setCurRoleIdForRoom]);
+
   const curAvatarId = curAvatarIdMap[curRoleId] ?? -1;
   const setCurAvatarId = useCallback((_avatarId: number) => {
-    setCurAvatarIdMap(prevMap => ({
-      ...prevMap,
-      [curRoleId]: _avatarId,
-    }));
-  }, [curRoleId, setCurAvatarIdMap]);
+    setCurAvatarIdForRole(curRoleId, _avatarId);
+  }, [curRoleId, setCurAvatarIdForRole]);
 
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
 
-  // 创建子区(Thread)
-  const [isThreadHandleOpen, setIsThreadHandleOpen] = useState(false);
+  // RealtimeRender 编排：用独立组件隔离 useEffect/订阅，避免 RoomWindow 被 status/initProgress/previewUrl 等高频变化拖着重渲染
+  const realtimeRenderApiRef = useRef<RealtimeRenderOrchestratorApi | null>(null);
+  const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
 
-  // 实时渲染相关
-  const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
-  // 实时渲染 TTS 配置（默认关闭）
-  const [realtimeTTSEnabled, setRealtimeTTSEnabled] = useState(false);
-  // 实时渲染小头像配置（默认关闭）
-  const [realtimeMiniAvatarEnabled, setRealtimeMiniAvatarEnabled] = useState(false);
-  // 实时渲染自动填充立绘配置（默认开启，与原行为一致）
-  const [realtimeAutoFigureEnabled, setRealtimeAutoFigureEnabled] = useState(false);
-  // TTS API URL（从 localStorage 读取，默认为空使用环境变量）
-  const [ttsApiUrl, setTtsApiUrl] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("tts_api_url") || "";
-    }
-    return "";
-  });
-  // 保存 TTS API URL 到 localStorage
-  const handleTtsApiUrlChange = (url: string) => {
-    setTtsApiUrl(url);
-    if (typeof window !== "undefined") {
-      if (url) {
-        localStorage.setItem("tts_api_url", url);
-      }
-      else {
-        localStorage.removeItem("tts_api_url");
-      }
-    }
-  };
-  const realtimeTTSConfig = useMemo(() => ({
-    enabled: realtimeTTSEnabled,
-    engine: "index" as const,
-    apiUrl: ttsApiUrl || undefined, // 空字符串转为 undefined
-    emotionMode: 2, // 使用情感向量
-    emotionWeight: 0.8,
-    temperature: 0.8,
-    topP: 0.8,
-    maxTokensPerSegment: 120,
-  }), [realtimeTTSEnabled, ttsApiUrl]);
-  const realtimeRender = useRealtimeRender({
-    spaceId,
-    enabled: isRealtimeRenderEnabled,
-    roles: roomRoles,
-    rooms: room ? [room] : [], // 当前只传入当前房间，后续可以扩展为多房间
-    ttsConfig: realtimeTTSConfig,
-    miniAvatarEnabled: realtimeMiniAvatarEnabled,
-    autoFigureEnabled: realtimeAutoFigureEnabled,
-  });
-  const realtimeStatus = realtimeRender.status;
-  const stopRealtimeRender = realtimeRender.stop;
-  const lastRenderedMessageIdRef = useRef<number | null>(null);
-  const hasRenderedHistoryRef = useRef<boolean>(false);
-  const realtimeStatusRef = useRef(realtimeRender.status);
-  const prevRoomIdRef = useRef<number | null>(null);
-  // 跟踪最后一个背景消息的 ID，用于检测背景更新
-  const lastBackgroundMessageIdRef = useRef<number | null>(null);
+  const handleRealtimeRenderApiChange = useCallback((api: RealtimeRenderOrchestratorApi) => {
+    realtimeRenderApiRef.current = api;
+  }, []);
 
-  useEffect(() => {
-    realtimeStatusRef.current = realtimeRender.status;
-  }, [realtimeRender.status]);
+  const handleToggleRealtimeRender = useCallback(async () => {
+    await realtimeRenderApiRef.current?.toggleRealtimeRender();
+  }, []);
 
-  // 侧边栏宽度状态
-  const [userDrawerWidth, setUserDrawerWidth] = useLocalStorage("userDrawerWidth", 300);
-  const [roleDrawerWidth, setRoleDrawerWidth] = useLocalStorage("roleDrawerWidth", 300);
-  const [initiativeDrawerWidth, setInitiativeDrawerWidth] = useLocalStorage("initiativeDrawerWidth", 300);
-  const [clueDrawerWidth, setClueDrawerWidth] = useLocalStorage("clueDrawerWidth", 300);
-  const [mapDrawerWidth, setMapDrawerWidth] = useLocalStorage("mapDrawerWidth", 600);
-  const [exportDrawerWidth, setExportDrawerWidth] = useLocalStorage("exportDrawerWidth", 350);
-  const [webgalDrawerWidth, setWebgalDrawerWidth] = useLocalStorage("webgalDrawerWidth", 600);
-
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal">("rightSideDrawer", "none");
-  const sideDrawerStateRef = useRef(sideDrawerState);
-  useEffect(() => {
-    sideDrawerStateRef.current = sideDrawerState;
-  }, [sideDrawerState]);
-
-  const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
-
-  // WebGAL 联动模式相关状态
-  const [webgalLinkMode, setWebgalLinkMode] = useLocalStorage<boolean>("webgalLinkMode", false);
-  const [autoReplyMode, setAutoReplyMode] = useLocalStorage<boolean>("autoReplyMode", false);
-  const [runModeEnabled, setRunModeEnabled] = useLocalStorage<boolean>("runModeEnabled", false);
-  const [defaultFigurePositionMap, setDefaultFigurePositionMap] = useLocalStorage<Record<number, "left" | "center" | "right" | undefined>>(
-    "defaultFigurePositionMap",
-    {},
-  );
-  // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
-  const [dialogNotend, setDialogNotend] = useState(false);
-  const [dialogConcat, setDialogConcat] = useState(false);
-
-  // 获取当前角色的默认立绘位置（undefined 表示不显示立绘）
-  const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
-  const setCurrentDefaultFigurePosition = useCallback((position: "left" | "center" | "right" | undefined) => {
-    setDefaultFigurePositionMap(prev => ({
-      ...prev,
-      [curRoleId]: position,
-    }));
-  }, [curRoleId, setDefaultFigurePositionMap]);
-
-  // 跑团模式：折叠跑团相关侧边栏入口
-  const toggleRunMode = useCallback(() => {
-    setRunModeEnabled((prev) => {
-      const next = !prev;
-      const runModeDrawers: Array<typeof sideDrawerStateRef.current> = ["clue", "initiative", "map"];
-      if (!next && runModeDrawers.includes(sideDrawerStateRef.current)) {
-        setSideDrawerState("none");
-      }
-      return next;
-    });
-  }, [setRunModeEnabled, setSideDrawerState]);
-
-  useEffect(() => {
-    const runModeDrawers: Array<typeof sideDrawerState> = ["clue", "initiative", "map"];
-    if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
-      setSideDrawerState("none");
-    }
-  }, [runModeEnabled, sideDrawerState, setSideDrawerState]);
+  const handleStopRealtimeRender = useCallback(() => {
+    realtimeRenderApiRef.current?.stopRealtimeRender();
+  }, []);
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
@@ -328,13 +188,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     return members.find(member => member.userId === userId);
   }, [members, userId]);
 
-  // 切换空间时关闭线索侧边栏
-  useLayoutEffect(() => {
-    if (sideDrawerState === "clue") {
-      setSideDrawerState("none");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spaceId]);
+  // 与 sideDrawer 相关的副作用迁移到独立组件 RoomSideDrawerGuards，避免 RoomWindow 订阅 sideDrawerState
 
   /**
    * 获取历史消息
@@ -385,248 +239,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     };
   }, [targetMessageId, historyMessages, chatHistory?.loading, scrollToGivenMessage]);
 
-  // 渲染历史消息的函数（需要在 useEffect 之前定义）
-  const isRenderingHistoryRef = useRef(false);
-  const renderHistoryMessages = useCallback(async () => {
-    if (!historyMessages || historyMessages.length === 0) {
-      return;
-    }
-
-    if (realtimeStatusRef.current !== "connected") {
-      console.warn(`[RealtimeRender] 渲染器尚未就绪，当前状态: ${realtimeStatusRef.current}`);
-      return;
-    }
-
-    isRenderingHistoryRef.current = true;
-    try {
-      console.warn(`[RealtimeRender] 开始渲染历史消息, 共 ${historyMessages.length} 条`);
-      toast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
-
-      const messagesToRender = historyMessages;
-
-      // 使用批量渲染接口
-      await realtimeRender.renderHistory(messagesToRender, roomId);
-
-      // 记录最后一条消息的ID
-      const lastMessage = messagesToRender[messagesToRender.length - 1];
-      if (lastMessage) {
-        lastRenderedMessageIdRef.current = lastMessage.message.messageId;
-      }
-      hasRenderedHistoryRef.current = true;
-      toast.success(`历史消息渲染完成`, { id: "webgal-history" });
-      console.warn(`[RealtimeRender] 历史消息渲染完成`);
-    }
-    catch (error) {
-      console.error(`[RealtimeRender] 渲染历史消息失败:`, error);
-      toast.error(`渲染历史消息失败`, { id: "webgal-history" });
-    }
-    finally {
-      isRenderingHistoryRef.current = false;
-    }
-  }, [historyMessages, realtimeRender, roomId]);
-
-  // 切换房间时重置实时渲染状态（跳过首次挂载）
-  useEffect(() => {
-    // 首次挂载时记录 roomId，不执行重置
-    if (prevRoomIdRef.current === null) {
-      prevRoomIdRef.current = roomId;
-      return;
-    }
-    // 只有在 roomId 真正变化时才重置
-    if (prevRoomIdRef.current !== roomId) {
-      prevRoomIdRef.current = roomId;
-      setIsRealtimeRenderEnabled(false);
-      hasRenderedHistoryRef.current = false;
-      lastRenderedMessageIdRef.current = null;
-      isRenderingHistoryRef.current = false;
-      if (sideDrawerStateRef.current === "webgal") {
-        setSideDrawerState("none");
-      }
-    }
-  }, [roomId, setIsRealtimeRenderEnabled, setSideDrawerState]);
-
-  // 当渲染器就绪时，自动渲染历史消息（用于页面刷新后从 localStorage 恢复状态）
-  useEffect(() => {
-    // 条件检查
-    if (!realtimeRender.isActive || realtimeRender.status !== "connected" || hasRenderedHistoryRef.current || isRenderingHistoryRef.current) {
-      return;
-    }
-    if (!historyMessages || historyMessages.length === 0 || chatHistory?.loading) {
-      return;
-    }
-    // 确保房间数据已加载，否则场景名会不正确
-    if (!room) {
-      return;
-    }
-
-    // 调用渲染历史消息函数
-    renderHistoryMessages();
-  }, [realtimeRender.isActive, realtimeRender.status, historyMessages, chatHistory?.loading, room, renderHistoryMessages]);
-
-  // 监听新消息，实时渲染到 WebGAL（只渲染历史消息之后的新消息）
-  useEffect(() => {
-    // 如果实时渲染关闭，重置标记
-    if (!realtimeRender.isActive) {
-      hasRenderedHistoryRef.current = false;
-      lastRenderedMessageIdRef.current = null;
-      isRenderingHistoryRef.current = false;
-      return;
-    }
-
-    if (!historyMessages || historyMessages.length === 0) {
-      return;
-    }
-
-    // 如果还没有渲染过历史消息，跳过（等待上面的 useEffect 来处理）
-    if (!hasRenderedHistoryRef.current) {
-      return;
-    }
-
-    // 找到最新的消息
-    const latestMessage = historyMessages[historyMessages.length - 1];
-    if (!latestMessage)
-      return;
-
-    const messageId = latestMessage.message.messageId;
-    // 如果这条消息已经渲染过，跳过
-    if (lastRenderedMessageIdRef.current === messageId) {
-      return;
-    }
-
-    // 只有消息明确设置了立绘位置时才会显示立绘
-    // 渲染新消息（传入当前房间 ID）
-    realtimeRender.renderMessage(latestMessage, roomId);
-    lastRenderedMessageIdRef.current = messageId;
-  }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
-
-  // 监听背景消息变化，当用户设置图片为背景时实时渲染更新
-  useEffect(() => {
-    if (!realtimeRender.isActive || !hasRenderedHistoryRef.current) {
-      return;
-    }
-
-    if (!historyMessages || historyMessages.length === 0) {
-      return;
-    }
-
-    // 找到最新的背景消息（background: true 的图片消息）
-    const backgroundMessages = historyMessages
-      .filter(msg => msg.message.messageType === 2 && msg.message.extra?.imageMessage?.background);
-
-    const latestBackgroundMessage = backgroundMessages[backgroundMessages.length - 1];
-    const latestBackgroundMessageId = latestBackgroundMessage?.message.messageId ?? null;
-
-    // 如果背景消息没有变化，跳过
-    if (lastBackgroundMessageIdRef.current === latestBackgroundMessageId) {
-      return;
-    }
-
-    // 保存旧值用于判断是否是取消操作
-    const previousBackgroundMessageId = lastBackgroundMessageIdRef.current;
-
-    // 更新 ref
-    lastBackgroundMessageIdRef.current = latestBackgroundMessageId;
-
-    // 如果有新的背景消息，重新渲染它
-    if (latestBackgroundMessage) {
-      console.warn("[RealtimeRender] 检测到背景更新，重新渲染背景消息:", latestBackgroundMessageId);
-      realtimeRender.renderMessage(latestBackgroundMessage, roomId);
-    }
-    else if (previousBackgroundMessageId !== null) {
-      // 之前有背景，现在没有了，说明用户取消了所有背景，需要清除
-      console.warn("[RealtimeRender] 检测到背景被取消，清除背景");
-      realtimeRender.clearBackground(roomId);
-    }
-  }, [historyMessages, realtimeRender, roomId]);
-
-  // 切换实时渲染
-  const handleToggleRealtimeRender = useCallback(async () => {
-    if (realtimeRender.isActive) {
-      // 关闭实时渲染
-      realtimeRender.stop();
-      setIsRealtimeRenderEnabled(false);
-      setSideDrawerState("none");
-      toast.success("已关闭实时渲染");
-    }
-    else {
-      // 启动 WebGAL
-      launchWebGal();
-
-      // 轮询检测 WebGAL 服务是否启动
-      toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
-      try {
-        await pollPort(
-          Number((import.meta.env.VITE_TERRE_URL as string).split(":").pop()),
-          isElectronEnv() ? 15000 : 500,
-          100,
-        );
-
-        toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
-        const success = await realtimeRender.start();
-        if (success) {
-          toast.success("实时渲染已开启", { id: "webgal-init" });
-          // 开启成功后再设置 enabled 状态，避免过早触发 hook 的自动启动
-          setIsRealtimeRenderEnabled(true);
-          // 打开预览侧边栏
-          setSideDrawerState("webgal");
-          // 直接渲染历史消息
-          await renderHistoryMessages();
-        }
-        else {
-          toast.error("实时渲染启动失败", { id: "webgal-init" });
-          setIsRealtimeRenderEnabled(false);
-        }
-      }
-      catch {
-        toast.error("WebGAL 启动超时", { id: "webgal-init" });
-        setIsRealtimeRenderEnabled(false);
-      }
-    }
-  }, [realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, renderHistoryMessages]);
-
-  // 监听实时渲染初始化进度
-  useEffect(() => {
-    if (realtimeRender.initProgress && realtimeRender.status === "initializing") {
-      const { phase, message } = realtimeRender.initProgress;
-      if (phase !== "ready" && phase !== "idle") {
-        toast.loading(message, { id: "webgal-init" });
-      }
-    }
-  }, [realtimeRender.initProgress, realtimeRender.status]);
-
-  useEffect(() => {
-    if (realtimeStatus !== "error") {
-      return;
-    }
-
-    toast.error("实时渲染连接失败，请确认 WebGAL 已启动", { id: "webgal-error" });
-    stopRealtimeRender();
-    setIsRealtimeRenderEnabled(false);
-    if (sideDrawerState === "webgal") {
-      setSideDrawerState("none");
-    }
-    hasRenderedHistoryRef.current = false;
-    lastRenderedMessageIdRef.current = null;
-  }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
-
-  // WebGAL 跳转到指定消息
+  // WebGAL 跳转到指定消息（具体是否可用仍由 isRealtimeRenderActive 控制）
   const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
-    if (!realtimeRender.isActive) {
-      return false;
-    }
-    return realtimeRender.jumpToMessage(messageId, roomId);
-  }, [realtimeRender, roomId]);
+    return realtimeRenderApiRef.current?.jumpToMessage(messageId) ?? false;
+  }, []);
 
-  // WebGAL 更新消息渲染设置并重新渲染跳转
+  // WebGAL 更新消息渲染设置并重新渲染跳转（具体是否可用仍由 isRealtimeRenderActive 控制）
   const updateAndRerenderMessageInWebGAL = useCallback(async (
     message: ChatMessageResponse,
     regenerateTTS: boolean = false,
   ): Promise<boolean> => {
-    if (!realtimeRender.isActive) {
-      return false;
-    }
-    return realtimeRender.updateAndRerenderMessage(message, roomId, regenerateTTS);
-  }, [realtimeRender, roomId]);
+    return await realtimeRenderApiRef.current?.updateAndRerenderMessage(message, regenerateTTS) ?? false;
+  }, []);
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
@@ -636,30 +260,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       roomRolesThatUserOwn,
       curRoleId,
       curAvatarId,
-      useChatBubbleStyle,
       spaceId,
-      setReplyMessage,
       chatHistory,
       scrollToGivenMessage,
-      // WebGAL 联动模式相关
-      webgalLinkMode,
-      setWebgalLinkMode,
-      defaultFigurePositionMap,
-      setDefaultFigurePosition: (roleId: number, position: "left" | "center" | "right" | undefined) => {
-        setDefaultFigurePositionMap(prev => ({
-          ...prev,
-          [roleId]: position,
-        }));
-      },
       // WebGAL 跳转功能 - 只有在实时渲染激活时才启用
-      jumpToMessageInWebGAL: realtimeRender.isActive ? jumpToMessageInWebGAL : undefined,
+      jumpToMessageInWebGAL: isRealtimeRenderActive ? jumpToMessageInWebGAL : undefined,
       // WebGAL 更新渲染并跳转 - 只有在实时渲染激活时才启用
-      updateAndRerenderMessageInWebGAL: realtimeRender.isActive ? updateAndRerenderMessageInWebGAL : undefined,
-      // 插入消息位置
-      insertAfterMessageId,
-      setInsertAfterMessageId,
+      updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage, webgalLinkMode, setWebgalLinkMode, defaultFigurePositionMap, setDefaultFigurePositionMap, realtimeRender.isActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, insertAfterMessageId]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, spaceId, chatHistory, scrollToGivenMessage, isRealtimeRenderActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   // 判断是否是观战成员 (memberType >= 3)
@@ -669,26 +278,35 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     roomId,
     userId,
     webSocketUtils,
-    inputText,
+    inputTextSource: {
+      get: () => useChatInputUiStore.getState().plainText,
+      subscribe: (listener) => {
+        return useChatInputUiStore.subscribe((state, prev) => {
+          if (state.plainText !== prev.plainText) {
+            listener(state.plainText);
+          }
+        });
+      },
+    },
     isSpectator, // 观战成员不发送状态
   });
 
   /**
    * ai自动补全
    */
-  const [LLMMessage, setLLMMessageRaw] = useState("");
+  const llmMessageRef = useRef("");
   const isAutoCompletingRef = useRef(false);
   const hintNodeRef = useRef<HTMLSpanElement | null>(null); // Ref for the hint span itself
   const justAcceptedRewriteRef = useRef(false); // 标记刚刚接受了重写，防止触发自动补全
 
   // AI重写相关状态
-  const [originalTextBeforeRewrite, setOriginalTextBeforeRewrite] = useState(""); // 保存重写前的原文
+  const originalTextBeforeRewriteRef = useRef(""); // 保存重写前的原文
 
   const setLLMMessage = (newLLMMessage: string) => {
     if (hintNodeRef.current) {
       hintNodeRef.current.remove(); // 移除旧的提示节点
     }
-    setLLMMessageRaw(newLLMMessage);
+    llmMessageRef.current = newLLMMessage;
 
     // 创建容器用于包含补全文本和提示词
     const containerNode = document.createElement("span");
@@ -751,6 +369,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     )).join("\n");
     const insertAtMiddle = afterMessage !== "";
     const curRoleName = userRoles?.find(r => r.roleId === curRoleId)?.roleName;
+    const currentPlainText = useChatInputUiStore.getState().plainText;
     const prompt = `
       你现在在进行一个跑团对话，请根据以下文本内容，提供一段自然连贯的${insertAtMiddle ? "插入语句" : "续写"}。
       重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释，不要输入任何多余不属于跑团内容的文本信息。
@@ -760,7 +379,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       === 聊天记录结束 ===
       这是你所扮演的角色的名字：${curRoleName}.
       你所输出的文本会被直接插入到已输入的文字${insertAtMiddle ? "中间" : "末尾"}，所以也不要重复已有文本的任何句子或词语。
-      ${insertAtMiddle ? `插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}` : `已输入的文本内容：${inputText}`}`;
+      ${insertAtMiddle ? `插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}` : `已输入的文本内容：${currentPlainText}`}`;
     sendLlmStreamMessage(prompt, (newContent) => {
       if (!isAutoCompletingRef.current)
         return false;
@@ -780,43 +399,44 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     }
 
     // 检查是否是重写模式（有原文保存）
-    if (originalTextBeforeRewrite) {
+    if (originalTextBeforeRewriteRef.current) {
       // 重写模式：直接设置为重写后的文本
-      const rewriteText = LLMMessage.replace(/\u200B/g, ""); // 移除零宽字符
+      const rewriteText = llmMessageRef.current.replace(/\u200B/g, ""); // 移除零宽字符
       setInputText(rewriteText);
       // 同步更新 DOM
       if (chatInputRef.current?.getRawElement()) {
         chatInputRef.current.getRawElement()!.textContent = rewriteText;
       }
-      setOriginalTextBeforeRewrite(""); // 清空原文记录
+      originalTextBeforeRewriteRef.current = ""; // 清空原文记录
       justAcceptedRewriteRef.current = true; // 标记刚刚接受了重写
       toast.success("已接受重写");
     }
     else {
       // 补全模式：插入到光标位置
-      chatInputRef.current.insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
+      chatInputRef.current.insertNodeAtCursor(llmMessageRef.current, { moveCursorToEnd: true });
     }
 
     setLLMMessage(""); // 清空补全状态
-    chatInputRef.current.triggerSync(); // 手动触发同步，更新父组件的 inputText 状态
+    chatInputRef.current.triggerSync(); // 手动触发同步，更新 store
   };
 
   // AI重写：显示为虚影预览
   const handleQuickRewrite = async (prompt: string) => {
-    if (!inputText.trim()) {
+    const currentPlainText = useChatInputUiStore.getState().plainText;
+    if (!currentPlainText.trim()) {
       toast.error("请先输入内容");
       return;
     }
 
     // 如果已有虚影补全，先清除
-    if (LLMMessage) {
+    if (llmMessageRef.current) {
       setLLMMessage("");
     }
 
-    setOriginalTextBeforeRewrite(inputText); // 保存原文
+    originalTextBeforeRewriteRef.current = currentPlainText; // 保存原文
 
     try {
-      const fullPrompt = `${prompt}\n\n请根据上述要求重写以下文本：\n${inputText}`;
+      const fullPrompt = `${prompt}\n\n请根据上述要求重写以下文本：\n${currentPlainText}`;
 
       // 清空输入框，插入零宽字符作为锚点
       const rawElement = chatInputRef.current?.getRawElement();
@@ -848,8 +468,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     catch (error) {
       toast.error(`AI重写失败: ${error}`);
       // 恢复原文
-      setInputText(originalTextBeforeRewrite);
-      setOriginalTextBeforeRewrite("");
+      setInputText(originalTextBeforeRewriteRef.current);
+      originalTextBeforeRewriteRef.current = "";
     }
   };
 
@@ -857,16 +477,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
    *处理与组件的各种交互
    */
   const handleSelectCommand = (cmdName: string) => {
-    const prefixChar = inputText[0] || "."; // 默认为 .
+    const prefixChar = useChatInputUiStore.getState().plainText[0] || "."; // 默认为 .
     setInputText(`${prefixChar}${cmdName} `);
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 没有权限
   const noRole = curRoleId <= 0;
-  const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile); // 没有内容
-  // WebGAL 联动模式下允许无角色发送（作为旁白）
-  const disableSendMessage = (noRole && !webgalLinkMode) || notMember || noInput || isSubmitting;
 
   /**
    * 发送消息的辅助函数
@@ -874,6 +491,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
    * 否则使用 WebSocket 发送
    */
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
+    const insertAfterMessageId = useRoomUiStore.getState().insertAfterMessageId;
+
     if (insertAfterMessageId && historyMessages) {
       // 找到目标消息的索引
       const targetIndex = historyMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
@@ -926,9 +545,42 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       // 普通发送
       send(message);
     }
-  }, [insertAfterMessageId, historyMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
+  }, [historyMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
 
   const handleMessageSubmit = async () => {
+    const {
+      plainText: inputText,
+      textWithoutMentions: inputTextWithoutMentions,
+      mentionedRoles: mentionedRolesInInput,
+    } = useChatInputUiStore.getState();
+
+    const {
+      imgFiles,
+      emojiUrls,
+      audioFile,
+      sendAsBackground,
+      audioPurpose,
+      setImgFiles,
+      setEmojiUrls,
+      setAudioFile,
+      setSendAsBackground,
+      setAudioPurpose,
+    } = useChatComposerStore.getState();
+
+    const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile);
+
+    const {
+      webgalLinkMode,
+      dialogNotend,
+      dialogConcat,
+      defaultFigurePositionMap,
+    } = useRoomPreferenceStore.getState();
+
+    const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
+
+    // WebGAL 联动模式下允许无角色发送（作为旁白）
+    const disableSendMessage = (noRole && !webgalLinkMode) || notMember || noInput || isSubmitting;
+
     if (disableSendMessage) {
       if (notMember)
         toast.error("您是观战，不能发送消息");
@@ -954,14 +606,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
         const { width, height, size } = await getImageSize(imgFiles[i]);
         uploadedImages.push({ url: imgDownLoadUrl, width, height, size, fileName: imgFiles[i].name });
       }
-      updateImgFiles([]);
+      setImgFiles([]);
 
       // 2. 上传表情 (视为图片)
       for (let i = 0; i < emojiUrls.length; i++) {
         const { width, height, size } = await getImageSize(emojiUrls[i]);
         uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
       }
-      updateEmojiUrls([]);
+      setEmojiUrls([]);
 
       // 3. 上传语音
       let soundMessageData: any = null;
@@ -982,7 +634,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       }
 
       // 4. 构建并发送消息
-      const finalReplyId = replyMessage?.messageId || undefined;
+      const finalReplyId = useRoomUiStore.getState().replyMessage?.messageId || undefined;
       let isFirstMessage = true;
 
       const getCommonFields = () => {
@@ -1064,10 +716,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       }
 
       setInputText(""); // 调用重构的 setInputText 来清空
-      setReplyMessage(undefined);
+      useRoomUiStore.getState().setReplyMessage(undefined);
       setSendAsBackground(false);
       setAudioPurpose(undefined);
-      setInsertAfterMessageId(undefined); // 清除插入位置
+      useRoomUiStore.getState().setInsertAfterMessageId(undefined); // 清除插入位置
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -1096,7 +748,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
 
   // *** 新增: onPasteFiles 的回调处理器 ***
   const handlePasteFiles = (files: File[]) => {
-    updateImgFiles((draft) => {
+    useChatComposerStore.getState().updateImgFiles((draft) => {
       draft.push(...files);
     });
   };
@@ -1114,10 +766,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     }
 
     // Esc 键：取消重写，恢复原文
-    if (e.key === "Escape" && originalTextBeforeRewrite) {
+    if (e.key === "Escape" && originalTextBeforeRewriteRef.current) {
       e.preventDefault();
-      setInputText(originalTextBeforeRewrite);
-      setOriginalTextBeforeRewrite("");
+      setInputText(originalTextBeforeRewriteRef.current);
+      originalTextBeforeRewriteRef.current = "";
       setLLMMessage("");
       toast("已取消重写", { icon: "ℹ️" });
       return;
@@ -1144,8 +796,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
     atMentionRef.current?.onKeyUp(e);
 
     // 按Tab键触发虚影补全（但不在刚接受重写后触发，也不在输入只有零宽字符时触发）
-    const hasRealContent = inputText.trim() && inputText !== "\u200B";
-    if (e.key === "Tab" && !LLMMessage && !isAutoCompletingRef.current && hasRealContent && !justAcceptedRewriteRef.current) {
+    const currentPlainText = useChatInputUiStore.getState().plainText;
+    const hasRealContent = currentPlainText.trim() && currentPlainText !== "\u200B";
+    if (e.key === "Tab" && !llmMessageRef.current && !isAutoCompletingRef.current && hasRealContent && !justAcceptedRewriteRef.current) {
       e.preventDefault();
       autoComplete();
     }
@@ -1231,59 +884,35 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       },
     });
     // 如果实时渲染开启，立即清除立绘
-    if (realtimeRender.isActive) {
-      realtimeRender.clearFigure(roomId);
+    if (isRealtimeRenderActive) {
+      realtimeRenderApiRef.current?.clearFigure();
     }
     toast.success("已清除立绘");
-  }, [roomId, send, realtimeRender]);
+  }, [isRealtimeRenderActive, roomId, send]);
 
   return (
     <RoomContext value={roomContext}>
+      <RoomSideDrawerGuards spaceId={spaceId} />
+      <RealtimeRenderOrchestrator
+        spaceId={spaceId}
+        roomId={roomId}
+        room={room}
+        roomRoles={roomRoles}
+        historyMessages={historyMessages}
+        chatHistoryLoading={!!chatHistory?.loading}
+        onApiChange={handleRealtimeRenderApiChange}
+      />
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
-        <div className="flex justify-between items-center py-1 px-5 bg-base-100">
-          <div className="flex gap-2">
-            <BaselineArrowBackIosNew
-              className="size-7"
-              onClick={
-                sideDrawerState === "none" ? spaceContext.toggleLeftDrawer : () => setSideDrawerState("none")
-              }
-            >
-            </BaselineArrowBackIosNew>
-            <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
-          </div>
-          <div className="flex gap-2 items-center">
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="导出记录"
-              onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
-            >
-              <SharpDownload className="size-7" />
-            </div>
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="房间成员"
-              onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
-            >
-              <MemberIcon className="size-7" />
-            </div>
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="房间角色"
-              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
-            >
-              <GirlIcon className="size-7" />
-            </div>
-            <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
-          </div>
-        </div>
+        <RoomHeaderBar
+          roomName={room?.name}
+          toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+        />
         <div className="h-px bg-base-300"></div>
         <div className="flex-1 w-full flex bg-base-100 relative min-h-0">
           <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
               <ChatFrame
-                useChatBubbleStyle={useChatBubbleStyle}
-                setUseChatBubbleStyle={setUseChatBubbleStyle}
                 key={roomId}
                 virtuosoRef={virtuosoRef}
               >
@@ -1291,298 +920,61 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
-            <div className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
-              <div className="relative flex-1 flex flex-col min-w-0">
-                <CommandPanel
-                  prefix={inputText} // *** 直接使用 inputText state ***
-                  handleSelectCommand={handleSelectCommand}
-                  commandMode={
-                    inputText.startsWith("%")
-                      ? "webgal"
-                      : (inputText.startsWith(".") || inputText.startsWith("。"))
-                          ? "dice"
-                          : "none"
-                  }
-                  ruleId={space?.ruleId ?? -1}
-                  className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
-                />
-
-                {/* 底部工具栏 */}
-                {/* 状态显示条 */}
-
-                <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
-                <ChatToolbar
-                  sideDrawerState={sideDrawerState}
-                  setSideDrawerState={setSideDrawerState}
-                  updateEmojiUrls={updateEmojiUrls}
-                  updateImgFiles={updateImgFiles}
-                  disableSendMessage={disableSendMessage}
-                  handleMessageSubmit={handleMessageSubmit}
-                  onAIRewrite={handleQuickRewrite}
-                  currentChatStatus={myStatue as any}
-                  onChangeChatStatus={handleManualStatusChange}
-                  isSpectator={isSpectator}
-                  isRealtimeRenderActive={realtimeRender.isActive}
-                  onToggleRealtimeRender={handleToggleRealtimeRender}
-                  webgalLinkMode={webgalLinkMode}
-                  onToggleWebgalLinkMode={() => setWebgalLinkMode(!webgalLinkMode)}
-                  autoReplyMode={autoReplyMode}
-                  onToggleAutoReplyMode={() => setAutoReplyMode(!autoReplyMode)}
-                  runModeEnabled={runModeEnabled}
-                  onToggleRunMode={toggleRunMode}
-                  defaultFigurePosition={currentDefaultFigurePosition}
-                  onSetDefaultFigurePosition={setCurrentDefaultFigurePosition}
-                  dialogNotend={dialogNotend}
-                  onToggleDialogNotend={() => setDialogNotend(!dialogNotend)}
-                  dialogConcat={dialogConcat}
-                  onToggleDialogConcat={() => setDialogConcat(!dialogConcat)}
-                  onSendEffect={handleSendEffect}
-                  onClearBackground={handleClearBackground}
-                  onClearFigure={handleClearFigure}
-                  setAudioFile={setAudioFile}
-                  onCreateThread={() => setIsThreadHandleOpen(true)}
-                />
-                <div className="flex gap-2 items-stretch">
-                  <AvatarSwitch
-                    curRoleId={curRoleId}
-                    curAvatarId={curAvatarId}
-                    setCurAvatarId={setCurAvatarId}
-                    setCurRoleId={setCurRoleId}
-                  >
-                  </AvatarSwitch>
-                  {/* 输入框容器 */}
-                  <div
-                    className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
-                  >
-                    {(imgFiles.length > 0 || emojiUrls.length > 0 || audioFile) && (
-                      <div className="flex flex-col gap-1 p-2 pb-1 border-b border-base-200/50">
-                        <div className="flex flex-row gap-x-3 overflow-x-auto">
-                          {imgFiles.map((file, index) => (
-                            <BetterImg
-                              src={file}
-                              className="h-12 w-max rounded"
-                              onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                              key={file.name}
-                            />
-                          ))}
-                          {imgFiles.length > 0 && (
-                            <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
-                              <input
-                                type="checkbox"
-                                className="checkbox checkbox-xs checkbox-primary"
-                                checked={sendAsBackground}
-                                onChange={e => setSendAsBackground(e.target.checked)}
-                              />
-                              <span>设为背景</span>
-                            </label>
-                          )}
-                          {emojiUrls.map((url, index) => (
-                            <BetterImg
-                              src={url}
-                              className="h-12 w-max rounded"
-                              onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
-                              key={url}
-                            />
-                          ))}
-                          {audioFile && (
-                            <div className="relative group flex-shrink-0">
-                              <div className="h-12 w-12 rounded bg-base-200 flex items-center justify-center border border-base-300" title={audioFile.name}>
-                                <MusicNote className="size-6 opacity-70" />
-                              </div>
-                              <div
-                                className="absolute -top-1 -right-1 bg-base-100 rounded-full shadow cursor-pointer hover:bg-error hover:text-white transition-colors z-10"
-                                onClick={() => setAudioFile(null)}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
-                                语音
-                              </div>
-                            </div>
-                          )}
-                          {audioFile && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-base-content/60">用途:</span>
-                              <select
-                                title="选择音频用途"
-                                className="select select-xs select-bordered"
-                                value={audioPurpose || ""}
-                                onChange={e => setAudioPurpose(e.target.value as "bgm" | "se" | undefined || undefined)}
-                              >
-                                <option value="">普通语音</option>
-                                <option value="bgm">BGM</option>
-                                <option value="se">音效</option>
-                              </select>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {
-                      replyMessage && (
-                        <div className="p-2 pb-1">
-                          <RepliedMessage
-                            replyMessage={replyMessage}
-                            className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm p-1"
-                          />
-                        </div>
-                      )
-                    }
-                    {/* 插入消息模式指示器 */}
-                    {
-                      insertAfterMessageId && (
-                        <div className="p-2 pb-1">
-                          <div className="flex flex-row gap-2 items-center bg-info/20 rounded-box shadow-sm text-sm p-2 justify-between">
-                            <span className="text-info-content">
-                              📍 将在消息后插入
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-xs btn-ghost"
-                              onClick={() => setInsertAfterMessageId(undefined)}
-                            >
-                              取消
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    }
-
-                    <ChatInputArea
-                      ref={chatInputRef}
-                      onInputSync={handleInputAreaChange}
-                      onPasteFiles={handlePasteFiles}
-                      onKeyDown={handleKeyDown}
-                      onKeyUp={handleKeyUp}
-                      onMouseDown={handleMouseDown}
-                      onCompositionStart={() => isComposingRef.current = true}
-                      onCompositionEnd={() => isComposingRef.current = false}
-                      disabled={notMember && noRole} // 观战者被禁用
-                      placeholder={placeholderText}
-                    />
-
-                    {/* WebGAL 文本样式工具栏 - 紧贴输入框底部 */}
-                    <TextStyleToolbar
-                      chatInputRef={chatInputRef}
-                      className="px-2 pb-1"
-                    />
-
-                  </div>
-                  <AtMentionController
-                    ref={atMentionRef}
-                    chatInputRef={chatInputRef}
-                    allRoles={roomRoles}
-                  >
-                  </AtMentionController>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="w-px bg-base-300 flex-shrink-0"></div>
-          <OpenAbleDrawer
-            isOpen={sideDrawerState === "user"}
-            className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
-            initialWidth={userDrawerWidth}
-            onWidthChange={setUserDrawerWidth}
-          >
-            <RoomUserList></RoomUserList>
-          </OpenAbleDrawer>
-          <OpenAbleDrawer
-            isOpen={sideDrawerState === "role"}
-            className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
-            initialWidth={roleDrawerWidth}
-            onWidthChange={setRoleDrawerWidth}
-          >
-            <RoomRoleList></RoomRoleList>
-          </OpenAbleDrawer>
-          <OpenAbleDrawer
-            isOpen={sideDrawerState === "initiative"}
-            className="max-h-full overflow-auto z-20"
-            initialWidth={initiativeDrawerWidth}
-            onWidthChange={setInitiativeDrawerWidth}
-          >
-            <InitiativeList></InitiativeList>
-          </OpenAbleDrawer>
-          <OpenAbleDrawer
-            isOpen={sideDrawerState === "map"}
-            className="h-full overflow-auto z-20"
-            initialWidth={mapDrawerWidth}
-            onWidthChange={setMapDrawerWidth}
-            maxWidth={window.innerWidth - 700}
-          >
-            <DNDMap></DNDMap>
-          </OpenAbleDrawer>
-          <OpenAbleDrawer
-            isOpen={sideDrawerState === "clue"}
-            className="h-full bg-base-100 overflow-auto z-20"
-            initialWidth={clueDrawerWidth}
-            onWidthChange={setClueDrawerWidth}
-          >
-            {spaceContext.isSpaceOwner
-              ? <ClueListForPL onSend={handleClueSend}></ClueListForPL>
-              : <ClueListForPL onSend={handleClueSend}></ClueListForPL>}
-          </OpenAbleDrawer>
-          <OpenAbleDrawer
-            isOpen={sideDrawerState === "export"}
-            className="h-full bg-base-100 overflow-auto z-20"
-            initialWidth={exportDrawerWidth}
-            onWidthChange={setExportDrawerWidth}
-          >
-            <ExportChatDrawer></ExportChatDrawer>
-          </OpenAbleDrawer>
-          <OpenAbleDrawer
-            isOpen={sideDrawerState === "webgal"}
-            className="h-full bg-base-100 overflow-hidden z-20"
-            initialWidth={webgalDrawerWidth}
-            onWidthChange={setWebgalDrawerWidth}
-            maxWidth={window.innerWidth - 500}
-          >
-            <WebGALPreview
-              previewUrl={realtimeRender.previewUrl}
-              isActive={realtimeRender.isActive}
-              ttsEnabled={realtimeTTSEnabled}
-              onTTSToggle={setRealtimeTTSEnabled}
-              ttsApiUrl={ttsApiUrl}
-              onTTSApiUrlChange={handleTtsApiUrlChange}
-              miniAvatarEnabled={realtimeMiniAvatarEnabled}
-              onMiniAvatarToggle={setRealtimeMiniAvatarEnabled}
-              autoFigureEnabled={realtimeAutoFigureEnabled}
-              onAutoFigureToggle={setRealtimeAutoFigureEnabled}
-              onClose={() => {
-                realtimeRender.stop();
-                setIsRealtimeRenderEnabled(false);
-                setSideDrawerState("none");
-              }}
+            <RoomComposerPanel
+              roomId={roomId}
+              userId={userId}
+              webSocketUtils={webSocketUtils}
+              handleSelectCommand={handleSelectCommand}
+              ruleId={space?.ruleId ?? -1}
+              virtuosoRef={virtuosoRef as any}
+              handleMessageSubmit={handleMessageSubmit}
+              onAIRewrite={handleQuickRewrite}
+              currentChatStatus={myStatue as any}
+              onChangeChatStatus={handleManualStatusChange}
+              isSpectator={isSpectator}
+              onToggleRealtimeRender={handleToggleRealtimeRender}
+              onSendEffect={handleSendEffect}
+              onClearBackground={handleClearBackground}
+              onClearFigure={handleClearFigure}
+              noRole={noRole}
+              notMember={notMember}
+              isSubmitting={isSubmitting}
+              placeholderText={placeholderText}
+              curRoleId={curRoleId}
+              curAvatarId={curAvatarId}
+              setCurRoleId={setCurRoleId}
+              setCurAvatarId={setCurAvatarId}
+              roomRoles={roomRoles}
+              chatInputRef={chatInputRef as any}
+              atMentionRef={atMentionRef as any}
+              onInputSync={handleInputAreaChange}
+              onPasteFiles={handlePasteFiles}
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
+              onMouseDown={handleMouseDown}
+              onCompositionStart={() => isComposingRef.current = true}
+              onCompositionEnd={() => isComposingRef.current = false}
+              inputDisabled={notMember && noRole}
             />
-          </OpenAbleDrawer>
+          </div>
+          <RoomSideDrawers
+            onClueSend={handleClueSend}
+            stopRealtimeRender={handleStopRealtimeRender}
+          />
         </div>
       </div>
 
-      {/* 创建子区(Thread) */}
-      <PopWindow
-        isOpen={isThreadHandleOpen}
-        onClose={() => setIsThreadHandleOpen(false)}
-      >
-        <CreateRoomWindow
-          spaceId={spaceId}
-          spaceAvatar={space?.avatar}
-          parentRoomId={roomId}
-          onSuccess={(newRoomId) => {
-            if (newRoomId) {
-              onSelectRoom?.(newRoomId);
-            }
-            setIsThreadHandleOpen(false);
-          }}
-        />
-      </PopWindow>
-      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
-      </PopWindow>
-      <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
-        <RenderWindow></RenderWindow>
-      </PopWindow>
+      <RoomPopWindows
+        spaceId={spaceId}
+        spaceAvatar={space?.avatar}
+        roomId={roomId}
+        onSelectRoom={onSelectRoom}
+        isRoleHandleOpen={isRoleHandleOpen}
+        setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
+        handleAddRole={handleAddRole}
+        isRenderWindowOpen={isRenderWindowOpen}
+        setIsRenderWindowOpen={setIsRenderWindowOpen}
+      />
     </RoomContext>
   );
 }

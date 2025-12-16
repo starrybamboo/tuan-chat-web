@@ -1,13 +1,10 @@
 import type { UseChatHistoryReturn } from "@/components/chat/indexedDB/useChatHistory";
 // src/context/chat-context.tsx
-import type React from "react";
 import type {
   ChatMessageResponse,
-  Message,
   SpaceMember,
   UserRole,
 } from "../../../api";
-
 import { createContext } from "react";
 
 export interface RoomContextType {
@@ -29,14 +26,8 @@ export interface RoomContextType {
   /** 当前选中角色的立绘ID */
   curAvatarId?: number;
 
-  /** 是否使用气泡样式显示消息 */
-  useChatBubbleStyle: boolean;
-
   /** 当前激活的空间ID */
   spaceId?: number;
-
-  /** 设置回复消息的回调函数 */
-  setReplyMessage?: React.Dispatch<React.SetStateAction<Message | undefined>>;
 
   /**
    * 历史消息
@@ -60,25 +51,6 @@ export interface RoomContextType {
    * WebGAL 联动模式
    * 开启后会在消息气泡中显示立绘位置、情感等设置
    */
-  webgalLinkMode?: boolean;
-
-  /**
-   * 设置 WebGAL 联动模式
-   */
-  setWebgalLinkMode?: (mode: boolean) => void;
-
-  /**
-   * 角色默认立绘位置 Map
-   * key: roleId, value: "left" | "center" | "right" | undefined
-   * undefined 表示不显示立绘
-   */
-  defaultFigurePositionMap?: Record<number, "left" | "center" | "right" | undefined>;
-
-  /**
-   * 设置角色默认立绘位置
-   * position 为 undefined 时表示不显示立绘
-   */
-  setDefaultFigurePosition?: (roleId: number, position: "left" | "center" | "right" | undefined) => void;
 
   /**
    * 更新消息渲染设置并在 WebGAL 中重新渲染跳转
@@ -88,17 +60,6 @@ export interface RoomContextType {
    */
   updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
 
-  /**
-   * 在指定消息下方插入新消息
-   * 当此值不为 undefined 时，下一条发送的消息将被插入到该消息下方
-   */
-  insertAfterMessageId?: number;
-
-  /**
-   * 设置插入位置
-   * @param messageId 要在其下方插入的消息ID，传 undefined 取消插入模式
-   */
-  setInsertAfterMessageId?: (messageId: number | undefined) => void;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -108,19 +69,9 @@ export const RoomContext = createContext<RoomContextType>({
   roomRolesThatUserOwn: [],
   curAvatarId: undefined,
   curRoleId: undefined,
-  useChatBubbleStyle: false,
   spaceId: undefined,
-  setReplyMessage: undefined,
   chatHistory: undefined,
   scrollToGivenMessage: undefined,
   jumpToMessageInWebGAL: undefined,
-  webgalLinkMode: false,
-  setWebgalLinkMode: undefined,
-  defaultFigurePositionMap: {},
-  setDefaultFigurePosition: undefined,
-  autoReplyMode: false,
-  setAutoReplyMode: undefined,
   updateAndRerenderMessageInWebGAL: undefined,
-  insertAfterMessageId: undefined,
-  setInsertAfterMessageId: undefined,
 });
