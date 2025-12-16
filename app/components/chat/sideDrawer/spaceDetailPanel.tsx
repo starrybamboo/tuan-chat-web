@@ -6,13 +6,13 @@ import RenderWindow from "@/components/chat/window/renderWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import { MapPlaceHolderIcon, MemberIcon, Setting, WebgalIcon } from "@/icons";
-import { use } from "react";
+import { use, useState } from "react";
 import toast from "react-hot-toast";
 import {
   useAddSpaceMemberMutation,
   useAddSpaceRoleMutation,
   useGetSpaceMembersQuery,
+  useSetPlayerMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import WorkflowWindow from "../window/workflowWindow";
 
@@ -27,11 +27,16 @@ export default function SpaceDetailPanel() {
   // 是否显示space详情
   const [_, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
 
+  const [activeTab, _setActiveTab] = useSearchParamsState<"members" | "render" | "workflow" | "setting">("spaceDetailTab", "members");
+  const resolvedTab = (!spaceContext.isSpaceOwner && activeTab === "setting") ? "members" : activeTab;
+
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useSearchParamsState<boolean>(`spaceRolePop${spaceContext.spaceId}`, false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>(`spaceUserPop${spaceContext.spaceId}`, false);
+  const [inviteMemberMode, setInviteMemberMode] = useState<"spectator" | "player">("spectator");
 
   const addMemberMutation = useAddSpaceMemberMutation();
   const addRoleMutation = useAddSpaceRoleMutation();
+  const setPlayerMutation = useSetPlayerMutation();
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
@@ -55,125 +60,128 @@ export default function SpaceDetailPanel() {
       },
     });
   }
+
+  const handleAddPlayer = (userId: number) => {
+    const isAlreadyMember = spaceMembers.some(m => m.userId === userId);
+
+    const grantPlayer = () => {
+      setPlayerMutation.mutate({
+        spaceId,
+        uidList: [userId],
+      }, {
+        onSettled: () => {
+          setIsMemberHandleOpen(false);
+          setInviteMemberMode("spectator");
+        },
+      });
+    };
+
+    if (isAlreadyMember) {
+      grantPlayer();
+      return;
+    }
+
+    addMemberMutation.mutate({
+      spaceId,
+      userIdList: [userId],
+    }, {
+      onSuccess: () => {
+        grantPlayer();
+      },
+      onError: () => {
+        grantPlayer();
+      },
+    });
+  };
   return (
-    <div className="flex flex-row gap-4 h-full w-full">
-      {/* name of each tab group should be unique */}
-      <div className="tabs tabs-lift h-full">
-        {/* 群成员列表 */}
-        <label className="tab">
-          <input type="radio" name="space_detail_tabs" defaultChecked />
-          <MemberIcon className="size-4"></MemberIcon>
-          群成员
-        </label>
-        <div className="tab-content space-y-2 p-4 overflow-y-auto">
+    <div className="h-full w-full overflow-hidden">
+      {resolvedTab === "members" && (
+        <div className="h-full space-y-2 p-4 overflow-y-auto">
           <div className="flex flex-row justify-center items-center gap-2 px-4">
             <p>
               空间成员-
               {spaceMembers.length}
             </p>
-            {
-              spaceMembers.length > 0
-              && (
-                <button
-                  className="btn btn-dash btn-info"
-                  type="button"
-                  onClick={() => setIsMemberHandleOpen(true)}
-                >
-                  邀请观战
-                </button>
-              )
-            }
           </div>
           <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
-        {/* 角色列表 */}
-        {/* <label className="tab"> */}
-        {/*  <input type="radio" name="space_detail_tabs" /> */}
-        {/*  <GirlIcon className="size-4"></GirlIcon> */}
-        {/*  角色 */}
-        {/* </label> */}
-        {/* <div className="tab-content space-y-2 p-4 overflow-y-auto"> */}
-        {/*  <div className="flex flex-row justify-center items-center gap-2 px-4"> */}
-        {/*    <p> */}
-        {/*      角色列表- */}
-        {/*      <span className="text-sm">{spaceRoles.length}</span> */}
-        {/*    </p> */}
-        {/*    { */}
-        {/*      (1) && ( */}
-        {/*        <button */}
-        {/*          className="btn btn-dash btn-info" */}
-        {/*          type="button" */}
-        {/*          onClick={() => setIsRoleHandleOpen(true)} */}
-        {/*        > */}
-        {/*          添加角色 */}
-        {/*        </button> */}
-        {/*      ) */}
-        {/*    } */}
-        {/*  </div> */}
-        {/*  {spaceRoles.map((role) => { */}
-        {/*    return ( */}
-        {/*      <div */}
-        {/*        key={role.roleId} */}
-        {/*        className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center " */}
-        {/*      > */}
-        {/*        /!* role列表 *!/ */}
-        {/*        <RoleAvatarComponent */}
-        {/*          avatarId={role.avatarId ?? 0} */}
-        {/*          width={8} */}
-        {/*          isRounded={true} */}
-        {/*          withTitle={false} */}
-        {/*        /> */}
-        {/*        <div className="flex flex-col items-center gap-2 text-sm font-medium"> */}
-        {/*          <span>{role.roleName || "未命名角色"}</span> */}
-        {/*        </div> */}
-        {/*      </div> */}
-        {/*    ); */}
-        {/*  })} */}
-        {/* </div> */}
-        {/* 设置窗口 */}
-        {
-          spaceContext.isSpaceOwner && (
-            <>
-              <label className="tab">
-                <input type="radio" name="space_detail_tabs" />
-                <Setting className="size-4"></Setting>
-                设置
-              </label>
-              <div className="tab-content p-4 overflow-y-auto">
-                <SpaceSettingWindow onClose={() => { setIsShowSpacePanel(false); }}></SpaceSettingWindow>
-              </div>
-            </>
-          )
-        }
-        {/* 渲染对话 */}
-        <label className="tab">
-          <input
-            type="radio"
-            name="space_detail_tabs"
-          />
-          <WebgalIcon className="size-4 mr-1" />
-          渲染
-        </label>
-        <div className="tab-content p-4 overflow-y-auto">
+      )}
+
+      {resolvedTab === "setting" && spaceContext.isSpaceOwner && (
+        <div className="h-full p-4 overflow-y-auto">
+          <SpaceSettingWindow onClose={() => { setIsShowSpacePanel(false); }}></SpaceSettingWindow>
+        </div>
+      )}
+
+      {resolvedTab === "render" && (
+        <div className="h-full p-4 overflow-y-auto">
           <RenderWindow></RenderWindow>
         </div>
-        <label className="tab">
-          <input
-            type="radio"
-            name="space_detail_tabs"
-          />
-          <MapPlaceHolderIcon className="size-4 mr-1" />
-          流程图
-        </label>
-        <div className="tab-content p-4 overflow-y-auto">
+      )}
+
+      {resolvedTab === "workflow" && (
+        <div className="h-full p-4 overflow-y-auto">
           <WorkflowWindow></WorkflowWindow>
         </div>
-      </div>
+      )}
+
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
-      <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
+      <PopWindow
+        isOpen={isMemberHandleOpen}
+        onClose={() => {
+          setIsMemberHandleOpen(false);
+          setInviteMemberMode("spectator");
+        }}
+      >
+        <div className="w-[min(720px,92vw)]">
+          <div className="mb-3">
+            <div className="text-sm font-medium opacity-80 mb-2">邀请类型</div>
+            <div className="grid grid-cols-2 gap-2">
+              <label
+                className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${inviteMemberMode === "spectator" ? "bg-base-200" : "bg-base-100"}`}
+              >
+                <input
+                  type="radio"
+                  name="space_invite_mode_panel"
+                  className="radio radio-sm mt-1"
+                  checked={inviteMemberMode === "spectator"}
+                  onChange={() => setInviteMemberMode("spectator")}
+                  aria-label="邀请观战"
+                />
+                <div className="min-w-0">
+                  <div className="font-medium">邀请观战</div>
+                  <div className="text-xs opacity-70">加入空间成员（不授予玩家身份）</div>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${inviteMemberMode === "player" ? "bg-base-200" : "bg-base-100"}`}
+              >
+                <input
+                  type="radio"
+                  name="space_invite_mode_panel"
+                  className="radio radio-sm mt-1"
+                  checked={inviteMemberMode === "player"}
+                  onChange={() => setInviteMemberMode("player")}
+                  aria-label="邀请玩家"
+                />
+                <div className="min-w-0">
+                  <div className="font-medium">邀请玩家</div>
+                  <div className="text-xs opacity-70">加入空间后会自动授予玩家身份</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {inviteMemberMode === "player" && (
+            <div className="alert alert-info mb-3">
+              <span className="text-sm">提示：邀请玩家会在加入空间后自动授予玩家身份，可参与游戏。</span>
+            </div>
+          )}
+          <AddMemberWindow handleAddMember={userId => (inviteMemberMode === "spectator" ? handleAddMember(userId) : handleAddPlayer(userId))}></AddMemberWindow>
+        </div>
       </PopWindow>
     </div>
   );

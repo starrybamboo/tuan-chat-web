@@ -1,10 +1,11 @@
 import type { SpaceContextType } from "@/components/chat/spaceContext";
 import type { Room } from "../../../api";
 import ChatPageContextMenu from "@/components/chat/chatPageContextMenu";
+import ChatRoomListPanel from "@/components/chat/components/chatRoomListPanel";
+import ChatSpaceSidebar from "@/components/chat/components/chatSpaceSidebar";
+import SpaceInvitePanel from "@/components/chat/components/spaceInvitePanel";
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
-import RoomButton from "@/components/chat/smallComponents/roomButton";
-import SpaceButton from "@/components/chat/smallComponents/spaceButton";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceContextMenu from "@/components/chat/spaceContextMenu";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
@@ -17,17 +18,17 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import LeftChatList from "@/components/privateChat/Left​​ChatList​​";
 import RightChatView from "@/components/privateChat/RightChatView";
-import { AddIcon, Setting } from "@/icons";
 import {
   useAddRoomMemberMutation,
+  useAddSpaceMemberMutation,
   useGetSpaceMembersQuery,
   useGetUserRoomsQueries,
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
+  useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 /**
@@ -73,9 +74,14 @@ export default function ChatPage() {
     navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${newSearchParams.toString()}`);
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
+  const hasInitPrivateChatRef = useRef(false);
   useEffect(() => {
+    if (hasInitPrivateChatRef.current)
+      return;
     if (!isPrivateChatMode)
       return;
+    hasInitPrivateChatRef.current = true;
+
     // 恢复上次的激活空间和房间,否则恢复第一个房间
     const targetRoomId = storedIds.roomId ?? rooms[0]?.roomId;
     if (targetRoomId) {
@@ -85,7 +91,7 @@ export default function ChatPage() {
     if (targetSpaceId) {
       setActiveSpaceId(targetSpaceId);
     }
-  }, []);
+  }, [isPrivateChatMode, rooms, setActiveRoomId, setActiveSpaceId, storedIds.roomId, storedIds.spaceId]);
 
   useLayoutEffect(() => {
     // 在空间模式下，切换空间后默认选中第一个房间
@@ -110,12 +116,24 @@ export default function ChatPage() {
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
   // 是否显示space详情
   const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
+  const [_spaceDetailTab, _setSpaceDetailTab] = useSearchParamsState<"members" | "render" | "workflow" | "setting">("spaceDetailTab", "members");
+
+  const openSpaceDetailPanel = useCallback((tab: "members" | "render" | "workflow" | "setting") => {
+    const next = new URLSearchParams(searchParam);
+    next.set("spaceDetailTab", JSON.stringify(tab));
+    next.set("spaceDetailPop", JSON.stringify(true));
+    navigate({ search: `?${next.toString()}` });
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, [navigate, searchParam]);
+  // 空间成员邀请窗口状态
+  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
   // 房间设置窗口状态
   const [activeRoomSettingId, setActiveRoomSettingId] = useState<number | null>(null);
+  const [activeRoomSettingTab, setActiveRoomSettingTab] = useState<"role" | "setting" | "render">("role");
   // 房间邀请窗口状态
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
-  const [_sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
-  const [_isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
+  const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  const [_isRenderWindowOpen, _setIsRenderWindowOpen] = useState(false);
 
   // 获取当前用户信息
   const globalContext = useGlobalContext();
@@ -196,7 +214,7 @@ export default function ChatPage() {
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
     return {
       spaceId: activeSpaceId ?? -1,
-      isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
+      isSpaceOwner: !!spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
       setActiveSpaceId,
       setActiveRoomId,
       toggleLeftDrawer: () => { setIsOpenLeftDrawer(!isOpenLeftDrawer); },
@@ -217,14 +235,17 @@ export default function ChatPage() {
 
   // 添加房间成员的mutation
   const addRoomMemberMutation = useAddRoomMemberMutation();
+  // 添加空间成员的mutation
+  const addSpaceMemberMutation = useAddSpaceMemberMutation();
+  const setPlayerMutation = useSetPlayerMutation();
 
   // 处理邀请玩家
   const handleInvitePlayer = (roomId: number) => {
     setInviteRoomId(roomId);
   };
 
-  // 处理添加成员
-  const handleAddMember = (userId: number) => {
+  // 处理添加房间成员
+  const handleAddRoomMember = (userId: number) => {
     if (inviteRoomId) {
       addRoomMemberMutation.mutate({
         roomId: inviteRoomId,
@@ -237,140 +258,114 @@ export default function ChatPage() {
     }
   };
 
+  // 处理添加空间成员
+  const handleAddSpaceMember = (userId: number) => {
+    if (activeSpaceId) {
+      addSpaceMemberMutation.mutate({
+        spaceId: activeSpaceId,
+        userIdList: [userId],
+      }, {
+        onSuccess: () => {
+          setIsMemberHandleOpen(false);
+        },
+      });
+    }
+  };
+
+  const handleAddSpacePlayer = (userId: number) => {
+    if (!activeSpaceId)
+      return;
+
+    const isAlreadyMember = (spaceMembersQuery.data?.data ?? []).some(m => m.userId === userId);
+
+    const grantPlayer = () => {
+      setPlayerMutation.mutate({
+        spaceId: activeSpaceId,
+        uidList: [userId],
+      }, {
+        onSettled: () => {
+          setIsMemberHandleOpen(false);
+        },
+      });
+    };
+
+    if (isAlreadyMember) {
+      grantPlayer();
+      return;
+    }
+
+    addSpaceMemberMutation.mutate({
+      spaceId: activeSpaceId,
+      userIdList: [userId],
+    }, {
+      onSuccess: () => {
+        grantPlayer();
+      },
+      onError: () => {
+        grantPlayer();
+      },
+    });
+  };
+
   return (
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1 h-full relative">
         {/* 只有小屏才允许收起侧边栏 */}
-        <OpenAbleDrawer isOpen={screenSize === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
+        <OpenAbleDrawer
+          isOpen={screenSize === "sm" ? isOpenLeftDrawer : true}
+          className="h-full z-10 w-full bg-base-100"
+          initialWidth={430}
+          minWidth={430}
+          maxWidth={600}
+        >
           <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
-            <div className="flex flex-col py-2 bg-base-300/40 h-full overflow-y-auto">
-              {/* 私信入口 */}
-              <div className="rounded w-10 relative mx-2">
-                <div
-                  className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
-                  }`}
-                />
-                <button
-                  className="tooltip tooltip-bottom w-10 btn btn-square"
-                  data-tip="私信"
-                  type="button"
-                  onClick={() => {
-                    setActiveSpaceId(null);
-                    setActiveRoomId(null);
-                    navigate("/chat/private");
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* 分隔线 */}
-              <div className="w-8 h-px bg-base-300 mx-3"></div>
-
-              <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2" onContextMenu={handleSpaceContextMenu}>
-                {/* 全部空间列表 */}
-                {spaces.map(space => (
-                  <div key={space.spaceId} data-space-id={space.spaceId}>
-                    <SpaceButton
-                      space={space}
-                      unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
-                      onclick={() => {
-                        if (activeSpaceId !== space.spaceId) {
-                          setActiveSpaceId(space.spaceId ?? -1);
-                        }
-                      }}
-                      isActive={activeSpaceId === space.spaceId}
-                    >
-                    </SpaceButton>
-                  </div>
-                ))}
-              </div>
-              <button
-                className="tooltip tooltip-top btn btn-square btn-dash btn-info w-10 mx-2"
-                type="button"
-                data-tip="创建"
-                onClick={() => {
-                  setIsSpaceHandleOpen(true);
-                }}
-              >
-                <div className="avatar mask mask-squircle flex content-center">
-                  <AddIcon></AddIcon>
-                </div>
-              </button>
-            </div>
+            <ChatSpaceSidebar
+              isPrivateChatMode={isPrivateChatMode}
+              spaces={spaces}
+              activeSpaceId={activeSpaceId}
+              getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+              onOpenPrivate={() => {
+                setActiveSpaceId(null);
+                setActiveRoomId(null);
+                navigate("/chat/private");
+              }}
+              onSelectSpace={(spaceId) => {
+                setActiveSpaceId(spaceId);
+              }}
+              onCreateSpace={() => {
+                setIsSpaceHandleOpen(true);
+              }}
+              onSpaceContextMenu={handleSpaceContextMenu}
+            />
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div
-              className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0"
+            <ChatRoomListPanel
+              isPrivateChatMode={isPrivateChatMode}
+              activeSpaceId={activeSpaceId}
+              activeSpaceName={activeSpace?.name}
+              isSpaceOwner={!!spaceContext.isSpaceOwner}
+              rooms={rooms}
+              activeRoomId={activeRoomId}
+              unreadMessagesNumber={unreadMessagesNumber}
               onContextMenu={handleContextMenu}
-            >
-              {isPrivateChatMode
-                ? (
-                    <LeftChatList
-                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                    />
-                  )
-                : (
-                    <>
-                      {
-                        activeSpaceId && (
-                          <div className="self-center font-bold flex gap-2">
-                            <span className="text-lg">{activeSpace?.name}</span>
-                            <Setting className="size-7 hover:bg-base-300 rounded cursor-pointer hover:text-info" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
-                          </div>
-                        )
-                      }
-
-                      <div className="h-px bg-base-300"></div>
-                      <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
-                        {rooms.filter(room => room.spaceId === activeSpaceId).map(room => (
-                          <div className="flex items-center gap-1 group w-full" key={room.roomId} data-room-id={room.roomId}>
-                            <RoomButton
-                              room={room}
-                              unreadMessageNumber={unreadMessagesNumber[room.roomId ?? -1]}
-                              onclick={() => {
-                                setActiveRoomId(room.roomId ?? -1);
-                                setIsOpenLeftDrawer(false);
-                              }}
-                              isActive={activeRoomId === room.roomId}
-                            >
-                            </RoomButton>
-                            {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
-                            <div
-                              className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                              data-tip="房间设置"
-                            >
-                              <Setting
-                                className="size-6 cursor-pointer hover:text-info hover:bg-base-300 rounded"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // 仅传入真实 roomId，使用 null 表示关闭/未选择
-                                  setActiveRoomSettingId(room.roomId ?? null);
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {activeSpaceId !== null && spaceContext.isSpaceOwner && (
-                        <button
-                          className="btn btn-dash btn-info flex mx-2"
-                          type="button"
-                          onClick={() => {
-                            if (activeSpaceId) {
-                              setIsRoomHandleOpen(true);
-                            }
-                          }}
-                        >
-                          创建房间
-                        </button>
-                      )}
-                    </>
-                  )}
-            </div>
+              onInviteMember={() => setIsMemberHandleOpen(true)}
+              onOpenSpaceDetailPanel={openSpaceDetailPanel}
+              onSelectRoom={(roomId) => {
+                setActiveRoomId(roomId);
+              }}
+              onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+              onOpenRoomSetting={(roomId, tab) => {
+                setActiveRoomSettingId(roomId);
+                tab && setActiveRoomSettingTab(tab);
+              }}
+              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              onCreateRoom={() => {
+                if (activeSpaceId) {
+                  setIsRoomHandleOpen(true);
+                }
+              }}
+            />
           </div>
         </OpenAbleDrawer>
         {/* 聊天记录窗口，输入窗口，侧边栏 */}
@@ -384,7 +379,7 @@ export default function ChatPage() {
               <>
                 {
                   activeSpaceId
-                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} targetMessageId={targetMessageId} />
+                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} targetMessageId={targetMessageId} onSelectRoom={setActiveRoomId} />
                     : (
                         <div className="flex items-center justify-center w-full h-full font-bold">
                           <span className="text-center lg:hidden">请从右侧选择房间</span>
@@ -426,14 +421,7 @@ export default function ChatPage() {
             <RoomSettingWindow
               roomId={activeRoomSettingId}
               onClose={() => setActiveRoomSettingId(null)}
-              onShowMembers={() => {
-                setSideDrawerState("user");
-                setActiveRoomSettingId(null);
-              }}
-              onRenderDialog={() => {
-                setIsRenderWindowOpen(true);
-                setActiveRoomSettingId(null);
-              }}
+              defaultTab={activeRoomSettingTab}
             />
           )}
         </PopWindow>
@@ -443,8 +431,20 @@ export default function ChatPage() {
           onClose={() => setInviteRoomId(null)}
         >
           <AddMemberWindow
-            handleAddMember={handleAddMember}
+            handleAddMember={handleAddRoomMember}
             showSpace={true}
+          />
+        </PopWindow>
+        {/* 空间成员邀请窗口 */}
+        <PopWindow
+          isOpen={isMemberHandleOpen}
+          onClose={() => {
+            setIsMemberHandleOpen(false);
+          }}
+        >
+          <SpaceInvitePanel
+            onAddSpectator={handleAddSpaceMember}
+            onAddPlayer={handleAddSpacePlayer}
           />
         </PopWindow>
       </div>
