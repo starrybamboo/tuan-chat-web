@@ -57,7 +57,7 @@ export default function CharacterAvatar({
       <SpriteSettingsPopup
         isOpen={changeAvatarConfirmOpen}
         onClose={() => setChangeAvatarConfirmOpen(false)}
-        defaultTab="spriteList"
+        defaultTab="preview"
         spritesAvatars={roleAvatars}
         roleAvatars={roleAvatars}
         currentSpriteIndex={validSelectedIndex}

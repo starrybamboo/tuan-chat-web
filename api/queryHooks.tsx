@@ -491,9 +491,9 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; autoApply?: boolean; }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform, autoApply = true }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
@@ -502,6 +502,7 @@ export function useUploadAvatarMutation() {
       console.log("useUploadAvatarMutation: 开始上传", {
         hasTransform: !!transform,
         roleId,
+        autoApply,
         avatarUrl: avatarUrl.substring(0, 50) + "...",
         spriteUrl: spriteUrl.substring(0, 50) + "..."
       });
@@ -544,15 +545,19 @@ export function useUploadAvatarMutation() {
           }
           console.warn("头像上传成功，包含Transform参数");
           
-          // 更新角色的avatarId字段
-          try {
-            await tuanchat.roleController.updateRole({
-              roleId: roleId,
-              avatarId: avatarId,
-            });
-            console.log("角色avatarId已更新:", { roleId, avatarId });
-          } catch (error) {
-            console.error("更新角色avatarId失败:", error);
+          // 根据 autoApply 参数决定是否自动应用头像
+          if (autoApply) {
+            try {
+              await tuanchat.roleController.updateRole({
+                roleId: roleId,
+                avatarId: avatarId,
+              });
+              console.log("角色avatarId已自动更新:", { roleId, avatarId });
+            } catch (error) {
+              console.error("更新角色avatarId失败:", error);
+            }
+          } else {
+            console.log("跳过自动应用头像 (autoApply=false)");
           }
           
           await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });

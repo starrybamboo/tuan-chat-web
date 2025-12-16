@@ -174,9 +174,9 @@ export function SpriteListTab({
     }
 
     try {
-      // Upload avatar with transform data
+      // Upload avatar with transform data (autoApply: false to prevent auto-switching)
       uploadAvatar(
-        { ...data, roleId: role.id },
+        { ...data, roleId: role.id, autoApply: false },
         {
           onSuccess: async () => {
             try {

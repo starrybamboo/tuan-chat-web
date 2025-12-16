@@ -3,7 +3,6 @@ import type { RoleAvatar } from "api";
 import MoodRegulator from "@/components/common/MoodRegulator";
 import { useUpdateAvatarTitleMutation } from "api/queryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SpriteListGrid } from "./SpriteListGrid";
 
 interface MoodSettingsTabProps {
   /** 有立绘的头像列表 */
@@ -12,21 +11,18 @@ interface MoodSettingsTabProps {
   roleAvatars: RoleAvatar[];
   /** 当前选中的索引 */
   selectedIndex: number;
-  /** 索引变更回调（内部切换） */
-  onIndexChange: (index: number) => void;
   /** 应用完成后的回调（用于关闭弹窗等） */
   onApply?: () => void;
 }
 
 /**
  * 情感设定 Tab 内容组件
- * 左侧立绘列表，右侧纵向情绪调节器，右下角应用按钮
+ * 使用外部（左侧）的头像列表，显示情绪调节器
  */
 export function MoodSettingsTab({
   spritesAvatars,
   roleAvatars,
   selectedIndex,
-  onIndexChange,
   onApply,
 }: MoodSettingsTabProps) {
   const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
@@ -83,64 +79,54 @@ export function MoodSettingsTab({
     onApply?.();
   }, [currentAvatar, pendingMoodMap, updateAvatarTitle, onApply]);
 
-  // 情绪调节器渲染
-  const renderMoodRegulator = () => (
-    <div className="grid-cols-1">
-      <MoodRegulator
-        controlRef={moodControlRef}
-        onChange={handleMoodChange}
-        labels={moodLabels}
-        defaultValue={(currentAvatar?.avatarTitle as Record<string, string>) || undefined}
-        fallbackDefaultLabels={true}
-      />
-    </div>
-  );
-
-  // 应用按钮渲染
-  const renderApplyButton = () => (
-    <div className="mt-2 md:mt-4 flex justify-end gap-2 flex-shrink-0">
-      <button
-        type="button"
-        className="btn btn-primary btn-sm md:btn-md"
-        onClick={handleApplyMood}
-        disabled={!currentAvatar}
-      >
-        应用情感设定
-      </button>
-    </div>
-  );
-
   return (
-    <div className="h-full flex flex-col md:flex-row gap-4">
-      {/* 移动端：情绪调节区域在上方，固定高度 */}
-      <div className="md:hidden flex flex-col flex-shrink-0">
-        <h3 className="text-lg font-semibold mb-2 flex-shrink-0">调整语音参数</h3>
-        <div className="h-56 overflow-auto bg-info/10 rounded-lg p-4 flex-shrink-0">
-          {renderMoodRegulator()}
-        </div>
-        {renderApplyButton()}
+    <div className="h-full flex flex-col">
+      {/* 标题 */}
+      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+        <h3 className="text-lg font-semibold">调整语音参数</h3>
+        {currentAvatar && (
+          <div className="text-sm text-base-content/70">
+            当前头像：
+            {currentAvatar.avatarTitle?.label || "未命名"}
+          </div>
+        )}
       </div>
 
-      {/* 立绘列表 - 移动端可滚动，桌面端固定宽度 */}
-      <div className="flex-1 md:w-1/3 md:flex-none flex flex-col min-h-0 border-t md:border-t-0 border-base-300 pt-4 md:pt-0">
-        <h3 className="text-lg font-semibold mb-4 flex-shrink-0">选择立绘</h3>
-        <div className="flex-1 min-h-0 overflow-auto">
-          <SpriteListGrid
-            avatars={spritesAvatars}
-            selectedIndex={selectedIndex}
-            onSelect={onIndexChange}
-            className="h-full"
-          />
-        </div>
+      {/* 情绪调节器区域 */}
+      <div className="flex-1 min-h-0 overflow-auto bg-base-200/50 rounded-lg p-4">
+        {currentAvatar
+          ? (
+              <MoodRegulator
+                controlRef={moodControlRef}
+                onChange={handleMoodChange}
+                labels={moodLabels}
+                defaultValue={(currentAvatar?.avatarTitle as Record<string, string>) || undefined}
+                fallbackDefaultLabels={true}
+              />
+            )
+          : (
+              <div className="flex flex-col items-center justify-center h-full text-base-content/50">
+                <svg className="w-16 h-16 mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <p>请从左侧选择一个头像</p>
+              </div>
+            )}
       </div>
 
-      {/* 桌面端：右侧情绪调节区域 */}
-      <div className="hidden md:flex flex-1 min-h-0 flex-col border-l border-base-300 pl-4">
-        <h3 className="text-lg font-semibold mb-4 flex-shrink-0">调整语音参数</h3>
-        <div className="flex-1 min-h-0 overflow-auto bg-info/10 rounded-lg p-4">
-          {renderMoodRegulator()}
-        </div>
-        {renderApplyButton()}
+      {/* 应用按钮 */}
+      <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleApplyMood}
+          disabled={!currentAvatar}
+        >
+          应用情感设定
+        </button>
       </div>
     </div>
   );
