@@ -61,7 +61,7 @@ export default function ChatRoomListPanel({
 
   return (
     <div
-      className="flex flex-col gap-2 py-2 w-full md:w-[360px] h-full flex-1 bg-base-200/40 min-h-0"
+      className="flex flex-col gap-2 py-2 w-full h-full flex-1 bg-base-200/40 min-h-0 min-w-0"
       onContextMenu={onContextMenu}
     >
       {isPrivateChatMode

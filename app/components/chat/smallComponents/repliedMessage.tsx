@@ -1,5 +1,6 @@
 import type { Message } from "../../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { XMarkICon } from "@/icons";
 import React, { use } from "react";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
@@ -15,7 +16,8 @@ export default function RepliedMessage({ replyMessage, className }: {
   className?: string;
 }) {
   const roomContext = use(RoomContext);
-  const role = useGetRoleQuery(replyMessage.roleId).data?.data;
+  const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
+  const role = useGetRoleQuery(replyMessage.roleId ?? -1).data?.data;
   const isTextMessage = replyMessage.messageType === 1;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
   const imgMsg = replyMessage.extra?.imageMessage;
@@ -24,8 +26,10 @@ export default function RepliedMessage({ replyMessage, className }: {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          roomContext.setReplyMessage && roomContext.setReplyMessage(undefined);
+          setReplyMessage(undefined);
         }}
+        aria-label="取消回复"
+        title="取消回复"
         className="size-4 opacity-70 transition-opacity hover:bg-base-300"
         type="button"
       >

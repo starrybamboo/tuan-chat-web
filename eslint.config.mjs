@@ -18,6 +18,7 @@ export default antfu(
       "api/**",
       ".github/**",
       "**/*.md",
+      "eslint-report.json",
       "android/**",
     ],
     plugins: {

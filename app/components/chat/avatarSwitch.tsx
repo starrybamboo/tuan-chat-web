@@ -1,5 +1,6 @@
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import { RoomContext } from "@/components/chat/roomContext";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -20,6 +21,7 @@ export default function AvatarSwitch({
   setCurRoleId: (value: number) => void;
 }) {
   const roomContext = use(RoomContext);
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
 
@@ -34,7 +36,7 @@ export default function AvatarSwitch({
   const currentRole = useMemo(() => userRoles.find(r => r.roleId === curRoleId), [userRoles, curRoleId]);
 
   // 判断是否为旁白模式（WebGAL 联动模式下无角色）
-  const isNarratorMode = curRoleId <= 0 && roomContext.webgalLinkMode;
+  const isNarratorMode = curRoleId <= 0 && webgalLinkMode;
 
   useLayoutEffect(() => {
     if (curAvatarId > 0)
@@ -123,7 +125,7 @@ export default function AvatarSwitch({
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
-          showNarratorOption={roomContext.webgalLinkMode}
+          showNarratorOption={webgalLinkMode}
         />
       </ul>
     </div>
