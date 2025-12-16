@@ -217,61 +217,98 @@ export function SpriteListGrid({
   return (
     <>
       <div className={`flex flex-col ${className}`}>
-        {/* Multi-select mode controls */}
-        {isManageMode && multiSelectMode && (
-          <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-base-300">
-            <label className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
-              <input
-                type="checkbox"
-                className="checkbox checkbox-sm checkbox-primary"
-                checked={allSelected}
-                ref={(input) => {
-                  if (input) {
-                    input.indeterminate = someSelected;
-                  }
-                }}
-                onChange={handleSelectAll}
-              />
-              <span className="text-sm font-medium">
-                {allSelected ? "取消全选" : someSelected ? `已选 ${selectedIndices.size}` : "全选"}
-              </span>
-            </label>
-            <div className="flex gap-2">
+        {/* Header with title and action buttons */}
+        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+          <h3 className="text-lg font-semibold">头像列表</h3>
+          <div className="flex gap-2">
+            {isManageMode && multiSelectMode && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-soft bg-base-200 btn-square btn-xs"
+                  onClick={handleSelectAll}
+                  title={allSelected ? "取消全选" : someSelected ? `已选 ${selectedIndices.size}` : "全选"}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 256 256"
+                    fill="currentColor"
+                  >
+                    <path d="M149.61,85.71l-89.6,88a8,8,0,0,1-11.22,0L10.39,136a8,8,0,1,1,11.22-11.41L54.4,156.79l84-82.5a8,8,0,1,1,11.22,11.42Zm96.1-11.32a8,8,0,0,0-11.32-.1l-84,82.5-18.83-18.5a8,8,0,0,0-11.21,11.42l24.43,24a8,8,0,0,0,11.22,0l89.6-88A8,8,0,0,0,245.71,74.39Z"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-error btn-square btn-xs ${selectedIndices.size === 0 ? "btn-disabled" : ""}`}
+                  onClick={handleBatchDeleteRequest}
+                  disabled={selectedIndices.size === 0 || deletionHook?.isDeleting}
+                  title="删除所选头像"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs"
+                  onClick={() => {
+                    setMultiSelectMode(false);
+                    setSelectedIndices(new Set());
+                  }}
+                  title="退出选择模式"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 6L6 18" />
+                    <path d="M6 6l12 12" />
+                  </svg>
+                </button>
+              </>
+            )}
+            {isManageMode && !multiSelectMode && avatars.length > 1 && (
               <button
                 type="button"
-                className="btn btn-ghost btn-xs"
-                onClick={() => {
-                  setMultiSelectMode(false);
-                  setSelectedIndices(new Set());
-                }}
+                className="btn btn-soft bg-base-200 btn-square btn-xs"
+                onClick={() => setMultiSelectMode(true)}
+                title="进入选择模式"
               >
-                退出
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
               </button>
-              <button
-                type="button"
-                className="btn btn-error btn-xs"
-                onClick={handleBatchDeleteRequest}
-                disabled={selectedIndices.size === 0 || deletionHook?.isDeleting}
-              >
-                {deletionHook?.isDeleting ? "删除中..." : `删除 (${selectedIndices.size})`}
-              </button>
-            </div>
+            )}
           </div>
-        )}
-
-        {/* Enable multi-select button */}
-        {isManageMode && !multiSelectMode && avatars.length > 1 && (
-          <div className="flex justify-end mb-2">
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
-              onClick={() => setMultiSelectMode(true)}
-              title="启用多选模式"
-            >
-              多选
-            </button>
-          </div>
-        )}
+        </div>
 
         <div className={`grid ${gridCols} gap-2 overflow-auto content-start`}>
           {avatars.map((avatar, index) => {
@@ -292,7 +329,7 @@ export function SpriteListGrid({
                         onSelect(index);
                       }
                     }}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 w-full ${
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 w-full cursor-pointer ${
                       isSelected
                         ? "border-primary shadow-lg ring-2 ring-primary/30"
                         : "border-base-300 hover:border-primary/50 hover:shadow-md"
@@ -315,16 +352,31 @@ export function SpriteListGrid({
                           </div>
                         )}
 
-                    {/* Multi-select mode: show checkbox */}
+                    {/* Multi-select mode: show circular checkbox */}
                     {multiSelectMode && (
-                      <div className="absolute top-2 left-2 z-10">
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-sm checkbox-primary bg-base-100 shadow-md"
-                          checked={selectedIndices.has(index)}
-                          onChange={() => handleToggleSelection(index)}
-                          onClick={e => e.stopPropagation()}
-                        />
+                      <div className="absolute top-2 left-2 z-10 pointer-events-none">
+                        <div
+                          className={`flex items-center justify-center w-5 h-5 rounded-full border-2 transition-all duration-200 bg-base-100 shadow-md ${
+                            selectedIndices.has(index)
+                              ? "bg-info border-info"
+                              : "border-base-content/30"
+                          }`}
+                        >
+                          {selectedIndices.has(index) && (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              width="16"
+                              height="16"
+                              className="text-accent-content"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                              />
+                            </svg>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -351,7 +403,7 @@ export function SpriteListGrid({
                         e.stopPropagation();
                         handleDeleteRequest(index);
                       }}
-                      className="absolute top-1 right-1 p-1.5 bg-error/90 hover:bg-error text-error-content rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10"
+                      className="absolute top-1 right-1 p-1.5 bg-error/90 hover:bg-error text-error-content rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer"
                       title="删除头像"
                     >
                       <BaselineDeleteOutline className="w-4 h-4" />

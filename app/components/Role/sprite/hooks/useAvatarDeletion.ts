@@ -230,9 +230,9 @@ export function useAvatarDeletion({
   ]);
 
   /**
-   * Handle batch avatar deletion with progress tracking
+   * Handle batch avatar deletion with optimistic update
    * Ensures at least one avatar remains
-   * Handles partial failures gracefully
+   * Deletes all avatars in a single operation to avoid UI flashing
    */
   const handleBatchDelete = useCallback(async (avatarIds: number[]) => {
     // Early return if no role
@@ -258,9 +258,6 @@ export function useAvatarDeletion({
       isDeleting: true,
       pendingDeletion: null,
     });
-
-    const successfulDeletions: number[] = [];
-    const failedDeletions: Array<{ avatarId: number; error: string }> = [];
 
     try {
       // Check if current avatar is in the deletion list
@@ -294,36 +291,67 @@ export function useAvatarDeletion({
         }
       }
 
-      // Step 2: Delete avatars sequentially with error tracking
-      for (const avatarId of avatarIds) {
-        try {
-          await deleteAvatarMutation.mutateAsync(avatarId);
-          successfulDeletions.push(avatarId);
+      // Step 2: Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: ["getRoleAvatars", role?.id],
+      });
+
+      // Snapshot previous value for rollback
+      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", role?.id]);
+
+      // Step 3: Optimistically update the cache (remove all avatars at once)
+      queryClient.setQueryData(["getRoleAvatars", role?.id], (old: any) => {
+        if (!old)
+          return old;
+
+        // Handle both direct array and wrapped response
+        if (Array.isArray(old)) {
+          return old.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0));
         }
-        catch (error) {
-          console.error(`删除头像 ${avatarId} 失败:`, error);
-          failedDeletions.push({
-            avatarId,
-            error: error instanceof Error ? error.message : "未知错误",
-          });
+
+        if (old.data && Array.isArray(old.data)) {
+          return {
+            ...old,
+            data: old.data.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0)),
+          };
         }
+
+        return old;
+      });
+
+      // Step 4: Delete all avatars concurrently
+      const deletePromises = avatarIds.map(avatarId =>
+        tuanchat.avatarController.deleteRoleAvatar(avatarId),
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+
+      // Check for failures
+      const failures = results.filter(r => r.status === "rejected");
+      if (failures.length > 0) {
+        console.error("部分头像删除失败:", failures);
+
+        // Rollback optimistic update on failure
+        if (previousAvatars) {
+          queryClient.setQueryData(
+            ["getRoleAvatars", role?.id],
+            previousAvatars,
+          );
+        }
+
+        throw new Error(`批量删除失败：${failures.length} 个头像删除失败`);
       }
 
-      // Report results
-      if (failedDeletions.length > 0) {
-        const message = `批量删除完成：成功 ${successfulDeletions.length} 个，失败 ${failedDeletions.length} 个`;
-        console.warn(message, failedDeletions);
+      console.warn(`批量删除成功：共删除 ${avatarIds.length} 个头像`);
 
-        // If some deletions failed, throw error with details
-        if (successfulDeletions.length === 0) {
-          throw new Error("所有头像删除失败");
-        }
-        else {
-          throw new Error(message);
-        }
-      }
+      // Step 5: Refetch to ensure consistency
+      await queryClient.invalidateQueries({
+        queryKey: ["getRoleAvatars", role?.id],
+      });
 
-      console.warn(`批量删除成功：共删除 ${successfulDeletions.length} 个头像`);
+      await queryClient.invalidateQueries({
+        queryKey: ["getRole", role?.id],
+      });
     }
     catch (error) {
       console.error("批量删除头像失败:", error);
@@ -343,7 +371,6 @@ export function useAvatarDeletion({
     deletionState.isDeleting,
     onAvatarChange,
     onAvatarSelect,
-    deleteAvatarMutation,
     queryClient,
   ]);
 

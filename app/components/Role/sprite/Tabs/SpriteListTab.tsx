@@ -388,7 +388,6 @@ export function SpriteListTab({
 
         {/* 立绘列表 - 移动端可滚动，桌面端固定宽度 */}
         <div className="flex-1 md:w-1/3 md:flex-none flex flex-col min-h-0 border-t md:border-t-0 border-base-300 pt-4 md:pt-0">
-          <h3 className="text-lg font-semibold mb-4 flex-shrink-0">头像列表</h3>
           <div className="flex-1 min-h-0 overflow-auto">
             <SpriteListGrid
               avatars={spritesAvatars}
