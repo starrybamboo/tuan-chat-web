@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 type DrawerPreferenceState = {
+  chatLeftPanelWidth: number;
   userDrawerWidth: number;
   roleDrawerWidth: number;
   initiativeDrawerWidth: number;
@@ -9,6 +10,7 @@ type DrawerPreferenceState = {
   exportDrawerWidth: number;
   webgalDrawerWidth: number;
 
+  setChatLeftPanelWidth: (width: number) => void;
   setUserDrawerWidth: (width: number) => void;
   setRoleDrawerWidth: (width: number) => void;
   setInitiativeDrawerWidth: (width: number) => void;
@@ -52,6 +54,7 @@ function writeNumber(key: string, value: number): void {
 }
 
 export const useDrawerPreferenceStore = create<DrawerPreferenceState>(set => ({
+  chatLeftPanelWidth: readNumber("chatLeftPanelWidth", 430),
   userDrawerWidth: readNumber("userDrawerWidth", 300),
   roleDrawerWidth: readNumber("roleDrawerWidth", 300),
   initiativeDrawerWidth: readNumber("initiativeDrawerWidth", 300),
@@ -60,6 +63,10 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>(set => ({
   exportDrawerWidth: readNumber("exportDrawerWidth", 350),
   webgalDrawerWidth: readNumber("webgalDrawerWidth", 600),
 
+  setChatLeftPanelWidth: (width) => {
+    writeNumber("chatLeftPanelWidth", width);
+    set({ chatLeftPanelWidth: width });
+  },
   setUserDrawerWidth: (width) => {
     writeNumber("userDrawerWidth", width);
     set({ userDrawerWidth: width });
