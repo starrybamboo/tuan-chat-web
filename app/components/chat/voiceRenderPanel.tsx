@@ -1,8 +1,8 @@
 import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
 
-import { RoomContext } from "@/components/chat/roomContext";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { EMOTION_LABELS, emotionRecordToVector, normalizeEmotionVector, PREDEFINED_ANIMATIONS } from "@/types/voiceRenderTypes";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface VoiceRenderPanelProps {
   /** 当前情感向量（消息级别设置） */
@@ -58,7 +58,7 @@ export function VoiceRenderPanel({
   onToggleIntroText,
   onToggleNarrator,
 }: VoiceRenderPanelProps) {
-  const roomContext = use(RoomContext);
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [localNotend, setLocalNotend] = useState(initialNotend ?? false);
   const [localConcat, setLocalConcat] = useState(initialConcat ?? false);
@@ -157,7 +157,7 @@ export function VoiceRenderPanel({
   }, [onChange]);
 
   // 如果未开启 WebGAL 联动模式，不显示面板
-  if (!roomContext.webgalLinkMode) {
+  if (!webgalLinkMode) {
     return null;
   }
 

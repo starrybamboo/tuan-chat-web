@@ -11,6 +11,8 @@ import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import PixiOverlay from "@/components/chat/smallComponents/pixiOverlay";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
@@ -41,19 +43,19 @@ function Header() {
 /**
  * 聊天框（不带输入部分）
  * @param props 组件参数
- * @param props.useChatBubbleStyle 是否使用气泡样式
- * @param props.setUseChatBubbleStyle 设置气泡样式的函数
  * @param props.virtuosoRef 虚拟列表的 ref
  */
 function ChatFrame(props: {
-  useChatBubbleStyle: boolean;
-  setUseChatBubbleStyle: (value: boolean | ((prev: boolean) => boolean)) => void;
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
 }) {
-  const { useChatBubbleStyle, setUseChatBubbleStyle, virtuosoRef } = props;
+  const { virtuosoRef } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
+  const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
+  const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
+  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const roomId = roomContext.roomId ?? -1;
   const curRoleId = roomContext.curRoleId ?? -1;
   const curAvatarId = roomContext.curAvatarId ?? -1;
@@ -401,6 +403,18 @@ function ChatFrame(props: {
     }
   }, [currentBackgroundUrl]);
 
+  const backgroundLayerRef = useRef<HTMLDivElement | null>(null);
+  const backgroundOverlayRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (backgroundLayerRef.current) {
+      backgroundLayerRef.current.style.backgroundImage = displayedBgUrl ? `url('${displayedBgUrl}')` : "none";
+      backgroundLayerRef.current.style.opacity = currentBackgroundUrl ? "1" : "0";
+    }
+    if (backgroundOverlayRef.current) {
+      backgroundOverlayRef.current.style.opacity = currentBackgroundUrl ? "1" : "0";
+    }
+  }, [displayedBgUrl, currentBackgroundUrl]);
+
   /**
    * 消息选择
    */
@@ -711,13 +725,13 @@ function ChatFrame(props: {
 
   // 切换消息样式
   function toggleChatBubbleStyle() {
-    setUseChatBubbleStyle(prev => !prev);
+    toggleUseChatBubbleStyle();
     closeContextMenu();
   }
 
   // 处理回复消息
   function handleReply(message: Message) {
-    roomContext.setReplyMessage && roomContext.setReplyMessage(message);
+    setReplyMessage(message);
   }
 
   /**
@@ -810,18 +824,13 @@ function ChatFrame(props: {
     <div className="h-full relative">
       {/* Background Image Layer */}
       <div
+        ref={backgroundLayerRef}
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
-        style={{
-          backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
-          opacity: currentBackgroundUrl ? 1 : 0,
-        }}
       />
       {/* Overlay for tint and blur */}
       <div
+        ref={backgroundOverlayRef}
         className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
-        style={{
-          opacity: currentBackgroundUrl ? 1 : 0,
-        }}
       />
 
       {/* Pixi Overlay */}
@@ -955,7 +964,7 @@ function ChatFrame(props: {
         onUnlockCg={toggleUnlockCg}
         onAddEmoji={handleAddEmoji}
         onInsertAfter={(messageId) => {
-          roomContext.setInsertAfterMessageId?.(messageId);
+          setInsertAfterMessageId(messageId);
         }}
         onToggleNarrator={handleToggleNarrator}
       />
