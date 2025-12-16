@@ -190,11 +190,23 @@ export default function WebGALPreview({
           )}
 
           <a
-            href={previewUrl}
+            href={previewUrl
+              ? (() => {
+                  // 从预览URL中提取游戏名，生成 WebGAL 编辑器URL
+                  const match = previewUrl.match(/\/games\/([^/]+)/);
+                  if (match) {
+                    const gameName = match[1];
+                    const terreUrl = import.meta.env.VITE_TERRE_URL || "http://localhost:3001";
+                    // 直接跳转到编辑页面
+                    return `${terreUrl}/#/game/${gameName}`;
+                  }
+                  return previewUrl;
+                })()
+              : "#"}
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-ghost btn-xs"
-            title="在新窗口打开"
+            title="打开 WebGAL 编辑器"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

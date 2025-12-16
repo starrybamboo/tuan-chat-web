@@ -12,33 +12,15 @@ export default function useSearchParamsState<T>(key: string, defaultValue: T, sh
   const value = valueStr ? (JSON.parse(valueStr) as T) : defaultValue;
   const setValue = (newValue: T) => {
     setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
       if (newValue === defaultValue && shortenUrl) {
-        prev.delete(key);
+        next.delete(key);
       }
       else {
-        prev.set(key, JSON.stringify(newValue));
+        next.set(key, JSON.stringify(newValue));
       }
-      return prev;
+      return next;
     });
   };
   return [value, setValue] as const;
 }
-
-// export default function useSearchParamsState<T>(key: string, defaultValue: T, shortenUrl: boolean = true) {
-//   const [searchParams, setSearchParams] = useSearchParams();
-//   const valueStr = searchParams.get(key);
-//   const [value, rawSetValue] = useState<T>(valueStr ? (JSON.parse(valueStr) as T) : defaultValue);
-//   const setValue = (newValue: T) => {
-//     rawSetValue(newValue);
-//     setSearchParams((prev) => {
-//       if (newValue === defaultValue && shortenUrl) {
-//         prev.delete(key);
-//       }
-//       else {
-//         prev.set(key, JSON.stringify(newValue));
-//       }
-//       return prev;
-//     });
-//   };
-//   return [value, setValue] as const;
-// }

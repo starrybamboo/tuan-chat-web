@@ -1379,14 +1379,15 @@ export class RealtimeRenderer {
 
     // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
     if (shouldShowFigure && spriteFileName) {
-      // 如果不是回复消息，则清除之前的立绘（单人发言模式）
-      // 如果是回复消息，则保留之前的立绘（多人对话模式）
-      if (!msg.replyMessageId) {
-        // WebGAL 中不同位置的立绘是独立的，需要分别清除
-        await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-        await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-        await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
-      }
+      // 不再自动清除立绘，立绘需要手动清除
+      // // 如果不是回复消息，则清除之前的立绘（单人发言模式）
+      // // 如果是回复消息，则保留之前的立绘（多人对话模式）
+      // if (!msg.replyMessageId) {
+      //   // WebGAL 中不同位置的立绘是独立的，需要分别清除
+      //   await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      //   await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      //   await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // }
 
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
@@ -1409,16 +1410,18 @@ export class RealtimeRenderer {
       }
     }
     else if (isIntroText) {
-      // 黑屏文字需要清除立绘
-      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // 黑屏文字不再自动清除立绘，立绘需要手动清除
+      // // 黑屏文字需要清除立绘
+      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
     else if (!isNarrator && !isIntroText) {
-      // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
-      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
+      // // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
+      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
 
     // 处理小头像（普通角色对话，不管是否显示立绘）
