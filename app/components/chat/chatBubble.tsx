@@ -7,6 +7,7 @@ import AudioMessage from "@/components/chat/smallComponents/AudioMessage";
 import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { VoiceRenderPanel } from "@/components/chat/voiceRenderPanel";
 import BetterImg from "@/components/common/betterImg";
 import { EditableField } from "@/components/common/editableField";
@@ -40,7 +41,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
-  useChatBubbleStyle = useChatBubbleStyle || roomContext.useChatBubbleStyle;
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
@@ -219,7 +222,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
   // 处理角色名编辑
   function handleRoleNameClick() {
-    if (canEdit && roomContext.webgalLinkMode) {
+    if (canEdit && webgalLinkMode) {
       // WebGAL 联动模式下，点击角色名进入编辑模式
       setEditingRoleName(customRoleName || role?.roleName || "");
       setIsEditingRoleName(true);
@@ -595,7 +598,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
             {/* 类型标识和操作按钮 */}
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {/* WebGAL 联动模式下显示切换黑屏按钮 */}
-              {message.messageType === MESSAGE_TYPE.TEXT && canEdit && roomContext.webgalLinkMode && (
+              {message.messageType === MESSAGE_TYPE.TEXT && canEdit && webgalLinkMode && (
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
@@ -707,8 +710,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
                       isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && roomContext.webgalLinkMode ? handleToggleNarrator : undefined}
+                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
+                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
                     />
                   )}
                 </div>
@@ -788,8 +791,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                       onChange={handleVoiceRenderSettingsChange}
                       canEdit={canEdit}
                       isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && roomContext.webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && roomContext.webgalLinkMode ? handleToggleNarrator : undefined}
+                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
+                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
                     />
                   )}
                 </div>

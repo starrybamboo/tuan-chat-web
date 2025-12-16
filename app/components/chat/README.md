@@ -64,6 +64,105 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 ---
 
+## 状态管理（Zustand）
+
+为减少跨组件 props 传递与 Context value 变化导致的级联重渲染，Chat 模块逐步把「高频 UI 状态 / 偏好设置」迁移到 zustand store。
+
+### 1) roomUiStore：房间内临时 UI 状态
+
+文件：app/components/chat/stores/roomUiStore.ts
+
+- replyMessage：当前回复的消息
+- insertAfterMessageId：插入模式的目标消息 ID
+- isCreateThreadOpen：创建子区(Thread) 弹窗开关（用于把订阅下沉到 PopWindows 组件，避免 RoomWindow 无关重渲染）
+
+### 2) roomPreferenceStore：聊天偏好与 WebGAL 联动设置
+
+文件：app/components/chat/stores/roomPreferenceStore.ts
+
+- useChatBubbleStyle：消息气泡样式（localStorage: useChatBubbleStyle）
+- webgalLinkMode：WebGAL 联动模式（localStorage: webgalLinkMode）
+- autoReplyMode：自动回复模式（localStorage: autoReplyMode）
+- runModeEnabled：跑团模式（localStorage: runModeEnabled）
+- defaultFigurePositionMap：角色默认立绘位置（localStorage: defaultFigurePositionMap）
+- dialogNotend / dialogConcat：WebGAL 对话参数（当前不持久化）
+
+### 3) roomRoleSelectionStore：当前选中角色与立绘
+
+文件：app/components/chat/stores/roomRoleSelectionStore.ts
+
+- curRoleIdMap：房间 -> 当前角色（localStorage: curRoleIdMap）
+- curAvatarIdMap：角色 -> 当前立绘（localStorage: curAvatarIdMap）
+
+### 4) drawerPreferenceStore：右侧抽屉宽度偏好
+
+文件：app/components/chat/stores/drawerPreferenceStore.ts
+
+- userDrawerWidth / roleDrawerWidth / initiativeDrawerWidth / clueDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
+- 对应 localStorage key 与字段同名（保持兼容）
+
+相关组件：
+
+- app/components/chat/roomSideDrawers.tsx：订阅抽屉宽度 + sideDrawerStore.state 并渲染各个 `OpenAbleDrawer`，避免拖拽调整宽度/切换抽屉时触发 `RoomWindow` 整体重渲染
+
+### 5) realtimeRenderStore：RealtimeRender / TTS 配置
+
+文件：app/components/chat/stores/realtimeRenderStore.ts
+
+- enabled：是否启用实时渲染（仅表示前端渲染器运行开关）
+- ttsEnabled：实时渲染 TTS 开关
+- miniAvatarEnabled：实时渲染小头像开关
+- autoFigureEnabled：实时渲染自动填充立绘开关
+- ttsApiUrl：TTS API URL（localStorage: tts_api_url）
+
+运行态（不持久化，镜像自 `useRealtimeRender`）：
+
+- status / initProgress / isActive / previewUrl
+
+### 6) sideDrawerStore：右侧抽屉打开状态
+
+文件：app/components/chat/stores/sideDrawerStore.ts
+
+- state：当前右侧抽屉（none/user/role/search/initiative/map/clue/export/webgal）
+- 仅在前端内存中维护，不再写入 URL
+
+### 7) chatInputUiStore：输入框编辑态快照
+
+文件：app/components/chat/stores/chatInputUiStore.ts
+
+- plainText：输入框纯文本（用于命令面板识别、发送按钮禁用态等）
+- textWithoutMentions：去除 @提及节点后的纯文本（用于发送/AI prompt 等）
+- mentionedRoles：输入框内解析出的提及角色列表
+
+相关轻量订阅组件（用于避免 `RoomWindow` 因输入变化整体重渲染）：
+
+- app/components/chat/commandPanelFromStore.tsx：仅订阅 plainText，渲染 CommandPanel
+- app/components/chat/chatToolbarFromStore.tsx：订阅 plainText + 附件状态 + realtimeRenderStore.isActive，渲染 ChatToolbar
+
+### RoomWindow 组件拆分
+
+为进一步减小 `RoomWindow` 体积并降低局部状态变化带来的级联重渲染，拆出以下组件：
+
+- app/components/chat/roomHeaderBar.tsx：顶部栏（返回、成员/角色/导出按钮、搜索框），内部订阅 sideDrawerStore.state
+- app/components/chat/roomPopWindows.tsx：各类 `PopWindow`（创建 Thread、添加角色、渲染窗口），并在内部订阅 `roomUiStore.isCreateThreadOpen`
+- app/components/chat/roomComposerPanel.tsx：输入区整块 UI（工具栏 + 输入框 + 附件预览等），内部订阅 sideDrawerStore.state
+- app/components/chat/roomSideDrawerGuards.tsx：抽屉相关副作用编排（如切换空间/跑团模式时自动关闭特定抽屉），避免 `RoomWindow` 订阅 sideDrawerStore.state
+- app/components/chat/realtimeRenderOrchestrator.tsx：RealtimeRender 编排与 store runtime 镜像，隔离 `useEffect` 与高频运行态
+
+### 8) chatComposerStore：附件与发送选项
+
+文件：app/components/chat/stores/chatComposerStore.ts
+
+- imgFiles / emojiUrls / audioFile：输入框附件
+- sendAsBackground：图片是否设为背景
+- audioPurpose：音频用途（普通语音 / BGM / 音效）
+
+相关轻量订阅组件：
+
+- app/components/chat/chatAttachmentsPreviewFromStore.tsx：订阅附件状态，渲染输入框顶部的附件预览区域
+
+---
+
 ## 核心文件详解
 
 ### 1. chatPage.tsx
@@ -790,25 +889,13 @@ interface RoomContextType {
   curRoleId?: number;                   // 当前选中的角色 ID
   curAvatarId?: number;                 // 当前选中的立绘 ID
   
-  // 显示设置
-  useChatBubbleStyle: boolean;          // 是否使用气泡样式
-  
   // 消息操作
-  setReplyMessage?: (msg: Message | undefined) => void;  // 设置回复消息
+  // 说明：回复/插入这类“临时 UI 状态”已迁移到 zustand（见下方 roomUiStore），
+  // RoomContext 主要承载房间/成员/角色/历史消息等领域数据与能力。
   scrollToGivenMessage?: (messageId: number) => void;    // 滚动到指定消息
   
-  // WebGAL 联动
-  webgalLinkMode?: boolean;                              // WebGAL 联动模式
-  setWebgalLinkMode?: (mode: boolean) => void;
+  // WebGAL 联动能力（偏好/模式已迁移到 zustand：roomPreferenceStore）
   jumpToMessageInWebGAL?: (messageId: number) => boolean;  // 在 WebGAL 中跳转
-  
-  // 立绘位置管理
-  defaultFigurePositionMap?: Record<number, "left" | "center" | "right" | undefined>;
-  setDefaultFigurePosition?: (roleId: number, position: ...) => void;
-  
-  // 自动回复
-  autoReplyMode?: boolean;
-  setAutoReplyMode?: (mode: boolean) => void;
   
   // 历史消息
   chatHistory?: UseChatHistoryReturn;  // IndexedDB 历史消息管理
@@ -816,6 +903,31 @@ interface RoomContextType {
   // 消息渲染更新
   updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
 }
+```
+
+**补充：临时 UI 状态（zustand）**
+
+为了避免 `RoomContext` 因为高频 UI 状态（例如“回复哪条消息”、“插入模式”）变化而触发大量消费者组件重渲染，这两类状态已迁移到 zustand。
+
+- Store 文件：tuan-chat-web/app/components/chat/stores/roomUiStore.ts
+
+```ts
+interface RoomUiState {
+  replyMessage?: Message;
+  insertAfterMessageId?: number;
+  setReplyMessage: (message: Message | undefined) => void;
+  setInsertAfterMessageId: (messageId: number | undefined) => void;
+  reset: () => void;
+}
+```
+
+**使用示例**：
+
+```ts
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+
+const replyMessage = useRoomUiStore(s => s.replyMessage);
+const setReplyMessage = useRoomUiStore(s => s.setReplyMessage);
 ```
 
 #### SpaceContext 提供的数据：

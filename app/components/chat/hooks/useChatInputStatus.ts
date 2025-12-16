@@ -13,7 +13,10 @@ type UseChatInputStatusParams = {
     updateChatStatus: (evt: ChatStatusEvent) => void;
     send: (payload: any) => void; // payload: { type: 4, data: ChatStatusEvent }
   };
-  inputText: string;
+  inputTextSource: {
+    get: () => string;
+    subscribe: (listener: (text: string) => void) => () => void;
+  };
   // 可选自定义
   snapshotIntervalMs?: number; // 默认 10s
   idleThresholdMs?: number; // 默认 10s
@@ -40,7 +43,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
     roomId,
     userId,
     webSocketUtils,
-    inputText,
+    inputTextSource,
     snapshotIntervalMs = 10_000,
     idleThresholdMs = 10_000,
     leaveThresholdMs = 5 * 60_000,
@@ -96,62 +99,69 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
     lastStatusSentRef.current = { status, ts: Date.now() };
   }, [roomId, userId, isSpectator]);
 
-  // 同步输入与活动时间 (添加真正的防抖以避免频繁触发导致卡死)
+  // 同步输入与活动时间 (通过外部订阅，不依赖 React state 触发父组件重渲染)
   useEffect(() => {
-    inputValueRef.current = inputText;
-    const trimmed = inputText.trim();
-    const prevTrimmed = lastNonEmptyInputRef.current;
+    function applyInputText(nextText: string) {
+      inputValueRef.current = nextText;
+      const trimmed = nextText.trim();
+      const prevTrimmed = lastNonEmptyInputRef.current;
 
-    if (trimmed !== prevTrimmed) {
-      if (trimmed.length > 0) {
-        lastActivityRef.current = Date.now();
+      if (trimmed !== prevTrimmed) {
+        if (trimmed.length > 0) {
+          lastActivityRef.current = Date.now();
+        }
+        lastNonEmptyInputRef.current = trimmed;
       }
-      lastNonEmptyInputRef.current = trimmed;
+
+      // ⚡ 清除之前的防抖计时器
+      if (inputDebounceTimerRef.current) {
+        clearTimeout(inputDebounceTimerRef.current);
+        inputDebounceTimerRef.current = null;
+      }
+
+      // 即时输入状态：只要出现非空文本，使用防抖延迟发送
+      if (trimmed.length > 0 && userId && roomId > 0) {
+        // ⚡ 使用防抖：延迟 300ms 后才发送状态更新
+        inputDebounceTimerRef.current = setTimeout(() => {
+          const now = Date.now();
+          const currentStatus = getCurrentStatus();
+
+          // 手动锁保护期内不自动覆盖
+          if (manualStatusLockRef.current && (now - manualStatusLockRef.current.timestamp < lockDurationMs)) {
+            return;
+          }
+
+          if (manualStatusLockRef.current && (now - manualStatusLockRef.current.timestamp >= lockDurationMs)) {
+            manualStatusLockRef.current = null;
+          }
+
+          // 检查是否需要发送状态更新
+          const lastSent = lastStatusSentRef.current;
+          const timeSinceLastSent = lastSent ? now - lastSent.ts : Infinity;
+          const recentSame = lastSent
+            && lastSent.status === "input"
+            && timeSinceLastSent < 2000;
+
+          if (currentStatus !== "input" && !recentSame) {
+            sendStatusUpdate("input");
+          }
+        }, 300); // ⚡ 300ms 防抖延迟
+      }
     }
 
-    // ⚡ 清除之前的防抖计时器
-    if (inputDebounceTimerRef.current) {
-      clearTimeout(inputDebounceTimerRef.current);
-      inputDebounceTimerRef.current = null;
-    }
+    // 初始化一次
+    applyInputText(inputTextSource.get());
 
-    // 即时输入状态：只要出现非空文本，使用防抖延迟发送
-    if (trimmed.length > 0 && userId && roomId > 0) {
-      // ⚡ 使用防抖：延迟 300ms 后才发送状态更新
-      inputDebounceTimerRef.current = setTimeout(() => {
-        const now = Date.now();
-        const currentStatus = getCurrentStatus();
+    const unsubscribe = inputTextSource.subscribe(applyInputText);
 
-        // 手动锁保护期内不自动覆盖
-        if (manualStatusLockRef.current && (now - manualStatusLockRef.current.timestamp < lockDurationMs)) {
-          return;
-        }
-
-        if (manualStatusLockRef.current && (now - manualStatusLockRef.current.timestamp >= lockDurationMs)) {
-          manualStatusLockRef.current = null;
-        }
-
-        // 检查是否需要发送状态更新
-        const lastSent = lastStatusSentRef.current;
-        const timeSinceLastSent = lastSent ? now - lastSent.ts : Infinity;
-        const recentSame = lastSent
-          && lastSent.status === "input"
-          && timeSinceLastSent < 2000;
-
-        if (currentStatus !== "input" && !recentSame) {
-          sendStatusUpdate("input");
-        }
-      }, 300); // ⚡ 300ms 防抖延迟
-    }
-
-    // ⚡ 清理函数：组件卸载时清除计时器
     return () => {
+      unsubscribe();
       if (inputDebounceTimerRef.current) {
         clearTimeout(inputDebounceTimerRef.current);
         inputDebounceTimerRef.current = null;
       }
     };
-  }, [inputText, roomId, userId, lockDurationMs, sendStatusUpdate, getCurrentStatus]);
+  }, [inputTextSource, roomId, userId, lockDurationMs, sendStatusUpdate, getCurrentStatus]);
 
   // 快照轮询
   useEffect(() => {
