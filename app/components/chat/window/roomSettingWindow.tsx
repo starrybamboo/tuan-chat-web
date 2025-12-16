@@ -1,17 +1,13 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import { RoomContext } from "@/components/chat/roomContext";
-import MemberLists from "@/components/chat/smallComponents/memberLists";
 import RoleList from "@/components/chat/smallComponents/roleLists";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { GirlIcon, MemberIcon, Setting, WebgalIcon } from "@/icons";
+import { GirlIcon, Setting, WebgalIcon } from "@/icons";
 import {
-  useAddRoomMemberMutation,
   useDissolveRoomMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
@@ -23,13 +19,11 @@ import { useGetUserRolesQuery } from "api/queryHooks";
 import { use, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "../spaceContext";
-import AddMemberWindow from "./addMemberWindow";
 
-function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDialog: _onRenderDialog, roomId: propRoomId }: {
+function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
   onClose: () => void;
-  onShowMembers: () => void;
-  onRenderDialog: () => void;
   roomId?: number;
+  defaultTab?: "role" | "setting" | "render";
 }) {
   const navigate = useNavigate();
   const globalContext = useGlobalContext();
@@ -66,12 +60,9 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
     return [...playerRoles, ...roomNpcRoles];
   }, [roomRoles, roomNpcRoles, spaceContext?.isSpaceOwner, userRoles]);
 
-  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>(`spaceUserPop${propRoomId}`, false);
-
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
   const updateRoomMutation = useUpdateRoomMutation();
-  const addMemberMutation = useAddRoomMemberMutation();
 
   // 获取当前用户对应的member
   const curMember = useMemo(() => {
@@ -113,17 +104,6 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
     // 上传完成后强制重置上传组件
     setUploaderKey(prev => prev + 1);
   };
-
-  async function handleAddMember(userId: number) {
-    addMemberMutation.mutate({
-      roomId: propRoomId ?? -1,
-      userIdList: [userId],
-    }, {
-      onSettled: () => {
-        setIsMemberHandleOpen(false);
-      },
-    });
-  }
 
   // roomContext
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
@@ -179,43 +159,12 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
       <div className="flex flex-row gap-4 h-full w-full max-w-3xl">
         {room && (
           <div className="tabs tabs-lift h-full">
-            {/* 成员管理 */}
-            <label className="tab">
-              <input
-                type="radio"
-                name="room_setting_tabs"
-                defaultChecked
-              />
-              <MemberIcon className="size-4" />
-              成员
-            </label>
-            <div className="tab-content space-y-2 p-4 overflow-y-auto">
-              <div className="flex flex-row justify-center items-center gap-2 px-4">
-                <p>
-                  房间成员 -
-                  {roomMembers.length}
-                </p>
-                {
-                  roomMembers.length > 0
-                  && (
-                    <button
-                      className="btn btn-dash btn-info"
-                      type="button"
-                      onClick={() => setIsMemberHandleOpen(true)}
-                    >
-                      邀请玩家
-                    </button>
-                  )
-                }
-              </div>
-              <MemberLists members={roomMembers} isSpace={false} />
-            </div>
-
             {/* 角色管理 */}
             <label className="tab">
               <input
                 type="radio"
                 name="room_setting_tabs"
+                defaultChecked={defaultTab === "role"}
               />
               <GirlIcon className="size-4" />
               角色
@@ -232,7 +181,7 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
 
             {/* 基本设置 */}
             <label className="tab">
-              <input type="radio" name="room_setting_tabs" />
+              <input type="radio" name="room_setting_tabs" defaultChecked={defaultTab === "setting"} />
               <Setting className="size-4" />
               设置
             </label>
@@ -317,6 +266,7 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
               <input
                 type="radio"
                 name="room_setting_tabs"
+                defaultChecked={defaultTab === "render"}
               />
               <WebgalIcon className="size-4 mr-1" />
               渲染
@@ -346,9 +296,6 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
             });
           }}
         />
-        <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-          <AddMemberWindow handleAddMember={handleAddMember} showSpace={true}></AddMemberWindow>
-        </PopWindow>
       </div>
     </RoomContext>
   );

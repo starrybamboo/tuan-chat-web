@@ -5,7 +5,6 @@ import {
   Detective,
   EmojiIconWhite,
   GalleryBroken,
-  GirlIcon,
   LinkFilled,
   MusicNote,
   PointOnMapPerspectiveLinear,
@@ -63,6 +62,9 @@ interface ChatToolbarProps {
   onClearFigure?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
+
+  // 创建子区(Thread)
+  onCreateThread?: () => void;
 }
 
 export function ChatToolbar({
@@ -92,6 +94,7 @@ export function ChatToolbar({
   onClearBackground,
   onClearFigure,
   setAudioFile,
+  onCreateThread,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
 
@@ -177,6 +180,23 @@ export function ChatToolbar({
           </div>
         )}
         {/* 发送表情 */}
+        {!isSpectator && onCreateThread && (
+          <div className="tooltip" data-tip="创建子区">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-circle"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onCreateThread();
+              }}
+              aria-label="创建子区"
+            >
+              +
+            </button>
+          </div>
+        )}
+
         <div className="dropdown dropdown-top">
           <div role="button" tabIndex={2} className="">
             <div
@@ -445,14 +465,6 @@ export function ChatToolbar({
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
             >
               <PointOnMapPerspectiveLinear className="size-7 jump_icon"></PointOnMapPerspectiveLinear>
-            </div>
-
-            <div
-              className="tooltip"
-              data-tip="展示角色"
-              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
-            >
-              <GirlIcon className="size-7 jump_icon"></GirlIcon>
             </div>
           </>
         )}

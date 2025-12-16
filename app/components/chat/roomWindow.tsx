@@ -27,6 +27,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import TextStyleToolbar from "@/components/chat/textStyleToolbar";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import BetterImg from "@/components/common/betterImg";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -37,6 +38,8 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
+  GirlIcon,
+  MemberIcon,
   MusicNote,
   SharpDownload,
 } from "@/icons";
@@ -49,7 +52,6 @@ import { UploadUtils } from "@/utils/UploadUtils";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { MessageType } from "api/wsModels";
 // *** 导入新组件及其 Handle 类型 ***
-
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
@@ -69,7 +71,7 @@ import ExportChatDrawer from "./sideDrawer/exportChatDrawer";
 import WebGALPreview from "./sideDrawer/webGALPreview";
 
 // const PAGE_SIZE = 50; // 每页消息数量
-export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
+export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: { roomId: number; spaceId: number; targetMessageId?: number | null; onSelectRoom?: (roomId: number) => void }) {
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -186,6 +188,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
 
+  // 创建子区(Thread)
+  const [isThreadHandleOpen, setIsThreadHandleOpen] = useState(false);
+
   // 实时渲染相关
   const [isRealtimeRenderEnabled, setIsRealtimeRenderEnabled] = useReducer((_state: boolean, next: boolean) => next, false);
   // 实时渲染 TTS 配置（默认关闭）
@@ -287,7 +292,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const toggleRunMode = useCallback(() => {
     setRunModeEnabled((prev) => {
       const next = !prev;
-      if (!next && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerStateRef.current)) {
+      const runModeDrawers: Array<typeof sideDrawerStateRef.current> = ["clue", "initiative", "map"];
+      if (!next && runModeDrawers.includes(sideDrawerStateRef.current)) {
         setSideDrawerState("none");
       }
       return next;
@@ -295,7 +301,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   }, [setRunModeEnabled, setSideDrawerState]);
 
   useEffect(() => {
-    if (!runModeEnabled && (["clue", "initiative", "map", "role"] as const).includes(sideDrawerState)) {
+    const runModeDrawers: Array<typeof sideDrawerState> = ["clue", "initiative", "map"];
+    if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
       setSideDrawerState("none");
     }
   }, [runModeEnabled, sideDrawerState, setSideDrawerState]);
@@ -395,34 +402,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       console.warn(`[RealtimeRender] 开始渲染历史消息, 共 ${historyMessages.length} 条`);
       toast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
 
-      // 为所有消息设置默认的立绘位置
-      // 创建消息的深拷贝以避免修改不可扩展的对象
-      const messagesToRender = historyMessages.map((originalMsg) => {
-        // 浅拷贝最外层
-        const msg = { ...originalMsg };
-        // 浅拷贝 message 对象
-        msg.message = { ...originalMsg.message };
-
-        if (msg.message.messageType === 1 && msg.message.roleId > 0) {
-          // 只有当消息完全没有 voiceRenderSettings 时，才使用默认立绘位置
-          // 如果已经存在 voiceRenderSettings（即使没有 figurePosition），说明用户已经手动配置过，不应该自动添加
-          if (!msg.message.webgal?.voiceRenderSettings) {
-            const defaultPosition = defaultFigurePositionMap?.[msg.message.roleId];
-
-            // 只有当默认位置存在时才设置
-            if (defaultPosition) {
-              // 确保 webgal 对象存在且是新的引用
-              msg.message.webgal = { ...(msg.message.webgal || {}) };
-
-              // 创建新的 voiceRenderSettings 对象
-              msg.message.webgal.voiceRenderSettings = {
-                figurePosition: defaultPosition,
-              };
-            }
-          }
-        }
-        return msg;
-      });
+      const messagesToRender = historyMessages;
 
       // 使用批量渲染接口
       await realtimeRender.renderHistory(messagesToRender, roomId);
@@ -443,7 +423,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     finally {
       isRenderingHistoryRef.current = false;
     }
-  }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
+  }, [historyMessages, realtimeRender, roomId]);
 
   // 切换房间时重置实时渲染状态（跳过首次挂载）
   useEffect(() => {
@@ -513,32 +493,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
-    // 为消息设置默认的立绘位置（如果还没有设置）
-    // 创建消息的深拷贝以避免修改不可扩展的对象
-    const messageToRender = { ...latestMessage };
-    messageToRender.message = { ...latestMessage.message };
-
-    if (messageToRender.message.messageType === 1 && messageToRender.message.roleId > 0) {
-      // 只有当消息完全没有 voiceRenderSettings 时，才使用默认立绘位置
-      // 如果已经存在 voiceRenderSettings（即使没有 figurePosition），说明用户已经手动配置过，不应该自动添加
-      if (!messageToRender.message.webgal?.voiceRenderSettings) {
-        const defaultPosition = defaultFigurePositionMap?.[messageToRender.message.roleId];
-
-        // 只有当默认位置存在时才设置
-        if (defaultPosition) {
-          // 确保 webgal 对象存在且是新的引用
-          messageToRender.message.webgal = { ...(messageToRender.message.webgal || {}) };
-
-          // 创建新的 voiceRenderSettings 对象
-          messageToRender.message.webgal.voiceRenderSettings = {
-            figurePosition: defaultPosition,
-          };
-        }
-      }
-    }
-
+    // 只有消息明确设置了立绘位置时才会显示立绘
     // 渲染新消息（传入当前房间 ID）
-    realtimeRender.renderMessage(messageToRender, roomId);
+    realtimeRender.renderMessage(latestMessage, roomId);
     lastRenderedMessageIdRef.current = messageId;
   }, [historyMessages, realtimeRender, roomId, defaultFigurePositionMap]);
 
@@ -783,7 +740,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     const historyMessagesString = (await Promise.all(
       historyMessages.slice(historyMessages.length - 20).map(async (m) => {
-        const role = await getRoleSmartly(m.message.roleId);
+        const roleId = m.message.roleId;
+        if (typeof roleId !== "number") {
+          return `旁白: ${m.message.content}`;
+        }
+
+        const role = await getRoleSmartly(roleId);
         return `${role?.roleName ?? role?.roleId}: ${m.message.content}`;
       }),
     )).join("\n");
@@ -1297,6 +1259,20 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             >
               <SharpDownload className="size-7" />
             </div>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="房间成员"
+              onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
+            >
+              <MemberIcon className="size-7" />
+            </div>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="房间角色"
+              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
+            >
+              <GirlIcon className="size-7" />
+            </div>
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
           </div>
         </div>
@@ -1330,8 +1306,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   ruleId={space?.ruleId ?? -1}
                   className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                 />
+
                 {/* 底部工具栏 */}
                 {/* 状态显示条 */}
+
                 <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
                 <ChatToolbar
                   sideDrawerState={sideDrawerState}
@@ -1362,6 +1340,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onClearBackground={handleClearBackground}
                   onClearFigure={handleClearFigure}
                   setAudioFile={setAudioFile}
+                  onCreateThread={() => setIsThreadHandleOpen(true)}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch
@@ -1580,6 +1559,24 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           </OpenAbleDrawer>
         </div>
       </div>
+
+      {/* 创建子区(Thread) */}
+      <PopWindow
+        isOpen={isThreadHandleOpen}
+        onClose={() => setIsThreadHandleOpen(false)}
+      >
+        <CreateRoomWindow
+          spaceId={spaceId}
+          spaceAvatar={space?.avatar}
+          parentRoomId={roomId}
+          onSuccess={(newRoomId) => {
+            if (newRoomId) {
+              onSelectRoom?.(newRoomId);
+            }
+            setIsThreadHandleOpen(false);
+          }}
+        />
+      </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>

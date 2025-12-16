@@ -36,7 +36,6 @@ function ActionButtons({
 }) {
   const [open, setOpen] = useState(false);
   const [placeUp, setPlaceUp] = useState(true);
-  const [maxHeight, setMaxHeight] = useState(240); // 默认最大高度
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const triggerBtnRef = useRef<HTMLButtonElement | null>(null);
   const firstItemRef = useRef<HTMLButtonElement | null>(null);
@@ -48,11 +47,10 @@ function ActionButtons({
   const shouldHide = spaceId <= 0 || (!isSelf && !canManage);
 
   const MenuItem = ({ label, onClick, danger = false, first = false }: { label: string; onClick: () => void; danger?: boolean; first?: boolean }) => (
-    <li role="none">
+    <li>
       <button
         ref={first ? firstItemRef : undefined}
         type="button"
-        role="menuitem"
         className={`justify-start w-full text-left ${danger ? "text-error hover:text-error" : ""}`}
         onClick={() => {
           onClick();
@@ -95,17 +93,15 @@ function ActionButtons({
     };
   }, [open]);
 
-  // 打开后聚焦第一项 & 计算位置
+  // 打开后聚焦第一项 & 计算位置（仅决定向上/向下放置，避免 inline style）
   useEffect(() => {
     if (open) {
       const triggerRect = triggerBtnRef.current?.getBoundingClientRect();
       requestAnimationFrame(() => {
         if (triggerRect) {
           const viewportH = window.innerHeight;
-          // 预估菜单高度（若已渲染可读取）
-          const estimatedHeight = 200; // fallback
-          const menuElement = firstItemRef.current?.parentElement;
-          const menuHeight = menuElement?.getBoundingClientRect().height || estimatedHeight;
+          const estimatedHeight = 220; // 近似值（菜单 max-h 固定，不需要精确）
+          const menuHeight = estimatedHeight;
 
           // 计算向下和向上的可用空间
           const spaceBelow = viewportH - triggerRect.bottom;
@@ -116,28 +112,20 @@ function ActionButtons({
           // 2. 如果上方空间不足但下方空间充足，向下放置
           // 3. 如果两边都不够，选择空间更大的一边
           let nextPlaceUp = true; // 默认向上
-          let dynamicMaxHeight = 240; // 默认最大高度
 
           if (spaceAbove < menuHeight + 20) {
             // 上方空间不足
             if (spaceBelow >= menuHeight + 20) {
               // 下方空间充足，向下放置
               nextPlaceUp = false;
-              dynamicMaxHeight = Math.min(240, spaceBelow - 20);
             }
             else {
               // 两边都不够，选择空间更大的一边
               nextPlaceUp = spaceAbove > spaceBelow;
-              dynamicMaxHeight = Math.min(240, Math.max(spaceAbove, spaceBelow) - 20);
             }
-          }
-          else {
-            // 上方空间充足
-            dynamicMaxHeight = Math.min(240, spaceAbove - 20);
           }
 
           setPlaceUp(nextPlaceUp);
-          setMaxHeight(Math.max(120, dynamicMaxHeight)); // 最小高度120px
         }
       });
       if (firstItemRef.current) {
@@ -157,8 +145,6 @@ function ActionButtons({
         className="btn btn-ghost btn-xs px-2"
         onClick={() => setOpen(o => !o)}
         aria-label="更多操作"
-        aria-haspopup="true"
-        aria-expanded={open}
         aria-controls={`member-menu-${member.userId}`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -170,9 +156,7 @@ function ActionButtons({
       {open && (
         <ul
           id={`member-menu-${member.userId}`}
-          className={`menu menu-xs dropdown-content absolute right-0 z-20 p-2 shadow bg-base-200 rounded-box w-40 overflow-auto animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
-          style={{ maxHeight: `${maxHeight}px` }}
-          role="menu"
+          className={`menu menu-xs dropdown-content absolute right-0 z-20 p-2 shadow bg-base-200 rounded-box w-48 overflow-auto max-h-60 animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
           aria-label="成员操作菜单"
         >
           {isSelf && <MenuItem first label="退出群聊" onClick={onRemove} danger />}
