@@ -2,10 +2,10 @@ import type { UserRole } from "api";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useQueryClient } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
 import {
   useGetInfiniteUserRolesQuery,
-} from "api/queryHooks";
+} from "api/hooks/RoleAndAvatarHooks";
+import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 

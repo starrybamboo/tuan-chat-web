@@ -1,5 +1,5 @@
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useGetInfiniteUserRolesQuery, useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
+import { useGetInfiniteUserRolesQuery, useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
 
 interface DiceMaidenLinkModalProps {

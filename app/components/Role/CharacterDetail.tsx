@@ -2,9 +2,9 @@
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
+import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
-import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { Suspense, useMemo, useState } from "react";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";

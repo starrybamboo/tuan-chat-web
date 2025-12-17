@@ -1,7 +1,8 @@
 import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import type { RoleAvatar } from "api";
 import MoodRegulator from "@/components/common/MoodRegulator";
-import { useUpdateAvatarTitleMutation } from "api/queryHooks";
+import { useUpdateAvatarTitleMutation } from "api/hooks/RoleAndAvatarHooks";
+import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface MoodSettingsTabProps {
@@ -25,15 +26,6 @@ export function MoodSettingsTab({
   selectedIndex,
   onApply,
 }: MoodSettingsTabProps) {
-  const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
-  const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
-
-  // 情绪调节器兜底标签
-  const DEFAULT_MOOD_LABELS = useMemo(
-    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
-    [],
-  );
-
   // 当前选中的头像（从完整列表中根据 spritesAvatars 的 avatarId 查找）
   const currentSpriteAvatar = spritesAvatars[selectedIndex];
   const currentAvatar = useMemo(() => {
@@ -41,6 +33,18 @@ export function MoodSettingsTab({
       return null;
     return roleAvatars.find(a => a.avatarId === currentSpriteAvatar.avatarId) || currentSpriteAvatar;
   }, [roleAvatars, currentSpriteAvatar]);
+
+  const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation(currentAvatar?.roleId || 0);
+  // 头像名编辑相关状态
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState("");
+  const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
+
+  // 情绪调节器兜底标签
+  const DEFAULT_MOOD_LABELS = useMemo(
+    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
+    [],
+  );
 
   // 根据当前选中头像的情绪键生成 labels
   const moodLabels = useMemo(() => {
@@ -67,17 +71,21 @@ export function MoodSettingsTab({
   }, []);
 
   // 应用情感设定到选中的头像
-  const handleApplyMood = useCallback(() => {
+  const handleApplyMood = useCallback(async () => {
     if (currentAvatar?.roleId && currentAvatar?.avatarId) {
-      updateAvatarTitle({
-        roleId: currentAvatar.roleId,
-        avatarId: currentAvatar.avatarId,
+      // 直接调用 API 更新整个 avatarTitle 对象
+      const res = await tuanchat.avatarController.updateRoleAvatar({
+        ...currentAvatar,
         avatarTitle: pendingMoodMap,
       });
+
+      if (res.success) {
+        console.warn("更新情感设定成功");
+      }
     }
     // 应用后关闭弹窗
     onApply?.();
-  }, [currentAvatar, pendingMoodMap, updateAvatarTitle, onApply]);
+  }, [currentAvatar, pendingMoodMap, onApply]);
 
   return (
     <div className="h-full flex flex-col">
@@ -85,9 +93,73 @@ export function MoodSettingsTab({
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <h3 className="text-lg font-semibold">调整语音参数</h3>
         {currentAvatar && (
-          <div className="text-sm text-base-content/70">
-            当前头像：
-            {currentAvatar.avatarTitle?.label || "未命名"}
+          <div className="text-sm text-base-content/70 flex items-center gap-2">
+            <span>当前头像：</span>
+            {isEditingName
+              ? (
+                  <>
+                    <input
+                      className="input input-xs input-bordered min-w-0 w-24 text-center"
+                      value={editingName}
+                      autoFocus
+                      maxLength={16}
+                      onChange={e => setEditingName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (currentAvatar?.avatarId) {
+                            updateAvatarTitle({
+                              avatarId: currentAvatar.avatarId,
+                              title: editingName.trim() || "未命名",
+                              avatarsForUpdate: roleAvatars,
+                            });
+                            setIsEditingName(false);
+                          }
+                        }
+                        else if (e.key === "Escape") {
+                          setIsEditingName(false);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-primary"
+                      onClick={() => {
+                        if (currentAvatar?.avatarId) {
+                          updateAvatarTitle({
+                            avatarId: currentAvatar.avatarId,
+                            title: editingName.trim() || "未命名",
+                            avatarsForUpdate: roleAvatars,
+                          });
+                          setIsEditingName(false);
+                        }
+                      }}
+                      title="保存"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost"
+                      onClick={() => setIsEditingName(false)}
+                      title="取消"
+                    >
+                      ✕
+                    </button>
+                  </>
+                )
+              : (
+                  <button
+                    type="button"
+                    className="text-base-content/70 hover:text-primary transition-colors truncate max-w-[120px] text-ellipsis text-left"
+                    title="点击编辑头像名"
+                    onClick={() => {
+                      setEditingName(currentAvatar.avatarTitle?.label || "");
+                      setIsEditingName(true);
+                    }}
+                  >
+                    {currentAvatar.avatarTitle?.label || "未命名"}
+                  </button>
+                )}
           </div>
         )}
       </div>

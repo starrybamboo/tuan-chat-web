@@ -3,7 +3,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { XMarkICon } from "@/icons";
 import React, { use } from "react";
-import { useGetRoleQuery } from "../../../../api/queryHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 /**
  * 回复的消息

@@ -1,9 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 
 import type { RoleAvatar } from "api";
 
-import { tuanchat } from "api/instance";
+import { useBatchDeleteRoleAvatarsWithOptimisticMutation, useDeleteRoleAvatarWithOptimisticMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { Role } from "../../types";
 
@@ -15,15 +15,9 @@ type UseAvatarDeletionProps = {
   onAvatarSelect?: (avatarId: number) => void;
 };
 
-type DeletionState = {
-  isDeleting: boolean;
-  pendingDeletion: number | null;
-};
-
 /**
  * Custom hook for managing avatar deletion with proper state management
  * Handles:
- * - Optimistic updates with rollback on failure
  * - Replacement avatar selection when deleting current avatar
  * - Sequential operation handling (select then delete)
  * - Edge case of deleting character's active avatar
@@ -36,10 +30,10 @@ export function useAvatarDeletion({
   onAvatarSelect,
 }: UseAvatarDeletionProps) {
   const queryClient = useQueryClient();
-  const [deletionState, setDeletionState] = useState<DeletionState>({
-    isDeleting: false,
-    pendingDeletion: null,
-  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deleteAvatarMutation = useDeleteRoleAvatarWithOptimisticMutation(role?.id);
+  const batchDeleteMutation = useBatchDeleteRoleAvatarsWithOptimisticMutation(role?.id);
 
   /**
    * Find a replacement avatar when deleting the current one
@@ -65,94 +59,6 @@ export function useAvatarDeletion({
   }, [avatars]);
 
   /**
-   * Delete avatar mutation with optimistic updates and rollback
-   */
-  const deleteAvatarMutation = useMutation({
-    mutationKey: ["deleteRoleAvatar", role?.id],
-    mutationFn: async (avatarId: number) => {
-      const res = await tuanchat.avatarController.deleteRoleAvatar(avatarId);
-      if (!res.success) {
-        throw new Error("删除头像失败");
-      }
-      return res;
-    },
-    onMutate: async (avatarId) => {
-      // Set deleting state
-      setDeletionState({
-        isDeleting: true,
-        pendingDeletion: avatarId,
-      });
-
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({
-        queryKey: ["getRoleAvatars", role?.id],
-      });
-
-      // Snapshot previous value for rollback
-      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", role?.id]);
-
-      // Optimistically update the cache
-      queryClient.setQueryData(["getRoleAvatars", role?.id], (old: any) => {
-        if (!old)
-          return old;
-
-        // Handle both direct array and wrapped response
-        if (Array.isArray(old)) {
-          return old.filter((a: RoleAvatar) => a.avatarId !== avatarId);
-        }
-
-        if (old.data && Array.isArray(old.data)) {
-          return {
-            ...old,
-            data: old.data.filter((a: RoleAvatar) => a.avatarId !== avatarId),
-          };
-        }
-
-        return old;
-      });
-
-      return { previousAvatars };
-    },
-    onError: (err, avatarId, context) => {
-      console.error("删除头像失败:", err);
-
-      // Rollback optimistic update
-      if (context?.previousAvatars) {
-        queryClient.setQueryData(
-          ["getRoleAvatars", role?.id],
-          context.previousAvatars,
-        );
-      }
-
-      // Reset deletion state
-      setDeletionState({
-        isDeleting: false,
-        pendingDeletion: null,
-      });
-    },
-    onSuccess: () => {
-      console.warn("删除头像成功");
-
-      // Reset deletion state
-      setDeletionState({
-        isDeleting: false,
-        pendingDeletion: null,
-      });
-    },
-    onSettled: () => {
-      // Always refetch after error or success to ensure consistency
-      queryClient.invalidateQueries({
-        queryKey: ["getRoleAvatars", role?.id],
-      });
-
-      // Also invalidate role query to ensure avatar consistency
-      queryClient.invalidateQueries({
-        queryKey: ["getRole", role?.id],
-      });
-    },
-  });
-
-  /**
    * Handle avatar deletion with replacement selection
    * Ensures sequential operations: select replacement -> delete avatar
    */
@@ -164,7 +70,7 @@ export function useAvatarDeletion({
     }
 
     // Prevent concurrent deletions
-    if (deletionState.isDeleting) {
+    if (isDeleting) {
       console.warn("删除操作正在进行中，请稍候");
       return;
     }
@@ -183,6 +89,8 @@ export function useAvatarDeletion({
 
     const isCurrentRoleAvatar = avatarToDelete.avatarId === role.avatarId;
     const isCurrentlySelected = avatarToDelete.avatarId === selectedAvatarId;
+
+    setIsDeleting(true);
 
     try {
       // Step 1: If deleting current avatar, select replacement first
@@ -215,13 +123,15 @@ export function useAvatarDeletion({
     }
     catch (error) {
       console.error("删除头像操作失败:", error);
-      // Error handling and rollback are handled by mutation callbacks
+    }
+    finally {
+      setIsDeleting(false);
     }
   }, [
     role,
     avatars,
     selectedAvatarId,
-    deletionState.isDeleting,
+    isDeleting,
     findReplacementAvatar,
     onAvatarChange,
     onAvatarSelect,
@@ -230,9 +140,8 @@ export function useAvatarDeletion({
   ]);
 
   /**
-   * Handle batch avatar deletion with optimistic update
+   * Handle batch avatar deletion
    * Ensures at least one avatar remains
-   * Deletes all avatars in a single operation to avoid UI flashing
    */
   const handleBatchDelete = useCallback(async (avatarIds: number[]) => {
     // Early return if no role
@@ -248,16 +157,12 @@ export function useAvatarDeletion({
     }
 
     // Prevent concurrent deletions
-    if (deletionState.isDeleting) {
+    if (isDeleting) {
       console.warn("删除操作正在进行中，请稍候");
       throw new Error("删除操作正在进行中，请稍候");
     }
 
-    // Set deleting state
-    setDeletionState({
-      isDeleting: true,
-      pendingDeletion: null,
-    });
+    setIsDeleting(true);
 
     try {
       // Check if current avatar is in the deletion list
@@ -291,94 +196,31 @@ export function useAvatarDeletion({
         }
       }
 
-      // Step 2: Cancel outgoing refetches
-      await queryClient.cancelQueries({
-        queryKey: ["getRoleAvatars", role?.id],
-      });
-
-      // Snapshot previous value for rollback
-      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", role?.id]);
-
-      // Step 3: Optimistically update the cache (remove all avatars at once)
-      queryClient.setQueryData(["getRoleAvatars", role?.id], (old: any) => {
-        if (!old)
-          return old;
-
-        // Handle both direct array and wrapped response
-        if (Array.isArray(old)) {
-          return old.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0));
-        }
-
-        if (old.data && Array.isArray(old.data)) {
-          return {
-            ...old,
-            data: old.data.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0)),
-          };
-        }
-
-        return old;
-      });
-
-      // Step 4: Delete all avatars concurrently
-      const deletePromises = avatarIds.map(avatarId =>
-        tuanchat.avatarController.deleteRoleAvatar(avatarId),
-      );
-
-      const results = await Promise.allSettled(deletePromises);
-
-      // Check for failures
-      const failures = results.filter(r => r.status === "rejected");
-      if (failures.length > 0) {
-        console.error("部分头像删除失败:", failures);
-
-        // Rollback optimistic update on failure
-        if (previousAvatars) {
-          queryClient.setQueryData(
-            ["getRoleAvatars", role?.id],
-            previousAvatars,
-          );
-        }
-
-        throw new Error(`批量删除失败：${failures.length} 个头像删除失败`);
-      }
-
-      console.warn(`批量删除成功：共删除 ${avatarIds.length} 个头像`);
-
-      // Step 5: Refetch to ensure consistency
-      await queryClient.invalidateQueries({
-        queryKey: ["getRoleAvatars", role?.id],
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: ["getRole", role?.id],
-      });
+      // Step 2: Delete all avatars
+      await batchDeleteMutation.mutateAsync(avatarIds);
     }
     catch (error) {
       console.error("批量删除头像失败:", error);
       throw error;
     }
     finally {
-      // Reset deletion state
-      setDeletionState({
-        isDeleting: false,
-        pendingDeletion: null,
-      });
+      setIsDeleting(false);
     }
   }, [
     role,
     avatars,
     selectedAvatarId,
-    deletionState.isDeleting,
+    isDeleting,
     onAvatarChange,
     onAvatarSelect,
+    batchDeleteMutation,
     queryClient,
   ]);
 
   return {
     handleDeleteAvatar,
     handleBatchDelete,
-    isDeleting: deletionState.isDeleting,
-    pendingDeletion: deletionState.pendingDeletion,
+    isDeleting,
     canDelete: avatars.length > 1,
   };
 }

@@ -8,16 +8,16 @@
 /* tslint:disable */
 /* eslint-disable */
 import { useQuery, useMutation, useQueryClient, useQueries, useInfiniteQuery } from '@tanstack/react-query';
-import { tuanchat } from './instance';
+import { tuanchat } from '../instance';
 
 
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
-import type { RoleAvatar } from './models/RoleAvatar';
-import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
-import type { UserLoginRequest } from './models/UserLoginRequest';
-import type { UserRegisterRequest } from './models/UserRegisterRequest';
-import type { RolePageQueryRequest } from './models/RolePageQueryRequest'
-import type { Transform } from '../app/components/Role/sprite/TransformControl';
+import type { RoleAvatar } from '../models/RoleAvatar';
+import type { RoleAvatarCreateRequest } from '../models/RoleAvatarCreateRequest';
+import type { UserLoginRequest } from '../models/UserLoginRequest';
+import type { UserRegisterRequest } from '../models/UserRegisterRequest';
+import type { RolePageQueryRequest } from '../models/RolePageQueryRequest'
+import type { Transform } from '../../app/components/Role/sprite/TransformControl';
 
 import {
   type ApiResultRoleAbility,
@@ -126,23 +126,6 @@ export function useCreateRoleMutation() {
 }
 
 /**
- * 删除角色（单个角色）
- * @param roleId 要删除的角色ID
- */
-// export function useDeleteRoleMutation(roleId: number) {
-//   const queryClient = useQueryClient();
-//   return useMutation({
-//     mutationFn: () => tuanchat.roleController.deleteRole2([roleId]),
-//     mutationKey: ['deleteRole', roleId],
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
-//       queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
-//       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
-//     }
-//   });
-// }
-
-/**
  * 批量删除角色的hook
  * @param onSuccess 删除成功的回调函数
  * @returns 删除角色的mutation对象
@@ -186,46 +169,7 @@ export function useRegisterMutation(onSuccess?: () => void) {
   });
 }
 
-/**
- * 用户登录
- * @param onSuccess 登录成功回调
- */
-export function useLoginMutation(onSuccess?: () => void) {
-  return useMutation({
-    mutationFn: (req: UserLoginRequest) => tuanchat.userController.login(req),
-    mutationKey: ['login'],
-    onSuccess: () => {
-      onSuccess?.();
-    }
-  });
-}
 
-/**
- * 获取用户信息
- * @param userId 用户ID
- */
-export function useGetUserInfoQuery(userId: number) {
-  return useQuery({
-    queryKey: ['getUserInfo', userId],
-    queryFn: () => tuanchat.userController.getUserInfo(userId),
-    staleTime: 600000, // 10分钟缓存
-    enabled: userId > 0
-  });
-}
-
-/**
- * 修改用户信息
- */
-export function useUpdateUserInfoMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (req: UserInfoResponse) => tuanchat.userController.updateUserInfo(req),
-    mutationKey: ['updateUserInfo'],
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getUserInfo'] });
-    }
-  });
-}
 
 
 // ==================== 头像系统 ====================
@@ -285,7 +229,7 @@ export function useSetRoleAvatarMutation(roleId: number) {
 }
 
 /**
- * 删除角色头像
+ * 删除角色头像（单个）
  * @param roleId 关联的角色ID（用于缓存刷新）
  */
 export function useDeleteRoleAvatarMutation(roleId?: number) {
@@ -294,7 +238,23 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
     mutationFn: (avatarId: number) => tuanchat.avatarController.deleteRoleAvatar(avatarId),
     mutationKey: ['deleteRoleAvatar'],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
+      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId], exact: true });
+    }
+  });
+}
+
+/**
+ * 批量删除角色头像
+ * @param roleId 关联的角色ID（用于缓存刷新）
+ */
+export function useBatchDeleteRoleAvatarsMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (avatarIds: number[]) => 
+      Promise.all(avatarIds.map(id => tuanchat.avatarController.deleteRoleAvatar(id))),
+    mutationKey: ['batchDeleteRoleAvatars'],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId], exact: true });
     }
   });
 }
@@ -329,7 +289,7 @@ export function useApplyCropMutation() {
         });
 
         // 使用UploadUtils上传图片，场景3表示角色差分
-        const { UploadUtils } = await import('../app/utils/UploadUtils');
+        const { UploadUtils } = await import('../../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
         const newSpriteUrl = await uploadUtils.uploadImg(croppedFile, 3, 0.9, 2560);
 
@@ -404,7 +364,7 @@ export function useApplyCropAvatarMutation() {
         });
 
         // 使用UploadUtils上传图片，场景2表示头像
-        const { UploadUtils } = await import('../app/utils/UploadUtils');
+        const { UploadUtils } = await import('../../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
         const newAvatarUrl = await uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560);
 
@@ -491,9 +451,9 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; autoApply?: boolean; }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform, autoApply = true }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform, autoApply = true, autoNameFirst = false }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
@@ -503,6 +463,7 @@ export function useUploadAvatarMutation() {
         hasTransform: !!transform,
         roleId,
         autoApply,
+        autoNameFirst,
         avatarUrl: avatarUrl.substring(0, 50) + "...",
         spriteUrl: spriteUrl.substring(0, 50) + "..."
       });
@@ -560,6 +521,32 @@ export function useUploadAvatarMutation() {
             console.log("跳过自动应用头像 (autoApply=false)");
           }
           
+          // 如果是首次上传且需要自动命名
+          if (autoNameFirst) {
+            try {
+              const list = await tuanchat.avatarController.getRoleAvatars(roleId);
+              const avatars = list?.data ?? [];
+              
+              if (avatars.length === 1) {
+                const firstAvatar = avatars[0];
+                const currentLabel = firstAvatar?.avatarTitle?.label;
+                
+                if (!currentLabel || currentLabel.trim() === "") {
+                  await tuanchat.avatarController.updateRoleAvatar({
+                    ...firstAvatar,
+                    avatarTitle: {
+                      ...firstAvatar.avatarTitle,
+                      label: "默认",
+                    },
+                  });
+                  console.log("首次头像自动命名为'默认'");
+                }
+              }
+            } catch (error) {
+              console.error("首次头像自动命名失败", error);
+            }
+          }
+          
           await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
           await queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
           await queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
@@ -581,50 +568,49 @@ export function useUploadAvatarMutation() {
   });
 }
 
-export function useUpdateAvatarTitleMutation() {
+/**
+ * 更新头像标题
+ * 使用乐观更新避免整表刷新导致 UI 抖动/选中项重置
+ * @param roleId 角色ID（用于缓存刷新）
+ */
+export function useUpdateAvatarTitleMutation(roleId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["updateAvatarTitle"],
-    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: Record<string, string>; roleId: number }) => {
-      if (!avatarId || !avatarTitle) {
-        console.error("参数错误：avatarId 或 title 为空");
-        return undefined;
+    mutationFn: async ({ avatarId, title, avatarsForUpdate }: { 
+      avatarId: number; 
+      title: string;
+      avatarsForUpdate: RoleAvatar[];
+    }) => {
+      const targetAvatar = avatarsForUpdate.find((a: RoleAvatar) => a.avatarId === avatarId);
+      if (!targetAvatar) {
+        console.error("未找到要更新的头像");
+        return;
       }
-      try {
-        const res = await tuanchat.avatarController.updateRoleAvatar({ avatarId, avatarTitle })
-      }
-      catch (error) {
-        console.error("更新头像标题请求失败", error);
-        throw error;
-      }
-    },
-    // 乐观更新，避免整表刷新导致 UI 抖动/选中项重置
-    onMutate: async (variables) => {
-      const { roleId, avatarId, avatarTitle } = variables as { roleId: number; avatarId: number; avatarTitle: Record<string, string> };
-      const key = ["getRoleAvatars", roleId];
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData(key);
-      queryClient.setQueryData(key, (oldData: any) => {
-        if (!oldData) return oldData;
-        // 兼容两种返回结构：直接数组 或 { data: [] }
-        if (Array.isArray(oldData)) {
-          return oldData.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
-        }
-        const arr = Array.isArray(oldData?.data) ? oldData.data : null;
-        if (!arr) return oldData;
-        const nextArr = arr.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
-        return { ...oldData, data: nextArr };
+
+      const res = await tuanchat.avatarController.updateRoleAvatar({
+        ...targetAvatar,
+        avatarTitle: {
+          ...targetAvatar.avatarTitle,
+          label: title,
+        },
       });
-      return { previous, key };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.key) {
-        queryClient.setQueryData(context.key as any, context.previous);
+
+      if (res.success) {
+        console.warn("更新头像名称成功");
+      } else {
+        console.error("更新头像名称失败");
       }
+      
+      return res;
     },
-    // 保持当前缓存，不立刻触发 refetch，避免选中项重置
-    onSuccess: (_, variables) => { queryClient.invalidateQueries({ queryKey: ["roleAvatar", variables.roleId] }); },
-  })
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["getRoleAvatars", roleId],
+        exact: true,
+      });
+    },
+  });
 }
 
 // 根据头像id获取头像
@@ -677,6 +663,251 @@ export function useRoleAvatars(roleId: number) {
   },
   );
   return roleAvatarQuery;
+}
+
+// ==================== 头像删除 Mutation ====================
+/**
+ * 删除单个头像的 mutation（带乐观更新）
+ * @param roleId 角色ID（用于缓存刷新）
+ */
+export function useDeleteRoleAvatarWithOptimisticMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['deleteRoleAvatarOptimistic', roleId],
+    mutationFn: async (avatarId: number) => {
+      const res = await tuanchat.avatarController.deleteRoleAvatar(avatarId);
+      if (!res.success) {
+        throw new Error("删除头像失败");
+      }
+      return res;
+    },
+    onMutate: async (avatarId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: ["getRoleAvatars", roleId],
+      });
+
+      // Snapshot previous value for rollback
+      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", roleId]);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
+        if (!old) return old;
+
+        // Handle both direct array and wrapped response
+        if (Array.isArray(old)) {
+          return old.filter((a: RoleAvatar) => a.avatarId !== avatarId);
+        }
+
+        if (old.data && Array.isArray(old.data)) {
+          return {
+            ...old,
+            data: old.data.filter((a: RoleAvatar) => a.avatarId !== avatarId),
+          };
+        }
+
+        return old;
+      });
+
+      return { previousAvatars };
+    },
+    onError: (err, avatarId, context) => {
+      console.error("删除头像失败:", err);
+
+      // Rollback optimistic update
+      if (context?.previousAvatars) {
+        queryClient.setQueryData(
+          ["getRoleAvatars", roleId],
+          context.previousAvatars,
+        );
+      }
+    },
+    onSuccess: () => {
+      console.warn("删除头像成功");
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({
+        queryKey: ["getRoleAvatars", roleId],
+      });
+
+      // Also invalidate role query to ensure avatar consistency
+      queryClient.invalidateQueries({
+        queryKey: ["getRole", roleId],
+      });
+    },
+  });
+}
+
+/**
+ * 批量删除头像的 mutation（带乐观更新）
+ * @param roleId 角色ID（用于缓存刷新）
+ */
+export function useBatchDeleteRoleAvatarsWithOptimisticMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['batchDeleteRoleAvatarsOptimistic', roleId],
+    mutationFn: async (avatarIds: number[]) => {
+      // Delete all avatars concurrently
+      const deletePromises = avatarIds.map(avatarId =>
+        tuanchat.avatarController.deleteRoleAvatar(avatarId),
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+
+      // Check for failures
+      const failures = results.filter(r => r.status === "rejected");
+      if (failures.length > 0) {
+        throw new Error(`批量删除失败：${failures.length} 个头像删除失败`);
+      }
+
+      return results;
+    },
+    onMutate: async (avatarIds) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: ["getRoleAvatars", roleId],
+      });
+
+      // Snapshot previous value for rollback
+      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", roleId]);
+
+      // Optimistically update the cache (remove all avatars at once)
+      queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
+        if (!old) return old;
+
+        // Handle both direct array and wrapped response
+        if (Array.isArray(old)) {
+          return old.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0));
+        }
+
+        if (old.data && Array.isArray(old.data)) {
+          return {
+            ...old,
+            data: old.data.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0)),
+          };
+        }
+
+        return old;
+      });
+
+      return { previousAvatars };
+    },
+    onError: (err, avatarIds, context) => {
+      console.error("批量删除头像失败:", err);
+
+      // Rollback optimistic update on failure
+      if (context?.previousAvatars) {
+        queryClient.setQueryData(
+          ["getRoleAvatars", roleId],
+          context.previousAvatars,
+        );
+      }
+    },
+    onSuccess: (_, avatarIds) => {
+      console.warn(`批量删除成功：共删除 ${avatarIds.length} 个头像`);
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency
+      queryClient.invalidateQueries({
+        queryKey: ["getRoleAvatars", roleId],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["getRole", roleId],
+      });
+    },
+  });
+}
+
+// ==================== 头像名称更新 Mutation ====================
+/**
+ * 更新头像名称的 mutation（带乐观更新）
+ * @param roleId 角色ID（用于缓存刷新）
+ */
+export function useUpdateAvatarNameMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["updateAvatarName", roleId],
+    mutationFn: async ({ avatar, name }: { avatar: RoleAvatar; name: string }) => {
+      const updatedAvatar: RoleAvatar = {
+        ...avatar,
+        avatarTitle: {
+          ...avatar.avatarTitle,
+          label: name,
+        },
+      };
+
+      const res = await tuanchat.avatarController.updateRoleAvatar(updatedAvatar);
+      if (!res.success) {
+        throw new Error("更新头像名称失败");
+      }
+      return res;
+    },
+    onMutate: async ({ avatar, name }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: ["getRoleAvatars", roleId],
+      });
+
+      // Snapshot previous value for rollback
+      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", roleId]);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
+        if (!old) return old;
+
+        const updateAvatar = (a: RoleAvatar) => {
+          if (a.avatarId === avatar.avatarId) {
+            return {
+              ...a,
+              avatarTitle: {
+                ...a.avatarTitle,
+                label: name,
+              },
+            };
+          }
+          return a;
+        };
+
+        // Handle both direct array and wrapped response
+        if (Array.isArray(old)) {
+          return old.map(updateAvatar);
+        }
+
+        if (old.data && Array.isArray(old.data)) {
+          return {
+            ...old,
+            data: old.data.map(updateAvatar),
+          };
+        }
+
+        return old;
+      });
+
+      return { previousAvatars };
+    },
+    onError: (err, variables, context) => {
+      console.error("更新头像名称失败:", err);
+
+      // Rollback optimistic update
+      if (context?.previousAvatars) {
+        queryClient.setQueryData(
+          ["getRoleAvatars", roleId],
+          context.previousAvatars,
+        );
+      }
+    },
+    onSuccess: () => {
+      console.warn("更新头像名称成功");
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({
+        queryKey: ["getRoleAvatars", roleId],
+      });
+    },
+  });
 }
 
 // ==================== 用户角色查询 ====================
@@ -758,6 +989,4 @@ export function useRoleAbility(roleId: number) {
   );
   return abilityQuery;
 }
-
-
 

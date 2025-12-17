@@ -5,7 +5,7 @@ import { AddRingLight } from "@/icons";
 import React, { use, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
-import { useGetUserRolesQuery } from "../../../../api/queryHooks";
+import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export function AddRoleWindow({
   handleAddRole,

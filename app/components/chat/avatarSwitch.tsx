@@ -7,7 +7,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import React, { use, useLayoutEffect, useMemo } from "react";
-import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 
 export default function AvatarSwitch({
   curRoleId,

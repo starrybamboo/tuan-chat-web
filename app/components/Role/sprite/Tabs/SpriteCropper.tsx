@@ -8,7 +8,7 @@ import {
   canvasToBlob,
   useCropPreview,
 } from "@/utils/imgCropper";
-import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
+import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "../../Preview/AvatarPreview";

@@ -6,7 +6,8 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { use, useState } from "react";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserInfoQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 /**
  * 角色的详情界面

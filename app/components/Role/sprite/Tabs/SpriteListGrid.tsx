@@ -1,6 +1,9 @@
 import type { RoleAvatar } from "api";
+
 import type { Role } from "../../types";
+
 import { BaselineDeleteOutline } from "@/icons";
+
 import { useState } from "react";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
@@ -167,7 +170,11 @@ export function SpriteListGrid({
 
             return (
               <div key={avatar.avatarId} className="flex flex-col gap-1">
-                <div className="relative group">
+                <div className="relative group w-full overflow-visible">
+                  {/* 头像名称 badge，绝对定位到左上角，z-index 保证在图片之上 */}
+                  <span className="absolute rounded-lg right-1 bottom-2 badge bg-base-300/85 font-semibold badge-sm z-30 pointer-events-auto select-none">
+                    {avatarName}
+                  </span>
                   <button
                     type="button"
                     onClick={() => {

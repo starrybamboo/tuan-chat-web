@@ -1,11 +1,8 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "../types";
-
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
-import { useUploadAvatarMutation } from "api/queryHooks";
+import { useBatchDeleteRoleAvatarsMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MoodSettingsTab } from "./Tabs/MoodSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
@@ -81,9 +78,9 @@ export function SpriteSettingsPopup({
   // 当前选中的立绘 URL
   const currentSpriteUrl = currentAvatar?.spriteUrl || null;
 
-  // ========== 上传功能 ==========
-  const queryClient = useQueryClient();
+  // ========== 上传和删除功能 ==========
   const { mutate: uploadAvatar } = useUploadAvatarMutation();
+  const { mutate: batchDeleteAvatars } = useBatchDeleteRoleAvatarsMutation(role?.id);
 
   // Notification state for upload feedback
   const [uploadNotification, setUploadNotification] = useState<{
@@ -101,40 +98,8 @@ export function SpriteSettingsPopup({
     }
   }, [uploadNotification]);
 
-  // Update avatar title mutation for first avatar auto-naming
-  const { mutate: updateAvatarTitle } = useMutation({
-    mutationKey: ["updateAvatarTitle"],
-    mutationFn: async ({ avatarId, title }: { avatarId: number; title: string }) => {
-      const avatarsForUpdate = roleAvatars || spritesAvatars;
-      const targetAvatar = avatarsForUpdate.find((a: RoleAvatar) => a.avatarId === avatarId);
-      if (!targetAvatar) {
-        console.error("未找到要更新的头像");
-        return;
-      }
-
-      const res = await tuanchat.avatarController.updateRoleAvatar({
-        ...targetAvatar,
-        avatarTitle: {
-          ...targetAvatar.avatarTitle,
-          label: title,
-        },
-      });
-
-      if (res.success) {
-        console.warn("更新头像名称成功");
-        queryClient.invalidateQueries({
-          queryKey: ["getRoleAvatars", role?.id],
-          exact: true,
-        });
-      }
-      else {
-        console.error("更新头像名称失败");
-      }
-    },
-  });
-
   // Handle avatar upload
-  const handleAvatarUpload = useCallback(async (data: any) => {
+  const handleAvatarUpload = useCallback((data: any) => {
     if (!role?.id) {
       setUploadNotification({
         type: "error",
@@ -143,67 +108,26 @@ export function SpriteSettingsPopup({
       return;
     }
 
-    try {
-      // Upload avatar with transform data (autoApply: false to prevent auto-switching)
-      uploadAvatar(
-        { ...data, roleId: role.id, autoApply: false },
-        {
-          onSuccess: async () => {
-            try {
-              // Refresh avatar list
-              await queryClient.invalidateQueries({
-                queryKey: ["getRoleAvatars", role.id],
-                exact: true,
-              });
-
-              // Get updated avatar list
-              const list = await tuanchat.avatarController.getRoleAvatars(role.id);
-              const avatars = list?.data ?? [];
-
-              // If this is the first avatar, auto-name it "默认"
-              if (avatars.length === 1) {
-                const firstAvatar = avatars[0];
-                const currentLabel = firstAvatar?.avatarTitle?.label;
-
-                // Only set default name if no label exists
-                if (!currentLabel || currentLabel.trim() === "") {
-                  updateAvatarTitle(
-                    { avatarId: firstAvatar.avatarId!, title: "默认" },
-                  );
-                }
-              }
-
-              setUploadNotification({
-                type: "success",
-                message: "头像上传成功",
-              });
-            }
-            catch (error) {
-              console.error("首次头像自动命名失败", error);
-              setUploadNotification({
-                type: "success",
-                message: "头像上传成功",
-              });
-            }
-          },
-          onError: (error) => {
-            console.error("头像上传失败:", error);
-            setUploadNotification({
-              type: "error",
-              message: "头像上传失败，请重试",
-            });
-          },
+    // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
+    uploadAvatar(
+      { ...data, roleId: role.id, autoApply: false, autoNameFirst: true },
+      {
+        onSuccess: () => {
+          setUploadNotification({
+            type: "success",
+            message: "头像上传成功",
+          });
         },
-      );
-    }
-    catch (error) {
-      console.error("头像上传处理失败:", error);
-      setUploadNotification({
-        type: "error",
-        message: "头像上传失败，请重试",
-      });
-    }
-  }, [role, uploadAvatar, queryClient, updateAvatarTitle]);
+        onError: (error) => {
+          console.error("头像上传失败:", error);
+          setUploadNotification({
+            type: "error",
+            message: "头像上传失败，请重试",
+          });
+        },
+      },
+    );
+  }, [role, uploadAvatar]);
 
   // 内部索引变更处理
   const handleInternalIndexChange = useCallback((index: number) => {
@@ -246,6 +170,34 @@ export function SpriteSettingsPopup({
     }
     setBatchDeleteConfirmOpen(true);
   }, [selectedIndices, spritesAvatars.length]);
+
+  // 执行批量删除
+  const handleBatchDeleteConfirm = useCallback(() => {
+    // Get avatar IDs from selected indices
+    const avatarIdsToDelete = Array.from(selectedIndices)
+      .map(index => spritesAvatars[index]?.avatarId)
+      .filter((id): id is number => id !== undefined);
+
+    if (avatarIdsToDelete.length === 0)
+      return;
+
+    batchDeleteAvatars(avatarIdsToDelete, {
+      onSuccess: () => {
+        // Exit multi-select mode and clear selections
+        setIsMultiSelectMode(false);
+        setSelectedIndices(new Set());
+        setBatchDeleteConfirmOpen(false);
+
+        // Reset internal index if needed
+        if (internalIndex >= spritesAvatars.length - avatarIdsToDelete.length) {
+          setInternalIndex(Math.max(0, spritesAvatars.length - avatarIdsToDelete.length - 1));
+        }
+      },
+      onError: (error) => {
+        console.error("批量删除失败:", error);
+      },
+    });
+  }, [selectedIndices, spritesAvatars, batchDeleteAvatars, internalIndex]);
 
   // 当弹窗从关闭变为打开时，重置为 defaultTab 并同步外部索引
   useEffect(() => {
@@ -618,43 +570,7 @@ export function SpriteSettingsPopup({
               <button
                 type="button"
                 className="btn btn-error"
-                onClick={async () => {
-                  // Get avatar IDs from selected indices
-                  const avatarIdsToDelete = Array.from(selectedIndices)
-                    .map(index => spritesAvatars[index]?.avatarId)
-                    .filter((id): id is number => id !== undefined);
-
-                  if (avatarIdsToDelete.length === 0)
-                    return;
-
-                  try {
-                    // Delete avatars
-                    await Promise.all(
-                      avatarIdsToDelete.map(id =>
-                        tuanchat.avatarController.deleteRoleAvatar(id),
-                      ),
-                    );
-
-                    // Refresh avatar list
-                    await queryClient.invalidateQueries({
-                      queryKey: ["getRoleAvatars", role?.id],
-                      exact: true,
-                    });
-
-                    // Exit multi-select mode and clear selections
-                    setIsMultiSelectMode(false);
-                    setSelectedIndices(new Set());
-                    setBatchDeleteConfirmOpen(false);
-
-                    // Reset internal index if needed
-                    if (internalIndex >= spritesAvatars.length - avatarIdsToDelete.length) {
-                      setInternalIndex(Math.max(0, spritesAvatars.length - avatarIdsToDelete.length - 1));
-                    }
-                  }
-                  catch (error) {
-                    console.error("批量删除失败:", error);
-                  }
-                }}
+                onClick={handleBatchDeleteConfirm}
                 disabled={selectedIndices.size >= spritesAvatars.length}
               >
                 确认删除
