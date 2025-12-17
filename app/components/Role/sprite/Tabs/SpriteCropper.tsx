@@ -717,6 +717,7 @@ export function SpriteCropper({
                           currentAvatarUrl={currentAvatarUrl}
                           characterName={characterName}
                           hideTitle={true}
+                          layout={isMobileScreen() ? "toggle" : "vertical"}
                         />
                       )
                     : (
