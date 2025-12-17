@@ -295,7 +295,7 @@ export function SpriteSettingsPopup({
         <div className="md:w-80 flex-shrink-0 border-b md:border-b-0 md:border-r border-base-300 bg-base-200/30 flex flex-col">
           {/* 头像列表标题栏 */}
           <div className="flex-shrink-0 border-b border-base-300 bg-base-200/50">
-            <div className="flex justify-between items-center px-4 py-2">
+            <div className="flex justify-between items-center p-2 py-3.5">
               <h3 className="text-lg font-semibold">头像列表</h3>
               <div className="flex gap-2">
                 {isMultiSelectMode && (
@@ -428,12 +428,12 @@ export function SpriteSettingsPopup({
         <div className="flex-1 flex flex-col min-h-0">
           {/* Tab 导航栏 */}
           <div className="flex-shrink-0 border-b border-base-300 bg-base-200/50">
-            <nav className="flex px-4 py-2 gap-2 overflow-x-auto">
+            <nav className="flex p-2 gap-2 overflow-x-auto">
               {/* 预览 Tab */}
               <button
                 type="button"
                 onClick={() => setActiveTab("preview")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === "preview"
                     ? "bg-primary text-primary-content"
                     : "hover:bg-base-300"
@@ -450,7 +450,7 @@ export function SpriteSettingsPopup({
               <button
                 type="button"
                 onClick={() => setActiveTab("cropper")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === "cropper"
                     ? "bg-primary text-primary-content"
                     : "hover:bg-base-300"
@@ -467,7 +467,7 @@ export function SpriteSettingsPopup({
               <button
                 type="button"
                 onClick={() => setActiveTab("avatarCropper")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === "avatarCropper"
                     ? "bg-primary text-primary-content"
                     : "hover:bg-base-300"
@@ -485,7 +485,7 @@ export function SpriteSettingsPopup({
               <button
                 type="button"
                 onClick={() => setActiveTab("mood")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === "mood"
                     ? "bg-primary text-primary-content"
                     : "hover:bg-base-300"
