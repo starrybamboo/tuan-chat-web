@@ -1,4 +1,4 @@
-import { useGetUserInfoQuery } from "api/queryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 
 interface MemberInfoProps {
   userId: number;

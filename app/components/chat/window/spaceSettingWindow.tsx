@@ -14,8 +14,8 @@ import {
   useUpdateSpaceArchiveStatusMutation,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { tuanchat } from "../../../../api/instance";

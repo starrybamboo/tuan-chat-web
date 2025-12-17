@@ -25,6 +25,10 @@ interface AvatarPreviewProps {
   showTraditionalStyle?: boolean;
   // 是否隐藏标题
   hideTitle?: boolean;
+  // 可选的渲染版本号，用于在上层 canvas 内容变化时触发子组件重绘
+  previewRenderKey?: number;
+  // 布局模式: 'toggle' - 切换按钮(默认), 'horizontal' - 横向排列, 'vertical' - 纵向排列
+  layout?: "toggle" | "horizontal" | "vertical";
 }
 
 /**
@@ -38,109 +42,162 @@ function AvatarPreviewComponent({
   mode = "full",
   className = "",
   imageClassName = "",
-  chatMessages = ["这是使用新头像的聊天消息！", "头像看起来怎么样？", "完成后就可以开始聊天了~"],
+  chatMessages = ["这是使用新头像的聊天消息！", "完成后就可以开始聊天了~"],
   showBubbleStyle = true,
   showTraditionalStyle = true,
   hideTitle = false,
+  previewRenderKey,
+  layout = "toggle",
 }: AvatarPreviewProps) {
-  // 获取当前使用的头像URL
-  const getDisplayAvatarUrl = () => {
-    if (previewCanvasRef?.current) {
-      try {
-        return previewCanvasRef.current.toDataURL();
-      }
-      catch (error) {
-        console.warn("Failed to get canvas data URL:", error);
-        return currentAvatarUrl || "/favicon.ico";
-      }
-    }
-    return currentAvatarUrl || "/favicon.ico";
-  };
+  // 不在渲染路径中导出 canvas 的 dataURL，改为直接在聊天气泡中使用源 canvas（通过 ref 复制）
+  // displayAvatarUrl 仍可用作 image 模式的后备
+  const displayAvatarUrl = currentAvatarUrl || "/favicon.ico";
 
-  const displayAvatarUrl = getDisplayAvatarUrl();
+  // 本地状态：在气泡样式和传统样式之间切换（当两者都可用时）
+  const [selectedStyle, setSelectedStyle] = React.useState<"bubble" | "traditional">(() =>
+    showBubbleStyle ? "bubble" : "traditional",
+  );
 
   // 渲染图片预览
   const renderImagePreview = () => (
     <div className={`bg-gray-50 rounded border flex items-center justify-center overflow-hidden ${className}`}>
-      <img
-        src={displayAvatarUrl}
-        alt="预览"
-        className={`object-contain ${imageClassName}`}
-      />
+      {previewCanvasRef?.current
+        ? (
+            <canvas ref={previewCanvasRef} className={`object-contain ${imageClassName} w-full h-full`} />
+          )
+        : (
+            <img
+              src={displayAvatarUrl}
+              alt="预览"
+              className={`object-contain ${imageClassName}`}
+            />
+          )}
     </div>
   );
 
   // 渲染聊天预览
   const renderChatPreview = () => (
     <div className={`${className}`}>
-      {/* 多条chat bubble预览 */}
+      {/* 多条chat bubble预览：使用 DisplayChatBubble（从 preview canvas 复制） */}
       {chatMessages.map(message => (
-        <div key={`chat-${message}`} className="max-w-xs">
-          <div className="chat chat-start">
-            <div className="chat-image avatar">
-              <div className="w-10 rounded-full">
-                <img
-                  alt="头像"
-                  src={currentAvatarUrl || "/favicon.ico"}
-                />
-              </div>
-            </div>
-            <div className="chat-bubble">
-              {characterName}
-              :
-              {" "}
-              {message}
-            </div>
-          </div>
-        </div>
+        <DisplayChatBubble
+          key={`chat-${message}`}
+          roleName={characterName}
+          avatarCanvasRef={previewCanvasRef}
+          avatarUrl={displayAvatarUrl}
+          renderKey={previewRenderKey}
+          content={message}
+          useChatBubbleStyle={true}
+        />
       ))}
     </div>
   );
 
   // 渲染完整预览
-  const renderFullPreview = () => (
-    <>
-      {!hideTitle && <h2 className="text-xl font-bold">头像预览</h2>}
-      {/* 隐藏的 canvas 用于图像处理 */}
-      {previewCanvasRef && (
-        <canvas
-          ref={previewCanvasRef}
-          style={{ display: "none" }}
-          className="w-64 h-64"
-        />
-      )}
+  const renderFullPreview = () => {
+    // 渲染气泡样式内容
+    const bubbleContent = showBubbleStyle && (
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+        {chatMessages.map(message => (
+          <DisplayChatBubble
+            key={`bubble-${message}`}
+            roleName={characterName}
+            avatarCanvasRef={previewCanvasRef}
+            avatarUrl={displayAvatarUrl}
+            content={message}
+            useChatBubbleStyle={true}
+            renderKey={previewRenderKey}
+          />
+        ))}
+      </div>
+    );
 
-      {/* 气泡样式预览 */}
-      {showBubbleStyle && (
-        <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-          {chatMessages.map(message => (
-            <DisplayChatBubble
-              key={`bubble-${message}`}
-              roleName={characterName}
-              avatarUrl={displayAvatarUrl}
-              content={message}
-              useChatBubbleStyle={true}
-            />
-          ))}
-        </div>
-      )}
+    // 渲染传统样式内容
+    const traditionalContent = showTraditionalStyle && (
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+        {chatMessages.map(message => (
+          <DisplayChatBubble
+            key={`traditional-${message}`}
+            roleName={characterName}
+            avatarCanvasRef={previewCanvasRef}
+            avatarUrl={displayAvatarUrl}
+            content={message}
+            useChatBubbleStyle={false}
+            renderKey={previewRenderKey}
+          />
+        ))}
+      </div>
+    );
 
-      {/* 传统样式预览 */}
-      {showTraditionalStyle && (
-        <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-          {chatMessages.map(message => (
-            <DisplayChatBubble
-              key={`traditional-${message}`}
-              roleName={characterName}
-              avatarUrl={displayAvatarUrl}
-              content={message}
-              useChatBubbleStyle={false}
-            />
-          ))}
-        </div>
-      )}
-    </>
-  );
+    return (
+      <>
+        {!hideTitle && <h2 className="text-xl font-bold">头像预览</h2>}
+        {/* 隐藏的 canvas 用于图像处理 */}
+        {previewCanvasRef && (
+          <canvas
+            ref={previewCanvasRef}
+            style={{ display: "none" }}
+            className="w-64 h-64"
+          />
+        )}
+
+        {/* 根据 layout 模式渲染不同布局 */}
+        {layout === "toggle" && (
+          <div className="relative w-full">
+            {showBubbleStyle && showTraditionalStyle && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost absolute right-2 top-2 z-10"
+                onClick={() => setSelectedStyle(selectedStyle === "bubble" ? "traditional" : "bubble")}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                </svg>
+                切换
+                {selectedStyle === "bubble" ? "传统" : "气泡"}
+                样式
+              </button>
+            )}
+
+            {((showBubbleStyle && !showTraditionalStyle) || (showBubbleStyle && showTraditionalStyle && selectedStyle === "bubble")) && bubbleContent}
+            {((showTraditionalStyle && !showBubbleStyle) || (showBubbleStyle && showTraditionalStyle && selectedStyle === "traditional")) && traditionalContent}
+          </div>
+        )}
+
+        {layout === "horizontal" && (
+          <div className="flex gap-4 w-full">
+            {showBubbleStyle && (
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold mb-2">气泡样式</h3>
+                {bubbleContent}
+              </div>
+            )}
+            {showTraditionalStyle && (
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold mb-2">log样式</h3>
+                {traditionalContent}
+              </div>
+            )}
+          </div>
+        )}
+
+        {layout === "vertical" && (
+          <div className="flex flex-col gap-4 w-full">
+            {showBubbleStyle && (
+              <div>
+                {bubbleContent}
+              </div>
+            )}
+            {showTraditionalStyle && (
+              <div>
+                {traditionalContent}
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
 
   // 根据模式渲染不同内容
   switch (mode) {

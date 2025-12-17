@@ -4,7 +4,7 @@ import {
   useGetMomentFeedStatsQuery,
   useGetUserMomentFeedInfiniteQuery,
 } from "../../../../api/hooks/activitiesFeedQuerryHooks";
-import { useGetUserInfoQuery } from "../../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
 interface ActivitiesTabProps {
   userId: number;

@@ -16,7 +16,7 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatTimeSmartly } from "@/utils/dateUtil";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import React, { use, useMemo, useState } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 import ClueMessage from "./smallComponents/clueMessage";

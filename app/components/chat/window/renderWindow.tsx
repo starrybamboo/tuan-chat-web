@@ -12,7 +12,7 @@ import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import { useGetSpaceInfoQuery, useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
-import { useGetRolesQueries } from "../../../../api/queryHooks";
+import { useGetRolesQueries } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 /**
  * 渲染参数

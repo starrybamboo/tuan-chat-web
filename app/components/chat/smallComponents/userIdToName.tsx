@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import { useGetUserInfoQuery } from "../../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
 /**
  * 填入userId，返回一个包含用户名的span

@@ -1,6 +1,6 @@
 import type { Message } from "../../../../api";
 import { useGetMessageByIdSmartly } from "@/components/chat/hooks";
-import { useGetRoleQuery } from "../../../../api/queryHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 /**
  * 消息预览组件，用于显示消息的简要内容

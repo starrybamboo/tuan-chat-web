@@ -3,7 +3,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
 import { useGetFriendsUserInfoQuery } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
-import { useGetUserInfoQuery } from "api/queryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 

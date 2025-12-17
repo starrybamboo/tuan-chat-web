@@ -72,6 +72,9 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     return currentStep === 1 ? "sprite" : "avatar";
   }, [currentStep]);
 
+  // 添加渲染版本号，用于通知子组件 canvas 内容已更新
+  const [previewRenderKey, setPreviewRenderKey] = useState(0);
+
   // 使用 useCropPreview hook 管理裁剪状态
   const {
     imgRef,
@@ -90,6 +93,17 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     debounceMs: 100,
   });
 
+  // 监听裁剪完成，延迟更新渲染key以确保canvas已经绘制完成
+  React.useEffect(() => {
+    if (completedCrop && imgRef.current && previewCanvasRef.current && currentStep === 2) {
+      const timeoutId = setTimeout(() => {
+        setPreviewRenderKey(prev => prev + 1);
+      }, 150); // 延迟确保防抖后的canvas绘制已完成
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [completedCrop, currentStep, imgRef, previewCanvasRef]);
+
   /**
    * 重置所有状态到初始值
    */
@@ -97,6 +111,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     setCurrentStep(1);
     setImgSrc("");
     setisSubmiting(false);
+    setPreviewRenderKey(0);
     // 重置Transform状态
     setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 });
     // 重置裁剪状态
@@ -242,30 +257,121 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         }}
         fullScreen={isMobileScreen()}
       >
-        <div className="flex items-center gap-8">
-          <div className="w-full flex items-center">
-            <h1 className="text-xl md:text-2xl font-bold w-64">
-              {currentStep === 1 ? "1. 上传立绘" : "2. 上传头像"}
-              ：
-            </h1>
-            <ul className="w-full steps">
-              <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}></li>
-              <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}></li>
-            </ul>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-8">
+            <div className="w-full flex items-center">
+              <h1 className="text-xl md:text-2xl font-bold w-64">
+                {currentStep === 1 ? "1. 上传立绘" : "2. 上传头像"}
+                ：
+              </h1>
+              <ul className="w-full steps">
+                <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}></li>
+                <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}></li>
+              </ul>
+            </div>
+            {/* 桌面端按钮组 */}
+            {!!completedCrop && (
+              <div className="flex-shrink-0 hidden md:block">
+                {isSubmiting
+                  ? (
+                      <button className="btn btn-md loading" disabled={true} type="button"></button>
+                    )
+                  : (
+                      <div className="flex gap-2">
+                        <button className="btn btn-md btn-info" onClick={handleSubmit} type="button">
+                          {currentStep === 1 ? "下一步" : "创建完成"}
+                        </button>
+                        <button className="btn btn-md btn-outline" onClick={handleDownload} type="button">
+                          下载图像
+                        </button>
+                      </div>
+                    )}
+              </div>
+            )}
           </div>
-          {/* 桌面端按钮组 */}
+          <div className="divider my-0"></div>
+          <div className="flex flex-col md:flex-row gap-8 justify-center">
+            {/* 原始图片裁剪区域 */}
+            <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
+              {!!imgSrc && (
+                <>
+                  <h2 className="text-xl font-bold">裁剪预览</h2>
+                  <div className="w-full rounded-lg flex items-center justify-center">
+                    <ReactCrop
+                      crop={crop}
+                      onChange={onCropChange}
+                      onComplete={onCropComplete}
+                      aspect={currentStep === 2 ? 1 : undefined}// 第一步不限制比例，第二步固定1:1
+                      minHeight={10}
+                    >
+                      <img
+                        ref={imgRef}
+                        alt="Crop me"
+                        src={imgSrc}
+                        // style={{ transform: `scale(${scale})` }}
+                        onLoad={onImageLoad}
+                        // className="max-w-[50vw] max-h-[70vh]"
+                        // 不能用className设置, 否则会出问题, 见鬼!!!
+                        style={{
+                          maxHeight: "70vh",
+                        }}
+                      />
+                    </ReactCrop>
+                  </div>
+                </>
+              )}
+            </div>
+            {/* 裁剪预览和操作按钮 */}
+            {!!completedCrop && (
+              <div className="w-full md:w-2/3 p-2 gap-4 flex flex-col items-center">
+                {
+                  currentStep !== 1
+                    ? (
+                        <AvatarPreview
+                          previewCanvasRef={previewCanvasRef}
+                          currentAvatarUrl={currentAvatarUrl}
+                          characterName="角色名"
+                          previewRenderKey={previewRenderKey}
+                        />
+                      )
+                    : (
+                        <>
+                          <h2 className="text-xl font-bold">渲染预览</h2>
+                          <div className="w-full h-full bg-info/30 rounded-lg p-4 flex flex-col gap-4">
+                            <RenderPreview
+                              previewCanvasRef={previewCanvasRef}
+                              transform={transform}
+                              characterName="角色名"
+                              dialogContent="对话内容"
+                            />
+                            <TransformControl
+                              transform={transform}
+                              setTransform={setTransform}
+                              previewCanvasRef={previewCanvasRef}
+                            />
+                          </div>
+                        </>
+                      )
+
+                }
+
+              </div>
+            )}
+          </div>
+
+          {/* 移动端按钮组 - 底部固定 */}
           {!!completedCrop && (
-            <div className="flex-shrink-0 hidden md:block">
+            <div className="mt-6 pt-4 border-t border-base-300 md:hidden">
               {isSubmiting
                 ? (
-                    <button className="btn btn-md loading" disabled={true} type="button"></button>
+                    <button className="btn btn-lg loading w-full" disabled={true} type="button"></button>
                   )
                 : (
-                    <div className="flex gap-2">
-                      <button className="btn btn-md btn-info" onClick={handleSubmit} type="button">
+                    <div className="flex flex-col gap-2 w-full">
+                      <button className="btn btn-lg btn-info w-full" onClick={handleSubmit} type="button">
                         {currentStep === 1 ? "下一步" : "创建完成"}
                       </button>
-                      <button className="btn btn-md btn-outline" onClick={handleDownload} type="button">
+                      <button className="btn btn-lg btn-outline w-full" onClick={handleDownload} type="button">
                         下载图像
                       </button>
                     </div>
@@ -273,94 +379,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
             </div>
           )}
         </div>
-        <div className="divider my-0"></div>
-        <div className="flex flex-col md:flex-row gap-8 justify-center">
-          {/* 原始图片裁剪区域 */}
-          <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
-            {!!imgSrc && (
-              <>
-                <h2 className="text-xl font-bold">裁剪预览</h2>
-                <div className="w-full rounded-lg flex items-center justify-center">
-                  <ReactCrop
-                    crop={crop}
-                    onChange={onCropChange}
-                    onComplete={onCropComplete}
-                    aspect={currentStep === 2 ? 1 : undefined}// 第一步不限制比例，第二步固定1:1
-                    minHeight={10}
-                  >
-                    <img
-                      ref={imgRef}
-                      alt="Crop me"
-                      src={imgSrc}
-                      // style={{ transform: `scale(${scale})` }}
-                      onLoad={onImageLoad}
-                      // className="max-w-[50vw] max-h-[70vh]"
-                      // 不能用className设置, 否则会出问题, 见鬼!!!
-                      style={{
-                        maxHeight: "70vh",
-                      }}
-                    />
-                  </ReactCrop>
-                </div>
-              </>
-            )}
-          </div>
-          {/* 裁剪预览和操作按钮 */}
-          {!!completedCrop && (
-            <div className="w-full md:w-2/3 p-2 gap-4 flex flex-col items-center">
-              {
-                currentStep !== 1
-                  ? (
-                      <AvatarPreview
-                        previewCanvasRef={previewCanvasRef}
-                        currentAvatarUrl={currentAvatarUrl}
-                        characterName="角色名"
-                      />
-                    )
-                  : (
-                      <>
-                        <h2 className="text-xl font-bold">渲染预览</h2>
-                        <div className="w-full h-full bg-info/30 rounded-lg p-4 flex flex-col gap-4">
-                          <RenderPreview
-                            previewCanvasRef={previewCanvasRef}
-                            transform={transform}
-                            characterName="角色名"
-                            dialogContent="对话内容"
-                          />
-                          <TransformControl
-                            transform={transform}
-                            setTransform={setTransform}
-                            previewCanvasRef={previewCanvasRef}
-                          />
-                        </div>
-                      </>
-                    )
-
-              }
-
-            </div>
-          )}
-        </div>
-
-        {/* 移动端按钮组 - 底部固定 */}
-        {!!completedCrop && (
-          <div className="mt-6 pt-4 border-t border-base-300 md:hidden">
-            {isSubmiting
-              ? (
-                  <button className="btn btn-lg loading w-full" disabled={true} type="button"></button>
-                )
-              : (
-                  <div className="flex flex-col gap-2 w-full">
-                    <button className="btn btn-lg btn-info w-full" onClick={handleSubmit} type="button">
-                      {currentStep === 1 ? "下一步" : "创建完成"}
-                    </button>
-                    <button className="btn btn-lg btn-outline w-full" onClick={handleDownload} type="button">
-                      下载图像
-                    </button>
-                  </div>
-                )}
-          </div>
-        )}
       </PopWindow>
     </div>
   );

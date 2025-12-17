@@ -3,7 +3,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 // import { useAddModuleMutation, useAddMutation, useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useGetUserInfoQuery } from "api/queryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useCallback, useState } from "react";
 
 export default function Author({ userId }: { userId?: number }) {

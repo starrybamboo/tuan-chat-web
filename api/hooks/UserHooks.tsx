@@ -1,0 +1,44 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { tuanchat } from '../instance';
+import type { UserLoginRequest, UserInfoResponse } from 'api';
+
+/**
+ * 用户登录
+ * @param onSuccess 登录成功回调
+ */
+export function useLoginMutation(onSuccess?: () => void) {
+  return useMutation({
+    mutationFn: (req: UserLoginRequest) => tuanchat.userController.login(req),
+    mutationKey: ['login'],
+    onSuccess: () => {
+      onSuccess?.();
+    }
+  });
+}
+
+/**
+ * 获取用户信息
+ * @param userId 用户ID
+ */
+export function useGetUserInfoQuery(userId: number) {
+  return useQuery({
+    queryKey: ['getUserInfo', userId],
+    queryFn: () => tuanchat.userController.getUserInfo(userId),
+    staleTime: 600000, // 10分钟缓存
+    enabled: userId > 0
+  });
+}
+
+/**
+ * 修改用户信息
+ */
+export function useUpdateUserInfoMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (req: UserInfoResponse) => tuanchat.userController.updateUserInfo(req),
+    mutationKey: ['updateUserInfo'],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getUserInfo'] });
+    }
+  });
+}

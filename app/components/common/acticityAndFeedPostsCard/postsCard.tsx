@@ -15,7 +15,7 @@ import { CommentOutline } from "@/icons";
 import React, { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
-import { useGetUserInfoQuery } from "../../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
 interface PostsCardProps {
   res?: any;

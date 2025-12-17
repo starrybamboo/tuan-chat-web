@@ -15,8 +15,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
 
 import { useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
+import { useDeleteRoleAvatarMutation, useRoleAvatars } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { useDeleteRoleAvatarMutation, useRoleAvatars } from "api/queryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import toast from "react-hot-toast";

@@ -1,6 +1,6 @@
 import type { CommentVO } from "api";
 import React from "react";
-import { useGetUserInfoQuery } from "../../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
 /**
  * 预览评论，当评论被折叠的时候会显示这个组件

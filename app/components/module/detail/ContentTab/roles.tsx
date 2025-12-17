@@ -1,5 +1,5 @@
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useRoleAvatarQuery } from "api/queryHooks";
+import { useRoleAvatarQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
 import { useContentPermission } from "./ContentPermissionContext";

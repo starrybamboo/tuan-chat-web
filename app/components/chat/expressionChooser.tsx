@@ -3,7 +3,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRingLight, NarratorIcon } from "@/icons";
-import { useGetRoleAvatarsQuery } from "api/queryHooks";
+import { useGetRoleAvatarsQuery } from "api/hooks/RoleAndAvatarHooks";
 import { use } from "react";
 
 export function ExpressionChooser({

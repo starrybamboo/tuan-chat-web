@@ -13,7 +13,7 @@ import {
   useCreateRoleMutation,
   useUpdateRoleWithLocalMutation,
   useUploadAvatarMutation,
-} from "api/queryHooks";
+} from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import RulesSection from "../rules/RulesSection";

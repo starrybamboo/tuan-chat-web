@@ -2,7 +2,7 @@ import type { ChatMessageResponse } from "../../../../api";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import React from "react";
-import { useGetRoleQuery } from "../../../../api/queryHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 function HighlightText({ text, keyword }: { text: string; keyword: string }) {
   if (!keyword)

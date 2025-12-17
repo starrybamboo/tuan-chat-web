@@ -5,7 +5,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateSpaceMutation } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import { useGetUserFollowingsQuery } from "api/hooks/userFollowQueryHooks";
-import { useGetUserInfoQuery } from "api/queryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useState } from "react";
 
 interface CreateSpaceWindowProps {

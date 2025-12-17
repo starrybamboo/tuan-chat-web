@@ -7,7 +7,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { use } from "react";
 import {
   useGetRoleAvatarQuery,
-} from "../../../api/queryHooks";
+} from "../../../api/hooks/RoleAndAvatarHooks";
 
 const sizeMap = {
   6: "w-6 h-6", // 24px

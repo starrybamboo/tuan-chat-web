@@ -45,7 +45,7 @@ import {
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
-import { useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: { roomId: number; spaceId: number; targetMessageId?: number | null; onSelectRoom?: (roomId: number) => void }) {

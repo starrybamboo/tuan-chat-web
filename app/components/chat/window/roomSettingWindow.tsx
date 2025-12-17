@@ -15,7 +15,7 @@ import {
   useGetRoomRoleQuery,
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
-import { useGetUserRolesQuery } from "api/queryHooks";
+import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { use, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "../spaceContext";
