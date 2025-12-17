@@ -4,8 +4,8 @@ import { exportChatMessages } from "@/utils/exportChatMessages";
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useGetRolesQueries } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../api/instance";
-import { useGetRolesQueries } from "../../../../api/queryHooks";
 
 /**
  * 聊天记录导出按钮组件
@@ -87,8 +87,9 @@ export default function ExportChatButton() {
       const allRoleMap = new Map<number, string>(roleMap);
       const roleIds = new Set<number>();
       historyMessages.forEach((msg) => {
-        if (msg.message.roleId > 0) {
-          roleIds.add(msg.message.roleId);
+        const roleId = msg.message.roleId;
+        if (typeof roleId === "number" && roleId > 0) {
+          roleIds.add(roleId);
         }
       });
 

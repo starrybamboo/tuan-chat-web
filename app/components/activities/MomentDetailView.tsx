@@ -5,7 +5,7 @@ import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
 import React, { useCallback, useState } from "react";
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
-import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 interface MomentDetailViewProps {
   feedId: number;

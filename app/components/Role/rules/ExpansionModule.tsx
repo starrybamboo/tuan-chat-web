@@ -1,7 +1,7 @@
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
+import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { useGetRoleQuery } from "api/queryHooks";
 import { useEffect, useMemo, useState } from "react";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";

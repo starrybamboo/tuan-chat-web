@@ -8,7 +8,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
 import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
+import { useGetRoleAvatarQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 /**
  * 可拖动的头像组件

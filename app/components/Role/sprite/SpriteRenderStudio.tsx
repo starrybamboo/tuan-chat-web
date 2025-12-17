@@ -1,4 +1,5 @@
 import type { RoleAvatar } from "api";
+import type { Role } from "../types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RenderPreview } from "../Preview/RenderPreview";
 import { SpriteSettingsPopup } from "./SpriteSettingsPopup";
@@ -13,6 +14,8 @@ interface SpriteRenderStudioProps {
   externalCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
   // 应用头像回调（真正更改角色头像，调用接口）
   onAvatarChange?: (avatarUrl: string, avatarId: number) => void;
+  // 角色信息（用于删除功能）
+  role?: Role;
 }
 
 /**
@@ -26,6 +29,7 @@ export function SpriteRenderStudio({
   className = "",
   externalCanvasRef,
   onAvatarChange,
+  role,
 }: SpriteRenderStudioProps) {
   // 内部状态管理
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -391,6 +395,7 @@ export function SpriteRenderStudio({
           // 强制刷新 canvas
           setCanvasRefreshKey(prev => prev + 1);
         }}
+        role={role}
       />
     </div>
   );
