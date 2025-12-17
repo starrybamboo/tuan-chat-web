@@ -114,8 +114,10 @@ export function SpriteCropper({
   const currentUrl = getCurrentSpriteUrl();
   const currentAvatarId = getCurrentAvatarId();
 
-  // 加载状态
-  const [isProcessing, setIsProcessing] = useState(false);
+  // 加载状态 - 分离不同操作的loading状态
+  const [isCropping, setIsCropping] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isTransforming, setIsTransforming] = useState(false);
 
   // Transform更新mutation hook
   const updateTransformMutation = useUpdateAvatarTransformMutation();
@@ -123,6 +125,9 @@ export function SpriteCropper({
   // 裁剪应用mutation hook - 根据模式选择合适的hook
   const applyCropMutation = useApplyCropMutation();
   const applyCropAvatarMutation = useApplyCropAvatarMutation();
+
+  // 统一的处理中状态：任何操作进行时都为true，用于禁用所有按钮
+  const isProcessing = isCropping || isDownloading || isTransforming;
 
   // 使用 Worker 进行图像裁剪
   const { cropImage, cropImagesWithConcurrency } = useImageCropWorker();
@@ -204,7 +209,7 @@ export function SpriteCropper({
     }
 
     try {
-      setIsProcessing(true);
+      setIsTransforming(true);
 
       const currentAvatar = isMutiAvatars
         ? filteredAvatars[currentSpriteIndex]
@@ -233,7 +238,7 @@ export function SpriteCropper({
       console.error("应用Transform失败:", error);
     }
     finally {
-      setIsProcessing(false);
+      setIsTransforming(false);
     }
   }
 
@@ -247,7 +252,7 @@ export function SpriteCropper({
     }
 
     try {
-      setIsProcessing(true);
+      setIsTransforming(true);
 
       // 获取要处理的头像列表（仅处理选中的）
       const avatarsToProcess = Array.from(selectedIndices)
@@ -273,7 +278,7 @@ export function SpriteCropper({
       console.error("批量应用Transform失败:", error);
     }
     finally {
-      setIsProcessing(false);
+      setIsTransforming(false);
     }
   }
 
@@ -365,7 +370,7 @@ export function SpriteCropper({
    */
   async function handleDownload() {
     try {
-      setIsProcessing(true);
+      setIsDownloading(true);
       const canvas = previewCanvasRef.current;
       if (!canvas || !completedCrop) {
         throw new Error("Canvas not ready");
@@ -386,16 +391,17 @@ export function SpriteCropper({
       console.error("下载失败:", error);
     }
     finally {
-      setIsProcessing(false);
+      setIsDownloading(false);
     }
   }
 
   /**
    * 处理应用裁剪
+   * @param applyTransform 是否同时应用变换（仅立绘模式有效）
    */
-  async function handleApplyCrop() {
+  async function handleApplyCrop(applyTransform: boolean = false) {
     try {
-      setIsProcessing(true);
+      setIsCropping(true);
 
       // 1. 统一获取 currentAvatar (处理第一个差异点)
       // ----------------------------------------------------
@@ -437,7 +443,7 @@ export function SpriteCropper({
           roleId: currentAvatar.roleId,
           avatarId: currentAvatar.avatarId,
           croppedImageBlob: croppedBlob,
-          transform, // 立绘模式同时应用当前的transform设置
+          transform: applyTransform ? transform : undefined, // 根据参数决定是否应用transform
           currentAvatar,
         });
       }
@@ -451,15 +457,16 @@ export function SpriteCropper({
       console.error("应用裁剪失败:", error);
     }
     finally {
-      setIsProcessing(false);
+      setIsCropping(false);
     }
   }
 
   /**
    * 应用相同裁剪参数到选中的头像/立绘
    * 优化版本：并行处理 + 并发控制
+   * @param applyTransform 是否同时应用变换（仅立绘模式有效）
    */
-  async function handleBatchCropAll() {
+  async function handleBatchCropAll(applyTransform: boolean = false) {
     if (!isMutiAvatars || !completedCrop)
       return;
 
@@ -471,7 +478,7 @@ export function SpriteCropper({
       .filter(Boolean);
 
     try {
-      setIsProcessing(true);
+      setIsCropping(true);
 
       console.warn(`开始批量裁剪 ${avatarsToProcess.length} 张${isAvatarMode ? "头像" : "立绘"}（最大并发:${MAX_CONCURRENCY}）`);
 
@@ -560,7 +567,7 @@ export function SpriteCropper({
                 roleId: item.avatar.roleId,
                 avatarId: item.avatar.avatarId!,
                 croppedImageBlob: item.croppedBlob,
-                transform,
+                transform: applyTransform ? transform : undefined, // 根据参数决定是否应用transform
                 currentAvatar: item.avatar,
               });
             }
@@ -581,7 +588,7 @@ export function SpriteCropper({
       console.error("批量裁剪失败:", error);
     }
     finally {
-      setIsProcessing(false);
+      setIsCropping(false);
     }
   }
 
@@ -598,7 +605,7 @@ export function SpriteCropper({
       .filter(Boolean);
 
     try {
-      setIsProcessing(true);
+      setIsDownloading(true);
 
       // 为每个选中的头像/立绘应用相同的裁剪参数并下载
       for (let i = 0; i < avatarsToProcess.length; i++) {
@@ -637,7 +644,7 @@ export function SpriteCropper({
       console.error("批量下载失败:", error);
     }
     finally {
-      setIsProcessing(false);
+      setIsDownloading(false);
     }
   }
 
@@ -760,44 +767,88 @@ export function SpriteCropper({
                   type="button"
                   disabled={isProcessing}
                 >
-                  下载图像
-                </button>
-                {!isAvatarMode && (
-                  <button
-                    className="btn btn-info"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleApplyTransform();
-                    }}
-                    type="button"
-                    disabled={isProcessing}
-                  >
-                    {isProcessing && updateTransformMutation.isPending
-                      ? (
-                          <span className="loading loading-spinner loading-xs"></span>
-                        )
-                      : (
-                          "应用变换"
-                        )}
-                  </button>
-                )}
-                <button
-                  className="btn btn-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleApplyCrop();
-                  }}
-                  type="button"
-                  disabled={!completedCrop || isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending)}
-                >
-                  {(isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending))
+                  {isDownloading
                     ? (
                         <span className="loading loading-spinner loading-xs"></span>
                       )
                     : (
-                        "应用裁剪"
+                        "下载图像"
                       )}
                 </button>
+                {!isAvatarMode && (
+                  <>
+                    <button
+                      className="btn btn-info"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApplyTransform();
+                      }}
+                      type="button"
+                      disabled={isProcessing}
+                    >
+                      {isTransforming
+                        ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          )
+                        : (
+                            "应用变换"
+                          )}
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApplyCrop(false);
+                      }}
+                      type="button"
+                      disabled={!completedCrop || isProcessing}
+                    >
+                      {isCropping
+                        ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          )
+                        : (
+                            "应用裁剪"
+                          )}
+                    </button>
+                    <button
+                      className="btn btn-success"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApplyCrop(true);
+                      }}
+                      type="button"
+                      disabled={!completedCrop || isProcessing}
+                    >
+                      {isCropping
+                        ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          )
+                        : (
+                            "一键应用"
+                          )}
+                    </button>
+                  </>
+                )}
+                {isAvatarMode && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleApplyCrop(false);
+                    }}
+                    type="button"
+                    disabled={!completedCrop || isProcessing}
+                  >
+                    {isCropping
+                      ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        )
+                      : (
+                          "应用裁剪"
+                        )}
+                  </button>
+                )}
               </>
             )
           : (
@@ -811,7 +862,7 @@ export function SpriteCropper({
                   type="button"
                   disabled={!completedCrop || isProcessing}
                 >
-                  {isProcessing
+                  {isDownloading
                     ? (
                         <span className="loading loading-spinner loading-xs"></span>
                       )
@@ -820,41 +871,79 @@ export function SpriteCropper({
                       )}
                 </button>
                 {!isAvatarMode && (
+                  <>
+                    <button
+                      className="btn btn-info"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBatchApplyTransform();
+                      }}
+                      type="button"
+                      disabled={isProcessing}
+                    >
+                      {isTransforming
+                        ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          )
+                        : (
+                            "一键变换"
+                          )}
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBatchCropAll(false);
+                      }}
+                      type="button"
+                      disabled={!completedCrop || isProcessing}
+                    >
+                      {isCropping
+                        ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          )
+                        : (
+                            "一键裁剪"
+                          )}
+                    </button>
+                    <button
+                      className="btn btn-success"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBatchCropAll(true);
+                      }}
+                      type="button"
+                      disabled={!completedCrop || isProcessing}
+                    >
+                      {isCropping
+                        ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          )
+                        : (
+                            "一键应用全部"
+                          )}
+                    </button>
+                  </>
+                )}
+                {isAvatarMode && (
                   <button
-                    className="btn btn-info"
+                    className="btn btn-primary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleBatchApplyTransform();
+                      handleBatchCropAll(false);
                     }}
                     type="button"
-                    disabled={isProcessing}
+                    disabled={!completedCrop || isProcessing}
                   >
-                    {isProcessing && updateTransformMutation.isPending
+                    {isCropping
                       ? (
                           <span className="loading loading-spinner loading-xs"></span>
                         )
                       : (
-                          "一键变换"
+                          "一键裁剪"
                         )}
                   </button>
                 )}
-                <button
-                  className="btn btn-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleBatchCropAll();
-                  }}
-                  type="button"
-                  disabled={!completedCrop || isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending)}
-                >
-                  {(isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending))
-                    ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      )
-                    : (
-                        "一键裁剪"
-                      )}
-                </button>
               </>
             )}
       </div>
