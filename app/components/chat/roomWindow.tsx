@@ -644,6 +644,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           avatarId: curAvatarId,
         };
 
+        // 发送区自定义角色名（与联动模式无关）
+        const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
+        if (draftCustomRoleName?.trim()) {
+          fields.webgal = {
+            ...(fields.webgal as any),
+            customRoleName: draftCustomRoleName.trim(),
+          } as any;
+        }
+
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
           if (webgalLinkMode) {
@@ -654,7 +663,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             };
 
             if (Object.keys(voiceRenderSettings).length > 0) {
-              fields.webgal = { voiceRenderSettings };
+              fields.webgal = {
+                ...(fields.webgal as any),
+                voiceRenderSettings,
+              } as any;
             }
           }
           isFirstMessage = false;

@@ -6,7 +6,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
-import React, { use, useLayoutEffect, useMemo } from "react";
+import React, { use, useLayoutEffect, useMemo, useState } from "react";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 
 export default function AvatarSwitch({
@@ -22,6 +22,9 @@ export default function AvatarSwitch({
 }) {
   const roomContext = use(RoomContext);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
+  const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
+
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
 
@@ -38,6 +41,12 @@ export default function AvatarSwitch({
   // 判断是否为旁白模式（WebGAL 联动模式下无角色）
   const isNarratorMode = curRoleId <= 0 && webgalLinkMode;
 
+  const draftCustomRoleName = draftCustomRoleNameMap[curRoleId];
+  const displayName = (draftCustomRoleName?.trim() || currentRole?.roleName || "");
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState("");
+
   useLayoutEffect(() => {
     if (curAvatarId > 0)
       return;
@@ -48,7 +57,7 @@ export default function AvatarSwitch({
     else {
       setCurAvatarId(currentRole?.avatarId ?? -1);
     }
-  }, [setCurAvatarId, userRoles, roleAvatars, curAvatarId, currentRole]);
+  }, [setCurAvatarId, roleAvatars, curAvatarId, currentRole]);
 
   // WebGAL 联动模式下的旁白模式
   if (isNarratorMode) {
@@ -69,7 +78,7 @@ export default function AvatarSwitch({
         </div>
         <ul
           tabIndex={0}
-          className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300"
+          className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
         >
           <ExpressionChooser
             roleId={curRoleId}
@@ -99,11 +108,11 @@ export default function AvatarSwitch({
 
   return (
     <div className="dropdown dropdown-top flex-shrink-0 w-10 md:w-14 ">
-      <div role="button" tabIndex={0} className="">
-        <div
-          className="tooltip flex justify-center flex-col items-center space-y-2"
-          data-tip="切换角色和表情"
-        >
+      <div
+        className="tooltip flex justify-center flex-col items-center space-y-2"
+        data-tip="切换角色和表情"
+      >
+        <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
           <RoleAvatarComponent
             avatarId={curAvatarId}
             width={getScreenSize() === "sm" ? 10 : 14}
@@ -112,14 +121,58 @@ export default function AvatarSwitch({
             stopPopWindow={true}
             alt={curRoleId > 0 ? "无可用头像" : "无可用角色"}
           />
-          <div className="text-sm truncate w-full text-center">
-            {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
-          </div>
         </div>
+
+        {!isEditingName && (
+          <div
+            className="text-sm truncate w-full text-center cursor-text"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setEditingName(displayName);
+              setIsEditingName(true);
+            }}
+            title="点击编辑显示名称"
+          >
+            {displayName}
+          </div>
+        )}
+
+        {isEditingName && (
+          <input
+            className="input input-xs input-bordered w-full text-center bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info"
+            value={editingName}
+            autoFocus
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onChange={e => setEditingName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsEditingName(false);
+                setEditingName("");
+              }
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                setDraftCustomRoleNameForRole(curRoleId, editingName);
+                setIsEditingName(false);
+              }
+            }}
+            onBlur={() => {
+              setDraftCustomRoleNameForRole(curRoleId, editingName);
+              setIsEditingName(false);
+            }}
+            placeholder={currentRole?.roleName || ""}
+          />
+        )}
       </div>
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300"
+        className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
       >
         <ExpressionChooser
           roleId={curRoleId}

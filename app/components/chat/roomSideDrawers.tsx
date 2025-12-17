@@ -44,6 +44,21 @@ function RoomSideDrawersImpl({
   const webgalDrawerWidth = useDrawerPreferenceStore(state => state.webgalDrawerWidth);
   const setWebgalDrawerWidth = useDrawerPreferenceStore(state => state.setWebgalDrawerWidth);
 
+  const clamp = React.useCallback((value: number, min: number, max: number) => {
+    return Math.min(max, Math.max(min, value));
+  }, []);
+
+  const initiativeMaxWidth = 520;
+  const initiativeMinWidth = 280;
+  const safeInitiativeWidth = clamp(initiativeDrawerWidth, initiativeMinWidth, initiativeMaxWidth);
+
+  // 给地图留出主聊天区空间：最大宽度随窗口变化，但不小于最小宽度
+  const mapMinWidth = 560;
+  const mapMaxWidth = typeof window === "undefined"
+    ? 1100
+    : Math.max(mapMinWidth, window.innerWidth - 360);
+  const safeMapWidth = clamp(mapDrawerWidth, Math.min(720, mapMaxWidth), mapMaxWidth);
+
   return (
     <>
       <div className="w-px bg-base-300 flex-shrink-0"></div>
@@ -65,18 +80,21 @@ function RoomSideDrawersImpl({
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={sideDrawerState === "initiative"}
-        className="max-h-full overflow-auto z-20"
-        initialWidth={initiativeDrawerWidth}
+        className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
+        initialWidth={safeInitiativeWidth}
+        minWidth={initiativeMinWidth}
+        maxWidth={initiativeMaxWidth}
         onWidthChange={setInitiativeDrawerWidth}
       >
         <InitiativeList></InitiativeList>
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={sideDrawerState === "map"}
-        className="h-full overflow-auto z-20"
-        initialWidth={mapDrawerWidth}
+        className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
+        initialWidth={safeMapWidth}
+        minWidth={mapMinWidth}
         onWidthChange={setMapDrawerWidth}
-        maxWidth={window.innerWidth - 700}
+        maxWidth={mapMaxWidth}
       >
         <DNDMap></DNDMap>
       </OpenAbleDrawer>
