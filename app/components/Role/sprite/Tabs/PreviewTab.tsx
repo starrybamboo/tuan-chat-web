@@ -49,7 +49,7 @@ export function PreviewTab({
   return (
     <div className="h-full flex flex-col">
       {/* 预览标题和切换按钮 */}
-      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+      <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <h3 className="text-lg font-semibold">
           {showSpritePreview ? "立绘预览" : "头像预览"}
         </h3>

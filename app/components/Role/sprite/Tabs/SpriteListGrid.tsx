@@ -29,6 +29,12 @@ interface SpriteListGridProps {
   onAvatarChange?: (avatarUrl: string, avatarId: number) => void;
   /** 头像选择回调（用于删除时更新选中状态） */
   onAvatarSelect?: (avatarId: number) => void;
+  /** 多选状态（必须从父组件传入） */
+  selectedIndices: Set<number>;
+  /** 是否处于多选模式（必须从父组件传入） */
+  isMultiSelectMode: boolean;
+  /** 多选状态变化回调（必须） */
+  onMultiSelectChange: (selectedIndices: Set<number>, isMultiSelectMode: boolean) => void;
 }
 
 /**
@@ -48,20 +54,18 @@ export function SpriteListGrid({
   role,
   onAvatarChange,
   onAvatarSelect,
+  selectedIndices,
+  isMultiSelectMode,
+  onMultiSelectChange,
 }: SpriteListGridProps) {
   // 管理模式下启用上传和删除功能
   const isManageMode = mode === "manage";
   const showUpload = isManageMode;
   const showDelete = isManageMode;
 
-  // 多选模式状态（内部管理）
-  const [multiSelectMode, setMultiSelectMode] = useState(false);
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
-
   // 删除确认对话框状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [avatarToDelete, setAvatarToDelete] = useState<number | null>(null);
-  const [batchDeleteConfirmOpen, setBatchDeleteConfirmOpen] = useState(false);
 
   // 当前选中的头像
   const currentAvatar = avatars[selectedIndex] || null;
@@ -134,66 +138,7 @@ export function SpriteListGrid({
     else {
       newSelected.add(index);
     }
-    setSelectedIndices(newSelected);
-  };
-
-  // 全选/取消全选
-  const handleSelectAll = () => {
-    if (selectedIndices.size === avatars.length) {
-      setSelectedIndices(new Set());
-    }
-    else {
-      setSelectedIndices(new Set(avatars.length > 0 ? Array.from({ length: avatars.length }, (_, i) => i) : []));
-    }
-  };
-
-  // 请求批量删除
-  const handleBatchDeleteRequest = () => {
-    if (selectedIndices.size === 0) {
-      return;
-    }
-
-    // Prevent deleting all avatars
-    if (selectedIndices.size >= avatars.length) {
-      console.error("无法删除所有头像，至少需要保留一个");
-      return;
-    }
-
-    setBatchDeleteConfirmOpen(true);
-  };
-
-  // 确认批量删除
-  const handleConfirmBatchDelete = async () => {
-    if (selectedIndices.size === 0 || !deletionHook) {
-      return;
-    }
-
-    // Get avatar IDs from selected indices
-    const avatarIdsToDelete = Array.from(selectedIndices)
-      .map(index => avatars[index]?.avatarId)
-      .filter((id): id is number => id !== undefined);
-
-    if (avatarIdsToDelete.length === 0) {
-      return;
-    }
-
-    try {
-      await deletionHook.handleBatchDelete(avatarIdsToDelete);
-
-      // Exit multi-select mode and clear selections
-      setMultiSelectMode(false);
-      setSelectedIndices(new Set());
-      setBatchDeleteConfirmOpen(false);
-    }
-    catch (error) {
-      console.error("批量删除失败:", error);
-      // Keep dialog open on error so user can retry or cancel
-    }
-  };
-
-  // 取消批量删除
-  const handleCancelBatchDelete = () => {
-    setBatchDeleteConfirmOpen(false);
+    onMultiSelectChange(newSelected, isMultiSelectMode);
   };
 
   // Determine if delete button should be shown (not when only 1 avatar remains)
@@ -210,111 +155,15 @@ export function SpriteListGrid({
     );
   }
 
-  // Check if all avatars are selected
-  const allSelected = avatars.length > 0 && selectedIndices.size === avatars.length;
-  const someSelected = selectedIndices.size > 0 && selectedIndices.size < avatars.length;
-
   return (
     <>
       <div className={`flex flex-col ${className}`}>
-        {/* Header with title and action buttons */}
-        <div className="flex justify-between items-center mb-4 flex-shrink-0">
-          <h3 className="text-lg font-semibold">头像列表</h3>
-          <div className="flex gap-2">
-            {isManageMode && multiSelectMode && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-soft bg-base-200 btn-square btn-xs"
-                  onClick={handleSelectAll}
-                  title={allSelected ? "取消全选" : someSelected ? `已选 ${selectedIndices.size}` : "全选"}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 256 256"
-                    fill="currentColor"
-                  >
-                    <path d="M149.61,85.71l-89.6,88a8,8,0,0,1-11.22,0L10.39,136a8,8,0,1,1,11.22-11.41L54.4,156.79l84-82.5a8,8,0,1,1,11.22,11.42Zm96.1-11.32a8,8,0,0,0-11.32-.1l-84,82.5-18.83-18.5a8,8,0,0,0-11.21,11.42l24.43,24a8,8,0,0,0,11.22,0l89.6-88A8,8,0,0,0,245.71,74.39Z"></path>
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-error btn-square btn-xs ${selectedIndices.size === 0 ? "btn-disabled" : ""}`}
-                  onClick={handleBatchDeleteRequest}
-                  disabled={selectedIndices.size === 0 || deletionHook?.isDeleting}
-                  title="删除所选头像"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 6h18" />
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-square btn-xs"
-                  onClick={() => {
-                    setMultiSelectMode(false);
-                    setSelectedIndices(new Set());
-                  }}
-                  title="退出选择模式"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6L6 18" />
-                    <path d="M6 6l12 12" />
-                  </svg>
-                </button>
-              </>
-            )}
-            {isManageMode && !multiSelectMode && avatars.length > 1 && (
-              <button
-                type="button"
-                className="btn btn-soft bg-base-200 btn-square btn-xs"
-                onClick={() => setMultiSelectMode(true)}
-                title="进入选择模式"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
 
         <div className={`grid ${gridCols} gap-2 overflow-auto content-start`}>
           {avatars.map((avatar, index) => {
             const isEditing = nameEditingHook?.editingAvatarId === avatar.avatarId;
             const avatarName = getAvatarName(avatar, index);
-            const isSelected = multiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
+            const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
 
             return (
               <div key={avatar.avatarId} className="flex flex-col gap-1">
@@ -322,7 +171,7 @@ export function SpriteListGrid({
                   <button
                     type="button"
                     onClick={() => {
-                      if (multiSelectMode) {
+                      if (isMultiSelectMode) {
                         handleToggleSelection(index);
                       }
                       else {
@@ -334,7 +183,7 @@ export function SpriteListGrid({
                         ? "border-primary shadow-lg ring-2 ring-primary/30"
                         : "border-base-300 hover:border-primary/50 hover:shadow-md"
                     }`}
-                    title={multiSelectMode ? `选择头像 ${index + 1}` : `切换到立绘 ${index + 1}`}
+                    title={isMultiSelectMode ? `选择头像 ${index + 1}` : `切换到立绘 ${index + 1}`}
                   >
                     {avatar.avatarUrl
                       ? (
@@ -353,7 +202,7 @@ export function SpriteListGrid({
                         )}
 
                     {/* Multi-select mode: show circular checkbox */}
-                    {multiSelectMode && (
+                    {isMultiSelectMode && (
                       <div className="absolute top-2 left-2 z-10 pointer-events-none">
                         <div
                           className={`flex items-center justify-center w-5 h-5 rounded-full border-2 transition-all duration-200 bg-base-100 shadow-md ${
@@ -381,7 +230,7 @@ export function SpriteListGrid({
                     )}
 
                     {/* Single-select mode: show checkmark for selected */}
-                    {!multiSelectMode && index === selectedIndex && (
+                    {!isMultiSelectMode && index === selectedIndex && (
                       <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
                         <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none">
                           <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -390,13 +239,13 @@ export function SpriteListGrid({
                     )}
 
                     {/* Multi-select mode: show overlay for selected items */}
-                    {multiSelectMode && selectedIndices.has(index) && (
+                    {isMultiSelectMode && selectedIndices.has(index) && (
                       <div className="absolute inset-0 bg-primary/20 pointer-events-none" />
                     )}
                   </button>
 
                   {/* Delete button - shown on hover (desktop) or always (mobile), hidden if only 1 avatar or in multi-select mode */}
-                  {showDelete && canDelete && !multiSelectMode && (
+                  {showDelete && canDelete && !isMultiSelectMode && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -536,57 +385,6 @@ export function SpriteListGrid({
         </div>
       )}
 
-      {/* Batch Delete Confirmation Dialog */}
-      {batchDeleteConfirmOpen && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">确认批量删除</h3>
-            <p className="py-4">
-              确定要删除选中的
-              {" "}
-              <span className="font-bold text-error">{selectedIndices.size}</span>
-              {" "}
-              个头像吗？此操作无法撤销。
-            </p>
-            {selectedIndices.size >= avatars.length && (
-              <div className="alert alert-warning mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>无法删除所有头像，至少需要保留一个</span>
-              </div>
-            )}
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={handleCancelBatchDelete}
-                disabled={deletionHook?.isDeleting}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={handleConfirmBatchDelete}
-                disabled={deletionHook?.isDeleting || selectedIndices.size >= avatars.length}
-              >
-                {deletionHook?.isDeleting
-                  ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        删除中...
-                      </>
-                    )
-                  : (
-                      "确认删除"
-                    )}
-              </button>
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={handleCancelBatchDelete}></div>
-        </div>
-      )}
     </>
   );
 }
