@@ -14,8 +14,8 @@ import {
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../api/instance";
-import { useGetRoleQuery } from "../../../../api/queryHooks";
 
 const RULES: Map<number, RuleNameSpace> = new Map();
 RULES.set(1, executorCoc); // CoC规则

@@ -3,7 +3,7 @@ import type { Role } from "../types";
 import { tuanchat } from "@/../api/instance";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryHooks";
+import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
