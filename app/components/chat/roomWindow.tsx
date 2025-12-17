@@ -48,7 +48,7 @@ import {
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
 
 // const PAGE_SIZE = 50; // 每页消息数量
-export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: { roomId: number; spaceId: number; targetMessageId?: number | null; onSelectRoom?: (roomId: number) => void }) {
+export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -922,11 +922,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
             {/* 输入区域 */}
             <RoomComposerPanel
               roomId={roomId}
-              userId={userId}
+              userId={Number(userId)}
               webSocketUtils={webSocketUtils}
               handleSelectCommand={handleSelectCommand}
               ruleId={space?.ruleId ?? -1}
-              virtuosoRef={virtuosoRef as any}
               handleMessageSubmit={handleMessageSubmit}
               onAIRewrite={handleQuickRewrite}
               currentChatStatus={myStatue as any}
@@ -965,10 +964,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       </div>
 
       <RoomPopWindows
-        spaceId={spaceId}
-        spaceAvatar={space?.avatar}
-        roomId={roomId}
-        onSelectRoom={onSelectRoom}
         isRoleHandleOpen={isRoleHandleOpen}
         setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
         handleAddRole={handleAddRole}

@@ -7,7 +7,6 @@ import type { ApiResultListRoom } from '../models/ApiResultListRoom';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { FightRoomAddRequest } from '../models/FightRoomAddRequest';
 import type { RoomExtraRequest } from '../models/RoomExtraRequest';
 import type { RoomExtraSetRequest } from '../models/RoomExtraSetRequest';
 import type { RoomMuteRequest } from '../models/RoomMuteRequest';
@@ -120,28 +119,6 @@ export class RoomControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/room/',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 创建战斗轮房间
-     * @param requestBody
-     * @returns ApiResultRoom OK
-     * @throws ApiError
-     */
-    public createRoom1(
-        requestBody: FightRoomAddRequest,
-    ): CancelablePromise<ApiResultRoom> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/room/fight',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

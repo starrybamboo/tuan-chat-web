@@ -9,11 +9,10 @@ import React, { useEffect, useState } from "react";
 interface CreateRoomWindowProps {
   spaceId: number;
   spaceAvatar?: string;
-  parentRoomId?: number;
   onSuccess?: (roomId?: number) => void;
 }
 
-export default function CreateRoomWindow({ spaceId, spaceAvatar, parentRoomId, onSuccess }: CreateRoomWindowProps) {
+export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: CreateRoomWindowProps) {
   const globalContext = useGlobalContext();
   const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
   const userInfo = getUserInfo.data?.data;
@@ -72,7 +71,6 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, parentRoomId, o
       avatar: roomAvatar,
       roomName,
       userIdList: userIds,
-      roomId: parentRoomId,
     }, {
       onSettled: (data) => {
         const newRoomId = data?.data?.roomId;
@@ -84,7 +82,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, parentRoomId, o
 
   return (
     <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-scroll">
-      <p className="text-lg font-bold text-center w-full mb-4">{parentRoomId ? "创建子区" : "创建房间"}</p>
+      <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
 
       {/* 头像上传 */}
       <div className="flex justify-center mb-6">
@@ -97,7 +95,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, parentRoomId, o
           <div className="relative group overflow-hidden rounded-lg">
             <img
               src={roomAvatar}
-              alt={parentRoomId ? "sub channel avatar" : "room avatar"}
+              alt="room avatar"
               className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
             />
             <div
@@ -149,7 +147,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, parentRoomId, o
             createRoom(spaceId, userIds);
           }}
         >
-          {parentRoomId ? "创建子区" : "创建房间"}
+          创建房间
         </button>
       </div>
     </div>

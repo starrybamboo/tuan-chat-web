@@ -21,7 +21,6 @@ import type { SpaceRoleAddRequest } from "../models/SpaceRoleAddRequest";
 import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { SpaceExtraSetRequest } from "../models/SpaceExtraSetRequest";
-import type { FightRoomAddRequest } from "../models/FightRoomAddRequest";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
@@ -628,16 +627,3 @@ export function useDeleteRoomExtraMutation() {
     });
 }
 
-/**
- * 创建战斗轮房间
- */
-export function useCreateFightRoomMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: FightRoomAddRequest) => tuanchat.roomController.createRoom1(req),
-        mutationKey: ['createFightRoom'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
-        }
-    });
-}
