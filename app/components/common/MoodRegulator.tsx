@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import { memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 export type MoodMap = Record<string, string>;

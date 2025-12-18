@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import type { StageEntityResponse } from "api";
 import SceneNode from "@/components/module/detail/ContentTab/scene/react flow/NewSceneNode";

@@ -64,6 +64,7 @@ const MARKDOWN_STYLES = `
  * @constructor
  */
 function MediaEmbed({ type, src }: { type: string; src: string }) {
+  const sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-presentation";
   switch (type) {
     case "bilibili":
       return (
@@ -71,6 +72,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
           <iframe
             src={`//player.bilibili.com/player.html?bvid=${src}&high_quality=1&danmaku=0`}
             allowFullScreen
+            sandbox={sandbox}
             width="100%"
             height="500"
             scrolling="no"
@@ -86,6 +88,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
             src={`${src}#view=fitH`}
             className="w-full h-full border-none"
             allowFullScreen
+            sandbox={sandbox}
           />
         </div>
       );
@@ -101,6 +104,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
+            sandbox={sandbox}
           >
           </iframe>
         </div>

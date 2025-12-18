@@ -57,12 +57,14 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
                         onClick={saveReadMe}
                         className="btn btn-sm btn-success"
                         disabled={isSaving}
+                        type="button"
                       >
                         保存
                       </button>
                       <button
                         onClick={cancelEditingReadMe}
                         className="btn btn-sm btn-ghost"
+                        type="button"
                       >
                         取消
                       </button>
@@ -87,6 +89,7 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
                         onClick={startEditingReadMe}
                         className="btn btn-sm btn-outline btn-primary gap-1 hover:btn-primary"
                         title="编辑个人简介"
+                        type="button"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

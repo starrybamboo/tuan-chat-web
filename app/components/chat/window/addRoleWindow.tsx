@@ -71,7 +71,3 @@ export function AddRoleWindow({
     </div>
   );
 }
-
-export function toastAddRoleWindow() {
-
-}

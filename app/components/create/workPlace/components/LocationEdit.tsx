@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithSelector } from "@/components/common/uploader/ImgUploaderWithSelector";
 import { useQueryClient } from "@tanstack/react-query";

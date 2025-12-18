@@ -99,6 +99,7 @@ export default function AudioMessage({ url, duration: initialDuration }: AudioMe
         className="btn btn-circle btn-sm btn-primary flex-shrink-0"
         onClick={togglePlay}
         disabled={isLoading}
+        type="button"
       >
         {isLoading
           ? (

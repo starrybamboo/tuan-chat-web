@@ -54,7 +54,6 @@ export function useCharacterData(options: UseCharacterDataOptions = {}): Charact
     if (!isValidRuleId || !ruleDetail || loadedRuleId === selectedRuleId)
       return;
 
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setCharacterData((prev) => {
       const mergeSection = (sectionKey: CharacterSectionKey, template?: Record<string, string>) => {
         if (templateMergeStrategy === "preserveExisting" && hasContent(prev[sectionKey]))
@@ -71,7 +70,6 @@ export function useCharacterData(options: UseCharacterDataOptions = {}): Charact
       };
     });
 
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setLoadedRuleId(selectedRuleId);
   }, [isValidRuleId, ruleDetail, loadedRuleId, selectedRuleId, templateMergeStrategy]);
 

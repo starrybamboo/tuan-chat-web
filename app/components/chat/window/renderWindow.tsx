@@ -88,7 +88,7 @@ export default function RenderWindow() {
       setChatHistoryMap(map);
     };
     getAllMessages();
-  }, [rooms]);
+  }, [rooms, chatHistory]);
   const roleIds = useMemo(() => {
     const roleIds = new Set<number>();
     Object.values(chatHistoryMap)

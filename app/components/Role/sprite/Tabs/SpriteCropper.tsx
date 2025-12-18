@@ -84,7 +84,6 @@ export function SpriteCropper({
     if (filteredAvatars.length > 0) {
       const validIndex = Math.max(0, Math.min(initialSpriteIndex, filteredAvatars.length - 1));
       if (validIndex !== currentSpriteIndex) {
-        // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
         setCurrentSpriteIndex(validIndex);
       }
     }

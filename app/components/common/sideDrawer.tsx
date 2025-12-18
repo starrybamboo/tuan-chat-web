@@ -68,27 +68,3 @@ export function SideDrawerToggle({
     </label>
   );
 }
-
-export function sideDrawerToggle(sideDrawerId: string) {
-  const checkbox = document.getElementById(sideDrawerId) as HTMLInputElement;
-  if (checkbox) {
-    checkbox.checked = !checkbox.checked;
-  }
-}
-
-export function sideDrawerOpener({
-  sideDrawerId,
-  children,
-}: {
-  sideDrawerId: string;
-  children: React.ReactNode;
-}) {
-  if (isLgScreen()) {
-    return null;
-  }
-  return (
-    <label htmlFor={sideDrawerId} className="btn btn-primary drawer-button">
-      {children}
-    </label>
-  );
-}

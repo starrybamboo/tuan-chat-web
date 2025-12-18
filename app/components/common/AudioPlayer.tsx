@@ -121,7 +121,7 @@ export default function AudioPlayer({
         wavesurferRef.current = null;
       }
     };
-  }, [audioUrl, size]);
+  }, [audioUrl, size, height]);
 
   // 播放/暂停控制
   const togglePlayPause = (e: React.MouseEvent) => {

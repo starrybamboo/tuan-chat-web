@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 // 这个组件未来可能与 illegalURLPage 合并
 interface RedirectErrorPageProps {
   errorMessage: string;
@@ -14,7 +14,7 @@ export function RedirectErrorPage({
   const [secondsLeft, setSecondsLeft] = useState(countdownSeconds);
 
   // 返回上一页
-  const goBack = () => {
+  const goBack = useCallback(() => {
     if (window.history.length > 1) {
       window.history.back();
     }
@@ -22,7 +22,7 @@ export function RedirectErrorPage({
       // 如果没有历史记录，则重定向到首页或其他默认页面
       window.location.href = redirectPath || "/";
     }
-  };
+  }, [redirectPath]);
 
   // 倒计时逻辑
   useEffect(() => {
@@ -36,7 +36,7 @@ export function RedirectErrorPage({
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [secondsLeft]);
+  }, [secondsLeft, goBack]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-100 p-4 duration-200">

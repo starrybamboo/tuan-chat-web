@@ -96,6 +96,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
             || editingDescription.length > 253
             || isSaving
           }
+          type="button"
         >
           {isSaving
             ? (
@@ -108,6 +109,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
         <button
           onClick={cancelEditingProfile}
           className="btn btn-ghost flex-1"
+          type="button"
         >
           取消
         </button>

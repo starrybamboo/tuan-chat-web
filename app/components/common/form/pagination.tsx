@@ -30,6 +30,7 @@ function Pagination({
         key={num}
         className={`join-item btn w-12 ${current === num ? "btn-active" : ""}`}
         onClick={() => handlePagClick(num)}
+        type="button"
       >
         {num}
       </button>
@@ -43,25 +44,25 @@ function Pagination({
       const pags = Array.from({ length: max }, (_, index) => (
         normalPag(index + 1)
       ));
-      pags.push(<button className="btn join-item btn-disabled" key="right">...</button>);
+      pags.push(<button className="btn join-item btn-disabled" key="right" type="button">...</button>);
       pags.push(normalPag(total));
       return pags;
     }
     else if (current > half && current < total - half) {
       const pags = [normalPag(1)];
-      pags.push(<button className="btn join-item btn-disabled" key="left">...</button>);
+      pags.push(<button className="btn join-item btn-disabled" key="left" type="button">...</button>);
       for (let i = current - half + 1; i <= current + half - 1; i++) {
         if (i > 0 && i <= total) {
           pags.push(normalPag(i));
         }
       }
-      pags.push(<button className="btn join-item btn-disabled" key="right">...</button>);
+      pags.push(<button className="btn join-item btn-disabled" key="right" type="button">...</button>);
       pags.push(normalPag(total));
       return pags;
     }
     else {
       const pags = [normalPag(1)];
-      pags.push(<button className="btn join-item btn-disabled" key="left">...</button>);
+      pags.push(<button className="btn join-item btn-disabled" key="left" type="button">...</button>);
       for (let i = total - max + 1; i <= total; i++) {
         if (i > 0 && i <= total) {
           pags.push(normalPag(i));

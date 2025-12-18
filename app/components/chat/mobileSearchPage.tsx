@@ -51,11 +51,17 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
 
   // 当页面打开时自动聚焦搜索框
   useEffect(() => {
+    let focusTimeout: ReturnType<typeof setTimeout> | undefined;
     if (isOpen && inputRef.current) {
-      setTimeout(() => {
+      focusTimeout = setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
+
+    return () => {
+      if (focusTimeout)
+        clearTimeout(focusTimeout);
+    };
   }, [isOpen]);
 
   // 重置搜索状态当关闭时
