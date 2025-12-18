@@ -5,12 +5,12 @@ import type {
   ImageMessage,
   Message,
 } from "../../../api";
-import { ChatBubble } from "@/components/chat/chatBubble";
-import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
-import RoleChooser from "@/components/chat/roleChooser";
-import { RoomContext } from "@/components/chat/roomContext";
-import PixiOverlay from "@/components/chat/smallComponents/pixiOverlay";
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import RoleChooser from "@/components/chat/input/roleChooser";
+import { ChatBubble } from "@/components/chat/message/chatBubble";
+import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
+import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";

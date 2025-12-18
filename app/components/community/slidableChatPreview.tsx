@@ -1,5 +1,5 @@
 import type { ChatMessageResponse } from "../../../api";
-import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
+import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import React, { useMemo } from "react";
 import { useGetRoleQuery } from "../../../api/hooks/RoleAndAvatarHooks";

@@ -1,6 +1,6 @@
-import type { RoomContextType } from "@/components/chat/roomContext";
-import { RoomContext } from "@/components/chat/roomContext";
-import RoleList from "@/components/chat/smallComponents/roleLists";
+import type { RoomContextType } from "@/components/chat/core/roomContext";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import RoleList from "@/components/chat/shared/components/roleLists";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
@@ -18,7 +18,7 @@ import {
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { use, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { SpaceContext } from "../spaceContext";
+import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
   onClose: () => void;
