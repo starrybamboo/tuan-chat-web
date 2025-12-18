@@ -1,4 +1,4 @@
-import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type {
   RefObject,
 } from "react";

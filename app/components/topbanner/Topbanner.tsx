@@ -1,4 +1,4 @@
-import WebgalStarter from "@/components/chat/smallComponents/webgalStarter";
+import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
 import { ConnectionIcon, WebgalIcon } from "@/icons";

@@ -1,5 +1,5 @@
-import { RoomContext } from "@/components/chat/roomContext";
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";

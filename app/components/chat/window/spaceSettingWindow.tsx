@@ -1,4 +1,4 @@
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";

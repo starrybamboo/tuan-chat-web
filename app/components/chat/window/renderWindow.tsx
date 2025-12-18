@@ -1,6 +1,6 @@
 import type { ChatMessageResponse, Room, Space, UserRole } from "../../../../api";
-import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
 import AudioPlayer from "@/components/common/AudioPlayer";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { isElectronEnv } from "@/utils/isElectronEnv";

@@ -1,4 +1,4 @@
-import { RoomContext } from "@/components/chat/roomContext";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";

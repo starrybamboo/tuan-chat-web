@@ -17,7 +17,7 @@ import {
 import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateSpaceMutation } from "api/hooks/chatQueryHooks";
 import dagre from "dagre";
 import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { SpaceContext } from "../spaceContext";
+import { SpaceContext } from "../core/spaceContext";
 import "@xyflow/react/dist/style.css";
 
 interface RoomLink {

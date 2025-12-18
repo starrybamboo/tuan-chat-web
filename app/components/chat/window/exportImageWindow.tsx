@@ -1,5 +1,5 @@
 import type { ChatMessageResponse } from "../../../../api";
-import { ChatBubble } from "@/components/chat/chatBubble";
+import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import * as htmltoimage from "html-to-image";
 import QRCode from "qrcode";
