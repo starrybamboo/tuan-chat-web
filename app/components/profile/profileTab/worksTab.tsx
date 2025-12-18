@@ -109,6 +109,7 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
           ? "bg-success/50 text-base font-medium"
           : "hover:bg-success/30"
       }`}
+      type="button"
     >
       {label}
     </button>

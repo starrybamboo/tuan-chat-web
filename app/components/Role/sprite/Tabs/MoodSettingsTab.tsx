@@ -59,7 +59,6 @@ export function MoodSettingsTab({
   useEffect(() => {
     if (currentAvatar) {
       const t = (currentAvatar.avatarTitle as Record<string, string>) || {};
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setPendingMoodMap(t);
       moodControlRef.current?.setValue(t);
     }

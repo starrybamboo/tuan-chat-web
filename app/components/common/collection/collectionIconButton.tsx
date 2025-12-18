@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { CollectionCheckRequest } from "../../../../api";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { Arrowleft, Arrowright, RoundStarBorder, RoundStarFilled } from "@/icons";

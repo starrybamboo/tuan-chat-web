@@ -60,11 +60,25 @@ export default antfu(
       // Core React Hooks rules
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+
+      // Too noisy in this codebase; keep React hooks deps warnings instead.
+      "react-hooks-extra/no-direct-set-state-in-use-effect": "off",
+
+      // Destructured props often confuse param-name checking; keep JSDoc optional.
+      "jsdoc/check-param-names": "off",
+      "jsdoc/require-returns-description": "off",
     },
   },
   {
     // WebGAL Preview 需要 allow-scripts 和 allow-same-origin 才能正常运行
     files: ["**/webGALPreview.tsx"],
+    rules: {
+      "react-dom/no-unsafe-iframe-sandbox": "off",
+    },
+  },
+  {
+    // Markdown 里的外链媒体嵌入通常需要脚本权限
+    files: ["**/markDownViewer.tsx"],
     rules: {
       "react-dom/no-unsafe-iframe-sandbox": "off",
     },

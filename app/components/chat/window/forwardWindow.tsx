@@ -22,7 +22,7 @@ function ForwardWindow({ onClickRoom, generateForwardMessage }:
 
   // 获取空间和房间数据
   const userSpacesQuery = useGetUserSpacesQuery();
-  const spaces = userSpacesQuery.data?.data ?? [];
+  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const userRoomsQueries = useGetUserRoomsQueries(spaces);
 
   // 状态：当前选中的空间ID

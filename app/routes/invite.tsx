@@ -71,7 +71,7 @@ export default function InvitePage() {
     };
 
     processInvite();
-  }, [code, userId, navigate]);
+  }, [code, userId, navigate, spaceInvited]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

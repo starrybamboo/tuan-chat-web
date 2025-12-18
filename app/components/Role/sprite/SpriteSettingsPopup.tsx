@@ -202,14 +202,11 @@ export function SpriteSettingsPopup({
   // 当弹窗从关闭变为打开时，重置为 defaultTab 并同步外部索引
   useEffect(() => {
     if (isOpen && !wasOpen) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setActiveTab(defaultTab);
       // 同步外部索引到内部
       const validIndex = Math.max(0, Math.min(currentSpriteIndex, spritesAvatars.length - 1));
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setInternalIndex(validIndex);
     }
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setWasOpen(isOpen);
   }, [isOpen, wasOpen, defaultTab, currentSpriteIndex, spritesAvatars.length]);
 

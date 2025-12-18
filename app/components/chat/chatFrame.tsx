@@ -255,7 +255,7 @@ function ChatFrame(props: {
   const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
     // return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
     return virtuosoIndex;
-  }, [historyMessages.length]);
+  }, []);
   const messageIndexToVirtuosoIndex = useCallback((messageIndex: number) => {
     return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
   }, [historyMessages.length]);

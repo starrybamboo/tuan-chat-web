@@ -321,7 +321,7 @@ export function useRealtimeRender({
       setInitProgress(null);
       return false;
     }
-  }, [spaceId, status, roles, avatars, queryClient]);
+  }, [spaceId, status, roles, avatars, queryClient, miniAvatarEnabled, autoFigureEnabled]);
 
   // 停止实时渲染
   const stop = useCallback(() => {
