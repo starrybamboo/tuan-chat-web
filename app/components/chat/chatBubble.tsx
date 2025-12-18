@@ -222,29 +222,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
   // 处理角色名编辑
   function handleRoleNameClick() {
-    if (canEdit && webgalLinkMode) {
-      // WebGAL 联动模式下，点击角色名进入编辑模式
+    if (canEdit) {
+      // 无需联动模式：点击角色名直接进入自定义名字编辑
       setEditingRoleName(customRoleName || role?.roleName || "");
       setIsEditingRoleName(true);
-    }
-    else if (canEdit) {
-      // 非 WebGAL 联动模式，打开角色选择器
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col items-center gap-4">
-              <div>选择新的角色</div>
-              <RoleChooser
-                handleRoleChange={(role) => {
-                  handleRoleChange(role.roleId);
-                  onClose();
-                }}
-                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
     }
     else {
       // 不可编辑时，@角色
@@ -664,7 +645,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                         <div className="flex items-center gap-1">
                           <input
                             type="text"
-                            className="input input-xs input-bordered w-32"
+                            className="input input-xs input-bordered w-32 bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info"
                             value={editingRoleName}
                             onChange={e => setEditingRoleName(e.target.value)}
                             onKeyDown={(e) => {
@@ -745,7 +726,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                         <div className="flex items-center gap-1">
                           <input
                             type="text"
-                            className="input input-sm input-bordered w-40"
+                            className="input input-sm input-bordered w-40 bg-base-200 border-base-300 px-3 shadow-sm focus:outline-none focus:border-info"
                             value={editingRoleName}
                             onChange={e => setEditingRoleName(e.target.value)}
                             onKeyDown={(e) => {

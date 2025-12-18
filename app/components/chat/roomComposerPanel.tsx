@@ -24,8 +24,6 @@ export interface RoomComposerPanelProps {
   handleSelectCommand: (cmdName: string) => void;
   ruleId: number;
 
-  virtuosoRef: React.RefObject<any>;
-
   handleMessageSubmit: () => Promise<void> | void;
   onAIRewrite: (prompt: string) => void;
 
@@ -75,7 +73,6 @@ function RoomComposerPanelImpl({
   webSocketUtils,
   handleSelectCommand,
   ruleId,
-  virtuosoRef,
   handleMessageSubmit,
   onAIRewrite,
   currentChatStatus,
@@ -136,10 +133,6 @@ function RoomComposerPanelImpl({
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
 
-  const handleCreateThread = React.useCallback(() => {
-    useRoomUiStore.getState().setIsCreateThreadOpen(true);
-  }, []);
-
   return (
     <div className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
       <div className="relative flex-1 flex flex-col min-w-0">
@@ -174,11 +167,9 @@ function RoomComposerPanelImpl({
           onSendEffect={onSendEffect}
           onClearBackground={onClearBackground}
           onClearFigure={onClearFigure}
-          onCreateThread={handleCreateThread}
           noRole={noRole}
           notMember={notMember}
           isSubmitting={isSubmitting}
-          virtuosoRef={virtuosoRef as any}
         />
 
         <div className="flex gap-2 items-stretch">

@@ -120,7 +120,7 @@ export default function Topbar() {
           </div>
 
           <div className="hidden lg:flex">
-            <Link to="/">
+            <Link to="/chat">
               <img
                 src="http://47.119.147.6/tuan/favicon.ico"
                 alt="Logo"

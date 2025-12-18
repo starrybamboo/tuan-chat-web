@@ -45,10 +45,10 @@ import {
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
-import { useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
+import { useGetUserRolesQuery } from "../../../api/queryHooks";
 
 // const PAGE_SIZE = 50; // 每页消息数量
-export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: { roomId: number; spaceId: number; targetMessageId?: number | null; onSelectRoom?: (roomId: number) => void }) {
+export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -644,6 +644,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
           avatarId: curAvatarId,
         };
 
+        // 发送区自定义角色名（与联动模式无关）
+        const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
+        if (draftCustomRoleName?.trim()) {
+          fields.webgal = {
+            ...(fields.webgal as any),
+            customRoleName: draftCustomRoleName.trim(),
+          } as any;
+        }
+
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
           if (webgalLinkMode) {
@@ -654,7 +663,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
             };
 
             if (Object.keys(voiceRenderSettings).length > 0) {
-              fields.webgal = { voiceRenderSettings };
+              fields.webgal = {
+                ...(fields.webgal as any),
+                voiceRenderSettings,
+              } as any;
             }
           }
           isFirstMessage = false;
@@ -922,11 +934,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
             {/* 输入区域 */}
             <RoomComposerPanel
               roomId={roomId}
-              userId={userId}
+              userId={Number(userId)}
               webSocketUtils={webSocketUtils}
               handleSelectCommand={handleSelectCommand}
               ruleId={space?.ruleId ?? -1}
-              virtuosoRef={virtuosoRef as any}
               handleMessageSubmit={handleMessageSubmit}
               onAIRewrite={handleQuickRewrite}
               currentChatStatus={myStatue as any}
@@ -965,10 +976,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId, onSelectRoom }: {
       </div>
 
       <RoomPopWindows
-        spaceId={spaceId}
-        spaceAvatar={space?.avatar}
-        roomId={roomId}
-        onSelectRoom={onSelectRoom}
         isRoleHandleOpen={isRoleHandleOpen}
         setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
         handleAddRole={handleAddRole}

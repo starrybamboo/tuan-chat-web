@@ -24,6 +24,9 @@ type RoomPreferenceState = {
   /** WebGAL 对话参数：-concat（续接上段话） */
   dialogConcat: boolean;
 
+  /** 发送区（草稿）自定义角色名：key=roleId，value=customRoleName */
+  draftCustomRoleNameMap: Record<number, string>;
+
   setUseChatBubbleStyle: (value: boolean) => void;
   toggleUseChatBubbleStyle: () => void;
 
@@ -42,6 +45,8 @@ type RoomPreferenceState = {
 
   setDialogConcat: (value: boolean) => void;
   toggleDialogConcat: () => void;
+
+  setDraftCustomRoleNameForRole: (roleId: number, customRoleName: string | undefined) => void;
 };
 
 function canUseLocalStorage(): boolean {
@@ -112,6 +117,7 @@ const INITIAL_STATE = {
   defaultFigurePositionMap: readJson<Record<number, FigurePosition>>("defaultFigurePositionMap", {}),
   dialogNotend: false,
   dialogConcat: false,
+  draftCustomRoleNameMap: readJson<Record<number, string>>("draftCustomRoleNameMap", {}),
 };
 
 export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => ({
@@ -168,4 +174,19 @@ export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => 
 
   setDialogConcat: value => set({ dialogConcat: value }),
   toggleDialogConcat: () => set({ dialogConcat: !get().dialogConcat }),
+
+  setDraftCustomRoleNameForRole: (roleId, customRoleName) => {
+    set((state) => {
+      const nextMap: Record<number, string> = { ...state.draftCustomRoleNameMap };
+      const trimmed = (customRoleName ?? "").trim();
+      if (!trimmed) {
+        delete nextMap[roleId];
+      }
+      else {
+        nextMap[roleId] = trimmed;
+      }
+      writeJson("draftCustomRoleNameMap", nextMap);
+      return { draftCustomRoleNameMap: nextMap };
+    });
+  },
 }));

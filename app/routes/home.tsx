@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import HomePage from "@/components/home/homePage";
+import { Navigate } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -9,9 +9,5 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return (
-    <div className="h-full bg-base-200 overflow-auto">
-      <HomePage></HomePage>
-    </div>
-  );
+  return <Navigate to="/chat" replace />;
 }

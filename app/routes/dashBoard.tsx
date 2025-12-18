@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/dashBoard";
 import Topbar from "@/components/topbanner/Topbanner";
 import { Outlet } from "react-router";
 

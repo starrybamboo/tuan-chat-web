@@ -43,7 +43,15 @@ export class ChatRenderer {
     this.rooms = this.renderInfo.rooms;
     this.roleMap = new Map(renderInfo.roles.map(role => [role.roleId, role]));
     const spaceInfo = this.renderInfo.space;
-    this.roomMap = spaceInfo.roomMap || {};
+    this.roomMap = Object.fromEntries(
+      Object.entries(spaceInfo.roomMap || {}).map(([key, value]) => {
+        const rawList = Array.isArray(value) ? value : [];
+        const normalized = (rawList as Array<string | number>)
+          .map(v => Number(v))
+          .filter(v => !Number.isNaN(v));
+        return [key, normalized];
+      }),
+    );
 
     let totalMessageNumber = 0;
     for (const messages of Object.values(renderInfo.chatHistoryMap)) {
@@ -230,7 +238,12 @@ export class ChatRenderer {
    * @returns filename
    */
   private async uploadSprite(message: Message): Promise<string | null> {
-    const avatar = await this.fetchAvatar(message.avatarId);
+    const avatarId = message.avatarId;
+    if (typeof avatarId !== "number" || Number.isNaN(avatarId) || avatarId <= 0) {
+      return null;
+    }
+
+    const avatar = await this.fetchAvatar(avatarId);
     const spriteUrl = avatar?.spriteUrl || avatar?.avatarUrl;
     const spriteName = this.getSpriteName(message.roleId, message.avatarId);
     if (!spriteName || !spriteUrl || !avatar?.avatarId) {
@@ -248,27 +261,41 @@ export class ChatRenderer {
    * @returns filename
    */
   private async getAndUploadSprite(message: Message): Promise<string | null> {
-    if (this.uploadedSpritesFileNameMap.has(message.avatarId)) {
-      return this.uploadedSpritesFileNameMap.get(message.avatarId) ?? null;
+    const avatarId = message.avatarId;
+    if (typeof avatarId !== "number" || Number.isNaN(avatarId) || avatarId <= 0) {
+      return null;
+    }
+
+    if (this.uploadedSpritesFileNameMap.has(avatarId)) {
+      return this.uploadedSpritesFileNameMap.get(avatarId) ?? null;
     }
     return this.uploadSprite(message);
   }
 
   private async getAndUploadMiniAvatar(message: Message): Promise<string | null> {
-    if (this.uploadedMiniAvatarsFileNameMap.has(message.avatarId)) {
-      return this.uploadedMiniAvatarsFileNameMap.get(message.avatarId) ?? null;
+    const avatarId = message.avatarId;
+    const roleId = message.roleId;
+    if (typeof avatarId !== "number" || Number.isNaN(avatarId) || avatarId <= 0) {
+      return null;
     }
-
-    const avatar = await this.fetchAvatar(message.avatarId);
-    const avatarUrl = avatar?.avatarUrl;
-    if (!avatarUrl || !message.roleId || !message.avatarId) {
+    if (typeof roleId !== "number" || Number.isNaN(roleId) || roleId <= 0) {
       return null;
     }
 
-    const miniAvatarName = `role_${message.roleId}_mini_${message.avatarId}`;
+    if (this.uploadedMiniAvatarsFileNameMap.has(avatarId)) {
+      return this.uploadedMiniAvatarsFileNameMap.get(avatarId) ?? null;
+    }
+
+    const avatar = await this.fetchAvatar(avatarId);
+    const avatarUrl = avatar?.avatarUrl;
+    if (!avatarUrl) {
+      return null;
+    }
+
+    const miniAvatarName = `role_${roleId}_mini_${avatarId}`;
     // Reuse sceneEditor.uploadSprites as it uploads to figure folder
     const fileName = await this.sceneEditor.uploadSprites(avatarUrl, miniAvatarName);
-    this.uploadedMiniAvatarsFileNameMap.set(message.avatarId, fileName);
+    this.uploadedMiniAvatarsFileNameMap.set(avatarId, fileName);
     return fileName;
   }
 
@@ -442,11 +469,14 @@ export class ChatRenderer {
 
           // 判断消息类型：黑屏文字（messageType === 9）
           const isIntroText = message.messageType === 9;
-          // 判断是否为旁白：roleId <= 0
-          const isNarrator = message.roleId <= 0;
+          const roleId = message.roleId ?? 0;
+          const avatarId = message.avatarId ?? 0;
 
-          const role = await this.fetchRole(message.roleId);
-          const roleAvatar = await this.fetchAvatar(message.avatarId);
+          // 判断是否为旁白：roleId <= 0
+          const isNarrator = roleId <= 0;
+
+          const role = roleId > 0 ? await this.fetchRole(roleId) : undefined;
+          const roleAvatar = avatarId > 0 ? await this.fetchAvatar(avatarId) : undefined;
 
           // 获取消息级别的语音渲染设置
           const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
@@ -521,7 +551,7 @@ export class ChatRenderer {
                     ...messageResponse,
                     message: { ...messageResponse.message, content: segment },
                   },
-                  this.voiceFileMap.get(message.roleId),
+                  this.voiceFileMap.get(message.roleId ?? -1),
                   ttsOptions,
                 );
               }
@@ -540,7 +570,9 @@ export class ChatRenderer {
                   = repliedSpriteName
                     ? (spriteState.has(messageSpriteName || "") && spriteState.has(repliedSpriteName))
                     : (spriteState.has(messageSpriteName || ""));
-              const avatar = await this.fetchAvatar(message.avatarId);
+              const avatar = (typeof message.avatarId === "number" && message.avatarId > 0)
+                ? await this.fetchAvatar(message.avatarId)
+                : undefined;
               await this.sceneEditor.addDialog(
                 displayRoleName,
                 avatar || undefined,

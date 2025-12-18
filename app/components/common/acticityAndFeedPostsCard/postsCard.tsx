@@ -379,7 +379,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 
           <div className="flex items-center space-x-1 text-sm hover:text-warning cursor-pointer hover:bg-warning/10 transition-colors px-2 py-1 rounded-full">
             <CollectionIconButton
-              targetInfo={{ resourceId: actualId, resourceType: Number(targetType) }}
+              targetInfo={{ resourceId: actualId, resourceType: String(targetType) }}
               className="w-9 h-6 cursor-pointer data-html-image-exclude"
             />
           </div>

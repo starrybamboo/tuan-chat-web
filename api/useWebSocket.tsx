@@ -78,25 +78,42 @@ export function useWebSocket() {
   const roomSessions : MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? [];
   const updateReadPosition1Mutation = useUpdateReadPosition1Mutation();
   const unreadMessagesNumber: Record<number, number> = roomSessions.reduce((acc, session) => {
-    if (session.roomId && session.lastReadSyncId && session.latestSyncId) {
-      acc[session.roomId] = Math.max(0, session.latestSyncId - session.lastReadSyncId);
+    // 订阅状态由「是否存在 session」决定，不应依赖 syncId 是否有值。
+    // 新房间在没有任何消息时，latestSyncId/lastReadSyncId 可能为 0 或 undefined。
+    // 这里仍然需要写入 acc[roomId] = 0，保证 UI 能正确判断“已订阅”。
+    if (session.roomId != null) {
+      const latestSyncId = session.latestSyncId ?? 0;
+      const lastReadSyncId = session.lastReadSyncId ?? 0;
+      acc[session.roomId] = Math.max(0, latestSyncId - lastReadSyncId);
     }
     return acc;
   }, {} as Record<number, number>)
   const updateLatestSyncId = (roomId: number, latestSyncId: number) => {
     queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
       if (!oldData?.data) return oldData;
+      const hasSession = oldData.data.some(session => session.roomId === roomId);
+      const nextData = hasSession
+        ? oldData.data.map(session => {
+            if (session.roomId === roomId) {
+              return {
+                ...session,
+                latestSyncId,
+              };
+            }
+            return session;
+          })
+        : [
+            ...oldData.data,
+            {
+              roomId,
+              latestSyncId,
+              lastReadSyncId: 0,
+            } satisfies MessageSessionResponse,
+          ];
+
       return {
         ...oldData,
-        data: oldData.data.map(session => {
-          if (session.roomId === roomId) {
-            return {
-              ...session,
-              latestSyncId
-            };
-          }
-          return session;
-        })
+        data: nextData,
       };
     });
   };
@@ -113,8 +130,8 @@ export function useWebSocket() {
     if (!session) return
 
     // 如果没有指定lastReadSyncId，则使用latestSyncId更新，也就是读到最后一条消息
-    const targetReadySyncId = lastReadSyncId ?? session.latestSyncId!
-    if (targetReadySyncId === session.lastReadSyncId)
+    const targetReadySyncId = lastReadSyncId ?? session.latestSyncId ?? session.lastReadSyncId ?? 0;
+    if (targetReadySyncId === (session.lastReadSyncId ?? 0))
       return
 
     queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
@@ -240,7 +257,8 @@ export function useWebSocket() {
         queryClient.invalidateQueries({ queryKey: ["getRoomMemberList",event.data.roomId] });
         // 如果是加入群组，要更新订阅信息，以及所有的房间信息
         if (event.data.changeType === 1){
-          queryClient.invalidateQueries({ queryKey: ['getUserSessions',event.data.roomId] });
+          // getUserSessions 的 queryKey 只有 ['getUserSessions']，这里带 roomId 会导致无法命中缓存。
+          queryClient.invalidateQueries({ queryKey: ['getUserSessions'] });
           queryClient.invalidateQueries({ queryKey: ['getRoomSession'] });
         }
         // 如果是加入或者退出群组，要更新所有的房间信息
