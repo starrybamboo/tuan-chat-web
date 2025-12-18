@@ -104,7 +104,7 @@ export function useSpaceInviteCodeQuery(spaceId: number, duration?: number, type
 ## 相关文件列表
 
 - [invitePlayerWindow.tsx](../app/components/chat/window/invitePlayerWindow.tsx)
-- [spaceDetailPanel.tsx](../app/components/chat/sideDrawer/spaceDetailPanel.tsx)
+- [spaceDetailPanel.tsx](../app/components/chat/space/drawers/spaceDetailPanel.tsx)
 - [chatQueryHooks.tsx](../api/hooks/chatQueryHooks.tsx)
 
 ## 后续优化建议

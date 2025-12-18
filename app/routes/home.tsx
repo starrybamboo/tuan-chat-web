@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import { Navigate } from "react-router";
+import { redirect } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -8,6 +8,10 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
+export async function loader(_args: Route.LoaderArgs) {
+  return redirect("/chat");
+}
+
 export default function Home() {
-  return <Navigate to="/chat" replace />;
+  return null;
 }

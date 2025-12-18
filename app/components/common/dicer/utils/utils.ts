@@ -1,4 +1,4 @@
-import type { RoomContextType } from "@/components/chat/roomContext";
+import type { RoomContextType } from "@/components/chat/core/roomContext";
 
 import { AliasMap } from "@/components/common/dicer/utils/aliasMap";
 

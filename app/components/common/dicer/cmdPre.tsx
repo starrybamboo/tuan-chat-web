@@ -1,4 +1,4 @@
-import type { RoomContextType } from "@/components/chat/roomContext";
+import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
