@@ -62,9 +62,6 @@ interface ChatToolbarProps {
   onClearFigure?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
-
-  // 创建子区(Thread)
-  onCreateThread?: () => void;
 }
 
 export function ChatToolbar({
@@ -94,7 +91,6 @@ export function ChatToolbar({
   onClearBackground,
   onClearFigure,
   setAudioFile,
-  onCreateThread,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
 
@@ -179,24 +175,6 @@ export function ChatToolbar({
             </ul>
           </div>
         )}
-        {/* 发送表情 */}
-        {!isSpectator && onCreateThread && (
-          <div className="tooltip" data-tip="创建子区">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-circle"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onCreateThread();
-              }}
-              aria-label="创建子区"
-            >
-              +
-            </button>
-          </div>
-        )}
-
         <div className="dropdown dropdown-top">
           <div role="button" tabIndex={2} className="">
             <div

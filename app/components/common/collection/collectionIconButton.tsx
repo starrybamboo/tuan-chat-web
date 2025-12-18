@@ -18,7 +18,7 @@ import toastWindow from "../toastWindow/toastWindow";
 
 interface CollectionListPopProps {
   resourceId: number;
-  resourceType: number;
+  resourceType: string;
 }
 // 收藏夹弹窗
 function CollectionListPop({ resourceId, resourceType }: CollectionListPopProps) {
@@ -47,7 +47,7 @@ function CollectionListPop({ resourceId, resourceType }: CollectionListPopProps)
   // 添加收藏
   const addCollection = useAddCollectionMutation();
   const addListCollection = useAddToListMutation();
-  const handleAddCollection = async (resourceId: number, resourceType: number, comment: string, listId?: number) => {
+  const handleAddCollection = async (resourceId: number, resourceType: string, comment: string, listId?: number) => {
     try {
       const newCollection = await addCollection.mutateAsync({ resourceId, resourceType, comment });
       const collectionId = newCollection.data?.collectionId;

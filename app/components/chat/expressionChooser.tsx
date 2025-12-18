@@ -40,11 +40,11 @@ export function ExpressionChooser({
   };
 
   return (
-    <div className="flex w-full min-w-[600px] max-h-[50vh] overflow-hidden">
+    <div className="flex flex-col md:flex-row w-[88vw] md:w-full min-w-0 md:min-w-[600px] max-h-[70vh] md:max-h-[50vh] overflow-hidden">
       {/* 左侧：角色列表 */}
-      <div className="w-1/3 min-w-[180px] border-r border-base-300 pr-3">
+      <div className="w-full md:w-1/3 min-w-0 md:min-w-[180px] border-b md:border-b-0 md:border-r border-base-300 pb-3 md:pb-0 md:pr-3">
         <div className="text-sm font-semibold mb-3 text-center">角色选择</div>
-        <div className="space-y-2 max-h-[42vh] overflow-y-auto">
+        <div className="space-y-2 max-h-[22vh] md:max-h-[42vh] overflow-y-auto">
           {/* 旁白选项（WebGAL 联动模式） */}
           {showNarratorOption && (
             <div
@@ -110,7 +110,7 @@ export function ExpressionChooser({
       </div>
 
       {/* 右侧：表情列表 */}
-      <div className="w-2/3 min-w-[380px] pl-3">
+      <div className="w-full md:w-2/3 min-w-0 md:min-w-[380px] md:pl-3">
         {/* 旁白模式下不显示表情 */}
         {isNarratorMode
           ? (
@@ -122,8 +122,8 @@ export function ExpressionChooser({
             )
           : roleAvatars && roleAvatars.length > 0
             ? (
-                <div className="max-h-[35vh] overflow-y-auto">
-                  <div className="grid grid-cols-6 gap-2">
+                <div className="max-h-[40vh] md:max-h-[35vh] overflow-y-auto">
+                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
                     {roleAvatars.map(avatar => (
                       <div
                         onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}

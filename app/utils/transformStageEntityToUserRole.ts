@@ -10,6 +10,7 @@ export function transformStageEntityToUserRole(original: StageEntityResponse): U
     userId: original.id!, // 使用原始id作为userId
     roleId: original.id!, // 使用原始id作为roleId
     roleName: original.name,
+    type: original.entityType ?? 0,
     description: original.entityInfo?.description,
     avatarId: original.entityInfo?.avatarIds?.[0], // 取第一个avatarId
     state: 0, // 默认状态为0(正常)

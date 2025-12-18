@@ -1,4 +1,4 @@
-import type { Route } from "../+types/home";
+import type { Route } from "./+types/create";
 import ModuleCreateMain from "@/components/module/create/ModuleCreateMain";
 
 export function meta(_args: Route.MetaArgs) {

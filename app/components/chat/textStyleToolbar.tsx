@@ -181,6 +181,55 @@ function ColorTextDialog({ onConfirm, onClose, initialText }: {
 }
 
 /**
+ * 斜体文本输入对话框
+ */
+function ItalicTextDialog({ onConfirm, onClose, initialText }: {
+  onConfirm: (text: string) => void;
+  onClose: () => void;
+  initialText?: string;
+}) {
+  const [text, setText] = useState(initialText || "");
+
+  return (
+    <div className="flex flex-col gap-3 p-4 min-w-[280px]">
+      <h3 className="text-lg font-medium">斜体文字</h3>
+      <div className="flex flex-col gap-2">
+        <label className="flex flex-col gap-1">
+          <span className="text-sm opacity-70">文本</span>
+          <input
+            type="text"
+            className="input input-bordered input-sm"
+            placeholder="输入斜体文字"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            autoFocus
+          />
+        </label>
+      </div>
+      <div className="flex gap-2 justify-end">
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>取消</button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={!text.trim()}
+          onClick={() => {
+            if (text.trim()) {
+              onConfirm(text.trim());
+            }
+          }}
+        >
+          确认
+        </button>
+      </div>
+      <div className="text-xs opacity-60 bg-base-200 rounded p-2">
+        <div>预览效果：</div>
+        {text ? <span style={{ fontStyle: "italic" }}>{text}</span> : <span className="opacity-50">请输入文本</span>}
+      </div>
+    </div>
+  );
+}
+
+/**
  * 高级样式输入对话框
  */
 function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
@@ -491,11 +540,17 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
     savedSelectionRef.current = saveSelection();
     const selectedText = savedSelectionRef.current?.text || "";
 
-    const syntax = selectedText
-      ? `[${selectedText}](style=color:inherit style-alltext=font-style:italic\\;)`
-      : `[斜体文字](style=color:inherit style-alltext=font-style:italic\\;)`;
-
-    restoreAndInsertText(syntax);
+    toastWindow(onClose => (
+      <ItalicTextDialog
+        initialText={selectedText}
+        onConfirm={(text) => {
+          const syntax = `[${text}](style=color:inherit style-alltext=font-style:italic\\;)`;
+          restoreAndInsertText(syntax);
+          onClose();
+        }}
+        onClose={onClose}
+      />
+    ));
   };
 
   // 高级样式

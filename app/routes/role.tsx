@@ -1,5 +1,5 @@
 import type { Role } from "@/components/Role/types"; // 确保路径正确
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/role";
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar"; // 确保路径正确
 import { useState } from "react";
 import { Outlet, useParams } from "react-router"; // 引入 Outlet 和 useParams

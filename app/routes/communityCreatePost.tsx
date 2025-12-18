@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/communityCreatePost";
 import PostEditor from "@/components/community/postEditor";
 import { useCommunityPostPublish } from "@/components/community/useCommunityPostPublish";
 import React from "react";

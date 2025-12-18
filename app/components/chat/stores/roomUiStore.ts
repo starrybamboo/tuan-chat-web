@@ -9,12 +9,8 @@ type RoomUiState = {
   /** 插入消息模式：在指定消息下方插入下一条发送的消息 */
   insertAfterMessageId?: number;
 
-  /** 创建子区(Thread) 弹窗开关 */
-  isCreateThreadOpen: boolean;
-
   setReplyMessage: (message: Message | undefined) => void;
   setInsertAfterMessageId: (messageId: number | undefined) => void;
-  setIsCreateThreadOpen: (open: boolean) => void;
 
   /** 切换房间时重置临时 UI 状态 */
   reset: () => void;
@@ -23,9 +19,7 @@ type RoomUiState = {
 export const useRoomUiStore = create<RoomUiState>(set => ({
   replyMessage: undefined,
   insertAfterMessageId: undefined,
-  isCreateThreadOpen: false,
   setReplyMessage: message => set({ replyMessage: message }),
   setInsertAfterMessageId: messageId => set({ insertAfterMessageId: messageId }),
-  setIsCreateThreadOpen: open => set({ isCreateThreadOpen: open }),
-  reset: () => set({ replyMessage: undefined, insertAfterMessageId: undefined, isCreateThreadOpen: false }),
+  reset: () => set({ replyMessage: undefined, insertAfterMessageId: undefined }),
 }));

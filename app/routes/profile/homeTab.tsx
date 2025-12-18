@@ -1,4 +1,4 @@
-import type { Route } from "../+types/home";
+import type { Route } from "./+types/homeTab";
 import HomeTab from "@/components/profile/profileTab/homeTab";
 import { useParams } from "react-router";
 

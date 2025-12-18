@@ -30,9 +30,12 @@ function SearchBar({ className = "" }: SearchBarProps) {
   useEffect(() => {
     const getAllRoles = async () => {
       for (const msg of historyMessages) {
-        if (roles.find(r => r.roleId === msg.message.roleId))
+        const roleId = msg.message.roleId;
+        if (roleId == null)
           continue;
-        const role = await getRoleSmartly(msg.message.roleId);
+        if (roles.find(r => r.roleId === roleId))
+          continue;
+        const role = await getRoleSmartly(roleId);
         if (!role)
           continue;
         setRoles(prev => [...prev, role]);

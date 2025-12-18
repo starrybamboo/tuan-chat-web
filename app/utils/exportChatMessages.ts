@@ -40,7 +40,8 @@ function buildSenderLabel(
     return `[${UNKNOWN_LABEL}消息]`;
   }
 
-  const roleName = roleMap.get(message.roleId) || `角色${message.roleId ?? UNKNOWN_LABEL}`;
+  const roleId = message.roleId ?? -1;
+  const roleName = roleMap.get(roleId) || `角色${message.roleId ?? UNKNOWN_LABEL}`;
   if (!includeUsername) {
     return roleName;
   }

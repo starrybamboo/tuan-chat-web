@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/feed";
 import FeedPage from "@/components/feed/feedPage";
 
 export function meta(_args: Route.MetaArgs) {

@@ -68,7 +68,19 @@ export function ResourceCollectionList({ type, isPublic, searchText: _searchText
   };
 
   const handleEditCollection = (updatedCollection: CollectionList) => {
-    updateCollectionListMutation.mutate(updatedCollection, {
+    const collectionListId = updatedCollection.collectionListId;
+    if (!collectionListId) {
+      toast.error("缺少收藏列表ID，无法更新");
+      return;
+    }
+    updateCollectionListMutation.mutate({
+      collectionListId,
+      collectionListName: updatedCollection.collectionListName,
+      description: updatedCollection.description,
+      isPublic: updatedCollection.isPublic,
+      resourceListType: updatedCollection.resourceListType,
+      coverImageUrl: updatedCollection.coverImageUrl,
+    }, {
       onSuccess: () => {
         toast.success("收藏列表更新成功");
         setSelectedCollection(updatedCollection);

@@ -1,4 +1,4 @@
-import type { Route } from "../+types/home";
+import type { Route } from "./+types/profile";
 import ProfilePage from "@/components/profile/profilePage";
 
 export function meta({ params }: Route.MetaArgs) {

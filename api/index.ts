@@ -158,7 +158,6 @@ export type { EntityDeleteRequest } from './models/EntityDeleteRequest';
 export type { EntityUpdateRequest } from './models/EntityUpdateRequest';
 export type { FeedPageRequest } from './models/FeedPageRequest';
 export type { FeedWithStatsResponse } from './models/FeedWithStatsResponse';
-export type { FightRoomAddRequest } from './models/FightRoomAddRequest';
 export type { FileMessage } from './models/FileMessage';
 export type { ForwardMessage } from './models/ForwardMessage';
 export type { HistoryMessageRequest } from './models/HistoryMessageRequest';

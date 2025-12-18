@@ -48,16 +48,6 @@ export default function ChatRoomListPanel({
   onCreateRoom,
 }: ChatRoomListPanelProps) {
   const roomsInSpace = rooms.filter(room => room.spaceId === activeSpaceId);
-  const rootRooms = roomsInSpace.filter(room => !room.parentRoomId);
-  const threadRoomsByParentId = roomsInSpace.reduce<Record<number, Room[]>>((acc, room) => {
-    if (!room.parentRoomId) {
-      return acc;
-    }
-    const parentId = room.parentRoomId;
-    acc[parentId] ??= [];
-    acc[parentId].push(room);
-    return acc;
-  }, {});
 
   return (
     <div
@@ -85,9 +75,7 @@ export default function ChatRoomListPanel({
               )}
 
               <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
-                {rootRooms.map((room) => {
-                  const threadRooms = threadRoomsByParentId[room.roomId ?? -1] ?? [];
-
+                {roomsInSpace.map((room) => {
                   return (
                     <React.Fragment key={room.roomId}>
                       <div className="flex items-center gap-1 group w-full" data-room-id={room.roomId}>
@@ -149,20 +137,6 @@ export default function ChatRoomListPanel({
                           </ul>
                         </div>
                       </div>
-
-                      {threadRooms.map(threadRoom => (
-                        <div className="pl-6" key={threadRoom.roomId} data-room-id={threadRoom.roomId}>
-                          <RoomButton
-                            room={threadRoom}
-                            unreadMessageNumber={unreadMessagesNumber[threadRoom.roomId ?? -1]}
-                            onclick={() => {
-                              onSelectRoom(threadRoom.roomId ?? -1);
-                              onCloseLeftDrawer();
-                            }}
-                            isActive={activeRoomId === threadRoom.roomId}
-                          />
-                        </div>
-                      ))}
                     </React.Fragment>
                   );
                 })}
