@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Module } from "api";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 // import RuleSelect from "../../common/ruleSelect";

@@ -174,8 +174,8 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                 ? (
               // 初次加载骨架屏
                     <div className="space-y-4">
-                      {[...Array.from({ length: RENDER_MIN })].map((_, index) => (
-                        <div key={index} className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
+                      {Array.from({ length: RENDER_MIN }, (_, i) => `skeleton-${i}`).map(key => (
+                        <div key={key} className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
                           <div className="flex items-center space-x-3 mb-4">
                             <div className="skeleton w-12 h-12 rounded-full"></div>
                             <div className="flex-1 space-y-2">

@@ -2,8 +2,32 @@ import type { Tag } from "../../../api";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { CheckIcon, PlusOutline, XMarkICon } from "@/icons";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useAddTagMutation, useDeleteTagMutation, useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
+
+// 颜色选项配置 - 按照指定顺序排列
+const COLOR_OPTIONS = [
+  { id: "blue", name: "蓝色", hex: "#3b82f6" },
+  { id: "green", name: "绿色", hex: "#10b981" },
+  { id: "indigo", name: "靛蓝色", hex: "#6366f1" },
+  { id: "purple", name: "紫色", hex: "#8b5cf6" },
+  { id: "pink", name: "粉色", hex: "#ec4899" },
+  { id: "red", name: "红色", hex: "#ef4444" },
+  { id: "amber", name: "琥珀色", hex: "#f59e0b" },
+  { id: "teal", name: "蓝绿色", hex: "#14b8a6" },
+];
+
+// 预定义的颜色类名映射，确保 Tailwind CSS 能够正确识别
+const COLOR_CLASS_MAP: Record<string, string> = {
+  blue: "bg-blue-100 text-blue-800 ring-blue-300",
+  green: "bg-green-100 text-green-800 ring-green-300",
+  indigo: "bg-indigo-100 text-indigo-800 ring-indigo-300",
+  purple: "bg-purple-100 text-purple-800 ring-purple-300",
+  pink: "bg-pink-100 text-pink-800 ring-pink-300",
+  red: "bg-red-100 text-red-800 ring-red-300",
+  amber: "bg-amber-100 text-amber-800 ring-amber-300",
+  teal: "bg-teal-100 text-teal-800 ring-teal-300",
+};
 
 interface TagManagementProps {
   userId?: number;
@@ -28,46 +52,22 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
   const [newTagContent, setNewTagContent] = useState("");
   const [selectedColor, setSelectedColor] = useState("blue");
 
-  // 颜色选项配置 - 按照指定顺序排列
-  const colorOptions = [
-    { id: "blue", name: "蓝色", hex: "#3b82f6" },
-    { id: "green", name: "绿色", hex: "#10b981" },
-    { id: "indigo", name: "靛蓝色", hex: "#6366f1" },
-    { id: "purple", name: "紫色", hex: "#8b5cf6" },
-    { id: "pink", name: "粉色", hex: "#ec4899" },
-    { id: "red", name: "红色", hex: "#ef4444" },
-    { id: "amber", name: "琥珀色", hex: "#f59e0b" },
-    { id: "teal", name: "蓝绿色", hex: "#14b8a6" },
-  ];
-
-  // 预定义的颜色类名映射，确保 Tailwind CSS 能够正确识别
-  const colorClassMap: Record<string, string> = {
-    blue: "bg-blue-100 text-blue-800 ring-blue-300",
-    green: "bg-green-100 text-green-800 ring-green-300",
-    indigo: "bg-indigo-100 text-indigo-800 ring-indigo-300",
-    purple: "bg-purple-100 text-purple-800 ring-purple-300",
-    pink: "bg-pink-100 text-pink-800 ring-pink-300",
-    red: "bg-red-100 text-red-800 ring-red-300",
-    amber: "bg-amber-100 text-amber-800 ring-amber-300",
-    teal: "bg-teal-100 text-teal-800 ring-teal-300",
-  };
-
   // API mutations
   const addTagMutation = useAddTagMutation();
   const deleteTagMutation = useDeleteTagMutation();
 
   // 获取颜色类名的函数，如果颜色不存在则返回蓝色
   const getColorClass = (color: string): string => {
-    return colorClassMap[color] || colorClassMap.blue;
+    return COLOR_CLASS_MAP[color] || COLOR_CLASS_MAP.blue;
   };
 
   // 验证并修正颜色值的函数
-  const validateColor = (color: string): string => {
-    return colorOptions.find(option => option.id === color)?.id || "blue";
-  };
+  const validateColor = useCallback((color: string): string => {
+    return COLOR_OPTIONS.find(option => option.id === color)?.id || "blue";
+  }, []);
 
   // 当API数据加载完成时更新本地状态
-  React.useEffect(() => {
+  useEffect(() => {
     if (tagsData?.data) {
       // 修正颜色值，确保所有颜色都是有效的
       const validatedTags = tagsData.data.map(tag => ({
@@ -80,7 +80,7 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
       // 明确处理空数据的情况
       setLocalTags([]);
     }
-  }, [tagsData]);
+  }, [tagsData, validateColor]);
 
   const tags: Tag[] = localTags;
 
@@ -247,7 +247,7 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
                   <div className="flex flex-col gap-2">
                     <span className="text-xs text-base-content/70">选择颜色:</span>
                     <div className="flex flex-wrap gap-2">
-                      {colorOptions.map(color => (
+                      {COLOR_OPTIONS.map(color => (
                         <button
                           type="button"
                           key={color.id}

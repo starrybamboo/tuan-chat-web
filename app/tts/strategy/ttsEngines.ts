@@ -145,7 +145,7 @@ export class GptSovitsEngine implements TtsEngine {
         // 假设 GPT-SoVITS 和 WebGAL 在同一台机器上,或 GPT-SoVITS 可以访问 WebGAL 的文件系统
         refAudioPath = `games/${gameName}/game/vocal/ref/${uploadedFileName}`;
 
-        console.log("✅ 音频文件已上传到服务器:", refAudioPath);
+        // 上传成功，不在生产环境输出 console.log
       }
       catch (uploadError) {
         console.error("❌ 上传参考音频失败:", uploadError);

@@ -67,15 +67,12 @@ export function SpriteRenderStudio({
   useEffect(() => {
     // 当initialAvatarId变化时，清除手动偏移，回到自动计算的索引
     if (initialAvatarId !== lastInitialAvatarId) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setManualIndexOffset(null);
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setLastInitialAvatarId(initialAvatarId);
     }
 
     // 如果是手动切换触发的，重置标记
     if (isManualSwitch) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setIsManualSwitch(false);
     }
   }, [initialAvatarId, lastInitialAvatarId, isManualSwitch]);
@@ -154,7 +151,6 @@ export function SpriteRenderStudio({
         currentSprite,
         transform: parseTransformFromAvatar(currentSprite),
       });
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setLastSpriteIndex(currentSpriteIndex);
     }
   }, [currentSpriteIndex, lastSpriteIndex, currentSprite]);
@@ -168,7 +164,6 @@ export function SpriteRenderStudio({
   // 当 spriteUrl 变化时，立即设置加载状态为 true
   useEffect(() => {
     if (spriteUrl) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setIsImageLoading(true);
     }
   }, [spriteUrl]);
@@ -184,7 +179,6 @@ export function SpriteRenderStudio({
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
       }
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setIsImageLoading(false);
       return; // 提前退出
     }
