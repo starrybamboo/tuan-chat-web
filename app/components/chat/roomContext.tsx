@@ -29,6 +29,9 @@ export interface RoomContextType {
   /** 当前激活的空间ID */
   spaceId?: number;
 
+  /** 是否使用聊天气泡样式显示消息 */
+  useChatBubbleStyle?: boolean;
+
   /**
    * 历史消息
    */

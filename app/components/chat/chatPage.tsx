@@ -40,9 +40,8 @@ export default function ChatPage() {
   const activeRoomId = Number(urlRoomId) || null;
   const activeSpaceId = Number(urlSpaceId) || null;
   const targetMessageId = Number(urlMessageId) || null;
-
-  const navigate = useNavigate();
   const [searchParam, _] = useSearchParams();
+  const navigate = useNavigate();
 
   const isPrivateChatMode = urlSpaceId === "private";
 
@@ -385,7 +384,7 @@ export default function ChatPage() {
               <>
                 {
                   activeSpaceId
-                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} targetMessageId={targetMessageId} onSelectRoom={setActiveRoomId} />
+                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} targetMessageId={targetMessageId} />
                     : (
                         <div className="flex items-center justify-center w-full h-full font-bold">
                           <span className="text-center lg:hidden">请从右侧选择房间</span>

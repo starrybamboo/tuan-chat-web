@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/collection";
 import CollectionPage from "@/components/common/collection/collectionPage";
 
 export function meta(_args: Route.MetaArgs) {

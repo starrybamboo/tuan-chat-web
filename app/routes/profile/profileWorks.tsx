@@ -1,4 +1,4 @@
-import type { Route } from "../+types/home";
+import type { Route } from "./+types/profileWorks";
 import WorksTab from "@/components/profile/profileTab/worksTab";
 
 export function meta({ params }: Route.MetaArgs) {

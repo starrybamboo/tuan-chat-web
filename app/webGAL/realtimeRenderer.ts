@@ -1331,20 +1331,25 @@ export class RealtimeRenderer {
 
     // 判断消息类型：黑屏文字（messageType === 9）
     const isIntroText = (msg.messageType as number) === 9;
+    const roleId = msg.roleId ?? 0;
+    const avatarId = msg.avatarId ?? 0;
+
     // 判断是否为旁白：roleId <= 0
-    const isNarrator = msg.roleId <= 0;
+    const isNarrator = roleId <= 0;
 
     // 获取角色信息
-    const role = this.roleMap.get(msg.roleId);
+    const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
     // 优先使用自定义角色名
     const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
-    const roleName = customRoleName || role?.roleName || `角色${msg.roleId}`;
+    const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
-    const avatar = this.avatarMap.get(msg.avatarId);
+    const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
 
     // 获取立绘文件名
-    const spriteFileName = await this.getAndUploadSprite(msg.avatarId, msg.roleId);
+    const spriteFileName = (avatarId > 0 && roleId > 0)
+      ? await this.getAndUploadSprite(avatarId, roleId)
+      : null;
 
     console.error(msg.content, msg.webgal?.voiceRenderSettings);
     // 获取 voiceRenderSettings 中的立绘位置
@@ -1428,7 +1433,7 @@ export class RealtimeRenderer {
     const isNormalDialog = !isNarrator && !isIntroText;
     if (isNormalDialog) {
       const miniAvatarFileName = this.miniAvatarEnabled
-        ? await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId)
+        ? (avatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(avatarId, roleId) : null)
         : null;
 
       if (miniAvatarFileName) {
@@ -1472,14 +1477,14 @@ export class RealtimeRenderer {
       // 生成语音（如果启用了 TTS）
       let vocalFileName: string | null = null;
       if (this.ttsConfig.enabled
-        && msg.roleId !== 0 // 跳过系统角色
-        && msg.roleId !== 2 // 跳过骰娘
+        && roleId !== 0 // 跳过系统角色
+        && roleId !== 2 // 跳过骰娘
         && !msg.content.startsWith(".") // 跳过指令
         && !msg.content.startsWith("。")
         && !msg.content.startsWith("%")) {
         vocalFileName = await this.generateAndUploadVocal(
           processedContent,
-          msg.roleId,
+          roleId,
           avatar?.avatarTitle,
           customEmotionVector,
         );
@@ -1637,7 +1642,8 @@ export class RealtimeRenderer {
         concat?: boolean;
       } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
-      const avatar = this.avatarMap.get(msg.avatarId);
+      const avatarId = msg.avatarId ?? 0;
+      const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
       const emotionVector = customEmotionVector && customEmotionVector.length > 0
         ? customEmotionVector
         : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);

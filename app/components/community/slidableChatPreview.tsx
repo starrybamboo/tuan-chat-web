@@ -132,7 +132,7 @@ function ChatMessageItem({
   showAvatar?: boolean;
 }) {
   const message = chatMessageResponse.message;
-  const useRoleRequest = useGetRoleQuery(message.roleId);
+  const useRoleRequest = useGetRoleQuery(message.roleId ?? -1);
   const role = useRoleRequest.data?.data;
 
   // 渲染消息内容
@@ -174,7 +174,7 @@ function ChatMessageItem({
       {showAvatar && (
         <div className="flex-shrink-0">
           <RoleAvatarComponent
-            avatarId={message.avatarId}
+            avatarId={message.avatarId ?? -1}
             width={8}
             isRounded={true}
             withTitle={false}

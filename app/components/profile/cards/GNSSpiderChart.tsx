@@ -1,6 +1,6 @@
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import GNSPreferenceEditor from "@/components/profile/popWindows/GNSEditorPop";
+import GNSPreferenceEditor from "@/components/profile/popWindows/GnsEditorPop";
 
 import { useEffect, useState } from "react";
 import { useGetGNSQuery, useUpsertGNSMutation } from "../../../../api/hooks/userGNSQuerryHooks";

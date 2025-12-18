@@ -101,6 +101,7 @@
     "@tailwindcss/vite": "^4.0.17",
     "@tanstack/eslint-plugin-query": "^5.68.0",
     "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.1",

@@ -36,12 +36,12 @@ export default function SearchedMessage({
   onClick?: () => void;
   className?: string;
 }) {
-  const useRoleRequest = useGetRoleQuery(message.message.roleId);
+  const useRoleRequest = useGetRoleQuery(message.message.roleId ?? -1);
   const role = useRoleRequest.data?.data;
   return (
     <div className={`flex flex-col hover:bg-base-300 transition-colors ${className}`} onClick={onClick}>
       <div className="flex items-center gap-2">
-        <RoleAvatarComponent avatarId={message.message.avatarId} width={8} isRounded={true} stopPopWindow withTitle={true}></RoleAvatarComponent>
+        <RoleAvatarComponent avatarId={message.message.avatarId ?? -1} width={8} isRounded={true} stopPopWindow withTitle={true}></RoleAvatarComponent>
         <div className="font-medium text-sm">
           <HighlightText
             text={role?.roleName ?? ""}

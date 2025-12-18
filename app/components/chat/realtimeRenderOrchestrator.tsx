@@ -1,5 +1,5 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
-import type { ChatMessageResponse, Role, Room } from "api";
+import type { ChatMessageResponse, Room, UserRole } from "api";
 
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -24,7 +24,7 @@ interface Props {
   spaceId: number;
   roomId: number;
   room: Room | undefined;
-  roomRoles: Role[];
+  roomRoles: UserRole[];
   historyMessages: ChatMessageResponse[];
   chatHistoryLoading: boolean;
   onApiChange: (api: RealtimeRenderOrchestratorApi) => void;

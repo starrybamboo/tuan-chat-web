@@ -1,62 +1,7 @@
-import { useMutation, useQuery, useQueries, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import type { MessageDirectPageRequest, MessageDirectReadUpdateRequest, MessageDirectRecallRequest, MessageDirectSendRequest } from "api";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { MessageDirectReadUpdateRequest, MessageDirectRecallRequest, MessageDirectSendRequest } from "api";
 import { tuanchat } from "../instance";
 import { useMemo } from "react";
-
-
-/**
- * 私聊消息无限分页查询
- */
-export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: number) {
-  const initialPageParam: MessageDirectPageRequest = {
-    cursor: undefined,
-    pageSize,
-    targetUserId
-  }
-  const infiniteQuery = useInfiniteQuery({
-    queryKey: ["directMessages", targetUserId],
-    queryFn: async ({ pageParam }) => {
-      return tuanchat.messageDirectController.getMessagePage(pageParam);
-    },
-    getNextPageParam: (lastPage) => {
-      if (!lastPage.data?.isLast && lastPage.data?.cursor) {
-        const nextQueryParam: MessageDirectPageRequest = {
-          cursor: lastPage.data.cursor,
-          pageSize,
-          targetUserId,
-        }
-        return nextQueryParam;
-      }
-      return undefined;
-    },
-    initialPageParam,
-    refetchOnWindowFocus: false,
-    staleTime: Infinity,
-  });
-
-  const isLastPage = useMemo(() => {
-    const pages = infiniteQuery.data?.pages;
-    if (!pages || pages.length === 0) return true;
-    const lastPage = pages[pages.length - 1];
-    return lastPage.data?.isLast === true;
-  }, [infiniteQuery.data?.pages]);
-
-  const historyMessages = useMemo(() => {
-    const pages = infiniteQuery.data?.pages;
-    if (!pages) return [];
-    return [...pages].reverse().flatMap(p => p.data?.list ?? []);
-  }, [infiniteQuery.data?.pages]);
-
-  return {
-    historyMessages,
-    isLoading: infiniteQuery.isLoading,
-    hasNextPage: infiniteQuery.hasNextPage,
-    fetchNextPage: infiniteQuery.fetchNextPage,
-    isFetchingNextPage: infiniteQuery.isFetchingNextPage,
-    refetch: infiniteQuery.refetch,
-    isLastPage
-  }
-}
 
 /**
  * 获取收件箱消息全量数据

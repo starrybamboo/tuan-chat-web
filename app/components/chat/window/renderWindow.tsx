@@ -95,6 +95,7 @@ export default function RenderWindow() {
       .flat()
       .filter(m => m.message.status !== 1)
       .map(m => m.message.roleId)
+      .filter((roleId): roleId is number => typeof roleId === "number" && !Number.isNaN(roleId))
       .forEach(roleId => roleIds.add(roleId));
     return Array.from(roleIds);
   }, [chatHistoryMap]);
