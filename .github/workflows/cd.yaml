@@ -11,16 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.x
       - uses: actions/setup-node@v4 # 安装 node
         with:
           node-version: 22.x
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.x
 
       - name: install
         run: pnpm install --frozen-lockfile
