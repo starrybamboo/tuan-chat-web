@@ -18,7 +18,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const [searchKey, setSearchKey] = useSearchParamsState<string>("roleAbilitySearchKey", "");
   useEffect(() => {
     setSearchKey("");
-  }, []);
+  }, [setSearchKey]);
 
   const [editingField, setEditingField] = useState<{
     abilityId: number;

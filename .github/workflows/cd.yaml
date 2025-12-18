@@ -11,14 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
-      - uses: actions/setup-node@v4 # 安装 node@20
+      - uses: actions/setup-node@v4 # 安装 node
         with:
-          node-version: "22"
-      - run: npm install -g pnpm # 安装 PNPM
-      - run: pnpm install
+          node-version: 22.x
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.x
 
       - name: install
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: build
         run: pnpm build
@@ -29,10 +34,10 @@ jobs:
           host: 47.119.147.6
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
-          source: ./build/client/
+          source: build/client/**
           target: /www/wwwroot/tuan-chat-web-test
           overwrite: true
-          strip_components: 3
+          strip_components: 2
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
 #        with:
 #          # rsync 的参数开关

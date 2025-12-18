@@ -20,6 +20,11 @@ export default antfu(
       "**/*.md",
       "eslint-report.json",
       "android/**",
+      "build/**",
+      "dist/**",
+      "release/**",
+      "coverage/**",
+      "node_modules/.cache/**",
     ],
     plugins: {
       "@tanstack/query": pluginQuery,
