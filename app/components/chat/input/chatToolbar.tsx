@@ -1,3 +1,4 @@
+import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
@@ -17,8 +18,8 @@ import { useRef } from "react";
 
 interface ChatToolbarProps {
   // 侧边栏状态
-  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal";
-  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export" | "webgal") => void;
+  sideDrawerState: SideDrawerState;
+  setSideDrawerState: (state: SideDrawerState) => void;
 
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;

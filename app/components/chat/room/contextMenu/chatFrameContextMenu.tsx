@@ -1,8 +1,13 @@
 import type { ChatMessageResponse, ImageMessage, Message } from "../../../../../api";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { use, useMemo, useState } from "react";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { useAddCluesMutation, useGetMyClueStarsBySpaceQuery } from "../../../../../api/hooks/spaceClueHooks";
 
 interface ContextMenuProps {
@@ -47,9 +52,37 @@ export default function ChatFrameContextMenu({
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
+  const roomContext = use(RoomContext);
+
+  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+  const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
+  const setSideDrawerState = useSideDrawerStore(state => state.setState);
+
+  const sendMessageMutation = useSendMessageMutation(roomContext.roomId ?? -1);
 
   const [showClueFolderSelection, setShowClueFolderSelection] = useState(false);
   const [selectedClueInfo, setSelectedClueInfo] = useState<{ img: string; name: string; description: string } | null>(null);
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const clueFolderSelectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return;
+    }
+    const top = `${contextMenu.y}px`;
+    const left = `${contextMenu.x}px`;
+
+    if (menuRef.current) {
+      menuRef.current.style.top = top;
+      menuRef.current.style.left = left;
+    }
+    if (clueFolderSelectionRef.current) {
+      clueFolderSelectionRef.current.style.top = top;
+      clueFolderSelectionRef.current.style.left = left;
+    }
+  }, [contextMenu]);
 
   // 获取用户空间所有线索夹
   const getMyClueStarsBySpaceQuery = useGetMyClueStarsBySpaceQuery(spaceContext.spaceId ?? -1);
@@ -93,18 +126,111 @@ export default function ChatFrameContextMenu({
     setShowClueFolderSelection(true);
   };
 
+  const contextMenuMessageId = contextMenu?.messageId;
+  const message = contextMenuMessageId
+    ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
+    : undefined;
+  const clueMessage = message?.message.extra?.clueMessage;
+
+  const threadMeta = useMemo(() => {
+    const selected = message?.message;
+    const allMessages = historyMessages;
+    if (!selected) {
+      return { threadRootId: undefined as number | undefined, replyCount: 0, hasThreadRoot: false };
+    }
+
+    const isThreadReply = !!selected.threadId && selected.threadId !== selected.messageId;
+    const isThreadRoot = selected.messageType === MESSAGE_TYPE.THREAD_ROOT && selected.threadId === selected.messageId;
+
+    let rootId: number | undefined;
+    if (isThreadReply) {
+      rootId = selected.threadId;
+    }
+    else if (isThreadRoot) {
+      rootId = selected.messageId;
+    }
+    else {
+      const threadRoot = allMessages.find((m) => {
+        const mm = m.message;
+        return mm.messageType === MESSAGE_TYPE.THREAD_ROOT
+          && mm.threadId === mm.messageId
+          && mm.replyMessageId === selected.messageId;
+      });
+      rootId = threadRoot?.message.messageId;
+    }
+
+    const replyCount = rootId
+      ? allMessages.filter(m => m.message.threadId === rootId && m.message.messageId !== rootId).length
+      : 0;
+
+    return { threadRootId: rootId, replyCount, hasThreadRoot: !!rootId };
+  }, [historyMessages, message?.message]);
+
   if (!contextMenu)
     return null;
 
-  const message = historyMessages.find(message => message.message.messageId === contextMenu.messageId);
-  const clueMessage = message?.message.extra?.clueMessage;
+  const handleOpenThread = (rootId: number) => {
+    // 打开 Thread 时，清除“插入消息”模式，避免错位。
+    setInsertAfterMessageId(undefined);
+    setThreadRootMessageId(rootId);
+    setComposerTarget("thread");
+    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
+    setSideDrawerState("none");
+  };
+
+  const handleCreateOrOpenThread = () => {
+    const selected = message?.message;
+    if (!selected) {
+      return;
+    }
+
+    if (threadMeta.threadRootId) {
+      handleOpenThread(threadMeta.threadRootId);
+      onClose();
+      return;
+    }
+
+    const roomId = roomContext.roomId;
+    if (!roomId) {
+      toast.error("未找到 roomId，无法创建子区");
+      return;
+    }
+
+    // 不弹窗输入标题：默认使用原消息内容截断（不加“Thread:”前缀）
+    const raw = (selected.content ?? "").trim();
+    const title = raw ? raw.slice(0, 20) : "子区";
+
+    sendMessageMutation.mutate({
+      roomId,
+      messageType: MESSAGE_TYPE.THREAD_ROOT,
+      roleId: roomContext.curRoleId,
+      avatarId: roomContext.curAvatarId,
+      content: title,
+      // 复用 replayMessageId 作为 threadParentMessageId：该子区挂到哪条原消息上
+      replayMessageId: selected.messageId,
+      extra: { title },
+    }, {
+      onSuccess: (response) => {
+        const created = response?.data;
+        if (!created) {
+          return;
+        }
+        roomContext.chatHistory?.addOrUpdateMessage({ message: created, messageMark: [] });
+        handleOpenThread(created.messageId);
+        onClose();
+      },
+      onError: () => {
+        toast.error("创建子区失败");
+      },
+    });
+  };
 
   // 渲染线索夹选择窗口
   if (showClueFolderSelection && selectedClueInfo) {
     return (
       <div
+        ref={clueFolderSelectionRef}
         className="fixed bg-base-100 shadow-lg rounded-md z-50 border border-base-300"
-        style={{ top: contextMenu.y, left: contextMenu.x }}
         onClick={e => e.stopPropagation()}
       >
         <div className="p-3 w-48">
@@ -154,11 +280,22 @@ export default function ChatFrameContextMenu({
 
   return (
     <div
+      ref={menuRef}
       className="fixed bg-base-100 shadow-lg rounded-md z-50"
-      style={{ top: contextMenu.y, left: contextMenu.x }}
       onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-40">
+        <li>
+          <a onClick={(e) => {
+            e.preventDefault();
+            handleCreateOrOpenThread();
+          }}
+          >
+            {threadMeta.hasThreadRoot
+              ? `打开子区${threadMeta.replyCount > 0 ? ` (${threadMeta.replyCount})` : ""}`
+              : "创建子区"}
+          </a>
+        </li>
         {clueMessage && !spaceContext.isSpaceOwner && (
           <li>
             <a onClick={(e) => {

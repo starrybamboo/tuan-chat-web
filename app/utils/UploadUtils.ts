@@ -88,8 +88,27 @@ export class UploadUtils {
     // 2. 获取文件大小
     const fileSize = new_file.size;
 
-    // 3. 安全地获取文件扩展名
-    const extension = isGif ? "gif" : "webp";
+    // 3. 获取文件扩展名（以实际上传文件类型为准，避免压缩回退后扩展名不一致）
+    const extension = (() => {
+      if (isGif) {
+        return "gif";
+      }
+
+      if (new_file.type === "image/webp") {
+        return "webp";
+      }
+
+      if (new_file.type === "image/jpeg") {
+        return "jpg";
+      }
+
+      if (new_file.type.startsWith("image/")) {
+        const subType = new_file.type.split("/")[1];
+        return subType || "img";
+      }
+
+      return "img";
+    })();
 
     // 4. 构造新的唯一文件名：hash_size.extension
     const newFileName = `${hash}_${fileSize}.${extension}`;

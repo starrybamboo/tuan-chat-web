@@ -9,11 +9,14 @@ import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { VoiceRenderPanel } from "@/components/chat/message/voiceRenderPanel";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import BetterImg from "@/components/common/betterImg";
 import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { ChatBubbleEllipsesOutline } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import React, { use, useMemo, useState } from "react";
@@ -21,11 +24,13 @@ import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
   useChatBubbleStyle?: boolean;
+  /** 当该消息被创建子区后，在其下方展示 Thread 提示条（主消息流“看起来只有一条”） */
+  threadHintMeta?: { rootId: number; title: string; replyCount: number };
 }) {
   const message = chatMessageResponse.message;
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
@@ -41,9 +46,98 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
 
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
+  const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
+  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+  const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
+
+  const isThreadRoot = message.messageType === MESSAGE_TYPE.THREAD_ROOT && message.threadId === message.messageId;
+  const threadTitle = (message.extra as any)?.title || message.content;
+  const threadReplyCount = useMemo(() => {
+    if (!isThreadRoot) {
+      return 0;
+    }
+    const allMessages = roomContext.chatHistory?.messages ?? [];
+    return allMessages.filter(m => m.message.threadId === message.messageId && m.message.messageId !== message.messageId).length;
+  }, [isThreadRoot, message.messageId, roomContext.chatHistory?.messages]);
+
+  const shouldShowThreadHint = !!threadHintMeta
+    && !isThreadRoot
+    // reply 不展示提示条（reply 也不会出现在主消息流，但 thread 面板里也无需显示）
+    && (!message.threadId || message.threadId === message.messageId);
+
+  const handleOpenThreadById = React.useCallback((rootId: number) => {
+    // 打开 Thread 时，清除“插入消息”模式，避免错位。
+    setInsertAfterMessageId(undefined);
+    setThreadRootMessageId(rootId);
+    setComposerTarget("thread");
+    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
+    setSideDrawerState("none");
+  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
+
+  const threadHintNode = shouldShowThreadHint
+    ? (
+        <div className="mt-2">
+          <div
+            className="w-full rounded-md border border-base-300 bg-base-200/60 px-3 py-2 cursor-pointer hover:bg-base-200 transition-colors border-l-4 border-l-info shadow-sm"
+            onClick={() => handleOpenThreadById(threadHintMeta!.rootId)}
+          >
+            <div className="flex items-center gap-2 text-sm text-base-content/80">
+              <ChatBubbleEllipsesOutline className="w-4 h-4 opacity-70" />
+              <span className="badge badge-info badge-sm">子区</span>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-base-content/90 truncate">
+                  {threadHintMeta!.title}
+                </div>
+                <div className="text-xs text-base-content/60">
+                  {threadHintMeta!.replyCount}
+                  {" "}
+                  条消息
+                  <span className="mx-1">·</span>
+                  <button
+                    type="button"
+                    className="link link-hover text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenThreadById(threadHintMeta!.rootId);
+                    }}
+                  >
+                    查看所有子区
+                  </button>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenThreadById(threadHintMeta!.rootId);
+                  }}
+                >
+                  打开
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    : null;
+
+  const handleOpenThreadRoot = React.useCallback(() => {
+    if (!isThreadRoot) {
+      return;
+    }
+    // 打开 Thread 时，清除“插入消息”模式，避免错位。
+    setInsertAfterMessageId(undefined);
+    setThreadRootMessageId(message.messageId);
+    setComposerTarget("thread");
+    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
+    setSideDrawerState("none");
+  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
@@ -558,6 +652,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
               canEdit={canEdit}
               fieldId={`msg${message.messageId}`}
             />
+
             {/* 时间 */}
             <div className="text-xs text-white/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
               {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
@@ -609,10 +704,64 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
             <div className="italic text-base-content/80">
               {renderedContent}
             </div>
+
             {/* 时间 */}
             <div className="text-xs text-base-content/50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
               {formattedTime}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Thread Root（Discord 风格提示条）
+  if (isThreadRoot) {
+    const creatorName = displayRoleName || role?.roleName?.trim() || "";
+    return (
+      <div className="w-full py-2">
+        <div
+          className="w-full rounded-md border border-base-300 bg-base-200/40 px-3 py-2 cursor-pointer hover:bg-base-200 transition-colors"
+          onClick={handleOpenThreadRoot}
+        >
+          <div className="flex items-center gap-2 text-sm text-base-content/80">
+            <ChatBubbleEllipsesOutline className="w-4 h-4 opacity-70" />
+            <div className="min-w-0 flex-1">
+              <span className="font-medium text-base-content/90">{creatorName || "某人"}</span>
+              <span className="mx-1">开始了一个子区：</span>
+              <span className="font-medium text-base-content/90 truncate">{threadTitle}</span>
+              <button
+                type="button"
+                className="ml-2 link link-hover text-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenThreadRoot();
+                }}
+              >
+                查看所有子区
+              </button>
+            </div>
+            <div className="text-xs text-base-content/50 flex-shrink-0">{formattedTime}</div>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-md bg-base-100/70 border border-base-300 px-2 py-1">
+              <RoleAvatarComponent
+                avatarId={message.avatarId ?? 0}
+                width={6}
+                isRounded={true}
+                withTitle={false}
+                stopPopWindow={true}
+              />
+              <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
+                {threadTitle}
+              </div>
+              <div className="text-xs text-base-content/60 flex-shrink-0">
+                {threadReplyCount}
+                {" "}
+                条消息
+              </div>
             </div>
           </div>
         </div>
@@ -679,6 +828,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                   className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
                 >
                   {renderedContent}
+                  {threadHintNode}
                   {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
                   {message.messageType === MESSAGE_TYPE.TEXT && (
                     <VoiceRenderPanel
@@ -760,6 +910,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
                 <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer break-words">
                   {renderedContent}
+                  {threadHintNode}
                   {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
                   {message.messageType === MESSAGE_TYPE.TEXT && (
                     <VoiceRenderPanel
@@ -806,6 +957,9 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     && prevMsg.status === nextMsg.status
     && prevMsg.replyMessageId === nextMsg.replyMessageId
     && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
+    && prevProps.threadHintMeta?.rootId === nextProps.threadHintMeta?.rootId
+    && prevProps.threadHintMeta?.title === nextProps.threadHintMeta?.title
+    && prevProps.threadHintMeta?.replyCount === nextProps.threadHintMeta?.replyCount
   );
 
   // 如果基础属性不相等,直接返回 false

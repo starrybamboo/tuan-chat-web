@@ -6,60 +6,60 @@
  * @param maxSize
  */
 export async function compressImage(file: File, quality = 0.7, maxSize = 2560): Promise<File> {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) {
-      return resolve(file); // 非图片类型直接返回原文件
+  if (!file.type.startsWith("image/")) {
+    return file;
+  }
+
+  // 如果是GIF文件，只重命名不压缩，保持动画效果
+  if (file.type === "image/gif") {
+    const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.gif`).split(" ").join("");
+    return new File([file], newName, {
+      type: "image/gif",
+    });
+  }
+
+  const { default: imageCompression } = await import("browser-image-compression");
+
+  const safeQuality = Math.min(1, Math.max(0.05, quality));
+  const candidateQualities = [
+    safeQuality,
+    Math.max(0.05, safeQuality * 0.85),
+    Math.max(0.05, safeQuality * 0.7),
+    Math.max(0.05, safeQuality * 0.55),
+  ];
+
+  const compressWithQuality = async (q: number): Promise<File> => {
+    const compressedBlobOrFile = await imageCompression(file, {
+      maxWidthOrHeight: maxSize,
+      // 0~1，和 canvas.toBlob 的 quality 对齐
+      initialQuality: q,
+      fileType: "image/webp",
+      useWebWorker: true,
+    });
+
+    const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.webp`).split(" ").join("");
+    // browser-image-compression 返回值可能是 File 或 Blob，这里统一包一层 File
+    return new File([compressedBlobOrFile], newName, {
+      type: "image/webp",
+    });
+  };
+
+  // 优先选择“更小”的结果；如果压缩反而变大，则尝试降低质量重试
+  let best = await compressWithQuality(candidateQualities[0]);
+  if (best.size < file.size) {
+    return best;
+  }
+
+  for (const q of candidateQualities.slice(1)) {
+    const next = await compressWithQuality(q);
+    if (next.size < best.size) {
+      best = next;
     }
-
-    // 如果是GIF文件，只重命名不压缩，保持动画效果
-    if (file.type === "image/gif") {
-      const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.gif`).split(" ").join("");
-      const renamedFile = new File([file], newName, {
-        type: "image/gif",
-      });
-      return resolve(renamedFile);
+    if (best.size < file.size) {
+      return best;
     }
+  }
 
-    const img = new Image();
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      img.src = e.target?.result as string;
-    };
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d")!;
-      // 宽高不超过maxSize
-      const ratio = Math.min(1.0, maxSize / img.height, maxSize / img.width);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-
-      ctx.drawImage(
-        img,
-        0,
-        0, // 源图像起始坐标
-        img.width, // 源图像完整宽度
-        img.height, // 源图像完整高度
-        0,
-        0, // 目标起始坐标
-        canvas.width, // 目标绘制宽度（缩放后）
-        canvas.height, // 目标绘制高度（缩放后）
-      );
-
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("图片压缩失败"));
-          return;
-        }
-        const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.webp`).split(" ").join("");
-        const compressedFile = new File([blob], newName, {
-          type: "image/webp",
-        });
-        resolve(compressedFile);
-      }, "image/webp", quality);
-    };
-    reader.onerror = reject;
-    img.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  // 仍然比原图大：回退原图（避免上传体积反增）
+  return file;
 }

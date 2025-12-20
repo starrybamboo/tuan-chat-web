@@ -1,12 +1,12 @@
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRoomItemsQuery, useGetRoomLocationsQuery } from "../../../../../api/hooks/spaceModuleHooks";
-import DisplayOfItemDetail from "../displayOfItemsDetail";
-import DisplayOfLocationDetail from "../displayOfLocationDetail";
-import { RoomContext } from "../roomContext";
+import DisplayOfItemDetail from "../../message/items/displayOfItemsDetail";
+import DisplayOfLocationDetail from "../../message/location/displayOfLocationDetail";
 
 export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) => void }) {
   const { spaceId } = use(RoomContext);
