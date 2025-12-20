@@ -1,14 +1,11 @@
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { useGlobalContext } from "@/components/globalContextProvider";
 
-import { useQueries } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
 
 import { useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
-import { useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
-import { tuanchat } from "../../../../api/instance";
+import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";
 
 function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMember: () => void }) {
   const roomContext = use(RoomContext);
@@ -98,11 +95,10 @@ export default function AddMemberWindow({ handleAddMember, showSpace = false }:
 }) {
   const spaceContext = use(SpaceContext);
   const spaceMembers = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1).data?.data ?? [];
-  const globalContext = useGlobalContext();
-  const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
+  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
   const friends = useMemo(() => {
-    return followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
-  }, [followingQuery.data?.data?.list]);
+    return friendListQuery.data?.data ?? [];
+  }, [friendListQuery.data?.data]);
 
   // 当前选择的 duration
   const [duration, setDuration] = useState<number>(7);
@@ -118,48 +114,15 @@ export default function AddMemberWindow({ handleAddMember, showSpace = false }:
 
   const currentInviteLink = invite.data?.data ? `${origin}/invite/${invite.data.data}` : "生成中...";
 
-  const friendUserIds = useMemo(() => {
-    return friends
-      .map(f => f.userId)
-      .filter((id): id is number => typeof id === "number" && id > 0);
-  }, [friends]);
-
-  const friendInfoQueries = useQueries({
-    queries: friendUserIds.map(userId => ({
-      queryKey: ["getUserInfo", userId],
-      queryFn: () => tuanchat.userController.getUserInfo(userId),
-      staleTime: 600000,
-      enabled: userId > 0,
-    })),
-  });
-
-  const friendUsernameMap = useMemo(() => {
-    const map = new Map<number, string>();
-    friendInfoQueries.forEach((q, index) => {
-      const userId = friendUserIds[index];
-      const username = q.data?.data?.username;
-      if (userId && username)
-        map.set(userId, username);
-    });
-    return map;
-  }, [friendInfoQueries, friendUserIds]);
-
-  const isFriendInfoLoading = friendInfoQueries.some(q => q.isLoading);
-
   const filteredFriends = useMemo(() => {
     const kw = searchKeyword.trim().toLowerCase();
     if (!kw)
       return friends;
     return friends.filter((friend) => {
-      const userId = friend?.userId;
-      if (!userId)
-        return false;
-      const username = friendUsernameMap.get(userId);
-      if (!username)
-        return false;
-      return username.toLowerCase().includes(kw);
+      const username = friend?.username;
+      return typeof username === "string" && username.toLowerCase().includes(kw);
     });
-  }, [friends, friendUsernameMap, searchKeyword]);
+  }, [friends, searchKeyword]);
 
   const copyToClipboard = async () => {
     if (currentInviteLink && currentInviteLink !== "生成中...") {
@@ -228,7 +191,7 @@ export default function AddMemberWindow({ handleAddMember, showSpace = false }:
               )
             : (
                 <div className="px-3 py-8 text-center text-sm opacity-70">
-                  {searchKeyword.trim() && isFriendInfoLoading ? "加载中..." : "未找到好友"}
+                  {searchKeyword.trim() && friendListQuery.isLoading ? "加载中..." : "未找到好友"}
                 </div>
               )}
         </div>

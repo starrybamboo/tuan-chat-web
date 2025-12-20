@@ -5,7 +5,7 @@
 /**
  * 数据列表
  */
-export type UserFollowResponse = {
+export type FollowResponse = {
     /**
      * 用户的uid，全局唯一
      */

@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "http://101.126.143.129:8081",
+      "url": "http://localhost:8081",
       "description": "Generated server url"
     }
   ],
@@ -161,6 +161,10 @@
     {
       "name": "Rating",
       "description": "评分相关接口"
+    },
+    {
+      "name": "FriendController",
+      "description": "好友关系管理"
     }
   ],
   "paths": {
@@ -4792,7 +4796,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultPageBaseRespUserFollowResponse"
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespFollowResponse"
                 }
               }
             }
@@ -4875,7 +4879,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultPageBaseRespUserFollowResponse"
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespFollowResponse"
                 }
               }
             }
@@ -5306,7 +5310,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultPageBaseRespUserFollowResponse"
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespFollowResponse"
                 }
               }
             }
@@ -5927,7 +5931,7 @@
         "tags": [
           "space-controller"
         ],
-        "summary": "创建子群聊房间（场景），此场景是{roomId}的下个场景，允许多分支",
+        "summary": "创建房间",
         "operationId": "createRoom",
         "requestBody": {
           "content": {
@@ -7373,77 +7377,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/fight": {
-      "post": {
-        "tags": [
-          "room-controller"
-        ],
-        "summary": "创建战斗轮房间",
-        "operationId": "createRoom_1",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FightRoomAddRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultRoom"
                 }
               }
             }
@@ -9747,6 +9680,654 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/unblock": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "取消拉黑",
+        "description": "取消拉黑指定好友，恢复正常好友关系",
+        "operationId": "unblockFriend",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/request/send": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "发送好友申请",
+        "description": "向指定用户发送好友申请",
+        "operationId": "sendFriendRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendReqSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/request/reject": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "拒绝好友申请",
+        "description": "拒绝指定的好友申请",
+        "operationId": "rejectFriendRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendReqHandleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/request/page": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "获取好友申请列表",
+        "description": "分页获取当前用户的好友申请列表（包含发送的和接收的）",
+        "operationId": "getFriendRequestPage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageBaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespFriendReqResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/request/accept": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "同意好友申请",
+        "description": "同意指定的好友申请",
+        "operationId": "acceptFriendRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendReqHandleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/list": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "获取好友列表",
+        "description": "分页获取当前用户的好友列表",
+        "operationId": "getFriendList",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendListRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListFriendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/delete": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "删除好友",
+        "description": "删除指定好友，双向解除好友关系",
+        "operationId": "deleteFriend",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendDeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/check": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "检查好友关系",
+        "description": "检查与指定用户的好友关系状态",
+        "operationId": "checkFriend",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultFriendCheckResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/block": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "拉黑好友",
+        "description": "拉黑指定好友，对方将无法发送消息",
+        "operationId": "blockFriend",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -12752,7 +13333,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
+                  "$ref": "#/components/schemas/ApiResultMessageSession"
                 }
               }
             }
@@ -18951,7 +19532,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultVoid": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -19003,7 +19584,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultObject": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -20398,6 +20979,11 @@
             "description": "消息类型",
             "format": "int32"
           },
+          "threadId": {
+            "type": "integer",
+            "description": "thread id（用于消息线程聚合）；为空表示主消息流",
+            "format": "int64"
+          },
           "position": {
             "type": "number",
             "description": "位置",
@@ -20903,7 +21489,7 @@
         },
         "description": "基础分页请求"
       },
-      "ApiResultPageBaseRespUserFollowResponse": {
+      "ApiResultPageBaseRespFollowResponse": {
         "required": [
           "success"
         ],
@@ -20923,12 +21509,28 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/PageBaseRespUserFollowResponse"
+            "$ref": "#/components/schemas/PageBaseRespFollowResponse"
           }
         },
         "description": "基础返回体"
       },
-      "PageBaseRespUserFollowResponse": {
+      "FollowResponse": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户的uid，全局唯一",
+            "format": "int64"
+          },
+          "status": {
+            "type": "integer",
+            "description": "当前登录用户与该用户的关系状态 0未关注、1已关注、2互相关注",
+            "format": "int32"
+          }
+        },
+        "description": "数据列表"
+      },
+      "PageBaseRespFollowResponse": {
         "type": "object",
         "properties": {
           "pageNo": {
@@ -20954,27 +21556,11 @@
             "type": "array",
             "description": "数据列表",
             "items": {
-              "$ref": "#/components/schemas/UserFollowResponse"
+              "$ref": "#/components/schemas/FollowResponse"
             }
           }
         },
         "description": "基础翻页返回"
-      },
-      "UserFollowResponse": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "description": "用户的uid，全局唯一",
-            "format": "int64"
-          },
-          "status": {
-            "type": "integer",
-            "description": "当前登录用户与该用户的关系状态 0未关注、1已关注、2互相关注",
-            "format": "int32"
-          }
-        },
-        "description": "数据列表"
       },
       "UserRegisterRequest": {
         "required": [
@@ -21370,11 +21956,6 @@
           "avatar": {
             "type": "string",
             "description": "房间头像"
-          },
-          "roomId": {
-            "type": "integer",
-            "description": "当前房间id，创建房间时，会将新的roomId添加到当前房间Id的临界list中",
-            "format": "int64"
           }
         }
       },
@@ -21409,11 +21990,6 @@
           "roomId": {
             "type": "integer",
             "description": "房间id",
-            "format": "int64"
-          },
-          "parentRoomId": {
-            "type": "integer",
-            "description": "父房间id",
             "format": "int64"
           },
           "spaceId": {
@@ -22116,36 +22692,6 @@
               "description": "邀请的用户Id",
               "format": "int64"
             }
-          }
-        }
-      },
-      "FightRoomAddRequest": {
-        "required": [
-          "parentRoomId"
-        ],
-        "type": "object",
-        "properties": {
-          "parentRoomId": {
-            "type": "integer",
-            "description": "父房间id",
-            "format": "int64"
-          },
-          "userIdList": {
-            "type": "array",
-            "description": "邀请的uid列表",
-            "items": {
-              "type": "integer",
-              "description": "邀请的uid列表",
-              "format": "int64"
-            }
-          },
-          "roomName": {
-            "type": "string",
-            "description": "房间名称"
-          },
-          "avatar": {
-            "type": "string",
-            "description": "房间头像"
           }
         }
       },
@@ -24328,6 +24874,333 @@
         },
         "description": "基础返回体"
       },
+      "FriendBlockRequest": {
+        "required": [
+          "targetUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetUserId": {
+            "type": "integer",
+            "description": "要拉黑的用户ID",
+            "format": "int64"
+          }
+        },
+        "description": "拉黑好友请求"
+      },
+      "FriendReqSendRequest": {
+        "required": [
+          "targetUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetUserId": {
+            "type": "integer",
+            "description": "目标用户ID",
+            "format": "int64"
+          },
+          "verifyMsg": {
+            "type": "string",
+            "description": "验证信息"
+          }
+        },
+        "description": "发送好友请求"
+      },
+      "FriendReqHandleRequest": {
+        "required": [
+          "friendReqId"
+        ],
+        "type": "object",
+        "properties": {
+          "friendReqId": {
+            "type": "integer",
+            "description": "好友请求ID",
+            "format": "int64"
+          }
+        },
+        "description": "处理好友请求"
+      },
+      "ApiResultPageBaseRespFriendReqResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageBaseRespFriendReqResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "FriendReqResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "好友请求ID",
+            "format": "int64"
+          },
+          "fromId": {
+            "type": "integer",
+            "description": "发起用户ID",
+            "format": "int64"
+          },
+          "fromUser": {
+            "$ref": "#/components/schemas/UserInfo"
+          },
+          "toId": {
+            "type": "integer",
+            "description": "目标用户ID",
+            "format": "int64"
+          },
+          "toUser": {
+            "$ref": "#/components/schemas/UserInfo"
+          },
+          "status": {
+            "type": "integer",
+            "description": "请求状态",
+            "format": "int32"
+          },
+          "statusDesc": {
+            "type": "string",
+            "description": "请求状态描述"
+          },
+          "verifyMsg": {
+            "type": "string",
+            "description": "验证信息"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "description": "请求类型：sent-发送的，received-接收的"
+          }
+        },
+        "description": "好友请求响应"
+      },
+      "PageBaseRespFriendReqResponse": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "type": "integer",
+            "description": "当前页数",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页查询数量",
+            "format": "int32"
+          },
+          "totalRecords": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/FriendReqResponse"
+            }
+          }
+        },
+        "description": "基础翻页返回"
+      },
+      "UserInfo": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像"
+          }
+        },
+        "description": "用户信息"
+      },
+      "FriendListRequest": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码",
+            "format": "int32",
+            "default": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小",
+            "format": "int32",
+            "default": 10
+          }
+        },
+        "description": "好友列表查询请求"
+      },
+      "ApiResultListFriendResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/FriendResponse"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "FriendResponse": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "好友用户ID",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string",
+            "description": "好友用户名"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "好友头像"
+          },
+          "activeStatus": {
+            "type": "string",
+            "description": "1 在线 0 离线",
+            "format": "byte"
+          },
+          "lastLoginTime": {
+            "type": "string",
+            "description": "最后一次上下线时间",
+            "format": "date-time"
+          }
+        },
+        "description": "好友信息响应"
+      },
+      "FriendDeleteRequest": {
+        "required": [
+          "targetUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetUserId": {
+            "type": "integer",
+            "description": "要删除的好友用户ID",
+            "format": "int64"
+          }
+        },
+        "description": "删除好友请求"
+      },
+      "FriendCheckRequest": {
+        "required": [
+          "targetUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetUserId": {
+            "type": "integer",
+            "description": "目标用户ID",
+            "format": "int64",
+            "example": 123
+          }
+        },
+        "description": "好友关系检查请求"
+      },
+      "ApiResultFriendCheckResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FriendCheckResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "FriendCheckResponse": {
+        "type": "object",
+        "properties": {
+          "isFriend": {
+            "type": "boolean",
+            "description": "是否是好友"
+          },
+          "status": {
+            "type": "integer",
+            "description": "好友状态：1-待确认，2-已接受，3-已拉黑",
+            "format": "int32"
+          },
+          "statusDesc": {
+            "type": "string",
+            "description": "状态描述"
+          },
+          "canSendMessage": {
+            "type": "boolean",
+            "description": "是否可以发送消息"
+          }
+        },
+        "description": "好友关系检查响应"
+      },
       "FeedPageRequest": {
         "type": "object",
         "properties": {
@@ -25681,6 +26554,65 @@
         },
         "description": "分类响应"
       },
+      "ApiResultMessageSession": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MessageSession"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "MessageSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "主键ID",
+            "format": "int64"
+          },
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64"
+          },
+          "lastReadSyncId": {
+            "type": "integer",
+            "description": "最后已读消息的sync_id",
+            "format": "int64"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "消息会话"
+      },
       "SessionReadUpdateRequest": {
         "required": [
           "roomId",
@@ -25712,6 +26644,11 @@
           "roomId": {
             "type": "integer",
             "description": "房间id",
+            "format": "int64"
+          },
+          "threadId": {
+            "type": "integer",
+            "description": "thread id（用于消息线程聚合）；为空表示主消息流，非空表示属于该 thread",
             "format": "int64"
           },
           "messageType": {

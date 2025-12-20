@@ -25,6 +25,7 @@ import { DistributedTaskSchedulerService } from './services/DistributedTaskSched
 import { DistributedWsService } from './services/DistributedWsService';
 import { EmojiControllerService } from './services/EmojiControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
+import { FriendControllerService } from './services/FriendControllerService';
 import { ImageGenerationControllerService } from './services/ImageGenerationControllerService';
 import { ItemControllerService } from './services/ItemControllerService';
 import { LikeRecordControllerService } from './services/LikeRecordControllerService';
@@ -77,6 +78,7 @@ export class TuanChat {
     public readonly distributedWs: DistributedWsService;
     public readonly emojiController: EmojiControllerService;
     public readonly feedController: FeedControllerService;
+    public readonly friendController: FriendControllerService;
     public readonly imageGenerationController: ImageGenerationControllerService;
     public readonly itemController: ItemControllerService;
     public readonly likeRecordController: LikeRecordControllerService;
@@ -110,7 +112,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://101.126.143.129:8081',
+            BASE: config?.BASE ?? 'http://localhost:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -140,6 +142,7 @@ export class TuanChat {
         this.distributedWs = new DistributedWsService(this.request);
         this.emojiController = new EmojiControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
+        this.friendController = new FriendControllerService(this.request);
         this.imageGenerationController = new ImageGenerationControllerService(this.request);
         this.itemController = new ItemControllerService(this.request);
         this.likeRecordController = new LikeRecordControllerService(this.request);

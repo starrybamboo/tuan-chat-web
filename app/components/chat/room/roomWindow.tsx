@@ -18,7 +18,6 @@ import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomPopWindows from "@/components/chat/room/roomPopWindows";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
-import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
@@ -304,12 +303,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   });
 
   /**
-   * ai自动补全
+   * AI重写（虚影预览）
    */
   const llmMessageRef = useRef("");
   const isAutoCompletingRef = useRef(false);
   const hintNodeRef = useRef<HTMLSpanElement | null>(null); // Ref for the hint span itself
-  const justAcceptedRewriteRef = useRef(false); // 标记刚刚接受了重写，防止触发自动补全
 
   // AI重写相关状态
   const originalTextBeforeRewriteRef = useRef(""); // 保存重写前的原文
@@ -320,23 +318,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
     llmMessageRef.current = newLLMMessage;
 
-    // 创建容器用于包含补全文本和提示词
+    // 创建容器用于包含 AI 虚影结果和提示词
     const containerNode = document.createElement("span");
     containerNode.contentEditable = "false";
     containerNode.style.pointerEvents = "none";
 
-    // 创建补全文本节点
+    // 创建虚影文本节点
     const hintNode = document.createElement("span");
     hintNode.textContent = newLLMMessage;
     hintNode.className = "opacity-60";
 
-    // 创建提示词节点 (只在有补全内容时显示)
+    // 创建提示词节点 (只在有内容时显示)
     const tipsNode = document.createElement("span");
     tipsNode.textContent = newLLMMessage ? " [Tab 接受]" : "";
     tipsNode.className = "opacity-40 text-xs";
     tipsNode.style.marginLeft = "4px";
 
-    // 将补全文本和提示词添加到容器
+    // 将虚影文本和提示词添加到容器
     containerNode.appendChild(hintNode);
     if (newLLMMessage) {
       containerNode.appendChild(tipsNode);
@@ -354,50 +352,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     };
     // *** 监听子组件的原始元素 ***
     chatInputRef.current?.getRawElement()?.addEventListener("input", handleInput);
-  };
-
-  const getRoleSmartly = useGetRoleSmartly();
-
-  const autoComplete = async () => {
-    if (isAutoCompletingRef.current || !chatInputRef.current)
-      return;
-
-    isAutoCompletingRef.current = true;
-    setLLMMessage("");
-
-    // *** 调用 ref API 获取文本 ***
-    const { before: beforeMessage, after: afterMessage } = chatInputRef.current.getTextAroundCursor();
-
-    const historyMessagesString = (await Promise.all(
-      historyMessages.slice(historyMessages.length - 20).map(async (m) => {
-        const roleId = m.message.roleId;
-        if (typeof roleId !== "number") {
-          return `旁白: ${m.message.content}`;
-        }
-
-        const role = await getRoleSmartly(roleId);
-        return `${role?.roleName ?? role?.roleId}: ${m.message.content}`;
-      }),
-    )).join("\n");
-    const insertAtMiddle = afterMessage !== "";
-    const curRoleName = userRoles?.find(r => r.roleId === curRoleId)?.roleName;
-    const currentPlainText = useChatInputUiStore.getState().plainText;
-    const prompt = `
-      你现在在进行一个跑团对话，请根据以下文本内容，提供一段自然连贯的${insertAtMiddle ? "插入语句" : "续写"}。
-      重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释，不要输入任何多余不属于跑团内容的文本信息。
-      这是已有的历史聊天信息：
-      === 聊天记录开始 ===
-      ${historyMessagesString}.
-      === 聊天记录结束 ===
-      这是你所扮演的角色的名字：${curRoleName}.
-      你所输出的文本会被直接插入到已输入的文字${insertAtMiddle ? "中间" : "末尾"}，所以也不要重复已有文本的任何句子或词语。
-      ${insertAtMiddle ? `插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}` : `已输入的文本内容：${currentPlainText}`}`;
-    sendLlmStreamMessage(prompt, (newContent) => {
-      if (!isAutoCompletingRef.current)
-        return false;
-      setLLMMessage(newContent);
-      return true;
-    });
   };
 
   const insertLLMMessageIntoText = () => {
@@ -420,15 +374,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         chatInputRef.current.getRawElement()!.textContent = rewriteText;
       }
       originalTextBeforeRewriteRef.current = ""; // 清空原文记录
-      justAcceptedRewriteRef.current = true; // 标记刚刚接受了重写
       toast.success("已接受重写");
     }
     else {
-      // 补全模式：插入到光标位置
+      // 理论上不会进入：当前仅保留重写虚影，但为安全起见仍支持插入
       chatInputRef.current.insertNodeAtCursor(llmMessageRef.current, { moveCursorToEnd: true });
     }
 
-    setLLMMessage(""); // 清空补全状态
+    setLLMMessage(""); // 清空虚影状态
     chatInputRef.current.triggerSync(); // 手动触发同步，更新 store
   };
 
@@ -440,7 +393,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
-    // 如果已有虚影补全，先清除
+    if (isAutoCompletingRef.current) {
+      return;
+    }
+
+    isAutoCompletingRef.current = true;
+
+    // 如果已有虚影，先清除
     if (llmMessageRef.current) {
       setLLMMessage("");
     }
@@ -465,7 +424,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       }
       setInputText("\u200B");
 
-      sendLlmStreamMessage(fullPrompt, (newContent) => {
+      await sendLlmStreamMessage(fullPrompt, (newContent) => {
         // 先清除零宽字符
         if (rawElement && rawElement.textContent === "\u200B") {
           rawElement.textContent = "";
@@ -482,6 +441,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       // 恢复原文
       setInputText(originalTextBeforeRewriteRef.current);
       originalTextBeforeRewriteRef.current = "";
+    }
+    finally {
+      isAutoCompletingRef.current = false;
     }
   };
 
@@ -810,33 +772,23 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       e.preventDefault();
       handleMessageSubmit();
     }
-    else if (e.altKey && e.key === "p") {
-      e.preventDefault(); // 阻止浏览器默认行为
-      autoComplete();
-    }
     else if (e.key === "Tab") {
       e.preventDefault();
-      insertLLMMessageIntoText();
-      isAutoCompletingRef.current = false;
+      // 1) 若已有 AI 虚影结果，Tab 直接接受
+      if (llmMessageRef.current) {
+        insertLLMMessageIntoText();
+        return;
+      }
+
+      // 2) 否则 Tab 触发 AI 重写（使用本地保存的提示词）
+      const prompt = localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅";
+      handleQuickRewrite(prompt);
     }
   };
 
   const handleKeyUp = (e: React.KeyboardEvent) => {
     // 总是通知 @ 控制器关于 keyup 事件
     atMentionRef.current?.onKeyUp(e);
-
-    // 按Tab键触发虚影补全（但不在刚接受重写后触发，也不在输入只有零宽字符时触发）
-    const currentPlainText = useChatInputUiStore.getState().plainText;
-    const hasRealContent = currentPlainText.trim() && currentPlainText !== "\u200B";
-    if (e.key === "Tab" && !llmMessageRef.current && !isAutoCompletingRef.current && hasRealContent && !justAcceptedRewriteRef.current) {
-      e.preventDefault();
-      autoComplete();
-    }
-
-    // 重置刚接受重写的标记
-    if (e.key === "Tab" && justAcceptedRewriteRef.current) {
-      justAcceptedRewriteRef.current = false;
-    }
 
     // 快捷键阻止 (父组件逻辑)
     if (e.ctrlKey || e.metaKey) {
@@ -866,15 +818,21 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
-  const placeholderText = notMember
-    ? "你是观战成员，不能发送消息"
-    : (noRole
-        ? "请先拉入你的角色，之后才能发送消息。"
-        : (curAvatarId <= 0
-            ? "请为你的角色添加至少一个表情差分（头像）。"
-            : (threadRootMessageId && composerTarget === "thread"
-                ? "在 Thread 中回复...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"
-                : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)")));
+  const placeholderText = (() => {
+    if (notMember) {
+      return "你是观战成员，不能发送消息";
+    }
+    if (noRole) {
+      return "请先拉入你的角色，之后才能发送消息。";
+    }
+    if (curAvatarId <= 0) {
+      return "请为你的角色添加至少一个表情差分（头像）。";
+    }
+    if (threadRootMessageId && composerTarget === "thread") {
+      return "在 Thread 中回复...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
+    }
+    return "在此输入消息...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
+  })();
 
   const handleSendEffect = useCallback((effectName: string) => {
     // 特效消息不需要角色信息，类似旁白
