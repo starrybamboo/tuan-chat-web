@@ -16,6 +16,7 @@ export enum MessageType {
     SOUND = 7,
     EFFECT = 8,
     CLUE_CARD = 1000,
+    THREAD_ROOT = 10001,
 }
 
 /**
@@ -38,6 +39,8 @@ export interface HeartbeatMessage extends BaseMessage<{}> {
 // 聊天消息 (type: 3)
 export interface ChatMessage extends BaseMessage<{
     roomId: number;
+    /** Thread Root MessageId；为空表示主消息流 */
+    threadId?: number;
     messageType: number;
     roleId: number;
     avatarId: number;

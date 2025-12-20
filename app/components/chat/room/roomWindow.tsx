@@ -196,9 +196,21 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const chatHistory = useChatHistory(roomId);
   const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
+  // Discord 风格：主消息流不包含 thread 回复
+  const mainHistoryMessages = useMemo(() => {
+    return (historyMessages ?? []).filter((m) => {
+      // Thread Root（10001）不在主消息流中单独显示：改为挂在“原消息”下方的提示条
+      if (m.message.messageType === MessageType.THREAD_ROOT) {
+        return false;
+      }
+      const threadId = m.message.threadId;
+      return !threadId || threadId === m.message.messageId;
+    });
+  }, [historyMessages]);
+
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
-    const messageIndex = historyMessages.findIndex(m => m.message.messageId === messageId);
+    const messageIndex = mainHistoryMessages.findIndex(m => m.message.messageId === messageId);
     if (messageIndex >= 0) {
       virtuosoRef.current?.scrollToIndex(messageIndex);
     }
@@ -212,7 +224,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         }, { once: true });
       }
     }, 50);
-  }, [historyMessages]);
+  }, [mainHistoryMessages]);
 
   // 如果 URL 中有 targetMessageId，自动跳转到该消息
   const hasScrolledToTargetRef = useRef(false);
@@ -493,9 +505,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
     const insertAfterMessageId = useRoomUiStore.getState().insertAfterMessageId;
 
-    if (insertAfterMessageId && historyMessages) {
+    if (insertAfterMessageId && mainHistoryMessages) {
       // 找到目标消息的索引
-      const targetIndex = historyMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
+      const targetIndex = mainHistoryMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
       if (targetIndex === -1) {
         // 如果找不到目标消息，降级为普通发送
         send(message);
@@ -513,8 +525,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         const newMessage = result.data;
 
         // 计算新消息的 position
-        const targetMessage = historyMessages[targetIndex];
-        const nextMessage = historyMessages[targetIndex + 1];
+        const targetMessage = mainHistoryMessages[targetIndex];
+        const nextMessage = mainHistoryMessages[targetIndex + 1];
         const targetPosition = targetMessage.message.position;
         const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
         const newPosition = (targetPosition + nextPosition) / 2;
@@ -545,7 +557,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       // 普通发送
       send(message);
     }
-  }, [historyMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
+  }, [mainHistoryMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
 
   const handleMessageSubmit = async () => {
     const {
@@ -643,6 +655,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           roleId: curRoleId,
           avatarId: curAvatarId,
         };
+
+        // Thread 模式：给本次发送的消息挂上 threadId（root messageId）
+        const { threadRootMessageId: activeThreadRootId, composerTarget } = useRoomUiStore.getState();
+        if (composerTarget === "thread" && activeThreadRootId) {
+          fields.threadId = activeThreadRootId;
+        }
 
         // 发送区自定义角色名（与联动模式无关）
         const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
@@ -845,11 +863,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   };
 
   // *** 准备 props ***
+  const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
+  const composerTarget = useRoomUiStore(state => state.composerTarget);
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const placeholderText = notMember
     ? "你是观战成员，不能发送消息"
     : (noRole
         ? "请先拉入你的角色，之后才能发送消息。"
-        : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"));
+        : (curAvatarId <= 0
+            ? "请为你的角色添加至少一个表情差分（头像）。"
+            : (threadRootMessageId && composerTarget === "thread"
+                ? "在 Thread 中回复...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)"
+                : "在此输入消息...(shift+enter 换行，tab触发AI续写，上方工具栏可进行AI重写)")));
 
   const handleSendEffect = useCallback((effectName: string) => {
     // 特效消息不需要角色信息，类似旁白
@@ -910,7 +935,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         roomId={roomId}
         room={room}
         roomRoles={roomRoles}
-        historyMessages={historyMessages}
+        historyMessages={mainHistoryMessages}
         chatHistoryLoading={!!chatHistory?.loading}
         onApiChange={handleRealtimeRenderApiChange}
       />
@@ -920,57 +945,63 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           toggleLeftDrawer={spaceContext.toggleLeftDrawer}
         />
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex bg-base-100 relative min-h-0">
-          <div className="flex flex-col flex-1 h-full">
-            {/* 聊天框 */}
-            <div className="bg-base-100 flex-1 flex-shrink-0">
+        <div className="flex-1 w-full flex flex-col bg-base-100 relative min-h-0">
+          <div className="flex-1 w-full flex min-h-0">
+            {/* 主聊天区（可点击切换输入目标） */}
+            <div
+              className={`bg-base-100 flex-1 flex-shrink-0 ${composerTarget === "main" ? "ring-2 ring-info/40 ring-inset" : ""}`}
+              onMouseDown={() => setComposerTarget("main")}
+            >
               <ChatFrame
                 key={roomId}
                 virtuosoRef={virtuosoRef}
               >
               </ChatFrame>
             </div>
-            <div className="h-px bg-base-300 flex-shrink-0"></div>
-            {/* 输入区域 */}
-            <RoomComposerPanel
-              roomId={roomId}
-              userId={Number(userId)}
-              webSocketUtils={webSocketUtils}
-              handleSelectCommand={handleSelectCommand}
-              ruleId={space?.ruleId ?? -1}
-              handleMessageSubmit={handleMessageSubmit}
-              onAIRewrite={handleQuickRewrite}
-              currentChatStatus={myStatue as any}
-              onChangeChatStatus={handleManualStatusChange}
-              isSpectator={isSpectator}
-              onToggleRealtimeRender={handleToggleRealtimeRender}
-              onSendEffect={handleSendEffect}
-              onClearBackground={handleClearBackground}
-              onClearFigure={handleClearFigure}
-              noRole={noRole}
-              notMember={notMember}
-              isSubmitting={isSubmitting}
-              placeholderText={placeholderText}
-              curRoleId={curRoleId}
-              curAvatarId={curAvatarId}
-              setCurRoleId={setCurRoleId}
-              setCurAvatarId={setCurAvatarId}
-              roomRoles={roomRoles}
-              chatInputRef={chatInputRef as any}
-              atMentionRef={atMentionRef as any}
-              onInputSync={handleInputAreaChange}
-              onPasteFiles={handlePasteFiles}
-              onKeyDown={handleKeyDown}
-              onKeyUp={handleKeyUp}
-              onMouseDown={handleMouseDown}
-              onCompositionStart={() => isComposingRef.current = true}
-              onCompositionEnd={() => isComposingRef.current = false}
-              inputDisabled={notMember && noRole}
+
+            {/* 右侧面板（Thread/其它抽屉） */}
+            <RoomSideDrawers
+              onClueSend={handleClueSend}
+              stopRealtimeRender={handleStopRealtimeRender}
             />
           </div>
-          <RoomSideDrawers
-            onClueSend={handleClueSend}
-            stopRealtimeRender={handleStopRealtimeRender}
+
+          <div className="h-px bg-base-300 flex-shrink-0"></div>
+          {/* 共享输入区域（主区 + Thread 共用） */}
+          <RoomComposerPanel
+            roomId={roomId}
+            userId={Number(userId)}
+            webSocketUtils={webSocketUtils}
+            handleSelectCommand={handleSelectCommand}
+            ruleId={space?.ruleId ?? -1}
+            handleMessageSubmit={handleMessageSubmit}
+            onAIRewrite={handleQuickRewrite}
+            currentChatStatus={myStatue as any}
+            onChangeChatStatus={handleManualStatusChange}
+            isSpectator={isSpectator}
+            onToggleRealtimeRender={handleToggleRealtimeRender}
+            onSendEffect={handleSendEffect}
+            onClearBackground={handleClearBackground}
+            onClearFigure={handleClearFigure}
+            noRole={noRole}
+            notMember={notMember}
+            isSubmitting={isSubmitting}
+            placeholderText={placeholderText}
+            curRoleId={curRoleId}
+            curAvatarId={curAvatarId}
+            setCurRoleId={setCurRoleId}
+            setCurAvatarId={setCurAvatarId}
+            roomRoles={roomRoles}
+            chatInputRef={chatInputRef as any}
+            atMentionRef={atMentionRef as any}
+            onInputSync={handleInputAreaChange}
+            onPasteFiles={handlePasteFiles}
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
+            onMouseDown={handleMouseDown}
+            onCompositionStart={() => isComposingRef.current = true}
+            onCompositionEnd={() => isComposingRef.current = false}
+            inputDisabled={notMember && noRole}
           />
         </div>
       </div>

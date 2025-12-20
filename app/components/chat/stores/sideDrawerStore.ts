@@ -4,6 +4,7 @@ export type SideDrawerState =
   | "none"
   | "user"
   | "role"
+  | "thread"
   | "search"
   | "initiative"
   | "map"

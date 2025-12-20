@@ -4,6 +4,7 @@ type DrawerPreferenceState = {
   chatLeftPanelWidth: number;
   userDrawerWidth: number;
   roleDrawerWidth: number;
+  threadDrawerWidth: number;
   initiativeDrawerWidth: number;
   clueDrawerWidth: number;
   mapDrawerWidth: number;
@@ -13,6 +14,7 @@ type DrawerPreferenceState = {
   setChatLeftPanelWidth: (width: number) => void;
   setUserDrawerWidth: (width: number) => void;
   setRoleDrawerWidth: (width: number) => void;
+  setThreadDrawerWidth: (width: number) => void;
   setInitiativeDrawerWidth: (width: number) => void;
   setClueDrawerWidth: (width: number) => void;
   setMapDrawerWidth: (width: number) => void;
@@ -57,6 +59,7 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>(set => ({
   chatLeftPanelWidth: readNumber("chatLeftPanelWidth", 430),
   userDrawerWidth: readNumber("userDrawerWidth", 300),
   roleDrawerWidth: readNumber("roleDrawerWidth", 300),
+  threadDrawerWidth: readNumber("threadDrawerWidth", 420),
   initiativeDrawerWidth: readNumber("initiativeDrawerWidth", 300),
   clueDrawerWidth: readNumber("clueDrawerWidth", 300),
   mapDrawerWidth: readNumber("mapDrawerWidth", 600),
@@ -74,6 +77,10 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>(set => ({
   setRoleDrawerWidth: (width) => {
     writeNumber("roleDrawerWidth", width);
     set({ roleDrawerWidth: width });
+  },
+  setThreadDrawerWidth: (width) => {
+    writeNumber("threadDrawerWidth", width);
+    set({ threadDrawerWidth: width });
   },
   setInitiativeDrawerWidth: (width) => {
     writeNumber("initiativeDrawerWidth", width);
