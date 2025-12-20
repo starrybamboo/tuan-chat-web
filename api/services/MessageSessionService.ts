@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultListMessageSessionResponse } from '../models/ApiResultListMessageSessionResponse';
+import type { ApiResultMessageSession } from '../models/ApiResultMessageSession';
 import type { ApiResultMessageSessionResponse } from '../models/ApiResultMessageSessionResponse';
 import type { SessionReadUpdateRequest } from '../models/SessionReadUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -36,12 +37,12 @@ export class MessageSessionService {
     /**
      * 订阅房间
      * @param roomId
-     * @returns ApiResultBoolean OK
+     * @returns ApiResultMessageSession OK
      * @throws ApiError
      */
     public subscribeRoom(
         roomId: number,
-    ): CancelablePromise<ApiResultBoolean> {
+    ): CancelablePromise<ApiResultMessageSession> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/chat/session/subscribe',

@@ -178,7 +178,7 @@ export class SpaceControllerService {
         });
     }
     /**
-        * 创建房间
+     * 创建房间
      * @param requestBody
      * @returns ApiResultRoom OK
      * @throws ApiError

@@ -17,7 +17,6 @@ import type { RoomMemberDeleteRequest } from "../models/RoomMemberDeleteRequest"
 import type { RoomUpdateRequest } from "../models/RoomUpdateRequest";
 import type { SpaceUpdateRequest } from "../models/SpaceUpdateRequest";
 import type { Message } from "../models/Message";
-import type { SpaceRoleAddRequest } from "../models/SpaceRoleAddRequest";
 import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { SpaceExtraSetRequest } from "../models/SpaceExtraSetRequest";
@@ -566,7 +565,7 @@ export function useGetRoomModuleRoleQuery(roomId: number) {
 export function useAddSpaceRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (_req: SpaceRoleAddRequest) => {
+        mutationFn: async (_req: { spaceId: number } & Record<string, any>) => {
             // 后端 SpaceModuleController 目前仅提供 GET /capi/space/module/role，没有“添加角色”接口。
             // 为避免 TS 报错并让调用方能走 onError，这里显式 reject。
             throw new Error("Space 模组角色添加接口不存在：请先补齐后端接口并更新 OpenAPI 代码生成");

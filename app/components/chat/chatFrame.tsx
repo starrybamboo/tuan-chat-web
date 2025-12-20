@@ -13,6 +13,7 @@ import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameCo
 import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
@@ -33,6 +34,7 @@ import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hook
 import { tuanchat } from "../../../api/instance";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
+
 function Header() {
   return (
     <div className="py-2">
@@ -766,6 +768,10 @@ function ChatFrame(props: ChatFrameProps) {
   }, [historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (isFileDrag(e.dataTransfer)) {
+      e.dataTransfer.dropEffect = "copy";
+      return;
+    }
     e.dataTransfer.dropEffect = "move";
     checkPosition(e);
   }, [checkPosition]);
@@ -779,6 +785,13 @@ function ChatFrame(props: ChatFrameProps) {
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
     curDragOverMessageRef.current = null;
+
+    // 拖拽上传（图片/音频）：优先处理文件拖拽，避免触发现有的“消息拖拽排序”
+    if (isFileDrag(e.dataTransfer)) {
+      e.stopPropagation();
+      addDroppedFilesToComposer(e.dataTransfer);
+      return;
+    }
 
     const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex - 1;
 
@@ -973,6 +986,19 @@ function ChatFrame(props: ChatFrameProps) {
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
+        onDragOver={(e) => {
+          if (isFileDrag(e.dataTransfer)) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }
+        }}
+        onDrop={(e) => {
+          if (!isFileDrag(e.dataTransfer))
+            return;
+          e.preventDefault();
+          e.stopPropagation();
+          addDroppedFilesToComposer(e.dataTransfer);
+        }}
       >
         {selectedMessageIds.size > 0 && (
           <div

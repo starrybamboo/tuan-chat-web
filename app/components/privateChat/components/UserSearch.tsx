@@ -1,8 +1,13 @@
-import type { UserFollowResponse } from "api/models/UserFollowResponse";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import type { FriendResponse } from "api/models/FriendResponse";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
-import { useGetFriendsUserInfoQuery } from "api/hooks/MessageDirectQueryHooks";
-import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
+import {
+  useAcceptFriendRequestMutation,
+  useCheckFriendQuery,
+  useGetFriendListQuery,
+  useGetFriendRequestPageQuery,
+  useRejectFriendRequestMutation,
+  useSendFriendRequestMutation,
+} from "api/hooks/friendQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -14,16 +19,32 @@ export default function UserSearch() {
   const [inputUserId, setInputUserId] = useState<number>(-1);
   const [searchUserId, setSearchUserId] = useState<number>(-1);
   const [searching, setSearching] = useState(false);
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId || -1;
   const navigate = useNavigate();
   // 获取并缓存好友列表
-  const followingQuery = useGetUserFriendsQuery(userId, { pageNo: 1, pageSize: 100 });
-  const friends: UserFollowResponse[] = useMemo(() => Array.isArray(followingQuery.data?.data?.list) ? followingQuery.data.data.list : [], [followingQuery.data]);
-  const friendUserQueries = useGetFriendsUserInfoQuery(friends.map(f => f.userId));
-  const friendUserInfos = friendUserQueries.map(f => f.data?.data);
+  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
+  const friendUserInfos: FriendResponse[] = useMemo(
+    () => (Array.isArray(friendListQuery.data?.data) ? friendListQuery.data.data : []),
+    [friendListQuery.data],
+  );
+
+  // 好友申请列表（含 sent/received）
+  const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 });
+  const pendingReceivedRequests = useMemo(
+    () => {
+      const list = friendRequestPageQuery.data?.data?.list || [];
+      return list.filter(r => r?.type === "received" && r?.status === 1);
+    },
+    [friendRequestPageQuery.data],
+  );
+  const acceptFriendRequestMutation = useAcceptFriendRequestMutation();
+  const rejectFriendRequestMutation = useRejectFriendRequestMutation();
 
   const searchUserInfo = useGetUserInfoQuery(searchUserId).data?.data || null;
+  const friendCheckQuery = useCheckFriendQuery(searchUserId, searching && searchUserId > 0);
+  const friendCheck = friendCheckQuery.data?.data;
+  const sendFriendRequestMutation = useSendFriendRequestMutation();
+  const [verifyMsg, setVerifyMsg] = useState<string>("");
+  const [notice, setNotice] = useState<string>("");
 
   function searchInputUserId() {
     if (inputUserId && inputUserId > 0) {
@@ -70,6 +91,83 @@ export default function UserSearch() {
           <XMarkICon className="size-5" />
         </div>
       </div>
+
+      {pendingReceivedRequests.length > 0 && (
+        <div className="w-full px-2 pb-4">
+          <details className="collapse collapse-arrow bg-base-200">
+            <summary className="collapse-title text-sm font-medium">
+              好友申请（待处理）(
+              {pendingReceivedRequests.length}
+              )
+            </summary>
+            <div className="collapse-content">
+              <div className="flex flex-col gap-2">
+                {pendingReceivedRequests.map((req) => {
+                  const user = req.fromUser;
+                  return (
+                    <div
+                      key={req.id}
+                      className="flex items-center justify-between p-2 rounded-md bg-base-100"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img
+                          className="rounded-full"
+                          src={user?.avatar}
+                          alt="UserAvatar"
+                          width={32}
+                          height={32}
+                        />
+                        <span className="font-bold">{user?.username}</span>
+                        <span className="opacity-70">
+                          (
+                          {user?.userId}
+                          )
+                        </span>
+                        {req.verifyMsg && <span className="text-xs opacity-60">{req.verifyMsg}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-primary"
+                          disabled={acceptFriendRequestMutation.isPending || !req.id}
+                          onClick={() => {
+                            if (!req.id)
+                              return;
+                            acceptFriendRequestMutation.mutate({ friendReqId: req.id });
+                          }}
+                        >
+                          同意
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs"
+                          disabled={rejectFriendRequestMutation.isPending || !req.id}
+                          onClick={() => {
+                            if (!req.id)
+                              return;
+                            rejectFriendRequestMutation.mutate({ friendReqId: req.id });
+                          }}
+                        >
+                          拒绝
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </details>
+        </div>
+      )}
+
+      {notice && (
+        <div className="w-full px-2 pb-2">
+          <div className="alert alert-warning py-2">
+            <span className="text-sm">{notice}</span>
+          </div>
+        </div>
+      )}
+
       {searching
         ? (
             <div className="flex flex-col w-full">
@@ -79,6 +177,10 @@ export default function UserSearch() {
                       key={searchUserInfo?.userId}
                       className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
                       onClick={() => {
+                        if (friendCheck?.canSendMessage === false) {
+                          setNotice("当前无法发送私聊消息，请先成为好友或解除限制");
+                          return;
+                        }
                         setSearching(false);
                         navigate(`/chat/private/${searchUserInfo?.userId}`);
                       }}
@@ -93,15 +195,63 @@ export default function UserSearch() {
                         />
                         <span>{searchUserInfo?.userId}</span>
                         <span className="font-bold">{searchUserInfo?.username}</span>
+                        {friendCheck?.statusDesc && (
+                          <span className="badge badge-ghost badge-sm">{friendCheck.statusDesc}</span>
+                        )}
+                        {friendCheckQuery.isLoading && (
+                          <span className="badge badge-ghost badge-sm">查询中</span>
+                        )}
                       </div>
-                      <div
-                        className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/profile/${searchUserInfo?.userId}`);
-                        }}
-                      >
-                        <HomeIcon className="size-5" />
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-end gap-2">
+                          {!friendCheck?.isFriend && friendCheck?.status !== 3 && (
+                            <>
+                              <input
+                                type="text"
+                                className="input input-xs w-48"
+                                placeholder="验证信息（可选）"
+                                value={verifyMsg}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => setVerifyMsg(e.target.value)}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-primary"
+                                disabled={
+                                  sendFriendRequestMutation.isPending
+                                  || !searchUserInfo?.userId
+                                  || friendCheckQuery.isLoading
+                                  || friendCheck?.status === 1
+                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!searchUserInfo?.userId)
+                                    return;
+                                  sendFriendRequestMutation.mutate({
+                                    targetUserId: searchUserInfo.userId,
+                                    verifyMsg: verifyMsg || undefined,
+                                  });
+                                }}
+                              >
+                                {friendCheck?.status === 1 ? "已申请" : "加好友"}
+                              </button>
+                            </>
+                          )}
+
+                          {friendCheck?.status === 3 && (
+                            <span className="text-xs opacity-60">已拉黑，无法申请</span>
+                          )}
+                        </div>
+
+                        <div
+                          className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/profile/${searchUserInfo?.userId}`);
+                          }}
+                        >
+                          <HomeIcon className="size-5" />
+                        </div>
                       </div>
                     </div>
                   )

@@ -476,6 +476,13 @@ if (isNarrator) {
 
 **作用**：封装的 `contentEditable` 输入组件，支持 @ 提及、富文本、图片粘贴等功能。
 
+**快捷键（由 `RoomWindow` 统一处理）**：
+
+- `Enter`：发送消息
+- `Shift+Enter`：换行
+- `Tab`：触发 AI 重写；当存在 AI 虚影结果时，`Tab` 直接接受
+- `Esc`：取消 AI 重写并恢复原文
+
 **业务流程**：
 
 1. **初始化**：

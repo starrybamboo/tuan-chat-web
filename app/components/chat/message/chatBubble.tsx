@@ -523,11 +523,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       contentElements.push(
         <div key="images" className="flex flex-col gap-2 mt-2 items-start">
           {images.map((img, idx) => (
-            <div key={img.url || idx} className="overflow-hidden">
+            <div key={img.url || idx} className="inline-block max-w-full overflow-hidden rounded-md">
               <BetterImg
                 src={img.url}
                 size={{ width: img.width, height: img.height }}
-                className="max-h-[40vh] w-max object-left origin-left"
+                className="block max-h-[40vh] max-w-full object-left origin-left rounded-md"
               />
               {img.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
             </div>

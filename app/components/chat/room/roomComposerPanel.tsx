@@ -14,6 +14,7 @@ import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import React from "react";
 
 export interface RoomComposerPanelProps {
@@ -185,7 +186,22 @@ function RoomComposerPanelImpl({
           >
           </AvatarSwitch>
 
-          <div className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col">
+          <div
+            className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
+            onDragOver={(e) => {
+              if (isFileDrag(e.dataTransfer)) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+              }
+            }}
+            onDrop={(e) => {
+              if (!isFileDrag(e.dataTransfer))
+                return;
+              e.preventDefault();
+              e.stopPropagation();
+              addDroppedFilesToComposer(e.dataTransfer);
+            }}
+          >
             <ChatAttachmentsPreviewFromStore />
 
             {replyMessage && (

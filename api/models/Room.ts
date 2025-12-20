@@ -11,10 +11,6 @@ export type Room = {
      */
     roomId?: number;
     /**
-     * 父房间id
-     */
-    parentRoomId?: number;
-    /**
      * 房间所属空间id
      */
     spaceId?: number;
