@@ -22,7 +22,8 @@ export function usePrivateMessageList({ globalContext, userId }: { globalContext
 
   // 从消息信箱获取私聊列表
   const inboxQuery = useGetInboxMessagePageQuery();
-  const isLoading = inboxQuery.isLoading || friendListQuery.isLoading;
+  // 私聊列表应优先展示（头像/昵称可以逐步补齐），避免好友列表接口变慢导致左侧一直卡 loading
+  const isLoading = inboxQuery.isLoading;
   const inboxMessages: MessageDirectResponse[] = useMemo(() => Array.isArray(inboxQuery.data?.data) ? inboxQuery.data.data : [], [inboxQuery.data]);
   // 格式化私聊消息，按联系人分组
   const sortedInboxMessages = useMemo(() => {

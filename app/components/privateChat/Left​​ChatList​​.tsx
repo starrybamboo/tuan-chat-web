@@ -1,6 +1,7 @@
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { UsersIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import ChatList from "./components/ChatList";
 import ContextMenuCommon from "./components/ContextMenuCommon";
 import { useContextMenuCommon } from "./hooks/useContextMenuCommon";
@@ -33,7 +34,9 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
+  const navigate = useNavigate();
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
+  const isFriendsPage = currentContactUserId === null;
 
   // 私聊列表相关数据和操作
   const {
@@ -85,6 +88,23 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
             {isShowFriendsList ? "好友" : "私信"}
           </span>
         </div>
+
+        <div className="px-2 pt-2">
+          <button
+            type="button"
+            className={`btn btn-ghost w-full justify-start gap-2 ${isFriendsPage ? "bg-base-200" : ""}`}
+            onClick={() => {
+              navigate("/chat/private");
+              setTimeout(() => {
+                setIsOpenLeftDrawer(false);
+              }, 0);
+            }}
+          >
+            <UsersIcon className="size-5 opacity-70" />
+            <span>好友</span>
+          </button>
+        </div>
+
         {isLoading
           // 1.加载中
           ? (

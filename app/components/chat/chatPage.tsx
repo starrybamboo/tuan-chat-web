@@ -19,6 +19,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import FriendsPage from "@/components/privateChat/FriendsPage";
 import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
@@ -398,9 +399,17 @@ export default function ChatPage() {
         {/* 聊天记录窗口，输入窗口，侧边栏 */}
         {isPrivateChatMode
           ? (
-              <RightChatView
-                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-              />
+              activeRoomId
+                ? (
+                    <RightChatView
+                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                    />
+                  )
+                : (
+                    <FriendsPage
+                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                    />
+                  )
             )
           : (
               <>
