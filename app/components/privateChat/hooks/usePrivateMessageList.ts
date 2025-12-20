@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 
+import type { FriendResponse } from "api/models/FriendResponse";
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
-import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-import { useGetFriendsUserInfoQuery, useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
-import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
+import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
+import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
 
 import type { MessageDirectType } from "../Left​​ChatList​​";
 
@@ -14,14 +14,16 @@ export function usePrivateMessageList({ globalContext, userId }: { globalContext
   const webSocketUtils = globalContext.websocketUtils;
 
   // 好友列表
-  const followingQuery = useGetUserFriendsQuery(userId, { pageNo: 1, pageSize: 100 });
-  const friends: UserFollowResponse[] = useMemo(() => Array.isArray(followingQuery.data?.data?.list) ? followingQuery.data.data.list : [], [followingQuery.data]);
-  const friendUserQueries = useGetFriendsUserInfoQuery(friends.map(f => f.userId));
-  const friendUserInfos = friendUserQueries.map(f => f.data?.data);
+  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
+  const friendUserInfos: FriendResponse[] = useMemo(
+    () => (Array.isArray(friendListQuery.data?.data) ? friendListQuery.data.data : []),
+    [friendListQuery.data],
+  );
 
   // 从消息信箱获取私聊列表
   const inboxQuery = useGetInboxMessagePageQuery();
-  const isLoading = inboxQuery.isLoading || friendUserQueries.some(q => q.isLoading);
+  // 私聊列表应优先展示（头像/昵称可以逐步补齐），避免好友列表接口变慢导致左侧一直卡 loading
+  const isLoading = inboxQuery.isLoading;
   const inboxMessages: MessageDirectResponse[] = useMemo(() => Array.isArray(inboxQuery.data?.data) ? inboxQuery.data.data : [], [inboxQuery.data]);
   // 格式化私聊消息，按联系人分组
   const sortedInboxMessages = useMemo(() => {

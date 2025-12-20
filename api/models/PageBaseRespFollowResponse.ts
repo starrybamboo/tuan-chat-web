@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { UserFollowResponse } from './UserFollowResponse';
+import type { FollowResponse } from './FollowResponse';
 /**
  * 基础翻页返回
  */
-export type PageBaseRespUserFollowResponse = {
+export type PageBaseRespFollowResponse = {
     /**
      * 当前页数
      */
@@ -26,6 +26,6 @@ export type PageBaseRespUserFollowResponse = {
     /**
      * 数据列表
      */
-    list?: Array<UserFollowResponse>;
+    list?: Array<FollowResponse>;
 };
 

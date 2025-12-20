@@ -116,7 +116,7 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
         <div className="flex-1 w-full">
           <textarea
             className="w-full h-full resize-none px-2 py-1 rounded-lg focus:outline-none"
-            placeholder="Enter 发送，Shift+Enter 换行，按tab触发AI虚影补全，"
+            placeholder="Enter 发送，Shift+Enter 换行"
             onChange={(e) => {
               setMessageInput(e.target.value);
             }}

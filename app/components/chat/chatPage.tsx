@@ -19,6 +19,9 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import FriendsPage from "@/components/privateChat/FriendsPage";
+import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
+import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
 import {
   useAddRoomMemberMutation,
@@ -140,6 +143,25 @@ export default function ChatPage() {
 
   // 获取当前用户信息
   const globalContext = useGlobalContext();
+  const userId = globalContext.userId || -1;
+
+  // 私聊未读消息：复用私聊列表现有计算逻辑（用于左侧“私信入口”角标）
+  const privateMessageList = usePrivateMessageList({ globalContext, userId });
+  const { unreadMessageNumbers: privateUnreadMessageNumbers } = useUnreadCount({
+    realTimeContacts: privateMessageList.realTimeContacts,
+    sortedRealTimeMessages: privateMessageList.sortedRealTimeMessages,
+    userId,
+    urlRoomId: isPrivateChatMode ? urlRoomId : undefined,
+  });
+  const privateTotalUnreadMessages = useMemo(() => {
+    return privateMessageList.realTimeContacts.reduce((sum, contactId) => {
+      // 当前正在看的私聊不再显示未读（与 ChatItem 逻辑一致）
+      if (isPrivateChatMode && activeRoomId === contactId) {
+        return sum;
+      }
+      return sum + (privateUnreadMessageNumbers[contactId] ?? 0);
+    }, 0);
+  }, [activeRoomId, isPrivateChatMode, privateMessageList.realTimeContacts, privateUnreadMessageNumbers]);
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
@@ -330,6 +352,7 @@ export default function ChatPage() {
               spaces={spaces}
               activeSpaceId={activeSpaceId}
               getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+              privateUnreadMessagesNumber={privateTotalUnreadMessages}
               onOpenPrivate={() => {
                 setActiveSpaceId(null);
                 setActiveRoomId(null);
@@ -376,9 +399,17 @@ export default function ChatPage() {
         {/* 聊天记录窗口，输入窗口，侧边栏 */}
         {isPrivateChatMode
           ? (
-              <RightChatView
-                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-              />
+              activeRoomId
+                ? (
+                    <RightChatView
+                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                    />
+                  )
+                : (
+                    <FriendsPage
+                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                    />
+                  )
             )
           : (
               <>
