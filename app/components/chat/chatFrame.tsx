@@ -19,6 +19,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { getImageSize } from "@/utils/getImgSize";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -34,8 +35,8 @@ import { tuanchat } from "../../../api/instance";
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header() {
   return (
-    <div className="text-center p-3">
-      已经到顶了~(,,・ω・,,)
+    <div className="py-2">
+      <div className="divider text-xs text-base-content/50 m-0">到顶</div>
     </div>
   );
 }
@@ -45,10 +46,30 @@ function Header() {
  * @param props 组件参数
  * @param props.virtuosoRef 虚拟列表的 ref
  */
-function ChatFrame(props: {
+interface ChatFrameProps {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
-}) {
-  const { virtuosoRef } = props;
+  messagesOverride?: ChatMessageResponse[];
+  enableWsSync?: boolean;
+  enableEffects?: boolean;
+  enableUnreadIndicator?: boolean;
+  isMessageMovable?: (message: Message) => boolean;
+}
+
+interface ThreadHintMeta {
+  rootId: number;
+  title: string;
+  replyCount: number;
+}
+
+function ChatFrame(props: ChatFrameProps) {
+  const {
+    virtuosoRef,
+    messagesOverride,
+    enableWsSync = true,
+    enableEffects = true,
+    enableUnreadIndicator = true,
+    isMessageMovable,
+  } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -151,6 +172,9 @@ function ChatFrame(props: {
   // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
   const lastLengthMapRef = useRef<Record<number, number>>({});
   useEffect(() => {
+    if (!enableWsSync) {
+      return;
+    }
     // 将wsUtils中缓存的消息存到indexDB中，这里需要轮询等待indexDB初始化完成。
     // 如果在初始化之前就调用了这个函数，会出现初始消息无法加载的错误。
     let isCancelled = false;
@@ -220,10 +244,69 @@ function ChatFrame(props: {
         timeoutId = null;
       }
     };
-  }, [chatHistory, receivedMessages, roomId]);
+  }, [chatHistory, enableWsSync, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return roomContext.chatHistory?.messages ?? [];
+    if (messagesOverride) {
+      return messagesOverride;
+    }
+    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
+    // - root：threadId === messageId（显示）
+    // - reply：threadId !== messageId（隐藏）
+    return (roomContext.chatHistory?.messages ?? []).filter((m) => {
+      // Thread Root（10001）不在主消息流中单独显示：改为挂在“原消息”下方的提示条
+      if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
+        return false;
+      }
+      const { threadId, messageId } = m.message;
+      if (!threadId) {
+        return true;
+      }
+      return threadId === messageId;
+    });
+  }, [messagesOverride, roomContext.chatHistory?.messages]);
+
+  const threadHintMetaByMessageId = useMemo(() => {
+    // key: parentMessageId（被创建子区的那条原消息）
+    const metaMap = new Map<number, ThreadHintMeta>();
+    const all = roomContext.chatHistory?.messages ?? [];
+    if (all.length === 0) {
+      return metaMap;
+    }
+
+    // rootId -> replyCount
+    const replyCountByRootId = new Map<number, number>();
+    for (const item of all) {
+      const { threadId, messageId } = item.message;
+      if (threadId && threadId !== messageId) {
+        replyCountByRootId.set(threadId, (replyCountByRootId.get(threadId) ?? 0) + 1);
+      }
+    }
+
+    // parentMessageId -> latest root
+    for (const item of all) {
+      const mm = item.message;
+      const isRoot = mm.messageType === MESSAGE_TYPE.THREAD_ROOT && mm.threadId === mm.messageId;
+      const parentId = mm.replyMessageId;
+      if (!isRoot || !parentId) {
+        continue;
+      }
+
+      const title = (mm.extra as any)?.title || mm.content;
+      const next: ThreadHintMeta = {
+        rootId: mm.messageId,
+        title,
+        replyCount: replyCountByRootId.get(mm.messageId) ?? 0,
+      };
+
+      const prev = metaMap.get(parentId);
+      // 极端情况下可能存在多个 root：取 messageId 更新的那个
+      if (!prev || next.rootId > prev.rootId) {
+        metaMap.set(parentId, next);
+      }
+    }
+
+    return metaMap;
   }, [roomContext.chatHistory?.messages]);
 
   // 删除消息（逻辑删除：更新本地消息状态为已删除）
@@ -262,21 +345,28 @@ function ChatFrame(props: {
   /**
    * 新消息提醒
    */
-  const unreadMessageNumber = webSocketUtils.unreadMessagesNumber[roomId] ?? 0;
+  const unreadMessageNumber = enableUnreadIndicator
+    ? (webSocketUtils.unreadMessagesNumber[roomId] ?? 0)
+    : 0;
   const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
   // 监听新消息，如果在底部，则设置群聊消息为已读；
   useEffect(() => {
+    if (!enableUnreadIndicator) {
+      return;
+    }
     if (isAtBottomRef.current) {
       updateLastReadSyncId(roomId);
     }
-  }, [historyMessages, roomId, updateLastReadSyncId]);
+  }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
   /**
    * scroll相关
    */
   const scrollToBottom = useCallback(() => {
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
-    updateLastReadSyncId(roomId);
-  }, [historyMessages.length, messageIndexToVirtuosoIndex, roomId, updateLastReadSyncId, virtuosoRef]);
+    if (enableUnreadIndicator) {
+      updateLastReadSyncId(roomId);
+    }
+  }, [enableUnreadIndicator, historyMessages.length, messageIndexToVirtuosoIndex, roomId, updateLastReadSyncId, virtuosoRef]);
   useEffect(() => {
     let timer = null;
     if (chatHistory?.loading) {
@@ -295,30 +385,39 @@ function ChatFrame(props: {
    * 注意：已删除的消息（status === 1）不应该显示背景图片
    */
   const imgNode = useMemo(() => {
+    if (!enableEffects) {
+      return [];
+    }
     return historyMessages
       .map((msg, index) => {
         return { index, imageMessage: msg.message.extra?.imageMessage, status: msg.message.status };
       })
       .filter(item => item.imageMessage && item.imageMessage.background && item.status !== 1);
-  }, [historyMessages]);
+  }, [enableEffects, historyMessages]);
 
   /**
    * 特效随聊天记录而改变
    * 注意：已删除的消息（status === 1）不应该显示特效
    */
   const effectNode = useMemo(() => {
+    if (!enableEffects) {
+      return [];
+    }
     return historyMessages
       .map((msg, index) => {
         return { index, effectMessage: msg.message.extra?.effectMessage, status: msg.message.status };
       })
       .filter(item => item.effectMessage && item.effectMessage.effectName && item.status !== 1);
-  }, [historyMessages]);
+  }, [enableEffects, historyMessages]);
 
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enableEffects) {
+      return;
+    }
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
 
     // Update Background URL
@@ -346,9 +445,12 @@ function ChatFrame(props: {
       const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
       return () => clearTimeout(id);
     }
-  }, [currentVirtuosoIndex, imgNode, effectNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+  }, [enableEffects, currentVirtuosoIndex, imgNode, effectNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
   useEffect(() => {
+    if (!enableEffects) {
+      return;
+    }
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
 
     // Update Effect
@@ -364,7 +466,7 @@ function ChatFrame(props: {
     if (newEffect !== currentEffect) {
       setCurrentEffect(newEffect);
     }
-  }, [currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
+  }, [enableEffects, currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
 
   const updateMessage = useCallback((message: Message) => {
     updateMessageMutation.mutate(message);
@@ -397,15 +499,21 @@ function ChatFrame(props: {
    */
   const [displayedBgUrl, setDisplayedBgUrl] = useState(currentBackgroundUrl);
   useEffect(() => {
+    if (!enableEffects) {
+      return;
+    }
     if (currentBackgroundUrl) {
       const id = setTimeout(() => setDisplayedBgUrl(currentBackgroundUrl), 0);
       return () => clearTimeout(id);
     }
-  }, [currentBackgroundUrl]);
+  }, [enableEffects, currentBackgroundUrl]);
 
   const backgroundLayerRef = useRef<HTMLDivElement | null>(null);
   const backgroundOverlayRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
+    if (!enableEffects) {
+      return;
+    }
     if (backgroundLayerRef.current) {
       backgroundLayerRef.current.style.backgroundImage = displayedBgUrl ? `url('${displayedBgUrl}')` : "none";
       backgroundLayerRef.current.style.opacity = currentBackgroundUrl ? "1" : "0";
@@ -413,7 +521,7 @@ function ChatFrame(props: {
     if (backgroundOverlayRef.current) {
       backgroundOverlayRef.current.style.opacity = currentBackgroundUrl ? "1" : "0";
     }
-  }, [displayedBgUrl, currentBackgroundUrl]);
+  }, [enableEffects, displayedBgUrl, currentBackgroundUrl]);
 
   /**
    * 消息选择
@@ -558,8 +666,22 @@ function ChatFrame(props: {
     targetIndex: number,
     messageIds: number[],
   ) => {
-    const messageIdSet = new Set(messageIds);
-    const selectedMessages = Array.from(messageIds)
+    const movableMessageIds = isMessageMovable
+      ? messageIds.filter((id) => {
+          const msg = historyMessages.find(m => m.message.messageId === id)?.message;
+          return msg ? isMessageMovable(msg) : false;
+        })
+      : messageIds;
+
+    if (movableMessageIds.length !== messageIds.length) {
+      toast.error("部分消息不支持移动");
+    }
+    if (movableMessageIds.length === 0) {
+      return;
+    }
+
+    const messageIdSet = new Set(movableMessageIds);
+    const selectedMessages = Array.from(movableMessageIds)
       .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
       .filter((msg): msg is Message => msg !== undefined)
       .sort((a, b) => a.position - b.position);
@@ -584,7 +706,7 @@ function ChatFrame(props: {
         position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
       });
     }
-  }, [historyMessages, updateMessage]);
+  }, [historyMessages, isMessageMovable, updateMessage]);
   /**
    * 检查拖拽的位置
    */
@@ -740,9 +862,11 @@ function ChatFrame(props: {
    */
   const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
-    const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
+    const baseDraggable = (roomContext.curMember?.memberType ?? 3) < 3;
+    const movable = baseDraggable && (!isMessageMovable || isMessageMovable(chatMessageResponse.message));
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
+    const threadHintMeta = threadHintMetaByMessageId.get(chatMessageResponse.message.messageId);
     return ((
       <div
         key={chatMessageResponse.message.messageId}
@@ -765,24 +889,28 @@ function ChatFrame(props: {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={e => handleDrop(e, indexInHistoryMessages)}
-        draggable={isSelecting && draggable}
+        draggable={isSelecting && movable}
         onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
       >
         {
-          draggable
+          movable
           && (
             <div
               className={`absolute left-0 ${useChatBubbleStyle ? "top-[12px]" : "top-[30px]"}
                       opacity-0 transition-opacity flex items-center pr-2 cursor-move
                       group-hover:opacity-100 z-100`}
-              draggable={draggable}
+              draggable={movable}
               onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
             >
               <DraggableIcon className="size-6 "></DraggableIcon>
             </div>
           )
         }
-        <ChatBubble chatMessageResponse={chatMessageResponse} />
+        <ChatBubble
+          chatMessageResponse={chatMessageResponse}
+          useChatBubbleStyle={useChatBubbleStyle}
+          threadHintMeta={threadHintMeta}
+        />
       </div>
     )
     );
@@ -800,6 +928,8 @@ function ChatFrame(props: {
     handleDragLeave,
     handleDrop,
     handleDragStart,
+    isMessageMovable,
+    threadHintMetaByMessageId,
   ]);
 
   if (chatHistory?.loading) {
@@ -822,19 +952,23 @@ function ChatFrame(props: {
    */
   return (
     <div className="h-full relative">
-      {/* Background Image Layer */}
-      <div
-        ref={backgroundLayerRef}
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
-      />
-      {/* Overlay for tint and blur */}
-      <div
-        ref={backgroundOverlayRef}
-        className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
-      />
+      {enableEffects && (
+        <>
+          {/* Background Image Layer */}
+          <div
+            ref={backgroundLayerRef}
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+          />
+          {/* Overlay for tint and blur */}
+          <div
+            ref={backgroundOverlayRef}
+            className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
+          />
 
-      {/* Pixi Overlay */}
-      <PixiOverlay effectName={currentEffect} />
+          {/* Pixi Overlay */}
+          <PixiOverlay effectName={currentEffect} />
+        </>
+      )}
 
       <div
         className="overflow-y-auto flex flex-col relative h-full"
@@ -899,7 +1033,9 @@ function ChatFrame(props: {
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
-              atBottom && updateLastReadSyncId(roomId);
+              if (enableUnreadIndicator) {
+                atBottom && updateLastReadSyncId(roomId);
+              }
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {
@@ -913,7 +1049,7 @@ function ChatFrame(props: {
           />
         </div>
         {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
-        {(unreadMessageNumber > 0 && historyMessages.length > 2 && !isAtBottomRef.current) && (
+        {(enableUnreadIndicator && unreadMessageNumber > 0 && historyMessages.length > 2 && !isAtBottomRef.current) && (
           <div
             className="absolute bottom-4 self-end z-50 cursor-pointer"
             onClick={() => {

@@ -42,6 +42,8 @@ export const MESSAGE_TYPE = {
   INTRO_TEXT: 9,
   CLUE_CARD: 1000,
   READ_LINE: 10000,
+  /** Thread 根消息（在主消息流里展示 thread 标题） */
+  THREAD_ROOT: 10001,
 } as const;
 
 /**

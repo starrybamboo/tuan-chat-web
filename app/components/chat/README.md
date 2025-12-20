@@ -10,6 +10,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
 - **角色扮演系统**：用户可在房间中使用不同角色（Role）和立绘（Avatar）进行扮演
 - **WebGAL 联动**：将聊天内容实时转换为 WebGAL 剧本，提供视觉小说般的阅读体验
 - **富文本消息**：支持文本、图片、表情、音频、特效、背景等多种消息类型
+- **消息 Thread**：支持基于 message.threadId 的线程聚合与回复（类似 Discord Thread）
 - **骰子系统**：内置 TRPG 骰子命令系统，支持多种游戏规则
 - **实时状态同步**：通过 WebSocket 实时同步成员状态（输入中、等待扮演、暂离等）
 - **历史消息管理**：基于 IndexedDB 的本地缓存，支持离线查看和快速加载
@@ -73,8 +74,8 @@ RealtimeRenderer 转换为 WebGAL 场景
 文件：app/components/chat/stores/roomUiStore.ts
 
 - replyMessage：当前回复的消息
+- threadRootMessageId：当前正在查看/回复的消息 Thread（root messageId）
 - insertAfterMessageId：插入模式的目标消息 ID
-- isCreateThreadOpen：创建子区(Thread) 弹窗开关（用于把订阅下沉到 PopWindows 组件，避免 RoomWindow 无关重渲染）
 
 ### 2) roomPreferenceStore：聊天偏好与 WebGAL 联动设置
 
@@ -98,7 +99,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/drawerPreferenceStore.ts
 
-- userDrawerWidth / roleDrawerWidth / initiativeDrawerWidth / clueDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
+- userDrawerWidth / roleDrawerWidth / threadDrawerWidth / initiativeDrawerWidth / clueDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
 - 对应 localStorage key 与字段同名（保持兼容）
 
 相关组件：
