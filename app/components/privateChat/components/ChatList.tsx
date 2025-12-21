@@ -1,4 +1,4 @@
-import type { MessageDirectType } from "../Left​​ChatList​​";
+import type { MessageDirectType } from "../types/messageDirect";
 import { useMemo } from "react";
 import ChatItem from "./ChatItem";
 

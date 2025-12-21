@@ -88,10 +88,14 @@ function MemberRow({ userId, onClickAddMember }: { userId: number; onClickAddMem
 /**
  * 添加成员窗口：同页展示邀请好友/按ID邀请、邀请链接（可选显示空间成员）。
  */
-export default function AddMemberWindow({ handleAddMember, showSpace = false }:
-{
+export default function AddMemberWindow({
+  handleAddMember,
+  showSpace = false,
+  inviteCodeType = 0,
+}: {
   handleAddMember: (userId: number) => void;
   showSpace?: boolean;
+  inviteCodeType?: 0 | 1;
 }) {
   const spaceContext = use(SpaceContext);
   const spaceMembers = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1).data?.data ?? [];
@@ -108,7 +112,7 @@ export default function AddMemberWindow({ handleAddMember, showSpace = false }:
   const [searchKeyword, setSearchKeyword] = useState<string>("");
 
   // 仅按当前 duration 请求 invite code
-  const invite = useSpaceInviteCodeQuery(spaceContext.spaceId ?? -1, duration);
+  const invite = useSpaceInviteCodeQuery(spaceContext.spaceId ?? -1, inviteCodeType, duration);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -217,7 +221,11 @@ export default function AddMemberWindow({ handleAddMember, showSpace = false }:
 
       {/* 生成邀请链接 */}
       <div className="bg-base-200 p-4 rounded-lg">
-        <div className="text-sm opacity-80 mb-3">或者，在其他应用里发送服务器邀请链接</div>
+        <div className="text-sm opacity-80 mb-3">
+          或者，在其他应用里发送
+          {inviteCodeType === 1 ? "玩家" : "观战"}
+          邀请链接
+        </div>
 
         <div className="flex flex-col gap-3">
           <div className="flex gap-2">
