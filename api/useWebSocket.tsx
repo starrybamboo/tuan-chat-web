@@ -544,6 +544,7 @@ export function useWebSocket() {
       ? receiverId
       : (selfUserId === receiverId ? senderId : senderId);
 
+    let isNewMessage = false;
     updateReceivedDirectMessages((draft)=>{
       // 去重，比如撤回操作就会出现相同消息id的情况。
       if (channelId in draft) {
@@ -556,14 +557,28 @@ export function useWebSocket() {
           draft[channelId][existingIndex] = message;
         }
         else {
+          isNewMessage = true;
           draft[channelId].push(message);
         }
       }
       else {
+        isNewMessage = true;
         draft[channelId] = [message];
       }
-    })
-    console.log(receivedDirectMessages)
+    });
+
+    if (isNewMessage) {
+      // 收件箱列表/私聊列表依赖 getInboxMessagePage，WS 来了也要让 Query 缓存同步，避免发送方必须刷新。
+      queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
+      queryClient.invalidateQueries({ queryKey: ["inboxMessageWithUser"] });
+
+      // 好友申请同意后，发送方需要立刻看到好友列表/申请列表变化。
+      if ((message?.content ?? "").trim() === "好友申请同意") {
+        queryClient.invalidateQueries({ queryKey: ["friendList"] });
+        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
+        queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+      }
+    }
   };
   /**
    * 处理群聊成员状态变动

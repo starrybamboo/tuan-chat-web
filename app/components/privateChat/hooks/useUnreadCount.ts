@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 
-import type { MessageDirectType } from "../Left​​ChatList​​";
+import type { MessageDirectType } from "../types/messageDirect";
 
 export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userId, urlRoomId }: { realTimeContacts: number[]; sortedRealTimeMessages: [string, MessageDirectType[]][]; userId: number; urlRoomId: string | undefined }) {
   const prevUrlRoomIdRef = useRef<string | undefined>(urlRoomId);

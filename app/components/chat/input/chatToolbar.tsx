@@ -4,6 +4,7 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   CommandSolid,
   Detective,
+  DiceD6Icon,
   EmojiIconWhite,
   GalleryBroken,
   LinkFilled,
@@ -441,7 +442,7 @@ export function ChatToolbar({
               className={`btn btn-xs ${runModeEnabled ? "btn-primary" : "btn-ghost border border-base-300"}`}
               onClick={onToggleRunMode}
             >
-              <SwordSwing className="size-7" />
+              <DiceD6Icon className="size-7" />
             </button>
           </div>
         )}

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { tuanchat } from "../instance";
 import type { FriendCheckRequest } from "../models/FriendCheckRequest";
+import type { FriendDeleteRequest } from "../models/FriendDeleteRequest";
 import type { FriendListRequest } from "../models/FriendListRequest";
 import type { FriendReqHandleRequest } from "../models/FriendReqHandleRequest";
 import type { FriendReqSendRequest } from "../models/FriendReqSendRequest";
@@ -82,6 +83,20 @@ export function useRejectFriendRequestMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
       queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+    },
+  });
+}
+
+/**
+ * 删除好友（双向解除）
+ */
+export function useDeleteFriendMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestBody: FriendDeleteRequest) => tuanchat.friendController.deleteFriend(requestBody),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["friendList"] });
+      queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
     },
   });
 }

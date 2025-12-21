@@ -10,7 +10,25 @@ import {
 } from "api/hooks/friendQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
+
+function getErrorMessage(error: unknown): string {
+  if (typeof error === "string" && error.trim()) {
+    return error.trim();
+  }
+
+  if (error && typeof error === "object") {
+    const anyError = error as any;
+    const body = anyError?.body;
+    const errMsg = body?.errMsg ?? body?.message ?? anyError?.message;
+    if (typeof errMsg === "string" && errMsg.trim()) {
+      return errMsg.trim();
+    }
+  }
+
+  return "发送失败";
+}
 
 export default function UserSearch() {
   /**
@@ -233,10 +251,20 @@ export default function UserSearch() {
                                     setNotice("验证消息不能为空");
                                     return;
                                   }
-                                  sendFriendRequestMutation.mutate({
-                                    targetUserId: searchUserInfo.userId,
-                                    verifyMsg: trimmed,
-                                  });
+                                  sendFriendRequestMutation.mutate(
+                                    {
+                                      targetUserId: searchUserInfo.userId,
+                                      verifyMsg: trimmed,
+                                    },
+                                    {
+                                      onSuccess: () => {
+                                        toast.success("发送成功");
+                                      },
+                                      onError: (err) => {
+                                        toast.error(getErrorMessage(err));
+                                      },
+                                    },
+                                  );
                                 }}
                               >
                                 {friendCheck?.status === 1 ? "已申请" : "加好友"}
