@@ -13,7 +13,8 @@ import { tuanchat } from "../../api/instance";
 
 export class ChatRenderer {
   private readonly spaceId: number;
-  private readonly roomMap: Record<string, Array<number>> = {};
+  private readonly roomMap: Record<number, RoomLink[]> = {};
+  private readonly startRoomId?: number;
   private sceneEditor: SceneEditor;
   private readonly renderInfo: RenderInfo;
   private readonly totalMessageNumber: number;
@@ -27,6 +28,9 @@ export class ChatRenderer {
   private renderProps: RenderProps;
   private readonly rooms: Room[] = [];
   private readonly onRenderProcessChange: (process: RenderProcess) => void; // 渲染进度的回调函数
+
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
+  private static readonly TARGET_PATTERN = /^(\d+)(.*)$/s;
 
   constructor(
     spaceId: number,
@@ -43,21 +47,136 @@ export class ChatRenderer {
     this.rooms = this.renderInfo.rooms;
     this.roleMap = new Map(renderInfo.roles.map(role => [role.roleId, role]));
     const spaceInfo = this.renderInfo.space;
-    this.roomMap = Object.fromEntries(
-      Object.entries(spaceInfo.roomMap || {}).map(([key, value]) => {
-        const rawList = Array.isArray(value) ? value : [];
-        const normalized = (rawList as Array<string | number>)
-          .map(v => Number(v))
-          .filter(v => !Number.isNaN(v));
-        return [key, normalized];
-      }),
-    );
+    const normalizedRoomMap = this.normalizeRoomMap(spaceInfo.roomMap);
+    this.roomMap = normalizedRoomMap.links;
+    this.startRoomId = normalizedRoomMap.startRoomId;
 
     let totalMessageNumber = 0;
     for (const messages of Object.values(renderInfo.chatHistoryMap)) {
       totalMessageNumber += messages.length;
     }
     this.totalMessageNumber = totalMessageNumber;
+  }
+
+  private parseRoomLink(raw: unknown): RoomLink | null {
+    if (raw == null)
+      return null;
+    const value = typeof raw === "number" ? String(raw) : String(raw ?? "").trim();
+    if (value.length === 0)
+      return null;
+    const match = ChatRenderer.TARGET_PATTERN.exec(value);
+    if (!match)
+      return null;
+    const targetId = Number(match[1]);
+    if (Number.isNaN(targetId))
+      return null;
+    const conditionRaw = match[2]?.trim();
+    return {
+      targetId,
+      condition: conditionRaw || undefined,
+    };
+  }
+
+  private normalizeWhenCondition(raw: string): string {
+    const trimmed = raw.trim();
+    if (!trimmed)
+      return "";
+    if (trimmed.startsWith("-when="))
+      return trimmed.slice("-when=".length).trim();
+    return trimmed;
+  }
+
+  private normalizeRoomMap(roomMap: unknown): { links: Record<number, RoomLink[]>; startRoomId?: number } {
+    const result: { links: Record<number, RoomLink[]>; startRoomId?: number } = { links: {} };
+    if (!roomMap || typeof roomMap !== "object")
+      return result;
+
+    Object.entries(roomMap as Record<string, unknown>).forEach(([key, value]) => {
+      if (key === "start") {
+        const startValue = Array.isArray(value) ? value[0] : undefined;
+        const startId = typeof startValue === "number" ? startValue : Number(startValue);
+        if (!Number.isNaN(startId))
+          result.startRoomId = startId;
+        return;
+      }
+
+      const roomId = Number(key);
+      if (Number.isNaN(roomId))
+        return;
+      const rawTargets = Array.isArray(value) ? value : [];
+      const dedupeMap = new Map<string, RoomLink>();
+      (rawTargets as unknown[]).forEach((entry) => {
+        const parsed = this.parseRoomLink(entry);
+        if (!parsed)
+          return;
+        const dedupeKey = `${parsed.targetId}|${parsed.condition ?? ""}`;
+        if (!dedupeMap.has(dedupeKey))
+          dedupeMap.set(dedupeKey, parsed);
+      });
+
+      const links = Array.from(dedupeMap.values()).sort((a, b) => {
+        if (a.targetId !== b.targetId)
+          return a.targetId - b.targetId;
+        const condA = a.condition ?? "";
+        const condB = b.condition ?? "";
+        return condA.localeCompare(condB);
+      });
+      result.links[roomId] = links;
+    });
+
+    return result;
+  }
+
+  private buildWorkflowTailForRoom(sourceRoomId: number): string[] {
+    const links = this.roomMap[sourceRoomId] ?? [];
+    const targetRoomMap = new Map<number, Room>();
+    this.rooms.forEach((r) => {
+      if (r.roomId != null)
+        targetRoomMap.set(r.roomId, r);
+    });
+
+    const available = links
+      .map(link => ({ link, room: targetRoomMap.get(link.targetId) }))
+      .filter((x): x is { link: RoomLink; room: Room } => Boolean(x.room));
+
+    if (available.length === 0)
+      return ["choose:返回初始节点:start.txt;"]; // 保底
+
+    if (available.length === 1 && !available[0].link.condition?.trim()) {
+      return [`changeScene:${this.getSceneName(available[0].room)}.txt;`];
+    }
+
+    const lines: string[] = [];
+
+    // 先生成条件自动跳转：jumpLabel -> label -> changeScene
+    const conditional = available
+      .map(({ link, room }, index) => ({ link, room, index, cond: this.normalizeWhenCondition(link.condition ?? "") }))
+      .filter(x => x.cond.length > 0);
+
+    conditional.forEach(({ room, index, cond }) => {
+      const label = `__wf_${sourceRoomId}_${room.roomId}_${index}`;
+      lines.push(`jumpLabel:${label} -when=${cond};`);
+    });
+
+    // 再给一个可视化的兜底选择：条件分支会按条件展示/允许点击
+    const chooseOptions = available.map(({ link, room }) => {
+      const name = (room.name ?? `房间${room.roomId}`).replace(/\n/g, "");
+      const scene = `${this.getSceneName(room)}.txt`;
+      const cond = this.normalizeWhenCondition(link.condition ?? "");
+      if (cond.length > 0)
+        return `(${cond})[${cond}]->${name}:${scene}`;
+      return `${name}:${scene}`;
+    });
+    lines.push(`choose:${chooseOptions.join("|")};`);
+
+    conditional.forEach(({ room, index }) => {
+      const label = `__wf_${sourceRoomId}_${room.roomId}_${index}`;
+      lines.push(";");
+      lines.push(`label:${label};`);
+      lines.push(`changeScene:${this.getSceneName(room)}.txt;`);
+    });
+
+    return lines;
   }
 
   public async initializeRenderer(): Promise<void> {
@@ -459,14 +578,15 @@ export class ChatRenderer {
           }
         }
 
+        // WebGAL 指令消息：直接写入 scene
+        else if (message.messageType === 10) {
+          if (message.content?.trim()) {
+            await this.sceneEditor.addLineToRenderer(message.content.trim(), sceneName);
+          }
+        }
+
         // 处理一般的对话（包括普通文本和黑屏文字）
         else if (message.messageType === 1 || message.messageType === 9) {
-          // %开头的对话意味着webgal指令，直接写入scene文件内
-          if (message.content.startsWith("%")) {
-            await this.sceneEditor.addLineToRenderer(message.content.slice(1), sceneName);
-            continue;
-          }
-
           // 判断消息类型：黑屏文字（messageType === 9）
           const isIntroText = message.messageType === 9;
           const roleId = message.roleId ?? 0;
@@ -527,8 +647,7 @@ export class ChatRenderer {
                 && message.roleId !== 2 // 骰娘的id
                 && segment !== ""
                 && !message.content.startsWith(".")
-                && !message.content.startsWith("。")
-                && !message.content.startsWith("%")) {
+                && !message.content.startsWith("。")) {
                 // 构建 TTS 选项 - 优先使用消息级别的情感向量
                 const ttsOptions: any = {
                   engine: this.renderProps.ttsEngine,
@@ -615,12 +734,10 @@ export class ChatRenderer {
         }
       }
 
-      const branchRoomIds = this.roomMap[room.roomId!] ?? [];
-      const branchRooms = this.rooms.filter(
-        targetRoom => branchRoomIds.includes(targetRoom.roomId!),
-      );
-      const branchSentence = this.getBranchSentence(branchRooms);
-      await this.sceneEditor.addLineToRenderer(branchSentence, sceneName);
+      const tailLines = this.buildWorkflowTailForRoom(room.roomId!);
+      for (const line of tailLines) {
+        await this.sceneEditor.addLineToRenderer(line, sceneName);
+      }
 
       return true;
     }
@@ -630,3 +747,8 @@ export class ChatRenderer {
     }
   }
 }
+
+type RoomLink = {
+  targetId: number;
+  condition?: string;
+};

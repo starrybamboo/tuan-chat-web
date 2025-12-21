@@ -138,6 +138,19 @@ function RoomComposerPanelImpl({
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
 
+  const onInsertWebgalCommandPrefix = React.useCallback(() => {
+    const inputHandle = chatInputRef.current;
+    if (!inputHandle)
+      return;
+
+    const currentText = inputHandle.getPlainText() ?? "";
+    const nextText = currentText.startsWith("%") ? currentText : `%${currentText}`;
+
+    inputHandle.setContent(nextText);
+    inputHandle.focus();
+    inputHandle.triggerSync();
+  }, [chatInputRef]);
+
   return (
     <div className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
       <div className="relative flex-1 flex flex-col min-w-0">
@@ -159,6 +172,7 @@ function RoomComposerPanelImpl({
           isSpectator={isSpectator}
           onToggleRealtimeRender={onToggleRealtimeRender}
           onToggleWebgalLinkMode={toggleWebgalLinkMode}
+          onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
           autoReplyMode={autoReplyMode}
           onToggleAutoReplyMode={toggleAutoReplyMode}
           runModeEnabled={runModeEnabled}

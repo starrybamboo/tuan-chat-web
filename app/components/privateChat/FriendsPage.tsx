@@ -10,8 +10,8 @@ import {
   useSendFriendRequestMutation,
 } from "api/hooks/friendQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 
 type FriendsTab = "all" | "pending" | "add";
 
@@ -21,9 +21,18 @@ export default function FriendsPage({
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [tab, setTab] = useState<FriendsTab>("all");
   const [friendKeyword, setFriendKeyword] = useState("");
+
+  // 允许通过 URL 控制默认页签：/chat/private?tab=pending
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "all" || tabParam === "pending" || tabParam === "add") {
+      setTab(tabParam);
+    }
+  }, [searchParams]);
 
   // 添加好友（按用户ID搜索）
   const [inputUserId, setInputUserId] = useState<number>(-1);
@@ -378,7 +387,7 @@ export default function FriendsPage({
                                     <input
                                       type="text"
                                       className="input input-sm w-48"
-                                      placeholder="验证信息（可选）"
+                                      placeholder="验证信息（必填）"
                                       value={verifyMsg}
                                       onClick={e => e.stopPropagation()}
                                       onChange={e => setVerifyMsg(e.target.value)}
@@ -391,14 +400,20 @@ export default function FriendsPage({
                                         || !searchUserInfo?.userId
                                         || friendCheckQuery.isLoading
                                         || friendCheck?.status === 1
+                                        || verifyMsg.trim().length === 0
                                       }
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!searchUserInfo?.userId)
                                           return;
+                                        const trimmed = verifyMsg.trim();
+                                        if (!trimmed) {
+                                          setNotice("验证消息不能为空");
+                                          return;
+                                        }
                                         sendFriendRequestMutation.mutate({
                                           targetUserId: searchUserInfo.userId,
-                                          verifyMsg: verifyMsg || undefined,
+                                          verifyMsg: trimmed,
                                         });
                                       }}
                                     >
