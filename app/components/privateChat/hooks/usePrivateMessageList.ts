@@ -8,7 +8,7 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
 
-import type { MessageDirectType } from "../Left​​ChatList​​";
+import type { MessageDirectType } from "../types/messageDirect";
 
 export function usePrivateMessageList({ globalContext, userId }: { globalContext: any; userId: number }) {
   const webSocketUtils = globalContext.websocketUtils;

@@ -58,6 +58,7 @@ export default function SpaceInvitePanel({ onAddSpectator, onAddPlayer }: SpaceI
       <AddMemberWindow
         handleAddMember={userId => (spaceInviteMode === "spectator" ? onAddSpectator(userId) : onAddPlayer(userId))}
         showSpace={false}
+        inviteCodeType={spaceInviteMode === "player" ? 1 : 0}
       />
     </div>
   );

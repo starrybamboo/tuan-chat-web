@@ -1,9 +1,10 @@
 import type { FriendResponse } from "api/models/FriendResponse";
 
-import { ChevronRight, HomeIcon, Search, UsersIcon, XMarkICon } from "@/icons";
+import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, UsersIcon, XMarkICon } from "@/icons";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
+  useDeleteFriendMutation,
   useGetFriendListQuery,
   useGetFriendRequestPageQuery,
   useRejectFriendRequestMutation,
@@ -56,6 +57,7 @@ export default function FriendsPage({
 
   const acceptFriendRequestMutation = useAcceptFriendRequestMutation();
   const rejectFriendRequestMutation = useRejectFriendRequestMutation();
+  const deleteFriendMutation = useDeleteFriendMutation();
 
   const searchUserInfo = useGetUserInfoQuery(searchUserId).data?.data || null;
   const friendCheckQuery = useCheckFriendQuery(searchUserId, searching && searchUserId > 0);
@@ -205,6 +207,25 @@ export default function FriendsPage({
                           aria-label="查看主页"
                         >
                           <HomeIcon className="size-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs btn-square text-error"
+                          disabled={deleteFriendMutation.isPending || !friend?.userId}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!friend?.userId)
+                              return;
+                            // eslint-disable-next-line no-alert
+                            const ok = window.confirm(`确定删除好友「${friend?.username || friend.userId}」吗？`);
+                            if (!ok)
+                              return;
+                            deleteFriendMutation.mutate({ targetUserId: friend.userId });
+                          }}
+                          aria-label="删除好友"
+                        >
+                          <BaselineDeleteOutline className="size-4" />
                         </button>
                       </div>
                     </div>

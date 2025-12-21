@@ -50,6 +50,36 @@ export function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 六面骰子图标（自绘）
+// 其他关键词：骰子，D6，桌游，跑团，随机
+export function DiceD6Icon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <rect
+        x="4.5"
+        y="4.5"
+        width="15"
+        height="15"
+        rx="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="16" cy="16" r="1.2" fill="currentColor" />
+      <circle cx="16" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="8" cy="16" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 // 损坏的图片图标
 // 其他关键词：破损图片，加载失败，图像错误，占位图
 export function GalleryBroken(props: SVGProps<SVGSVGElement>) {

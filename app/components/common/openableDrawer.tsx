@@ -111,13 +111,7 @@ export function OpenAbleDrawer({
     };
   }, [clamp, isOpen, recomputeBounds]);
 
-  useLayoutEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
-    const nextWidth = clamp(width, bounds.min, bounds.max);
-    containerRef.current.style.width = `${Math.max(0, nextWidth)}px`;
-  }, [bounds.max, bounds.min, clamp, width]);
+  const renderedWidth = clamp(width, bounds.min, bounds.max);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     isDragging.current = true;
@@ -164,10 +158,14 @@ export function OpenAbleDrawer({
 
   // 大屏情况下，返回可调整宽度的容器
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div
+      ref={containerRef}
+      className={`relative ${className}`}
+      style={{ width: `${Math.max(0, renderedWidth)}px` }}
+    >
       {/* 拖拽手柄（默认在左侧） */}
       <div
-        className={`absolute top-0 h-full w-3 cursor-col-resize z-30 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors`}
+        className={`absolute top-0 h-full w-3 cursor-col-resize z-[1000] ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors`}
         onMouseDown={handleMouseDown}
         title="拖拽调整宽度"
       >

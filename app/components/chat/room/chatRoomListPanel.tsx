@@ -2,7 +2,7 @@ import type { Room } from "../../../../api";
 
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
-import LeftChatList from "@/components/privateChat/Left\u200B\u200BChatList\u200B\u200B";
+import LeftChatList from "@/components/privateChat/LeftChatList";
 import { ChevronDown, Setting, WebgalIcon } from "@/icons";
 import React from "react";
 

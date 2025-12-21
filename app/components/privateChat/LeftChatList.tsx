@@ -8,21 +8,6 @@ import { useContextMenuCommon } from "./hooks/useContextMenuCommon";
 import { usePrivateMessageList } from "./hooks/usePrivateMessageList";
 import { useUnreadCount } from "./hooks/useUnreadCount";
 
-export interface MessageDirectType {
-  messageId?: number;
-  userId?: number;
-  syncId?: number;
-  senderId?: number;
-  receiverId?: number;
-  content?: string;
-  messageType?: number;
-  replyMessageId?: number;
-  status?: number;
-  extra?: Record<string, any>;
-  createTime?: string;
-  updateTime?: string;
-}
-
 export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   // 设置自定义样式
   const customScrollbarStyle: React.CSSProperties = {
@@ -35,7 +20,9 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const userId = globalContext.userId || -1;
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
-  const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
+  const currentContactUserId = urlRoomId
+    ? Number.parseInt(urlRoomId)
+    : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
   const isFriendsPage = currentContactUserId === null;
 
   // 私聊列表相关数据和操作
@@ -137,26 +124,3 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     </div>
   );
 }
-
-// {isShowFriendsList
-//   // 1.显示好友列表
-//   ? (
-//       <FriendList
-//         friendUserInfos={friendUserInfos}
-//         updateReadlinePosition={updateReadlinePosition}
-//         setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-//       />
-//     )
-//   // 2.显示私聊列表
-//   : (
-//       <ChatList
-//         isSmallScreen={isSmallScreen}
-//         realTimeContacts={realTimeContacts}
-//         friendUserInfos={friendUserInfos}
-//         updateReadlinePosition={updateReadlinePosition}
-//         setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-//         unreadMessageNumbers={unreadMessageNumbers}
-//         currentContactUserId={currentContactUserId}
-//         deletedThisContactId={deletedThisContactId}
-//       />
-//     )}
