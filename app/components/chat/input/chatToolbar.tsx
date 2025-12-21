@@ -61,6 +61,8 @@ interface ChatToolbarProps {
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
+  /** 插入 WebGAL 指令前缀（发送侧会把 %xxx 转为 WEBGAL_COMMAND） */
+  onInsertWebgalCommandPrefix?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
 }
@@ -90,6 +92,7 @@ export function ChatToolbar({
   onSendEffect,
   onClearBackground,
   onClearFigure,
+  onInsertWebgalCommandPrefix,
   setAudioFile,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -118,7 +121,7 @@ export function ChatToolbar({
               tabIndex={0}
               aria-label="切换聊天状态"
               className="min-w-0 cursor-pointer list-none px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info"
-              style={{ pointerEvents: "auto", zIndex: 100, position: "relative" }}
+              style={{ pointerEvents: "auto", position: "relative" }}
             >
               <span
                 className={
@@ -178,7 +181,7 @@ export function ChatToolbar({
         <div className="dropdown dropdown-top">
           <div role="button" tabIndex={2} className="">
             <div
-              className="tooltip"
+              className="tooltip tooltip-bottom"
               data-tip="发送表情"
             >
               <EmojiIconWhite className="size-7 jump_icon"></EmojiIconWhite>
@@ -206,14 +209,14 @@ export function ChatToolbar({
           draft.push(newImg);
         })}
         >
-          <div className="tooltip" data-tip="发送图片">
+          <div className="tooltip tooltip-bottom" data-tip="发送图片">
             <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
           </div>
         </ImgUploader>
 
         {/* 发送音频 */}
         {setAudioFile && (
-          <div className="tooltip" data-tip="发送音频">
+          <div className="tooltip tooltip-bottom" data-tip="发送音频">
             <MusicNote
               className="size-7 cursor-pointer jump_icon"
               onClick={() => audioInputRef.current?.click()}
@@ -236,11 +239,11 @@ export function ChatToolbar({
           <summary
             tabIndex={3}
             className="cursor-pointer list-none"
-            style={{ pointerEvents: "auto", zIndex: 100, position: "relative" }}
+            style={{ pointerEvents: "auto", position: "relative" }}
             onClick={e => e.stopPropagation()}
           >
             <div
-              className="tooltip"
+              className="tooltip tooltip-bottom"
               data-tip="编辑AI重写提示词"
             >
               <SparklesOutline className="size-7 cursor-pointer jump_icon" />
@@ -277,10 +280,23 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2 flex-wrap justify-end items-center flex-grow">
+        {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
+        {webgalLinkMode && onInsertWebgalCommandPrefix && (
+          <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost border border-base-300"
+              onClick={onInsertWebgalCommandPrefix}
+            >
+              %指令
+            </button>
+          </div>
+        )}
+
         {/* 默认立绘位置选择器（仅在联动模式下显示） */}
         {webgalLinkMode && onSetDefaultFigurePosition && (
           <div className="flex items-center gap-1">
-            <div className="tooltip" data-tip="本角色默认位置（点击取消选择）">
+            <div className="tooltip tooltip-bottom" data-tip="本角色默认位置（点击取消选择）">
               <div className="join">
                 {(["left", "center", "right"] as const).map(pos => (
                   <button
@@ -398,7 +414,7 @@ export function ChatToolbar({
             </div>
 
             <div
-              className="tooltip"
+              className="tooltip tooltip-bottom"
               data-tip="展示先攻表"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
             >
@@ -406,7 +422,7 @@ export function ChatToolbar({
             </div>
 
             <div
-              className="tooltip"
+              className="tooltip tooltip-bottom"
               data-tip="地图"
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
             >
@@ -431,7 +447,7 @@ export function ChatToolbar({
         )}
 
         {/* 发送按钮 */}
-        <div className="tooltip" data-tip="发送">
+        <div className="tooltip tooltip-bottom" data-tip="发送">
           <SendIcon
             className={`size-7 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
             onClick={handleMessageSubmit}

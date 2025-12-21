@@ -209,7 +209,7 @@ export default function UserSearch() {
                               <input
                                 type="text"
                                 className="input input-xs w-48"
-                                placeholder="验证信息（可选）"
+                                placeholder="验证信息（必填）"
                                 value={verifyMsg}
                                 onClick={e => e.stopPropagation()}
                                 onChange={e => setVerifyMsg(e.target.value)}
@@ -222,14 +222,20 @@ export default function UserSearch() {
                                   || !searchUserInfo?.userId
                                   || friendCheckQuery.isLoading
                                   || friendCheck?.status === 1
+                                  || verifyMsg.trim().length === 0
                                 }
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (!searchUserInfo?.userId)
                                     return;
+                                  const trimmed = verifyMsg.trim();
+                                  if (!trimmed) {
+                                    setNotice("验证消息不能为空");
+                                    return;
+                                  }
                                   sendFriendRequestMutation.mutate({
                                     targetUserId: searchUserInfo.userId,
-                                    verifyMsg: verifyMsg || undefined,
+                                    verifyMsg: trimmed,
                                   });
                                 }}
                               >

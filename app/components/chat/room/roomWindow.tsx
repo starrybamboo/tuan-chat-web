@@ -698,13 +698,24 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
       // A. 发送文本 (如果前面没有被图片或语音消耗掉)
       if (textContent) {
-        const textMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: textContent,
-          messageType: MessageType.TEXT,
-          extra: {},
-        };
-        await sendMessageWithInsert(textMsg);
+        // WebGAL 指令消息：输入以 % 开头时，转为显式的 WEBGAL_COMMAND 类型。
+        // 注意：这里是“发送侧协议转换”，渲染侧不再依赖 % 前缀。
+        const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
+        const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
+        const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
+
+        if (isWebgalCommandInput && !normalizedContent) {
+          toast.error("WebGAL 指令不能为空");
+        }
+        else {
+          const textMsg: ChatMessageRequest = {
+            ...getCommonFields() as any,
+            content: normalizedContent,
+            messageType: isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT,
+            extra: {},
+          };
+          await sendMessageWithInsert(textMsg);
+        }
       }
 
       setInputText(""); // 调用重构的 setInputText 来清空

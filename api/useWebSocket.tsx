@@ -6,12 +6,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
+import toast from "react-hot-toast";
+import React from "react";
+import { useNavigate } from "react-router";
 import type {
   ChatStatusEvent,
   ChatStatusType,
   DirectMessageEvent,
   MemberChangePush, RoleChangePush, RoomExtraChangeEvent,
 } from "./wsModels";
+import type { NewFriendRequestPush } from "./wsModels";
 import {tuanchat} from "./instance";
 import {
   useGetUserSessionsQuery,
@@ -59,8 +63,115 @@ export interface WebsocketUtils {
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
 
+type WsDebugState = {
+  implementedTypes: number[];
+  unhandledTypes: number[];
+  countByType: Record<number, number>;
+  lastMessageByType: Record<number, any>;
+};
+
+function FriendRequestToastContent({
+  toastId,
+  displayName,
+  avatar,
+  verifyMsg,
+}: {
+  toastId: string;
+  displayName: string;
+  avatar?: string;
+  verifyMsg?: string;
+}) {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      className="w-[320px] max-w-[90vw] rounded-lg border border-base-300 bg-base-100 p-3 shadow-xl"
+      role="button"
+      tabIndex={0}
+      onClick={() => {
+        toast.dismiss(toastId);
+        navigate("/chat/private?tab=pending");
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toast.dismiss(toastId);
+          navigate("/chat/private?tab=pending");
+        }
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="avatar">
+          <div className="w-10 rounded-full">
+            {avatar
+              ? <img src={avatar} alt={displayName} />
+              : <div className="w-10 h-10 rounded-full bg-base-200" />}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="font-medium truncate">
+            {displayName}
+            <span className="opacity-70"> 向你发送了好友申请</span>
+          </div>
+          {verifyMsg
+            ? <div className="text-xs opacity-70 truncate mt-0.5">{verifyMsg}</div>
+            : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function useWebSocket() {
   const globalContext = useGlobalContext();
+
+  const notifyNewFriendRequest = useCallback(async (event: NewFriendRequestPush) => {
+    const friendReqId = event?.data?.friendReqId;
+    const toastId = typeof friendReqId === "number" ? `friend-req-${friendReqId}` : "friend-req";
+
+    try {
+      // 优先拉取好友申请列表详情，拿到头像/昵称
+      const res = await tuanchat.friendController.getFriendRequestPage({ pageNo: 1, pageSize: 50 });
+      const list = res.data?.list ?? [];
+      const req = Array.isArray(list)
+        ? list.find(r => (typeof friendReqId === "number" ? r?.id === friendReqId : false))
+        : undefined;
+
+      const isReceived = (req?.type ?? "received") === "received";
+      const userInfo = isReceived ? req?.fromUser : req?.toUser;
+      const displayName = userInfo?.username
+        || (isReceived ? (req?.fromId != null ? `用户${req.fromId}` : "某位用户") : (req?.toId != null ? `用户${req.toId}` : "某位用户"));
+      const avatar = userInfo?.avatar;
+      const verifyMsg = (req?.verifyMsg ?? event?.data?.verifyMsg ?? "").trim();
+
+      toast.custom(
+        t => (
+          <div className={t.visible ? "animate-enter" : "animate-leave"}>
+            <FriendRequestToastContent
+              toastId={t.id}
+              displayName={displayName}
+              avatar={avatar}
+              verifyMsg={verifyMsg}
+            />
+          </div>
+        ),
+        {
+          id: toastId,
+          position: "top-center",
+          duration: 8000,
+        },
+      );
+    }
+    catch {
+      // 拉取详情失败时，给一个单次兜底提示（避免“简易 + 详细”双弹窗）。
+      toast("收到新的好友申请", {
+        id: toastId,
+        position: "top-center",
+        duration: 6000,
+      });
+    }
+  }, []);
 
   const wsRef = useRef<WebSocket | null>(null);
   const isConnected = () => wsRef.current?.readyState === WebSocket.OPEN;
@@ -165,6 +276,48 @@ export function useWebSocket() {
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
 
+  // 这里代表“前端已显式实现处理逻辑”的 WS type（对应 onMessage 的 switch cases）。
+  // 未在该列表中的 type，会在运行时第一次收到时通过 default 分支提示。
+  const implementedWsTypes = useRef<Set<number>>(new Set([1, 4, 11, 12, 14, 15, 16, 17, 21, 100]));
+  const unhandledWsTypes = useRef<Set<number>>(new Set());
+  const countByTypeRef = useRef<Record<number, number>>({});
+
+  const syncWsDebugToWindow = useCallback(() => {
+    const g = globalThis as any;
+    const state: WsDebugState = {
+      implementedTypes: Array.from(implementedWsTypes.current).sort((a, b) => a - b),
+      unhandledTypes: Array.from(unhandledWsTypes.current).sort((a, b) => a - b),
+      countByType: countByTypeRef.current,
+      lastMessageByType: g.__TC_WS_DEBUG__?.lastMessageByType ?? {},
+    };
+    g.__TC_WS_DEBUG__ = state;
+  }, []);
+
+  const trackWsMessage = useCallback((message: WsMessage<any>) => {
+    const msgType = message?.type;
+    if (typeof msgType !== "number") return;
+
+    countByTypeRef.current[msgType] = (countByTypeRef.current[msgType] ?? 0) + 1;
+
+    const g = globalThis as any;
+    if (!g.__TC_WS_DEBUG__) {
+      g.__TC_WS_DEBUG__ = {
+        implementedTypes: [],
+        unhandledTypes: [],
+        countByType: {},
+        lastMessageByType: {},
+      } satisfies WsDebugState;
+    }
+
+    g.__TC_WS_DEBUG__.countByType = countByTypeRef.current;
+    g.__TC_WS_DEBUG__.lastMessageByType = {
+      ...(g.__TC_WS_DEBUG__.lastMessageByType ?? {}),
+      [msgType]: message,
+    };
+
+    syncWsDebugToWindow();
+  }, [syncWsDebugToWindow]);
+
   useEffect(() => {
     connect();
     return () => {
@@ -193,6 +346,7 @@ export function useWebSocket() {
       wsRef.current = new WebSocket(`${WS_URL}?token=${token}`);
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");
+        syncWsDebugToWindow();
         reconnectAttempts.current = 0;
         if (reconnectTimer.current) {
           clearTimeout(reconnectTimer.current);
@@ -223,6 +377,7 @@ export function useWebSocket() {
         try {
           const message: WsMessage<any> = JSON.parse(event.data);
           console.log("Received message:", JSON.stringify(message));
+          trackWsMessage(message);
           onMessage(message);
         }
         catch (error) {
@@ -298,8 +453,32 @@ export function useWebSocket() {
         handleChatStatusChange(message.data as ChatStatusEvent)
         break;
       }
+      case 21: { // 新的好友申请
+        const event = message as NewFriendRequestPush;
+        console.info("New friend request push:", event.data);
+        // 当前前端可能尚未接入好友申请列表，这里先做“缓存刷新钩子”，未来接入后能自动生效。
+        queryClient.invalidateQueries({ queryKey: ["friendReqPage"] });
+        queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
+        queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+        notifyNewFriendRequest(event);
+        break;
+      }
       case 100: { // Token invalidated
         // TODO
+        break;
+      }
+      default: {
+        const msgType = message.type;
+        const firstTime = !unhandledWsTypes.current.has(msgType);
+        unhandledWsTypes.current.add(msgType);
+        if (firstTime) {
+          console.warn(
+            `[WS] Unhandled message type: ${msgType}. 已记录到 window.__TC_WS_DEBUG__，请补齐前端处理逻辑。`,
+            message,
+          );
+        }
+        syncWsDebugToWindow();
+        break;
       }
     }
   }, []);
@@ -358,7 +537,12 @@ export function useWebSocket() {
    */
   const handleDirectChatMessage = (message: DirectMessageEvent) => {
     const {receiverId, senderId} = message;
-    const channelId = globalContext.userId === senderId ? receiverId : senderId; // 如果是自己发的私聊消息，则channelId为接收者Id
+    // receivedDirectMessages 需要按“对端 contactId”分组。
+    // 某些时机 globalContext.userId 可能尚未初始化，这里用 token 兜底，避免把消息错误分到自己名下导致会话列表不出现。
+    const selfUserId = globalContext.userId ?? token;
+    const channelId = selfUserId === senderId
+      ? receiverId
+      : (selfUserId === receiverId ? senderId : senderId);
 
     updateReceivedDirectMessages((draft)=>{
       // 去重，比如撤回操作就会出现相同消息id的情况。

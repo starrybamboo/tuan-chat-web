@@ -25,7 +25,7 @@
     - `canSendMessage?: boolean`
 
 - 发送好友申请：`POST /capi/friend/request/send`
-  - `FriendReqSendRequest { targetUserId, verifyMsg? }`
+  - `FriendReqSendRequest { targetUserId, verifyMsg }`（后端已改为必填）
 
 - 同意好友申请：`POST /capi/friend/request/accept`
   - `FriendReqHandleRequest { friendReqId }`
@@ -92,7 +92,7 @@
 
 2) 搜索用户结果增强
 - 在搜索结果项上展示 `FriendCheckResponse.statusDesc`
-- 非好友且非拉黑时，提供“验证信息（可选）+ 加好友”
+- 非好友且非拉黑时，提供“验证信息（必填）+ 加好友”（与后端 `@NotNull` 保持一致）
 - 当 `canSendMessage === false` 时，点击该用户进入私聊会被拦截并提示
 
 > 说明：这里选择了“私聊页内最小可用”的方式接入好友申请能力，不引入新的页面/路由。

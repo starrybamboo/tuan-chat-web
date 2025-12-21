@@ -40,24 +40,32 @@ export function useUnreadCount({ realTimeContacts, sortedRealTimeMessages, userI
 
 function getUnreadMessageNumber(sortedRealTimeMessages: [string, MessageDirectType[]][], contactId: number, userId: number) {
   const messages = sortedRealTimeMessages.find(([id]) => Number(id) === contactId)?.[1] || [];
-  const latestMessageIndex = messages.findIndex(msg => msg.messageType !== 10000 && msg.senderId === contactId);
-  const latestMessageSync = messages.find(msg => msg.messageType !== 10000 && msg.senderId === contactId)?.syncId || 0;
-  const readlineIndex = messages.findIndex(msg => msg.messageType === 10000 && msg.senderId === userId);
-  const readlineSync = messages.find(msg => msg.messageType === 10000 && msg.senderId === userId)?.syncId || 0;
 
-  // 如果没有未读消息
-  if (latestMessageSync <= readlineSync) {
+  // readLine：由服务端写入的“已读标记消息”（messageType === 10000, senderId === userId）
+  // 部分会话可能没有 readLine，此时视为 readLineSync = 0。
+  const readLineSync = messages.reduce((max, msg) => {
+    if (msg?.messageType === 10000 && msg?.senderId === userId) {
+      return Math.max(max, msg?.syncId ?? 0);
+    }
+    return max;
+  }, 0);
+
+  // 最新一条来自对方的有效消息 syncId
+  const latestIncomingSync = messages.reduce((max, msg) => {
+    if (msg?.senderId === contactId && msg?.messageType !== 10000) {
+      return Math.max(max, msg?.syncId ?? 0);
+    }
+    return max;
+  }, 0);
+
+  if (latestIncomingSync <= readLineSync) {
     return 0;
   }
 
-  let unreadCount = 0;
-  let index = readlineIndex;
-  while (index >= latestMessageIndex || index > -1) {
-    if (messages[index]?.senderId === contactId && messages[index]?.messageType !== 10000) {
-      unreadCount++;
-    }
-    index--;
-  }
-
-  return unreadCount;
+  // 未读：对方发送且 syncId > readLineSync 的有效消息数量
+  return messages.filter((msg) => {
+    return msg?.senderId === contactId
+      && msg?.messageType !== 10000
+      && (msg?.syncId ?? 0) > readLineSync;
+  }).length;
 }

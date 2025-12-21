@@ -162,7 +162,8 @@ function mergeMessages(
     });
 
     // 将 Map 转化为数组
-    const messageArray = Array.from(messageMap.values());
+    const messageArray = Array.from(messageMap.values())
+      .sort((a, b) => (b?.syncId ?? 0) - (a?.syncId ?? 0));
 
     if (messageArray.length > 0) {
       mergedMessages.set(contactId, messageArray);
