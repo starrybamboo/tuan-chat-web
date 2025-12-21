@@ -89,6 +89,9 @@ pnpm lint:fix
 
 websocket的utils
 
+- 已支持好友申请推送（WS `type=21`）的基础处理（缓存刷新钩子）。
+- 为了方便排查“还有哪些 WS 类型没处理”，会把已实现/未处理类型与最近消息记录到 `window.__TC_WS_DEBUG__`，并在首次遇到未知 `type` 时 `console.warn`。
+
 ### hooks/\*\* ，useQueryHooks.tsx
 
 存放react-query相关的钩子函数。

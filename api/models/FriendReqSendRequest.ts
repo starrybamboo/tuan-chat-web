@@ -13,6 +13,6 @@ export type FriendReqSendRequest = {
     /**
      * 验证信息
      */
-    verifyMsg?: string;
+    verifyMsg: string;
 };
 

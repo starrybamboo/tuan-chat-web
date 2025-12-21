@@ -32,6 +32,7 @@ import {
   useGetUserSpacesQuery,
   useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
+import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
@@ -65,6 +66,10 @@ export default function ChatPage() {
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
+
+  // space 自定义排序（纯本地）
+  // 用一个固定 key 保存所有用户的排序，避免 useLocalStorage 不支持动态 key 的问题。
+  const [spaceOrderByUser, setSpaceOrderByUser] = useLocalStorage<Record<string, number[]>>("spaceOrderByUser", {});
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
 
   const setActiveSpaceId = useCallback((spaceId: number | null) => {
@@ -145,6 +150,49 @@ export default function ChatPage() {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
 
+  const spaceOrder = useMemo(() => {
+    return spaceOrderByUser[String(userId)] ?? [];
+  }, [spaceOrderByUser, userId]);
+
+  const orderedSpaces = useMemo(() => {
+    if (!Array.isArray(spaces) || spaces.length <= 1) {
+      return spaces;
+    }
+
+    const orderIndex = new Map<number, number>();
+    for (let i = 0; i < spaceOrder.length; i++) {
+      orderIndex.set(spaceOrder[i]!, i);
+    }
+
+    return [...spaces]
+      .map((space, originalIndex) => {
+        const sid = space.spaceId ?? -1;
+        const order = orderIndex.get(sid);
+        return { space, originalIndex, order };
+      })
+      .sort((a, b) => {
+        const ao = a.order ?? Number.POSITIVE_INFINITY;
+        const bo = b.order ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo)
+          return ao - bo;
+        return a.originalIndex - b.originalIndex;
+      })
+      .map(x => x.space);
+  }, [spaces, spaceOrder]);
+
+  const orderedSpaceIds = useMemo(() => {
+    return orderedSpaces
+      .map(s => s.spaceId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  }, [orderedSpaces]);
+
+  const setUserSpaceOrder = useCallback((nextOrder: number[]) => {
+    setSpaceOrderByUser(prev => ({
+      ...prev,
+      [String(userId)]: nextOrder,
+    }));
+  }, [setSpaceOrderByUser, userId]);
+
   // 私聊未读消息：复用私聊列表现有计算逻辑（用于左侧“私信入口”角标）
   const privateMessageList = usePrivateMessageList({ globalContext, userId });
   const { unreadMessageNumbers: privateUnreadMessageNumbers } = useUnreadCount({
@@ -162,6 +210,19 @@ export default function ChatPage() {
       return sum + (privateUnreadMessageNumbers[contactId] ?? 0);
     }, 0);
   }, [activeRoomId, isPrivateChatMode, privateMessageList.realTimeContacts, privateUnreadMessageNumbers]);
+
+  // 待处理好友申请数：合并到私信入口角标
+  const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 });
+  const pendingFriendRequestCount = useMemo(() => {
+    const list = friendRequestPageQuery.data?.data?.list ?? [];
+    if (!Array.isArray(list))
+      return 0;
+    return list.filter((r: any) => r?.type === "received" && r?.status === 1).length;
+  }, [friendRequestPageQuery.data?.data?.list]);
+
+  const privateEntryBadgeCount = useMemo(() => {
+    return privateTotalUnreadMessages + pendingFriendRequestCount;
+  }, [pendingFriendRequestCount, privateTotalUnreadMessages]);
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
@@ -191,7 +252,10 @@ export default function ChatPage() {
     const target = e.target as HTMLElement;
     // 向上查找包含data-space-id属性的父元素
     const spaceElement = target.closest("[data-space-id]");
-    setSpaceContextMenu({ x: e.clientX, y: e.clientY, spaceId: Number(spaceElement?.getAttribute("data-space-id")) });
+    const rawSpaceId = spaceElement?.getAttribute("data-space-id");
+    if (!rawSpaceId)
+      return;
+    setSpaceContextMenu({ x: e.clientX, y: e.clientY, spaceId: Number(rawSpaceId) });
   }
 
   // 处理点击外部关闭房间右键菜单的逻辑
@@ -349,10 +413,12 @@ export default function ChatPage() {
             {/* 空间列表 */}
             <ChatSpaceSidebar
               isPrivateChatMode={isPrivateChatMode}
-              spaces={spaces}
+              spaces={orderedSpaces}
+              spaceOrderIds={orderedSpaceIds}
+              onReorderSpaceIds={setUserSpaceOrder}
               activeSpaceId={activeSpaceId}
               getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-              privateUnreadMessagesNumber={privateTotalUnreadMessages}
+              privateUnreadMessagesNumber={privateEntryBadgeCount}
               onOpenPrivate={() => {
                 setActiveSpaceId(null);
                 setActiveRoomId(null);

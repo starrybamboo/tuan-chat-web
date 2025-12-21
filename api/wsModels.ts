@@ -15,6 +15,7 @@ export enum MessageType {
     DICE = 6,
     SOUND = 7,
     EFFECT = 8,
+    WEBGAL_COMMAND = 10,
     CLUE_CARD = 1000,
     THREAD_ROOT = 10001,
 }
@@ -46,6 +47,8 @@ export interface ChatMessage extends BaseMessage<{
     avatarId: number;
     content: string;
     replayMessageId?: number;
+    /** WebGAL 相关演出设置/指令等（后端为 JSON 字段，透传即可） */
+    webgal?: any;
     extra?: any;
 }> {
     type: 3;
@@ -261,6 +264,15 @@ export interface ModRoleChangePush extends BaseMessage<{}> {
     type: 18;
 }
 
+// 新的好友申请 (type: 21)
+export interface NewFriendRequestPush extends BaseMessage<{
+    friendReqId: number;
+    targetUserId: number;
+    verifyMsg: string;
+}> {
+    type: 21;
+}
+
 // 志愿者注册成功 (type: 20000)
 export interface VolunteerRegisterSuccessPush extends BaseMessage<null> {
     type: 20000;
@@ -324,6 +336,7 @@ export type ServerWebSocketMessage =
     | RoomMuteStatusPush
     | MemberChatStatusPush
     | ModRoleChangePush
+    | NewFriendRequestPush
     | VolunteerRegisterSuccessPush
     | VolunteerHeartbeatAckPush
     | TaskAssignmentPush

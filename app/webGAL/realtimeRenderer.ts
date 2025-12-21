@@ -1313,6 +1313,17 @@ export class RealtimeRenderer {
       return;
     }
 
+    // WebGAL 指令消息：直接写入场景脚本
+    // 约定：msg.content 是一行完整的 WebGAL 脚本（可包含分号结尾）
+    if ((msg.messageType as number) === 10) {
+      if (!msg.content?.trim())
+        return;
+      await this.appendLine(targetRoomId, msg.content.trim(), syncToFile);
+      if (syncToFile)
+        this.sendSyncMessage(targetRoomId);
+      return;
+    }
+
     // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
     if (msg.messageType !== 1 && msg.messageType !== 9)
       return;
@@ -1320,14 +1331,6 @@ export class RealtimeRenderer {
     // 跳过空消息
     if (!msg.content?.trim())
       return;
-
-    // 跳过 WebGAL 指令消息（以 % 开头）
-    if (msg.content.startsWith("%")) {
-      await this.appendLine(targetRoomId, msg.content.slice(1), syncToFile);
-      if (syncToFile)
-        this.sendSyncMessage(targetRoomId);
-      return;
-    }
 
     // 判断消息类型：黑屏文字（messageType === 9）
     const isIntroText = (msg.messageType as number) === 9;
@@ -1480,8 +1483,7 @@ export class RealtimeRenderer {
         && roleId !== 0 // 跳过系统角色
         && roleId !== 2 // 跳过骰娘
         && !msg.content.startsWith(".") // 跳过指令
-        && !msg.content.startsWith("。")
-        && !msg.content.startsWith("%")) {
+        && !msg.content.startsWith("。")) {
         vocalFileName = await this.generateAndUploadVocal(
           processedContent,
           roleId,
