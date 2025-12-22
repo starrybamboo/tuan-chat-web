@@ -23,7 +23,7 @@ export class CommunityPostControllerService {
     ): CancelablePromise<ApiResultPostWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/post/publish',
+            url: '/community/post/publish',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -46,7 +46,7 @@ export class CommunityPostControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponsePostListWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/post/posts',
+            url: '/community/post/posts',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -69,7 +69,7 @@ export class CommunityPostControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponsePostListWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/post/page',
+            url: '/community/post/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -92,7 +92,7 @@ export class CommunityPostControllerService {
     ): CancelablePromise<ApiResultPostWithStatsResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/community/post/detail',
+            url: '/community/post/detail',
             query: {
                 'postId': postId,
             },
@@ -116,7 +116,7 @@ export class CommunityPostControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/community/post/delete',
+            url: '/community/post/delete',
             query: {
                 'postId': postId,
             },

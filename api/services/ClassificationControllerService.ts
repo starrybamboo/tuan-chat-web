@@ -20,7 +20,7 @@ export class ClassificationControllerService {
     ): CancelablePromise<ApiResultListClassificationResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/classification/by-item',
+            url: '/classification/by-item',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -42,7 +42,7 @@ export class ClassificationControllerService {
     ): CancelablePromise<ApiResultListClassificationItemResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/classification',
+            url: '/classification',
             query: {
                 'classificationId': classificationId,
             },
@@ -65,7 +65,7 @@ export class ClassificationControllerService {
     ): CancelablePromise<ApiResultListClassificationResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/classification/list',
+            url: '/classification/list',
             query: {
                 'type': type,
             },

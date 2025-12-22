@@ -70,6 +70,12 @@ export default function ChatPage() {
   // space 自定义排序（纯本地）
   // 用一个固定 key 保存所有用户的排序，避免 useLocalStorage 不支持动态 key 的问题。
   const [spaceOrderByUser, setSpaceOrderByUser] = useLocalStorage<Record<string, number[]>>("spaceOrderByUser", {});
+  // room 自定义排序（纯本地）
+  // key: userId -> spaceId -> roomIds
+  const [roomOrderByUserAndSpace, setRoomOrderByUserAndSpace] = useLocalStorage<Record<string, Record<string, number[]>>>(
+    "roomOrderByUserAndSpace",
+    {},
+  );
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
 
   const setActiveSpaceId = useCallback((spaceId: number | null) => {
@@ -84,6 +90,45 @@ export default function ChatPage() {
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${newSearchParams.toString()}`);
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
+
+  // 主区域视图：不再用 URL 管理（避免 URL 变得过长/冲突）
+  type RoomSettingTab = "role" | "setting";
+  type SpaceDetailTab = "members" | "workflow" | "setting";
+  const [mainView, setMainView] = useState<"chat" | "spaceDetail" | "roomSetting">("chat");
+  const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
+  const [roomSettingState, setRoomSettingState] = useState<{ roomId: number; tab: RoomSettingTab } | null>(null);
+
+  // 清理历史遗留的 URL 参数（roomSetting*/spaceDetail*），让 URL 回归干净
+  const hasCleanedSettingsUrlRef = useRef(false);
+  useEffect(() => {
+    if (hasCleanedSettingsUrlRef.current)
+      return;
+    hasCleanedSettingsUrlRef.current = true;
+
+    const keys = ["spaceDetailTab", "spaceDetailPop", "roomSettingRoomId", "roomSettingTab"];
+    const shouldClean = keys.some(k => searchParam.has(k));
+    if (!shouldClean)
+      return;
+
+    const next = new URLSearchParams(searchParam);
+    for (const k of keys) {
+      next.delete(k);
+    }
+    navigate({ search: `?${next.toString()}` }, { replace: true });
+  }, [navigate, searchParam]);
+
+  const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
+    if (roomId == null)
+      return;
+    setRoomSettingState({ roomId, tab: tab ?? "role" });
+    setMainView("roomSetting");
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, []);
+
+  const closeRoomSettingPage = useCallback(() => {
+    setRoomSettingState(null);
+    setMainView("chat");
+  }, []);
 
   const hasInitPrivateChatRef = useRef(false);
   useEffect(() => {
@@ -125,26 +170,22 @@ export default function ChatPage() {
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
   // 创建房间弹窗是否打开
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
-  // 是否显示space详情
-  const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
-  const [_spaceDetailTab, _setSpaceDetailTab] = useSearchParamsState<"members" | "render" | "workflow" | "setting">("spaceDetailTab", "members");
 
-  const openSpaceDetailPanel = useCallback((tab: "members" | "render" | "workflow" | "setting") => {
-    const next = new URLSearchParams(searchParam);
-    next.set("spaceDetailTab", JSON.stringify(tab));
-    next.set("spaceDetailPop", JSON.stringify(true));
-    navigate({ search: `?${next.toString()}` });
+  const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab) => {
+    setSpaceDetailTab(tab);
+    setRoomSettingState(null);
+    setMainView("spaceDetail");
     (document.activeElement as HTMLElement | null)?.blur?.();
-  }, [navigate, searchParam]);
+  }, []);
+
+  const closeSpaceDetailPanel = useCallback(() => {
+    setMainView("chat");
+  }, []);
   // 空间成员邀请窗口状态
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
-  // 房间设置窗口状态
-  const [activeRoomSettingId, setActiveRoomSettingId] = useState<number | null>(null);
-  const [activeRoomSettingTab, setActiveRoomSettingTab] = useState<"role" | "setting" | "render">("role");
   // 房间邀请窗口状态
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
-  const [_isRenderWindowOpen, _setIsRenderWindowOpen] = useState(false);
 
   // 获取当前用户信息
   const globalContext = useGlobalContext();
@@ -192,6 +233,58 @@ export default function ChatPage() {
       [String(userId)]: nextOrder,
     }));
   }, [setSpaceOrderByUser, userId]);
+
+  const roomOrder = useMemo(() => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return [];
+    return roomOrderByUserAndSpace[String(userId)]?.[String(activeSpaceId)] ?? [];
+  }, [activeSpaceId, isPrivateChatMode, roomOrderByUserAndSpace, userId]);
+
+  const orderedRooms = useMemo(() => {
+    if (!Array.isArray(rooms) || rooms.length <= 1) {
+      return rooms;
+    }
+
+    const orderIndex = new Map<number, number>();
+    for (let i = 0; i < roomOrder.length; i++) {
+      orderIndex.set(roomOrder[i]!, i);
+    }
+
+    return [...rooms]
+      .map((room, originalIndex) => {
+        const rid = room.roomId ?? -1;
+        const order = orderIndex.get(rid);
+        return { room, originalIndex, order };
+      })
+      .sort((a, b) => {
+        const ao = a.order ?? Number.POSITIVE_INFINITY;
+        const bo = b.order ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo)
+          return ao - bo;
+        return a.originalIndex - b.originalIndex;
+      })
+      .map(x => x.room);
+  }, [rooms, roomOrder]);
+
+  const orderedRoomIds = useMemo(() => {
+    return orderedRooms
+      .map(r => r.roomId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  }, [orderedRooms]);
+
+  const setUserRoomOrder = useCallback((nextOrder: number[]) => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return;
+    const userKey = String(userId);
+    const spaceKey = String(activeSpaceId);
+    setRoomOrderByUserAndSpace(prev => ({
+      ...prev,
+      [userKey]: {
+        ...(prev[userKey] ?? {}),
+        [spaceKey]: nextOrder,
+      },
+    }));
+  }, [activeSpaceId, isPrivateChatMode, setRoomOrderByUserAndSpace, userId]);
 
   // 私聊未读消息：复用私聊列表现有计算逻辑（用于左侧“私信入口”角标）
   const privateMessageList = usePrivateMessageList({ globalContext, userId });
@@ -439,7 +532,9 @@ export default function ChatPage() {
               activeSpaceId={activeSpaceId}
               activeSpaceName={activeSpace?.name}
               isSpaceOwner={!!spaceContext.isSpaceOwner}
-              rooms={rooms}
+              rooms={orderedRooms}
+              roomOrderIds={orderedRoomIds}
+              onReorderRoomIds={setUserRoomOrder}
               activeRoomId={activeRoomId}
               unreadMessagesNumber={unreadMessagesNumber}
               onContextMenu={handleContextMenu}
@@ -450,8 +545,7 @@ export default function ChatPage() {
               }}
               onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
               onOpenRoomSetting={(roomId, tab) => {
-                setActiveRoomSettingId(roomId);
-                tab && setActiveRoomSettingTab(tab);
+                openRoomSettingPage(roomId, tab);
               }}
               setIsOpenLeftDrawer={setIsOpenLeftDrawer}
               onCreateRoom={() => {
@@ -481,7 +575,35 @@ export default function ChatPage() {
               <>
                 {
                   activeSpaceId
-                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} targetMessageId={targetMessageId} />
+                    ? (
+                        mainView === "spaceDetail"
+                          ? (
+                              <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                <div className="w-full h-full overflow-auto flex justify-center p-2">
+                                  <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
+                                </div>
+                              </div>
+                            )
+                          : (mainView === "roomSetting" && roomSettingState)
+                              ? (
+                                  <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                    <div className="w-full h-full overflow-auto flex justify-center p-2">
+                                      <RoomSettingWindow
+                                        roomId={roomSettingState.roomId}
+                                        onClose={closeRoomSettingPage}
+                                        defaultTab={roomSettingState.tab}
+                                      />
+                                    </div>
+                                  </div>
+                                )
+                              : (
+                                  <RoomWindow
+                                    roomId={activeRoomId ?? -1}
+                                    spaceId={activeSpaceId ?? -1}
+                                    targetMessageId={targetMessageId}
+                                  />
+                                )
+                      )
                     : (
                         <div className="flex items-center justify-center w-full h-full font-bold">
                           <span className="text-center lg:hidden">请从右侧选择房间</span>
@@ -509,23 +631,6 @@ export default function ChatPage() {
               setIsRoomHandleOpen(false);
             }}
           />
-        </PopWindow>
-        <PopWindow isOpen={isShowSpacePanel} onClose={() => setIsShowSpacePanel(false)}>
-          <SpaceDetailPanel></SpaceDetailPanel>
-        </PopWindow>
-        {/* 房间设置窗口 */}
-        <PopWindow
-          isOpen={activeRoomSettingId !== null}
-          onClose={() => setActiveRoomSettingId(null)}
-        >
-          {/* 严格判定，只有非 null（有效 id）才渲染窗口 */}
-          {activeRoomSettingId !== null && (
-            <RoomSettingWindow
-              roomId={activeRoomSettingId}
-              onClose={() => setActiveRoomSettingId(null)}
-              defaultTab={activeRoomSettingTab}
-            />
-          )}
         </PopWindow>
         {/* 房间邀请玩家窗口 */}
         <PopWindow

@@ -23,7 +23,7 @@ export class DistributedTaskService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/distributed-task/{taskId}/cancel',
+            url: '/distributed-task/{taskId}/cancel',
             path: {
                 'taskId': taskId,
             },
@@ -46,7 +46,7 @@ export class DistributedTaskService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/distributed-task/create',
+            url: '/distributed-task/create',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -68,7 +68,7 @@ export class DistributedTaskService {
     ): CancelablePromise<ApiResultDistributedTask> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/distributed-task/{taskId}',
+            url: '/distributed-task/{taskId}',
             path: {
                 'taskId': taskId,
             },
@@ -91,7 +91,7 @@ export class DistributedTaskService {
     ): CancelablePromise<ApiResultListDistributedTask> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/distributed-task/type/{taskType}',
+            url: '/distributed-task/type/{taskType}',
             path: {
                 'taskType': taskType,
             },
@@ -111,7 +111,7 @@ export class DistributedTaskService {
     public getStatistics2(): CancelablePromise<ApiResultTaskStatistics> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/distributed-task/statistics',
+            url: '/distributed-task/statistics',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -128,7 +128,7 @@ export class DistributedTaskService {
     public getPendingTasks(): CancelablePromise<ApiResultListDistributedTask> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/distributed-task/pending',
+            url: '/distributed-task/pending',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -148,7 +148,7 @@ export class DistributedTaskService {
     ): CancelablePromise<ApiResultListDistributedTask> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/distributed-task/failed',
+            url: '/distributed-task/failed',
             query: {
                 'limit': limit,
             },
@@ -171,7 +171,7 @@ export class DistributedTaskService {
     ): CancelablePromise<ApiResultListDistributedTask> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/distributed-task/completed',
+            url: '/distributed-task/completed',
             query: {
                 'limit': limit,
             },

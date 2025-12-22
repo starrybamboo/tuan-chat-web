@@ -98,7 +98,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
       // 物品
       const name = getUniqueName("新物品", listByType[1]);
       addItem({
-        stageId,
+        spaceId: stageId,
         name,
         entityInfo: {
           tip: "悄悄地告诉kp",
@@ -112,7 +112,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
       // 地点
       const name = getUniqueName("新地点", listByType[4]);
       addLocation({
-        stageId,
+        spaceId: stageId,
         name,
         entityInfo: {
           tip: "给予的提示",
@@ -126,7 +126,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
   // 处理 CreateRole 弹窗确认选择（将选中的角色绑定到当前 stage）
   const handleAttachSelectedRoles = (selectedRoles: Array<{ id: number }>) => {
     selectedRoles.forEach((r) => {
-      attachRoleToStage({ stageId, roleId: r.id, type: 1 });
+      attachRoleToStage({ spaceId: stageId, roleId: r.id, type: 1 });
     });
   };
 
@@ -142,7 +142,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
           name = `新角色${newCounter}`;
         }
         addRole({
-          stageId,
+          spaceId: stageId,
           name,
           entityInfo: {
             avatarIds: [],

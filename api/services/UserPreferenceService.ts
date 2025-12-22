@@ -20,7 +20,7 @@ export class UserPreferenceService {
     ): CancelablePromise<ApiResultUserPreferenceResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/user/preference',
+            url: '/user/preference',
             query: {
                 'userId': userId,
             },
@@ -43,7 +43,7 @@ export class UserPreferenceService {
     ): CancelablePromise<ApiResultUserPreferenceResponse> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/user/preference',
+            url: '/user/preference',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -65,7 +65,7 @@ export class UserPreferenceService {
     ): CancelablePromise<ApiResultUserPreferenceResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/preference',
+            url: '/user/preference',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -87,7 +87,7 @@ export class UserPreferenceService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/user/preference',
+            url: '/user/preference',
             query: {
                 'userId': userId,
             },

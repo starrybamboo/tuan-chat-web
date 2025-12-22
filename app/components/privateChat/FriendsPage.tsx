@@ -10,11 +10,12 @@ import {
   useRejectFriendRequestMutation,
   useSendFriendRequestMutation,
 } from "api/hooks/friendQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 type FriendsTab = "all" | "pending" | "add";
+type AddFriendSearchMode = "id" | "username";
 
 export default function FriendsPage({
   setIsOpenLeftDrawer,
@@ -36,11 +37,14 @@ export default function FriendsPage({
   }, [searchParams]);
 
   // 添加好友（按用户ID搜索）
-  const [inputUserId, setInputUserId] = useState<number>(-1);
+  const [inputKeyword, setInputKeyword] = useState<string>("");
+  const [searchMode, setSearchMode] = useState<AddFriendSearchMode>("id");
   const [searchUserId, setSearchUserId] = useState<number>(-1);
+  const [searchUsername, setSearchUsername] = useState<string>("");
   const [searching, setSearching] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState<string>("");
   const [notice, setNotice] = useState<string>("");
+  const [noticeType, setNoticeType] = useState<"warning" | "success">("warning");
 
   const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
   const friendUserInfos: FriendResponse[] = useMemo(
@@ -59,10 +63,31 @@ export default function FriendsPage({
   const rejectFriendRequestMutation = useRejectFriendRequestMutation();
   const deleteFriendMutation = useDeleteFriendMutation();
 
-  const searchUserInfo = useGetUserInfoQuery(searchUserId).data?.data || null;
-  const friendCheckQuery = useCheckFriendQuery(searchUserId, searching && searchUserId > 0);
+  const searchUserInfoById = useGetUserInfoQuery(searchUserId).data?.data || null;
+  const searchUserInfoByUsername = useGetUserInfoByUsernameQuery(searchUsername).data?.data || null;
+  const searchUserInfo = searchMode === "username" ? searchUserInfoByUsername : searchUserInfoById;
+  const targetUserId = searchUserInfo?.userId || -1;
+  const friendCheckQuery = useCheckFriendQuery(targetUserId, searching && targetUserId > 0);
   const friendCheck = friendCheckQuery.data?.data;
   const sendFriendRequestMutation = useSendFriendRequestMutation();
+
+  function showNotice(text: string, type: "warning" | "success" = "warning") {
+    setNoticeType(type);
+    setNotice(text);
+  }
+
+  function getErrorMessage(error: unknown): string | undefined {
+    const anyError = error as any;
+    const errMsg = anyError?.body?.errMsg || anyError?.errMsg;
+    if (typeof errMsg === "string" && errMsg.trim()) {
+      return errMsg.trim();
+    }
+    const message = anyError?.message;
+    if (typeof message === "string" && message.trim()) {
+      return message.trim();
+    }
+    return undefined;
+  }
 
   const filteredFriends = useMemo(() => {
     const keyword = friendKeyword.trim().toLowerCase();
@@ -76,16 +101,40 @@ export default function FriendsPage({
     });
   }, [friendKeyword, friendUserInfos]);
 
-  const pendingCountText = pendingReceivedRequests.length > 0
-    ? `(${pendingReceivedRequests.length})`
-    : "";
-
-  function searchInputUserId() {
-    if (inputUserId && inputUserId > 0) {
-      setNotice("");
-      setSearching(true);
-      setSearchUserId(inputUserId);
+  const pendingBadgeText = useMemo(() => {
+    const count = pendingReceivedRequests.length;
+    if (count <= 0) {
+      return null;
     }
+    if (count > 99) {
+      return "99+";
+    }
+    return String(count);
+  }, [pendingReceivedRequests.length]);
+
+  function searchInputKeyword() {
+    const keyword = inputKeyword.trim();
+    if (!keyword) {
+      return;
+    }
+
+    setNotice("");
+    setVerifyMsg("");
+    setSearching(true);
+
+    if (/^\d+$/.test(keyword)) {
+      const id = Number.parseInt(keyword, 10);
+      if (id > 0) {
+        setSearchMode("id");
+        setSearchUsername("");
+        setSearchUserId(id);
+      }
+      return;
+    }
+
+    setSearchMode("username");
+    setSearchUserId(-1);
+    setSearchUsername(keyword);
   }
 
   return (
@@ -116,8 +165,16 @@ export default function FriendsPage({
               className={`btn btn-sm join-item ${tab === "pending" ? "btn-active" : "btn-ghost"}`}
               onClick={() => setTab("pending")}
             >
-              待处理
-              {pendingCountText}
+              <span className="indicator">
+                {pendingBadgeText && (
+                  <span className="indicator-item badge badge-error badge-xs">
+                    {pendingBadgeText}
+                  </span>
+                )}
+                <span>
+                  待处理
+                </span>
+              </span>
             </button>
           </div>
 
@@ -205,6 +262,7 @@ export default function FriendsPage({
                             navigate(`/profile/${friend?.userId}`);
                           }}
                           aria-label="查看主页"
+                          title="前往主页"
                         >
                           <HomeIcon className="size-4" />
                         </button>
@@ -224,6 +282,7 @@ export default function FriendsPage({
                             deleteFriendMutation.mutate({ targetUserId: friend.userId });
                           }}
                           aria-label="删除好友"
+                          title="删除好友"
                         >
                           <BaselineDeleteOutline className="size-4" />
                         </button>
@@ -313,32 +372,36 @@ export default function FriendsPage({
             {tab === "add" && (
               <div className="px-4 pt-4">
                 <div className="font-semibold">添加好友</div>
-                <div className="text-xs opacity-70 mt-1">通过用户ID发送好友申请。</div>
+                <div className="text-xs opacity-70 mt-1">通过用户ID或用户名发送好友申请。</div>
 
                 <div className="mt-4">
                   <div className="relative">
                     <input
                       type="text"
                       className="input input-md w-full"
-                      placeholder="输入用户ID，按 Enter 或点击搜索"
-                      value={inputUserId > 0 ? inputUserId : ""}
+                      placeholder="输入用户ID或用户名，按 Enter 或点击搜索"
+                      value={inputKeyword}
                       onChange={(e) => {
-                        setInputUserId(Number.parseInt(e.target.value));
-                        if (!e.target.value) {
+                        setInputKeyword(e.target.value);
+                        if (!e.target.value.trim()) {
                           setSearching(false);
                           setSearchUserId(-1);
+                          setSearchUsername("");
+                          setSearchMode("id");
+                          setNotice("");
+                          setVerifyMsg("");
                         }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          searchInputUserId();
+                          searchInputKeyword();
                         }
                       }}
                     />
                     <button
                       type="button"
                       className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-sm btn-square"
-                      onClick={searchInputUserId}
+                      onClick={searchInputKeyword}
                       aria-label="搜索"
                     >
                       <Search className="size-5" />
@@ -347,9 +410,11 @@ export default function FriendsPage({
                       type="button"
                       className="absolute right-12 top-1/2 -translate-y-1/2 btn btn-ghost btn-sm btn-square"
                       onClick={() => {
-                        setInputUserId(-1);
+                        setInputKeyword("");
                         setSearching(false);
                         setSearchUserId(-1);
+                        setSearchUsername("");
+                        setSearchMode("id");
                         setNotice("");
                         setVerifyMsg("");
                       }}
@@ -361,7 +426,7 @@ export default function FriendsPage({
 
                   {notice && (
                     <div className="mt-3">
-                      <div className="alert alert-warning py-2">
+                      <div className={`alert ${noticeType === "success" ? "alert-success" : "alert-warning"} py-2`}>
                         <span className="text-sm">{notice}</span>
                       </div>
                     </div>
@@ -375,7 +440,6 @@ export default function FriendsPage({
                               className="flex items-center justify-between p-3 rounded-md bg-base-200/40 cursor-pointer hover:bg-base-200"
                               onClick={() => {
                                 if (friendCheck?.canSendMessage === false) {
-                                  setNotice("当前无法发送私聊消息，请先成为好友或解除限制");
                                   return;
                                 }
                                 setSearching(false);
@@ -404,42 +468,91 @@ export default function FriendsPage({
 
                               <div className="flex items-center gap-2">
                                 {!friendCheck?.isFriend && friendCheck?.status !== 3 && (
-                                  <div className="flex items-end gap-2">
-                                    <input
-                                      type="text"
-                                      className="input input-sm w-48"
-                                      placeholder="验证信息（必填）"
-                                      value={verifyMsg}
-                                      onClick={e => e.stopPropagation()}
-                                      onChange={e => setVerifyMsg(e.target.value)}
-                                    />
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-primary"
-                                      disabled={
-                                        sendFriendRequestMutation.isPending
-                                        || !searchUserInfo?.userId
-                                        || friendCheckQuery.isLoading
-                                        || friendCheck?.status === 1
-                                        || verifyMsg.trim().length === 0
+                                  <div
+                                    className="flex items-end gap-2"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <div className="form-control">
+                                      <label className="label py-0">
+                                        <span className="label-text text-xs">
+                                          验证信息
+                                          <span className="text-error ml-1">*</span>
+                                        </span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        className="input input-sm input-bordered w-64"
+                                        placeholder="必填：简单说明你是谁/为何添加"
+                                        value={verifyMsg}
+                                        onClick={e => e.stopPropagation()}
+                                        onChange={e => setVerifyMsg(e.target.value)}
+                                      />
+                                    </div>
+                                    {(() => {
+                                      const isVerifyMissing = verifyMsg.trim().length === 0;
+                                      const isAlreadyRequested = friendCheck?.status === 1;
+                                      const disabled
+                                        = sendFriendRequestMutation.isPending
+                                          || !searchUserInfo?.userId
+                                          || friendCheckQuery.isLoading
+                                          || isAlreadyRequested
+                                          || isVerifyMissing;
+                                      const needVerifyTip
+                                        = isVerifyMissing
+                                          && !sendFriendRequestMutation.isPending
+                                          && !!searchUserInfo?.userId
+                                          && !friendCheckQuery.isLoading
+                                          && !isAlreadyRequested;
+
+                                      const buttonNode = (
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-primary"
+                                          disabled={disabled}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!searchUserInfo?.userId)
+                                              return;
+                                            const trimmed = verifyMsg.trim();
+                                            if (!trimmed) {
+                                              showNotice("请填写验证信息", "warning");
+                                              return;
+                                            }
+                                            sendFriendRequestMutation.mutate(
+                                              {
+                                                targetUserId: searchUserInfo.userId,
+                                                verifyMsg: trimmed,
+                                              },
+                                              {
+                                                onSuccess: () => {
+                                                  showNotice("好友申请已发送", "success");
+                                                },
+                                                onError: (error) => {
+                                                  const message = getErrorMessage(error);
+                                                  showNotice(message || "发送失败，请稍后重试", "warning");
+                                                },
+                                              },
+                                            );
+                                          }}
+                                        >
+                                          {isAlreadyRequested ? "已申请" : "发送申请"}
+                                        </button>
+                                      );
+
+                                      if (!needVerifyTip) {
+                                        return buttonNode;
                                       }
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (!searchUserInfo?.userId)
-                                          return;
-                                        const trimmed = verifyMsg.trim();
-                                        if (!trimmed) {
-                                          setNotice("验证消息不能为空");
-                                          return;
-                                        }
-                                        sendFriendRequestMutation.mutate({
-                                          targetUserId: searchUserInfo.userId,
-                                          verifyMsg: trimmed,
-                                        });
-                                      }}
-                                    >
-                                      {friendCheck?.status === 1 ? "已申请" : "发送申请"}
-                                    </button>
+
+                                      return (
+                                        <span
+                                          className="inline-block"
+                                          title="请填写验证信息"
+                                          onClick={e => e.stopPropagation()}
+                                        >
+                                          {buttonNode}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                 )}
 
@@ -455,6 +568,7 @@ export default function FriendsPage({
                                     navigate(`/profile/${searchUserInfo?.userId}`);
                                   }}
                                   aria-label="查看主页"
+                                  title="前往主页"
                                 >
                                   <HomeIcon className="size-5" />
                                 </button>

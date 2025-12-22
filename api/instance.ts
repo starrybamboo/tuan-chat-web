@@ -7,7 +7,8 @@ if (typeof window !== 'undefined') {
     BASE: import.meta.env.VITE_API_BASE_URL,
     WITH_CREDENTIALS: true,
     CREDENTIALS: "include",
-    TOKEN: localStorage?.getItem('token') || '',
+    // 注意：TOKEN 需要是“动态读取”，否则登录后 tuanchat 仍会使用旧 token
+    TOKEN: async () => localStorage?.getItem('token') || '',
   });
 }
 

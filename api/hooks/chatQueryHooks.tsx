@@ -480,7 +480,7 @@ export function useAddRoomRoleMutation() {
 export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole(req),
+        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole1(req),
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
