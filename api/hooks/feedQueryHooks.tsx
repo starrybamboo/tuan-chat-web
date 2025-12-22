@@ -160,7 +160,7 @@ export function useFeedPrefetch() {
     if (moduleId) {
       queryClient.prefetchQuery({
         queryKey: ['moduleDetail', moduleId],
-        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        queryFn: () => tuanchat.moduleController.getById1(moduleId),
         staleTime: 5 * 60 * 1000,
       });
     }

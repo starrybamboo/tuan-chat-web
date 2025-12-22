@@ -101,9 +101,16 @@ export default function FriendsPage({
     });
   }, [friendKeyword, friendUserInfos]);
 
-  const pendingCountText = pendingReceivedRequests.length > 0
-    ? `(${pendingReceivedRequests.length})`
-    : "";
+  const pendingBadgeText = useMemo(() => {
+    const count = pendingReceivedRequests.length;
+    if (count <= 0) {
+      return null;
+    }
+    if (count > 99) {
+      return "99+";
+    }
+    return String(count);
+  }, [pendingReceivedRequests.length]);
 
   function searchInputKeyword() {
     const keyword = inputKeyword.trim();
@@ -158,8 +165,16 @@ export default function FriendsPage({
               className={`btn btn-sm join-item ${tab === "pending" ? "btn-active" : "btn-ghost"}`}
               onClick={() => setTab("pending")}
             >
-              待处理
-              {pendingCountText}
+              <span className="indicator">
+                {pendingBadgeText && (
+                  <span className="indicator-item badge badge-error badge-xs">
+                    {pendingBadgeText}
+                  </span>
+                )}
+                <span>
+                  待处理
+                </span>
+              </span>
             </button>
           </div>
 
