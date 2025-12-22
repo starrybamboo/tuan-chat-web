@@ -22,7 +22,7 @@ export class EmojiControllerService {
     ): CancelablePromise<ApiResultEmoji> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/emoji',
+            url: '/emoji',
             query: {
                 'emojiId': emojiId,
             },
@@ -45,7 +45,7 @@ export class EmojiControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/emoji',
+            url: '/emoji',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -67,7 +67,7 @@ export class EmojiControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/emoji',
+            url: '/emoji',
             query: {
                 'emojiId': emojiId,
             },
@@ -87,7 +87,7 @@ export class EmojiControllerService {
     public getUserEmojis(): CancelablePromise<ApiResultListEmoji> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/emoji/list',
+            url: '/emoji/list',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

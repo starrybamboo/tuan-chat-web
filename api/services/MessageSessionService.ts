@@ -22,7 +22,7 @@ export class MessageSessionService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/session/unsubscribe',
+            url: '/chat/session/unsubscribe',
             query: {
                 'roomId': roomId,
             },
@@ -45,7 +45,7 @@ export class MessageSessionService {
     ): CancelablePromise<ApiResultMessageSession> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/session/subscribe',
+            url: '/chat/session/subscribe',
             query: {
                 'roomId': roomId,
             },
@@ -68,7 +68,7 @@ export class MessageSessionService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/session/read',
+            url: '/chat/session/read',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -90,7 +90,7 @@ export class MessageSessionService {
     ): CancelablePromise<ApiResultMessageSessionResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/chat/session/room',
+            url: '/chat/session/room',
             query: {
                 'roomId': roomId,
             },
@@ -110,7 +110,7 @@ export class MessageSessionService {
     public getUserSessions(): CancelablePromise<ApiResultListMessageSessionResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/chat/session/list',
+            url: '/chat/session/list',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

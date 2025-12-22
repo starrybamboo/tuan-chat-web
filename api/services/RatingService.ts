@@ -24,7 +24,7 @@ export class RatingService {
     ): CancelablePromise<ApiResultPageBaseRespRatingVO> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/rating/page',
+            url: '/rating/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -47,7 +47,7 @@ export class RatingService {
     ): CancelablePromise<ApiResultRatingVO> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/rating/',
+            url: '/rating/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -74,7 +74,7 @@ export class RatingService {
     ): CancelablePromise<ApiResultRatingVO> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/rating/user',
+            url: '/rating/user',
             query: {
                 'userId': userId,
                 'targetId': targetId,
@@ -100,7 +100,7 @@ export class RatingService {
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/rating/cost',
+            url: '/rating/cost',
             query: {
                 'score': score,
             },
@@ -126,7 +126,7 @@ export class RatingService {
     ): CancelablePromise<ApiResultDouble> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/rating/average',
+            url: '/rating/average',
             query: {
                 'targetId': targetId,
                 'targetType': targetType,

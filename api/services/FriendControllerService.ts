@@ -29,7 +29,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/unblock',
+            url: '/friend/unblock',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -52,7 +52,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/request/send',
+            url: '/friend/request/send',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -75,7 +75,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/request/reject',
+            url: '/friend/request/reject',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -98,7 +98,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultPageBaseRespFriendReqResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/request/page',
+            url: '/friend/request/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -121,7 +121,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/request/accept',
+            url: '/friend/request/accept',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -144,7 +144,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultListFriendResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/list',
+            url: '/friend/list',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -167,7 +167,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/delete',
+            url: '/friend/delete',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -190,7 +190,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultFriendCheckResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/check',
+            url: '/friend/check',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -213,7 +213,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/block',
+            url: '/friend/block',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -236,7 +236,7 @@ export class FriendControllerService {
     ): CancelablePromise<ApiResultListFriendResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/friend/blacklist',
+            url: '/friend/blacklist',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
