@@ -165,7 +165,6 @@ const cmdRc = new CommandExecutor(
     }, 0);
     let [name] = names;
     // 补丁：添加对于英文简写属性不可读的临时解决方案
-    // TODO 后续添加更健壮的属性解析方案
     if (!name) {
       throw new Error("错误：缺少技能名称");
     }
@@ -205,6 +204,7 @@ const cmdRc = new CommandExecutor(
       result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
     }
     if (isForceToasted) {
+      cpi.setCopywritingKey(null);
       cpi.sendToast(result);
       cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次暗骰`);
       return true;
@@ -322,6 +322,7 @@ const cmdRcb = new CommandExecutor(
     result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
 
     if (isForceToasted) {
+      cpi.setCopywritingKey(null);
       cpi.sendToast(result);
       cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次带奖励骰的暗骰`);
       return true;
@@ -427,6 +428,7 @@ const cmdRcp = new CommandExecutor(
     result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
 
     if (isForceToasted) {
+      cpi.setCopywritingKey(null);
       cpi.sendToast(result);
       cpi.replyMessage(`${mentioned[mentioned.length - 1].roleName}进行了一次带惩罚骰的暗骰`);
       return true;
@@ -589,6 +591,7 @@ const cmdRch = new CommandExecutor(
 
     const result = buildCheckResult(name, rollResult, skillValue, cpi);
 
+    cpi.setCopywritingKey(null);
     cpi.sendToast(`暗骰检定结果：${result}`);
     cpi.replyMessage(`${mentioned[0].roleName}进行了一次暗骰检定`);
     return true;
