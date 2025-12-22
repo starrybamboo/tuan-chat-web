@@ -29,7 +29,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultResourceResponse> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/resource/update',
+            url: '/resource/update',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -51,7 +51,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultPageBaseRespResourceResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/user/page',
+            url: '/resource/user/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -73,7 +73,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultResourceResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/upload',
+            url: '/resource/upload',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -95,7 +95,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultPageBaseRespResourceResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/public/page',
+            url: '/resource/public/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -117,7 +117,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultPageBaseRespCollectionList> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/collections/user/page',
+            url: '/resource/collections/user/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -139,7 +139,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultPageBaseRespResourceResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/collections/resources/page',
+            url: '/resource/collections/resources/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -161,7 +161,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultPageBaseRespCollectionList> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/collections/public/page',
+            url: '/resource/collections/public/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -183,7 +183,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultCollectionList> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/collection',
+            url: '/resource/collection',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -205,7 +205,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/resource/batch-add-to-collection',
+            url: '/resource/batch-add-to-collection',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -227,7 +227,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultResourceResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/resource/detail',
+            url: '/resource/detail',
             query: {
                 'resourceId': resourceId,
             },
@@ -250,7 +250,7 @@ export class ResourceControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/resource/delete',
+            url: '/resource/delete',
             query: {
                 'resourceId': resourceId,
             },

@@ -23,7 +23,7 @@ export class CollectionListControllerService {
     ): CancelablePromise<ApiResultCollectionListResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/collection/list',
+            url: '/collection/list',
             query: {
                 'collectionListId': collectionListId,
             },
@@ -46,7 +46,7 @@ export class CollectionListControllerService {
     ): CancelablePromise<ApiResultCollectionListResponse> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/collection/list',
+            url: '/collection/list',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -68,7 +68,7 @@ export class CollectionListControllerService {
     ): CancelablePromise<ApiResultCollectionListResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/list',
+            url: '/collection/list',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -90,7 +90,7 @@ export class CollectionListControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/collection/list',
+            url: '/collection/list',
             query: {
                 'collectionListId': collectionListId,
             },
@@ -113,7 +113,7 @@ export class CollectionListControllerService {
     ): CancelablePromise<ApiResultPageBaseRespCollectionListResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/list/user',
+            url: '/collection/list/user',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -137,7 +137,7 @@ export class CollectionListControllerService {
     ): CancelablePromise<ApiResultPageBaseRespCollectionListResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/list/user/type',
+            url: '/collection/list/user/type',
             query: {
                 'resourceListType': resourceListType,
             },

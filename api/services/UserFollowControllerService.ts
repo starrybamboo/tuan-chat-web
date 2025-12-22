@@ -24,7 +24,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultPageBaseRespFollowResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/{targetUserId}/followings/page',
+            url: '/user/{targetUserId}/followings/page',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -52,7 +52,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultPageBaseRespFollowResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/{targetUserId}/followers/page',
+            url: '/user/{targetUserId}/followers/page',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -78,7 +78,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/user/{targetUserId}/follow',
+            url: '/user/{targetUserId}/follow',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -102,7 +102,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/{targetUserId}/follow',
+            url: '/user/{targetUserId}/follow',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -126,7 +126,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/user/{targetUserId}/follow',
+            url: '/user/{targetUserId}/follow',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -150,7 +150,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultPageBaseRespFollowResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/friends/page',
+            url: '/user/friends/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

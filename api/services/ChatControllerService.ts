@@ -28,7 +28,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultListMessage> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/chat/messages/batch',
+            url: '/chat/messages/batch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -51,7 +51,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultChatMessageResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             query: {
                 'messageId': messageId,
             },
@@ -75,7 +75,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -98,7 +98,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -121,7 +121,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -144,7 +144,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultChatMessageResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message/sync',
+            url: '/chat/message/sync',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -167,7 +167,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponseChatMessageResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message/page',
+            url: '/chat/message/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -190,7 +190,7 @@ export class ChatControllerService {
     ): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message/history',
+            url: '/chat/message/history',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -213,7 +213,7 @@ export class ChatControllerService {
     ): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/chat/message/all',
+            url: '/chat/message/all',
             query: {
                 'roomId': roomId,
             },

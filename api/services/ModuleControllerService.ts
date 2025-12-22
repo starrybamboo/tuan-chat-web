@@ -65,7 +65,7 @@ export class ModuleControllerService {
      * @returns ApiResultPageBaseRespModule OK
      * @throws ApiError
      */
-    public page(
+    public page1(
         requestBody: ModulePageRequest,
     ): CancelablePromise<ApiResultPageBaseRespModule> {
         return this.httpRequest.request({
@@ -88,7 +88,7 @@ export class ModuleControllerService {
      * @returns ApiResultModule OK
      * @throws ApiError
      */
-    public getById(
+    public getById1(
         id: number,
     ): CancelablePromise<ApiResultModule> {
         return this.httpRequest.request({

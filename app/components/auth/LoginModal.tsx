@@ -1,4 +1,4 @@
-import { checkAuthStatus, loginUser, registerUser } from "@/utils/auth/authapi";
+import { checkAuthStatus, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
@@ -75,7 +75,6 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
       loginUser({ username: data.username, password: data.password }, data.loginMethod),
     onSuccess: (res) => {
       if (res.data) {
-        localStorage.setItem("token", res.data);
         showTemporaryMessage("登录成功！", "success");
         setTimeout(handleSuccessAndClose, 1000);
       }
@@ -161,7 +160,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
   // 添加退出登录函数
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    void logoutUser();
     queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     showTemporaryMessage("已成功退出登录", "success");
     setTimeout(handleSuccessAndClose, 1000);

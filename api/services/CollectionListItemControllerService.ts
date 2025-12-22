@@ -25,7 +25,7 @@ export class CollectionListItemControllerService {
     ): CancelablePromise<ApiResultPageBaseRespCollection> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/list/items',
+            url: '/collection/list/items',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -47,7 +47,7 @@ export class CollectionListItemControllerService {
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/list/items/batch',
+            url: '/collection/list/items/batch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -69,7 +69,7 @@ export class CollectionListItemControllerService {
     ): CancelablePromise<ApiResultCollectionListItem> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/list/item',
+            url: '/collection/list/item',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -91,7 +91,7 @@ export class CollectionListItemControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/collection/list/item',
+            url: '/collection/list/item',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
