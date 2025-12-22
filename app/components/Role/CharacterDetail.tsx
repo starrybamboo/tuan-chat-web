@@ -1,11 +1,12 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
-import { Suspense, useMemo, useState } from "react";
+import { DiceD6Icon, GirlIcon } from "app/icons";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
 import Section from "./Editors/Section";
@@ -15,6 +16,7 @@ import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
+import { copyRole } from "./utils/roleCloneUtils";
 // import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -122,19 +124,20 @@ function CharacterDetailInner({
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
   const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false); // 骰娘关联弹窗状态
-  const [isConverting, setIsConverting] = useState(false); // 转换为骰娘的过程状态
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false); // 复制角色模态框状态
+  const [cloneTargetType, setCloneTargetType] = useState<"dicer" | "normal">("dicer"); // 目标类型
+  const [cloneName, setCloneName] = useState(""); // 新角色名称
+  const [cloneDescription, setCloneDescription] = useState(""); // 新角色描述
+  const [isCloneNameEdited, setIsCloneNameEdited] = useState(false); // 追踪名称是否被手动编辑
+  const [isCloning, setIsCloning] = useState(false); // 复制中状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
-
-  // 能力查询（用于复制当前角色的能力到新骰娘）
-  const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId);
 
   // 接口部分
   // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
   const createRoleMutation = useCreateRoleMutation();
-  const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
 
   // 处理规则变更
   // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
@@ -291,113 +294,98 @@ function CharacterDetailInner({
     console.warn("头像上传数据:", data);
   };
 
-  // 转换为骰娘：创建新角色并复制头像（含 Transform）与能力，完成后跳转
-  const handleConvertToDiceMaiden = async () => {
+  // 打开复制角色弹窗
+  const handleOpenCloneModal = () => {
+    const targetType: "dicer" | "normal" = isDiceMaiden ? "dicer" : "normal";
+    setCloneTargetType(targetType);
+    // 同类型复制添加-二周目，跨类型不改变名称
+    setCloneName(localRole.name);
+    setCloneDescription(localRole.description);
+    setIsCloneNameEdited(false); // 重置编辑标志
+    setIsCloneModalOpen(true);
+  };
+
+  // 监听类型切换，自动更新名称（仅当用户未手动编辑时）
+  useEffect(() => {
+    if (!isCloneModalOpen || isCloneNameEdited)
+      return;
+
+    const currentType = isDiceMaiden ? "dicer" : "normal";
+    const isSameType = cloneTargetType === currentType;
+
+    if (isSameType) {
+      // 同类型：添加-二周目后缀
+      setCloneName(`${localRole.name}-二周目`);
+    }
+    else {
+      // 跨类型：保持原名称
+      setCloneName(localRole.name);
+    }
+  }, [cloneTargetType, isCloneModalOpen, isDiceMaiden, localRole.name, isCloneNameEdited]);
+
+  // 执行复制角色逻辑
+  const handleCloneRole = async () => {
+    if (!cloneName.trim()) {
+      toast.error("请输入新角色名称");
+      return;
+    }
+
     try {
-      setIsConverting(true);
-      // 1. 创建骰娘角色
-      createRoleMutation.mutate({
-        roleName: localRole.name,
-        description: localRole.description,
-        type: 1,
-      }, {
-        onSuccess: async (newRoleId?: number) => {
-          if (!newRoleId || newRoleId <= 0) {
-            setIsConverting(false);
-            return;
-          }
-
-          let finalAvatarUrl = "/favicon.ico";
-          let finalAvatarId: number | undefined;
-
-          // 2. 复制头像与 Transform 参数（如果当前有选中头像）
-          try {
-            const avatarUrl = selectedAvatarUrl;
-            const spriteUrl = selectedSpriteUrl;
-            if (avatarUrl && avatarUrl !== "/favicon.ico") {
-              // 查找当前角色选中的头像，获取 Transform 参数
-              const currentAvatar = roleAvatars.find(a => a.avatarId === selectedAvatarId);
-              const setRes = await tuanchat.avatarController.setRoleAvatar({ roleId: newRoleId });
-              const avatarId = setRes?.data;
-              if (avatarId) {
-                await tuanchat.avatarController.updateRoleAvatar({
-                  roleId: newRoleId,
-                  avatarId,
-                  avatarUrl,
-                  spriteUrl,
-                  // 复制 Transform 参数
-                  spriteXPosition: currentAvatar?.spriteXPosition ?? 0,
-                  spriteYPosition: currentAvatar?.spriteYPosition ?? 0,
-                  spriteScale: currentAvatar?.spriteScale ?? 1,
-                  spriteTransparency: currentAvatar?.spriteTransparency ?? 1,
-                  spriteRotation: currentAvatar?.spriteRotation ?? 0,
-                });
-                // 更新新角色的头像引用
-                await tuanchat.roleController.updateRole({ roleId: newRoleId, avatarId });
-                finalAvatarUrl = avatarUrl;
-                finalAvatarId = avatarId;
-              }
-            }
-          }
-          catch (e) {
-            console.error("复制头像失败", e);
-          }
-
-          // 3. 仅保留 extra（如骰娘文案），清空 act/basic/ability/skill
-          try {
-            const extraCopywriting = abilityQuery.data?.extraCopywriting ?? {};
-            const serializedData = JSON.stringify(extraCopywriting);
-            updateFieldAbility({
-              roleId: newRoleId,
-              ruleId: selectedRuleId,
-              act: {},
-              basic: {},
-              ability: {},
-              skill: {},
-              extra: { copywriting: serializedData },
+      setIsCloning(true);
+      const newRole = await copyRole(
+        localRole,
+        cloneTargetType,
+        cloneName,
+        cloneDescription,
+        {
+          createRole: async (data) => {
+            return new Promise((resolve, reject) => {
+              createRoleMutation.mutate(data, {
+                onSuccess: id => resolve(id),
+                onError: reject,
+              });
             });
-          }
-          catch (e) {
-            console.error("设置骰娘extra失败", e);
-          }
-
-          // 4. 创建新角色对象并手动更新 roles 状态（立即显示在侧边栏）
-          const newRole: Role = {
-            id: newRoleId,
-            name: localRole.name,
-            description: localRole.description,
-            avatar: finalAvatarUrl,
-            avatarId: finalAvatarId ?? 0,
-            type: 1, // 骰娘类型
-            modelName: localRole.modelName,
-            speakerName: localRole.speakerName,
-            voiceUrl: localRole.voiceUrl,
-            extra: {}, // 新骰娘初始化空的extra
-          };
-
-          // 手动更新角色列表，让侧边栏立即显示新角色
-          if (setRoles) {
-            setRoles(prevRoles => [newRole, ...prevRoles]);
-          }
-
-          // 5. 刷新缓存
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["getRole", newRoleId] }),
-            queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
-            queryClient.invalidateQueries({ queryKey: ["roleInfinite"] }),
-            queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRoleId] }),
-          ]);
-
-          // 6. 跳转到新角色页面
-          setIsConverting(false);
-          navigate(`/role/${newRoleId}?rule=${selectedRuleId}`);
+          },
+          uploadAvatar: async (data) => {
+            return tuanchat.avatarController.updateRoleAvatar(data);
+          },
+          updateRole: async (data) => {
+            return tuanchat.roleController.updateRole(data);
+          },
+          getRoleAvatars: async (roleId) => {
+            return tuanchat.avatarController.getRoleAvatars(roleId);
+          },
         },
-        onError: () => setIsConverting(false),
-      });
+      );
+
+      // 更新角色列表
+      if (setRoles) {
+        setRoles(prevRoles => [newRole, ...prevRoles]);
+      }
+
+      // 刷新缓存
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["getRole", newRole.id] }),
+        queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
+        queryClient.invalidateQueries({ queryKey: ["roleInfinite"] }),
+        queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRole.id] }),
+      ]);
+
+      // 成功提示
+      toast.success(`已复制为${cloneTargetType === "dicer" ? "骰娘" : "普通"}角色`);
+
+      // 关闭模态框
+      setIsCloneModalOpen(false);
+
+      // 跳转到新角色页面
+      navigate(`/role/${newRole.id}`);
     }
     catch (e) {
-      console.error("转换为骰娘失败", e);
-      setIsConverting(false);
+      console.error("复制角色失败", e);
+      toast.error(`复制失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    }
+    finally {
+      setIsCloning(false);
     }
   };
 
@@ -425,27 +413,24 @@ function CharacterDetailInner({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* 普通角色显示转换为骰娘按钮 */}
-          {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="将当前角色复制为骰娘角色">
+          {/* 复制角色按钮 - 两种类型都显示，使用 Menu */}
+          <div className="dropdown dropdown-end">
+            <div className="tooltip tooltip-bottom" data-tip={isDiceMaiden ? "复制此骰娘角色" : "复制此角色"}>
               <button
                 type="button"
-                onClick={handleConvertToDiceMaiden}
-                className={`btn btn-outline btn-sm md:btn-lg rounded-lg ${isConverting ? "scale-95" : ""}`}
-                disabled={isConverting}
+                tabIndex={0}
+                onClick={() => handleOpenCloneModal()}
+                className="btn btn-outline btn-sm md:btn-lg rounded-lg"
               >
-                {isConverting
-                  ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    )
-                  : (
-                      <span className="flex items-center gap-1">
-                        To骰娘
-                      </span>
-                    )}
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  复制
+                </span>
               </button>
             </div>
-          )}
+          </div>
           {!isDiceMaiden && (
             <div className="tooltip tooltip-bottom" data-tip="从ST格式导入角色数据">
               <button
@@ -521,30 +506,17 @@ function CharacterDetailInner({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!isDiceMaiden && (
-                      <button
-                        type="button"
-                        onClick={handleConvertToDiceMaiden}
-                        className={`btn btn-success btn-sm ${isConverting ? "scale-95" : ""}`}
-                        disabled={isConverting}
-                      >
-                        {isConverting
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
-                              <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                  <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                                  <circle cx="18" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                                  <circle cx="12" cy="18" r="2" stroke="currentColor" strokeWidth="2" />
-                                  <path d="M6 8v4a4 4 0 004 4h4a4 4 0 004-4V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                转为骰娘
-                              </span>
-                            )}
-                      </button>
-                    )}
+                    {/* 移动端复制角色按钮 */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCloneModal()}
+                      className="btn btn-success btn-sm"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      复制
+                    </button>
 
                     {isEditing
                       ? (
@@ -939,6 +911,122 @@ function CharacterDetailInner({
         currentDicerRoleId={currentDicerRoleId}
         onConfirm={handleDiceMaidenLinkConfirm}
       />
+
+      {/* 复制角色模态框 */}
+      <dialog className={`modal ${isCloneModalOpen ? "modal-open" : ""}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">复制角色</h3>
+
+          {/* 类型切换按钮 */}
+          <div className="flex gap-2 mb-6">
+            <button
+              type="button"
+              onClick={() => setCloneTargetType("dicer")}
+              className={`btn flex-1 ${cloneTargetType === "dicer" ? "btn-primary" : "btn-outline"}`}
+            >
+              <DiceD6Icon className="w-4 h-4 mr-1" />
+              复制为骰娘
+            </button>
+            <button
+              type="button"
+              onClick={() => setCloneTargetType("normal")}
+              className={`btn flex-1 ${cloneTargetType === "normal" ? "btn-primary" : "btn-outline"}`}
+            >
+              <GirlIcon className="w-4 h-4 mr-1" />
+              复制为普通角色
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="label">
+                <span className="label-text">角色名称</span>
+              </label>
+              <input
+                type="text"
+                value={cloneName}
+                onChange={(e) => {
+                  setCloneName(e.target.value);
+                  setIsCloneNameEdited(true); // 标记名称已被手动编辑
+                }}
+                className="input input-bordered w-full"
+                placeholder="输入新角色名称"
+              />
+            </div>
+
+            <div>
+              <label className="label">
+                <span className="label-text">角色描述</span>
+              </label>
+              <textarea
+                value={cloneDescription}
+                onChange={e => setCloneDescription(e.target.value)}
+                className="textarea textarea-bordered w-full h-24"
+                placeholder="输入新角色描述"
+              />
+            </div>
+
+            {/* 固定高度提示区域，避免切换时高度变化 */}
+            <div className="min-h-[60px]">
+              {cloneTargetType !== (isDiceMaiden ? "dicer" : "normal") && (
+                <div className="alert alert-info">
+                  <svg className="stroke-current shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>跨类型复制时，能力数据不会被复制。</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="modal-action">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCloneModalOpen(false);
+                setCloneName("");
+                setCloneDescription("");
+                setIsCloneNameEdited(false);
+              }}
+              className="btn"
+              disabled={isCloning}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await handleCloneRole();
+                setCloneName("");
+                setCloneDescription("");
+                setIsCloneNameEdited(false);
+              }}
+              className="btn btn-primary"
+              disabled={isCloning || !cloneName.trim()}
+            >
+              {isCloning
+                ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      复制中...
+                    </>
+                  )
+                : (
+                    "确认复制"
+                  )}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button
+            type="button"
+            onClick={() => setIsCloneModalOpen(false)}
+            disabled={isCloning}
+          >
+            close
+          </button>
+        </form>
+      </dialog>
     </div>
   );
 }
