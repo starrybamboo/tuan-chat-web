@@ -208,7 +208,7 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
                   removeModuleTabItem(item.id!.toString());
                   deleteItem({
                     id: item.id!,
-                    stageId,
+                    spaceId: stageId,
                   }, {
                     onSuccess: () => {
                       const newScenes = sceneList?.map((scene) => {

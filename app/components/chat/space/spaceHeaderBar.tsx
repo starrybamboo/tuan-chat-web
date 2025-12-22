@@ -1,7 +1,7 @@
-import { AddIcon, ChevronDown, MapPlaceHolderIcon, MemberIcon, Setting, WebgalIcon } from "@/icons";
+import { AddIcon, ChevronDown, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
 import React from "react";
 
-export type SpaceDetailTab = "members" | "render" | "workflow" | "setting";
+export type SpaceDetailTab = "members" | "workflow" | "setting";
 
 export interface SpaceHeaderBarProps {
   spaceName?: string;
@@ -34,18 +34,6 @@ export default function SpaceHeaderBar({ spaceName, isSpaceOwner, onOpenSpaceDet
             >
               <MemberIcon className="size-4 opacity-70" />
               <span className="flex-1 text-left">群成员</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              className="gap-3"
-              onClick={() => {
-                onOpenSpaceDetailPanel("render");
-              }}
-            >
-              <WebgalIcon className="size-4 opacity-70" />
-              <span className="flex-1 text-left">渲染</span>
             </button>
           </li>
           <li>
