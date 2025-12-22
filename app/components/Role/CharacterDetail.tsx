@@ -5,7 +5,7 @@ import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "a
 import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
-import { DiceD6Icon, GirlIcon } from "app/icons";
+import { ChevronRightIcon, CloseIcon, CopyIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, GirlIcon, InfoIcon, MicrophoneIcon, SaveIcon, SlidersIcon } from "app/icons";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
@@ -482,9 +482,7 @@ function CharacterDetailInner({
                 className="btn btn-outline btn-sm md:btn-lg rounded-lg"
               >
                 <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+                  <CopyIcon className="w-4 h-4" />
                   复制
                 </span>
               </button>
@@ -511,9 +509,7 @@ function CharacterDetailInner({
                 className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
               >
                 <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                  </svg>
+                  <SlidersIcon className="w-4 h-4" />
                   配置
                 </span>
               </button>
@@ -534,9 +530,7 @@ function CharacterDetailInner({
                         )
                       : (
                           <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
+                            <SaveIcon className="w-4 h-4" />
                             保存
                           </span>
                         )}
@@ -547,10 +541,7 @@ function CharacterDetailInner({
                 <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
                   <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                      </svg>
+                      <EditIcon className="w-4 h-4" />
                       编辑
                     </span>
                   </button>
@@ -587,9 +578,7 @@ function CharacterDetailInner({
                       onClick={() => handleOpenCloneModal()}
                       className="btn btn-success btn-sm"
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
+                      <CopyIcon className="w-4 h-4" />
                       复制
                     </button>
 
@@ -607,9 +596,7 @@ function CharacterDetailInner({
                                 )
                               : (
                                   <span className="flex items-center gap-1">
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                    </svg>
+                                    <SaveIcon className="w-4 h-4" />
                                     保存
                                   </span>
                                 )}
@@ -618,10 +605,7 @@ function CharacterDetailInner({
                       : (
                           <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
                             <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                                <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                              </svg>
+                              <EditIcon className="w-4 h-4" />
                               编辑
                             </span>
                           </button>
@@ -737,10 +721,7 @@ function CharacterDetailInner({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <GearOutline className="w-4 h-4 text-primary" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm">当前规则</h3>
@@ -751,9 +732,7 @@ function CharacterDetailInner({
                     </div>
                     <div className="flex items-center gap-1 text-base-content/50">
                       <span className="text-xs">切换</span>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
@@ -769,9 +748,7 @@ function CharacterDetailInner({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
+                        <MicrophoneIcon className="w-4 h-4 text-secondary" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm">上传音频</h3>
@@ -782,9 +759,7 @@ function CharacterDetailInner({
                     </div>
                     <div className="flex items-center gap-1 text-base-content/50">
                       <span className="text-xs">上传</span>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
                   </div>
 
@@ -815,14 +790,7 @@ function CharacterDetailInner({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="currentColor">
-                          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
-                          <circle cx="7" cy="7" r="1.5" fill="currentColor" />
-                          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                          <circle cx="17" cy="17" r="1.5" fill="currentColor" />
-                          <circle cx="7" cy="17" r="1.5" fill="currentColor" />
-                          <circle cx="17" cy="7" r="1.5" fill="currentColor" />
-                        </svg>
+                        <DiceFiveIcon className="w-4 h-4 text-accent" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm">关联骰娘</h3>
@@ -838,9 +806,7 @@ function CharacterDetailInner({
                     </div>
                     <div className="flex items-center gap-1 text-base-content/50">
                       <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
@@ -948,9 +914,7 @@ function CharacterDetailInner({
                   className="btn btn-sm btn-circle btn-ghost"
                   onClick={() => setIsRuleModalOpen(false)}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">
@@ -1054,9 +1018,7 @@ function CharacterDetailInner({
             <div className="min-h-[60px]">
               {cloneTargetType !== (isDiceMaiden ? "dicer" : "normal") && (
                 <div className="alert alert-info">
-                  <svg className="stroke-current shrink-0 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <InfoIcon className="stroke-current shrink-0 h-6 w-6" />
                   <span>跨类型复制时，能力数据不会被复制。</span>
                 </div>
               )}

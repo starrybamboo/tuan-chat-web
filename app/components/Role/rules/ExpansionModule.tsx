@@ -2,6 +2,7 @@ import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { CloseIcon, EditIcon, SaveIcon } from "app/icons";
 import { useEffect, useMemo, useState } from "react";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
@@ -402,18 +403,13 @@ export default function ExpansionModule({
                                     {isCopywritingPreview
                                       ? (
                                           <span className="flex items-center gap-1">
-                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                                              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                                            </svg>
+                                            <EditIcon className="w-4 h-4" />
                                             编辑
                                           </span>
                                         )
                                       : (
                                           <span className="flex items-center gap-1">
-                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                            </svg>
+                                            <SaveIcon className="w-4 h-4" />
                                             保存
                                           </span>
                                         )}
@@ -489,9 +485,7 @@ export default function ExpansionModule({
                   className="btn btn-sm btn-circle btn-ghost"
                   onClick={onStImportModalClose}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">

@@ -1,4 +1,5 @@
 import UTILS from "@/components/common/dicer/utils/utils";
+import { CopyIcon, EditIcon } from "app/icons";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import {
@@ -105,10 +106,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
             onClick={handleImport}
             disabled={!commandInput.trim()}
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-            </svg>
+            <EditIcon className="w-4 h-4" />
             导入属性
           </button>
         </div>
@@ -121,9 +119,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
             className="btn btn-ghost btn-sm"
             onClick={handleExport}
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
+            <CopyIcon className="w-4 h-4" />
             导出ST指令
           </button>
         </div>
