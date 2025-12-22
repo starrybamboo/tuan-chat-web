@@ -5,7 +5,7 @@ import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { ChevronDown, Setting } from "@/icons";
-import React from "react";
+import React, { useMemo, useRef, useState } from "react";
 
 export interface ChatRoomListPanelProps {
   isPrivateChatMode: boolean;
@@ -15,6 +15,8 @@ export interface ChatRoomListPanelProps {
   isSpaceOwner: boolean;
 
   rooms: Room[];
+  roomOrderIds?: number[];
+  onReorderRoomIds?: (nextRoomIds: number[]) => void;
   activeRoomId: number | null;
   unreadMessagesNumber: Record<number, number>;
 
@@ -37,6 +39,8 @@ export default function ChatRoomListPanel({
   activeSpaceName,
   isSpaceOwner,
   rooms,
+  roomOrderIds,
+  onReorderRoomIds,
   activeRoomId,
   unreadMessagesNumber,
   onContextMenu,
@@ -48,7 +52,69 @@ export default function ChatRoomListPanel({
   setIsOpenLeftDrawer,
   onCreateRoom,
 }: ChatRoomListPanelProps) {
-  const roomsInSpace = rooms.filter(room => room.spaceId === activeSpaceId);
+  const isDraggingRef = useRef(false);
+  const [draggingRoomId, setDraggingRoomId] = useState<number | null>(null);
+  const [draftOrderIds, setDraftOrderIds] = useState<number[] | null>(null);
+
+  const roomsInSpace = useMemo(() => {
+    return rooms.filter(room => room.spaceId === activeSpaceId);
+  }, [activeSpaceId, rooms]);
+
+  const currentIds = useMemo(() => {
+    if (Array.isArray(roomOrderIds) && roomOrderIds.length > 0) {
+      return roomOrderIds;
+    }
+    return roomsInSpace
+      .map(r => r.roomId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  }, [roomOrderIds, roomsInSpace]);
+
+  const renderRooms = useMemo(() => {
+    const ids = draftOrderIds ?? currentIds;
+    if (!ids.length)
+      return roomsInSpace;
+
+    const byId = new Map<number, Room>();
+    for (const r of roomsInSpace) {
+      if (typeof r.roomId === "number") {
+        byId.set(r.roomId, r);
+      }
+    }
+
+    const ordered: Room[] = [];
+    for (const id of ids) {
+      const found = byId.get(id);
+      if (found)
+        ordered.push(found);
+    }
+
+    // 兜底：把任何未出现在 ids 的 room 追加在末尾
+    for (const r of roomsInSpace) {
+      const id = r.roomId;
+      if (typeof id === "number" && !ids.includes(id)) {
+        ordered.push(r);
+      }
+    }
+
+    return ordered;
+  }, [currentIds, draftOrderIds, roomsInSpace]);
+
+  const reorderDraft = (sourceId: number, targetId: number, insertAfter: boolean) => {
+    if (sourceId === targetId)
+      return;
+    const base = draftOrderIds ?? currentIds;
+    const fromIndex = base.indexOf(sourceId);
+    const toIndex = base.indexOf(targetId);
+    if (fromIndex === -1 || toIndex === -1)
+      return;
+
+    const next = [...base];
+    next.splice(fromIndex, 1);
+    const nextToIndex = next.indexOf(targetId);
+    const insertIndex = insertAfter ? nextToIndex + 1 : nextToIndex;
+    next.splice(insertIndex, 0, sourceId);
+    setDraftOrderIds(next);
+  };
 
   return (
     <div
@@ -76,14 +142,81 @@ export default function ChatRoomListPanel({
               )}
 
               <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
-                {roomsInSpace.map((room) => {
+                {renderRooms.map((room) => {
                   return (
                     <React.Fragment key={room.roomId}>
-                      <div className="flex items-center gap-1 group w-full" data-room-id={room.roomId}>
+                      <div
+                        className={`flex items-center gap-1 group w-full ${onReorderRoomIds ? "cursor-grab active:cursor-grabbing" : ""}`}
+                        data-room-id={room.roomId}
+                        draggable={Boolean(onReorderRoomIds)}
+                        onDragStart={(e) => {
+                          if (!onReorderRoomIds)
+                            return;
+                          const rid = room.roomId;
+                          if (typeof rid !== "number")
+                            return;
+
+                          isDraggingRef.current = true;
+                          setDraggingRoomId(rid);
+                          setDraftOrderIds(currentIds);
+
+                          e.dataTransfer.effectAllowed = "move";
+                          try {
+                            e.dataTransfer.setData("text/plain", String(rid));
+                          }
+                          catch {
+                            // ignore
+                          }
+                        }}
+                        onDragOver={(e) => {
+                          if (!onReorderRoomIds)
+                            return;
+                          if (draggingRoomId == null)
+                            return;
+                          const tid = room.roomId;
+                          if (typeof tid !== "number")
+                            return;
+                          if (tid === draggingRoomId)
+                            return;
+
+                          e.preventDefault();
+                          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                          const insertAfter = e.clientY > rect.top + rect.height / 2;
+                          reorderDraft(draggingRoomId, tid, insertAfter);
+                        }}
+                        onDrop={(e) => {
+                          if (!onReorderRoomIds)
+                            return;
+                          e.preventDefault();
+                          if (draftOrderIds && draftOrderIds.length > 0) {
+                            onReorderRoomIds(draftOrderIds);
+                          }
+                          setDraggingRoomId(null);
+                          setDraftOrderIds(null);
+                          setTimeout(() => {
+                            isDraggingRef.current = false;
+                          }, 0);
+                        }}
+                        onDragEnd={() => {
+                          if (!onReorderRoomIds)
+                            return;
+                          if (draftOrderIds && draftOrderIds.length > 0) {
+                            onReorderRoomIds(draftOrderIds);
+                          }
+                          setDraggingRoomId(null);
+                          setDraftOrderIds(null);
+                          setTimeout(() => {
+                            isDraggingRef.current = false;
+                          }, 0);
+                        }}
+                      >
                         <RoomButton
                           room={room}
                           unreadMessageNumber={unreadMessagesNumber[room.roomId ?? -1]}
                           onclick={() => {
+                            if (isDraggingRef.current) {
+                              return;
+                            }
                             onSelectRoom(room.roomId ?? -1);
                             onCloseLeftDrawer();
                           }}
