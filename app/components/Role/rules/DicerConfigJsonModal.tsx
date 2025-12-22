@@ -26,6 +26,12 @@ export default function DicerConfigJsonModal({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
 
+  // 大小限制配置（可根据需要调整数值）
+  const MAX_KEY_LENGTH = 50; // 分组键最大长度
+  const MAX_ITEM_LENGTH = 300; // 每条文案最大长度
+  const MAX_TOTAL_SIZE = 20000; // JSON整体最大字符数（字符串长度）
+  const MAX_ITEMS_PER_GROUP = 100; // 每组最大条目数
+
   // 当 copywritingTemplates 更新时，生成易读的 JSON
   useEffect(() => {
     if (copywritingTemplates) {
@@ -76,6 +82,42 @@ export default function DicerConfigJsonModal({
           setJsonError(`字段 "${key}" 中必须只包含字符串`);
           return;
         }
+
+        // 键名大小限制
+        if (typeof key !== "string" || key.trim().length === 0) {
+          setJsonError("分组键不能为空字符串");
+          return;
+        }
+        if (key.length > MAX_KEY_LENGTH) {
+          setJsonError(`分组键 \"${key}\" 过长，最多 ${MAX_KEY_LENGTH} 字符`);
+          return;
+        }
+
+        // 每组数量限制
+        if (value.length > MAX_ITEMS_PER_GROUP) {
+          setJsonError(`分组 \"${key}\" 的条目过多，最多 ${MAX_ITEMS_PER_GROUP} 条`);
+          return;
+        }
+
+        // 每条文案非空与长度限制
+        for (const [idx, item] of value.entries()) {
+          const trimmed = item.trim();
+          if (trimmed.length === 0) {
+            setJsonError(`分组 \"${key}\" 中第 ${idx + 1} 条文案为空，请填写内容`);
+            return;
+          }
+          if (trimmed.length > MAX_ITEM_LENGTH) {
+            setJsonError(`分组 \"${key}\" 中第 ${idx + 1} 条文案过长，最多 ${MAX_ITEM_LENGTH} 字符`);
+            return;
+          }
+        }
+      }
+
+      // 整体大小限制（按字符串长度衡量）
+      const totalSize = JSON.stringify(parsed).length;
+      if (totalSize > MAX_TOTAL_SIZE) {
+        setJsonError(`配置整体过大（${totalSize}），最多 ${MAX_TOTAL_SIZE} 字符`);
+        return;
       }
 
       // 保存数据
