@@ -523,7 +523,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       contentElements.push(
         <div key="images" className="flex flex-col gap-2 mt-2 items-start">
           {images.map((img, idx) => (
-            <div key={img.url || idx} className="inline-block max-w-full overflow-hidden rounded-md">
+            <div key={img.url || idx} className="inline-block w-fit max-w-full overflow-hidden rounded-md">
               <BetterImg
                 src={img.url}
                 size={{ width: img.width, height: img.height }}
