@@ -1,6 +1,7 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
@@ -13,6 +14,7 @@ import Section from "./Editors/Section";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
+import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
@@ -124,6 +126,7 @@ function CharacterDetailInner({
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
   const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false); // 骰娘关联弹窗状态
+  const [isDicerConfigJsonModalOpen, setIsDicerConfigJsonModalOpen] = useState(false); // 骰娘配置JSON弹窗状态
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false); // 复制角色模态框状态
   const [cloneTargetType, setCloneTargetType] = useState<"dicer" | "normal">("dicer"); // 目标类型
   const [cloneName, setCloneName] = useState(""); // 新角色名称
@@ -133,6 +136,10 @@ function CharacterDetailInner({
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
+
+  // 获取骰娘文案配置数据
+  const abilityQuery = useAbilityByRuleAndRole(localRole.id, selectedRuleId || 0);
+  const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -160,6 +167,58 @@ function CharacterDetailInner({
   // 打开骰娘关联弹窗
   const handleOpenDiceMaidenLinkModal = () => {
     setIsDiceMaidenLinkModalOpen(true);
+  };
+
+  // 处理骰娘配置保存
+  const handleDicerConfigSave = async (data: Record<string, string[]>) => {
+    const payload = {
+      roleId: localRole.id,
+      ruleId: selectedRuleId,
+      act: {},
+      basic: {},
+      ability: {},
+      skill: {},
+      extra: {
+        copywriting: JSON.stringify(data),
+      },
+    };
+
+    return new Promise<void>((resolve, reject) => {
+      updateFieldAbility(payload, {
+        onSuccess: () => {
+          resolve();
+        },
+        onError: (error) => {
+          reject(error);
+        },
+      });
+    });
+  };
+
+  // 处理骰娘配置重置
+  const handleDicerConfigReset = () => {
+    // 重置为空对象，让其从规则模板中重新加载
+    const payload = {
+      roleId: localRole.id,
+      ruleId: selectedRuleId,
+      act: {},
+      basic: {},
+      ability: {},
+      skill: {},
+      extra: {
+        copywriting: JSON.stringify({}),
+      },
+    };
+
+    updateFieldAbility(payload, {
+      onSuccess: () => {
+        toast.success("已还原默认配置");
+        setIsDicerConfigJsonModalOpen(false);
+      },
+      onError: () => {
+        toast.error("重置失败");
+      },
+    });
   };
 
   // 处理骰娘关联确认
@@ -432,14 +491,30 @@ function CharacterDetailInner({
             </div>
           </div>
           {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="从ST格式导入角色数据">
+            <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速配置角色数据">
               <button
                 type="button"
                 onClick={() => setIsStImportModalOpen(true)}
                 className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
               >
                 <span className="flex items-center gap-1">
-                  ST导入
+                  ST指令
+                </span>
+              </button>
+            </div>
+          )}
+          {isDiceMaiden && (
+            <div className="tooltip tooltip-bottom" data-tip="查看和导出骰娘文案配置的JSON格式">
+              <button
+                type="button"
+                onClick={() => setIsDicerConfigJsonModalOpen(true)}
+                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+              >
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                  配置
                 </span>
               </button>
             </div>
@@ -910,6 +985,15 @@ function CharacterDetailInner({
         onClose={() => setIsDiceMaidenLinkModalOpen(false)}
         currentDicerRoleId={currentDicerRoleId}
         onConfirm={handleDiceMaidenLinkConfirm}
+      />
+
+      {/* 骰娘配置 JSON 模态框 */}
+      <DicerConfigJsonModal
+        isOpen={isDicerConfigJsonModalOpen}
+        onClose={() => setIsDicerConfigJsonModalOpen(false)}
+        copywritingTemplates={abilityQuery.data?.extraCopywriting}
+        onReset={handleDicerConfigReset}
+        onSave={handleDicerConfigSave}
       />
 
       {/* 复制角色模态框 */}

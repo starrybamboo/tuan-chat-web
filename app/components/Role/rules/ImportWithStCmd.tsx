@@ -16,6 +16,8 @@ interface ImportWithStCmdProps {
 export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: ImportWithStCmdProps) {
   const handleStCmd = useHandleStCmd(ruleId, roleId);
   const [commandInput, setCommandInput] = useState("");
+  const isCOC7 = ruleId === 1; // COC7规则ID为1
+  const abilityQuery = useGetRoleAbilitiesQuery(roleId);
 
   const handleImport = () => {
     try {
@@ -51,29 +53,82 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
     }
   };
 
+  const handleExport = () => {
+    const abilityList = abilityQuery.data?.data ?? [];
+    const curAbility = abilityList.find(a => a.ruleId === ruleId);
+
+    if (!curAbility?.skill) {
+      toast.error("暂无属性可导出", { duration: 2000 });
+      return;
+    }
+
+    const ABILITY_MAP: { [key: string]: string } = {
+      力量: "str",
+      敏捷: "dex",
+      意志: "pow",
+      体质: "con",
+      外貌: "app",
+      教育: "edu",
+      体型: "siz",
+      智力: "int",
+      san值: "san",
+      幸运: "luck",
+      魔法: "mp",
+      体力: "hp",
+      克苏鲁神话: "cm",
+    };
+
+    const parts: string[] = [];
+    for (const [key, value] of Object.entries(curAbility.skill)) {
+      const abbr = ABILITY_MAP[key] || key;
+      parts.push(`${abbr}${value}`);
+    }
+
+    const stCmd = `.st ${parts.join(" ")}`;
+    navigator.clipboard.writeText(stCmd);
+    toast.success("ST指令已复制到剪贴板", { duration: 2000 });
+  };
+
   return (
-    <fieldset className="border border-base-300 rounded-lg p-4">
-      <div className="relative w-full">
-        <textarea
-          className="bg-base-200 rounded-lg p-4 w-full h-40 overflow-auto resize-none"
-          placeholder="输入.st指令导入属性（例：.st 力量80 敏捷70 意志50）"
-          value={commandInput}
-          onChange={e => setCommandInput(e.target.value)}
-        />
-        <button
-          type="button"
-          className="btn btn-accent absolute bottom-4 right-2"
-          onClick={handleImport}
-          disabled={!commandInput.trim()}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-            <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-            <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-          </svg>
-          导入属性
-        </button>
-      </div>
-    </fieldset>
+    <div className="space-y-4">
+      <fieldset className="border border-base-300 rounded-lg p-4">
+        <div className="relative w-full">
+          <textarea
+            className="bg-base-200 rounded-lg p-4 w-full h-40 overflow-auto resize-none"
+            placeholder="输入.st指令导入属性（例：.st 力量80 敏捷70 意志50）"
+            value={commandInput}
+            onChange={e => setCommandInput(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-accent absolute bottom-4 right-2"
+            onClick={handleImport}
+            disabled={!commandInput.trim()}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            导入属性
+          </button>
+        </div>
+      </fieldset>
+
+      {isCOC7 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={handleExport}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            导出ST指令
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

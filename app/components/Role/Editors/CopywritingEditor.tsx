@@ -188,38 +188,32 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
           </div>
         )}
         {groups.map(([name, entries]) => (
-          <div key={name} className="collapse collapse-open bg-base-200 rounded-xl">
-            <input type="checkbox" defaultChecked />
+          <div key={name} className="bg-base-200 rounded-xl">
             {/* 分组标题 */}
-            <div className="collapse-title p-0 min-h-0">
-              <div className="flex items-center gap-2 p-3">
-                <input
-                  type="text"
-                  defaultValue={name}
-                  onBlur={e => renameGroup(name, e.target.value)}
-                  className="input input-sm input-ghost font-semibold text-base flex-1 focus:input-bordered"
-                  title="点击编辑分组名"
-                />
-                <span className="badge badge-primary badge-sm">{entries.length}</span>
-                <div className="tooltip tooltip-left" data-tip="删除分组">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteGroup(name);
-                    }}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
+            <div className="flex items-center gap-2 p-3 border-b border-base-content/10">
+              <input
+                type="text"
+                defaultValue={name}
+                onBlur={e => renameGroup(name, e.target.value)}
+                className="input input-sm input-ghost font-semibold text-base flex-1 focus:input-bordered"
+                title="点击编辑分组名"
+              />
+              <span className="badge badge-primary badge-sm">{entries.length}</span>
+              <div className="tooltip tooltip-left" data-tip="删除分组">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
+                  onClick={() => deleteGroup(name)}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             </div>
 
             {/* 组内文案条目 */}
-            <div className="collapse-content px-3 pb-3">
+            <div className="px-3 pb-3 pt-3">
               <ul className="list bg-base-100 rounded-lg">
                 {entries.map((text, idx) => {
                   let entryKey = entryKeysRef.current[name]?.[idx];

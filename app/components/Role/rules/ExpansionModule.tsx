@@ -477,13 +477,13 @@ export default function ExpansionModule({
               )}
       </div>
 
-      {/* ST导入弹窗 */}
+      {/* ST指令弹窗 */}
       {isStImportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onStImportModalClose}>
           <div className="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">使用ST指令快速导入配置</h3>
+                <h3 className="text-xl font-semibold">ST指令</h3>
                 <button
                   type="button"
                   className="btn btn-sm btn-circle btn-ghost"
