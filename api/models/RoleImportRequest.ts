@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type RoleImportRequest = {
     roleId: number;
-    stageId: number;
+    spaceId: number;
     type: number;
 };
 

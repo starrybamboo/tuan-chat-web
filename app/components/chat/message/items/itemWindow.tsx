@@ -1,3 +1,4 @@
+import type { StageEntityResponse } from "api";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import React, { use } from "react";
 import { useGetRoomItemsQuery } from "../../../../../api/hooks/spaceModuleHooks";
@@ -8,7 +9,7 @@ export default function ItemWindow({ setSelectedItemId }: {
   const roomId = use(RoomContext).roomId;
   // 获取当前房间的所有物品
   const getRoomItemsQuery = useGetRoomItemsQuery(roomId ?? -1);
-  const roomItems = getRoomItemsQuery.data?.data ?? [];
+  const roomItems = (getRoomItemsQuery.data?.data ?? []) as StageEntityResponse[];
   return (
     <>
       <span className="block text-center mr-6 ml-6 text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
@@ -17,7 +18,7 @@ export default function ItemWindow({ setSelectedItemId }: {
       {roomItems?.length
         ? (
             <div className="space-y-3">
-              {roomItems.map(item => (
+              {roomItems.map((item: StageEntityResponse) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-4 py-3 rounded-lg"

@@ -8,10 +8,12 @@ import {
   useRejectFriendRequestMutation,
   useSendFriendRequestMutation,
 } from "api/hooks/friendQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
+
+type AddFriendSearchMode = "id" | "username";
 
 function getErrorMessage(error: unknown): string {
   if (typeof error === "string" && error.trim()) {
@@ -34,8 +36,10 @@ export default function UserSearch() {
   /**
    * 搜索用户
    */
-  const [inputUserId, setInputUserId] = useState<number>(-1);
+  const [inputKeyword, setInputKeyword] = useState<string>("");
+  const [searchMode, setSearchMode] = useState<AddFriendSearchMode>("id");
   const [searchUserId, setSearchUserId] = useState<number>(-1);
+  const [searchUsername, setSearchUsername] = useState<string>("");
   const [searching, setSearching] = useState(false);
   const navigate = useNavigate();
   // 获取并缓存好友列表
@@ -57,29 +61,55 @@ export default function UserSearch() {
   const acceptFriendRequestMutation = useAcceptFriendRequestMutation();
   const rejectFriendRequestMutation = useRejectFriendRequestMutation();
 
-  const searchUserInfo = useGetUserInfoQuery(searchUserId).data?.data || null;
-  const friendCheckQuery = useCheckFriendQuery(searchUserId, searching && searchUserId > 0);
+  const searchUserInfoById = useGetUserInfoQuery(searchUserId).data?.data || null;
+  const searchUserInfoByUsername = useGetUserInfoByUsernameQuery(searchUsername).data?.data || null;
+  const searchUserInfo = searchMode === "username" ? searchUserInfoByUsername : searchUserInfoById;
+  const targetUserId = searchUserInfo?.userId || -1;
+  const friendCheckQuery = useCheckFriendQuery(targetUserId, searching && targetUserId > 0);
   const friendCheck = friendCheckQuery.data?.data;
   const sendFriendRequestMutation = useSendFriendRequestMutation();
   const [verifyMsg, setVerifyMsg] = useState<string>("");
   const [notice, setNotice] = useState<string>("");
 
-  function searchInputUserId() {
-    if (inputUserId && inputUserId > 0) {
-      setSearching(true);
-      setSearchUserId(inputUserId);
+  function searchInputKeyword() {
+    const keyword = inputKeyword.trim();
+    if (!keyword) {
+      return;
     }
+
+    setNotice("");
+    setVerifyMsg("");
+    setSearching(true);
+
+    if (/^\d+$/.test(keyword)) {
+      const id = Number.parseInt(keyword, 10);
+      if (id > 0) {
+        setSearchMode("id");
+        setSearchUsername("");
+        setSearchUserId(id);
+      }
+      return;
+    }
+
+    setSearchMode("username");
+    setSearchUserId(-1);
+    setSearchUsername(keyword);
   }
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") {
-      searchInputUserId();
+      searchInputKeyword();
     }
   };
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setInputUserId(Number.parseInt(e.target.value));
-    if (!e.target.value) {
+    setInputKeyword(e.target.value);
+    if (!e.target.value.trim()) {
       setSearching(false);
+      setSearchUserId(-1);
+      setSearchUsername("");
+      setSearchMode("id");
+      setNotice("");
+      setVerifyMsg("");
     }
   }
   return (
@@ -88,22 +118,27 @@ export default function UserSearch() {
         <input
           type="text"
           className="input input-md w-full"
-          placeholder="输入用户ID，按 Enter 或搜索按钮"
-          value={inputUserId > 0 ? inputUserId : ""}
+          placeholder="输入用户ID或用户名，按 Enter 或搜索按钮"
+          value={inputKeyword}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
         />
         <div
           className="absolute right-4 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
-          onClick={searchInputUserId}
+          onClick={searchInputKeyword}
         >
           <Search className="size-5" />
         </div>
         <div
           className="absolute right-14 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
           onClick={() => {
-            setInputUserId(-1);
+            setInputKeyword("");
             setSearching(false);
+            setSearchUserId(-1);
+            setSearchUsername("");
+            setSearchMode("id");
+            setNotice("");
+            setVerifyMsg("");
           }}
         >
           <XMarkICon className="size-5" />

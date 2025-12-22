@@ -224,4 +224,27 @@ export class FriendControllerService {
             },
         });
     }
+    /**
+     * 获取黑名单列表
+     * 分页获取当前用户的黑名单列表
+     * @param requestBody
+     * @returns ApiResultListFriendResponse OK
+     * @throws ApiError
+     */
+    public getBlackList(
+        requestBody: FriendListRequest,
+    ): CancelablePromise<ApiResultListFriendResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/friend/blacklist',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
 }

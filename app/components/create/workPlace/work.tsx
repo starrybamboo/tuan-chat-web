@@ -1,9 +1,17 @@
 // Work.tsx - 重构为卡片网格首页（参考 ModuleHome）
-import type { StageResponse } from "api";
 import Pagination from "@/components/common/pagination";
 import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+
+interface StageResponse {
+  stageId?: number;
+  moduleId?: number;
+  moduleName?: string;
+  authorName?: string;
+  description?: string;
+  image?: string;
+}
 
 const FALLBACK_IMAGE = "/moduleDefaultImage.webp";
 const SKELETON_KEYS = [
@@ -67,7 +75,7 @@ export default function Work() {
   const itemsPerPage = 12;
 
   const items = useMemo<StageResponse[]>(() => {
-    return (data?.data ?? []).filter(i => i.stageId && i.stageId !== 0);
+    return ((data?.data ?? []) as StageResponse[]).filter((i: StageResponse) => i.stageId && i.stageId !== 0);
   }, [data]);
 
   const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));

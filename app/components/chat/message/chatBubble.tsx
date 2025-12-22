@@ -509,6 +509,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     // (C) 图片内容
     // 仅支持单图 (Type 2)
     const images: any[] = [];
+    const isUnlockCg = !!(message.webgal as any)?.unlockCg;
     if (message.messageType === 2) {
       let legacyImg: any = message.extra?.imageMessage || message.extra?.fileMessage;
       // 支持扁平化 extra (如果 extra 本身包含 url)
@@ -523,13 +524,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       contentElements.push(
         <div key="images" className="flex flex-col gap-2 mt-2 items-start">
           {images.map((img, idx) => (
-            <div key={img.url || idx} className="inline-block max-w-full overflow-hidden rounded-md">
+            <div key={img.url || idx} className="inline-block w-fit max-w-full overflow-hidden rounded-md">
               <BetterImg
                 src={img.url}
                 size={{ width: img.width, height: img.height }}
                 className="block max-h-[40vh] max-w-full object-left origin-left rounded-md"
               />
-              {img.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
+              {(img.background || isUnlockCg) && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {img.background && <span>已设置为背景</span>}
+                  {img.background && isUnlockCg && <span> · </span>}
+                  {isUnlockCg && <span>已解锁CG</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>,

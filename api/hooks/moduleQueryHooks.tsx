@@ -5,7 +5,6 @@ import type { ItemUpdateRequest } from "../models/ItemUpdateRequest";
 import type { ItemPageRequest } from "../models/ItemPageRequest";
 import type { ItemsGetRequest } from "../models/ItemsGetRequest";
 import type { ModulePageRequest } from "../models/ModulePageRequest";
-import type { ModuleCreateRequest } from "../models/ModuleCreateRequest";
 import type { ModuleUpdateRequest } from "../models/ModuleUpdateRequest";
 import type { EntityAddRequest } from "../models/EntityAddRequest";
 import type { CommitRequest } from "../models/CommitRequest";
@@ -116,11 +115,13 @@ export function useUpdateModuleMutation() {
 export function useAddModuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ModuleCreateRequest) => tuanchat.moduleController.addModule(req),
+        // 后端已下线「创建模组」接口；保留 mutation 仅用于让旧页面不报类型错误。
+        mutationFn: async (_req: unknown) => {
+            throw new Error("创建模组接口已下线");
+        },
         mutationKey: ['addModule'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['moduleList'] });
-            queryClient.invalidateQueries({ queryKey: ['staging'] });
         }
     });
 }
@@ -205,7 +206,8 @@ export function useStageRollbackMutation() {
 export function useStagingQuery() {
     return useQuery({
         queryKey: ['staging'],
-        queryFn: () => tuanchat.stageController.staging(),
+        // 后端已下线 staging；返回空数据占位，避免旧页面报错。
+        queryFn: async () => ({ success: true, data: [] } as any),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -223,10 +225,10 @@ export function useCommitMutation() {
 }
 
 // 查询所有的实体
-export function useQueryEntitiesQuery(stageId: number) {
+export function useQueryEntitiesQuery(spaceId: number) {
     return useQuery({
-        queryKey: ['queryEntities', stageId],
-        queryFn: () => tuanchat.stageController.queryEntities(stageId),
+        queryKey: ['queryEntities', spaceId],
+        queryFn: () => tuanchat.stageController.queryEntities(spaceId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -241,7 +243,7 @@ export function useAddMutation() {
         mutationFn: (req: EntityAddRequest) => tuanchat.stageController.add(req),
         mutationKey: ['addEntity'],
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.spaceId] });
         }
     });
 }
@@ -253,7 +255,7 @@ export function useAddEntityMutation(entityType: 1 | 2 | 3 | 4 | 5) {
         mutationFn: (req: Omit<EntityAddRequest, 'entityType'>) => tuanchat.stageController.add({ ...req, entityType }),
         mutationKey: ['addEntity'],
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.spaceId] });
         }
     });
 }
@@ -267,13 +269,13 @@ export function useAddEntityWithoutTypeMutation() {
             console.warn("AddEntity API 请求数据:", req);
 
             // 验证必需字段
-            if (!req.stageId || typeof req.stageId !== 'number') {
-                throw new TypeError(`Invalid stageId: ${req.stageId}`);
+            if (!req.spaceId || typeof req.spaceId !== 'number') {
+                throw new TypeError(`Invalid spaceId: ${req.spaceId}`);
             }
             if (!req.name || typeof req.name !== 'string' || req.name.trim() === '') {
                 throw new TypeError(`Invalid name: ${req.name}`);
             }
-            if (!req.entityType || typeof req.entityType !== 'number' || req.entityType < 1 || req.entityType > 5) {
+            if (!req.entityType || typeof req.entityType !== 'number' || req.entityType < 1 || req.entityType > 6) {
                 throw new TypeError(`Invalid entityType: ${req.entityType}`);
             }
 
@@ -298,7 +300,7 @@ export function useAddEntityWithoutTypeMutation() {
         },
         mutationKey: ['addEntityWithType'],
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.spaceId] });
         },
         onError: (error, variables) => {
             console.error("Mutation onError - 变量:", variables);
@@ -323,13 +325,13 @@ export function useAddEntityWithoutTypeMutation() {
 //     });
 // }
 
-export function useUpdateEntityMutation(stageId: number, roomId?: number) {
+export function useUpdateEntityMutation(spaceId: number, roomId?: number) {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: EntityUpdateRequest) => tuanchat.stageController.update(req),
         mutationKey: ['updateEntity'],
         onSuccess: (_data,variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId], refetchType: 'all' });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', spaceId], refetchType: 'all' });
             queryClient.invalidateQueries({ queryKey: ['roleAvatar', variables.id] });
             queryClient.invalidateQueries({ queryKey: ['item-detail', variables.id] });
             queryClient.invalidateQueries({ queryKey: ['location-detail', variables.id] });
@@ -345,10 +347,10 @@ export function useUpdateEntityMutation(stageId: number, roomId?: number) {
 export function useDeleteEntityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, stageId }: { id: number, stageId: number }) => tuanchat.stageController.delete({ id }),
+        mutationFn: ({ id, spaceId: _spaceId }: { id: number, spaceId: number }) => tuanchat.stageController.delete({ id }),
         mutationKey: ['deleteEntity'],
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.spaceId] });
         }
     });
 }
@@ -361,7 +363,7 @@ export function useAddRoleMutation() {
         mutationFn: async (req: RoleImportRequest) => tuanchat.stageController.importRole(req),
         mutationKey: ['addRole'],
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.spaceId] });
         }
     });
 }
@@ -398,11 +400,11 @@ export function useIdToSearchQuery(id: number) {
     });
 }
 
-export function useVersionIdSearchQuery(stageId:number, versionId: number) {
+export function useVersionIdSearchQuery(spaceId:number, versionId: number) {
     return useQuery({
         queryKey: ['versionIdToSearch'],
         queryFn: async () => {
-            const res = await tuanchat.stageController.getByVersionIds([versionId],stageId);
+            const res = await tuanchat.stageController.getByVersionIds([versionId],spaceId);
             return res.data;
         }
     });

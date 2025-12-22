@@ -58,6 +58,10 @@ export type Module = {
      * 从哪个模组fork来
      */
     parent?: string;
+    /**
+     * 最新提交id
+     */
+    commitId?: number;
     state?: number;
     /**
      * 创建时间

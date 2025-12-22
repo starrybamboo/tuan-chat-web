@@ -42,7 +42,7 @@ export default function MapModule({ stageId }: { stageId: number }) {
     const name = genUniqueName("新剧情", listByType[3]);
     const mapData = listByType[5][0];
     addScene({
-      stageId,
+      spaceId: stageId,
       name,
       entityInfo: {
         description: "无",
@@ -92,7 +92,7 @@ export default function MapModule({ stageId }: { stageId: number }) {
     else {
       // 若无地图则创建后打开
       addMap({
-        stageId,
+        spaceId: stageId,
         name: `${stageId}模组地图`,
         entityInfo: { sceneMap: { 新场景1: ["新场景2"], 新场景2: [] } },
       }, {

@@ -206,7 +206,7 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
                 deleteRole(
                   {
                     id: i.id!,
-                    stageId,
+                    spaceId: stageId,
                   },
                   {
                     onSuccess: () => {

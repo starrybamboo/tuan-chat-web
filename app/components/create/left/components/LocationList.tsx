@@ -212,7 +212,7 @@ export function LocationList({ stageId, searchQuery: controlledQuery, deleteMode
                     removeModuleTabItem(location.id!.toString());
                     deleteLocation({
                       id: location.id!,
-                      stageId,
+                      spaceId: stageId,
                     }, {
                       onSuccess: () => {
                         const newScenes = sceneList?.map((scene) => {

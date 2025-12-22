@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-import type { ModuleImportByIdRequest } from "api/models/ModuleImportByIdRequest";
+
+// 后端已下线「模组导入群聊」相关接口；这里保留一个最小请求形状用于兼容旧调用点。
+export type ModuleImportByIdRequest = {
+  spaceId: number;
+  moduleId: number;
+};
 
 /**
  * 模组导入群聊
@@ -10,8 +15,9 @@ export function useImportFromModuleMutation() {
   
   return useMutation({
     mutationKey: ["importFromModule"], 
-    mutationFn: (req: ModuleImportByIdRequest) => 
-      tuanchat.spaceModuleController.importFromModule(req),
+    mutationFn: async (_req: ModuleImportByIdRequest) => {
+      throw new Error("模组导入群聊接口已下线");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: ["getUserSpaces"]
@@ -40,7 +46,7 @@ export function useGetSpaceModuleRoleQuery(spaceId: number) {
 export function useGetRoomItemsQuery(roomId: number) {
   return useQuery({
     queryKey: ['roomItems', roomId],
-    queryFn: () => tuanchat.spaceModuleController.roomItem(roomId, 1),
+    queryFn: async () => ({ success: true, data: [] } as any),
     staleTime: 10000, // 缓存时间
     enabled: roomId >= 0,
   })
@@ -53,7 +59,7 @@ export function useGetRoomItemsQuery(roomId: number) {
 export function useGetRoomLocationsQuery(roomId: number) {
   return useQuery({
     queryKey: ['roomLocations', roomId],
-    queryFn: () => tuanchat.spaceModuleController.roomItem(roomId, 2),
+    queryFn: async () => ({ success: true, data: [] } as any),
     staleTime: 10000, // 缓存时间
     enabled: roomId >= 0,
   })

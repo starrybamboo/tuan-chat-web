@@ -1,3 +1,4 @@
+import type { StageEntityResponse } from "api";
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
@@ -18,10 +19,10 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
 
   const [selectedRoomId, setSelectedRoomId] = useState(-1);
   const getRoomLocationsQuery = useGetRoomLocationsQuery(selectedRoomId);
-  const roomLocations = getRoomLocationsQuery.data?.data ?? [];
+  const roomLocations = (getRoomLocationsQuery.data?.data ?? []) as StageEntityResponse[];
 
   const getRoomItemsQuery = useGetRoomItemsQuery(selectedRoomId);
-  const roomItems = getRoomItemsQuery.data?.data ?? [];
+  const roomItems = (getRoomItemsQuery.data?.data ?? []) as StageEntityResponse[];
 
   const [openRoomId, setOpenRoomId] = useState<number | null>(null);
   const toggleRoom = (roomId: number) => {

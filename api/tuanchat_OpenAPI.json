@@ -2789,76 +2789,6 @@
             }
           }
         }
-      },
-      "post": {
-        "tags": [
-          "moduleController"
-        ],
-        "summary": "新增一个剧本，没有场景和角色",
-        "description": "返回对应的id",
-        "operationId": "addModule",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultStageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/capi/item": {
@@ -5854,6 +5784,77 @@
         }
       }
     },
+    "/capi/stage/clone": {
+      "post": {
+        "tags": [
+          "StageController"
+        ],
+        "operationId": "clone",
+        "parameters": [
+          {
+            "name": "commitId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/stage/add": {
       "post": {
         "tags": [
@@ -5950,372 +5951,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultRoom"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/module/tmpImport": {
-      "post": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "通过模组id从模组导入群聊",
-        "operationId": "importFromModule",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleImportByIdRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultModuleMap"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/module/room/clue": {
-      "get": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "获得当前房间的所有物品",
-        "operationId": "roomItem",
-        "parameters": [
-          {
-            "name": "roomId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "type",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "在当前房间（场景）下添加原始线索",
-        "operationId": "addCLue",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/RoomClue"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/module/import": {
-      "post": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "从模组导入群聊",
-        "operationId": "importFromModule_1",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleImportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultModuleMap"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/module/export": {
-      "post": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "导出到暂存区",
-        "operationId": "export",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleExportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -10328,6 +9963,78 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/friend/blacklist": {
+      "post": {
+        "tags": [
+          "FriendController"
+        ],
+        "summary": "获取黑名单列表",
+        "description": "分页获取当前用户的黑名单列表",
+        "operationId": "getBlackList",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendListRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListFriendResponse"
                 }
               }
             }
@@ -14929,67 +14636,6 @@
         }
       }
     },
-    "/capi/stage": {
-      "get": {
-        "tags": [
-          "StageController"
-        ],
-        "summary": "打开工作区时自动查询，显示所有自己拥有暂存区的模组（正在修改）",
-        "operationId": "staging",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListStageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/stage/query": {
       "get": {
         "tags": [
@@ -15071,7 +14717,7 @@
         "operationId": "queryEntities",
         "parameters": [
           {
-            "name": "stageId",
+            "name": "spaceId",
             "in": "query",
             "required": true,
             "schema": {
@@ -15163,7 +14809,7 @@
             }
           },
           {
-            "name": "stageId",
+            "name": "spaceId",
             "in": "query",
             "required": true,
             "schema": {
@@ -15235,7 +14881,7 @@
         "operationId": "change",
         "parameters": [
           {
-            "name": "stageId",
+            "name": "spaceId",
             "in": "query",
             "required": true,
             "schema": {
@@ -19532,7 +19178,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultObject": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -19584,7 +19230,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultVoid": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -21817,7 +21463,7 @@
       "RoleImportRequest": {
         "required": [
           "roleId",
-          "stageId",
+          "spaceId",
           "type"
         ],
         "type": "object",
@@ -21826,7 +21472,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "stageId": {
+          "spaceId": {
             "type": "integer",
             "format": "int64"
           },
@@ -21876,11 +21522,11 @@
       "CommitRequest": {
         "required": [
           "message",
-          "stageId"
+          "spaceId"
         ],
         "type": "object",
         "properties": {
-          "stageId": {
+          "spaceId": {
             "type": "integer",
             "format": "int64"
           },
@@ -21895,6 +21541,11 @@
           },
           "message": {
             "type": "string"
+          },
+          "optionMask": {
+            "type": "integer",
+            "description": "选项,最低位为1则不删除暂存区",
+            "format": "int32"
           }
         }
       },
@@ -21902,11 +21553,11 @@
         "required": [
           "entityType",
           "name",
-          "stageId"
+          "spaceId"
         ],
         "type": "object",
         "properties": {
-          "stageId": {
+          "spaceId": {
             "type": "integer",
             "format": "int64"
           },
@@ -22038,133 +21689,6 @@
           }
         },
         "description": "Room对象"
-      },
-      "ModuleImportByIdRequest": {
-        "required": [
-          "moduleId",
-          "spaceId"
-        ],
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "description": "空间ID",
-            "format": "int64"
-          },
-          "moduleId": {
-            "type": "integer",
-            "description": "模组ID",
-            "format": "int64"
-          },
-          "optionMask": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "description": "模组导入群聊请求"
-      },
-      "ApiResultModuleMap": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/ModuleMap"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ModuleMap": {
-        "type": "object",
-        "properties": {
-          "sceneMap": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景versionId，到相邻场景的list",
-              "items": {
-                "type": "integer",
-                "description": "存储场景versionId，到相邻场景的list",
-                "format": "int64"
-              }
-            },
-            "description": "存储场景versionId，到相邻场景的list"
-          }
-        },
-        "description": "返回对象"
-      },
-      "RoomClue": {
-        "required": [
-          "roomId",
-          "stageEntityId",
-          "type"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "stageEntityId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "type": {
-            "type": "integer",
-            "description": "0场景本身，1item，2location",
-            "format": "int32"
-          }
-        }
-      },
-      "ModuleImportRequest": {
-        "required": [
-          "commitId",
-          "spaceId"
-        ],
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "description": "空间ID",
-            "format": "int64"
-          },
-          "commitId": {
-            "type": "integer",
-            "description": "提交ID",
-            "format": "int64"
-          },
-          "optionMask": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "description": "模组导入群聊请求"
-      },
-      "ModuleExportRequest": {
-        "required": [
-          "spaceId"
-        ],
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "format": "int64"
-          }
-        }
       },
       "SpaceMemberAddRequest": {
         "required": [
@@ -23925,156 +23449,6 @@
         },
         "description": "返回对象"
       },
-      "ModuleCreateRequest": {
-        "required": [
-          "moduleName",
-          "ruleId"
-        ],
-        "type": "object",
-        "properties": {
-          "ruleId": {
-            "type": "integer",
-            "description": "所用的规则id",
-            "format": "int64",
-            "example": 1
-          },
-          "moduleName": {
-            "type": "string",
-            "description": "模组名称"
-          },
-          "description": {
-            "type": "string",
-            "description": "模组的描述"
-          },
-          "readMe": {
-            "type": "string"
-          },
-          "authorName": {
-            "type": "string",
-            "description": "模组作者名字"
-          },
-          "minTime": {
-            "minimum": 0,
-            "type": "integer",
-            "description": "模组可能需要花费的时间，以小时为单位",
-            "format": "int32"
-          },
-          "minPeople": {
-            "minimum": 0,
-            "type": "integer",
-            "description": "模组需要人数",
-            "format": "int32"
-          },
-          "maxTime": {
-            "minimum": 0,
-            "type": "integer",
-            "description": "模组可能需要花费的时间，以小时为单位",
-            "format": "int32"
-          },
-          "maxPeople": {
-            "minimum": 0,
-            "type": "integer",
-            "description": "模组需要人数",
-            "format": "int32"
-          },
-          "image": {
-            "type": "string",
-            "description": "模组封面"
-          }
-        },
-        "description": "新建模组请求"
-      },
-      "ApiResultStageResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/StageResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "StageResponse": {
-        "type": "object",
-        "properties": {
-          "moduleId": {
-            "type": "integer",
-            "description": "模组Id，如果用户是模组创建者，moduleId不为空，可以对模组进行修改",
-            "format": "int64"
-          },
-          "stageId": {
-            "type": "integer",
-            "description": "暂存区id",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "模组创建者id",
-            "format": "int64"
-          },
-          "branchId": {
-            "type": "integer",
-            "description": "处于哪个分支",
-            "format": "int64"
-          },
-          "image": {
-            "type": "string",
-            "description": "模组封面"
-          },
-          "moduleName": {
-            "type": "string",
-            "description": "模组名称"
-          },
-          "description": {
-            "type": "string",
-            "description": "模组的描述"
-          },
-          "maxTime": {
-            "type": "integer",
-            "description": "模组可能需要花费的时间，以小时为单位",
-            "format": "int32"
-          },
-          "maxPeople": {
-            "type": "integer",
-            "description": "模组需要人数",
-            "format": "int32"
-          },
-          "minTime": {
-            "type": "integer",
-            "description": "模组可能需要花费的时间，以小时为单位",
-            "format": "int32"
-          },
-          "minPeople": {
-            "type": "integer",
-            "description": "模组需要人数",
-            "format": "int32"
-          },
-          "parent": {
-            "type": "string",
-            "description": "从哪个模组fork来"
-          },
-          "authorName": {
-            "type": "string",
-            "description": "作者"
-          }
-        },
-        "description": "暂存区响应"
-      },
       "ModulePageByUserRequest": {
         "required": [
           "userId"
@@ -24190,6 +23564,11 @@
           "parent": {
             "type": "string",
             "description": "从哪个模组fork来"
+          },
+          "commitId": {
+            "type": "integer",
+            "description": "最新提交id",
+            "format": "int64"
           },
           "state": {
             "type": "integer",
@@ -24890,7 +24269,8 @@
       },
       "FriendReqSendRequest": {
         "required": [
-          "targetUserId"
+          "targetUserId",
+          "verifyMsg"
         ],
         "type": "object",
         "properties": {
@@ -27255,35 +26635,6 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultListStageResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/StageResponse"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
       "ApiResultListUserRole": {
         "required": [
           "success"
@@ -27821,6 +27172,24 @@
         },
         "description": "返回对象"
       },
+      "ModuleMap": {
+        "type": "object",
+        "properties": {
+          "sceneMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "存储场景versionId，到相邻场景的list",
+              "items": {
+                "type": "integer",
+                "description": "存储场景versionId，到相邻场景的list",
+                "format": "int64"
+              }
+            },
+            "description": "存储场景versionId，到相邻场景的list"
+          }
+        }
+      },
       "ApiResultItemResponse": {
         "required": [
           "success"
@@ -28020,10 +27389,10 @@
             "type": "integer",
             "format": "int64"
           },
-          "completed": {
+          "running": {
             "type": "boolean"
           },
-          "running": {
+          "completed": {
             "type": "boolean"
           }
         },

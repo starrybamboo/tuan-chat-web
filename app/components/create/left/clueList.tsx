@@ -155,7 +155,7 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
   const handleCreate = () => {
     const name = getUniqueName("新线索夹", list || []);
     addClue({
-      stageId,
+      spaceId: stageId,
       name,
       entityType: 6,
       entityInfo: {
@@ -218,7 +218,7 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
                   removeModuleTabItem(i.id!.toString());
                   deleteClue({
                     id: i.id!,
-                    stageId,
+                    spaceId: stageId,
                   });
                 }}
                 isSelected={currentSelectedTabId === i!.id!.toString()}

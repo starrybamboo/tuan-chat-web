@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type EntityAddRequest = {
-    stageId: number;
+    spaceId: number;
     /**
      * 实体类型(item, role, location, scene, map)，见https://ycn45b70r8yz.feishu.cn/wiki/Im2Nw8XbFiN1EvkHBYYcyUUcnde
      */

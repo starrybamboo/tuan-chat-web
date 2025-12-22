@@ -1,9 +1,10 @@
-import type { Room } from "../../../../api";
+import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
+import type { Room } from "../../../../api";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import LeftChatList from "@/components/privateChat/LeftChatList";
-import { ChevronDown, Setting, WebgalIcon } from "@/icons";
+import { ChevronDown, Setting } from "@/icons";
 import React from "react";
 
 export interface ChatRoomListPanelProps {
@@ -19,11 +20,11 @@ export interface ChatRoomListPanelProps {
 
   onContextMenu: (e: React.MouseEvent) => void;
   onInviteMember: () => void;
-  onOpenSpaceDetailPanel: (tab: "members" | "render" | "workflow" | "setting") => void;
+  onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
 
   onSelectRoom: (roomId: number) => void;
   onCloseLeftDrawer: () => void;
-  onOpenRoomSetting: (roomId: number | null, tab?: "role" | "setting" | "render") => void;
+  onOpenRoomSetting: (roomId: number | null, tab?: "role" | "setting") => void;
 
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 
@@ -118,20 +119,6 @@ export default function ChatRoomListPanel({
                               >
                                 <Setting className="size-4 opacity-70" />
                                 <span className="flex-1 text-left">房间信息</span>
-                              </button>
-                            </li>
-                            <li>
-                              <button
-                                type="button"
-                                className="gap-3"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onOpenRoomSetting(room.roomId ?? null, "render");
-                                  (document.activeElement as HTMLElement | null)?.blur?.();
-                                }}
-                              >
-                                <WebgalIcon className="size-4 opacity-70" />
-                                <span className="flex-1 text-left">渲染</span>
                               </button>
                             </li>
                           </ul>

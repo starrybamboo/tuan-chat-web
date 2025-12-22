@@ -201,7 +201,7 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
                   }
                   deleteScene({
                     id: i.id!,
-                    stageId,
+                    spaceId: stageId,
                   });
                 }}
                 isSelected={currentSelectedTabId === i!.id!.toString()}
