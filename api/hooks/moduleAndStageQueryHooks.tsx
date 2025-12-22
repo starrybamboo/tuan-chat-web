@@ -51,7 +51,7 @@ export function useAddModuleMutation() {
 export function useModuleListQuery(requestBody: ModulePageRequest) {
     return useQuery({
         queryKey: ['moduleList', requestBody],
-        queryFn: () => tuanchat.moduleController.page(requestBody),
+        queryFn: () => tuanchat.moduleController.page1(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -70,7 +70,7 @@ export function useModuleListByUserQuery(requestBody: ModulePageByUserRequest) {
 export function useModuleIdQuery(moduleId: number) {
     return useQuery({
         queryKey: ['moduleId', moduleId],
-        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        queryFn: () => tuanchat.moduleController.getById1(moduleId),
         staleTime: 300000 // 5分钟缓存
     });
 }

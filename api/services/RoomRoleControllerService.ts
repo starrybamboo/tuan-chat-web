@@ -38,7 +38,7 @@ export class RoomRoleControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteRole(
+    public deleteRole1(
         requestBody: RoomRoleDeleteRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({

@@ -16,7 +16,7 @@ export class DistributedTaskSchedulerService {
     public triggerScheduling(): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/scheduler/trigger',
+            url: '/scheduler/trigger',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -33,7 +33,7 @@ export class DistributedTaskSchedulerService {
     public getStatistics1(): CancelablePromise<ApiResultSchedulerStatistics> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/scheduler/statistics',
+            url: '/scheduler/statistics',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

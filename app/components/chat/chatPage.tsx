@@ -70,6 +70,12 @@ export default function ChatPage() {
   // space 自定义排序（纯本地）
   // 用一个固定 key 保存所有用户的排序，避免 useLocalStorage 不支持动态 key 的问题。
   const [spaceOrderByUser, setSpaceOrderByUser] = useLocalStorage<Record<string, number[]>>("spaceOrderByUser", {});
+  // room 自定义排序（纯本地）
+  // key: userId -> spaceId -> roomIds
+  const [roomOrderByUserAndSpace, setRoomOrderByUserAndSpace] = useLocalStorage<Record<string, Record<string, number[]>>>(
+    "roomOrderByUserAndSpace",
+    {},
+  );
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
 
   const setActiveSpaceId = useCallback((spaceId: number | null) => {
@@ -227,6 +233,58 @@ export default function ChatPage() {
       [String(userId)]: nextOrder,
     }));
   }, [setSpaceOrderByUser, userId]);
+
+  const roomOrder = useMemo(() => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return [];
+    return roomOrderByUserAndSpace[String(userId)]?.[String(activeSpaceId)] ?? [];
+  }, [activeSpaceId, isPrivateChatMode, roomOrderByUserAndSpace, userId]);
+
+  const orderedRooms = useMemo(() => {
+    if (!Array.isArray(rooms) || rooms.length <= 1) {
+      return rooms;
+    }
+
+    const orderIndex = new Map<number, number>();
+    for (let i = 0; i < roomOrder.length; i++) {
+      orderIndex.set(roomOrder[i]!, i);
+    }
+
+    return [...rooms]
+      .map((room, originalIndex) => {
+        const rid = room.roomId ?? -1;
+        const order = orderIndex.get(rid);
+        return { room, originalIndex, order };
+      })
+      .sort((a, b) => {
+        const ao = a.order ?? Number.POSITIVE_INFINITY;
+        const bo = b.order ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo)
+          return ao - bo;
+        return a.originalIndex - b.originalIndex;
+      })
+      .map(x => x.room);
+  }, [rooms, roomOrder]);
+
+  const orderedRoomIds = useMemo(() => {
+    return orderedRooms
+      .map(r => r.roomId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  }, [orderedRooms]);
+
+  const setUserRoomOrder = useCallback((nextOrder: number[]) => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return;
+    const userKey = String(userId);
+    const spaceKey = String(activeSpaceId);
+    setRoomOrderByUserAndSpace(prev => ({
+      ...prev,
+      [userKey]: {
+        ...(prev[userKey] ?? {}),
+        [spaceKey]: nextOrder,
+      },
+    }));
+  }, [activeSpaceId, isPrivateChatMode, setRoomOrderByUserAndSpace, userId]);
 
   // 私聊未读消息：复用私聊列表现有计算逻辑（用于左侧“私信入口”角标）
   const privateMessageList = usePrivateMessageList({ globalContext, userId });
@@ -474,7 +532,9 @@ export default function ChatPage() {
               activeSpaceId={activeSpaceId}
               activeSpaceName={activeSpace?.name}
               isSpaceOwner={!!spaceContext.isSpaceOwner}
-              rooms={rooms}
+              rooms={orderedRooms}
+              roomOrderIds={orderedRoomIds}
+              onReorderRoomIds={setUserRoomOrder}
               activeRoomId={activeRoomId}
               unreadMessagesNumber={unreadMessagesNumber}
               onContextMenu={handleContextMenu}

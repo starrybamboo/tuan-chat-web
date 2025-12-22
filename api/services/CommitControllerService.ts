@@ -19,7 +19,7 @@ export class CommitControllerService {
     ): CancelablePromise<ApiResultModuleInfo> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/module/commit',
+            url: '/module/commit',
             query: {
                 'moduleId': moduleId,
                 'branchId': branchId,
@@ -42,7 +42,7 @@ export class CommitControllerService {
     ): CancelablePromise<ApiResultModuleInfo> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/module/commit/info',
+            url: '/module/commit/info',
             query: {
                 'commitId': commitId,
             },

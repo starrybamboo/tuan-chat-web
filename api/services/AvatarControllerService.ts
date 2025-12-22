@@ -23,7 +23,7 @@ export class AvatarControllerService {
     ): CancelablePromise<ApiResultRoleAvatar> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/avatar',
+            url: '/avatar',
             query: {
                 'avatarId': avatarId,
             },
@@ -46,7 +46,7 @@ export class AvatarControllerService {
     ): CancelablePromise<ApiResultRoleAvatar> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/avatar',
+            url: '/avatar',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -68,7 +68,7 @@ export class AvatarControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/avatar',
+            url: '/avatar',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -90,7 +90,7 @@ export class AvatarControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/avatar',
+            url: '/avatar',
             query: {
                 'avatarId': avatarId,
             },
@@ -113,7 +113,7 @@ export class AvatarControllerService {
     ): CancelablePromise<ApiResultListRoleAvatar> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/avatar/list',
+            url: '/avatar/list',
             query: {
                 'roleId': roleId,
             },

@@ -61,7 +61,7 @@ export function useDeleteItemMutation() {
 export function useItemsQuery(requestBody: ItemPageRequest) {
     return useQuery({
         queryKey: ['items', requestBody],
-        queryFn: () => tuanchat.itemController.page1(requestBody),
+        queryFn: () => tuanchat.itemController.page(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -72,7 +72,7 @@ export function useItemsQuery(requestBody: ItemPageRequest) {
 export function useItemDetailQuery(id: number) {
     return useQuery({
         queryKey: ['itemDetail', id],
-        queryFn: () => tuanchat.itemController.getById1(id),
+        queryFn: () => tuanchat.itemController.getById(id),
         staleTime: 300000, // 5分钟缓存
         enabled: !!id
     });
@@ -132,7 +132,7 @@ export function useAddModuleMutation() {
 export function useModuleListQuery(requestBody: ModulePageRequest) {
     return useQuery({
         queryKey: ['moduleList', requestBody],
-        queryFn: () => tuanchat.moduleController.page(requestBody),
+        queryFn: () => tuanchat.moduleController.page1(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -183,7 +183,7 @@ export function useModuleDetailQuery(moduleId: number) {
 export function useModuleDetailByIdQuery(moduleId: number) {
     return useQuery({
         queryKey: ['moduleDetail', moduleId],
-        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        queryFn: () => tuanchat.moduleController.getById1(moduleId),
         enabled: !!moduleId,
         staleTime: 300000 // 5分钟缓存
     });

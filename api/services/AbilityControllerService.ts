@@ -29,7 +29,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultRoleAbility> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/role/ability',
+            url: '/role/ability',
             query: {
                 'abilityId': abilityId,
             },
@@ -53,7 +53,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/role/ability',
+            url: '/role/ability',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -76,7 +76,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/role/ability',
+            url: '/role/ability',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -98,7 +98,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/role/ability',
+            url: '/role/ability',
             query: {
                 'abilityId': abilityId,
             },
@@ -122,7 +122,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/role/ability/field',
+            url: '/role/ability/field',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -145,7 +145,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultPageBaseRespRoleAbility> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/role/ability/page',
+            url: '/role/ability/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -167,7 +167,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultListItemResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/role/ability/item',
+            url: '/role/ability/item',
             query: {
                 'abilityId': abilityId,
             },
@@ -192,7 +192,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/role/ability/item',
+            url: '/role/ability/item',
             query: {
                 'itemId': itemId,
                 'abilityId': abilityId,
@@ -218,7 +218,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/role/ability/item',
+            url: '/role/ability/item',
             query: {
                 'itemId': itemId,
                 'abilityId': abilityId,
@@ -243,7 +243,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/role/ability/byRule',
+            url: '/role/ability/byRule',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -266,7 +266,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/role/ability/byRule/field',
+            url: '/role/ability/byRule/field',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -288,7 +288,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultListRoleAbility> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/role/ability/list',
+            url: '/role/ability/list',
             query: {
                 'roleId': roleId,
             },
@@ -313,7 +313,7 @@ export class AbilityControllerService {
     ): CancelablePromise<ApiResultRoleAbility> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/role/ability/',
+            url: '/role/ability/',
             query: {
                 'ruleId': ruleId,
                 'roleId': roleId,

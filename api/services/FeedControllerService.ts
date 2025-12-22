@@ -24,7 +24,7 @@ export class FeedControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponseFeedWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/feed/page',
+            url: '/feed/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -46,7 +46,7 @@ export class FeedControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponseFeedWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/feed/moment',
+            url: '/feed/moment',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -68,7 +68,7 @@ export class FeedControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/feed/moment',
+            url: '/feed/moment',
             query: {
                 'feedId': feedId,
             },
@@ -91,7 +91,7 @@ export class FeedControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponseFeedWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/feed/moment/user',
+            url: '/feed/moment/user',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -113,7 +113,7 @@ export class FeedControllerService {
     ): CancelablePromise<ApiResultMomentFeedTotalStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/feed/moment/stats',
+            url: '/feed/moment/stats',
             query: {
                 'userId': userId,
             },
@@ -136,7 +136,7 @@ export class FeedControllerService {
     ): CancelablePromise<ApiResultFeedWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/feed/moment/publish',
+            url: '/feed/moment/publish',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -158,7 +158,7 @@ export class FeedControllerService {
     ): CancelablePromise<ApiResultFeedWithStatsResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/feed/moment/detail',
+            url: '/feed/moment/detail',
             query: {
                 'feedId': feedId,
             },

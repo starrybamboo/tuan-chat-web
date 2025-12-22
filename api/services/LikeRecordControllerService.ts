@@ -29,7 +29,7 @@ export class LikeRecordControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/like',
+            url: '/like',
             query: {
                 'targetId': targetId,
                 'targetType': targetType,
@@ -53,7 +53,7 @@ export class LikeRecordControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/like',
+            url: '/like',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -75,7 +75,7 @@ export class LikeRecordControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/like',
+            url: '/like',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -97,7 +97,7 @@ export class LikeRecordControllerService {
     ): CancelablePromise<ApiResultPageBaseRespLikeRecord> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/like/user/page',
+            url: '/like/user/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -119,7 +119,7 @@ export class LikeRecordControllerService {
     ): CancelablePromise<ApiResultMapLongInteger> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/like/count/batch',
+            url: '/like/count/batch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -141,7 +141,7 @@ export class LikeRecordControllerService {
     ): CancelablePromise<ApiResultListLikeStatusResp> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/like/batch',
+            url: '/like/batch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -165,7 +165,7 @@ export class LikeRecordControllerService {
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/like/count',
+            url: '/like/count',
             query: {
                 'targetId': targetId,
                 'targetType': targetType,

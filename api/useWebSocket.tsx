@@ -269,7 +269,7 @@ export function useWebSocket() {
   // 输入状态, 按照roomId进行分组
   const [chatStatus, updateChatStatus] = useImmer<Record<number, ChatStatus[]>>({});
 
-  const token = getLocalStorageValue<number>("token", -1);
+  // Sa-Token tokenValue（不再是 userId）。注意：不要在这里固定读取，避免 token 变更后仍用旧值。
   // 配置参数
   const HEARTBEAT_INTERVAL = 25000;
 
@@ -343,7 +343,9 @@ export function useWebSocket() {
     // 连接前，先重置消息
     queryClient.resetQueries({ queryKey: ["getMsgPage"] });
     try {
-      wsRef.current = new WebSocket(`${WS_URL}?token=${token}`);
+      const currentToken = localStorage.getItem("token") || "";
+      const wsUrl = currentToken ? `${WS_URL}?token=${encodeURIComponent(currentToken)}` : WS_URL;
+      wsRef.current = new WebSocket(wsUrl);
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");
         syncWsDebugToWindow();
@@ -538,8 +540,10 @@ export function useWebSocket() {
   const handleDirectChatMessage = (message: DirectMessageEvent) => {
     const {receiverId, senderId} = message;
     // receivedDirectMessages 需要按“对端 contactId”分组。
-    // 某些时机 globalContext.userId 可能尚未初始化，这里用 token 兜底，避免把消息错误分到自己名下导致会话列表不出现。
-    const selfUserId = globalContext.userId ?? token;
+    // 某些时机 globalContext.userId 可能尚未初始化，这里用本地缓存 uid 兜底。
+    const uidRaw = localStorage.getItem("uid");
+    const uidFallback = uidRaw && !Number.isNaN(Number(uidRaw)) ? Number(uidRaw) : 0;
+    const selfUserId = globalContext.userId ?? uidFallback;
     const channelId = selfUserId === senderId
       ? receiverId
       : (selfUserId === receiverId ? senderId : senderId);

@@ -27,7 +27,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/update',
+            url: '/stage/update',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -49,7 +49,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/rollback',
+            url: '/stage/rollback',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -71,7 +71,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultStageEntityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/importRole',
+            url: '/stage/importRole',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -93,7 +93,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/delete',
+            url: '/stage/delete',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -114,7 +114,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/commit',
+            url: '/stage/commit',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -135,7 +135,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/clone',
+            url: '/stage/clone',
             query: {
                 'commitId': commitId,
             },
@@ -159,7 +159,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultStageEntityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/add',
+            url: '/stage/add',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -181,7 +181,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/query',
+            url: '/stage/query',
             query: {
                 'id': id,
             },
@@ -206,7 +206,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/info',
+            url: '/stage/info',
             query: {
                 'spaceId': spaceId,
                 'type': type,
@@ -231,7 +231,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/getByVersionIds',
+            url: '/stage/getByVersionIds',
             query: {
                 'versionIds': versionIds,
                 'spaceId': spaceId,
@@ -255,7 +255,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/change',
+            url: '/stage/change',
             query: {
                 'spaceId': spaceId,
             },

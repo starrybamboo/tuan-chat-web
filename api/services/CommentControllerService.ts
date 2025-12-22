@@ -27,7 +27,7 @@ export class CommentControllerService {
     ): CancelablePromise<ApiResultCommentVO> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/comment',
+            url: '/comment',
             query: {
                 'commentId': commentId,
             },
@@ -51,7 +51,7 @@ export class CommentControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/comment',
+            url: '/comment',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -74,7 +74,7 @@ export class CommentControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/comment',
+            url: '/comment',
             query: {
                 'commentId': commentId,
             },
@@ -98,7 +98,7 @@ export class CommentControllerService {
     ): CancelablePromise<ApiResultListCommentVO> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/comment/page',
+            url: '/comment/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -120,7 +120,7 @@ export class CommentControllerService {
     ): CancelablePromise<ApiResultMapLongInteger> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/comment/count/batch',
+            url: '/comment/count/batch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -144,7 +144,7 @@ export class CommentControllerService {
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/comment/count',
+            url: '/comment/count',
             query: {
                 'targetId': targetId,
                 'targetType': targetType,

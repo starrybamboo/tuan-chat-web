@@ -15,7 +15,7 @@ export class VolunteerService {
     public getStatistics(): CancelablePromise<ApiResultMapStringObject> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/volunteer/statistics',
+            url: '/volunteer/statistics',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

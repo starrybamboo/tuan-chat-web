@@ -26,7 +26,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/room/mute',
+            url: '/room/mute',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -50,7 +50,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/extra',
+            url: '/room/extra',
             query: {
                 'roomId': roomId,
                 'key': key,
@@ -74,7 +74,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/room/extra',
+            url: '/room/extra',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -96,7 +96,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/room/extra',
+            url: '/room/extra',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -118,7 +118,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/room/',
+            url: '/room/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -140,7 +140,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultRoom> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/{roomId}',
+            url: '/room/{roomId}',
             path: {
                 'roomId': roomId,
             },
@@ -163,7 +163,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/room/{roomId}',
+            url: '/room/{roomId}',
             path: {
                 'roomId': roomId,
             },
@@ -186,7 +186,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultListRoom> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/list',
+            url: '/room/list',
             query: {
                 'spaceId': spaceId,
             },

@@ -29,7 +29,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultCollection> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/collection',
+            url: '/collection',
             query: {
                 'id': id,
             },
@@ -52,7 +52,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultCollection> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/collection',
+            url: '/collection',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -74,7 +74,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultCollection> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection',
+            url: '/collection',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -96,7 +96,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/collection',
+            url: '/collection',
             query: {
                 'id': id,
             },
@@ -119,7 +119,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultPageBaseRespCollection> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/user',
+            url: '/collection/user',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -141,7 +141,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultPageBaseRespCollection> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/page',
+            url: '/collection/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -163,7 +163,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultMapLongInteger> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/count/batch',
+            url: '/collection/count/batch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -185,7 +185,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/collection/check',
+            url: '/collection/check',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -209,7 +209,7 @@ export class CollectionControllerService {
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/collection/count',
+            url: '/collection/count',
             query: {
                 'resourceId': resourceId,
                 'resourceType': resourceType,

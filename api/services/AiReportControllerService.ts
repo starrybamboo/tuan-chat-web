@@ -20,7 +20,7 @@ export class AiReportControllerService {
     ): CancelablePromise<ApiResultPageBaseRespAIReportResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/ai/report/page',
+            url: '/ai/report/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -42,7 +42,7 @@ export class AiReportControllerService {
     ): CancelablePromise<ApiResultAIReportResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/ai/report/detail/{reportId}',
+            url: '/ai/report/detail/{reportId}',
             path: {
                 'reportId': reportId,
             },

@@ -25,7 +25,7 @@ export class RoleControllerService {
     ): CancelablePromise<ApiResultUserRole> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/role',
+            url: '/role',
             query: {
                 'roleId': roleId,
             },
@@ -48,7 +48,7 @@ export class RoleControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/role',
+            url: '/role',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -70,7 +70,7 @@ export class RoleControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/role',
+            url: '/role',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -87,12 +87,12 @@ export class RoleControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteRole1(
+    public deleteRole(
         roleId: Array<number>,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/role',
+            url: '/role',
             query: {
                 'roleId': roleId,
             },
@@ -115,7 +115,7 @@ export class RoleControllerService {
     ): CancelablePromise<ApiResultPageBaseRespUserRole> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/role/page',
+            url: '/role/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -137,7 +137,7 @@ export class RoleControllerService {
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/role/user',
+            url: '/role/user',
             query: {
                 'userId': userId,
             },
@@ -162,7 +162,7 @@ export class RoleControllerService {
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/role/user/type',
+            url: '/role/user/type',
             query: {
                 'userId': userId,
                 'type': type,

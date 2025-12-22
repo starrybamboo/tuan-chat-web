@@ -22,7 +22,7 @@ export class DistributedWsService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/distributed-ws/volunteer/heartbeat',
+            url: '/distributed-ws/volunteer/heartbeat',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -44,7 +44,7 @@ export class DistributedWsService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/distributed-ws/task/submit',
+            url: '/distributed-ws/task/submit',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -66,7 +66,7 @@ export class DistributedWsService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/distributed-ws/task/request',
+            url: '/distributed-ws/task/request',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -88,7 +88,7 @@ export class DistributedWsService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/distributed-ws/task/cancel',
+            url: '/distributed-ws/task/cancel',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -110,7 +110,7 @@ export class DistributedWsService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/distributed-ws/task/assign',
+            url: '/distributed-ws/task/assign',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

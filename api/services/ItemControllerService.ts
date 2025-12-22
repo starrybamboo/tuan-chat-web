@@ -22,12 +22,12 @@ export class ItemControllerService {
      * @returns ApiResultItemResponse OK
      * @throws ApiError
      */
-    public getById1(
+    public getById(
         id: number,
     ): CancelablePromise<ApiResultItemResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/item',
+            url: '/item',
             query: {
                 'id': id,
             },
@@ -51,7 +51,7 @@ export class ItemControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/item',
+            url: '/item',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -74,7 +74,7 @@ export class ItemControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/item',
+            url: '/item',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -97,7 +97,7 @@ export class ItemControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/item',
+            url: '/item',
             query: {
                 'id': id,
             },
@@ -115,12 +115,12 @@ export class ItemControllerService {
      * @returns ApiResultPageBaseRespItemResponse OK
      * @throws ApiError
      */
-    public page1(
+    public page(
         requestBody: ItemPageRequest,
     ): CancelablePromise<ApiResultPageBaseRespItemResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/item/page',
+            url: '/item/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -142,7 +142,7 @@ export class ItemControllerService {
     ): CancelablePromise<ApiResultListItemResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/item/list',
+            url: '/item/list',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

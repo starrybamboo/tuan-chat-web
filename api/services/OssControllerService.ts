@@ -19,7 +19,7 @@ export class OssControllerService {
     ): CancelablePromise<ApiResultOssResp> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/oss/upload/url',
+            url: '/oss/upload/url',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

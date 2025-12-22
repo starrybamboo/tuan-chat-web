@@ -26,7 +26,7 @@ export class TagControllerService {
     ): CancelablePromise<ApiResultTag> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/tag',
+            url: '/tag',
             query: {
                 'id': id,
             },
@@ -49,7 +49,7 @@ export class TagControllerService {
     ): CancelablePromise<ApiResultTag> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/tag',
+            url: '/tag',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -71,7 +71,7 @@ export class TagControllerService {
     ): CancelablePromise<ApiResultTag> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/tag',
+            url: '/tag',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -93,7 +93,7 @@ export class TagControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/tag',
+            url: '/tag',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -115,7 +115,7 @@ export class TagControllerService {
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/tag/usage',
+            url: '/tag/usage',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -137,7 +137,7 @@ export class TagControllerService {
     ): CancelablePromise<ApiResultListTag> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/tag/get',
+            url: '/tag/get',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -159,7 +159,7 @@ export class TagControllerService {
     ): CancelablePromise<ApiResultListTag> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/tag/list',
+            url: '/tag/list',
             query: {
                 'tagType': tagType,
             },

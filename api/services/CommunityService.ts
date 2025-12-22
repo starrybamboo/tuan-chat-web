@@ -23,7 +23,7 @@ export class CommunityService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/update',
+            url: '/community/update',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -46,7 +46,7 @@ export class CommunityService {
     ): CancelablePromise<ApiResultCommunityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/info',
+            url: '/community/info',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -69,7 +69,7 @@ export class CommunityService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/enable',
+            url: '/community/enable',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -92,7 +92,7 @@ export class CommunityService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/disable',
+            url: '/community/disable',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -115,7 +115,7 @@ export class CommunityService {
     ): CancelablePromise<ApiResultCommunityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/community/create',
+            url: '/community/create',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -135,7 +135,7 @@ export class CommunityService {
     public listCommunities(): CancelablePromise<ApiResultListCommunityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/community/list',
+            url: '/community/list',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
