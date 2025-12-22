@@ -1,11 +1,11 @@
+import type { SpaceDetailTab } from "../spaceHeaderBar";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
-import RenderWindow from "@/components/chat/window/renderWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
+import { BaselineArrowBackIosNew } from "@/icons";
 import { use, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -16,7 +16,7 @@ import {
 } from "../../../../../api/hooks/chatQueryHooks";
 import WorkflowWindow from "../../window/workflowWindow";
 
-export default function SpaceDetailPanel() {
+export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: SpaceDetailTab; onClose: () => void }) {
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext.spaceId ?? -1;
   const spaceMemberQuery = useGetSpaceMembersQuery(spaceId);
@@ -24,14 +24,10 @@ export default function SpaceDetailPanel() {
   // const spaceRolesQuery = useGetSpaceRolesQuery(spaceId);
   // const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
-  // 是否显示space详情
-  const [_, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
-
-  const [activeTab, _setActiveTab] = useSearchParamsState<"members" | "render" | "workflow" | "setting">("spaceDetailTab", "members");
   const resolvedTab = (!spaceContext.isSpaceOwner && activeTab === "setting") ? "members" : activeTab;
 
-  const [isRoleHandleOpen, setIsRoleHandleOpen] = useSearchParamsState<boolean>(`spaceRolePop${spaceContext.spaceId}`, false);
-  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>(`spaceUserPop${spaceContext.spaceId}`, false);
+  const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
+  const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
   const [inviteMemberMode, setInviteMemberMode] = useState<"spectator" | "player">("spectator");
 
   const addMemberMutation = useAddSpaceMemberMutation();
@@ -95,6 +91,19 @@ export default function SpaceDetailPanel() {
   };
   return (
     <div className="h-full w-full overflow-hidden">
+      <div className="flex items-center gap-2 px-2 py-1 border-b border-base-300 bg-base-100">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm btn-square"
+          aria-label="返回聊天"
+          onClick={onClose}
+        >
+          <BaselineArrowBackIosNew className="size-5" />
+        </button>
+        <div className="text-sm font-medium opacity-80 truncate">
+          空间详情
+        </div>
+      </div>
       {resolvedTab === "members" && (
         <div className="h-full space-y-2 p-4 overflow-y-auto">
           <div className="flex flex-row justify-center items-center gap-2 px-4">
@@ -109,13 +118,7 @@ export default function SpaceDetailPanel() {
 
       {resolvedTab === "setting" && spaceContext.isSpaceOwner && (
         <div className="h-full p-4 overflow-y-auto">
-          <SpaceSettingWindow onClose={() => { setIsShowSpacePanel(false); }}></SpaceSettingWindow>
-        </div>
-      )}
-
-      {resolvedTab === "render" && (
-        <div className="h-full p-4 overflow-y-auto">
-          <RenderWindow></RenderWindow>
+          <SpaceSettingWindow onClose={onClose}></SpaceSettingWindow>
         </div>
       )}
 

@@ -18,8 +18,8 @@ export type DistributedTask = {
     resultData?: string;
     errorMessage?: string;
     executionDuration?: number;
-    completed?: boolean;
     running?: boolean;
+    completed?: boolean;
 };
 export namespace DistributedTask {
     export enum status {

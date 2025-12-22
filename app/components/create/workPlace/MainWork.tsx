@@ -28,7 +28,8 @@ function StageInitializer() {
   // 当 stageId 变化时，从 staging 数据中找到对应的 moduleId
   useEffect(() => {
     if (stageId && stagingData?.data) {
-      const stageInfo = stagingData.data.find(stage => stage.stageId === stageId);
+      interface StagingItem { stageId?: number; moduleId?: number }
+      const stageInfo = (stagingData.data as StagingItem[]).find((stage: StagingItem) => stage.stageId === stageId);
       if (stageInfo?.moduleId && stageInfo.moduleId !== moduleId) {
         setModuleId(stageInfo.moduleId);
         if (typeof window !== "undefined" && window.localStorage) {
