@@ -2,9 +2,9 @@
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
-import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useCopyRoleMutation } from "api/hooks/roleCloneHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { tuanchat } from "api/instance";
 import { ChevronRightIcon, CloseIcon, CopyIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, GirlIcon, InfoIcon, MicrophoneIcon, SaveIcon, SlidersIcon } from "app/icons";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -18,7 +18,6 @@ import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
-import { copyRole } from "./utils/roleCloneUtils";
 // import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -138,13 +137,13 @@ function CharacterDetailInner({
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
 
   // 获取骰娘文案配置数据
-  const abilityQuery = useAbilityByRuleAndRole(localRole.id, selectedRuleId || 0);
+  const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId || 0);
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
 
   // 接口部分
   // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
-  const createRoleMutation = useCreateRoleMutation();
+  const { mutateAsync: copyRoleMutate } = useCopyRoleMutation();
 
   // 处理规则变更
   // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
@@ -391,44 +390,19 @@ function CharacterDetailInner({
 
     try {
       setIsCloning(true);
-      const newRole = await copyRole(
-        localRole,
-        cloneTargetType,
-        cloneName,
-        cloneDescription,
-        {
-          createRole: async (data) => {
-            return new Promise((resolve, reject) => {
-              createRoleMutation.mutate(data, {
-                onSuccess: id => resolve(id),
-                onError: reject,
-              });
-            });
-          },
-          uploadAvatar: async (data) => {
-            return tuanchat.avatarController.updateRoleAvatar(data);
-          },
-          updateRole: async (data) => {
-            return tuanchat.roleController.updateRole(data);
-          },
-          getRoleAvatars: async (roleId) => {
-            return tuanchat.avatarController.getRoleAvatars(roleId);
-          },
-        },
-      );
+      const newRole = await copyRoleMutate({
+        sourceRole: localRole,
+        targetType: cloneTargetType,
+        newName: cloneName,
+        newDescription: cloneDescription,
+      });
 
       // 更新角色列表
       if (setRoles) {
         setRoles(prevRoles => [newRole, ...prevRoles]);
       }
 
-      // 刷新缓存
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["getRole", newRole.id] }),
-        queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
-        queryClient.invalidateQueries({ queryKey: ["roleInfinite"] }),
-        queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRole.id] }),
-      ]);
+      // 缓存失效由hook统一处理
 
       // 成功提示
       toast.success(`已复制为${cloneTargetType === "dicer" ? "骰娘" : "普通"}角色`);
