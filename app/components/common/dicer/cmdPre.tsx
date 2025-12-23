@@ -1,9 +1,6 @@
 import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
-import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
-import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
-import executorFu from "@/components/common/dicer/cmdExe/cmdExeFu";
+import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { useEffect, useRef } from "react";
@@ -17,18 +14,7 @@ import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation 
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../api/instance";
 
-const RULES: Map<number, RuleNameSpace> = new Map();
-RULES.set(1, executorCoc); // CoC规则
-RULES.set(2, executorDnd); // DnD规则
-RULES.set(3, executorFu); // 最终物语规则
-
-const ALIAS_MAP_SET: { [key: string]: Map<string, string> } = {
-  1: executorCoc.aliasMap,
-  2: executorDnd.aliasMap,
-  3: executorFu.aliasMap,
-};
-
-UTILS.initAliasMap(ALIAS_MAP_SET);
+initAliasMapOnce();
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
