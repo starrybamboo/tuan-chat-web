@@ -4,6 +4,7 @@ import type { AIGeneratedData } from "./steps/AIGenerateModal";
 import type { CharacterData } from "./types";
 import type { SetSelectedRoleIdFn } from "./utils/roleCreationHelpers";
 
+import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import {
   useGenerateAbilityByRuleMutation,
   useGenerateBasicInfoByRuleMutation,
@@ -100,6 +101,9 @@ export default function RoleCreationFlow({
       return;
     if (!characterData.name.trim() || !characterData.description.trim() || characterData.ruleId <= 0)
       return;
+
+    // 初始化属性别名映射（封装在 aliasRegistry），确保表达式计算前已完成一次性初始化
+    initAliasMapOnce();
 
     setIsSaving(true);
     try {
