@@ -33,6 +33,10 @@ export class RuleNameSpace {
   alias: string[];
   description: string;
   cmdMap: Map<string, CommandExecutor>;
+  /**
+   * 主命令记录：只记录主命令名到执行器的映射，用于列表展示时去重
+   */
+  cmdRecord: Map<string, CommandExecutor>;
   aliasMap: Map<string, string>;
   dependentValueMap: Map<string, (ability: RoleAbility) => { type: string; value: string | number }>;
 
@@ -51,6 +55,7 @@ export class RuleNameSpace {
     this.alias = alias;
     this.description = description;
     this.cmdMap = new Map();
+    this.cmdRecord = new Map();
     this.aliasMap = aliasMap;
     this.dependentValueMap = dependentValueMap;
   }
@@ -64,6 +69,8 @@ export class RuleNameSpace {
     cmd.cmdInfo.alias.forEach((alias) => {
       this.cmdMap.set(alias, cmd);
     });
+    // 记录主命令，供 getCmdList 去重展示
+    this.cmdRecord.set(cmd.cmdInfo.name, cmd);
   }
 
   /**
@@ -76,13 +83,13 @@ export class RuleNameSpace {
   }
 
   /**
-   * 获取命名空间下所有命令的列表
-   * @returns {string[]} 命令信息数组
+   * 获取命名空间下所有命令的列表（仅主命令，别名合并展示）
+   * @returns {Map<string, CommandInfo>} 命令信息映射表，key 为主命令名
    */
   getCmdList(): Map<string, CommandInfo> {
     const cmdList = new Map<string, CommandInfo>();
-    Array.from(this.cmdMap.keys()).forEach((cmd) => {
-      cmdList.set(cmd, this.getCmd(cmd)!);
+    this.cmdRecord.forEach((executor, name) => {
+      cmdList.set(name, executor.cmdInfo);
     });
     return cmdList;
   }
