@@ -396,11 +396,13 @@ export function ChatToolbar({
         {/* WebGAL 联动模式按钮 */}
         {onToggleWebgalLinkMode && (
           <div
-            className={`tooltip tooltip-bottom ${webgalLinkMode ? "text-info" : "hover:text-info opacity-50"}`}
+            className="tooltip tooltip-bottom"
             data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
-            onClick={onToggleWebgalLinkMode}
           >
-            <LinkFilled className={`size-6 cursor-pointer ${webgalLinkMode ? "" : "grayscale opacity-50"}`} />
+            <LinkFilled
+              className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+              onClick={onToggleWebgalLinkMode}
+            />
           </div>
         )}
 
@@ -437,13 +439,10 @@ export function ChatToolbar({
             className="tooltip tooltip-bottom"
             data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
           >
-            <button
-              type="button"
-              className={`btn btn-xs ${runModeEnabled ? "btn-primary" : "btn-ghost border border-base-300"}`}
+            <DiceD6Icon
+              className={`size-7 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
               onClick={onToggleRunMode}
-            >
-              <DiceD6Icon className="size-7" />
-            </button>
+            />
           </div>
         )}
 
