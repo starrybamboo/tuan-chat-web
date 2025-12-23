@@ -37,22 +37,7 @@ export function useGetUserInfoByUsernameQuery(username: string) {
   const trimmed = username.trim();
   return useQuery({
     queryKey: ['getUserInfoByUsername', trimmed],
-    queryFn: async () => {
-      const res = await tuanchat.request.request({
-        method: 'GET',
-        url: '/capi/user/info/by-username',
-        query: {
-          username: trimmed,
-        },
-        errors: {
-          400: `Bad Request`,
-          405: `Method Not Allowed`,
-          429: `Too Many Requests`,
-          500: `Internal Server Error`,
-        },
-      });
-      return res as ApiResultUserInfoResponse;
-    },
+    queryFn: () => tuanchat.userController.getUserInfoByUsername(trimmed) as Promise<ApiResultUserInfoResponse>,
     staleTime: 600000,
     enabled: trimmed.length > 0,
   });
