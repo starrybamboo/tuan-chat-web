@@ -2,8 +2,7 @@
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
-import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useCopyRoleMutation } from "api/hooks/roleCloneHooks";
+import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { ChevronRightIcon, CloseIcon, CopyIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, GirlIcon, InfoIcon, MicrophoneIcon, SaveIcon, SlidersIcon } from "app/icons";
 import { Suspense, useEffect, useMemo, useState } from "react";
