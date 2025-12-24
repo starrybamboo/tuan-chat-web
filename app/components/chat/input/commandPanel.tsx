@@ -67,8 +67,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
     return (
       <div className={className}>
         {onDismiss && (
-          <div className="flex justify-between items-center px-3 py-2 border-b border-base-300">
-            <span className="text-xs opacity-60">指令详情 (ESC 关闭)</span>
+          <div className="flex justify-between items-center px-3 py-2 border-b border-base-300 bg-base-200 dark:bg-base-800">
+            <span className="text-xs opacity-60 dark:opacity-80">指令详情 (ESC 关闭)</span>
             <button
               type="button"
               onClick={onDismiss}
@@ -82,10 +82,10 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
         {suggestions.map(cmd => (
           <div
             key={cmd}
-            className="p-2 w-full last:border-0 hover:bg-base-300"
+            className="p-2 w-full last:border-0 hover:bg-base-300 dark:hover:bg-base-700 bg-base-100 dark:bg-base-900"
           >
             <div className="transform origin-left">
-              <span className="font-mono text-blue-600 dark:text-blue-400">
+              <span className="font-mono text-blue-600 dark:text-cyan-400">
                 {commands.get(cmd)?.name}
               </span>
               {(() => {
@@ -93,7 +93,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
                 const displayAliases = (info?.alias || []);
                 return displayAliases.length > 0
                   ? (
-                      <span className="ml-2 text-xs opacity-60">
+                      <span className="ml-2 text-xs opacity-60 dark:opacity-75">
                         (别名:
                         {" "}
                         {displayAliases.join(", ")}
@@ -102,22 +102,22 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
                     )
                   : null;
               })()}
-              <span className="ml-2 text-sm">{commands.get(cmd)?.description}</span>
+              <span className="ml-2 text-sm dark:text-gray-300">{commands.get(cmd)?.description}</span>
             </div>
             <div className="transform origin-left">
-              <span className="font-mono text-blue-600 dark:text-blue-400">
+              <span className="font-mono text-blue-600 dark:text-cyan-400">
                 用法：
               </span>
-              <span className="ml-2 text-sm">
+              <span className="ml-2 text-sm dark:text-gray-300">
                 {commands.get(cmd)?.usage || "无用法说明"}
               </span>
               <div className="transform origin-left">
-                <span className="font-mono text-blue-600 dark:text-blue-400">
+                <span className="font-mono text-blue-600 dark:text-cyan-400">
                   示例：
                 </span>
                 {commands.get(cmd)?.examples.map(example => (
                   <div key={`example-${example}`}>
-                    <span className="ml-2 text-sm"><code>{example}</code></span>
+                    <span className="ml-2 text-sm dark:text-gray-300"><code className="dark:text-amber-300">{example}</code></span>
                   </div>
                 ))}
               </div>
@@ -200,8 +200,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
   return (
     <div className={className}>
       {onDismiss && (
-        <div className="flex justify-between items-center px-3 py-2 border-b border-base-300">
-          <span className="text-xs opacity-60">指令提示 (ESC 关闭)</span>
+        <div className="flex justify-between items-center px-3 py-2 border-b border-base-300 bg-base-200 dark:bg-base-800">
+          <span className="text-xs opacity-60 dark:opacity-80">指令提示 (ESC 关闭)</span>
           <button
             type="button"
             onClick={onDismiss}
@@ -212,25 +212,32 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
           </button>
         </div>
       )}
+      {suggestions.length === 0
+        ? (
+            <div className="p-3 text-center text-sm opacity-60 dark:opacity-75 bg-base-100 dark:bg-base-900">
+              没有找到符合要求的指令
+            </div>
+          )
+        : null}
       {suggestions.map(cmd => (
         <div
           key={cmd}
           onClick={() => handleSelectCommand(cmd)}
-          className="p-2 w-full last:border-0 hover:bg-base-300 cursor-pointer"
+          className="p-2 w-full last:border-0 hover:bg-base-300 dark:hover:bg-base-700 cursor-pointer bg-base-100 dark:bg-base-900"
         >
           <div className="transform origin-left">
-            <span className="font-mono text-blue-600 dark:text-blue-400">
+            <span className="font-mono text-blue-600 dark:text-cyan-400">
               {cmd}
             </span>
             {commands.get(cmd)?.alias && commands.get(cmd)!.alias.length > 0 && (
-              <span className="ml-2 text-xs opacity-60">
+              <span className="ml-2 text-xs opacity-60 dark:opacity-75">
                 (别名:
                 {" "}
                 {commands.get(cmd)!.alias.join(", ")}
                 )
               </span>
             )}
-            <span className="ml-2 text-sm">{commands.get(cmd)?.description}</span>
+            <span className="ml-2 text-sm dark:text-gray-300">{commands.get(cmd)?.description}</span>
           </div>
         </div>
       ))}
