@@ -17,7 +17,7 @@ export default function CommandPanelFromStore({
 
   // 判断是否是有效的指令前缀（排除纯标点）
   const isValidCommand = React.useCallback((text: string) => {
-    if (!text.startsWith(".") && !text.startsWith("。") && !text.startsWith("%")) {
+    if (!text.startsWith(".") && !text.startsWith("。") && !text.startsWith("/") && !text.startsWith("%")) {
       return false;
     }
 
@@ -37,7 +37,7 @@ export default function CommandPanelFromStore({
     if (prefix.startsWith("%")) {
       return "webgal";
     }
-    if (prefix.startsWith(".") || prefix.startsWith("。")) {
+    if (prefix.startsWith(".") || prefix.startsWith("。") || prefix.startsWith("/")) {
       return "dice";
     }
     return "none";
