@@ -3,9 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 回退文件信息请求
+ * 根据spaceId克隆空间请求
  */
-export type StageRollbackRequest = {
-    ids: Array<number>;
+export type SpaceCloneRequest = {
+    /**
+     * 空间ID
+     */
+    spaceId: number;
 };
 

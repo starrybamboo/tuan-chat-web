@@ -157,17 +157,18 @@ export function LocationList({ stageId, searchQuery: controlledQuery, deleteMode
   const { mutate: deleteLocation } = useDeleteEntityMutation();
 
   const { data } = useQueryEntitiesQuery(stageId);
-  const list = data?.data?.filter(i => i!.entityType === 4);
+  const entities = (data?.data ?? []) as StageEntityResponse[];
+  const list = entities.filter((i: StageEntityResponse) => i!.entityType === 4);
 
   // 添加搜索状态
   const [searchQuery, setSearchQuery] = useState("");
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表，并按 id 升序稳定排序
-  const filteredList = list?.filter(i => ((i.name) || "").toLowerCase().includes(effectiveQuery));
-  const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+  const filteredList = list?.filter((i: StageEntityResponse) => ((i.name) || "").toLowerCase().includes(effectiveQuery));
+  const sortedList = filteredList?.slice().sort((a: StageEntityResponse, b: StageEntityResponse) => (a.id ?? 0) - (b.id ?? 0));
 
-  const sceneList = data?.data?.filter(i => i!.entityType === 3);
+  const sceneList = entities.filter((i: StageEntityResponse) => i!.entityType === 3);
 
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
 
@@ -200,7 +201,7 @@ export function LocationList({ stageId, searchQuery: controlledQuery, deleteMode
           )
         : (
             <>
-              {sortedList?.map(location => (
+              {sortedList?.map((location: StageEntityResponse) => (
                 <LocationListItem
                   key={location.id!.toString()}
                   location={location}
@@ -215,11 +216,11 @@ export function LocationList({ stageId, searchQuery: controlledQuery, deleteMode
                       spaceId: stageId,
                     }, {
                       onSuccess: () => {
-                        const newScenes = sceneList?.map((scene) => {
+                        const newScenes = sceneList?.map((scene: StageEntityResponse) => {
                           const newLocations = scene.entityInfo?.locations.filter((loc: string) => loc !== location.name);
                           return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
                         });
-                        newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                        newScenes?.forEach((scene: StageEntityResponse) => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
                       },
                     });
                   }}
