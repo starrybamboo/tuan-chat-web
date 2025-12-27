@@ -7,7 +7,6 @@ import type { ApiResultListRoom } from '../models/ApiResultListRoom';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { FightRoomAddRequest } from '../models/FightRoomAddRequest';
 import type { RoomExtraRequest } from '../models/RoomExtraRequest';
 import type { RoomExtraSetRequest } from '../models/RoomExtraSetRequest';
 import type { RoomMuteRequest } from '../models/RoomMuteRequest';
@@ -27,7 +26,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/room/mute',
+            url: '/room/mute',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -51,7 +50,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/extra',
+            url: '/room/extra',
             query: {
                 'roomId': roomId,
                 'key': key,
@@ -75,7 +74,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/room/extra',
+            url: '/room/extra',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -97,7 +96,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/room/extra',
+            url: '/room/extra',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -119,29 +118,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/room/',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 创建战斗轮房间
-     * @param requestBody
-     * @returns ApiResultRoom OK
-     * @throws ApiError
-     */
-    public createRoom1(
-        requestBody: FightRoomAddRequest,
-    ): CancelablePromise<ApiResultRoom> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/room/fight',
+            url: '/room/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -163,7 +140,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultRoom> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/{roomId}',
+            url: '/room/{roomId}',
             path: {
                 'roomId': roomId,
             },
@@ -186,7 +163,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/room/{roomId}',
+            url: '/room/{roomId}',
             path: {
                 'roomId': roomId,
             },
@@ -209,7 +186,7 @@ export class RoomControllerService {
     ): CancelablePromise<ApiResultListRoom> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/list',
+            url: '/room/list',
             query: {
                 'spaceId': spaceId,
             },

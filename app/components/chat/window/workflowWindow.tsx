@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Connection, Edge, EdgeChange, Node, NodeChange, ReactFlowInstance } from "@xyflow/react";
 import type { Room } from "api/models/Room";
 import type { Space } from "api/models/Space";
@@ -18,7 +17,7 @@ import {
 import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateSpaceMutation } from "api/hooks/chatQueryHooks";
 import dagre from "dagre";
 import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { SpaceContext } from "../spaceContext";
+import { SpaceContext } from "../core/spaceContext";
 import "@xyflow/react/dist/style.css";
 
 interface RoomLink {

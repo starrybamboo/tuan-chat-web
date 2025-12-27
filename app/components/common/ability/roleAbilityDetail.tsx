@@ -1,5 +1,5 @@
 import type { AbilityFieldUpdateRequest } from "../../../../api";
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import React, { use, useEffect, useState } from "react";
 import {
@@ -18,7 +18,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const [searchKey, setSearchKey] = useSearchParamsState<string>("roleAbilitySearchKey", "");
   useEffect(() => {
     setSearchKey("");
-  }, []);
+  }, [setSearchKey]);
 
   const [editingField, setEditingField] = useState<{
     abilityId: number;

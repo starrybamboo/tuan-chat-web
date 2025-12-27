@@ -15,7 +15,15 @@ export function getLocalStorageValue<T>(key: string, defaultValue: T): T {
       return defaultValue;
     }
     else {
-      return JSON.parse(saved) as T;
+      try {
+        // 兼容两种写法：
+        // 1) JSON.stringify 存入（标准）
+        // 2) 直接存入原始字符串（历史用法，比如 tokenValue）
+        return JSON.parse(saved) as T;
+      }
+      catch {
+        return saved as unknown as T;
+      }
     }
   }
 

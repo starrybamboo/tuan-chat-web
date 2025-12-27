@@ -2,16 +2,18 @@
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
+import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { tuanchat } from "api/instance";
-import { useCreateRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
-import { Suspense, useMemo, useState } from "react";
+import { ChevronRightIcon, CloseIcon, CopyIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, GirlIcon, InfoIcon, MicrophoneIcon, SaveIcon, SlidersIcon } from "app/icons";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
 import Section from "./Editors/Section";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
+import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
@@ -122,19 +124,25 @@ function CharacterDetailInner({
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
   const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false); // 骰娘关联弹窗状态
-  const [isConverting, setIsConverting] = useState(false); // 转换为骰娘的过程状态
+  const [isDicerConfigJsonModalOpen, setIsDicerConfigJsonModalOpen] = useState(false); // 骰娘配置JSON弹窗状态
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false); // 复制角色模态框状态
+  const [cloneTargetType, setCloneTargetType] = useState<"dicer" | "normal">("dicer"); // 目标类型
+  const [cloneName, setCloneName] = useState(""); // 新角色名称
+  const [cloneDescription, setCloneDescription] = useState(""); // 新角色描述
+  const [isCloneNameEdited, setIsCloneNameEdited] = useState(false); // 追踪名称是否被手动编辑
+  const [isCloning, setIsCloning] = useState(false); // 复制中状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
 
-  // 能力查询（用于复制当前角色的能力到新骰娘）
-  const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId);
+  // 获取骰娘文案配置数据
+  const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId || 0);
+  const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
 
   // 接口部分
   // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
-  const createRoleMutation = useCreateRoleMutation();
-  const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutateAsync: copyRoleMutate } = useCopyRoleMutation();
 
   // 处理规则变更
   // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
@@ -157,6 +165,58 @@ function CharacterDetailInner({
   // 打开骰娘关联弹窗
   const handleOpenDiceMaidenLinkModal = () => {
     setIsDiceMaidenLinkModalOpen(true);
+  };
+
+  // 处理骰娘配置保存
+  const handleDicerConfigSave = async (data: Record<string, string[]>) => {
+    const payload = {
+      roleId: localRole.id,
+      ruleId: selectedRuleId,
+      act: {},
+      basic: {},
+      ability: {},
+      skill: {},
+      extra: {
+        copywriting: JSON.stringify(data),
+      },
+    };
+
+    return new Promise<void>((resolve, reject) => {
+      updateFieldAbility(payload, {
+        onSuccess: () => {
+          resolve();
+        },
+        onError: (error) => {
+          reject(error);
+        },
+      });
+    });
+  };
+
+  // 处理骰娘配置重置
+  const handleDicerConfigReset = () => {
+    // 重置为空对象，让其从规则模板中重新加载
+    const payload = {
+      roleId: localRole.id,
+      ruleId: selectedRuleId,
+      act: {},
+      basic: {},
+      ability: {},
+      skill: {},
+      extra: {
+        copywriting: JSON.stringify({}),
+      },
+    };
+
+    updateFieldAbility(payload, {
+      onSuccess: () => {
+        toast.success("已还原默认配置");
+        setIsDicerConfigJsonModalOpen(false);
+      },
+      onError: () => {
+        toast.error("重置失败");
+      },
+    });
   };
 
   // 处理骰娘关联确认
@@ -291,113 +351,73 @@ function CharacterDetailInner({
     console.warn("头像上传数据:", data);
   };
 
-  // 转换为骰娘：创建新角色并复制头像（含 Transform）与能力，完成后跳转
-  const handleConvertToDiceMaiden = async () => {
+  // 打开复制角色弹窗
+  const handleOpenCloneModal = () => {
+    const targetType: "dicer" | "normal" = isDiceMaiden ? "dicer" : "normal";
+    setCloneTargetType(targetType);
+    // 同类型复制添加-二周目，跨类型不改变名称
+    setCloneName(localRole.name);
+    setCloneDescription(localRole.description);
+    setIsCloneNameEdited(false); // 重置编辑标志
+    setIsCloneModalOpen(true);
+  };
+
+  // 监听类型切换，自动更新名称（仅当用户未手动编辑时）
+  useEffect(() => {
+    if (!isCloneModalOpen || isCloneNameEdited)
+      return;
+
+    const currentType = isDiceMaiden ? "dicer" : "normal";
+    const isSameType = cloneTargetType === currentType;
+
+    if (isSameType) {
+      // 同类型：添加-二周目后缀
+      setCloneName(`${localRole.name}-二周目`);
+    }
+    else {
+      // 跨类型：保持原名称
+      setCloneName(localRole.name);
+    }
+  }, [cloneTargetType, isCloneModalOpen, isDiceMaiden, localRole.name, isCloneNameEdited]);
+
+  // 执行复制角色逻辑
+  const handleCloneRole = async () => {
+    if (!cloneName.trim()) {
+      toast.error("请输入新角色名称");
+      return;
+    }
+
     try {
-      setIsConverting(true);
-      // 1. 创建骰娘角色
-      createRoleMutation.mutate({
-        roleName: localRole.name,
-        description: localRole.description,
-        type: 1,
-      }, {
-        onSuccess: async (newRoleId?: number) => {
-          if (!newRoleId || newRoleId <= 0) {
-            setIsConverting(false);
-            return;
-          }
-
-          let finalAvatarUrl = "/favicon.ico";
-          let finalAvatarId: number | undefined;
-
-          // 2. 复制头像与 Transform 参数（如果当前有选中头像）
-          try {
-            const avatarUrl = selectedAvatarUrl;
-            const spriteUrl = selectedSpriteUrl;
-            if (avatarUrl && avatarUrl !== "/favicon.ico") {
-              // 查找当前角色选中的头像，获取 Transform 参数
-              const currentAvatar = roleAvatars.find(a => a.avatarId === selectedAvatarId);
-              const setRes = await tuanchat.avatarController.setRoleAvatar({ roleId: newRoleId });
-              const avatarId = setRes?.data;
-              if (avatarId) {
-                await tuanchat.avatarController.updateRoleAvatar({
-                  roleId: newRoleId,
-                  avatarId,
-                  avatarUrl,
-                  spriteUrl,
-                  // 复制 Transform 参数
-                  spriteXPosition: currentAvatar?.spriteXPosition ?? 0,
-                  spriteYPosition: currentAvatar?.spriteYPosition ?? 0,
-                  spriteScale: currentAvatar?.spriteScale ?? 1,
-                  spriteTransparency: currentAvatar?.spriteTransparency ?? 1,
-                  spriteRotation: currentAvatar?.spriteRotation ?? 0,
-                });
-                // 更新新角色的头像引用
-                await tuanchat.roleController.updateRole({ roleId: newRoleId, avatarId });
-                finalAvatarUrl = avatarUrl;
-                finalAvatarId = avatarId;
-              }
-            }
-          }
-          catch (e) {
-            console.error("复制头像失败", e);
-          }
-
-          // 3. 仅保留 extra（如骰娘文案），清空 act/basic/ability/skill
-          try {
-            const extraCopywriting = abilityQuery.data?.extraCopywriting ?? {};
-            const serializedData = JSON.stringify(extraCopywriting);
-            updateFieldAbility({
-              roleId: newRoleId,
-              ruleId: selectedRuleId,
-              act: {},
-              basic: {},
-              ability: {},
-              skill: {},
-              extra: { copywriting: serializedData },
-            });
-          }
-          catch (e) {
-            console.error("设置骰娘extra失败", e);
-          }
-
-          // 4. 创建新角色对象并手动更新 roles 状态（立即显示在侧边栏）
-          const newRole: Role = {
-            id: newRoleId,
-            name: localRole.name,
-            description: localRole.description,
-            avatar: finalAvatarUrl,
-            avatarId: finalAvatarId ?? 0,
-            type: 1, // 骰娘类型
-            modelName: localRole.modelName,
-            speakerName: localRole.speakerName,
-            voiceUrl: localRole.voiceUrl,
-            extra: {}, // 新骰娘初始化空的extra
-          };
-
-          // 手动更新角色列表，让侧边栏立即显示新角色
-          if (setRoles) {
-            setRoles(prevRoles => [newRole, ...prevRoles]);
-          }
-
-          // 5. 刷新缓存
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["getRole", newRoleId] }),
-            queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
-            queryClient.invalidateQueries({ queryKey: ["roleInfinite"] }),
-            queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRoleId] }),
-          ]);
-
-          // 6. 跳转到新角色页面
-          setIsConverting(false);
-          navigate(`/role/${newRoleId}?rule=${selectedRuleId}`);
-        },
-        onError: () => setIsConverting(false),
+      setIsCloning(true);
+      const newRole = await copyRoleMutate({
+        sourceRole: localRole,
+        targetType: cloneTargetType,
+        newName: cloneName,
+        newDescription: cloneDescription,
       });
+
+      // 更新角色列表
+      if (setRoles) {
+        setRoles(prevRoles => [newRole, ...prevRoles]);
+      }
+
+      // 缓存失效由hook统一处理
+
+      // 成功提示
+      toast.success(`已复制为${cloneTargetType === "dicer" ? "骰娘" : "普通"}角色`);
+
+      // 关闭模态框
+      setIsCloneModalOpen(false);
+
+      // 跳转到新角色页面
+      navigate(`/role/${newRole.id}`);
     }
     catch (e) {
-      console.error("转换为骰娘失败", e);
-      setIsConverting(false);
+      console.error("复制角色失败", e);
+      toast.error(`复制失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    }
+    finally {
+      setIsCloning(false);
     }
   };
 
@@ -425,36 +445,45 @@ function CharacterDetailInner({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* 普通角色显示转换为骰娘按钮 */}
-          {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="将当前角色复制为骰娘角色">
+          {/* 复制角色按钮 - 两种类型都显示，使用 Menu */}
+          <div className="dropdown dropdown-end">
+            <div className="tooltip tooltip-bottom" data-tip={isDiceMaiden ? "复制此骰娘角色" : "复制此角色"}>
               <button
                 type="button"
-                onClick={handleConvertToDiceMaiden}
-                className={`btn btn-outline btn-sm md:btn-lg rounded-lg ${isConverting ? "scale-95" : ""}`}
-                disabled={isConverting}
+                tabIndex={0}
+                onClick={() => handleOpenCloneModal()}
+                className="btn btn-outline btn-sm md:btn-lg rounded-lg"
               >
-                {isConverting
-                  ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    )
-                  : (
-                      <span className="flex items-center gap-1">
-                        To骰娘
-                      </span>
-                    )}
+                <span className="flex items-center gap-1">
+                  <CopyIcon className="w-4 h-4" />
+                  复制
+                </span>
               </button>
             </div>
-          )}
+          </div>
           {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="从ST格式导入角色数据">
+            <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速配置角色数据">
               <button
                 type="button"
                 onClick={() => setIsStImportModalOpen(true)}
                 className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
               >
                 <span className="flex items-center gap-1">
-                  ST导入
+                  ST指令
+                </span>
+              </button>
+            </div>
+          )}
+          {isDiceMaiden && (
+            <div className="tooltip tooltip-bottom" data-tip="查看和导出骰娘文案配置的JSON格式">
+              <button
+                type="button"
+                onClick={() => setIsDicerConfigJsonModalOpen(true)}
+                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+              >
+                <span className="flex items-center gap-1">
+                  <SlidersIcon className="w-4 h-4" />
+                  配置
                 </span>
               </button>
             </div>
@@ -474,9 +503,7 @@ function CharacterDetailInner({
                         )
                       : (
                           <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
+                            <SaveIcon className="w-4 h-4" />
                             保存
                           </span>
                         )}
@@ -487,10 +514,7 @@ function CharacterDetailInner({
                 <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
                   <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                      </svg>
+                      <EditIcon className="w-4 h-4" />
                       编辑
                     </span>
                   </button>
@@ -521,30 +545,15 @@ function CharacterDetailInner({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!isDiceMaiden && (
-                      <button
-                        type="button"
-                        onClick={handleConvertToDiceMaiden}
-                        className={`btn btn-success btn-sm ${isConverting ? "scale-95" : ""}`}
-                        disabled={isConverting}
-                      >
-                        {isConverting
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
-                              <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                  <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                                  <circle cx="18" cy="6" r="2" stroke="currentColor" strokeWidth="2" />
-                                  <circle cx="12" cy="18" r="2" stroke="currentColor" strokeWidth="2" />
-                                  <path d="M6 8v4a4 4 0 004 4h4a4 4 0 004-4V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                转为骰娘
-                              </span>
-                            )}
-                      </button>
-                    )}
+                    {/* 移动端复制角色按钮 */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCloneModal()}
+                      className="btn btn-success btn-sm"
+                    >
+                      <CopyIcon className="w-4 h-4" />
+                      复制
+                    </button>
 
                     {isEditing
                       ? (
@@ -560,9 +569,7 @@ function CharacterDetailInner({
                                 )
                               : (
                                   <span className="flex items-center gap-1">
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                    </svg>
+                                    <SaveIcon className="w-4 h-4" />
                                     保存
                                   </span>
                                 )}
@@ -571,10 +578,7 @@ function CharacterDetailInner({
                       : (
                           <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
                             <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                                <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                              </svg>
+                              <EditIcon className="w-4 h-4" />
                               编辑
                             </span>
                           </button>
@@ -690,10 +694,7 @@ function CharacterDetailInner({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <GearOutline className="w-4 h-4 text-primary" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm">当前规则</h3>
@@ -704,9 +705,7 @@ function CharacterDetailInner({
                     </div>
                     <div className="flex items-center gap-1 text-base-content/50">
                       <span className="text-xs">切换</span>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
@@ -722,9 +721,7 @@ function CharacterDetailInner({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
+                        <MicrophoneIcon className="w-4 h-4 text-secondary" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm">上传音频</h3>
@@ -735,9 +732,7 @@ function CharacterDetailInner({
                     </div>
                     <div className="flex items-center gap-1 text-base-content/50">
                       <span className="text-xs">上传</span>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
                   </div>
 
@@ -768,14 +763,7 @@ function CharacterDetailInner({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="currentColor">
-                          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
-                          <circle cx="7" cy="7" r="1.5" fill="currentColor" />
-                          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                          <circle cx="17" cy="17" r="1.5" fill="currentColor" />
-                          <circle cx="7" cy="17" r="1.5" fill="currentColor" />
-                          <circle cx="17" cy="7" r="1.5" fill="currentColor" />
-                        </svg>
+                        <DiceFiveIcon className="w-4 h-4 text-accent" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm">关联骰娘</h3>
@@ -791,9 +779,7 @@ function CharacterDetailInner({
                     </div>
                     <div className="flex items-center gap-1 text-base-content/50">
                       <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRightIcon className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
@@ -827,6 +813,7 @@ function CharacterDetailInner({
                       initialAvatarId={localRole.avatarId}
                       className="w-full gap-4 flex mb-2"
                       onAvatarChange={handleAvatarChange}
+                      role={localRole}
                     />
                   </Section>
                 </div>
@@ -900,9 +887,7 @@ function CharacterDetailInner({
                   className="btn btn-sm btn-circle btn-ghost"
                   onClick={() => setIsRuleModalOpen(false)}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">
@@ -938,6 +923,129 @@ function CharacterDetailInner({
         currentDicerRoleId={currentDicerRoleId}
         onConfirm={handleDiceMaidenLinkConfirm}
       />
+
+      {/* 骰娘配置 JSON 模态框 */}
+      <DicerConfigJsonModal
+        isOpen={isDicerConfigJsonModalOpen}
+        onClose={() => setIsDicerConfigJsonModalOpen(false)}
+        copywritingTemplates={abilityQuery.data?.extraCopywriting}
+        onReset={handleDicerConfigReset}
+        onSave={handleDicerConfigSave}
+      />
+
+      {/* 复制角色模态框 */}
+      <dialog className={`modal ${isCloneModalOpen ? "modal-open" : ""}`}>
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">复制角色</h3>
+
+          {/* 类型切换按钮 */}
+          <div className="flex gap-2 mb-6">
+            <button
+              type="button"
+              onClick={() => setCloneTargetType("dicer")}
+              className={`btn flex-1 ${cloneTargetType === "dicer" ? "btn-primary" : "btn-outline"}`}
+            >
+              <DiceD6Icon className="w-4 h-4 mr-1" />
+              复制为骰娘
+            </button>
+            <button
+              type="button"
+              onClick={() => setCloneTargetType("normal")}
+              className={`btn flex-1 ${cloneTargetType === "normal" ? "btn-primary" : "btn-outline"}`}
+            >
+              <GirlIcon className="w-4 h-4 mr-1" />
+              复制为普通角色
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="label">
+                <span className="label-text">角色名称</span>
+              </label>
+              <input
+                type="text"
+                value={cloneName}
+                onChange={(e) => {
+                  setCloneName(e.target.value);
+                  setIsCloneNameEdited(true); // 标记名称已被手动编辑
+                }}
+                className="input input-bordered w-full"
+                placeholder="输入新角色名称"
+              />
+            </div>
+
+            <div>
+              <label className="label">
+                <span className="label-text">角色描述</span>
+              </label>
+              <textarea
+                value={cloneDescription}
+                onChange={e => setCloneDescription(e.target.value)}
+                className="textarea textarea-bordered w-full h-24"
+                placeholder="输入新角色描述"
+              />
+            </div>
+
+            {/* 固定高度提示区域，避免切换时高度变化 */}
+            <div className="min-h-[60px]">
+              {cloneTargetType !== (isDiceMaiden ? "dicer" : "normal") && (
+                <div className="alert alert-info">
+                  <InfoIcon className="stroke-current shrink-0 h-6 w-6" />
+                  <span>跨类型复制时，能力数据不会被复制。</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="modal-action">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCloneModalOpen(false);
+                setCloneName("");
+                setCloneDescription("");
+                setIsCloneNameEdited(false);
+              }}
+              className="btn"
+              disabled={isCloning}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await handleCloneRole();
+                setCloneName("");
+                setCloneDescription("");
+                setIsCloneNameEdited(false);
+              }}
+              className="btn btn-primary"
+              disabled={isCloning || !cloneName.trim()}
+            >
+              {isCloning
+                ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      复制中...
+                    </>
+                  )
+                : (
+                    "确认复制"
+                  )}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button
+            type="button"
+            onClick={() => setIsCloneModalOpen(false)}
+            disabled={isCloning}
+          >
+            close
+          </button>
+        </form>
+      </dialog>
     </div>
   );
 }

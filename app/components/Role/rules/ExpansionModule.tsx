@@ -1,7 +1,8 @@
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
+import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { useGetRoleQuery } from "api/queryHooks";
+import { CloseIcon, EditIcon, SaveIcon } from "app/icons";
 import { useEffect, useMemo, useState } from "react";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
@@ -74,7 +75,6 @@ export default function ExpansionModule({
 
   // 当 roleId 变化时，重置本地编辑状态，防止显示上一个角色的内容
   useEffect(() => {
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setLocalEdits({});
   }, [roleId]);
 
@@ -403,18 +403,13 @@ export default function ExpansionModule({
                                     {isCopywritingPreview
                                       ? (
                                           <span className="flex items-center gap-1">
-                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                                              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                                            </svg>
+                                            <EditIcon className="w-4 h-4" />
                                             编辑
                                           </span>
                                         )
                                       : (
                                           <span className="flex items-center gap-1">
-                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                            </svg>
+                                            <SaveIcon className="w-4 h-4" />
                                             保存
                                           </span>
                                         )}
@@ -478,21 +473,19 @@ export default function ExpansionModule({
               )}
       </div>
 
-      {/* ST导入弹窗 */}
+      {/* ST指令弹窗 */}
       {isStImportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onStImportModalClose}>
           <div className="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">使用ST指令快速导入配置</h3>
+                <h3 className="text-xl font-semibold">ST指令</h3>
                 <button
                   type="button"
                   className="btn btn-sm btn-circle btn-ghost"
                   onClick={onStImportModalClose}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">

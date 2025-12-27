@@ -1,5 +1,6 @@
 import type { Route } from "./+types/home";
-import HomePage from "@/components/home/homePage";
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -8,10 +9,16 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
+export async function loader(_args: Route.LoaderArgs) {
+  return null;
+}
+
 export default function Home() {
-  return (
-    <div className="h-full bg-base-200 overflow-auto">
-      <HomePage></HomePage>
-    </div>
-  );
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate("/chat", { replace: true });
+  }, [navigate]);
+
+  return null;
 }

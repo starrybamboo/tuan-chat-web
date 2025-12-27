@@ -26,7 +26,7 @@ export class RuleControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/rule/update',
+            url: '/rule/update',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -49,7 +49,7 @@ export class RuleControllerService {
     ): CancelablePromise<ApiResultPageBaseRespRuleResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/rule/page',
+            url: '/rule/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -72,7 +72,7 @@ export class RuleControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/rule/create',
+            url: '/rule/create',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -95,7 +95,7 @@ export class RuleControllerService {
     ): CancelablePromise<ApiResultRule> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/rule/clone',
+            url: '/rule/clone',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -118,7 +118,7 @@ export class RuleControllerService {
     ): CancelablePromise<ApiResultRule> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/rule/detail/{ruleId}',
+            url: '/rule/detail/{ruleId}',
             path: {
                 'ruleId': ruleId,
             },
@@ -142,7 +142,7 @@ export class RuleControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/rule/delete/{ruleId}',
+            url: '/rule/delete/{ruleId}',
             path: {
                 'ruleId': ruleId,
             },

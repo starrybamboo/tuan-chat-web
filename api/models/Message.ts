@@ -52,6 +52,10 @@ export type Message = {
      */
     messageType: number;
     /**
+     * thread id（用于消息线程聚合）；为空表示主消息流
+     */
+    threadId?: number;
+    /**
      * 位置
      */
     position: number;

@@ -47,7 +47,7 @@ export function CollectionResourceCard({
   const renderResourcePreview = () => {
     if (resource.type) {
       // 如果是音频文件，使用 AudioWavePlayer
-      if (resource.type === 6) {
+      if (resource.type === "6") {
         return (
           <div className="aspect-[4/3] pt-8 pb-3 px-3 flex flex-col justify-center">
             <AudioWavePlayer
@@ -61,7 +61,7 @@ export function CollectionResourceCard({
       }
 
       // 如果是图片文件，使用 MoreBetterImg
-      if (resource.type === 5) {
+      if (resource.type === "5") {
         return (
           <div className="aspect-[4/3]">
             <MoreBetterImg

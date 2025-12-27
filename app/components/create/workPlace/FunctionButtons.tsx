@@ -31,7 +31,7 @@ export default function FunctionButtons() {
   const handleCommit = () => {
     if (message.trim() === "") {
       commit({
-        stageId: stageId as number,
+        spaceId: stageId as number,
         message: "无提交说明",
       }, {
         onSuccess: () => {
@@ -43,7 +43,7 @@ export default function FunctionButtons() {
     }
     else {
       commit({
-        stageId: stageId as number,
+        spaceId: stageId as number,
         message,
       }, {
         onSuccess: () => {

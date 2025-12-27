@@ -1,8 +1,8 @@
 import type { ChatMessageResponse } from "../../../api";
-import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
+import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import React, { useMemo } from "react";
-import { useGetRoleQuery } from "../../../api/queryHooks";
+import { useGetRoleQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import BetterImg from "../common/betterImg";
 
 /**
@@ -132,7 +132,7 @@ function ChatMessageItem({
   showAvatar?: boolean;
 }) {
   const message = chatMessageResponse.message;
-  const useRoleRequest = useGetRoleQuery(message.roleId);
+  const useRoleRequest = useGetRoleQuery(message.roleId ?? -1);
   const role = useRoleRequest.data?.data;
 
   // 渲染消息内容
@@ -174,7 +174,7 @@ function ChatMessageItem({
       {showAvatar && (
         <div className="flex-shrink-0">
           <RoleAvatarComponent
-            avatarId={message.avatarId}
+            avatarId={message.avatarId ?? -1}
             width={8}
             isRounded={true}
             withTitle={false}

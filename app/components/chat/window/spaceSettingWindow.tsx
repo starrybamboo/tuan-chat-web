@@ -1,4 +1,4 @@
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -14,8 +14,8 @@ import {
   useUpdateSpaceArchiveStatusMutation,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { tuanchat } from "../../../../api/instance";
@@ -60,9 +60,33 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     ruleId: space?.ruleId || 1,
   });
 
-  // 使用骰娘id数据
-  const extra = JSON.parse(space?.extra ?? "{}");
-  const [diceRollerId, setDiceRollerId] = useState(extra?.dicerRoleId || 2);
+  // 使用骰娘id数据与自定义 DicerRole 开关
+  const [diceRollerId, setDiceRollerId] = useState<number>(2);
+  const [allowCustomDicerRole, setAllowCustomDicerRole] = useState<boolean>(true);
+
+  const parsedSpaceExtra = useMemo(() => {
+    if (!space?.extra)
+      return {} as Record<string, unknown>;
+    try {
+      return JSON.parse(space.extra) as Record<string, unknown>;
+    }
+    catch (err) {
+      console.error("解析 space.extra 失败", err);
+      return {} as Record<string, unknown>;
+    }
+  }, [space?.extra]);
+
+  useEffect(() => {
+    if (!space)
+      return;
+    const extraRecord = parsedSpaceExtra as Record<string, unknown>;
+    const rawDicerId = Number(extraRecord.dicerRoleId ?? space.dicerRoleId ?? 2);
+    setDiceRollerId(Number.isNaN(rawDicerId) ? 2 : rawDicerId);
+
+    const rawAllow = extraRecord.allowCustomDicerRole;
+    const allowFlag = rawAllow === undefined ? true : rawAllow === true || rawAllow === "true";
+    setAllowCustomDicerRole(allowFlag);
+  }, [space, parsedSpaceExtra]);
 
   // 骰娘关联弹窗状态
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false);
@@ -72,6 +96,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     const id = Number(diceRollerId);
     return (Number.isNaN(id) || id <= 0) ? undefined : id;
   }, [diceRollerId]);
+
+  const isCustomDicerDisabled = useMemo(() => !allowCustomDicerRole, [allowCustomDicerRole]);
 
   const { data: linkedDicerData } = useGetRoleQuery(currentDicerId || 0);
 
@@ -151,6 +177,11 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       spaceId,
       key: "dicerRoleId",
       value: String(diceRollerId),
+    });
+    tuanchat.spaceController.setSpaceExtra({
+      spaceId,
+      key: "allowCustomDicerRole",
+      value: String(allowCustomDicerRole),
     });
   };
 
@@ -284,7 +315,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                           </div>
                         )}
                     <div>
-                      <h3 className="font-semibold text-sm">空间骰娘</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm">空间骰娘</h3>
+                        <span className={`badge badge-sm badge-outline ${isCustomDicerDisabled ? "" : "invisible"}`}>
+                          已禁用自定义骰娘
+                        </span>
+                      </div>
                       <p className={`font-medium text-sm ${
                         dicerRoleError ? "text-error" : "text-accent"
                       }`}
@@ -303,6 +339,20 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+          <div className="mb-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <span className="label-text text-base">允许自定义骰娘</span>
+                <span className="text-xs text-base-content/70">关闭后，成员将只能使用空间骰娘配置，不可使用角色或用户绑定的骰娘。</span>
+              </div>
+              <input
+                type="checkbox"
+                className="toggle toggle-accent"
+                checked={allowCustomDicerRole}
+                onChange={e => setAllowCustomDicerRole(e.target.checked)}
+              />
             </div>
           </div>
           <div className="flex justify-between items-center mt-16">

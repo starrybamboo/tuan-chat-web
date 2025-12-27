@@ -1,9 +1,9 @@
 import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import type { RoleAvatar } from "api";
 import MoodRegulator from "@/components/common/MoodRegulator";
-import { useUpdateAvatarTitleMutation } from "api/queryHooks";
+import { useUpdateAvatarTitleMutation } from "api/hooks/RoleAndAvatarHooks";
+import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SpriteListGrid } from "./SpriteListGrid";
 
 interface MoodSettingsTabProps {
   /** 有立绘的头像列表 */
@@ -12,32 +12,20 @@ interface MoodSettingsTabProps {
   roleAvatars: RoleAvatar[];
   /** 当前选中的索引 */
   selectedIndex: number;
-  /** 索引变更回调（内部切换） */
-  onIndexChange: (index: number) => void;
   /** 应用完成后的回调（用于关闭弹窗等） */
   onApply?: () => void;
 }
 
 /**
  * 情感设定 Tab 内容组件
- * 左侧立绘列表，右侧纵向情绪调节器，右下角应用按钮
+ * 使用外部（左侧）的头像列表，显示情绪调节器
  */
 export function MoodSettingsTab({
   spritesAvatars,
   roleAvatars,
   selectedIndex,
-  onIndexChange,
   onApply,
 }: MoodSettingsTabProps) {
-  const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
-  const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
-
-  // 情绪调节器兜底标签
-  const DEFAULT_MOOD_LABELS = useMemo(
-    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
-    [],
-  );
-
   // 当前选中的头像（从完整列表中根据 spritesAvatars 的 avatarId 查找）
   const currentSpriteAvatar = spritesAvatars[selectedIndex];
   const currentAvatar = useMemo(() => {
@@ -45,6 +33,18 @@ export function MoodSettingsTab({
       return null;
     return roleAvatars.find(a => a.avatarId === currentSpriteAvatar.avatarId) || currentSpriteAvatar;
   }, [roleAvatars, currentSpriteAvatar]);
+
+  const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation(currentAvatar?.roleId || 0);
+  // 头像名编辑相关状态
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState("");
+  const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
+
+  // 情绪调节器兜底标签
+  const DEFAULT_MOOD_LABELS = useMemo(
+    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
+    [],
+  );
 
   // 根据当前选中头像的情绪键生成 labels
   const moodLabels = useMemo(() => {
@@ -59,7 +59,6 @@ export function MoodSettingsTab({
   useEffect(() => {
     if (currentAvatar) {
       const t = (currentAvatar.avatarTitle as Record<string, string>) || {};
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setPendingMoodMap(t);
       moodControlRef.current?.setValue(t);
     }
@@ -71,76 +70,134 @@ export function MoodSettingsTab({
   }, []);
 
   // 应用情感设定到选中的头像
-  const handleApplyMood = useCallback(() => {
+  const handleApplyMood = useCallback(async () => {
     if (currentAvatar?.roleId && currentAvatar?.avatarId) {
-      updateAvatarTitle({
-        roleId: currentAvatar.roleId,
-        avatarId: currentAvatar.avatarId,
+      // 直接调用 API 更新整个 avatarTitle 对象
+      const res = await tuanchat.avatarController.updateRoleAvatar({
+        ...currentAvatar,
         avatarTitle: pendingMoodMap,
       });
+
+      if (res.success) {
+        console.warn("更新情感设定成功");
+      }
     }
     // 应用后关闭弹窗
     onApply?.();
-  }, [currentAvatar, pendingMoodMap, updateAvatarTitle, onApply]);
-
-  // 情绪调节器渲染
-  const renderMoodRegulator = () => (
-    <div className="grid-cols-1">
-      <MoodRegulator
-        controlRef={moodControlRef}
-        onChange={handleMoodChange}
-        labels={moodLabels}
-        defaultValue={(currentAvatar?.avatarTitle as Record<string, string>) || undefined}
-        fallbackDefaultLabels={true}
-      />
-    </div>
-  );
-
-  // 应用按钮渲染
-  const renderApplyButton = () => (
-    <div className="mt-2 md:mt-4 flex justify-end gap-2 flex-shrink-0">
-      <button
-        type="button"
-        className="btn btn-primary btn-sm md:btn-md"
-        onClick={handleApplyMood}
-        disabled={!currentAvatar}
-      >
-        应用情感设定
-      </button>
-    </div>
-  );
+  }, [currentAvatar, pendingMoodMap, onApply]);
 
   return (
-    <div className="h-full flex flex-col md:flex-row gap-4">
-      {/* 移动端：情绪调节区域在上方，固定高度 */}
-      <div className="md:hidden flex flex-col flex-shrink-0">
-        <h3 className="text-lg font-semibold mb-2 flex-shrink-0">调整语音参数</h3>
-        <div className="h-56 overflow-auto bg-info/10 rounded-lg p-4 flex-shrink-0">
-          {renderMoodRegulator()}
-        </div>
-        {renderApplyButton()}
+    <div className="h-full flex flex-col">
+      {/* 标题 */}
+      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+        <h3 className="text-lg font-semibold">调整语音参数</h3>
+        {currentAvatar && (
+          <div className="text-sm text-base-content/70 flex items-center gap-2">
+            <span>当前头像：</span>
+            {isEditingName
+              ? (
+                  <>
+                    <input
+                      className="input input-xs input-bordered min-w-0 w-24 text-center"
+                      value={editingName}
+                      autoFocus
+                      maxLength={16}
+                      onChange={e => setEditingName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (currentAvatar?.avatarId) {
+                            updateAvatarTitle({
+                              avatarId: currentAvatar.avatarId,
+                              title: editingName.trim() || "未命名",
+                              avatarsForUpdate: roleAvatars,
+                            });
+                            setIsEditingName(false);
+                          }
+                        }
+                        else if (e.key === "Escape") {
+                          setIsEditingName(false);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-primary"
+                      onClick={() => {
+                        if (currentAvatar?.avatarId) {
+                          updateAvatarTitle({
+                            avatarId: currentAvatar.avatarId,
+                            title: editingName.trim() || "未命名",
+                            avatarsForUpdate: roleAvatars,
+                          });
+                          setIsEditingName(false);
+                        }
+                      }}
+                      title="保存"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost"
+                      onClick={() => setIsEditingName(false)}
+                      title="取消"
+                    >
+                      ✕
+                    </button>
+                  </>
+                )
+              : (
+                  <button
+                    type="button"
+                    className="text-base-content/70 hover:text-primary transition-colors truncate max-w-[120px] text-ellipsis text-left"
+                    title="点击编辑头像名"
+                    onClick={() => {
+                      setEditingName(currentAvatar.avatarTitle?.label || "");
+                      setIsEditingName(true);
+                    }}
+                  >
+                    {currentAvatar.avatarTitle?.label || "未命名"}
+                  </button>
+                )}
+          </div>
+        )}
       </div>
 
-      {/* 立绘列表 - 移动端可滚动，桌面端固定宽度 */}
-      <div className="flex-1 md:w-1/3 md:flex-none flex flex-col min-h-0 border-t md:border-t-0 border-base-300 pt-4 md:pt-0">
-        <h3 className="text-lg font-semibold mb-4 flex-shrink-0">选择立绘</h3>
-        <div className="flex-1 min-h-0 overflow-auto">
-          <SpriteListGrid
-            avatars={spritesAvatars}
-            selectedIndex={selectedIndex}
-            onSelect={onIndexChange}
-            className="h-full"
-          />
-        </div>
+      {/* 情绪调节器区域 */}
+      <div className="flex-1 min-h-0 overflow-auto bg-base-200/50 rounded-lg p-4">
+        {currentAvatar
+          ? (
+              <MoodRegulator
+                controlRef={moodControlRef}
+                onChange={handleMoodChange}
+                labels={moodLabels}
+                defaultValue={(currentAvatar?.avatarTitle as Record<string, string>) || undefined}
+                fallbackDefaultLabels={true}
+              />
+            )
+          : (
+              <div className="flex flex-col items-center justify-center h-full text-base-content/50">
+                <svg className="w-16 h-16 mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <p>请从左侧选择一个头像</p>
+              </div>
+            )}
       </div>
 
-      {/* 桌面端：右侧情绪调节区域 */}
-      <div className="hidden md:flex flex-1 min-h-0 flex-col border-l border-base-300 pl-4">
-        <h3 className="text-lg font-semibold mb-4 flex-shrink-0">调整语音参数</h3>
-        <div className="flex-1 min-h-0 overflow-auto bg-info/10 rounded-lg p-4">
-          {renderMoodRegulator()}
-        </div>
-        {renderApplyButton()}
+      {/* 应用按钮 */}
+      <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleApplyMood}
+          disabled={!currentAvatar}
+        >
+          应用情感设定
+        </button>
       </div>
     </div>
   );

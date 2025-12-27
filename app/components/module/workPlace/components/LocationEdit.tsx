@@ -1,13 +1,12 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import { invokeSaveWithTinyRetry } from "@/components/create/workPlace/components/invokeSaveWithTinyRetry";
+import { useModuleContext } from "@/components/create/workPlace/context/_moduleContext";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
-import { useModuleContext } from "../context/_moduleContext";
-import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface LocationEditProps {
   location: StageEntityResponse;

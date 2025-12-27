@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultListStageEntityResponse } from '../models/ApiResultListStageEntityResponse';
-import type { ApiResultListStageResponse } from '../models/ApiResultListStageResponse';
+import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultStageEntityResponse } from '../models/ApiResultStageEntityResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { CommitRequest } from '../models/CommitRequest';
@@ -27,7 +27,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/update',
+            url: '/stage/update',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -49,7 +49,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/rollback',
+            url: '/stage/rollback',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -71,7 +71,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultStageEntityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/importRole',
+            url: '/stage/importRole',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -93,7 +93,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/delete',
+            url: '/stage/delete',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -114,9 +114,31 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/commit',
+            url: '/stage/commit',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * @param commitId
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public clone(
+        commitId: number,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/stage/clone',
+            query: {
+                'commitId': commitId,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -137,26 +159,9 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultStageEntityResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/stage/add',
+            url: '/stage/add',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 打开工作区时自动查询，显示所有自己拥有暂存区的模组（正在修改）
-     * @returns ApiResultListStageResponse OK
-     * @throws ApiError
-     */
-    public staging(): CancelablePromise<ApiResultListStageResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/stage',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -176,7 +181,7 @@ export class StageControllerService {
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/query',
+            url: '/stage/query',
             query: {
                 'id': id,
             },
@@ -190,20 +195,20 @@ export class StageControllerService {
     }
     /**
      * 查看最新详情
-     * @param stageId
+     * @param spaceId
      * @param type
      * @returns ApiResultListStageEntityResponse OK
      * @throws ApiError
      */
     public queryEntities(
-        stageId: number,
+        spaceId: number,
         type?: number,
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/info',
+            url: '/stage/info',
             query: {
-                'stageId': stageId,
+                'spaceId': spaceId,
                 'type': type,
             },
             errors: {
@@ -216,20 +221,20 @@ export class StageControllerService {
     }
     /**
      * @param versionIds
-     * @param stageId
+     * @param spaceId
      * @returns ApiResultListStageEntityResponse OK
      * @throws ApiError
      */
     public getByVersionIds(
         versionIds: Array<number>,
-        stageId: number,
+        spaceId: number,
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/getByVersionIds',
+            url: '/stage/getByVersionIds',
             query: {
                 'versionIds': versionIds,
-                'stageId': stageId,
+                'spaceId': spaceId,
             },
             errors: {
                 400: `Bad Request`,
@@ -241,18 +246,18 @@ export class StageControllerService {
     }
     /**
      * 查看对于commit的修改
-     * @param stageId
+     * @param spaceId
      * @returns ApiResultListStageEntityResponse OK
      * @throws ApiError
      */
     public change(
-        stageId: number,
+        spaceId: number,
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/stage/change',
+            url: '/stage/change',
             query: {
-                'stageId': stageId,
+                'spaceId': spaceId,
             },
             errors: {
                 400: `Bad Request`,

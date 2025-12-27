@@ -22,7 +22,7 @@ export function Mounter({ children, targetId }: { children: React.ReactNode; tar
         modalRoot.appendChild(modalRef.current);
       }
     }
-  }, [isMounted]);
+  }, [isMounted, targetId]);
   // 必须要在组件挂载后才能获取modalRoot，否则在build的时候会爆错。
   if (!isMounted) {
     return null;

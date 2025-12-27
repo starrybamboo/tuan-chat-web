@@ -1313,6 +1313,17 @@ export class RealtimeRenderer {
       return;
     }
 
+    // WebGAL 指令消息：直接写入场景脚本
+    // 约定：msg.content 是一行完整的 WebGAL 脚本（可包含分号结尾）
+    if ((msg.messageType as number) === 10) {
+      if (!msg.content?.trim())
+        return;
+      await this.appendLine(targetRoomId, msg.content.trim(), syncToFile);
+      if (syncToFile)
+        this.sendSyncMessage(targetRoomId);
+      return;
+    }
+
     // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
     if (msg.messageType !== 1 && msg.messageType !== 9)
       return;
@@ -1321,30 +1332,27 @@ export class RealtimeRenderer {
     if (!msg.content?.trim())
       return;
 
-    // 跳过 WebGAL 指令消息（以 % 开头）
-    if (msg.content.startsWith("%")) {
-      await this.appendLine(targetRoomId, msg.content.slice(1), syncToFile);
-      if (syncToFile)
-        this.sendSyncMessage(targetRoomId);
-      return;
-    }
-
     // 判断消息类型：黑屏文字（messageType === 9）
     const isIntroText = (msg.messageType as number) === 9;
+    const roleId = msg.roleId ?? 0;
+    const avatarId = msg.avatarId ?? 0;
+
     // 判断是否为旁白：roleId <= 0
-    const isNarrator = msg.roleId <= 0;
+    const isNarrator = roleId <= 0;
 
     // 获取角色信息
-    const role = this.roleMap.get(msg.roleId);
+    const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
     // 优先使用自定义角色名
     const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
-    const roleName = customRoleName || role?.roleName || `角色${msg.roleId}`;
+    const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
-    const avatar = this.avatarMap.get(msg.avatarId);
+    const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
 
     // 获取立绘文件名
-    const spriteFileName = await this.getAndUploadSprite(msg.avatarId, msg.roleId);
+    const spriteFileName = (avatarId > 0 && roleId > 0)
+      ? await this.getAndUploadSprite(avatarId, roleId)
+      : null;
 
     console.error(msg.content, msg.webgal?.voiceRenderSettings);
     // 获取 voiceRenderSettings 中的立绘位置
@@ -1379,14 +1387,15 @@ export class RealtimeRenderer {
 
     // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
     if (shouldShowFigure && spriteFileName) {
-      // 如果不是回复消息，则清除之前的立绘（单人发言模式）
-      // 如果是回复消息，则保留之前的立绘（多人对话模式）
-      if (!msg.replyMessageId) {
-        // WebGAL 中不同位置的立绘是独立的，需要分别清除
-        await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-        await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-        await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
-      }
+      // 不再自动清除立绘，立绘需要手动清除
+      // // 如果不是回复消息，则清除之前的立绘（单人发言模式）
+      // // 如果是回复消息，则保留之前的立绘（多人对话模式）
+      // if (!msg.replyMessageId) {
+      //   // WebGAL 中不同位置的立绘是独立的，需要分别清除
+      //   await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      //   await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      //   await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // }
 
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
@@ -1409,23 +1418,25 @@ export class RealtimeRenderer {
       }
     }
     else if (isIntroText) {
-      // 黑屏文字需要清除立绘
-      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // 黑屏文字不再自动清除立绘，立绘需要手动清除
+      // // 黑屏文字需要清除立绘
+      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
     else if (!isNarrator && !isIntroText) {
-      // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
-      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
+      // // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
+      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
 
     // 处理小头像（普通角色对话，不管是否显示立绘）
     const isNormalDialog = !isNarrator && !isIntroText;
     if (isNormalDialog) {
       const miniAvatarFileName = this.miniAvatarEnabled
-        ? await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId)
+        ? (avatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(avatarId, roleId) : null)
         : null;
 
       if (miniAvatarFileName) {
@@ -1469,14 +1480,13 @@ export class RealtimeRenderer {
       // 生成语音（如果启用了 TTS）
       let vocalFileName: string | null = null;
       if (this.ttsConfig.enabled
-        && msg.roleId !== 0 // 跳过系统角色
-        && msg.roleId !== 2 // 跳过骰娘
+        && roleId !== 0 // 跳过系统角色
+        && roleId !== 2 // 跳过骰娘
         && !msg.content.startsWith(".") // 跳过指令
-        && !msg.content.startsWith("。")
-        && !msg.content.startsWith("%")) {
+        && !msg.content.startsWith("。")) {
         vocalFileName = await this.generateAndUploadVocal(
           processedContent,
-          msg.roleId,
+          roleId,
           avatar?.avatarTitle,
           customEmotionVector,
         );
@@ -1634,7 +1644,8 @@ export class RealtimeRenderer {
         concat?: boolean;
       } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
-      const avatar = this.avatarMap.get(msg.avatarId);
+      const avatarId = msg.avatarId ?? 0;
+      const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
       const emotionVector = customEmotionVector && customEmotionVector.length > 0
         ? customEmotionVector
         : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);

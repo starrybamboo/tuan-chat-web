@@ -1,4 +1,4 @@
-import { RoomContext } from "@/components/chat/roomContext";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { PopWindow } from "@/components/common/popWindow";
@@ -7,7 +7,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { use } from "react";
 import {
   useGetRoleAvatarQuery,
-} from "../../../api/queryHooks";
+} from "../../../api/hooks/RoleAndAvatarHooks";
 
 const sizeMap = {
   6: "w-6 h-6", // 24px

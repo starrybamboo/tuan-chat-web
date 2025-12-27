@@ -11,6 +11,12 @@
 		},
 		{
 			"path": "../TuanChat"
+		},
+		{
+			"path": "../../software/WebGal_Terre/public/templates/潮汐"
+		},
+		{
+			"path": "../../software/WebGal_Terre/public/games/realtime_10387"
 		}
 	],
 	"settings": {}

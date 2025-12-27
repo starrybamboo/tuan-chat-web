@@ -26,6 +26,31 @@ export async function loginUser(
 
     const response = await tuanchat.userController.login(loginRequest);
 
+    // Sa-Token：登录成功后返回 tokenValue，需要本地持久化
+    if (response?.data) {
+      localStorage.setItem("token", response.data);
+
+      // 由于 tokenValue 无法反推出 uid，这里额外缓存 uid
+      if (loginMethod === "userId") {
+        const uid = Number(loginRequest.userId);
+        if (!Number.isNaN(uid) && uid > 0) {
+          localStorage.setItem("uid", String(uid));
+        }
+      }
+      else if (loginMethod === "username" && loginRequest.username) {
+        try {
+          const info = await tuanchat.userController.getUserInfoByUsername(loginRequest.username);
+          const uid = info?.data?.userId;
+          if (typeof uid === "number" && uid > 0) {
+            localStorage.setItem("uid", String(uid));
+          }
+        }
+        catch {
+          // best-effort: uid 获取失败不影响 token 登录态
+        }
+      }
+    }
+
     return response;
   }
   catch (error: any) {
@@ -58,5 +83,33 @@ export async function checkAuthStatus() {
   if (!token) {
     return { isLoggedIn: false };
   }
-  return { isLoggedIn: true, token };
+  const uidRaw = localStorage.getItem("uid");
+  const uid = uidRaw && !Number.isNaN(Number(uidRaw)) ? Number(uidRaw) : undefined;
+  return { isLoggedIn: true, token, uid };
+}
+
+export async function logoutUser() {
+  const token = localStorage.getItem("token");
+  // 先清理本地，保证 UI 立即生效
+  localStorage.removeItem("token");
+  localStorage.removeItem("uid");
+
+  if (!token)
+    return;
+
+  // 最小实现：不依赖 OpenAPI 代码生成是否已同步到 /user/logout
+  // 后端按 Sa-Token 处理 Authorization: Bearer <token>
+  try {
+    const base = import.meta.env.VITE_API_BASE_URL;
+    await fetch(`${base}/user/logout`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+    });
+  }
+  catch {
+    // best-effort: 本地已登出即可
+  }
 }

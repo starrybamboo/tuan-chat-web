@@ -3,7 +3,7 @@ import PostsList from "@/components/profile/workTabPart/postsList";
 import RolesList from "@/components/profile/workTabPart/rolesList";
 import React, { useMemo, useState } from "react";
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
-import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
+import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 type TabType = "modules" | "posts" | "roles";
 interface WorksTabProp {
@@ -109,6 +109,7 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
           ? "bg-success/50 text-base font-medium"
           : "hover:bg-success/30"
       }`}
+      type="button"
     >
       {label}
     </button>

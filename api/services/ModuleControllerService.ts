@@ -4,9 +4,7 @@
 /* eslint-disable */
 import type { ApiResultModule } from '../models/ApiResultModule';
 import type { ApiResultPageBaseRespModule } from '../models/ApiResultPageBaseRespModule';
-import type { ApiResultStageResponse } from '../models/ApiResultStageResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { ModuleCreateRequest } from '../models/ModuleCreateRequest';
 import type { ModulePageByUserRequest } from '../models/ModulePageByUserRequest';
 import type { ModulePageRequest } from '../models/ModulePageRequest';
 import type { ModuleUpdateRequest } from '../models/ModuleUpdateRequest';
@@ -26,29 +24,6 @@ export class ModuleControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/module',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 新增一个剧本，没有场景和角色
-     * 返回对应的id
-     * @param requestBody
-     * @returns ApiResultStageResponse OK
-     * @throws ApiError
-     */
-    public addModule(
-        requestBody: ModuleCreateRequest,
-    ): CancelablePromise<ApiResultStageResponse> {
-        return this.httpRequest.request({
-            method: 'POST',
             url: '/capi/module',
             body: requestBody,
             mediaType: 'application/json',
@@ -90,7 +65,7 @@ export class ModuleControllerService {
      * @returns ApiResultPageBaseRespModule OK
      * @throws ApiError
      */
-    public page(
+    public page1(
         requestBody: ModulePageRequest,
     ): CancelablePromise<ApiResultPageBaseRespModule> {
         return this.httpRequest.request({
@@ -113,7 +88,7 @@ export class ModuleControllerService {
      * @returns ApiResultModule OK
      * @throws ApiError
      */
-    public getById(
+    public getById1(
         id: number,
     ): CancelablePromise<ApiResultModule> {
         return this.httpRequest.request({

@@ -32,17 +32,12 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
   };
 
   return (
-    <div className="relative group">
+    <div className="relative group inline-block w-fit max-w-full">
       <img
         ref={imgRef}
         src={imgSrc}
-        height={size?.height}
         width={size?.width}
-        className={`hover:scale-101 ${className} cursor-zoom-in object-contain`}
-        style={{
-          width: size?.width ? `${size.width}px` : undefined,
-          // height: size?.height ? `${size.height}px` : undefined,
-        }}
+        className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}
         alt="img"
         onClick={() => openToastWindow()}
       />

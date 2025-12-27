@@ -217,35 +217,43 @@ export function ResizableImg({
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      container.addEventListener("mousedown", handleInteractionStart as EventListener);
-      container.addEventListener("touchstart", handleInteractionStart as EventListener, { passive: false });
-      window.addEventListener("mousemove", handleInteractionMove as EventListener);
-      window.addEventListener("touchmove", handleInteractionMove as EventListener, { passive: false });
-      window.addEventListener("mouseup", handleInteractionEnd as EventListener);
-      window.addEventListener("touchend", handleInteractionEnd as EventListener);
-      window.addEventListener("mouseleave", handleInteractionEnd as EventListener);
-      container.addEventListener("wheel", handleWheel as EventListener, { passive: false });
-      container.addEventListener("dblclick", handleDoubleClick as EventListener);
-      container.addEventListener("click", handleContainerClick as EventListener);
+      const passiveFalse: AddEventListenerOptions = { passive: false };
+      const onInteractionStart = handleInteractionStart as EventListener;
+      const onInteractionMove = handleInteractionMove as EventListener;
+      const onInteractionEnd = handleInteractionEnd as EventListener;
+      const onWheel = handleWheel as EventListener;
+      const onDoubleClick = handleDoubleClick as EventListener;
+      const onContainerClick = handleContainerClick as EventListener;
+
+      container.addEventListener("mousedown", onInteractionStart);
+      container.addEventListener("touchstart", onInteractionStart, passiveFalse);
+      window.addEventListener("mousemove", onInteractionMove);
+      window.addEventListener("touchmove", onInteractionMove, passiveFalse);
+      window.addEventListener("mouseup", onInteractionEnd);
+      window.addEventListener("touchend", onInteractionEnd);
+      window.addEventListener("mouseleave", onInteractionEnd);
+      container.addEventListener("wheel", onWheel, passiveFalse);
+      container.addEventListener("dblclick", onDoubleClick);
+      container.addEventListener("click", onContainerClick);
 
       return () => {
-        container.removeEventListener("mousedown", handleInteractionStart as EventListener);
-        container.removeEventListener("touchstart", handleInteractionStart as EventListener);
-        window.removeEventListener("mousemove", handleInteractionMove as EventListener);
-        window.removeEventListener("touchmove", handleInteractionMove as EventListener);
-        window.removeEventListener("mouseup", handleInteractionEnd as EventListener);
-        window.removeEventListener("touchend", handleInteractionEnd as EventListener);
-        window.removeEventListener("mouseleave", handleInteractionEnd as EventListener);
-        container.removeEventListener("wheel", handleWheel as EventListener);
-        container.removeEventListener("dblclick", handleDoubleClick as EventListener);
-        container.removeEventListener("click", handleContainerClick as EventListener);
+        container.removeEventListener("mousedown", onInteractionStart);
+        container.removeEventListener("touchstart", onInteractionStart, passiveFalse);
+        window.removeEventListener("mousemove", onInteractionMove);
+        window.removeEventListener("touchmove", onInteractionMove, passiveFalse);
+        window.removeEventListener("mouseup", onInteractionEnd);
+        window.removeEventListener("touchend", onInteractionEnd);
+        window.removeEventListener("mouseleave", onInteractionEnd);
+        container.removeEventListener("wheel", onWheel, passiveFalse);
+        container.removeEventListener("dblclick", onDoubleClick);
+        container.removeEventListener("click", onContainerClick);
       };
     }
   }, [handleInteractionStart, handleInteractionMove, handleInteractionEnd, handleWheel, handleDoubleClick, handleContainerClick]);
 
   return (
     <div
-      className="overflow-hidden touch-none select-none h-full w-full"
+      className="overflow-hidden rounded-md touch-none select-none h-full w-full"
       ref={containerRef}
       style={{ cursor: isInteracting ? "grabbing" : "grab" }}
     >

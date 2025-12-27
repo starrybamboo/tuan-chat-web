@@ -1,8 +1,8 @@
-import WebgalStarter from "@/components/chat/smallComponents/webgalStarter";
+import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
 import { ConnectionIcon, WebgalIcon } from "@/icons";
-import { checkAuthStatus } from "@/utils/auth/authapi";
+import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -71,7 +71,7 @@ export default function Topbar() {
   }, [isDropdownOpen]);
 
   const isLoggedIn = authStatus?.isLoggedIn || false;
-  const userId = (isLoggedIn && authStatus?.token) ? Number(authStatus.token) : 0;
+  const userId = isLoggedIn ? (authStatus?.uid ?? 0) : 0;
 
   // 处理用户菜单导航并关闭下拉菜单
   const handleUserNavigation = (path: string) => {
@@ -83,7 +83,7 @@ export default function Topbar() {
 
   // 处理退出登录并关闭下拉菜单
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    void logoutUser();
     queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     setIsUserDropdownOpen(false);
     // 强制移除焦点
@@ -120,7 +120,7 @@ export default function Topbar() {
           </div>
 
           <div className="hidden lg:flex">
-            <Link to="/">
+            <Link to="/chat">
               <img
                 src="http://47.119.147.6/tuan/favicon.ico"
                 alt="Logo"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface CopywritingEditorProps {
   value: Record<string, string[]>;
@@ -16,7 +16,38 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
   // 每个分组的新文案输入状态
   const [newEntryInputs, setNewEntryInputs] = useState<Record<string, string>>({});
 
+  // 为每个分组的每条文案生成并维护稳定 key，避免使用 index 作为 key
+  const entryKeysRef = useRef<Record<string, string[]>>({});
+  const createEntryKey = useCallback(() => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+      return crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }, []);
+
   const groups = useMemo(() => Object.entries(value || {}), [value]);
+
+  // 对齐各分组的 key 数组长度 & 清理已删除分组
+  useEffect(() => {
+    const groupNames = new Set(groups.map(([name]) => name));
+
+    for (const name of Object.keys(entryKeysRef.current)) {
+      if (!groupNames.has(name))
+        delete entryKeysRef.current[name];
+    }
+
+    for (const [name, entries] of groups) {
+      const keys = entryKeysRef.current[name] ?? [];
+      if (keys.length < entries.length) {
+        entryKeysRef.current[name] = [...keys, ...Array.from({ length: entries.length - keys.length }, createEntryKey)];
+      }
+      else if (keys.length > entries.length) {
+        entryKeysRef.current[name] = keys.slice(0, entries.length);
+      }
+      else {
+        entryKeysRef.current[name] = keys;
+      }
+    }
+  }, [createEntryKey, groups]);
 
   // 当传入为空时，自动填充一组默认示例文案（仅一次）
   useEffect(() => {
@@ -47,8 +78,9 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
       return; // 避免重复
     const next = { ...value, [name]: [""] };
     onChange(next);
+    entryKeysRef.current[name] = [createEntryKey()];
     setGroupNameInput("");
-  }, [groupNameInput, onChange, value]);
+  }, [createEntryKey, groupNameInput, onChange, value]);
 
   const renameGroup = useCallback(
     (oldName: string, newNameRaw: string) => {
@@ -60,6 +92,11 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
       const { [oldName]: oldVals, ...rest } = value;
       const next = { ...rest, [newName]: oldVals ?? [] };
       onChange(next);
+
+      if (entryKeysRef.current[oldName]) {
+        entryKeysRef.current[newName] = entryKeysRef.current[oldName];
+        delete entryKeysRef.current[oldName];
+      }
     },
     [onChange, value],
   );
@@ -68,6 +105,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
     (name: string) => {
       const { [name]: _removed, ...rest } = value;
       onChange(rest);
+      delete entryKeysRef.current[name];
     },
     [onChange, value],
   );
@@ -77,8 +115,11 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
       const list = value[group] || [];
       const next = { ...value, [group]: [...list, ""] };
       onChange(next);
+
+      const keys = entryKeysRef.current[group] ?? [];
+      entryKeysRef.current[group] = [...keys, createEntryKey()];
     },
-    [onChange, value],
+    [createEntryKey, onChange, value],
   );
 
   const updateEntry = useCallback(
@@ -97,6 +138,13 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
       const nextList = list.filter((_, i) => i !== index);
       const next = { ...value, [group]: nextList };
       onChange(next);
+
+      const keys = entryKeysRef.current[group] ?? [];
+      if (keys.length > 0) {
+        const nextKeys = [...keys];
+        nextKeys.splice(index, 1);
+        entryKeysRef.current[group] = nextKeys;
+      }
     },
     [onChange, value],
   );
@@ -140,66 +188,73 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
           </div>
         )}
         {groups.map(([name, entries]) => (
-          <div key={name} className="collapse collapse-open bg-base-200 rounded-xl">
-            <input type="checkbox" defaultChecked />
+          <div key={name} className="bg-base-200 rounded-xl">
             {/* 分组标题 */}
-            <div className="collapse-title p-0 min-h-0">
-              <div className="flex items-center gap-2 p-3">
-                <input
-                  type="text"
-                  defaultValue={name}
-                  onBlur={e => renameGroup(name, e.target.value)}
-                  className="input input-sm input-ghost font-semibold text-base flex-1 focus:input-bordered"
-                  title="点击编辑分组名"
-                />
-                <span className="badge badge-primary badge-sm">{entries.length}</span>
-                <div className="tooltip tooltip-left" data-tip="删除分组">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteGroup(name);
-                    }}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
+            <div className="flex items-center gap-2 p-3 border-b border-base-content/10">
+              <input
+                type="text"
+                defaultValue={name}
+                onBlur={e => renameGroup(name, e.target.value)}
+                className="input input-sm input-ghost font-semibold text-base flex-1 focus:input-bordered"
+                title="点击编辑分组名"
+              />
+              <span className="badge badge-primary badge-sm">{entries.length}</span>
+              <div className="tooltip tooltip-left" data-tip="删除分组">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
+                  onClick={() => deleteGroup(name)}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             </div>
 
             {/* 组内文案条目 */}
-            <div className="collapse-content px-3 pb-3">
+            <div className="px-3 pb-3 pt-3">
               <ul className="list bg-base-100 rounded-lg">
-                {entries.map((text, idx) => (
-                  <li key={`${name}-entry-${idx}`} className="list-row items-start gap-3 py-2">
-                    <div className="text-xs font-mono opacity-50 tabular-nums pt-3">
-                      {String(idx + 1).padStart(2, "0")}
-                    </div>
-                    <div className="flex-1">
-                      <textarea
-                        className="textarea w-full focus:outline-none border-none outline-none bg-transparent resize-none"
-                        placeholder={`文案 #${idx + 1}`}
-                        value={text}
-                        onChange={e => updateEntry(name, idx, e.target.value)}
-                        rows={2}
-                      />
-                    </div>
-                    <div className="tooltip tooltip-left" data-tip="删除文案">
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10 mt-2"
-                        onClick={() => deleteEntry(name, idx)}
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                {entries.map((text, idx) => {
+                  let entryKey = entryKeysRef.current[name]?.[idx];
+                  if (!entryKey) {
+                    entryKey = createEntryKey();
+                    const keys = entryKeysRef.current[name] ?? [];
+                    keys[idx] = entryKey;
+                    entryKeysRef.current[name] = keys;
+                  }
+
+                  return (
+                    <li
+                      key={entryKey}
+                      className="list-row items-start gap-3 py-2"
+                    >
+                      <div className="text-xs font-mono opacity-50 tabular-nums pt-3">
+                        {String(idx + 1).padStart(2, "0")}
+                      </div>
+                      <div className="flex-1">
+                        <textarea
+                          className="textarea w-full focus:outline-none border-none outline-none bg-transparent resize-none"
+                          placeholder={`文案 #${idx + 1}`}
+                          value={text}
+                          onChange={e => updateEntry(name, idx, e.target.value)}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="tooltip tooltip-left" data-tip="删除文案">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10 mt-2"
+                          onClick={() => deleteEntry(name, idx)}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
                 {/* 添加新文案的空行 */}
                 <li className="list-row items-start gap-3 py-2">
                   <div className="text-xs font-mono opacity-50 tabular-nums pt-3">

@@ -1,5 +1,5 @@
 import type { Role } from "../types";
-import { useCreateRoleMutation, useUploadAvatarMutation } from "api/queryHooks";
+import { useCreateRoleMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
 
 interface CreateDicerRoleProps {

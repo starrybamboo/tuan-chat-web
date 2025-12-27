@@ -40,8 +40,12 @@ export const MESSAGE_TYPE = {
   EFFECT: 8,
   /** 黑屏文字消息 - WebGAL intro 语法 */
   INTRO_TEXT: 9,
+  /** WebGAL 指令消息（显式类型，不再使用 % 前缀协议） */
+  WEBGAL_COMMAND: 10,
   CLUE_CARD: 1000,
   READ_LINE: 10000,
+  /** Thread 根消息（在主消息流里展示 thread 标题） */
+  THREAD_ROOT: 10001,
 } as const;
 
 /**

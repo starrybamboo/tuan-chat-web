@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import type { UserInfoResponse } from "../../../../../api";
 
-import { useUpdateUserInfoMutation } from "../../../../../api/queryHooks";
+import { useUpdateUserInfoMutation } from "../../../../../api/hooks/UserHooks";
 
 export function useProfileEditing(user: UserInfoResponse | undefined) {
   // 内联编辑状态

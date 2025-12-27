@@ -17,11 +17,9 @@ import type { RoomMemberDeleteRequest } from "../models/RoomMemberDeleteRequest"
 import type { RoomUpdateRequest } from "../models/RoomUpdateRequest";
 import type { SpaceUpdateRequest } from "../models/SpaceUpdateRequest";
 import type { Message } from "../models/Message";
-import type { SpaceRoleAddRequest } from "../models/SpaceRoleAddRequest";
 import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { SpaceExtraSetRequest } from "../models/SpaceExtraSetRequest";
-import type { FightRoomAddRequest } from "../models/FightRoomAddRequest";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
@@ -73,11 +71,12 @@ export function useAddSpaceMemberMutation() {
 /**
  * 生成空间邀请码
  */
-export function useSpaceInviteCodeQuery(spaceId: number, duration?: number, type: number = 0) {
+export function useSpaceInviteCodeQuery(spaceId: number, type: number = 0, duration?: number) {
     return useQuery({
-        queryKey: ['inviteCode', duration, type],
-        queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, type, duration)
-    })
+        queryKey: ['inviteCode', spaceId, type, duration ?? null],
+        queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, type, duration),
+        enabled: spaceId > 0
+    });
 }
 
 /**
@@ -262,6 +261,8 @@ export function useCreateRoomMutation(spaceId: number) {
         mutationKey: ['createRoom'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms', spaceId] });
+            // 新房间默认开启订阅：创建后需要立刻刷新会话列表，否则 UI 会在缓存期内误判为“未订阅”。
+            queryClient.invalidateQueries({ queryKey: ['getUserSessions'] });
         },
     });
 }
@@ -479,7 +480,7 @@ export function useAddRoomRoleMutation() {
 export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole(req),
+        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole1(req),
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
@@ -565,10 +566,15 @@ export function useGetRoomModuleRoleQuery(roomId: number) {
 export function useAddSpaceRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceModuleController.addRole(req),
-        mutationKey: ['addRole'],
+        mutationFn: async (_req: { spaceId: number } & Record<string, any>) => {
+            // 后端 SpaceModuleController 目前仅提供 GET /capi/space/module/role，没有“添加角色”接口。
+            // 为避免 TS 报错并让调用方能走 onError，这里显式 reject。
+            throw new Error("Space 模组角色添加接口不存在：请先补齐后端接口并更新 OpenAPI 代码生成");
+        },
+        mutationKey: ['addSpaceRole'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getSpaceRoles', variables.spaceId] });
+            // 与 useGetSpaceRolesQuery 的 queryKey 保持一致
+            queryClient.invalidateQueries({ queryKey: ['spaceRole', variables.spaceId] });
         }
     });
 }
@@ -628,16 +634,3 @@ export function useDeleteRoomExtraMutation() {
     });
 }
 
-/**
- * 创建战斗轮房间
- */
-export function useCreateFightRoomMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: FightRoomAddRequest) => tuanchat.roomController.createRoom1(req),
-        mutationKey: ['createFightRoom'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
-        }
-    });
-}

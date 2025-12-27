@@ -3,7 +3,7 @@ import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateRoomMutation, useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
-import { useGetUserInfoQuery } from "api/queryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useState } from "react";
 
 interface CreateRoomWindowProps {
@@ -95,6 +95,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
           <div className="relative group overflow-hidden rounded-lg">
             <img
               src={roomAvatar}
+              alt="room avatar"
               className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
             />
             <div

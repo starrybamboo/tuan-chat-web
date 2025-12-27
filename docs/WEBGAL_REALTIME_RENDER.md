@@ -97,6 +97,8 @@
 
 `RealtimeRenderer.renderMessage` 方法将聊天消息转换为 WebGAL 的演出指令：
 
+补充说明：WebGAL “指令消息”现在使用显式消息类型 `WEBGAL_COMMAND`（`messageType=10`）表示，渲染侧不再通过“内容以 `%` 开头”来判定是否为指令。
+
 1.  **解析消息**: 提取发送者名称、头像、内容。
 2.  **立绘处理**:
     *   检查该角色是否已有立绘资源。
@@ -195,6 +197,8 @@
         *   **TTS 生成**: 对每个短句调用 TTS 引擎生成语音文件 (`uploadVocal`)。
         *   **立绘管理**: 检查并上传角色立绘，根据回复关系决定左右立绘的显示 (`leftSpriteName`, `rightSpriteName`)。
         *   **写入对话**: 调用 `sceneEditor.addDialog` 生成最终的 WebGAL 对话指令。
+
+补充说明：导出模式同样支持 WebGAL “指令消息”，通过显式消息类型 `WEBGAL_COMMAND`（`messageType=10`）直接把 `content` 写入场景脚本；渲染侧不再依赖“内容以 `%` 开头”的隐式协议。
 4.  **分支生成**:
     *   根据房间连接关系 (`roomMap`)，使用 `getBranchSentence` 生成选项跳转指令 (`choose:选项A:sceneA|选项B:sceneB`)，实现多结局或多分支剧情。
 

@@ -1,12 +1,13 @@
-import { RoomContext } from "@/components/chat/roomContext";
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { use, useState } from "react";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserInfoQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 /**
  * 角色的详情界面

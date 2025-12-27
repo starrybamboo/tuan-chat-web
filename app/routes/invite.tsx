@@ -1,7 +1,7 @@
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 export default function InvitePage() {
@@ -10,14 +10,24 @@ export default function InvitePage() {
   const { userId } = useGlobalContext();
   const [isProcessing, setIsProcessing] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const spaceInvited = useSpaceInvitedMutation(code ?? "");
+  const mutateAsyncRef = useRef(spaceInvited.mutateAsync);
+  const lastRunKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    mutateAsyncRef.current = spaceInvited.mutateAsync;
+  }, [spaceInvited.mutateAsync]);
+
+  useEffect(() => {
+    let cancelled = false;
     const processInvite = async () => {
       if (!code) {
-        setError("邀请码不存在");
-        setIsProcessing(false);
+        if (!cancelled) {
+          setError("邀请码不存在");
+          setIsProcessing(false);
+        }
         return;
       }
 
@@ -26,16 +36,26 @@ export default function InvitePage() {
         return;
       }
 
-      setIsProcessing(true);
-      setError(null);
+      const runKey = `${code}:${userId}:${attempt}`;
+      if (lastRunKeyRef.current === runKey) {
+        return;
+      }
+      lastRunKeyRef.current = runKey;
+
+      if (!cancelled) {
+        setIsProcessing(true);
+        setError(null);
+      }
 
       try {
-        const result = await spaceInvited.mutateAsync();
+        const result = await mutateAsyncRef.current();
 
         const spaceId = result?.data;
         if (!spaceId) {
-          setError("加入空间失败，服务器返回异常数据");
-          setIsProcessing(false);
+          if (!cancelled) {
+            setError("加入空间失败，服务器返回异常数据");
+            setIsProcessing(false);
+          }
           return;
         }
 
@@ -51,27 +71,33 @@ export default function InvitePage() {
       }
       catch (err: any) {
         const status = err?.response?.status ?? err?.status;
-        if (status === 404) {
-          setError("邀请链接无效或不存在");
+        if (!cancelled) {
+          if (status === 404) {
+            setError("邀请链接无效或不存在");
+          }
+          else if (status === 410) {
+            setError("邀请链接已过期");
+          }
+          else if (status === 403) {
+            setError("您没有权限加入此空间");
+          }
+          else if (status === 500) {
+            setError("服务器出错了，请稍后再试或联系管理员");
+          }
+          else {
+            setError("加入空间失败，请稍后重试");
+          }
+          setIsProcessing(false);
         }
-        else if (status === 410) {
-          setError("邀请链接已过期");
-        }
-        else if (status === 403) {
-          setError("您没有权限加入此空间");
-        }
-        else if (status === 500) {
-          setError("服务器出错了，请稍后再试或联系管理员");
-        }
-        else {
-          setError("加入空间失败，请稍后重试");
-        }
-        setIsProcessing(false);
       }
     };
 
     processInvite();
-  }, [code, userId, navigate]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code, userId, navigate, attempt]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -100,6 +126,7 @@ export default function InvitePage() {
                 onClick={() => {
                   setIsProcessing(true);
                   setError(null);
+                  setAttempt(prev => prev + 1);
                 }}
               >
                 重试
