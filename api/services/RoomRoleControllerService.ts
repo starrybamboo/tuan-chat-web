@@ -21,7 +21,7 @@ export class RoomRoleControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/room/role/',
+            url: '/room/role/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -38,12 +38,12 @@ export class RoomRoleControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteRole1(
+    public deleteRole(
         requestBody: RoomRoleDeleteRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/room/role/',
+            url: '/room/role/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -65,7 +65,7 @@ export class RoomRoleControllerService {
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/role/npc/list',
+            url: '/room/role/npc/list',
             query: {
                 'roomId': roomId,
             },
@@ -88,7 +88,7 @@ export class RoomRoleControllerService {
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/role/list',
+            url: '/room/role/list',
             query: {
                 'roomId': roomId,
             },

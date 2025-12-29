@@ -80,8 +80,8 @@ function DisplayOfLocationDetail({
         tip: "",
       });
     }
-    else if (data && data.length > 0) {
-      const location = data[0] as StageEntityResponse;
+    else if (data) {
+      const location = data as StageEntityResponse;
       setDisplayData({
         name: location.name || "",
         description: location.entityInfo?.description || "",
@@ -110,7 +110,7 @@ function DisplayOfLocationDetail({
     entityInfo = location.entityInfo;
   }
   else {
-    location = (data ?? [])[0] as StageEntityResponse | undefined;
+    location = data as StageEntityResponse | undefined;
     entityInfo = location?.entityInfo;
   }
 
@@ -169,8 +169,8 @@ function DisplayOfLocationDetail({
         tip: "",
       });
     }
-    else if (data && data.length > 0) {
-      const location = data[0] as StageEntityResponse;
+    else if (data) {
+      const location = data as StageEntityResponse;
       setDisplayData({
         name: location.name || "",
         description: location.entityInfo?.description || "",

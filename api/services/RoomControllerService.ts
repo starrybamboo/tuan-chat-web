@@ -4,9 +4,12 @@
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultListRoom } from '../models/ApiResultListRoom';
+import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { RoomArchiveCloneRequest } from '../models/RoomArchiveCloneRequest';
+import type { RoomArchiveRequest } from '../models/RoomArchiveRequest';
 import type { RoomExtraRequest } from '../models/RoomExtraRequest';
 import type { RoomExtraSetRequest } from '../models/RoomExtraSetRequest';
 import type { RoomMuteRequest } from '../models/RoomMuteRequest';
@@ -119,6 +122,50 @@ export class RoomControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/room/',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 归档房间(冻结只读)
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public archiveRoom(
+        requestBody: RoomArchiveRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/room/archive',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 从归档房间克隆新房间
+     * @param requestBody
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public cloneFromArchivedRoom(
+        requestBody: RoomArchiveCloneRequest,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/room/archive/clone',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

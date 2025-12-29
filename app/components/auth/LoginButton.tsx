@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LoginModal from "./LoginModal"; // 更新导入路径
 
-export default function LoginButton() {
+export default function LoginButton({ autoOpen }: { autoOpen?: boolean }) {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpen) {
+      setIsLoginModalOpen(true);
+    }
+  }, [autoOpen]);
 
   return (
     <div>

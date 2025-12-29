@@ -83,8 +83,8 @@ function DisplayOfItemDetail({
         tip: "", // manualData 情况下不需要 tip
       });
     }
-    else if (data && data.length > 0) {
-      const item = data[0] as StageEntityResponse;
+    else if (data) {
+      const item = data as StageEntityResponse;
       setDisplayData({
         name: item.name || "",
         description: item.entityInfo?.description || "",
@@ -115,7 +115,7 @@ function DisplayOfItemDetail({
     entityInfo = item.entityInfo;
   }
   else {
-    item = (data ?? [])[0] as StageEntityResponse | undefined;
+    item = data as StageEntityResponse | undefined;
     entityInfo = item?.entityInfo;
   }
 
@@ -198,8 +198,8 @@ function DisplayOfItemDetail({
         tip: "",
       });
     }
-    else if (data && data.length > 0) {
-      const item = data[0] as StageEntityResponse;
+    else if (data) {
+      const item = data as StageEntityResponse;
       setDisplayData({
         name: item.name || "",
         description: item.entityInfo?.description || "",

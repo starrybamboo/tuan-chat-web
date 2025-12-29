@@ -1,7 +1,8 @@
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
+import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
-import { ConnectionIcon, WebgalIcon } from "@/icons";
+import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,23 +11,10 @@ import { Link, useNavigate } from "react-router";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
 
-function ActivitiesButton() {
-  return (
-    <div className="tooltip tooltip-bottom" data-tip="动态">
-      <Link
-        to="/activities"
-        aria-label="动态"
-        className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
-      >
-        <ConnectionIcon />
-      </Link>
-    </div>
-  );
-}
-
 export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
+  const [isBugQqOpen, setIsBugQqOpen] = useState(false);
 
   // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
   const handleClick = (e?: React.MouseEvent) => {
@@ -140,7 +128,30 @@ export default function Topbar() {
         {/* 右侧用户区域 */}
         {!isLoading && (
           <div className="navbar-end gap-1 md:gap-2">
-            <ActivitiesButton />
+            <div className="flex items-center gap-1">
+              <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span>
+              <div className="tooltip tooltip-bottom" data-tip="Discord：Bug反馈">
+                <a
+                  href="https://discord.gg/JbfkEqR6Wp"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label="Discord Bug反馈"
+                  className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
+                >
+                  <DiscordIcon className="size-5 opacity-80" />
+                </a>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip="QQ：扫码反馈 Bug">
+                <button
+                  type="button"
+                  aria-label="QQ Bug反馈"
+                  className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
+                  onClick={() => setIsBugQqOpen(true)}
+                >
+                  <QQIcon className="size-5 opacity-80" />
+                </button>
+              </div>
+            </div>
             {isLoggedIn
               ? (
                   <div className="dropdown dropdown-end">
@@ -205,12 +216,37 @@ export default function Topbar() {
                   </div>
                 )
               : (
-                  <LoginButton />
+                  <LoginButton autoOpen />
                 )}
           </div>
         )}
       </div>
       <UpdatesPopWindow></UpdatesPopWindow>
+
+      <PopWindow isOpen={isBugQqOpen} onClose={() => setIsBugQqOpen(false)}>
+        <div className="p-6 w-[92vw] max-w-md flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="text-lg font-bold">Bug反馈（QQ）</div>
+            <div className="text-sm opacity-70">
+              扫码加群反馈 Bug（也可以用 Discord 反馈）
+            </div>
+          </div>
+
+          <div className="w-full flex justify-center">
+            <img
+              src="/bug-feedback/qq-qrcode.webp"
+              alt="QQ Bug反馈二维码"
+              className="w-64 h-64 object-contain"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="text-sm">
+            <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
+            进群后请尽量附上：复现步骤、截图/录屏、设备与浏览器信息。
+          </div>
+        </div>
+      </PopWindow>
     </div>
   );
 }

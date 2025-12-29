@@ -153,17 +153,18 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
   // const { mutate: updateRole } = useUpdateEntityMutation(stageId); // 编辑功能已移除
 
-  const list = data?.data!.filter(i => i.entityType === 2);
-  const sceneList = data?.data!.filter(i => i.entityType === 3);
+  const entities = (data?.data ?? []) as StageEntityResponse[];
+  const list = entities.filter((i: StageEntityResponse) => i.entityType === 2);
+  const sceneList = entities.filter((i: StageEntityResponse) => i.entityType === 3);
 
   // 添加搜索状态（支持受控）
   const [searchQuery, setSearchQuery] = useState("");
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表
-  const filteredList = list?.filter(i => ((i.name) || "")!.toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter((i: StageEntityResponse) => ((i.name) || "")!.toLowerCase().includes(effectiveQuery));
   // 使用稳定顺序：按 id 升序，避免因后端返回顺序变化或名称变化导致列表抖动
-  const sortedList = (filteredList || []).slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+  const sortedList = (filteredList || []).slice().sort((a: StageEntityResponse, b: StageEntityResponse) => (a.id || 0) - (b.id || 0));
 
   const isEmpty = sortedList.length === 0;
 
@@ -196,7 +197,7 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
       )}
       {!isEmpty && (
         <>
-          {sortedList.map(i => (
+          {sortedList.map((i: StageEntityResponse) => (
             <RoleListItem
               key={i!.id!.toString()}
               role={i!}
@@ -210,7 +211,7 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
                   },
                   {
                     onSuccess: () => {
-                      const newScenes = sceneList?.map((scene) => {
+                      const newScenes = sceneList?.map((scene: StageEntityResponse) => {
                         const newRoles = scene.entityInfo!.roles.filter((role: string | undefined) => role !== i.name);
                         return {
                           id: scene.id,
@@ -219,7 +220,7 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
                           entityInfo: { ...scene.entityInfo, roles: newRoles },
                         };
                       });
-                      newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                      newScenes?.forEach((scene: StageEntityResponse) => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
                     },
                   },
                 );

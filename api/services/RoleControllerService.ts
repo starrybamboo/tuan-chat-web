@@ -87,7 +87,7 @@ export class RoleControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteRole(
+    public deleteRole1(
         roleId: Array<number>,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({

@@ -136,7 +136,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
   return useMutation({
     mutationKey: ["deleteRoles"],
     mutationFn: async (roleIds: number[]) => {
-      const res = await tuanchat.roleController.deleteRole(roleIds);
+      const res = await tuanchat.roleController.deleteRole1(roleIds);
       if (!res.success) {
         throw new Error("删除角色失败");
       }

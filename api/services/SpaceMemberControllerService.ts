@@ -26,7 +26,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/space/member/player',
+            url: '/space/member/player',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -48,7 +48,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/space/member/player',
+            url: '/space/member/player',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -70,7 +70,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/space/member/leader',
+            url: '/space/member/leader',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -92,7 +92,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/member/invited/{code}',
+            url: '/space/member/invited/{code}',
             path: {
                 'code': code,
             },
@@ -115,7 +115,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/member/',
+            url: '/space/member/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -137,7 +137,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/space/member/',
+            url: '/space/member/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -159,7 +159,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultListSpaceMember> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/member/list',
+            url: '/space/member/list',
             query: {
                 'spaceId': spaceId,
             },
@@ -186,7 +186,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/member/inviteCode',
+            url: '/space/member/inviteCode',
             query: {
                 'spaceId': spaceId,
                 'type': type,
@@ -211,7 +211,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/space/member/exit',
+            url: '/space/member/exit',
             query: {
                 'spaceId': spaceId,
             },

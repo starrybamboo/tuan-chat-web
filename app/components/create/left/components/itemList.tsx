@@ -157,16 +157,17 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
   const { mutate: deleteItem } = useDeleteEntityMutation();
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
 
-  const list = data?.data?.filter(i => i.entityType === 1);
+  const entities = (data?.data ?? []) as StageEntityResponse[];
+  const list = entities.filter((i: StageEntityResponse) => i.entityType === 1);
 
   // 添加搜索状态
   const [searchQuery, setSearchQuery] = useState("");
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
-  const filteredList = list?.filter(i => ((i.name || "").toLowerCase().includes(effectiveQuery)));
-  const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+  const filteredList = list?.filter((i: StageEntityResponse) => ((i.name || "").toLowerCase().includes(effectiveQuery)));
+  const sortedList = filteredList?.slice().sort((a: StageEntityResponse, b: StageEntityResponse) => (a.id ?? 0) - (b.id ?? 0));
 
-  const sceneList = data?.data?.filter(i => i.entityType === 3);
+  const sceneList = entities.filter((i: StageEntityResponse) => i.entityType === 3);
   const isEmpty = !sortedList || sortedList.length === 0;
 
   return (
@@ -197,7 +198,7 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
             </div>
           )
         : (
-            sortedList!.map(item => (
+            sortedList!.map((item: StageEntityResponse) => (
               <ItemListItem
                 key={item.id!.toString()}
                 item={item}
@@ -211,11 +212,11 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
                     spaceId: stageId,
                   }, {
                     onSuccess: () => {
-                      const newScenes = sceneList?.map((scene) => {
+                      const newScenes = sceneList?.map((scene: StageEntityResponse) => {
                         const newItems = scene.entityInfo?.items.filter((i: string | undefined) => i !== item.name);
                         return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
                       });
-                      newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                      newScenes?.forEach((scene: StageEntityResponse) => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
                     },
                   });
                 }}

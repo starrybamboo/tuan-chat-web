@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultListSpace } from '../models/ApiResultListSpace';
+import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
 import type { ApiResultSpace } from '../models/ApiResultSpace';
 import type { ApiResultString } from '../models/ApiResultString';
@@ -11,6 +12,7 @@ import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoomAddRequest } from '../models/RoomAddRequest';
 import type { SpaceAddRequest } from '../models/SpaceAddRequest';
 import type { SpaceArchiveRequest } from '../models/SpaceArchiveRequest';
+import type { SpaceCloneRequest } from '../models/SpaceCloneRequest';
 import type { SpaceExtraRequest } from '../models/SpaceExtraRequest';
 import type { SpaceExtraSetRequest } from '../models/SpaceExtraSetRequest';
 import type { SpaceOwnerTransferRequest } from '../models/SpaceOwnerTransferRequest';
@@ -19,6 +21,28 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SpaceControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 更新空间归档状态
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateSpaceArchiveStatus(
+        requestBody: SpaceArchiveRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/space',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 转让空间
      * @param requestBody
@@ -30,7 +54,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/space/transfer',
+            url: '/space/transfer',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -54,7 +78,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/extra',
+            url: '/space/extra',
             query: {
                 'spaceId': spaceId,
                 'key': key,
@@ -78,7 +102,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/space/extra',
+            url: '/space/extra',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -100,29 +124,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/space/extra',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 更新空间归档状态
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateSpaceArchiveStatus(
-        requestBody: SpaceArchiveRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/capi/space/archive',
+            url: '/space/extra',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -144,7 +146,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/space/',
+            url: '/space/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -166,7 +168,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultSpace> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/',
+            url: '/space/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -188,7 +190,29 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultRoom> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/room',
+            url: '/space/room',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据spaceId直接克隆空间
+     * @param requestBody
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public cloneBySpaceId(
+        requestBody: SpaceCloneRequest,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/space/clone',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -210,7 +234,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultSpace> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/{spaceId}',
+            url: '/space/{spaceId}',
             path: {
                 'spaceId': spaceId,
             },
@@ -233,7 +257,7 @@ export class SpaceControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/space/{spaceId}',
+            url: '/space/{spaceId}',
             path: {
                 'spaceId': spaceId,
             },
@@ -253,7 +277,7 @@ export class SpaceControllerService {
     public getUserSpaces(): CancelablePromise<ApiResultListSpace> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/list',
+            url: '/space/list',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

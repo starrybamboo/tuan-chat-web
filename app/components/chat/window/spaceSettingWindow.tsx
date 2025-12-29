@@ -7,9 +7,11 @@ import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import {
+  useCloneSpaceBySpaceIdMutation,
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
   useGetSpaceMembersQuery,
+  useGetUserSpacesQuery,
   useTransferLeader,
   useUpdateSpaceArchiveStatusMutation,
   useUpdateSpaceMutation,
@@ -27,6 +29,16 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
   const setActiveSpaceId = spaceContext.setActiveSpaceId;
+
+  const userSpacesQuery = useGetUserSpacesQuery();
+  const userSpaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
+
+  const cloneSourceId = space?.parentCommitId;
+  const cloneSourceSpace = useMemo(() => {
+    if (!cloneSourceId)
+      return undefined;
+    return userSpaces.find(s => s.spaceId === cloneSourceId);
+  }, [cloneSourceId, userSpaces]);
 
   // 控制成员列表弹窗打开
   const [isMembersListHandleOpen, setIsMembersListHandleOpen] = useSearchParamsState<boolean>("memberListPop", false);
@@ -154,6 +166,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
   const dissolveSpaceMutation = useDissolveSpaceMutation();
   const updateSpaceMutation = useUpdateSpaceMutation();
+  const cloneSpaceBySpaceIdMutation = useCloneSpaceBySpaceIdMutation();
 
   // 处理骰娘关联确认
   const handleDiceMaidenLinkConfirm = (dicerRoleId: number) => {
@@ -194,6 +207,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
   // 控制删除空间的确认弹窗显示
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
+  // 控制克隆空间的确认弹窗显示
+  const [isCloneConfirmOpen, setIsCloneConfirmOpen] = useState(false);
   // 控制转让空间的确认弹窗显示
   const [isTransferOwnerConfirmOpen, setIsTransferOwnerConfirmOpen] = useState(false);
   // 转让的用户Id
@@ -237,6 +252,55 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               placeholder="请输入空间名称..."
             />
           </div>
+
+          {cloneSourceId
+            ? (
+                <div className="mb-4">
+                  <label className="label mb-2">
+                    <span className="label-text">克隆来源</span>
+                  </label>
+                  <div className="flex items-center justify-between gap-3 rounded border border-neutral-200 dark:border-neutral-700 px-3 py-2">
+                    <div className="text-sm text-neutral-600 dark:text-neutral-300">
+                      {cloneSourceSpace?.name
+                        ? (
+                            <>
+                              {cloneSourceSpace.name}
+                              <span className="ml-2 text-xs opacity-70">
+                                (ID:
+                                {cloneSourceId}
+                                )
+                              </span>
+                            </>
+                          )
+                        : (
+                            <>
+                              来源ID:
+                              {" "}
+                              {cloneSourceId}
+                              <span className="ml-2 text-xs opacity-70">(未在当前列表中找到空间名称)</span>
+                            </>
+                          )}
+                    </div>
+
+                    {cloneSourceSpace?.spaceId
+                      ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => {
+                              setActiveSpaceId(cloneSourceSpace.spaceId!);
+                              onClose();
+                            }}
+                          >
+                            前往
+                          </button>
+                        )
+                      : null}
+                  </div>
+                </div>
+              )
+            : null}
+
           <div className="mb-4">
             <label className="label mb-2">
               <span className="label-text">空间描述</span>
@@ -365,6 +429,14 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="button"
+              className="btn btn-outline w-24"
+              onClick={() => setIsCloneConfirmOpen(true)}
+              disabled={cloneSpaceBySpaceIdMutation.isPending}
+            >
+              克隆
+            </button>
+            <button
+              type="button"
               className="btn btn-secondary w-24"
               onClick={() => setIsArchiveConfirmOpen(true)} // 点击按钮打开更新归档状态的确认弹窗
             >
@@ -447,6 +519,25 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                 onSuccess: () => {
                   setIsArchived(!isArchived);
                   setIsArchiveConfirmOpen(false);
+                },
+              });
+            }}
+          />
+
+          <ConfirmModal
+            isOpen={isCloneConfirmOpen}
+            onClose={() => setIsCloneConfirmOpen(false)}
+            title="确认克隆空间"
+            message="是否确定要克隆该空间？将创建一个新的空间副本。"
+            onConfirm={() => {
+              cloneSpaceBySpaceIdMutation.mutate(spaceId, {
+                onSuccess: (res) => {
+                  const newSpaceId = Number(res?.data);
+                  setIsCloneConfirmOpen(false);
+                  if (!Number.isNaN(newSpaceId) && newSpaceId > 0) {
+                    setActiveSpaceId(newSpaceId);
+                  }
+                  onClose();
                 },
               });
             }}

@@ -18,7 +18,7 @@ export class SpaceModuleControllerService {
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/module/role',
+            url: '/space/module/role',
             query: {
                 'spaceId': spaceId,
             },

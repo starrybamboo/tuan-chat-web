@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { StageEntityResponse } from './StageEntityResponse';
+import type { SpaceClueStars } from './SpaceClueStars';
 /**
  * 基础返回体
  */
-export type ApiResultStageEntityResponse = {
+export type ApiResultListSpaceClueStars = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,9 @@ export type ApiResultStageEntityResponse = {
      * 错误消息
      */
     errMsg?: string;
-    data?: StageEntityResponse;
+    /**
+     * 返回对象
+     */
+    data?: Array<SpaceClueStars>;
 };
 

@@ -5,7 +5,7 @@
 /**
  * 线索文件夹
  */
-export type ClueStars = {
+export type SpaceClueStars = {
     id?: number;
     /**
      * 文件夹名称

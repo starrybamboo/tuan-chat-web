@@ -3,9 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 回退文件信息请求
+ * 房间归档请求
  */
-export type StageRollbackRequest = {
-    ids: Array<number>;
+export type RoomArchiveRequest = {
+    /**
+     * 房间ID
+     */
+    roomId: number;
 };
 
