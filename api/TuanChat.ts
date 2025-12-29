@@ -48,7 +48,6 @@ import { SpaceClueService } from './services/SpaceClueService';
 import { SpaceControllerService } from './services/SpaceControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
 import { SpaceModuleControllerService } from './services/SpaceModuleControllerService';
-import { StageControllerService } from './services/StageControllerService';
 import { TagControllerService } from './services/TagControllerService';
 import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
@@ -101,7 +100,6 @@ export class TuanChat {
     public readonly spaceController: SpaceControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
     public readonly spaceModuleController: SpaceModuleControllerService;
-    public readonly stageController: StageControllerService;
     public readonly tagController: TagControllerService;
     public readonly ttsController: TtsControllerService;
     public readonly userController: UserControllerService;
@@ -165,7 +163,6 @@ export class TuanChat {
         this.spaceController = new SpaceControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
         this.spaceModuleController = new SpaceModuleControllerService(this.request);
-        this.stageController = new StageControllerService(this.request);
         this.tagController = new TagControllerService(this.request);
         this.ttsController = new TtsControllerService(this.request);
         this.userController = new UserControllerService(this.request);

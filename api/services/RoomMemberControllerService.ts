@@ -21,7 +21,7 @@ export class RoomMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/room/member/',
+            url: '/room/member/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -43,7 +43,7 @@ export class RoomMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/room/member/',
+            url: '/room/member/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -65,7 +65,7 @@ export class RoomMemberControllerService {
     ): CancelablePromise<ApiResultListRoomMember> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/member/list',
+            url: '/room/member/list',
             query: {
                 'roomId': roomId,
             },
@@ -88,7 +88,7 @@ export class RoomMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/room/member/exit',
+            url: '/room/member/exit',
             query: {
                 'roomId': roomId,
             },

@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultUserInfoResponse } from '../models/ApiResultUserInfoResponse';
+import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { UserInfoResponse } from '../models/UserInfoResponse';
 import type { UserLoginRequest } from '../models/UserLoginRequest';
 import type { UserRegisterRequest } from '../models/UserRegisterRequest';
@@ -71,6 +72,23 @@ export class UserControllerService {
             url: '/user/register',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 退出登录
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public logout(): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/user/logout',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
