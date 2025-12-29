@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultListClueStars } from '../models/ApiResultListClueStars';
 import type { ApiResultListSpaceClue } from '../models/ApiResultListSpaceClue';
+import type { ApiResultListSpaceClueStars } from '../models/ApiResultListSpaceClueStars';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ClueStarsCreateRequest } from '../models/ClueStarsCreateRequest';
 import type { ClueStarsUpdateRequest } from '../models/ClueStarsUpdateRequest';
@@ -24,7 +24,7 @@ export class SpaceClueService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/clue/update',
+            url: '/space/clue/update',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -46,7 +46,7 @@ export class SpaceClueService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/clue/stars/update',
+            url: '/space/clue/stars/update',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -68,7 +68,7 @@ export class SpaceClueService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/clue/stars/add',
+            url: '/space/clue/stars/add',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -90,7 +90,7 @@ export class SpaceClueService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/space/clue/add',
+            url: '/space/clue/add',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -104,15 +104,15 @@ export class SpaceClueService {
     /**
      * 根据空间ID查询当前用户的线索文件夹
      * @param spaceId
-     * @returns ApiResultListClueStars OK
+     * @returns ApiResultListSpaceClueStars OK
      * @throws ApiError
      */
     public getMyClueStarsBySpace(
         spaceId: number,
-    ): CancelablePromise<ApiResultListClueStars> {
+    ): CancelablePromise<ApiResultListSpaceClueStars> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/clue/stars/list',
+            url: '/space/clue/stars/list',
             query: {
                 'spaceId': spaceId,
             },
@@ -135,7 +135,7 @@ export class SpaceClueService {
     ): CancelablePromise<ApiResultListSpaceClue> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/space/clue/list',
+            url: '/space/clue/list',
             query: {
                 'clueStarsId': clueStarsId,
             },
@@ -158,7 +158,7 @@ export class SpaceClueService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/space/clue/stars/delete',
+            url: '/space/clue/stars/delete',
             query: {
                 'ids': ids,
             },
@@ -181,7 +181,7 @@ export class SpaceClueService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/space/clue/delete',
+            url: '/space/clue/delete',
             query: {
                 'ids': ids,
             },

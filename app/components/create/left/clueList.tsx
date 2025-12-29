@@ -123,16 +123,17 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
 
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
-  const list = data?.data!.filter(i => i.entityType === 6);
+  const entities = (data?.data ?? []) as StageEntityResponse[];
+  const list = entities.filter((i: StageEntityResponse) => i.entityType === 6);
 
   // 添加搜索状态
   const [searchQuery, setSearchQuery] = useState("");
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表，并按 id 升序稳定排序
-  const filteredList = list?.filter(i => ((i.name) || "").toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter((i: StageEntityResponse) => ((i.name) || "").toLowerCase().includes(effectiveQuery));
   const sum = list?.length ?? 0;
-  const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+  const sortedList = filteredList?.slice().sort((a: StageEntityResponse, b: StageEntityResponse) => (a.id ?? 0) - (b.id ?? 0));
 
   const isEmpty = !sortedList || sortedList!.length === 0;
 
@@ -209,7 +210,7 @@ export default function ClueList({ stageId, searchQuery: controlledQuery, delete
             </div>
           )
         : (
-            sortedList?.map(i => (
+            sortedList?.map((i: StageEntityResponse) => (
               <ClueListItem
                 key={i!.id!.toString()}
                 name={i!.name || "未命名"}

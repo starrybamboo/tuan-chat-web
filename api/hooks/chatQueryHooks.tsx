@@ -480,7 +480,7 @@ export function useAddRoomRoleMutation() {
 export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole1(req),
+        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole(req),
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
@@ -497,6 +497,20 @@ export function useGetUserSpacesQuery() {
         queryKey: ['getUserSpaces'],
         queryFn: () => tuanchat.spaceController.getUserSpaces(),
         staleTime: 300000 // 5分钟缓存
+    });
+}
+
+/**
+ * 根据 spaceId 克隆空间
+ */
+export function useCloneSpaceBySpaceIdMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ['cloneSpaceBySpaceId'],
+        mutationFn: (spaceId: number) => tuanchat.spaceController.cloneBySpaceId({ spaceId }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+        },
     });
 }
 /**
