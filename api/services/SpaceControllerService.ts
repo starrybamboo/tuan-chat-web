@@ -11,7 +11,6 @@ import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoomAddRequest } from '../models/RoomAddRequest';
 import type { SpaceAddRequest } from '../models/SpaceAddRequest';
-import type { SpaceArchiveCreateRequest } from '../models/SpaceArchiveCreateRequest';
 import type { SpaceArchiveRequest } from '../models/SpaceArchiveRequest';
 import type { SpaceCloneRequest } from '../models/SpaceCloneRequest';
 import type { SpaceExtraRequest } from '../models/SpaceExtraRequest';
@@ -225,28 +224,6 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 创建空间归档(commit)
-     * @param requestBody
-     * @returns ApiResultLong OK
-     * @throws ApiError
-     */
-    public create(
-        requestBody: SpaceArchiveCreateRequest,
-    ): CancelablePromise<ApiResultLong> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/space/archive',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
      * 获取空间
      * @param spaceId
      * @returns ApiResultSpace OK
@@ -301,55 +278,6 @@ export class SpaceControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/space/list',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 查看归档快照gzip(原始压缩包)
-     * @param commitId
-     * @returns Blob OK
-     * @throws ApiError
-     */
-    public detail(
-        commitId: number,
-    ): CancelablePromise<Blob> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/space/archive/detail',
-            query: {
-                'commitId': commitId,
-            },
-            headers: {
-                'Accept': 'application/gzip',
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 克隆空间快照
-     * @param commitId
-     * @returns ApiResultLong OK
-     * @throws ApiError
-     */
-    public clone(
-        commitId: number,
-    ): CancelablePromise<ApiResultLong> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/space/archive/clone',
-            query: {
-                'commitId': commitId,
-            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
