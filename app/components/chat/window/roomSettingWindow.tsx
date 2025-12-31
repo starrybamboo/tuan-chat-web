@@ -249,22 +249,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                           placeholder="请输入房间名称..."
                         />
                       </div>
-
-                      {/* 房间描述 */}
-                      <div className="mb-4">
-                        <label className="label mb-2">
-                          <span className="label-text">房间描述</span>
-                        </label>
-                        <textarea
-                          value={formData.description}
-                          className="textarea w-full min-h-[100px]"
-                          onChange={(e) => {
-                            setFormData(prev => ({ ...prev, description: e.target.value }));
-                          }}
-                          rows={4}
-                          placeholder="请输入房间描述..."
-                        />
-                      </div>
                     </div>
 
                     {/* 保存和删除按钮 */}

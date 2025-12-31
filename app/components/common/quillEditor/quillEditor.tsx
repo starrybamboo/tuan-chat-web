@@ -1,8 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
-import type { StageEntityResponse } from "api";
 import type quill from "quill";
-import { useModuleContext } from "@/components/create/workPlace/context/_moduleContext";
 import { BaselineAutoAwesomeMotion } from "@/icons";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
@@ -29,8 +27,8 @@ interface vditorProps {
   id: string;
   placeholder: string; // 仅用于首次挂载时的初始内容
   onchange: (value: string) => void;
-  onSpecialKey?: (key: StageEntityResponse[]) => void; // 用于捕获 @
-  onDeleteSpecialKey?: (key: StageEntityResponse) => void; // 用于捕获 Backspace 删除 @
+  onSpecialKey?: (key: any[]) => void; // 用于捕获 @
+  onDeleteSpecialKey?: (key: any) => void; // 用于捕获 Backspace 删除 @
   /**
    * （可选）启用选区/光标位置持久化。
    * 传入唯一 key（建议包含业务 ID），将自动把最近一次有效的选区写入 localStorage，
@@ -180,16 +178,7 @@ export default function QuillEditor({
   const quillRef = useRef<quill | null>(null);
   // 旧自定义行宽实现已移除（改为 Visual Line Pack）
   // 从上下文获取 stageId 来拉取实体
-  let stageIdCtx: number | null = null;
-  try {
-    const ctx = useModuleContext();
-    stageIdCtx = (ctx?.stageId as any) ?? null;
-  }
-  catch {
-    // ignore
-  }
-  const stageIdNum = typeof stageIdCtx === "number" ? stageIdCtx : null;
-  const { data: allEntitiesResp } = useQueryEntitiesQuery(stageIdNum || 0);
+  const { data: allEntitiesResp } = useQueryEntitiesQuery(0);
   const allEntities = allEntitiesResp?.data || [];
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -495,7 +484,7 @@ export default function QuillEditor({
       }
       let insertedEmbed = false;
       if (onSpecialKey) {
-        onSpecialKey(allEntities.filter((e: StageEntityResponse) => e.name === label));
+        onSpecialKey(allEntities.filter((e: any) => e.name === label));
       }
       try {
         const catForEmbed = (categoryOverride ?? currentCategory ?? "");
@@ -1825,9 +1814,9 @@ export default function QuillEditor({
                 else if (category === "地点") {
                   type = 4;
                 }
-                const matched = allEntities.find((e: StageEntityResponse) => e.name === label && (type === 0 || e.entityType === type));
+                const matched = allEntities.find((e: any) => e.name === label && (type === 0 || e.entityType === type));
                 if (matched) {
-                  onDeleteSpecialRef.current(matched as StageEntityResponse);
+                  onDeleteSpecialRef.current(matched as any);
                 }
               }
               try {

@@ -215,266 +215,282 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const [transfereeId, setTransfereeId] = useState(-1);
 
   return (
-    <div className="w-full p-4 min-w-[40vw] max-h-[80vh]">
+    <div className="w-full p-4 min-w-[40vw] h-[85vh] overflow-y-auto">
       {space && (
-        <div>
-          <div className="flex justify-center">
-            <ImgUploaderWithCopper
-              key={uploaderKey}
-              setCopperedDownloadUrl={handleAvatarUpdate}
-              fileName={`spaceId-${space.spaceId}`}
-            >
-              <div className="relative group overflow-hidden rounded-lg">
-                <img
-                  src={formData.avatar || space.avatar}
-                  alt={formData.name}
-                  className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
-                    更新头像
-                  </span>
-                </div>
-              </div>
-            </ImgUploaderWithCopper>
-          </div>
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间名称</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              className="input input-bordered w-full"
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, name: e.target.value }));
-              }}
-              placeholder="请输入空间名称..."
-            />
-          </div>
-
-          {cloneSourceId
-            ? (
-                <div className="mb-4">
-                  <label className="label mb-2">
-                    <span className="label-text">克隆来源</span>
-                  </label>
-                  <div className="flex items-center justify-between gap-3 rounded border border-neutral-200 dark:border-neutral-700 px-3 py-2">
-                    <div className="text-sm text-neutral-600 dark:text-neutral-300">
-                      {cloneSourceSpace?.name
+        <div className="space-y-6">
+          <div className="flex flex-col gap-6">
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-1 space-y-6 max-w-lg">
+                <div className="card bg-base-100 border border-base-200 shadow-sm">
+                  <div className="card-body items-center text-center gap-4">
+                    <ImgUploaderWithCopper
+                      key={uploaderKey}
+                      setCopperedDownloadUrl={handleAvatarUpdate}
+                      fileName={`spaceId-${space.spaceId}`}
+                    >
+                      <div className="relative group overflow-hidden rounded-xl">
+                        <img
+                          src={formData.avatar || space.avatar}
+                          alt={formData.name}
+                          className="w-28 h-28 object-cover transition-all duration-300 group-hover:scale-105 group-hover:brightness-75 rounded-xl"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/30">
+                          <span className={`${avatarTextColor} font-semibold text-sm px-3 py-1 rounded-lg bg-black/20`}>更新头像</span>
+                        </div>
+                      </div>
+                    </ImgUploaderWithCopper>
+                    <div className="w-full text-left space-y-3">
+                      <div className="form-control">
+                        <label className="label mb-1">
+                          <span className="label-text text-sm">空间名称</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          className="input input-bordered w-full"
+                          onChange={(e) => {
+                            setFormData(prev => ({ ...prev, name: e.target.value }));
+                          }}
+                          placeholder="请输入空间名称..."
+                        />
+                      </div>
+                      {cloneSourceId
                         ? (
-                            <>
-                              {cloneSourceSpace.name}
-                              <span className="ml-2 text-xs opacity-70">
-                                (ID:
-                                {cloneSourceId}
-                                )
-                              </span>
-                            </>
+                            <div className="rounded-xl border border-base-200 bg-base-100/60 p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="text-sm leading-relaxed text-base-content/70">
+                                  <span className="block text-base-content font-medium mb-1">克隆来源</span>
+                                  {cloneSourceSpace?.name
+                                    ? (
+                                        <>
+                                          {cloneSourceSpace.name}
+                                          <span className="ml-2 text-xs opacity-70">
+                                            (ID:
+                                            {cloneSourceId}
+                                            )
+                                          </span>
+                                        </>
+                                      )
+                                    : (
+                                        <>
+                                          来源ID:
+                                          {" "}
+                                          {cloneSourceId}
+                                          <span className="ml-2 text-xs opacity-70">(未在当前列表中找到空间名称)</span>
+                                        </>
+                                      )}
+                                </div>
+                                {cloneSourceSpace?.spaceId
+                                  ? (
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline"
+                                        onClick={() => {
+                                          setActiveSpaceId(cloneSourceSpace.spaceId!);
+                                          onClose();
+                                        }}
+                                      >
+                                        前往
+                                      </button>
+                                    )
+                                  : null}
+                              </div>
+                            </div>
                           )
-                        : (
-                            <>
-                              来源ID:
-                              {" "}
-                              {cloneSourceId}
-                              <span className="ml-2 text-xs opacity-70">(未在当前列表中找到空间名称)</span>
-                            </>
-                          )}
+                        : null}
                     </div>
-
-                    {cloneSourceSpace?.spaceId
-                      ? (
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            onClick={() => {
-                              setActiveSpaceId(cloneSourceSpace.spaceId!);
-                              onClose();
-                            }}
-                          >
-                            前往
-                          </button>
-                        )
-                      : null}
                   </div>
                 </div>
-              )
-            : null}
 
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间描述</span>
-            </label>
-            <textarea
-              value={formData.description}
-              className="textarea w-full min-h-[100px]"
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, description: e.target.value }));
-              }}
-              rows={4}
-              placeholder="请输入空间描述..."
-            />
-          </div>
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间规则</span>
-            </label>
-            <div className="dropdown w-full">
-              <label tabIndex={0} className="btn btn-outline w-full justify-start">
-                {rules.find(rule => rule.ruleId === formData.ruleId)?.ruleName ?? "未找到规则"}
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </label>
-              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
-                {rules.map(rule => (
-                  <li key={rule.ruleId}>
-                    <button
-                      type="button"
-                      className="w-full text-left"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, ruleId: Number(rule.ruleId) }));
-                        if (document.activeElement instanceof HTMLElement) {
-                          document.activeElement.blur();
-                        }
-                      }}
-                    >
-                      {rule.ruleName}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间骰娘</span>
-            </label>
-            <div
-              className="card bg-base-200 cursor-pointer hover:bg-base-300 transition-all duration-200"
-              onClick={() => setIsDiceMaidenLinkModalOpen(true)}
-            >
-              <div className="card-body p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* 骰娘头像 */}
-                    {currentDicerId && !dicerRoleError
-                      ? (
-                          <div className="avatar">
-                            <div className="w-10 h-10 rounded-full ring ring-accent ring-offset-base-100 ring-offset-2">
-                              <img src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
+                <div className="card bg-base-100 border border-base-200 shadow-sm">
+                  <div className="card-body gap-4">
+                    <div className="form-control">
+                      <label className="label mb-1">
+                        <span className="label-text text-sm">空间骰娘</span>
+                      </label>
+                      <div
+                        className="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer"
+                        onClick={() => setIsDiceMaidenLinkModalOpen(true)}
+                      >
+                        <div className="card-body p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              {currentDicerId && !dicerRoleError
+                                ? (
+                                    <div className="avatar">
+                                      <div className="w-10 h-10 rounded-full ring ring-accent ring-offset-base-100 ring-offset-2">
+                                        <img src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
+                                      </div>
+                                    </div>
+                                  )
+                                : (
+                                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                                      <svg className="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
+                                        <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
+                                        <circle cx="7" cy="7" r="1.5" fill="currentColor" />
+                                        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                                        <circle cx="17" cy="17" r="1.5" fill="currentColor" />
+                                        <circle cx="7" cy="17" r="1.5" fill="currentColor" />
+                                        <circle cx="17" cy="7" r="1.5" fill="currentColor" />
+                                      </svg>
+                                    </div>
+                                  )}
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-sm">空间骰娘</span>
+                                  <span className={`badge badge-sm badge-outline ${isCustomDicerDisabled ? "" : "invisible"}`}>已禁用自定义骰娘</span>
+                                </div>
+                                <p className={`text-sm font-medium ${dicerRoleError ? "text-error" : "text-accent"}`}>
+                                  {currentDicerId
+                                    ? dicerRoleError || linkedDicerData?.data?.roleName || `ID: ${currentDicerId}`
+                                    : "选择使用的骰娘角色"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-base-content/50">
+                              <span className="text-xs">{currentDicerId ? "更改" : "设置"}</span>
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
                             </div>
                           </div>
-                        )
-                      : (
-                          <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
-                              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
-                              <circle cx="7" cy="7" r="1.5" fill="currentColor" />
-                              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                              <circle cx="17" cy="17" r="1.5" fill="currentColor" />
-                              <circle cx="7" cy="17" r="1.5" fill="currentColor" />
-                              <circle cx="17" cy="7" r="1.5" fill="currentColor" />
-                            </svg>
-                          </div>
-                        )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm">空间骰娘</h3>
-                        <span className={`badge badge-sm badge-outline ${isCustomDicerDisabled ? "" : "invisible"}`}>
-                          已禁用自定义骰娘
-                        </span>
+                        </div>
                       </div>
-                      <p className={`font-medium text-sm ${
-                        dicerRoleError ? "text-error" : "text-accent"
-                      }`}
-                      >
-                        {currentDicerId
-                          ? dicerRoleError || linkedDicerData?.data?.roleName || `ID: ${currentDicerId}`
-                          : "选择使用的骰娘角色"}
-                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-base-200 px-4 py-3">
+                      <div>
+                        <p className="font-medium text-sm">允许自定义骰娘</p>
+                        <p className="text-xs text-base-content/70">关闭后成员仅能使用空间配置的骰娘。</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-accent"
+                        checked={allowCustomDicerRole}
+                        onChange={e => setAllowCustomDicerRole(e.target.checked)}
+                      />
+                    </div>
+                    <div className="form-control flex items-center gap-3">
+                      <label className="label mb-1">
+                        <span className="label-text text-sm">空间规则</span>
+                      </label>
+                      <div className="dropdown w-full">
+                        <label tabIndex={0} className="btn btn-outline w-full justify-start">
+                          {rules.find(rule => rule.ruleId === formData.ruleId)?.ruleName ?? "未找到规则"}
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </label>
+                        <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full max-h-60 overflow-y-auto">
+                          {rules.map(rule => (
+                            <li key={rule.ruleId}>
+                              <button
+                                type="button"
+                                className="w-full text-left"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, ruleId: Number(rule.ruleId) }));
+                                  if (document.activeElement instanceof HTMLElement) {
+                                    document.activeElement.blur();
+                                  }
+                                }}
+                              >
+                                {rule.ruleName}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-base-content/50">
-                    <span className="text-xs">{currentDicerId ? "更改" : "设置"}</span>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                </div>
+
+                <div className="card bg-base-100 border border-base-200 shadow-sm">
+                  <div className="card-body gap-4">
+                    <h3 className="text-lg font-semibold">空间管理</h3>
+                    <div className="flex flex-wrap gap-3 w-full">
+                      <button
+                        type="button"
+                        className="btn btn-error flex-1 min-w-[140px]"
+                        onClick={() => setIsDissolveConfirmOpen(true)}
+                      >
+                        解散空间
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline flex-1 min-w-[140px]"
+                        onClick={() => setIsCloneConfirmOpen(true)}
+                        disabled={cloneSpaceBySpaceIdMutation.isPending}
+                      >
+                        克隆
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary flex-1 min-w-[140px]"
+                        onClick={() => setIsArchiveConfirmOpen(true)}
+                      >
+                        {isArchived ? "取消归档" : "归档"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-accent flex-1 min-w-[140px]"
+                        onClick={() => setIsMembersListHandleOpen(true)}
+                      >
+                        转让空间
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-success flex-1 min-w-[140px]"
+                        onClick={handleClose}
+                      >
+                        保存并关闭
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div className="mb-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex flex-col">
-                <span className="label-text text-base">允许自定义骰娘</span>
-                <span className="text-xs text-base-content/70">关闭后，成员将只能使用空间骰娘配置，不可使用角色或用户绑定的骰娘。</span>
+
+              <div className="lg:col-span-2 space-y-6">
+                <div className="card bg-base-100 border border-base-200 shadow-sm">
+                  <div className="card-body gap-4">
+                    <h3 className="text-lg font-semibold">基础信息</h3>
+                    <div className="form-control">
+                      <label className="label mb-1">
+                        <span className="label-text text-sm">空间描述</span>
+                      </label>
+                      <textarea
+                        value={formData.description}
+                        className="textarea textarea-bordered w-full min-h-[140px]"
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, description: e.target.value }));
+                        }}
+                        rows={5}
+                        placeholder="请输入空间描述..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
               </div>
-              <input
-                type="checkbox"
-                className="toggle toggle-accent"
-                checked={allowCustomDicerRole}
-                onChange={e => setAllowCustomDicerRole(e.target.checked)}
-              />
             </div>
           </div>
-          <div className="flex justify-between items-center mt-16">
-            <button
-              type="button"
-              className="btn btn-error"
-              onClick={() => setIsDissolveConfirmOpen(true)} // 点击按钮打开删除群组的确认弹窗
-            >
-              解散空间
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline w-24"
-              onClick={() => setIsCloneConfirmOpen(true)}
-              disabled={cloneSpaceBySpaceIdMutation.isPending}
-            >
-              克隆
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary w-24"
-              onClick={() => setIsArchiveConfirmOpen(true)} // 点击按钮打开更新归档状态的确认弹窗
-            >
-              {isArchived ? "取消归档" : "归档"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-accent"
-              onClick={() => setIsMembersListHandleOpen(true)}
-            >
-              转让空间
-            </button>
-            <button
-              type="button"
-              className="btn btn-success"
-              onClick={handleClose}
-            >
-              保存并关闭
-            </button>
-          </div>
+
           <PopWindow isOpen={isMembersListHandleOpen} onClose={() => setIsMembersListHandleOpen(false)}>
-            <div className="flex flex-col gap-y-2 pb-4 min-w-72">
-              <div>
-                <label className="label mb-2">
-                  <span className="label-text">搜索玩家Id</span>
+            <div className="flex flex-col gap-y-3 pb-4 min-w-72">
+              <div className="form-control">
+                <label className="label mb-1">
+                  <span className="label-text text-sm">搜索玩家Id</span>
                 </label>
                 <input
                   type="text"
                   placeholder="请输入要加入的玩家ID"
-                  className="input input-bordered w-full mb-2"
+                  className="input input-bordered w-full"
                   onInput={e => setInputUserId(Number(e.currentTarget.value))}
                 />
               </div>
-              <div className="flex flex-col gap-y-2 pb-4 max-h-[40vh] overflow-y-auto">
+              <div className="flex flex-col gap-y-2 max-h-[40vh] overflow-y-auto pr-1">
                 {(() => {
                   if (members.length === 0) {
                     return (
-                      <div className="text-center py-4 text-gray-500">
+                      <div className="text-center py-6 text-base-content/60">
                         当前空间内没有玩家哦
                       </div>
                     );
@@ -488,12 +504,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   return memberToShow.map(member => (
                     <div
                       key={member.userId}
-                      className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full justify-between"
+                      className="flex items-center justify-between gap-4 rounded-lg border border-base-200 bg-base-100 px-3 py-2"
                     >
                       <MemberInfoComponent userId={member.userId ?? -1} />
                       <button
                         type="button"
-                        className="btn"
+                        className="btn btn-sm"
                         onClick={() => {
                           setIsTransferOwnerConfirmOpen(true);
                           setTransfereeId(member.userId ?? -1);
@@ -508,7 +524,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           </PopWindow>
-          {/* 渲染更新归档状态的确认弹窗 */}
+
           <ConfirmModal
             isOpen={isArchiveConfirmOpen}
             onClose={() => setIsArchiveConfirmOpen(false)}
@@ -542,7 +558,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               });
             }}
           />
-          {/* 渲染删除群组的确认弹窗 */}
+
           <ConfirmModal
             isOpen={isDissolveConfirmOpen}
             onClose={() => setIsDissolveConfirmOpen(false)}
@@ -562,6 +578,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               });
             }}
           />
+
           <ConfirmModal
             isOpen={isTransferOwnerConfirmOpen}
             onClose={() => setIsTransferOwnerConfirmOpen(false)}
@@ -575,7 +592,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      {/* 骰娘关联弹窗 */}
       <DiceMaidenLinkModal
         isOpen={isDiceMaidenLinkModalOpen}
         onClose={() => setIsDiceMaidenLinkModalOpen(false)}

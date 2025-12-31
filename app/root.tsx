@@ -15,6 +15,7 @@ import {
   ScrollRestoration,
   useNavigate,
 } from "react-router";
+import "@blocksuite/editor/themes/affine.css";
 import "./app.css";
 import "./animation.css";
 
