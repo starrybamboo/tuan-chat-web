@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./app/*"],
+
+      "@blocksuite/*": ["./node_modules/@blocksuite/*/dist/index.d.ts"],
+      "@blocksuite/*/store": ["./node_modules/@blocksuite/*/dist/store.d.ts"],
+      "@blocksuite/*/view": ["./node_modules/@blocksuite/*/dist/view.d.ts"]
+    }
+  }
+}

@@ -42,7 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {import.meta.env.DEV && (
           <script
             crossOrigin="anonymous"
-            src="//unpkg.com/react-scan/dist/auto.global.js"
+            src="https://unpkg.com/react-scan/dist/auto.global.js"
           />
         )}
       </head>
@@ -111,7 +111,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{message}</title>
-        {/* We need to re-link the stylesheets here because the main layout is no longer rendered */}
+        {/* Re-link stylesheets when error replaces the page */}
         <Links />
       </head>
       <body>

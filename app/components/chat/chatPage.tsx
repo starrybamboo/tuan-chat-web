@@ -47,7 +47,13 @@ export default function ChatPage() {
   const [searchParam, _] = useSearchParams();
   const navigate = useNavigate();
 
+  const isRoomSettingRoute = urlMessageId === "setting";
+
   const isPrivateChatMode = urlSpaceId === "private";
+  const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting"))
+    ? urlRoomId
+    : null;
+  const isSpaceDetailRoute = spaceDetailRouteTab != null;
 
   const screenSize = useScreenSize();
 
@@ -77,6 +83,7 @@ export default function ChatPage() {
     {},
   );
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
+  const activeSpaceIsArchived = activeSpace?.status === 2;
 
   const setActiveSpaceId = useCallback((spaceId: number | null) => {
     setStoredChatIds({ spaceId, roomId: null });
@@ -98,37 +105,83 @@ export default function ChatPage() {
   const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
   const [roomSettingState, setRoomSettingState] = useState<{ roomId: number; tab: RoomSettingTab } | null>(null);
 
-  // 清理历史遗留的 URL 参数（roomSetting*/spaceDetail*），让 URL 回归干净
-  const hasCleanedSettingsUrlRef = useRef(false);
-  useEffect(() => {
-    if (hasCleanedSettingsUrlRef.current)
-      return;
-    hasCleanedSettingsUrlRef.current = true;
-
-    const keys = ["spaceDetailTab", "spaceDetailPop", "roomSettingRoomId", "roomSettingTab"];
-    const shouldClean = keys.some(k => searchParam.has(k));
-    if (!shouldClean)
-      return;
-
-    const next = new URLSearchParams(searchParam);
-    for (const k of keys) {
-      next.delete(k);
-    }
-    navigate({ search: `?${next.toString()}` }, { replace: true });
-  }, [navigate, searchParam]);
-
   const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
     if (roomId == null)
       return;
-    setRoomSettingState({ roomId, tab: tab ?? "role" });
+
+    if (activeSpaceId == null)
+      return;
+
+    const nextTab: RoomSettingTab = tab ?? "setting";
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+    navigate(`/chat/${activeSpaceId}/${roomId}/setting${qs ? `?${qs}` : ""}`);
+
+    setRoomSettingState({ roomId, tab: nextTab });
     setMainView("roomSetting");
     (document.activeElement as HTMLElement | null)?.blur?.();
-  }, []);
+  }, [activeSpaceId, navigate, searchParam]);
 
   const closeRoomSettingPage = useCallback(() => {
     setRoomSettingState(null);
     setMainView("chat");
-  }, []);
+
+    if (activeSpaceId == null || activeRoomId == null)
+      return;
+
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+    navigate(`/chat/${activeSpaceId}/${activeRoomId}${qs ? `?${qs}` : ""}`);
+  }, [activeRoomId, activeSpaceId, navigate, searchParam]);
+
+  const urlDrivenRoomSettingRef = useRef(false);
+  useEffect(() => {
+    if (isPrivateChatMode)
+      return;
+
+    if (isRoomSettingRoute) {
+      urlDrivenRoomSettingRef.current = true;
+      if (activeSpaceId == null || activeRoomId == null)
+        return;
+
+      const urlTab = searchParam.get("tab");
+      const nextTab: RoomSettingTab = urlTab === "role" || urlTab === "setting" ? urlTab : "setting";
+      setRoomSettingState({ roomId: activeRoomId, tab: nextTab });
+      setMainView("roomSetting");
+      return;
+    }
+
+    if (urlDrivenRoomSettingRef.current) {
+      urlDrivenRoomSettingRef.current = false;
+      setRoomSettingState(null);
+      setMainView("chat");
+    }
+  }, [activeRoomId, activeSpaceId, isPrivateChatMode, isRoomSettingRoute, searchParam]);
+
+  const urlDrivenSpaceDetailRef = useRef(false);
+  useEffect(() => {
+    if (isPrivateChatMode)
+      return;
+
+    if (isSpaceDetailRoute) {
+      urlDrivenSpaceDetailRef.current = true;
+      setRoomSettingState(null);
+
+      setSpaceDetailTab(spaceDetailRouteTab ?? "setting");
+      setMainView("spaceDetail");
+      return;
+    }
+
+    if (urlDrivenSpaceDetailRef.current) {
+      urlDrivenSpaceDetailRef.current = false;
+      // 从 spaceDetail 路由跳到 room setting 路由时，避免覆盖 roomSetting 的 mainView。
+      if (isRoomSettingRoute)
+        return;
+      setMainView("chat");
+    }
+  }, [isPrivateChatMode, isRoomSettingRoute, isSpaceDetailRoute, spaceDetailRouteTab]);
 
   const hasInitPrivateChatRef = useRef(false);
   useEffect(() => {
@@ -172,15 +225,34 @@ export default function ChatPage() {
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
 
   const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab) => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return;
+
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+    navigate(`/chat/${activeSpaceId}/${tab}${qs ? `?${qs}` : ""}`);
+
     setSpaceDetailTab(tab);
     setRoomSettingState(null);
     setMainView("spaceDetail");
     (document.activeElement as HTMLElement | null)?.blur?.();
-  }, []);
+  }, [activeSpaceId, isPrivateChatMode, navigate, searchParam]);
 
   const closeSpaceDetailPanel = useCallback(() => {
     setMainView("chat");
-  }, []);
+
+    if (activeSpaceId == null || isPrivateChatMode)
+      return;
+
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+
+    const fallbackRoomId = storedIds.spaceId === activeSpaceId ? storedIds.roomId : null;
+    const nextRoomId = (typeof fallbackRoomId === "number" && Number.isFinite(fallbackRoomId)) ? fallbackRoomId : "";
+    navigate(`/chat/${activeSpaceId}/${nextRoomId}${qs ? `?${qs}` : ""}`);
+  }, [activeSpaceId, isPrivateChatMode, navigate, searchParam, storedIds.roomId, storedIds.spaceId]);
   // 空间成员邀请窗口状态
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
   // 房间邀请窗口状态
@@ -531,6 +603,7 @@ export default function ChatPage() {
               isPrivateChatMode={isPrivateChatMode}
               activeSpaceId={activeSpaceId}
               activeSpaceName={activeSpace?.name}
+              activeSpaceIsArchived={activeSpaceIsArchived}
               isSpaceOwner={!!spaceContext.isSpaceOwner}
               rooms={orderedRooms}
               roomOrderIds={orderedRoomIds}
@@ -659,6 +732,7 @@ export default function ChatPage() {
       <ChatPageContextMenu
         contextMenu={contextMenu}
         unreadMessagesNumber={unreadMessagesNumber}
+        activeRoomId={activeRoomId}
         onClose={closeContextMenu}
         onInvitePlayer={handleInvitePlayer}
       />
@@ -668,6 +742,11 @@ export default function ChatPage() {
         isSpaceOwner={
           spaceContextMenu
             ? spaces.find(space => space.spaceId === spaceContextMenu.spaceId)?.userId === globalContext.userId
+            : false
+        }
+        isArchived={
+          spaceContextMenu
+            ? spaces.find(space => space.spaceId === spaceContextMenu.spaceId)?.status === 2
             : false
         }
         onClose={closeSpaceContextMenu}

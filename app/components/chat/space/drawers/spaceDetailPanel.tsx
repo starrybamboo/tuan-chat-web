@@ -101,7 +101,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
           <BaselineArrowBackIosNew className="size-5" />
         </button>
         <div className="text-sm font-medium opacity-80 truncate">
-          空间详情
+          空间资料
         </div>
       </div>
       {resolvedTab === "members" && (

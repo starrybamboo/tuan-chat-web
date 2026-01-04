@@ -5,12 +5,13 @@ export type SpaceDetailTab = "members" | "workflow" | "setting";
 
 export interface SpaceHeaderBarProps {
   spaceName?: string;
+  isArchived?: boolean;
   isSpaceOwner: boolean;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
   onInviteMember: () => void;
 }
 
-export default function SpaceHeaderBar({ spaceName, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember }: SpaceHeaderBarProps) {
+export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember }: SpaceHeaderBarProps) {
   return (
     <div className="flex items-center justify-between px-4 py-1 gap-2 min-w-0">
       <div className="dropdown dropdown-bottom flex-1 min-w-0">
@@ -21,6 +22,9 @@ export default function SpaceHeaderBar({ spaceName, isSpaceOwner, onOpenSpaceDet
           aria-label="空间选项"
         >
           <span className="text-lg font-bold truncate leading-none min-w-0 flex-1">{spaceName}</span>
+          {isArchived && (
+            <span className="badge badge-sm">已归档</span>
+          )}
           <ChevronDown className="size-4 opacity-60 flex-shrink-0" />
         </button>
         <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-56 p-2">

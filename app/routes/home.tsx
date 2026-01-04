@@ -9,10 +9,6 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-export async function loader(_args: Route.LoaderArgs) {
-  return null;
-}
-
 export default function Home() {
   const navigate = useNavigate();
 

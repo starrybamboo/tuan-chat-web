@@ -12,6 +12,7 @@ export interface ChatRoomListPanelProps {
 
   activeSpaceId: number | null;
   activeSpaceName?: string;
+  activeSpaceIsArchived?: boolean;
   isSpaceOwner: boolean;
 
   rooms: Room[];
@@ -37,6 +38,7 @@ export default function ChatRoomListPanel({
   isPrivateChatMode,
   activeSpaceId,
   activeSpaceName,
+  activeSpaceIsArchived,
   isSpaceOwner,
   rooms,
   roomOrderIds,
@@ -133,6 +135,7 @@ export default function ChatRoomListPanel({
                 <>
                   <SpaceHeaderBar
                     spaceName={activeSpaceName}
+                    isArchived={activeSpaceIsArchived}
                     isSpaceOwner={isSpaceOwner}
                     onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
                     onInviteMember={onInviteMember}
@@ -251,7 +254,7 @@ export default function ChatRoomListPanel({
                                 }}
                               >
                                 <Setting className="size-4 opacity-70" />
-                                <span className="flex-1 text-left">房间信息</span>
+                                <span className="flex-1 text-left">房间资料</span>
                               </button>
                             </li>
                           </ul>
