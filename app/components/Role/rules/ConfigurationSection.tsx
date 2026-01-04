@@ -201,85 +201,104 @@ export function ConfigurationSection({
       collapsible={false}
     >
       <div className="space-y-6">
-        {modifiedCount > 0 && (
+        {(modifiedCount > 0 || hasNoData) && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <h4 className="text-lg font-semibold">
-                ⚡已自定义的
-                {customLabel}
-              </h4>
-              <div className="badge badge-success badge-sm">{modifiedCount}</div>
-            </div>
+            {modifiedCount > 0
+              ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-lg font-semibold">
+                        ⚡已自定义的
+                        {customLabel}
+                      </h4>
+                      <div className="badge badge-success badge-sm">{modifiedCount}</div>
+                    </div>
 
-            {/* 能力配置 */}
-            {fieldType === "ability" && (
-              (modifiedAbilityVisual.hpValue != null
-                || modifiedAbilityVisual.mpValue != null
-                || modifiedAbilityVisual.sanValue != null) && (
-                <div className="space-y-2">
-                  {modifiedAbilityVisual.hpValue != null && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>{modifiedAbilityVisual.hpKey || "HP"}</span>
-                        <span>{modifiedAbilityVisual.hpValue}</span>
-                      </div>
-                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-error"
-                          style={{
-                            width: `${toPercent(modifiedAbilityVisual.hpValue, 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {modifiedAbilityVisual.mpValue != null && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>{modifiedAbilityVisual.mpKey || "MP"}</span>
-                        <span>{modifiedAbilityVisual.mpValue}</span>
-                      </div>
-                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary"
-                          style={{
-                            width: `${toPercent(modifiedAbilityVisual.mpValue, 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {modifiedAbilityVisual.sanValue != null && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>{modifiedAbilityVisual.sanKey || "SAN"}</span>
-                        <span>{modifiedAbilityVisual.sanValue}</span>
-                      </div>
-                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-purple-500"
-                          style={{
-                            width: `${toPercent(modifiedAbilityVisual.sanValue, 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            )}
+                    {/* 能力配置 */}
+                    {fieldType === "ability" && (
+                      (modifiedAbilityVisual.hpValue != null
+                        || modifiedAbilityVisual.mpValue != null
+                        || modifiedAbilityVisual.sanValue != null) && (
+                        <div className="space-y-2">
+                          {modifiedAbilityVisual.hpValue != null && (
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span>{modifiedAbilityVisual.hpKey || "HP"}</span>
+                                <span>{modifiedAbilityVisual.hpValue}</span>
+                              </div>
+                              <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-error"
+                                  style={{
+                                    width: `${toPercent(modifiedAbilityVisual.hpValue, 100)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {modifiedAbilityVisual.mpValue != null && (
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span>{modifiedAbilityVisual.mpKey || "MP"}</span>
+                                <span>{modifiedAbilityVisual.mpValue}</span>
+                              </div>
+                              <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary"
+                                  style={{
+                                    width: `${toPercent(modifiedAbilityVisual.mpValue, 100)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {modifiedAbilityVisual.sanValue != null && (
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span>{modifiedAbilityVisual.sanKey || "SAN"}</span>
+                                <span>{modifiedAbilityVisual.sanValue}</span>
+                              </div>
+                              <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-purple-500"
+                                  style={{
+                                    width: `${toPercent(modifiedAbilityVisual.sanValue, 100)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
 
-            <CollapsibleAlert
-              customLabel={customLabel}
-              type="success"
-              message="这些{label}已经过自定义修改，不同于规则模版"
-            />
+                    <CollapsibleAlert
+                      customLabel={customLabel}
+                      type="success"
+                      message="这些{label}已经过自定义修改，不同于规则模版"
+                    />
+                  </>
+                )
+              : (
+                  <div className="alert alert-warning mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <span>
+                      当前规则没有配置任何
+                      {customLabel}
+                      ，可以通过添加字段来创建
+                      {customLabel}
+                    </span>
+                  </div>
+                )}
+
             <NumericalEditor
-              data={modifiedData}
+              data={modifiedCount > 0 ? modifiedData : {}}
               onChange={handleModifiedChange}
               roleId={roleId}
               ruleId={ruleId}
-              title={`自定义${customLabel}`}
+              title={modifiedCount > 0 ? `自定义${customLabel}` : `添加${customLabel}`}
               fieldType={fieldType}
             />
           </div>
@@ -372,30 +391,6 @@ export function ConfigurationSection({
           </div>
         )}
 
-        {/* 当没有任何数据时的提示和添加入口 */}
-        {hasNoData && (
-          <>
-            <div className="alert alert-warning mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-              </svg>
-              <span>
-                当前规则没有配置任何
-                {customLabel}
-                ，可以通过添加字段来创建
-                {customLabel}
-              </span>
-            </div>
-            <NumericalEditor
-              data={{}}
-              onChange={handleModifiedChange}
-              roleId={roleId}
-              ruleId={ruleId}
-              title={`添加${customLabel}`}
-              fieldType={fieldType}
-            />
-          </>
-        )}
       </div>
     </Section>
   );
