@@ -107,10 +107,10 @@ export default function AddFieldForm({
           type="button"
           onClick={handleAddField}
           disabled={!canAdd}
-          className="btn btn-ghost btn-xs btn-primary"
+          className="btn btn-xs btn-primary"
           title="添加字段"
         >
-          ✓
+          ✓ 添加
         </button>
       </label>
     </div>
