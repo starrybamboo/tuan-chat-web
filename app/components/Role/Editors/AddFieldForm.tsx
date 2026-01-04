@@ -43,6 +43,39 @@ export default function AddFieldForm({
 
   const canAdd = newFieldKey.trim() && !existingKeys.includes(newFieldKey);
 
+  const handleEnterToAdd = (e: any) => {
+    if (e?.key !== "Enter")
+      return;
+
+    // 避免输入法确认阶段误触发
+    if (e?.nativeEvent?.isComposing)
+      return;
+
+    if (!canAdd)
+      return;
+
+    e.preventDefault();
+    handleAddField();
+  };
+
+  const handleCtrlEnterToAdd = (e: any) => {
+    if (e?.key !== "Enter")
+      return;
+
+    if (e?.nativeEvent?.isComposing)
+      return;
+
+    // textarea 保留 Enter 换行，用 Ctrl+Enter 添加
+    if (!e.ctrlKey)
+      return;
+
+    if (!canAdd)
+      return;
+
+    e.preventDefault();
+    handleAddField();
+  };
+
   if (layout === "stacked") {
     return (
       <div className={`border-2 border-dashed border-base-content/20 rounded-lg p-4 bg-base-50 h-full ${className}`}>
@@ -55,6 +88,7 @@ export default function AddFieldForm({
               type="text"
               value={newFieldKey}
               onChange={e => setNewFieldKey(e.target.value)}
+              onKeyDown={handleEnterToAdd}
               placeholder={placeholder.key || "字段名"}
               className="grow focus:outline-none border-none outline-none bg-transparent"
             />
@@ -64,6 +98,7 @@ export default function AddFieldForm({
               <textarea
                 value={newFieldValue}
                 onChange={e => setNewFieldValue(e.target.value)}
+                onKeyDown={handleCtrlEnterToAdd}
                 placeholder={placeholder.value || "字段值"}
                 className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-32 pr-20 pb-12"
               />
@@ -92,6 +127,7 @@ export default function AddFieldForm({
           type="text"
           value={newFieldKey}
           onChange={e => setNewFieldKey(e.target.value)}
+          onKeyDown={handleEnterToAdd}
           placeholder={placeholder.key || "字段名"}
           className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 flex-shrink-0"
         />
@@ -100,6 +136,7 @@ export default function AddFieldForm({
           type="text"
           value={newFieldValue}
           onChange={e => setNewFieldValue(e.target.value)}
+          onKeyDown={handleEnterToAdd}
           placeholder={placeholder.value || "字段值"}
           className="grow focus:outline-none border-none outline-none"
         />
