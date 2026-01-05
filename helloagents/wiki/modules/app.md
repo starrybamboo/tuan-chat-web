@@ -27,7 +27,13 @@
 
 - `api`：后端 API/WS 调用
 
+## 关键子模块
+
+### Blocksuite 集成
+
+- 集成代码：`app/components/chat/infra/blocksuite/`
+- 相关文档：`app/components/chat/infra/blocksuite/doc/`（含 `LEARNING-PATH.md` 学习路线）
+
 ## 变更历史
 
 （从 `helloagents/history/` 自动补全）
-

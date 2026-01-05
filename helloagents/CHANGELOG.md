@@ -6,8 +6,10 @@
 
 ## [Unreleased]
 
+### 新增
+- 新增 BlockSuite 学习路线文档：`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
+
 ## [1.0.0] - 2025-12-27
 
 ### 新增
 - 初始化前端项目知识库（`helloagents/`）
-

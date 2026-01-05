@@ -1,11 +1,37 @@
-import { EditorHost } from "@blocksuite/std";
-import { VElement, VLine, VText } from "@blocksuite/std/inline";
+import { IconButton } from "@blocksuite/affine-components/icon-button";
+import { effects as captionEffects } from "@blocksuite/affine-components/caption";
+import { effects as colorPickerEffects } from "@blocksuite/affine-components/color-picker";
+import { effects as contextMenuEffects } from "@blocksuite/affine-components/context-menu";
+import { effects as datePickerEffects } from "@blocksuite/affine-components/date-picker";
+import { effects as dropIndicatorEffects } from "@blocksuite/affine-components/drop-indicator";
+import { effects as embedCardModalEffects } from "@blocksuite/affine-components/embed-card-modal";
+import { effects as highlightDropdownMenuEffects } from "@blocksuite/affine-components/highlight-dropdown-menu";
+import { effects as linkPreviewEffects } from "@blocksuite/affine-components/link-preview";
+import { effects as linkedDocTitleEffects } from "@blocksuite/affine-components/linked-doc-title";
+import { effects as portalEffects } from "@blocksuite/affine-components/portal";
+import { effects as toggleButtonEffects } from "@blocksuite/affine-components/toggle-button";
+import { effects as toolbarEffects } from "@blocksuite/affine-components/toolbar";
+import { effects as viewDropdownMenuEffects } from "@blocksuite/affine-components/view-dropdown-menu";
+import { effects as richTextEffects } from "@blocksuite/affine-rich-text/effects";
+import { effects as blockRootEffects } from "@blocksuite/affine-block-root/effects";
+import { effects as stdEffects } from "@blocksuite/std/effects";
 
-function defineOnce(tagName: string, ctor: CustomElementConstructor) {
+function defineOnce(tagName: string, ctor: any) {
   if (!customElements.get(tagName)) {
-    customElements.define(tagName, ctor);
+    customElements.define(tagName, ctor as any);
   }
 }
+
+function runEffectsIfMissing(probeTagName: string, run: () => void) {
+  // React 18 StrictMode（dev）会重复执行 effect；Vite HMR 也可能导致模块重新执行。
+  // 这些第三方 effects() 内部直接 customElements.define，重复会抛 NotSupportedError。
+  if (customElements.get(probeTagName)) {
+    return;
+  }
+  run();
+}
+
+const EFFECTS_ONCE_KEY = "__TC_BLOCKSUITE_EFFECTS_DONE__";
 
 export function ensureBlocksuiteCoreElementsDefined() {
   if (typeof window === "undefined")
@@ -13,11 +39,33 @@ export function ensureBlocksuiteCoreElementsDefined() {
   if (!globalThis.customElements)
     return;
 
-  // BlockSuite host element
-  defineOnce("editor-host", EditorHost);
+  const g = globalThis as unknown as Record<string, unknown>;
+  if (!g[EFFECTS_ONCE_KEY]) {
+    g[EFFECTS_ONCE_KEY] = true;
 
-  // InlineEditor primitives (lit renders <v-line>/<v-element>/<v-text>)
-  defineOnce("v-text", VText);
-  defineOnce("v-line", VLine);
-  defineOnce("v-element", VElement);
+    // 对齐官方 playground：通过 effects() 一次性注册 blocksuite 运行时依赖的 custom elements。
+    // 注意：effects() 内部会直接 customElements.define，重复调用会抛异常，因此必须全局仅执行一次。
+    runEffectsIfMissing("editor-host", stdEffects);
+    runEffectsIfMissing("rich-text", richTextEffects);
+
+    // AFFiNE 在 page/edgeless 下会用到的通用 components（menu/modal/toolbar/portal 等）。
+    // 这些 effects 在我们宿主环境里不会自动执行，必须手动注册。
+    runEffectsIfMissing("affine-page-root", blockRootEffects);
+    runEffectsIfMissing("block-caption-editor", captionEffects);
+    runEffectsIfMissing("edgeless-color-picker", colorPickerEffects);
+    runEffectsIfMissing("affine-menu", contextMenuEffects);
+    runEffectsIfMissing("date-picker", datePickerEffects);
+    runEffectsIfMissing("affine-drop-indicator", dropIndicatorEffects);
+    runEffectsIfMissing("embed-card-create-modal", embedCardModalEffects);
+    runEffectsIfMissing("affine-highlight-dropdown-menu", highlightDropdownMenuEffects);
+    runEffectsIfMissing("affine-link-preview", linkPreviewEffects);
+    runEffectsIfMissing("affine-linked-doc-title", linkedDocTitleEffects);
+    runEffectsIfMissing("blocksuite-portal", portalEffects);
+    runEffectsIfMissing("blocksuite-toggle-button", toggleButtonEffects);
+    runEffectsIfMissing("editor-toolbar", toolbarEffects);
+    runEffectsIfMissing("affine-view-dropdown-menu", viewDropdownMenuEffects);
+  }
+
+  // affine-components/icon-button 没有提供 effects()，这里手动 define。
+  defineOnce("icon-button", IconButton);
 }

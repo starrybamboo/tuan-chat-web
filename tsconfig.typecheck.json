@@ -5,6 +5,31 @@
       "@/*": ["./app/*"],
 
       "@blocksuite/*": ["./node_modules/@blocksuite/*/dist/index.d.ts"],
+
+      "@blocksuite/std/*": ["./node_modules/@blocksuite/std/dist/*"],
+      "@blocksuite/global/*": ["./node_modules/@blocksuite/global/dist/*"],
+      "@blocksuite/data-view/*": ["./node_modules/@blocksuite/data-view/dist/*"],
+      "@blocksuite/affine-shared/*": ["./node_modules/@blocksuite/affine-shared/dist/*"],
+      "@blocksuite/affine-block-note/*": ["./node_modules/@blocksuite/affine-block-note/dist/*"],
+      "@blocksuite/affine-block-paragraph/*": ["./node_modules/@blocksuite/affine-block-paragraph/dist/*"],
+      "@blocksuite/affine-block-root/*": ["./node_modules/@blocksuite/affine-block-root/dist/*"],
+      "@blocksuite/affine-block-surface/*": ["./node_modules/@blocksuite/affine-block-surface/dist/*"],
+      "@blocksuite/affine-fragment-doc-title/*": ["./node_modules/@blocksuite/affine-fragment-doc-title/dist/*"],
+      "@blocksuite/affine-rich-text/*": ["./node_modules/@blocksuite/affine-rich-text/dist/*"],
+      "@blocksuite/affine-inline-latex/*": ["./node_modules/@blocksuite/affine-inline-latex/dist/*"],
+      "@blocksuite/affine-inline-preset/*": ["./node_modules/@blocksuite/affine-inline-preset/dist/*"],
+      "@blocksuite/affine-inline-reference/*": ["./node_modules/@blocksuite/affine-inline-reference/dist/*"],
+      "@blocksuite/affine-inline-link/*": ["./node_modules/@blocksuite/affine-inline-link/dist/*"],
+      "@blocksuite/affine-inline-footnote/*": ["./node_modules/@blocksuite/affine-inline-footnote/dist/*"],
+      "@blocksuite/affine-inline-mention/*": ["./node_modules/@blocksuite/affine-inline-mention/dist/*"],
+
+      "@blocksuite/affine-widget-toolbar/*": ["./node_modules/@blocksuite/affine-widget-toolbar/dist/*"],
+      "@blocksuite/affine-widget-edgeless-toolbar/*": ["./node_modules/@blocksuite/affine-widget-edgeless-toolbar/dist/*"],
+      "@blocksuite/affine-widget-edgeless-zoom-toolbar/*": ["./node_modules/@blocksuite/affine-widget-edgeless-zoom-toolbar/dist/*"],
+      "@blocksuite/affine-widget-slash-menu/*": ["./node_modules/@blocksuite/affine-widget-slash-menu/dist/*"],
+      "@blocksuite/affine-widget-viewport-overlay/*": ["./node_modules/@blocksuite/affine-widget-viewport-overlay/dist/*"],
+      "@blocksuite/affine-components/*": ["./node_modules/@blocksuite/affine-components/dist/*"],
+
       "@blocksuite/*/store": ["./node_modules/@blocksuite/*/dist/store.d.ts"],
       "@blocksuite/*/view": ["./node_modules/@blocksuite/*/dist/view.d.ts"]
     }

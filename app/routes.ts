@@ -38,6 +38,7 @@ export default [
     route("settings", "routes/settings.tsx"),
     route("collection", "routes/collection.tsx"),
     route("resource", "routes/resource.tsx"),
+    route("doc-test", "routes/docTest.tsx"),
     route("invite/:code", "routes/invite.tsx"),
   ]),
 ] satisfies RouteConfig;

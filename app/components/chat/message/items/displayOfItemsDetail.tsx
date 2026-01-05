@@ -1,5 +1,4 @@
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
-import BlocksuiteClueDescriptionEditor from "@/components/chat/shared/components/blocksuiteClueDescriptionEditor";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useEffect, useState } from "react";
@@ -354,18 +353,7 @@ function DisplayOfItemDetail({
         </div>
       </div>
 
-      {useManualData && manualData?.id && (spaceId ?? -1) > 0 && (
-        <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
-          <div className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-            描述
-          </div>
-          <BlocksuiteClueDescriptionEditor
-            spaceId={spaceId ?? -1}
-            clueId={manualData.id}
-            className="rounded-md overflow-hidden border border-neutral-200 dark:border-neutral-700"
-          />
-        </div>
-      )}
+      {/** 线索描述暂不使用 Blocksuite（先按房间/空间优先） */}
 
       {/* 内容区域 */}
       <div className="p-7 space-y-6">

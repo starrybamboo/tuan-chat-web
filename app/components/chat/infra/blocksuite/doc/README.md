@@ -5,6 +5,8 @@
 必读（需求口径与概念对齐）：
 - 业务需求说明（后续需求变更都更新这里）：`BUSINESS.md`
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
+- 常见问题排查（标题/SlashMenu/Edgeless/样式等）：`TROUBLESHOOTING.md`
+- 学习路线（从 BlockSuite 源码到本项目集成）：`LEARNING-PATH.md`
 
 ## 1. 依赖说明（本次新增/使用）
 
@@ -42,6 +44,16 @@
   - Props：`{ spaceId, docId, mode?: "page" | "edgeless" }`
   - 通过 `spaceWorkspaceRegistry.getOrCreateSpaceDoc({ spaceId, docId })` 获取 store
   - 根据 `mode` 选择 `AFFINE_PAGE_STD_EXTENSIONS` / `AFFINE_EDGELESS_STD_EXTENSIONS` 渲染 `editor-host`
+
+### 2.1.1 调试页（单入口）
+
+用于“稳定复现 Blocksuite UI/交互问题”的独立页面（本地 IndexedDB 持久化）。
+
+- 路由：`/doc-test`
+- 文件：app/routes/docTest.tsx
+
+说明：
+- 当前采用固定的 `spaceId=0`、`docId=doc:test`，避免维护多套入口与参数组合。
 
 ### 2.2 Spec（Affine-like block tree）
 
@@ -104,3 +116,4 @@ Blocksuite/AFFiNE 某些包会通过 exports 暴露 TS 源码，严格模式下 
 
 - 新增依赖：`@blocksuite/affine`、`@blocksuite/affine-model`、`@blocksuite/affine-shared`、`@blocksuite/affine-components`（均为 0.22.4）
 - 重构为 Space=Workspace、多 Doc、本地 IndexedDB 存储
+- 调试入口统一为：`/doc-test`

@@ -19,6 +19,8 @@ import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
 import { applyUpdate, encodeStateAsUpdate } from "yjs";
 
+import { Text } from "@blocksuite/store";
+
 import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineSpec";
 
 class InMemoryWorkspaceMeta implements WorkspaceMeta {
@@ -340,14 +342,32 @@ export function getOrCreateSpaceDocStore(params: {
 
   doc.load(() => {
     const store = doc.getStore();
-    if (store.root)
+    // 1) 首次初始化：创建最小 Affine-like block tree
+    if (!store.root) {
+      const pageId = store.addBlock("affine:page", { title: new Text("") });
+      store.addBlock("affine:surface", {}, pageId);
+      const noteId = store.addBlock("affine:note", {}, pageId);
+      store.addBlock("affine:paragraph", { text: new Text("") }, noteId);
       return;
+    }
 
-    // 初始化最小 Affine-like block tree
-    const pageId = store.addBlock("affine:page", {});
-    store.addBlock("affine:surface", {}, pageId);
-    const noteId = store.addBlock("affine:note", {}, pageId);
-    store.addBlock("affine:paragraph", {}, noteId);
+    // 2) 旧数据迁移：历史版本可能没写入 title/text，导致标题/placeholder/输入行为异常。
+    //    这里在加载时做一次“补齐缺省字段”，确保 paragraph 具备 Text(yText) 可编辑数据源。
+    store.transact(() => {
+      const pageModels = store.getModelsByFlavour("affine:page") as Array<any>;
+      for (const m of pageModels) {
+        if (!m?.props?.title) {
+          store.updateBlock(m, { title: new Text("") });
+        }
+      }
+
+      const paragraphModels = store.getModelsByFlavour("affine:paragraph") as Array<any>;
+      for (const m of paragraphModels) {
+        if (!m?.props?.text) {
+          store.updateBlock(m, { text: new Text("") });
+        }
+      }
+    });
   });
 
   return doc.getStore();

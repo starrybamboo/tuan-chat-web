@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "noUncheckedIndexedAccess": false,
+    "types": ["node"],
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext"
+  },
+  "include": ["vite.config.ts", "./scripts"]
+}

@@ -74,10 +74,22 @@ export default defineConfig(({ command }) => {
       host: "0.0.0.0",
     },
 
+    // React Router dev loads route modules in SSR. Some upstream packages (e.g. BlockSuite)
+    // export TypeScript sources in `exports`, which Node cannot execute if externalized.
+    // Force Vite SSR to bundle/transpile them to avoid runtime syntax errors like:
+    // "SyntaxError: Unexpected identifier 'lineStyle'".
+    ssr: {
+      noExternal: [/^@blocksuite\//, /^@toeverything\//],
+    },
+
+    esbuild: {
+      target: "es2022",
+    },
+
     optimizeDeps: {
       // Prevent Vite from auto-optimizing discovered deps (which can accidentally
       // pull in vanilla-extract `*.css.ts` sources from node_modules).
-      noDiscovery: true,
+      // noDiscovery: true,
 
       // Explicitly pre-bundle only the deps we know are safe/needed.
       include: [
@@ -89,10 +101,17 @@ export default defineConfig(({ command }) => {
         "lit-html",
         "@lit/context",
 
-        // Fix CJS/ESM interop for packages that are imported as ESM but are CJS.
+        // Fix CJS/ESM interop for packages that are imported as ESM but are CJS.n
         // This prevents runtime errors like:
         // ".../style-to-js/cjs/index.js ... does not provide an export named 'default'".
         "style-to-js",
+        "debug",
+        "extend",
+        "bind-event-listener",
+        "bytes",
+        "cssesc",
+        "deepmerge",
+        "picocolors",
       ],
 
       // IMPORTANT: do NOT pre-bundle `@blocksuite/affine-*` packages.
