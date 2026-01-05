@@ -2,15 +2,16 @@ import type {
   Template,
   TemplateCategory,
   TemplateManager,
-} from '@blocksuite/affine/gfx/template';
-import { EdgelessTemplatePanel } from '@blocksuite/affine/gfx/template';
+} from "@blocksuite/affine/gfx/template";
+
+import { EdgelessTemplatePanel } from "@blocksuite/affine/gfx/template";
 
 export function setupEdgelessTemplate() {
   const playgroundTemplates = [
     {
-      name: 'Paws and pals',
+      name: "Paws and pals",
       templates: () =>
-        import('./templates/stickers.js').then(module => module.default),
+        import("./templates/stickers.js").then(module => module.default),
     },
   ] as TemplateCategory[];
 
@@ -19,14 +20,15 @@ export function setupEdgelessTemplate() {
       {
         length: text1.length + 1,
       },
-      () => Array.from({ length: text2.length + 1 }, () => 0)
+      () => Array.from({ length: text2.length + 1 }, () => 0),
     );
 
     for (let i = 1; i <= text1.length; i++) {
       for (let j = 1; j <= text2.length; j++) {
         if (text1[i - 1] === text2[j - 1]) {
           dp[i][j] = dp[i - 1][j - 1] + 1;
-        } else {
+        }
+        else {
           dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
         }
       }
@@ -40,21 +42,21 @@ export function setupEdgelessTemplate() {
       const candidates: Template[] = [];
 
       await Promise.all(
-        playgroundTemplates.map(async cate => {
-          const templates =
-            cate.templates instanceof Function
+        playgroundTemplates.map(async (cate) => {
+          const templates
+            = typeof cate.templates === "function"
               ? await cate.templates()
               : cate.templates;
 
-          templates.forEach(template => {
+          templates.forEach((template) => {
             if (
-              template.name &&
-              lcs(template.name, keyword) === keyword.length
+              template.name
+              && lcs(template.name, keyword) === keyword.length
             ) {
               candidates.push(template);
             }
           });
-        })
+        }),
       );
 
       return candidates;
@@ -62,7 +64,7 @@ export function setupEdgelessTemplate() {
     list: async (cate: string) => {
       const category = playgroundTemplates.find(c => c.name === cate);
 
-      if (category?.templates instanceof Function) {
+      if (typeof category?.templates === "function") {
         return category.templates();
       }
 

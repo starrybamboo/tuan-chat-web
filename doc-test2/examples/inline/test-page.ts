@@ -1,54 +1,57 @@
-import '@shoelace-style/shoelace';
+import "@shoelace-style/shoelace";
 
-import { ShadowlessElement } from '@blocksuite/affine/std';
-import { effects } from '@blocksuite/affine/std/effects';
+import type { AttributeRenderer } from "@blocksuite/affine/std/inline";
+import type { BaseTextAttributes } from "@blocksuite/affine/store";
+
+import { ShadowlessElement } from "@blocksuite/affine/std";
+import { effects } from "@blocksuite/affine/std/effects";
 import {
-  type AttributeRenderer,
+
   InlineEditor,
   ZERO_WIDTH_FOR_EMBED_NODE,
-} from '@blocksuite/affine/std/inline';
+} from "@blocksuite/affine/std/inline";
 import {
-  type BaseTextAttributes,
+
   baseTextAttributes,
-} from '@blocksuite/affine/store';
-import { effect } from '@preact/signals-core';
-import { css, html, nothing } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
-import { styleMap } from 'lit/directives/style-map.js';
-import * as Y from 'yjs';
-import { z } from 'zod';
+} from "@blocksuite/affine/store";
+import { effect } from "@preact/signals-core";
+import { css, html, nothing } from "lit";
+import { customElement, property, query } from "lit/decorators.js";
+import { styleMap } from "lit/directives/style-map.js";
+import * as Y from "yjs";
+import { z } from "zod";
 
 effects();
 
 function inlineTextStyles(
-  props: BaseTextAttributes
+  props: BaseTextAttributes,
 ): ReturnType<typeof styleMap> {
-  let textDecorations = '';
+  let textDecorations = "";
   if (props.underline) {
-    textDecorations += 'underline';
+    textDecorations += "underline";
   }
   if (props.strike) {
-    textDecorations += ' line-through';
+    textDecorations += " line-through";
   }
 
   let inlineCodeStyle = {};
   if (props.code) {
     inlineCodeStyle = {
-      'font-family':
-        '"SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace',
-      'line-height': 'normal',
-      background: 'rgba(135,131,120,0.15)',
-      color: '#EB5757',
-      'border-radius': '3px',
-      'font-size': '85%',
-      padding: '0.2em 0.4em',
+      "font-family":
+        "\"SFMono-Regular\", Menlo, Consolas, \"PT Mono\", \"Liberation Mono\", Courier, monospace",
+      "line-height": "normal",
+      "background": "rgba(135,131,120,0.15)",
+      "color": "#EB5757",
+      "border-radius": "3px",
+      "font-size": "85%",
+      "padding": "0.2em 0.4em",
     };
   }
 
   return styleMap({
-    'font-weight': props.bold ? 'bold' : 'normal',
-    'font-style': props.italic ? 'italic' : 'normal',
-    'text-decoration': textDecorations.length > 0 ? textDecorations : 'none',
+    "font-weight": props.bold ? "bold" : "normal",
+    "font-style": props.italic ? "italic" : "normal",
+    "text-decoration": textDecorations.length > 0 ? textDecorations : "none",
     ...inlineCodeStyle,
   });
 }
@@ -58,9 +61,9 @@ const attributeRenderer: AttributeRenderer = ({ delta, selected }) => {
   if (delta.attributes?.embed) {
     return html`<span
       style=${styleMap({
-        padding: '0 0.4em',
-        border: selected ? '1px solid #eb763a' : '',
-        background: 'rgba(135,131,120,0.15)',
+        padding: "0 0.4em",
+        border: selected ? "1px solid #eb763a" : "",
+        background: "rgba(135,131,120,0.15)",
       })}
       >@flrande<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
     ></span>`;
@@ -77,7 +80,7 @@ const attributeRenderer: AttributeRenderer = ({ delta, selected }) => {
 
 function toggleStyle(
   inlineEditor: InlineEditor,
-  attrs: NonNullable<BaseTextAttributes>
+  attrs: NonNullable<BaseTextAttributes>,
 ): void {
   const inlineRange = inlineEditor.getInlineRange();
   if (!inlineRange) {
@@ -105,45 +108,46 @@ function toggleStyle(
   const newAttributes = Object.fromEntries(
     Object.entries(attrs).map(([k, v]) => {
       if (
-        typeof v === 'boolean' &&
-        v === (oldAttributes as Record<string, unknown>)[k]
+        typeof v === "boolean"
+        && v === (oldAttributes as Record<string, unknown>)[k]
       ) {
         return [k, null];
-      } else {
+      }
+      else {
         return [k, v];
       }
-    })
+    }),
   );
 
   inlineEditor.formatText(inlineRange, newAttributes, {
-    mode: 'merge',
+    mode: "merge",
   });
   root.blur();
 
   inlineEditor.setInlineRange(inlineRange);
 }
 
-@customElement('test-rich-text')
+@customElement("test-rich-text")
 export class TestRichText extends ShadowlessElement {
   override firstUpdated() {
-    this.contentEditable = 'true';
-    this.style.outline = 'none';
+    this.contentEditable = "true";
+    this.style.outline = "none";
     this.inlineEditor.mount(this._container, this);
 
     this.inlineEditor.slots.textChange.subscribe(() => {
-      const el = this.querySelector('.y-text');
+      const el = this.querySelector(".y-text");
       if (el) {
         const text = this.inlineEditor.yText.toDelta();
-        const span = document.createElement('span');
+        const span = document.createElement("span");
         span.innerHTML = JSON.stringify(text);
         el.replaceChildren(span);
       }
     });
     effect(() => {
       const inlineRange = this.inlineEditor.inlineRange$.value;
-      const el = this.querySelector('.v-range');
+      const el = this.querySelector(".v-range");
       if (el && inlineRange) {
-        const span = document.createElement('span');
+        const span = document.createElement("span");
         span.innerHTML = JSON.stringify(inlineRange);
         el.replaceChildren(span);
       }
@@ -195,7 +199,7 @@ export class TestRichText extends ShadowlessElement {
       <div contenteditable="false" class="y-text"></div>`;
   }
 
-  @query('.rich-text-container')
+  @query(".rich-text-container")
   private accessor _container!: HTMLDivElement;
 
   @property({ attribute: false })
@@ -205,19 +209,19 @@ export class TestRichText extends ShadowlessElement {
   accessor undoManager!: Y.UndoManager;
 }
 
-const TEXT_ID = 'inline-editor';
+const TEXT_ID = "inline-editor";
 const yDocA = new Y.Doc();
 const yDocB = new Y.Doc();
 
-yDocA.on('update', update => {
+yDocA.on("update", (update) => {
   Y.applyUpdate(yDocB, update);
 });
 
-yDocB.on('update', update => {
+yDocB.on("update", (update) => {
   Y.applyUpdate(yDocA, update);
 });
 
-@customElement('custom-toolbar')
+@customElement("custom-toolbar")
 export class CustomToolbar extends ShadowlessElement {
   static override styles = css`
     .custom-toolbar {
@@ -229,88 +233,89 @@ export class CustomToolbar extends ShadowlessElement {
 
   override connectedCallback() {
     super.connectedCallback();
-    this.addEventListener('pointerdown', e => {
+    this.addEventListener("pointerdown", (e) => {
       e.preventDefault();
     });
   }
 
   override firstUpdated() {
-    const boldButton = this.querySelector('.bold');
-    const italicButton = this.querySelector('.italic');
-    const underlineButton = this.querySelector('.underline');
-    const strikeButton = this.querySelector('.strike');
-    const code = this.querySelector('.code');
-    const embed = this.querySelector('.embed');
-    const resetButton = this.querySelector('.reset');
-    const undoButton = this.querySelector('.undo');
-    const redoButton = this.querySelector('.redo');
+    const boldButton = this.querySelector(".bold");
+    const italicButton = this.querySelector(".italic");
+    const underlineButton = this.querySelector(".underline");
+    const strikeButton = this.querySelector(".strike");
+    const code = this.querySelector(".code");
+    const embed = this.querySelector(".embed");
+    const resetButton = this.querySelector(".reset");
+    const undoButton = this.querySelector(".undo");
+    const redoButton = this.querySelector(".redo");
 
     if (
-      !boldButton ||
-      !italicButton ||
-      !underlineButton ||
-      !strikeButton ||
-      !code ||
-      !embed ||
-      !resetButton ||
-      !undoButton ||
-      !redoButton
+      !boldButton
+      || !italicButton
+      || !underlineButton
+      || !strikeButton
+      || !code
+      || !embed
+      || !resetButton
+      || !undoButton
+      || !redoButton
     ) {
-      throw new Error('Cannot find button');
+      throw new Error("Cannot find button");
     }
 
     const undoManager = new Y.UndoManager(this.inlineEditor.yText, {
       trackedOrigins: new Set([this.inlineEditor.yText.doc?.clientID]),
     });
 
-    addEventListener('keydown', e => {
+    addEventListener("keydown", (e) => {
       if (
-        e instanceof KeyboardEvent &&
-        (e.ctrlKey || e.metaKey) &&
-        e.key === 'z'
+        e instanceof KeyboardEvent
+        && (e.ctrlKey || e.metaKey)
+        && e.key === "z"
       ) {
         e.preventDefault();
         if (e.shiftKey) {
           undoManager.redo();
-        } else {
+        }
+        else {
           undoManager.undo();
         }
       }
     });
 
-    undoButton.addEventListener('click', () => {
+    undoButton.addEventListener("click", () => {
       undoManager.undo();
     });
-    redoButton.addEventListener('click', () => {
+    redoButton.addEventListener("click", () => {
       undoManager.redo();
     });
 
-    boldButton.addEventListener('click', () => {
+    boldButton.addEventListener("click", () => {
       undoManager.stopCapturing();
       toggleStyle(this.inlineEditor, { bold: true });
     });
-    italicButton.addEventListener('click', () => {
+    italicButton.addEventListener("click", () => {
       undoManager.stopCapturing();
       toggleStyle(this.inlineEditor, { italic: true });
     });
-    underlineButton.addEventListener('click', () => {
+    underlineButton.addEventListener("click", () => {
       undoManager.stopCapturing();
       toggleStyle(this.inlineEditor, { underline: true });
     });
-    strikeButton.addEventListener('click', () => {
+    strikeButton.addEventListener("click", () => {
       undoManager.stopCapturing();
       toggleStyle(this.inlineEditor, { strike: true });
     });
-    code.addEventListener('click', () => {
+    code.addEventListener("click", () => {
       undoManager.stopCapturing();
       toggleStyle(this.inlineEditor, { code: true });
     });
-    embed.addEventListener('click', () => {
+    embed.addEventListener("click", () => {
       undoManager.stopCapturing();
       // @ts-expect-error ignore
       toggleStyle(this.inlineEditor, { embed: true });
     });
-    resetButton.addEventListener('click', () => {
+    resetButton.addEventListener("click", () => {
       undoManager.stopCapturing();
       const rangeStatic = this.inlineEditor.getInlineRange();
       if (!rangeStatic) {
@@ -343,7 +348,7 @@ export class CustomToolbar extends ShadowlessElement {
   accessor undoManager!: Y.UndoManager;
 }
 
-@customElement('test-page')
+@customElement("test-page")
 export class TestPage extends ShadowlessElement {
   static override styles = css`
     .container {
@@ -394,7 +399,7 @@ export class TestPage extends ShadowlessElement {
     this._editorA.setAttributeSchema(
       baseTextAttributes.extend({
         embed: z.literal(true).optional().catch(undefined),
-      })
+      }),
     );
     this._editorA.setAttributeRenderer(attributeRenderer);
     this._undoManagerA = new Y.UndoManager(textA, {

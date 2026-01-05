@@ -1,19 +1,19 @@
 export type AwarenessMessage = {
-  channel: 'awareness';
-  payload: { type: 'connect' } | { type: 'update'; update: number[] };
+  channel: "awareness";
+  payload: { type: "connect" } | { type: "update"; update: number[] };
 };
 
 export type DocMessage = {
-  channel: 'doc';
+  channel: "doc";
   payload:
     | {
-        type: 'init';
-      }
+      type: "init";
+    }
     | {
-        type: 'update';
-        docId: string;
-        updates: number[];
-      };
+      type: "update";
+      docId: string;
+      updates: number[];
+    };
 };
 
 export type WebSocketMessage = AwarenessMessage | DocMessage;

@@ -1,8 +1,8 @@
-import { ShadowlessElement } from '@blocksuite/affine/std';
-import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { ShadowlessElement } from "@blocksuite/affine/std";
+import { css, html } from "lit";
+import { customElement } from "lit/decorators.js";
 
-@customElement('left-side-panel')
+@customElement("left-side-panel")
 export class LeftSidePanel extends ShadowlessElement {
   static override styles = css`
     left-side-panel {
@@ -20,7 +20,7 @@ export class LeftSidePanel extends ShadowlessElement {
 
   hideContent() {
     if (this.currentContent) {
-      this.style.display = 'none';
+      this.style.display = "none";
       this.currentContent.remove();
       this.currentContent = null;
     }
@@ -34,7 +34,7 @@ export class LeftSidePanel extends ShadowlessElement {
     if (this.currentContent) {
       this.currentContent.remove();
     }
-    this.style.display = 'block';
+    this.style.display = "block";
     this.currentContent = ele;
     this.append(ele);
   }
@@ -42,7 +42,8 @@ export class LeftSidePanel extends ShadowlessElement {
   toggle(ele: HTMLElement) {
     if (this.currentContent !== ele) {
       this.showContent(ele);
-    } else {
+    }
+    else {
       this.hideContent();
     }
   }
@@ -50,6 +51,6 @@ export class LeftSidePanel extends ShadowlessElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'left-side-panel': LeftSidePanel;
+    "left-side-panel": LeftSidePanel;
   }
 }

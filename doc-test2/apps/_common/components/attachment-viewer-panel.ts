@@ -1,18 +1,21 @@
-import { getAttachmentFileIcon } from '@blocksuite/affine/components/icons';
-import { SignalWatcher, WithDisposable } from '@blocksuite/affine/global/lit';
-import type { AttachmentBlockModel } from '@blocksuite/affine-model';
-import { formatSize } from '@blocksuite/affine-shared/utils';
+import type { AttachmentBlockModel } from "@blocksuite/affine-model";
+import type { TemplateResult } from "lit";
+
+import { formatSize } from "@blocksuite/affine-shared/utils";
+import { getAttachmentFileIcon } from "@blocksuite/affine/components/icons";
+import { SignalWatcher, WithDisposable } from "@blocksuite/affine/global/lit";
 import {
   ArrowDownBigIcon,
   ArrowUpBigIcon,
   CloseIcon,
-} from '@blocksuite/icons/lit';
-import { signal } from '@preact/signals-core';
-import { css, html, LitElement, type TemplateResult } from 'lit';
-import { customElement, query } from 'lit/decorators.js';
+} from "@blocksuite/icons/lit";
+import { signal } from "@preact/signals-core";
+import { css, html, LitElement } from "lit";
+import { customElement, query } from "lit/decorators.js";
 
-import type { DocInfo, MessageData, MessageDataType } from './pdf/types.js';
-import { MessageOp, RenderKind, State } from './pdf/types.js';
+import type { DocInfo, MessageData, MessageDataType } from "./pdf/types.js";
+
+import { MessageOp, RenderKind, State } from "./pdf/types.js";
 
 const DPI = window.devicePixelRatio;
 
@@ -23,9 +26,9 @@ type FileInfo = {
   icon: TemplateResult;
 };
 
-@customElement('attachment-viewer-panel')
+@customElement("attachment-viewer-panel")
 export class AttachmentViewerPanel extends SignalWatcher(
-  WithDisposable(LitElement)
+  WithDisposable(LitElement),
 ) {
   static override styles = css`
     :host {
@@ -133,9 +136,11 @@ export class AttachmentViewerPanel extends SignalWatcher(
     this.#cursor.value = 0;
 
     const canvas = this.#page;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!canvas)
+      return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx)
+      return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
@@ -153,9 +158,9 @@ export class AttachmentViewerPanel extends SignalWatcher(
 
     const { name, size } = model.props;
 
-    const fileType = name.split('.').pop() ?? '';
+    const fileType = name.split(".").pop() ?? "";
     const icon = getAttachmentFileIcon(fileType);
-    const isPDF = fileType === 'pdf';
+    const isPDF = fileType === "pdf";
 
     this.#fileInfo.value = {
       name,
@@ -164,27 +169,31 @@ export class AttachmentViewerPanel extends SignalWatcher(
       size: formatSize(size),
     };
 
-    if (!isPDF) return;
-    if (!model.props.sourceId) return;
-    if (this.#worker) return;
+    if (!isPDF)
+      return;
+    if (!model.props.sourceId)
+      return;
+    if (this.#worker)
+      return;
 
     const process = async ({ data }: MessageEvent<MessageData>) => {
       const { type } = data;
 
       switch (type) {
         case MessageOp.Init: {
-          console.debug('connecting');
+          console.debug("connecting");
           this.#state.value = State.Connecting;
           break;
         }
 
         case MessageOp.Inited: {
-          console.debug('connected');
+          console.debug("connected");
           this.#state.value = State.Connected;
 
           const blob = await model.store.blobSync.get(model.props.sourceId!);
 
-          if (!blob) return;
+          if (!blob)
+            return;
           const buffer = await blob.arrayBuffer();
 
           this.post(MessageOp.Open, buffer, [buffer]);
@@ -207,14 +216,17 @@ export class AttachmentViewerPanel extends SignalWatcher(
         case MessageOp.Rendered: {
           const { index, kind, imageData } = data[type];
 
-          if (index !== this.#cursor.value) return;
+          if (index !== this.#cursor.value)
+            return;
 
           const canvas = this.#page;
-          if (!canvas) return;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return;
+          if (!canvas)
+            return;
+          const ctx = canvas.getContext("2d");
+          if (!ctx)
+            return;
 
-          console.debug('render page', index, kind);
+          console.debug("render page", index, kind);
           canvas.width = imageData.width;
           canvas.height = imageData.height;
 
@@ -225,11 +237,11 @@ export class AttachmentViewerPanel extends SignalWatcher(
       }
     };
 
-    this.#worker = new Worker(new URL('./pdf/worker.ts', import.meta.url), {
-      type: 'module',
+    this.#worker = new Worker(new URL("./pdf/worker.ts", import.meta.url), {
+      type: "module",
     });
 
-    this.#worker.addEventListener('message', event => {
+    this.#worker.addEventListener("message", (event) => {
       process(event).catch(console.error);
     });
   }
@@ -237,9 +249,10 @@ export class AttachmentViewerPanel extends SignalWatcher(
   post<T extends MessageOp>(
     type: T,
     data?: MessageDataType[T],
-    transfers?: Transferable[]
+    transfers?: Transferable[],
   ) {
-    if (!this.#worker) return;
+    if (!this.#worker)
+      return;
 
     const message = { type, [type]: data };
     if (transfers?.length) {
@@ -259,7 +272,7 @@ export class AttachmentViewerPanel extends SignalWatcher(
     const width = docInfo ? docInfo.width : 0;
     const height = docInfo ? docInfo.height : 0;
     const isEmpty = total === 0;
-    const print = (n: number) => (isEmpty ? '-' : n);
+    const print = (n: number) => (isEmpty ? "-" : n);
 
     return html`
       <dialog>
@@ -308,15 +321,15 @@ export class AttachmentViewerPanel extends SignalWatcher(
     `;
   }
 
-  @query('dialog')
+  @query("dialog")
   accessor #dialog!: HTMLDialogElement;
 
-  @query('.page')
+  @query(".page")
   accessor #page: HTMLCanvasElement | null = null;
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'attachment-viewer-panel': AttachmentViewerPanel;
+    "attachment-viewer-panel": AttachmentViewerPanel;
   }
 }

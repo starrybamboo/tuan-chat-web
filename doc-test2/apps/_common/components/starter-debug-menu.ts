@@ -1,31 +1,39 @@
 /* eslint-disable @typescript-eslint/no-restricted-imports */
-import '@shoelace-style/shoelace/dist/components/button/button.js';
-import '@shoelace-style/shoelace/dist/components/button-group/button-group.js';
-import '@shoelace-style/shoelace/dist/components/color-picker/color-picker.js';
-import '@shoelace-style/shoelace/dist/components/divider/divider.js';
-import '@shoelace-style/shoelace/dist/components/dropdown/dropdown.js';
-import '@shoelace-style/shoelace/dist/components/icon/icon.js';
-import '@shoelace-style/shoelace/dist/components/icon-button/icon-button.js';
-import '@shoelace-style/shoelace/dist/components/menu/menu.js';
-import '@shoelace-style/shoelace/dist/components/menu-item/menu-item.js';
-import '@shoelace-style/shoelace/dist/components/select/select.js';
-import '@shoelace-style/shoelace/dist/components/tab/tab.js';
-import '@shoelace-style/shoelace/dist/components/tab-group/tab-group.js';
-import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
-import '@shoelace-style/shoelace/dist/themes/light.css';
-import '@shoelace-style/shoelace/dist/themes/dark.css';
-import './left-side-panel.js';
+import "@shoelace-style/shoelace/dist/components/button/button.js";
+import "@shoelace-style/shoelace/dist/components/button-group/button-group.js";
+import "@shoelace-style/shoelace/dist/components/color-picker/color-picker.js";
+import "@shoelace-style/shoelace/dist/components/divider/divider.js";
+import "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
+import "@shoelace-style/shoelace/dist/components/icon/icon.js";
+import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
+import "@shoelace-style/shoelace/dist/components/menu/menu.js";
+import "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
+import "@shoelace-style/shoelace/dist/components/select/select.js";
+import "@shoelace-style/shoelace/dist/components/tab/tab.js";
+import "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
+import "@shoelace-style/shoelace/dist/components/tooltip/tooltip.js";
+import "@shoelace-style/shoelace/dist/themes/light.css";
+import "@shoelace-style/shoelace/dist/themes/dark.css";
 
-import { PresentTool } from '@blocksuite/affine/blocks/frame';
-import { ExportManager } from '@blocksuite/affine/blocks/surface';
-import { toast } from '@blocksuite/affine/components/toast';
-import { StoreExtensionManagerIdentifier } from '@blocksuite/affine/ext-loader';
+import "./left-side-panel.js";
+
+import type { AffineTextAttributes } from "@blocksuite/affine-shared/types";
+import type { SerializedXYWH } from "@blocksuite/affine/global/gfx";
+import type { DocMode } from "@blocksuite/affine/model";
+import type { DeltaInsert, Workspace } from "@blocksuite/affine/store";
+import type { SlDropdown } from "@shoelace-style/shoelace";
+import type { Pane } from "tweakpane";
+
+import { NotionHtmlAdapter } from "@blocksuite/affine-shared/adapters";
+import { PresentTool } from "@blocksuite/affine/blocks/frame";
+import { ExportManager } from "@blocksuite/affine/blocks/surface";
+import { toast } from "@blocksuite/affine/components/toast";
+import { StoreExtensionManagerIdentifier } from "@blocksuite/affine/ext-loader";
 import {
   BlockSuiteError,
   ErrorCode,
-} from '@blocksuite/affine/global/exceptions';
-import type { SerializedXYWH } from '@blocksuite/affine/global/gfx';
-import { ColorScheme, type DocMode } from '@blocksuite/affine/model';
+} from "@blocksuite/affine/global/exceptions";
+import { ColorScheme } from "@blocksuite/affine/model";
 import {
   defaultImageProxyMiddleware,
   docLinkBaseURLMiddleware,
@@ -33,26 +41,26 @@ import {
   MarkdownAdapterFactoryIdentifier,
   PlainTextAdapterFactoryIdentifier,
   titleMiddleware,
-} from '@blocksuite/affine/shared/adapters';
-import { DocModeProvider } from '@blocksuite/affine/shared/services';
+} from "@blocksuite/affine/shared/adapters";
+import { DocModeProvider } from "@blocksuite/affine/shared/services";
 import {
   ColorVariables,
   FontFamilyVariables,
   SizeVariables,
   StyleVariables,
-} from '@blocksuite/affine/shared/theme';
+} from "@blocksuite/affine/shared/theme";
 import {
   openFilesWith,
   openSingleFileWith,
   printToPdf,
-} from '@blocksuite/affine/shared/utils';
-import { ShadowlessElement } from '@blocksuite/affine/std';
-import { GfxControllerIdentifier } from '@blocksuite/affine/std/gfx';
+} from "@blocksuite/affine/shared/utils";
+import { ShadowlessElement } from "@blocksuite/affine/std";
+import { GfxControllerIdentifier } from "@blocksuite/affine/std/gfx";
 import {
-  type DeltaInsert,
+
   Text,
-  type Workspace,
-} from '@blocksuite/affine/store';
+
+} from "@blocksuite/affine/store";
 import {
   createAssetsArchive,
   download,
@@ -60,136 +68,133 @@ import {
   MarkdownTransformer,
   NotionHtmlTransformer,
   ZipTransformer,
-} from '@blocksuite/affine/widgets/linked-doc';
-import { NotionHtmlAdapter } from '@blocksuite/affine-shared/adapters';
-import type { AffineTextAttributes } from '@blocksuite/affine-shared/types';
-import { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import type { SlDropdown } from '@shoelace-style/shoelace';
-import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js';
-import { css, html } from 'lit';
-import { customElement, property, query, state } from 'lit/decorators.js';
-import * as lz from 'lz-string';
-import type { Pane } from 'tweakpane';
+} from "@blocksuite/affine/widgets/linked-doc";
+import { TestAffineEditorContainer } from "@blocksuite/integration-test";
+import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.js";
+import { css, html } from "lit";
+import { customElement, property, query, state } from "lit/decorators.js";
+import * as lz from "lz-string";
 
-import type { CommentPanel } from '../../comment/index.js';
-import { createTestEditor } from '../../starter/utils/extensions.js';
-import { mockEdgelessTheme } from '../mock-services.js';
-import type { CustomAdapterPanel } from './custom-adapter-panel.js';
-import type { CustomFramePanel } from './custom-frame-panel.js';
-import type { CustomOutlinePanel } from './custom-outline-panel.js';
-import type { CustomOutlineViewer } from './custom-outline-viewer.js';
-import type { DocsPanel } from './docs-panel.js';
-import type { LeftSidePanel } from './left-side-panel.js';
+import type { CommentPanel } from "../../comment/index.js";
+import type { CustomAdapterPanel } from "./custom-adapter-panel.js";
+import type { CustomFramePanel } from "./custom-frame-panel.js";
+import type { CustomOutlinePanel } from "./custom-outline-panel.js";
+import type { CustomOutlineViewer } from "./custom-outline-viewer.js";
+import type { DocsPanel } from "./docs-panel.js";
+import type { LeftSidePanel } from "./left-side-panel.js";
 
-const basePath =
-  'https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.11.2/dist';
+import { createTestEditor } from "../../starter/utils/extensions.js";
+import { mockEdgelessTheme } from "../mock-services.js";
+
+const basePath
+  = "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.11.2/dist";
 setBasePath(basePath);
 
 const OTHER_CSS_VARIABLES = StyleVariables.filter(
   variable =>
-    !SizeVariables.includes(variable) &&
-    !ColorVariables.includes(variable) &&
-    !FontFamilyVariables.includes(variable)
+    !SizeVariables.includes(variable)
+    && !ColorVariables.includes(variable)
+    && !FontFamilyVariables.includes(variable),
 );
 let styleDebugMenuLoaded = false;
 
 function initStyleDebugMenu(
   styleMenu: Pane,
-  { writer, reader }: Record<'writer' | 'reader', CSSStyleDeclaration>
+  { writer, reader }: Record<"writer" | "reader", CSSStyleDeclaration>,
 ) {
-  const sizeFolder = styleMenu.addFolder({ title: 'Size', expanded: false });
+  const sizeFolder = styleMenu.addFolder({ title: "Size", expanded: false });
   const fontFamilyFolder = styleMenu.addFolder({
-    title: 'Font Family',
+    title: "Font Family",
     expanded: false,
   });
-  const colorFolder = styleMenu.addFolder({ title: 'Color', expanded: false });
+  const colorFolder = styleMenu.addFolder({ title: "Color", expanded: false });
   const othersFolder = styleMenu.addFolder({
-    title: 'Others',
+    title: "Others",
     expanded: false,
   });
-  SizeVariables.forEach(name => {
+  SizeVariables.forEach((name) => {
     const value = reader.getPropertyValue(name);
     sizeFolder
       .addBinding(
         {
-          [name]: isNaN(parseFloat(value)) ? 0 : parseFloat(value),
+          [name]: isNaN(Number.parseFloat(value)) ? 0 : Number.parseFloat(value),
         },
         name,
         {
           min: 0,
           max: 100,
-        }
+        },
       )
-      .on('change', e => {
+      .on("change", (e) => {
         writer.setProperty(name, `${Math.round(e.value)}px`);
       });
   });
-  FontFamilyVariables.forEach(name => {
+  FontFamilyVariables.forEach((name) => {
     const value = reader.getPropertyValue(name);
     fontFamilyFolder
       .addBinding(
         {
           [name]: value,
         },
-        name
+        name,
       )
-      .on('change', e => {
+      .on("change", (e) => {
         writer.setProperty(name, e.value);
       });
   });
-  OTHER_CSS_VARIABLES.forEach(name => {
+  OTHER_CSS_VARIABLES.forEach((name) => {
     const value = reader.getPropertyValue(name);
-    othersFolder.addBinding({ [name]: value }, name).on('change', e => {
+    othersFolder.addBinding({ [name]: value }, name).on("change", (e) => {
       writer.setProperty(name, e.value);
     });
   });
   fontFamilyFolder
     .addBinding(
       {
-        '--affine-font-family':
-          'Roboto Mono, apple-system, BlinkMacSystemFont,Helvetica Neue, Tahoma, PingFang SC, Microsoft Yahei, Arial,Hiragino Sans GB, sans-serif, Apple Color Emoji, Segoe UI Emoji,Segoe UI Symbol, Noto Color Emoji',
+        "--affine-font-family":
+          "Roboto Mono, apple-system, BlinkMacSystemFont,Helvetica Neue, Tahoma, PingFang SC, Microsoft Yahei, Arial,Hiragino Sans GB, sans-serif, Apple Color Emoji, Segoe UI Emoji,Segoe UI Symbol, Noto Color Emoji",
       },
-      '--affine-font-family'
+      "--affine-font-family",
     )
-    .on('change', e => {
-      writer.setProperty('--affine-font-family', e.value);
+    .on("change", (e) => {
+      writer.setProperty("--affine-font-family", e.value);
     });
-  ColorVariables.forEach(name => {
+  ColorVariables.forEach((name) => {
     const value = reader.getPropertyValue(name);
-    colorFolder.addBinding({ [name]: value }, name).on('change', e => {
+    colorFolder.addBinding({ [name]: value }, name).on("change", (e) => {
       writer.setProperty(name, e.value);
     });
   });
 }
 
 function getDarkModeConfig(): boolean {
-  const updatedDarkModeConfig = localStorage.getItem('blocksuite:dark');
+  const updatedDarkModeConfig = localStorage.getItem("blocksuite:dark");
   if (updatedDarkModeConfig !== null) {
-    return updatedDarkModeConfig === 'true';
+    return updatedDarkModeConfig === "true";
   }
 
-  const matchMedia = window.matchMedia('(prefers-color-scheme: dark)');
+  const matchMedia = window.matchMedia("(prefers-color-scheme: dark)");
   return matchMedia.matches;
 }
 
-interface AdapterResult {
+type AdapterResult = {
   file: string;
   assetsIds: string[];
-}
+};
 
 type AdapterFactoryIdentifier =
   | typeof HtmlAdapterFactoryIdentifier
   | typeof MarkdownAdapterFactoryIdentifier
   | typeof PlainTextAdapterFactoryIdentifier;
 
-interface AdapterConfig {
+type AdapterConfig = {
   identifier: AdapterFactoryIdentifier;
   fileExtension: string; // file extension need to be lower case with dot prefix, e.g. '.md', '.txt', '.html'
   contentType: string;
   indexFileName: string;
-}
+};
 
-@customElement('starter-debug-menu')
+@customElement("starter-debug-menu")
 export class StarterDebugMenu extends ShadowlessElement {
   static override styles = css`
     :root {
@@ -228,7 +233,8 @@ export class StarterDebugMenu extends ShadowlessElement {
 
   private _addNote() {
     const rootModel = this.doc.root;
-    if (!rootModel) return;
+    if (!rootModel)
+      return;
     const rootId = rootModel.id;
 
     this.doc.captureSync();
@@ -236,12 +242,12 @@ export class StarterDebugMenu extends ShadowlessElement {
     const count = rootModel.children.length;
     const xywh: SerializedXYWH = `[0,${count * 60},800,95]`;
 
-    const noteId = this.doc.addBlock('affine:note', { xywh }, rootId);
-    this.doc.addBlock('affine:paragraph', {}, noteId);
+    const noteId = this.doc.addBlock("affine:note", { xywh }, rootId);
+    this.doc.addBlock("affine:paragraph", {}, noteId);
   }
 
   private async _clearSiteData() {
-    await fetch('/Clear-Site-Data');
+    await fetch("/Clear-Site-Data");
     window.location.reload();
   }
 
@@ -264,7 +270,7 @@ export class StarterDebugMenu extends ShadowlessElement {
       return;
     }
 
-    const docTitle = doc.meta?.title || 'Untitled';
+    const docTitle = doc.meta?.title || "Untitled";
     const contentBlob = new Blob([result.file], { type: config.contentType });
 
     let downloadBlob: Blob;
@@ -272,13 +278,14 @@ export class StarterDebugMenu extends ShadowlessElement {
 
     if (result.assetsIds.length > 0) {
       if (!job.assets) {
-        throw new BlockSuiteError(ErrorCode.ValueNotExists, 'No assets found');
+        throw new BlockSuiteError(ErrorCode.ValueNotExists, "No assets found");
       }
       const zip = await createAssetsArchive(job.assets, result.assetsIds);
       await zip.file(config.indexFileName, contentBlob);
       downloadBlob = await zip.generate();
       name = `${docTitle}.zip`;
-    } else {
+    }
+    else {
       downloadBlob = contentBlob;
       name = `${docTitle}${config.fileExtension}`;
     }
@@ -289,9 +296,9 @@ export class StarterDebugMenu extends ShadowlessElement {
   private async _exportHtml() {
     await this._exportFile({
       identifier: HtmlAdapterFactoryIdentifier,
-      fileExtension: '.html',
-      contentType: 'text/html',
-      indexFileName: 'index.html',
+      fileExtension: ".html",
+      contentType: "text/html",
+      indexFileName: "index.html",
     });
   }
 
@@ -301,9 +308,9 @@ export class StarterDebugMenu extends ShadowlessElement {
   private async _exportMarkDown() {
     await this._exportFile({
       identifier: MarkdownAdapterFactoryIdentifier,
-      fileExtension: '.md',
-      contentType: 'text/plain',
-      indexFileName: 'index.md',
+      fileExtension: ".md",
+      contentType: "text/plain",
+      indexFileName: "index.md",
     });
   }
 
@@ -317,9 +324,9 @@ export class StarterDebugMenu extends ShadowlessElement {
   private async _exportPlainText() {
     await this._exportFile({
       identifier: PlainTextAdapterFactoryIdentifier,
-      fileExtension: '.txt',
-      contentType: 'text/plain',
-      indexFileName: 'index.txt',
+      fileExtension: ".txt",
+      contentType: "text/plain",
+      indexFileName: "index.txt",
     });
   }
 
@@ -332,8 +339,8 @@ export class StarterDebugMenu extends ShadowlessElement {
       this.collection,
       this.editor.doc.schema,
       Array.from(this.collection.docs.values()).map(collection =>
-        collection.getStore()
-      )
+        collection.getStore(),
+      ),
     );
   }
 
@@ -343,110 +350,123 @@ export class StarterDebugMenu extends ShadowlessElement {
 
   private async _importHTML() {
     try {
-      const files = await openFilesWith('Html');
+      const files = await openFilesWith("Html");
 
-      if (!files) return;
+      if (!files)
+        return;
 
       const pageIds: string[] = [];
       for (const file of files) {
         const text = await file.text();
-        const fileName = file.name.split('.').slice(0, -1).join('.');
+        const fileName = file.name.split(".").slice(0, -1).join(".");
         const pageId = await HtmlTransformer.importHTMLToDoc({
           collection: this.collection,
           schema: this.editor.doc.schema,
           html: text,
           fileName,
-          extensions: this._getStoreManager().get('store'),
+          extensions: this._getStoreManager().get("store"),
         });
         if (pageId) {
           pageIds.push(pageId);
         }
       }
-      if (!this.editor.host) return;
+      if (!this.editor.host)
+        return;
       toast(
         this.editor.host,
-        `Successfully imported ${pageIds.length} HTML files.`
+        `Successfully imported ${pageIds.length} HTML files.`,
       );
-    } catch (error) {
-      console.error(' Import HTML files failed:', error);
+    }
+    catch (error) {
+      console.error(" Import HTML files failed:", error);
     }
   }
 
   private async _importHTMLZip() {
     try {
-      const file = await openSingleFileWith('Zip');
-      if (!file) return;
+      const file = await openSingleFileWith("Zip");
+      if (!file)
+        return;
       const result = await HtmlTransformer.importHTMLZip({
         collection: this.collection,
         schema: this.editor.doc.schema,
         imported: file,
-        extensions: this._getStoreManager().get('store'),
+        extensions: this._getStoreManager().get("store"),
       });
-      if (!this.editor.host) return;
+      if (!this.editor.host)
+        return;
       toast(
         this.editor.host,
-        `Successfully imported ${result.length} HTML files.`
+        `Successfully imported ${result.length} HTML files.`,
       );
-    } catch (error) {
-      console.error('Import HTML zip files failed:', error);
+    }
+    catch (error) {
+      console.error("Import HTML zip files failed:", error);
     }
   }
 
   private async _importMarkdown() {
     try {
-      const files = await openFilesWith('Markdown');
+      const files = await openFilesWith("Markdown");
 
-      if (!files) return;
+      if (!files)
+        return;
 
       const pageIds: string[] = [];
       for (const file of files) {
         const text = await file.text();
-        const fileName = file.name.split('.').slice(0, -1).join('.');
+        const fileName = file.name.split(".").slice(0, -1).join(".");
         const pageId = await MarkdownTransformer.importMarkdownToDoc({
           collection: this.collection,
           schema: this.editor.doc.schema,
           markdown: text,
           fileName,
-          extensions: this._getStoreManager().get('store'),
+          extensions: this._getStoreManager().get("store"),
         });
         if (pageId) {
           pageIds.push(pageId);
         }
       }
-      if (!this.editor.host) return;
+      if (!this.editor.host)
+        return;
       toast(
         this.editor.host,
-        `Successfully imported ${pageIds.length} markdown files.`
+        `Successfully imported ${pageIds.length} markdown files.`,
       );
-    } catch (error) {
-      console.error(' Import markdown files failed:', error);
+    }
+    catch (error) {
+      console.error(" Import markdown files failed:", error);
     }
   }
 
   private async _importMarkdownZip() {
     try {
-      const file = await openSingleFileWith('Zip');
-      if (!file) return;
+      const file = await openSingleFileWith("Zip");
+      if (!file)
+        return;
       const result = await MarkdownTransformer.importMarkdownZip({
         collection: this.collection,
         schema: this.editor.doc.schema,
         imported: file,
-        extensions: this._getStoreManager().get('store'),
+        extensions: this._getStoreManager().get("store"),
       });
-      if (!this.editor.host) return;
+      if (!this.editor.host)
+        return;
       toast(
         this.editor.host,
-        `Successfully imported ${result.length} markdown files.`
+        `Successfully imported ${result.length} markdown files.`,
       );
-    } catch (error) {
-      console.error('Import markdown zip files failed:', error);
+    }
+    catch (error) {
+      console.error("Import markdown zip files failed:", error);
     }
   }
 
   private async _importNotionHTML() {
     try {
-      const file = await openSingleFileWith('Html');
-      if (!file) return;
+      const file = await openSingleFileWith("Html");
+      if (!file)
+        return;
       const doc = this.editor.doc;
       const job = doc.getTransformer([defaultImageProxyMiddleware]);
       const htmlAdapter = new NotionHtmlAdapter(job, this.editor.std.provider);
@@ -455,35 +475,39 @@ export class StarterDebugMenu extends ShadowlessElement {
         pageId: this.collection.idGenerator(),
         assets: job.assetsManager,
       });
-    } catch (error) {
-      console.error('Failed to import Notion HTML:', error);
+    }
+    catch (error) {
+      console.error("Failed to import Notion HTML:", error);
     }
   }
 
   private async _importNotionHTMLZip() {
     try {
-      const file = await openSingleFileWith('Zip');
-      if (!file) return;
+      const file = await openSingleFileWith("Zip");
+      if (!file)
+        return;
       const result = await NotionHtmlTransformer.importNotionZip({
         collection: this.collection,
         schema: this.editor.doc.schema,
         imported: file,
-        extensions: this._getStoreManager().get('store'),
+        extensions: this._getStoreManager().get("store"),
       });
-      if (!this.editor.host) return;
+      if (!this.editor.host)
+        return;
       toast(
         this.editor.host,
-        `Successfully imported ${result.pageIds.length} Notion HTML pages.`
+        `Successfully imported ${result.pageIds.length} Notion HTML pages.`,
       );
-    } catch (error) {
-      console.error('Failed to import Notion HTML Zip:', error);
+    }
+    catch (error) {
+      console.error("Failed to import Notion HTML Zip:", error);
     }
   }
 
   private _importSnapshot() {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', '.zip');
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", ".zip");
     input.multiple = false;
     input.onchange = async () => {
       const file = input.files?.item(0);
@@ -494,36 +518,38 @@ export class StarterDebugMenu extends ShadowlessElement {
         const docs = await ZipTransformer.importDocs(
           this.collection,
           this.editor.doc.schema,
-          file
+          file,
         );
         for (const doc of docs) {
           if (doc) {
-            const noteBlock = window.doc.getModelsByFlavour('affine:note');
+            const noteBlock = window.doc.getModelsByFlavour("affine:note");
             window.doc.addBlock(
-              'affine:paragraph',
+              "affine:paragraph",
               {
-                type: 'text',
+                type: "text",
                 text: new Text([
                   {
-                    insert: ' ',
+                    insert: " ",
                     attributes: {
                       reference: {
-                        type: 'LinkedPage',
+                        type: "LinkedPage",
                         pageId: doc.id,
                       },
                     },
                   } as DeltaInsert<AffineTextAttributes>,
                 ]),
               },
-              noteBlock[0].id
+              noteBlock[0].id,
             );
           }
         }
         this.requestUpdate();
-      } catch (e) {
-        console.error('Invalid snapshot.');
+      }
+      catch (e) {
+        console.error("Invalid snapshot.");
         console.error(e);
-      } finally {
+      }
+      finally {
         input.remove();
       }
     };
@@ -532,10 +558,10 @@ export class StarterDebugMenu extends ShadowlessElement {
 
   private _insertTransitionStyle(classKey: string, duration: number) {
     const $html = document.documentElement;
-    const $style = document.createElement('style');
-    const slCSSKeys = ['sl-transition-x-fast'];
+    const $style = document.createElement("style");
+    const slCSSKeys = ["sl-transition-x-fast"];
     $style.innerHTML = `html.${classKey} * { transition: all ${duration}ms 0ms linear !important; } :root { ${slCSSKeys.map(
-      key => `--${key}: ${duration}ms`
+      key => `--${key}: ${duration}ms`,
     )} }`;
 
     $html.append($style);
@@ -548,10 +574,11 @@ export class StarterDebugMenu extends ShadowlessElement {
   }
 
   private _present() {
-    if (!this.editor.std || !this.editor.host) return;
+    if (!this.editor.std || !this.editor.host)
+      return;
     const gfx = this.editor.std.get(GfxControllerIdentifier);
     gfx.tool.setTool(PresentTool, {
-      mode: 'fit',
+      mode: "fit",
     });
   }
 
@@ -560,21 +587,23 @@ export class StarterDebugMenu extends ShadowlessElement {
   }
 
   private _setThemeMode(dark: boolean) {
-    const html = document.querySelector('html');
+    const html = document.querySelector("html");
 
     this._dark = dark;
-    localStorage.setItem('blocksuite:dark', dark ? 'true' : 'false');
-    if (!html) return;
-    html.dataset.theme = dark ? 'dark' : 'light';
+    localStorage.setItem("blocksuite:dark", dark ? "true" : "false");
+    if (!html)
+      return;
+    html.dataset.theme = dark ? "dark" : "light";
 
-    this._insertTransitionStyle('color-transition', 0);
+    this._insertTransitionStyle("color-transition", 0);
 
     if (dark) {
-      html.classList.add('dark');
-      html.classList.add('sl-theme-dark');
-    } else {
-      html.classList.remove('dark');
-      html.classList.remove('sl-theme-dark');
+      html.classList.add("dark");
+      html.classList.add("sl-theme-dark");
+    }
+    else {
+      html.classList.remove("dark");
+      html.classList.remove("sl-theme-dark");
     }
 
     const theme = dark ? ColorScheme.Dark : ColorScheme.Light;
@@ -589,13 +618,14 @@ export class StarterDebugMenu extends ShadowlessElement {
     const json = selection.map(sel => sel.toJSON());
     const hash = lz.compressToEncodedURIComponent(JSON.stringify(json));
     const url = new URL(window.location.toString());
-    url.searchParams.set('sel', hash);
-    window.history.pushState({}, '', url);
+    url.searchParams.set("sel", hash);
+    window.history.pushState({}, "", url);
   }
 
   private _switchEditorMode() {
-    if (!this.editor.host) return;
-    const newMode = this.mode === 'page' ? 'edgeless' : 'page';
+    if (!this.editor.host)
+      return;
+    const newMode = this.mode === "page" ? "edgeless" : "page";
     const docModeService = this.editor.host.std.get(DocModeProvider);
     if (docModeService) {
       docModeService.setPrimaryMode(newMode, this.editor.doc.id);
@@ -629,28 +659,29 @@ export class StarterDebugMenu extends ShadowlessElement {
   }
 
   private _toggleMultipleEditors() {
-    const app = document.querySelector('#app');
+    const app = document.querySelector("#app");
     if (app) {
       const currentEditorCount = app.querySelectorAll(
-        'affine-editor-container'
+        "affine-editor-container",
       ).length;
       if (currentEditorCount === 1) {
         // Add a second editor
         const newEditor = createTestEditor(this.doc, this.collection);
         app.append(newEditor);
-        app.childNodes.forEach(child => {
+        app.childNodes.forEach((child) => {
           if (child instanceof TestAffineEditorContainer) {
-            child.style.flex = '1';
+            child.style.flex = "1";
           }
         });
-        (app as HTMLElement).style.display = 'flex';
-      } else {
+        (app as HTMLElement).style.display = "flex";
+      }
+      else {
         // Remove the second editor
-        const secondEditor = app.querySelectorAll('affine-editor-container')[1];
+        const secondEditor = app.querySelectorAll("affine-editor-container")[1];
         if (secondEditor) {
           secondEditor.remove();
         }
-        (app as HTMLElement).style.display = 'block';
+        (app as HTMLElement).style.display = "block";
       }
     }
   }
@@ -667,10 +698,10 @@ export class StarterDebugMenu extends ShadowlessElement {
   private async _toggleStyleDebugMenu() {
     if (!styleDebugMenuLoaded) {
       styleDebugMenuLoaded = true;
-      const { Pane } = await import('tweakpane');
-      this._styleMenu = new Pane({ title: 'Waiting' });
+      const { Pane } = await import("tweakpane");
+      this._styleMenu = new Pane({ title: "Waiting" });
       this._styleMenu.hidden = true;
-      this._styleMenu.element.style.width = '650';
+      this._styleMenu.element.style.width = "650";
       initStyleDebugMenu(this._styleMenu, {
         writer: document.documentElement.style,
         reader: getComputedStyle(document.documentElement),
@@ -689,20 +720,22 @@ export class StarterDebugMenu extends ShadowlessElement {
     const readSelectionFromURL = async () => {
       const editorHost = this.editor.host;
       if (!editorHost) {
-        await new Promise(resolve => {
+        await new Promise((resolve) => {
           setTimeout(resolve, 500);
         });
         readSelectionFromURL().catch(console.error);
         return;
       }
       const url = new URL(window.location.toString());
-      const sel = url.searchParams.get('sel');
-      if (!sel) return;
+      const sel = url.searchParams.get("sel");
+      if (!sel)
+        return;
       try {
         const json = JSON.parse(lz.decompressFromEncodedURIComponent(sel));
         editorHost.std.selection.fromJSON(json);
-      } catch {
-        return;
+      }
+      catch {
+
       }
     };
     readSelectionFromURL().catch(console.error);
@@ -711,8 +744,8 @@ export class StarterDebugMenu extends ShadowlessElement {
   override createRenderRoot() {
     this._setThemeMode(this._dark);
 
-    const matchMedia = window.matchMedia('(prefers-color-scheme: dark)');
-    matchMedia.addEventListener('change', this._darkModeChange);
+    const matchMedia = window.matchMedia("(prefers-color-scheme: dark)");
+    matchMedia.addEventListener("change", this._darkModeChange);
 
     return this;
   }
@@ -720,8 +753,8 @@ export class StarterDebugMenu extends ShadowlessElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
 
-    const matchMedia = window.matchMedia('(prefers-color-scheme: dark)');
-    matchMedia.removeEventListener('change', this._darkModeChange);
+    const matchMedia = window.matchMedia("(prefers-color-scheme: dark)");
+    matchMedia.removeEventListener("change", this._darkModeChange);
   }
 
   override firstUpdated() {
@@ -924,13 +957,13 @@ export class StarterDebugMenu extends ShadowlessElement {
           </sl-tooltip>
 
           <sl-tooltip
-            content="Toggle ${this._dark ? 'Light' : 'Dark'} Mode"
+            content="Toggle ${this._dark ? "Light" : "Dark"} Mode"
             placement="bottom"
             hoist
           >
             <sl-button size="small" @click="${this._toggleDarkMode}">
               <sl-icon
-                name="${this._dark ? 'moon' : 'brightness-high'}"
+                name="${this._dark ? "moon" : "brightness-high"}"
               ></sl-icon>
             </sl-button>
           </sl-tooltip>
@@ -959,22 +992,23 @@ export class StarterDebugMenu extends ShadowlessElement {
   }
 
   override update(changedProperties: Map<string, unknown>) {
-    if (changedProperties.has('_hasOffset')) {
-      const appRoot = document.getElementById('app');
-      if (!appRoot) return;
+    if (changedProperties.has("_hasOffset")) {
+      const appRoot = document.getElementById("app");
+      if (!appRoot)
+        return;
       const style: Partial<CSSStyleDeclaration> = this._hasOffset
         ? {
-            margin: '60px 40px 240px 40px',
-            overflow: 'auto',
-            height: '400px',
-            boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.2)',
+            margin: "60px 40px 240px 40px",
+            overflow: "auto",
+            height: "400px",
+            boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.2)",
           }
         : {
-            margin: '0',
-            overflow: 'initial',
+            margin: "0",
+            overflow: "initial",
             // edgeless needs the container height
-            height: '100%',
-            boxShadow: 'initial',
+            height: "100%",
+            boxShadow: "initial",
           };
       Object.assign(appRoot.style, style);
     }
@@ -993,7 +1027,7 @@ export class StarterDebugMenu extends ShadowlessElement {
   @state()
   private accessor _hasOffset = false;
 
-  @query('#block-type-dropdown')
+  @query("#block-type-dropdown")
   accessor blockTypeDropdown!: SlDropdown;
 
   @property({ attribute: false })
@@ -1029,6 +1063,6 @@ export class StarterDebugMenu extends ShadowlessElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'starter-debug-menu': StarterDebugMenu;
+    "starter-debug-menu": StarterDebugMenu;
   }
 }

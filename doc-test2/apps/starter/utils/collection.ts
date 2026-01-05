@@ -1,37 +1,41 @@
-import type { StoreExtensionManager } from '@blocksuite/affine/ext-loader';
-import { AffineSchemas } from '@blocksuite/affine/schemas';
-import { nanoid, Schema, Transformer } from '@blocksuite/affine/store';
+import type { StoreExtensionManager } from "@blocksuite/affine/ext-loader";
+import type { DocCollectionOptions } from "@blocksuite/affine/store/test";
+import type { BlobSource } from "@blocksuite/affine/sync";
+
+import { AffineSchemas } from "@blocksuite/affine/schemas";
+import { nanoid, Schema, Transformer } from "@blocksuite/affine/store";
 import {
   createAutoIncrementIdGenerator,
-  type DocCollectionOptions,
+
   TestWorkspace,
-} from '@blocksuite/affine/store/test';
+} from "@blocksuite/affine/store/test";
 import {
-  type BlobSource,
+
   BroadcastChannelAwarenessSource,
   BroadcastChannelDocSource,
   IndexedDBBlobSource,
   MemoryBlobSource,
-} from '@blocksuite/affine/sync';
-import * as Y from 'yjs';
+} from "@blocksuite/affine/sync";
+import * as Y from "yjs";
 
-import { MockServerBlobSource } from '../../_common/sync/blob/mock-server.js';
-import type { InitFn } from '../data/utils.js';
+import type { InitFn } from "../data/utils.js";
+
+import { MockServerBlobSource } from "../../_common/sync/blob/mock-server.js";
 
 const params = new URLSearchParams(location.search);
-const room = params.get('room');
-const isE2E = room?.startsWith('playwright');
-const blobSourceArgs = (params.get('blobSource') ?? '').split(',');
+const room = params.get("room");
+const isE2E = room?.startsWith("playwright");
+const blobSourceArgs = (params.get("blobSource") ?? "").split(",");
 
 export function createStarterDocCollection(
-  storeExtensionManager: StoreExtensionManager
+  storeExtensionManager: StoreExtensionManager,
 ) {
-  const collectionId = room ?? 'starter';
+  const collectionId = room ?? "starter";
   const schema = new Schema();
   schema.register(AffineSchemas);
   const idGenerator = isE2E ? createAutoIncrementIdGenerator() : nanoid;
 
-  let docSources: DocCollectionOptions['docSources'];
+  let docSources: DocCollectionOptions["docSources"];
   if (room) {
     docSources = {
       main: new BroadcastChannelDocSource(`broadcast-channel-${room}`),
@@ -42,11 +46,11 @@ export function createStarterDocCollection(
   const blobSources = {
     main: new MemoryBlobSource(),
     shadows: [] as BlobSource[],
-  } satisfies DocCollectionOptions['blobSources'];
-  if (blobSourceArgs.includes('mock')) {
+  } satisfies DocCollectionOptions["blobSources"];
+  if (blobSourceArgs.includes("mock")) {
     blobSources.shadows.push(new MockServerBlobSource(collectionId));
   }
-  if (blobSourceArgs.includes('idb')) {
+  if (blobSourceArgs.includes("idb")) {
     blobSources.shadows.push(new IndexedDBBlobSource(collectionId));
   }
 
@@ -58,7 +62,7 @@ export function createStarterDocCollection(
     blobSources,
   };
   const collection = new TestWorkspace(options);
-  collection.storeExtensions = storeExtensionManager.get('store');
+  collection.storeExtensions = storeExtensionManager.get("store");
   collection.start();
 
   // debug info
@@ -85,13 +89,13 @@ export async function initStarterDocCollection(collection: TestWorkspace) {
     (collection: TestWorkspace, id: string) => Promise<void> | void
   >();
   Object.values(
-    (await import('../data/index.js')) as Record<string, InitFn>
+    (await import("../data/index.js")) as Record<string, InitFn>,
   ).forEach(fn => functionMap.set(fn.id, fn));
-  const init = params.get('init') || 'preset';
+  const init = params.get("init") || "preset";
   if (functionMap.has(init)) {
     collection.meta.initialize();
-    await functionMap.get(init)?.(collection, 'doc:home');
-    const doc = collection.getDoc('doc:home');
+    await functionMap.get(init)?.(collection, "doc:home");
+    const doc = collection.getDoc("doc:home");
     if (!doc?.loaded) {
       doc?.load();
     }

@@ -1,8 +1,8 @@
-import type { EditorHost } from '@blocksuite/affine/block-std';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import type { BlockSchema, Blocks, Workspace, Transformer } from '@blocksuite/affine/store';
-import type { z } from 'zod';
-import type * as Y from 'yjs';
+import type { EditorHost } from "@blocksuite/affine/block-std";
+import type { Blocks, BlockSchema, Transformer, Workspace } from "@blocksuite/affine/store";
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
+import type * as Y from "yjs";
+import type { z } from "zod";
 
 declare global {
   type HTMLTemplate = [

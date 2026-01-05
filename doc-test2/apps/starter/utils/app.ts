@@ -1,26 +1,27 @@
-import type { Store, Workspace } from '@blocksuite/affine/store';
+import type { Store, Workspace } from "@blocksuite/affine/store";
+
 import {
   defaultImageProxyMiddleware,
   docLinkBaseURLMiddlewareBuilder,
   embedSyncedDocMiddleware,
   titleMiddleware,
-} from '@blocksuite/affine-shared/adapters';
+} from "@blocksuite/affine-shared/adapters";
 
-import { AttachmentViewerPanel } from '../../_common/components/attachment-viewer-panel';
-import { CustomAdapterPanel } from '../../_common/components/custom-adapter-panel';
-import { CustomFramePanel } from '../../_common/components/custom-frame-panel';
-import { CustomOutlinePanel } from '../../_common/components/custom-outline-panel';
-import { CustomOutlineViewer } from '../../_common/components/custom-outline-viewer';
-import { DocsPanel } from '../../_common/components/docs-panel';
-import { LeftSidePanel } from '../../_common/components/left-side-panel';
-import { StarterDebugMenu } from '../../_common/components/starter-debug-menu';
-import { CommentPanel } from '../../comment/comment-panel';
-import { createTestEditor } from './extensions';
+import { AttachmentViewerPanel } from "../../_common/components/attachment-viewer-panel";
+import { CustomAdapterPanel } from "../../_common/components/custom-adapter-panel";
+import { CustomFramePanel } from "../../_common/components/custom-frame-panel";
+import { CustomOutlinePanel } from "../../_common/components/custom-outline-panel";
+import { CustomOutlineViewer } from "../../_common/components/custom-outline-viewer";
+import { DocsPanel } from "../../_common/components/docs-panel";
+import { LeftSidePanel } from "../../_common/components/left-side-panel";
+import { StarterDebugMenu } from "../../_common/components/starter-debug-menu";
+import { CommentPanel } from "../../comment/comment-panel";
+import { createTestEditor } from "./extensions";
 
 export async function createTestApp(doc: Store, collection: Workspace) {
-  const app = document.querySelector('#app');
+  const app = document.querySelector("#app");
   if (!app) {
-    throw new Error('Cannot find app root element(#app).');
+    throw new Error("Cannot find app root element(#app).");
   }
   const editor = createTestEditor(doc, collection);
 
@@ -47,11 +48,11 @@ export async function createTestApp(doc: Store, collection: Workspace) {
   adapterPanel.editor = editor;
   adapterPanel.transformerMiddlewares = [
     docLinkBaseURLMiddlewareBuilder(
-      'https://example.com',
-      editor.doc.workspace.id
+      "https://example.com",
+      editor.doc.workspace.id,
     ).get(),
     titleMiddleware(editor.doc.workspace.meta.docMetas),
-    embedSyncedDocMiddleware('content'),
+    embedSyncedDocMiddleware("content"),
     defaultImageProxyMiddleware,
   ];
 
@@ -78,14 +79,14 @@ export async function createTestApp(doc: Store, collection: Workspace) {
 
   window.editor = editor;
   window.doc = doc;
-  Object.defineProperty(globalThis, 'host', {
+  Object.defineProperty(globalThis, "host", {
     get() {
-      return document.querySelector('editor-host');
+      return document.querySelector("editor-host");
     },
   });
-  Object.defineProperty(globalThis, 'std', {
+  Object.defineProperty(globalThis, "std", {
     get() {
-      return document.querySelector('editor-host')?.std;
+      return document.querySelector("editor-host")?.std;
     },
   });
 

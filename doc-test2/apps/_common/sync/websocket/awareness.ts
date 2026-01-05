@@ -1,68 +1,71 @@
-import type { AwarenessSource } from '@blocksuite/sync';
-import type { Awareness } from 'y-protocols/awareness';
+import type { AwarenessSource } from "@blocksuite/sync";
+import type { Awareness } from "y-protocols/awareness";
+
 import {
   applyAwarenessUpdate,
   encodeAwarenessUpdate,
-} from 'y-protocols/awareness';
+} from "y-protocols/awareness";
 
-import type { WebSocketMessage } from './types';
+import type { WebSocketMessage } from "./types";
 
-type AwarenessChanges = Record<'added' | 'updated' | 'removed', number[]>;
+type AwarenessChanges = Record<"added" | "updated" | "removed", number[]>;
 
 export class WebSocketAwarenessSource implements AwarenessSource {
   private readonly _onAwareness = (
     changes: AwarenessChanges,
-    origin: unknown
+    origin: unknown,
   ) => {
-    if (origin === 'remote') return;
+    if (origin === "remote")
+      return;
 
     const changedClients = Object.values(changes).reduce((res, cur) =>
-      res.concat(cur)
+      res.concat(cur),
     );
 
     if (!this.awareness) {
-      throw new Error('awareness is not found');
+      throw new Error("awareness is not found");
     }
     const update = encodeAwarenessUpdate(this.awareness, changedClients);
     this.ws.send(
       JSON.stringify({
-        channel: 'awareness',
+        channel: "awareness",
         payload: {
-          type: 'update',
+          type: "update",
           update: Array.from(update),
         },
-      } satisfies WebSocketMessage)
+      } satisfies WebSocketMessage),
     );
   };
 
   private readonly _onWebSocket = (event: MessageEvent<string>) => {
     const data = JSON.parse(event.data) as WebSocketMessage;
 
-    if (data.channel !== 'awareness') return;
+    if (data.channel !== "awareness")
+      return;
     const { type } = data.payload;
 
-    if (type === 'update') {
+    if (type === "update") {
       const update = data.payload.update;
       if (!this.awareness) {
-        throw new Error('awareness is not found');
+        throw new Error("awareness is not found");
       }
-      applyAwarenessUpdate(this.awareness, new Uint8Array(update), 'remote');
+      applyAwarenessUpdate(this.awareness, new Uint8Array(update), "remote");
     }
 
-    if (type === 'connect') {
+    if (type === "connect") {
       if (!this.awareness) {
-        throw new Error('awareness is not found');
+        throw new Error("awareness is not found");
       }
       this.ws.send(
         JSON.stringify({
-          channel: 'awareness',
+          channel: "awareness",
           payload: {
-            type: 'update',
+            type: "update",
             update: Array.from(
-              encodeAwarenessUpdate(this.awareness, [this.awareness.clientID])
+              encodeAwarenessUpdate(this.awareness, [this.awareness.clientID]),
             ),
           },
-        } satisfies WebSocketMessage)
+        } satisfies WebSocketMessage),
       );
     }
   };
@@ -73,21 +76,21 @@ export class WebSocketAwarenessSource implements AwarenessSource {
 
   connect(awareness: Awareness): void {
     this.awareness = awareness;
-    awareness.on('update', this._onAwareness);
+    awareness.on("update", this._onAwareness);
 
-    this.ws.addEventListener('message', this._onWebSocket);
+    this.ws.addEventListener("message", this._onWebSocket);
     this.ws.send(
       JSON.stringify({
-        channel: 'awareness',
+        channel: "awareness",
         payload: {
-          type: 'connect',
+          type: "connect",
         },
-      } satisfies WebSocketMessage)
+      } satisfies WebSocketMessage),
     );
   }
 
   disconnect(): void {
-    this.awareness?.off('update', this._onAwareness);
+    this.awareness?.off("update", this._onAwareness);
     this.ws.close();
   }
 }

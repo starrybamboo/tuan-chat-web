@@ -1,11 +1,12 @@
-import { WithDisposable } from '@blocksuite/affine/global/lit';
-import { ShadowlessElement } from '@blocksuite/affine/std';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { effect } from '@preact/signals-core';
-import { css, html, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
 
-@customElement('custom-frame-panel')
+import { WithDisposable } from "@blocksuite/affine/global/lit";
+import { ShadowlessElement } from "@blocksuite/affine/std";
+import { effect } from "@preact/signals-core";
+import { css, html, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+
+@customElement("custom-frame-panel")
 export class CustomFramePanel extends WithDisposable(ShadowlessElement) {
   static override styles = css`
     .custom-frame-container {
@@ -39,7 +40,7 @@ export class CustomFramePanel extends WithDisposable(ShadowlessElement) {
             .then(() => this.requestUpdate())
             .catch(console.error);
         }
-      })
+      }),
     );
   }
 
@@ -64,6 +65,6 @@ export class CustomFramePanel extends WithDisposable(ShadowlessElement) {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'custom-frame-panel': CustomFramePanel;
+    "custom-frame-panel": CustomFramePanel;
   }
 }

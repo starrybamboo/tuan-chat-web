@@ -10,6 +10,17 @@ import { SurfaceStoreExtension } from "@blocksuite/affine-block-surface/store";
 import { SurfaceViewExtension } from "@blocksuite/affine-block-surface/view";
 import { StoreExtensionManager, ViewExtensionManager } from "@blocksuite/affine-ext-loader";
 import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
+import { FootnoteStoreExtension } from "@blocksuite/affine-inline-footnote/store";
+import { FootnoteViewExtension } from "@blocksuite/affine-inline-footnote/view";
+import { LatexStoreExtension } from "@blocksuite/affine-inline-latex/store";
+import { LatexViewExtension } from "@blocksuite/affine-inline-latex/view";
+import { LinkStoreExtension } from "@blocksuite/affine-inline-link/store";
+import { LinkViewExtension } from "@blocksuite/affine-inline-link/view";
+import { MentionViewExtension } from "@blocksuite/affine-inline-mention/view";
+import { InlinePresetStoreExtension } from "@blocksuite/affine-inline-preset/store";
+import { InlinePresetViewExtension } from "@blocksuite/affine-inline-preset/view";
+import { ReferenceStoreExtension } from "@blocksuite/affine-inline-reference/store";
+import { ReferenceViewExtension } from "@blocksuite/affine-inline-reference/view";
 import {
   CommunityCanvasTextFonts,
   DocModeService,
@@ -21,23 +32,11 @@ import {
   ThemeService,
   ToolbarRegistryExtension,
 } from "@blocksuite/affine-shared/services";
-
-import { ToolbarViewExtension } from "@blocksuite/affine-widget-toolbar/view";
-import { SlashMenuViewExtension } from "@blocksuite/affine-widget-slash-menu/view";
-import { ViewportOverlayViewExtension } from "@blocksuite/affine-widget-viewport-overlay/view";
 import { EdgelessToolbarViewExtension } from "@blocksuite/affine-widget-edgeless-toolbar/view";
 import { EdgelessZoomToolbarViewExtension } from "@blocksuite/affine-widget-edgeless-zoom-toolbar/view";
-import { InlinePresetStoreExtension } from "@blocksuite/affine-inline-preset/store";
-import { InlinePresetViewExtension } from "@blocksuite/affine-inline-preset/view";
-import { LatexStoreExtension } from "@blocksuite/affine-inline-latex/store";
-import { LatexViewExtension } from "@blocksuite/affine-inline-latex/view";
-import { ReferenceStoreExtension } from "@blocksuite/affine-inline-reference/store";
-import { ReferenceViewExtension } from "@blocksuite/affine-inline-reference/view";
-import { LinkStoreExtension } from "@blocksuite/affine-inline-link/store";
-import { LinkViewExtension } from "@blocksuite/affine-inline-link/view";
-import { FootnoteStoreExtension } from "@blocksuite/affine-inline-footnote/store";
-import { FootnoteViewExtension } from "@blocksuite/affine-inline-footnote/view";
-import { MentionViewExtension } from "@blocksuite/affine-inline-mention/view";
+import { SlashMenuViewExtension } from "@blocksuite/affine-widget-slash-menu/view";
+import { ToolbarViewExtension } from "@blocksuite/affine-widget-toolbar/view";
+import { ViewportOverlayViewExtension } from "@blocksuite/affine-widget-viewport-overlay/view";
 import { ToolController } from "@blocksuite/std/gfx";
 
 // 说明：之前我们只注册了少量 block/inline 的 view extensions。

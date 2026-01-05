@@ -26,9 +26,18 @@ export default function DocTestPage() {
       <div className="flex flex-col gap-2">
         <div className="text-sm opacity-70 select-none">
           文档测试（本地 IndexedDB 持久化）
-          <span className="ml-2 opacity-70">spaceId={spaceId}</span>
-          <span className="ml-2 opacity-70">docId={docId}</span>
-          <span className="ml-2 opacity-70">mode={mode}</span>
+          <span className="ml-2 opacity-70">
+            spaceId=
+            {spaceId}
+          </span>
+          <span className="ml-2 opacity-70">
+            docId=
+            {docId}
+          </span>
+          <span className="ml-2 opacity-70">
+            mode=
+            {mode}
+          </span>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">

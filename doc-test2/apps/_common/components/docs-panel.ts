@@ -1,18 +1,19 @@
-import { WithDisposable } from '@blocksuite/affine/global/lit';
-import { GenerateDocUrlProvider } from '@blocksuite/affine/shared/services';
-import { createDefaultDoc } from '@blocksuite/affine/shared/utils';
-import { ShadowlessElement } from '@blocksuite/affine/std';
-import type { Doc, Workspace } from '@blocksuite/affine/store';
-import { CloseIcon } from '@blocksuite/icons/lit';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { css, html, nothing } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { repeat } from 'lit/directives/repeat.js';
-import { styleMap } from 'lit/directives/style-map.js';
+import type { Doc, Workspace } from "@blocksuite/affine/store";
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
 
-import { removeModeFromStorage } from '../mock-services.js';
+import { WithDisposable } from "@blocksuite/affine/global/lit";
+import { GenerateDocUrlProvider } from "@blocksuite/affine/shared/services";
+import { createDefaultDoc } from "@blocksuite/affine/shared/utils";
+import { ShadowlessElement } from "@blocksuite/affine/std";
+import { CloseIcon } from "@blocksuite/icons/lit";
+import { css, html, nothing } from "lit";
+import { customElement, property } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
+import { styleMap } from "lit/directives/style-map.js";
 
-@customElement('docs-panel')
+import { removeModeFromStorage } from "../mock-services.js";
+
+@customElement("docs-panel")
 export class DocsPanel extends WithDisposable(ShadowlessElement) {
   static override styles = css`
     docs-panel {
@@ -69,7 +70,8 @@ export class DocsPanel extends WithDisposable(ShadowlessElement) {
     const url = this.editor.std
       .getOptional(GenerateDocUrlProvider)
       ?.generateDocUrl(doc.id);
-    if (url) history.pushState({}, '', url);
+    if (url)
+      history.pushState({}, "", url);
 
     this.editor.doc = doc.getStore();
     this.editor.doc.load();
@@ -90,27 +92,29 @@ export class DocsPanel extends WithDisposable(ShadowlessElement) {
 
     requestAnimationFrame(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (!(event.target instanceof Node)) return;
+        if (!(event.target instanceof Node))
+          return;
 
         const toggleButton = document.querySelector(
-          'sl-button[data-docs-panel-toggle]'
+          "sl-button[data-docs-panel-toggle]",
         );
-        if (toggleButton?.contains(event.target as Node)) return;
+        if (toggleButton?.contains(event.target as Node))
+          return;
 
         if (!this.contains(event.target)) {
           this.onClose?.();
         }
       };
-      document.addEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
       this.disposables.add(() => {
-        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener("click", handleClickOutside);
       });
     });
 
     this.disposables.add(
       this.editor.doc.workspace.slots.docListUpdated.subscribe(() => {
         this.requestUpdate();
-      })
+      }),
     );
   }
 
@@ -121,17 +125,17 @@ export class DocsPanel extends WithDisposable(ShadowlessElement) {
       ${repeat(
         docs,
         v => v.id,
-        doc => {
+        (doc) => {
           const style = styleMap({
             backgroundColor:
               this.editor.doc.id === doc.id
-                ? 'var(--affine-hover-color)'
+                ? "var(--affine-hover-color)"
                 : undefined,
-            padding: '4px 4px 4px 8px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'space-between',
+            padding: "4px 4px 4px 8px",
+            borderRadius: "4px",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
           });
           const click = () => {
             this.gotoDoc(doc);
@@ -148,14 +152,14 @@ export class DocsPanel extends WithDisposable(ShadowlessElement) {
             }
           };
           return html`<div class="doc-item" @click="${click}" style="${style}">
-            ${doc.meta?.title || 'Untitled'}
+            ${doc.meta?.title || "Untitled"}
             ${docs.length > 1
               ? html`<div @click="${deleteDoc}" class="delete-doc-icon">
                   ${CloseIcon()}
                 </div>`
               : nothing}
           </div>`;
-        }
+        },
       )}
     `;
   }
@@ -174,6 +178,6 @@ function createDocBlock(collection: Workspace) {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'docs-panel': DocsPanel;
+    "docs-panel": DocsPanel;
   }
 }

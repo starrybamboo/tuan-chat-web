@@ -1,30 +1,32 @@
-import { Text, type Workspace } from '@blocksuite/affine/store';
-import * as Y from 'yjs';
+import type { Workspace } from "@blocksuite/affine/store";
 
-import type { InitFn } from './utils.js';
+import { Text } from "@blocksuite/affine/store";
+import * as Y from "yjs";
+
+import type { InitFn } from "./utils.js";
 
 export const pendingStructs: InitFn = (collection: Workspace, id: string) => {
   const doc = collection.createDoc(id).getStore({ id });
-  const tempDoc = collection.createDoc('tempDoc').getStore();
+  const tempDoc = collection.createDoc("tempDoc").getStore();
   doc.load();
   tempDoc.load(() => {
-    const rootId = tempDoc.addBlock('affine:page', {
-      title: new Text('Pending Structs'),
+    const rootId = tempDoc.addBlock("affine:page", {
+      title: new Text("Pending Structs"),
     });
     const vec = Y.encodeStateVector(tempDoc.spaceDoc);
 
     // To avoid pending structs, uncomment the following line
     // const update = Y.encodeStateAsUpdate(tempDoc.spaceDoc);
 
-    tempDoc.addBlock('affine:surface', {}, rootId);
+    tempDoc.addBlock("affine:surface", {}, rootId);
     // Add note block inside root block
-    const noteId = tempDoc.addBlock('affine:note', {}, rootId);
+    const noteId = tempDoc.addBlock("affine:note", {}, rootId);
     tempDoc.addBlock(
-      'affine:paragraph',
+      "affine:paragraph",
       {
-        text: new Text('This is a paragraph block'),
+        text: new Text("This is a paragraph block"),
       },
-      noteId
+      noteId,
     );
     const diff = Y.encodeStateAsUpdate(tempDoc.spaceDoc, vec);
     // To avoid pending structs, uncomment the following line
@@ -34,6 +36,6 @@ export const pendingStructs: InitFn = (collection: Workspace, id: string) => {
   });
 };
 
-pendingStructs.id = 'pending-structs';
-pendingStructs.displayName = 'Pending Structs';
-pendingStructs.description = 'Doc with pending structs';
+pendingStructs.id = "pending-structs";
+pendingStructs.displayName = "Pending Structs";
+pendingStructs.description = "Doc with pending structs";

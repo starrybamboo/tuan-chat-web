@@ -1,10 +1,11 @@
-import { WithDisposable } from '@blocksuite/affine/global/lit';
-import { ShadowlessElement } from '@blocksuite/affine/std';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { css, html, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
 
-@customElement('custom-outline-panel')
+import { WithDisposable } from "@blocksuite/affine/global/lit";
+import { ShadowlessElement } from "@blocksuite/affine/std";
+import { css, html, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+
+@customElement("custom-outline-panel")
 export class CustomOutlinePanel extends WithDisposable(ShadowlessElement) {
   static override styles = css`
     .custom-outline-container {
@@ -50,6 +51,6 @@ export class CustomOutlinePanel extends WithDisposable(ShadowlessElement) {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'custom-outline-panel': CustomOutlinePanel;
+    "custom-outline-panel": CustomOutlinePanel;
   }
 }

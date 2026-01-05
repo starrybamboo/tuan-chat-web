@@ -1,4 +1,4 @@
-import { IconButton } from "@blocksuite/affine-components/icon-button";
+import { effects as blockRootEffects } from "@blocksuite/affine-block-root/effects";
 import { effects as captionEffects } from "@blocksuite/affine-components/caption";
 import { effects as colorPickerEffects } from "@blocksuite/affine-components/color-picker";
 import { effects as contextMenuEffects } from "@blocksuite/affine-components/context-menu";
@@ -6,6 +6,7 @@ import { effects as datePickerEffects } from "@blocksuite/affine-components/date
 import { effects as dropIndicatorEffects } from "@blocksuite/affine-components/drop-indicator";
 import { effects as embedCardModalEffects } from "@blocksuite/affine-components/embed-card-modal";
 import { effects as highlightDropdownMenuEffects } from "@blocksuite/affine-components/highlight-dropdown-menu";
+import { IconButton } from "@blocksuite/affine-components/icon-button";
 import { effects as linkPreviewEffects } from "@blocksuite/affine-components/link-preview";
 import { effects as linkedDocTitleEffects } from "@blocksuite/affine-components/linked-doc-title";
 import { effects as portalEffects } from "@blocksuite/affine-components/portal";
@@ -13,7 +14,6 @@ import { effects as toggleButtonEffects } from "@blocksuite/affine-components/to
 import { effects as toolbarEffects } from "@blocksuite/affine-components/toolbar";
 import { effects as viewDropdownMenuEffects } from "@blocksuite/affine-components/view-dropdown-menu";
 import { effects as richTextEffects } from "@blocksuite/affine-rich-text/effects";
-import { effects as blockRootEffects } from "@blocksuite/affine-block-root/effects";
 import { effects as stdEffects } from "@blocksuite/std/effects";
 
 function defineOnce(tagName: string, ctor: any) {

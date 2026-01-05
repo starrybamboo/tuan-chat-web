@@ -1,10 +1,11 @@
 /* eslint-disable import-x/no-extraneous-dependencies */
-import path from 'node:path';
+import type { Plugin } from "vite";
 
-import { init, parse } from 'es-module-lexer';
-import MagicString from 'magic-string';
-import micromatch from 'micromatch';
-import type { Plugin } from 'vite';
+import { init, parse } from "es-module-lexer";
+import MagicString from "magic-string";
+import micromatch from "micromatch";
+import path from "node:path";
+
 const isMatch = micromatch.isMatch;
 
 export function fineTuneHmr({
@@ -14,10 +15,10 @@ export function fineTuneHmr({
   include: string[];
   exclude: string[];
 }): Plugin {
-  let root = '';
+  let root = "";
   const plugin: Plugin = {
-    name: 'add-hot-for-pure-exports',
-    apply: 'serve',
+    name: "add-hot-for-pure-exports",
+    apply: "serve",
     configResolved(config) {
       root = config.root;
     },
@@ -29,21 +30,24 @@ export function fineTuneHmr({
       const includeGlob = include.map(i => path.resolve(root, i));
       const excludeGlob = exclude.map(i => path.resolve(root, i));
       const isInScope = isMatch(id, includeGlob) && !isMatch(id, excludeGlob);
-      if (!isInScope) return;
-      if (!(id.endsWith('.js') || id.endsWith('.ts'))) return;
+      if (!isInScope)
+        return;
+      if (!(id.endsWith(".js") || id.endsWith(".ts")))
+        return;
       // only handle files which not contains Lit elements
-      if (code.includes('import.meta.hot')) return;
+      if (code.includes("import.meta.hot"))
+        return;
 
       const [imports, exports] = parse(code, id);
       if (exports.length === 0 && imports.length > 0) {
         const modules = imports.map(i => i.n);
         const modulesEndsWithTs = modules
           .filter(Boolean)
-          .map(m => m!.replace(/\.js$/, '.ts'));
+          .map(m => m!.replace(/\.js$/, ".ts"));
         const preamble = `
           if (import.meta.hot) {
             import.meta.hot.accept(${JSON.stringify(
-              modulesEndsWithTs
+              modulesEndsWithTs,
             )}, data => {
               // some update logic
             });
@@ -51,13 +55,12 @@ export function fineTuneHmr({
           `;
 
         const s = new MagicString(code);
-        s.prepend(preamble + '\n');
+        s.prepend(`${preamble}\n`);
         return {
           code: s.toString(),
           map: s.generateMap({ hires: true, source: id, includeContent: true }),
         };
       }
-      return;
     },
   };
 

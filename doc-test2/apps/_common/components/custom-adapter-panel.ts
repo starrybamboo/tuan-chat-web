@@ -1,13 +1,14 @@
-import { SignalWatcher, WithDisposable } from '@blocksuite/affine/global/lit';
-import { ShadowlessElement } from '@blocksuite/affine/std';
-import type { TransformerMiddleware } from '@blocksuite/affine/store';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { css, html, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import type { TransformerMiddleware } from "@blocksuite/affine/store";
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
 
-@customElement('custom-adapter-panel')
+import { SignalWatcher, WithDisposable } from "@blocksuite/affine/global/lit";
+import { ShadowlessElement } from "@blocksuite/affine/std";
+import { css, html, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+
+@customElement("custom-adapter-panel")
 export class CustomAdapterPanel extends SignalWatcher(
-  WithDisposable(ShadowlessElement)
+  WithDisposable(ShadowlessElement),
 ) {
   static override styles = css`
     .custom-adapter-container {
@@ -56,6 +57,6 @@ export class CustomAdapterPanel extends SignalWatcher(
 
 declare global {
   interface HTMLElementTagNameMap {
-    'custom-adapter-panel': CustomAdapterPanel;
+    "custom-adapter-panel": CustomAdapterPanel;
   }
 }

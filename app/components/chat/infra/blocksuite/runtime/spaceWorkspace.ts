@@ -12,14 +12,12 @@ import type {
 } from "@blocksuite/store";
 
 import { NoopLogger } from "@blocksuite/global/utils";
-import { AwarenessStore, nanoid, StoreContainer } from "@blocksuite/store";
+import { AwarenessStore, nanoid, StoreContainer, Text } from "@blocksuite/store";
 import { BlobEngine, DocEngine, IndexedDBBlobSource, IndexedDBDocSource } from "@blocksuite/sync";
 import { Subject } from "rxjs";
 import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
 import { applyUpdate, encodeStateAsUpdate } from "yjs";
-
-import { Text } from "@blocksuite/store";
 
 import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineSpec";
 

@@ -1,11 +1,12 @@
-import { WithDisposable } from '@blocksuite/affine/global/lit';
-import { ShadowlessElement, TextSelection } from '@blocksuite/affine/std';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { css, html } from 'lit';
-import { property, query } from 'lit/decorators.js';
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
 
-import { CommentInput } from './comment-input.js';
-import { CommentManager } from './comment-manager.js';
+import { WithDisposable } from "@blocksuite/affine/global/lit";
+import { ShadowlessElement, TextSelection } from "@blocksuite/affine/std";
+import { css, html } from "lit";
+import { property, query } from "lit/decorators.js";
+
+import { CommentInput } from "./comment-input.js";
+import { CommentManager } from "./comment-manager.js";
 
 export class CommentPanel extends WithDisposable(ShadowlessElement) {
   static override styles = css`
@@ -61,10 +62,12 @@ export class CommentPanel extends WithDisposable(ShadowlessElement) {
 
   private _addComment() {
     const textSelection = this.editor.host?.selection.find(TextSelection);
-    if (!textSelection) return;
+    if (!textSelection)
+      return;
 
     const commentInput = new CommentInput();
-    if (!this.commentManager) return;
+    if (!this.commentManager)
+      return;
 
     commentInput.manager = this.commentManager;
     commentInput.onSubmit = () => {
@@ -76,12 +79,14 @@ export class CommentPanel extends WithDisposable(ShadowlessElement) {
   override connectedCallback() {
     super.connectedCallback();
 
-    if (!this.editor.host) return;
+    if (!this.editor.host)
+      return;
     this.commentManager = new CommentManager(this.editor.host);
   }
 
   override render() {
-    if (!this.commentManager) return;
+    if (!this.commentManager)
+      return;
     const comments = this.commentManager.getComments();
 
     return html`<div class="comment-panel-container">
@@ -89,7 +94,7 @@ export class CommentPanel extends WithDisposable(ShadowlessElement) {
         <button @click=${this._addComment}>Add Comment</button>
       </div>
       <div class="comment-panel-comments">
-        ${comments.map(comment => {
+        ${comments.map((comment) => {
           return html`<div class="comment-panel-comment">
             <div class="comment-panel-comment-quote">${comment.quote}</div>
             <div class="comment-panel-comment-author">${comment.author}</div>
@@ -102,7 +107,7 @@ export class CommentPanel extends WithDisposable(ShadowlessElement) {
     </div>`;
   }
 
-  @query('.comment-panel-container')
+  @query(".comment-panel-container")
   private accessor _container!: HTMLDivElement;
 
   @property({ attribute: false })
@@ -111,6 +116,6 @@ export class CommentPanel extends WithDisposable(ShadowlessElement) {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'comment-panel': CommentPanel;
+    "comment-panel": CommentPanel;
   }
 }

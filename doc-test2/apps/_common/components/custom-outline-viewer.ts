@@ -1,9 +1,10 @@
-import { WithDisposable } from '@blocksuite/affine/global/lit';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { css, html, LitElement, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
 
-@customElement('custom-outline-viewer')
+import { WithDisposable } from "@blocksuite/affine/global/lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+
+@customElement("custom-outline-viewer")
 export class CustomOutlineViewer extends WithDisposable(LitElement) {
   static override styles = css`
     .outline-viewer-container {
@@ -23,7 +24,8 @@ export class CustomOutlineViewer extends WithDisposable(LitElement) {
   }
 
   override render() {
-    if (!this._show || this.editor.mode === 'edgeless') return nothing;
+    if (!this._show || this.editor.mode === "edgeless")
+      return nothing;
 
     return html`<div class="outline-viewer-container">
       ${this._renderViewer()}
@@ -46,6 +48,6 @@ export class CustomOutlineViewer extends WithDisposable(LitElement) {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'custom-outline-viewer': CustomOutlineViewer;
+    "custom-outline-viewer": CustomOutlineViewer;
   }
 }

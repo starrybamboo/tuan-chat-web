@@ -1,23 +1,23 @@
+import type { DocMode } from "@blocksuite/affine-model";
+import type { DocModeProvider } from "@blocksuite/affine-shared/services";
 import { getOrCreateSpaceDoc } from "@/components/chat/infra/blocksuite/spaceWorkspaceRegistry";
+
 import { AFFINE_EDGELESS_STD_EXTENSIONS, AFFINE_PAGE_STD_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineSpec";
 import { ensureBlocksuiteCoreElementsDefined } from "@/components/chat/infra/blocksuite/spec/coreElements";
 
-import "@toeverything/theme/fonts.css";
-import "@toeverything/theme/style.css";
-
-import type { DocMode } from "@blocksuite/affine-model";
 import { appendParagraphCommand } from "@blocksuite/affine-block-paragraph";
+import { focusBlockEnd } from "@blocksuite/affine-shared/commands";
 import {
   DocModeExtension,
-  type DocModeProvider,
-} from "@blocksuite/affine-shared/services";
-import { focusBlockEnd } from "@blocksuite/affine-shared/commands";
-import { getLastNoteBlock } from "@blocksuite/affine-shared/utils";
 
-import { BlockStdScope } from "@blocksuite/std";
-import { TextSelection } from "@blocksuite/std";
-import { Subscription } from "rxjs";
+} from "@blocksuite/affine-shared/services";
+import { getLastNoteBlock } from "@blocksuite/affine-shared/utils";
+import { BlockStdScope, TextSelection } from "@blocksuite/std";
+
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Subscription } from "rxjs";
+import "@toeverything/theme/fonts.css";
+import "@toeverything/theme/style.css";
 
 function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
   const v = (raw ?? "").toLowerCase();
@@ -146,20 +146,23 @@ export default function BlocksuiteDescriptionEditor(props: {
 
     // 监听 portal 的创建（比如打开 slash menu 时才创建），确保后创建的 portal 也能拿到正确主题。
     const body = document.body;
-    const portalMo = new MutationObserver(mutations => {
+    const portalMo = new MutationObserver((mutations) => {
       const theme = container.dataset.theme === "dark" ? "dark" : "light";
 
       for (const m of mutations) {
         for (const added of m.addedNodes) {
-          if (!(added instanceof HTMLElement)) continue;
+          if (!(added instanceof HTMLElement))
+            continue;
           if (added.classList.contains("blocksuite-portal")) {
             added.dataset.theme = theme;
             continue;
           }
           const nested = added.querySelectorAll?.(".blocksuite-portal");
-          if (!nested?.length) continue;
+          if (!nested?.length)
+            continue;
           for (const el of nested) {
-            if (el instanceof HTMLElement) el.dataset.theme = theme;
+            if (el instanceof HTMLElement)
+              el.dataset.theme = theme;
           }
         }
       }
@@ -289,10 +292,14 @@ export default function BlocksuiteDescriptionEditor(props: {
 
       if (typeof window !== "undefined" && import.meta.env.DEV) {
         const g = globalThis as any;
-        if (g.host === host) delete g.host;
-        if (g.std === std) delete g.std;
-        if (g.blocksuiteStore === store) delete g.blocksuiteStore;
-        if (g.TextSelection === TextSelection) delete g.TextSelection;
+        if (g.host === host)
+          delete g.host;
+        if (g.std === std)
+          delete g.std;
+        if (g.blocksuiteStore === store)
+          delete g.blocksuiteStore;
+        if (g.TextSelection === TextSelection)
+          delete g.TextSelection;
       }
     };
   }, [currentMode, docId, docModeProvider, spaceId]);

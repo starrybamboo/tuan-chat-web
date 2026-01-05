@@ -1,17 +1,20 @@
-import type { Document } from '@toeverything/pdf-viewer';
+import type { Document } from "@toeverything/pdf-viewer";
+
 import {
   createPDFium,
   PageRenderingflags,
   Runtime,
   Viewer,
-} from '@toeverything/pdf-viewer';
-import wasmUrl from '@toeverything/pdfium/wasm?url';
+} from "@toeverything/pdf-viewer";
+import wasmUrl from "@toeverything/pdfium/wasm?url";
 
-import { type MessageData, type MessageDataType, MessageOp } from './types';
+import type { MessageData, MessageDataType } from "./types";
+
+import { MessageOp } from "./types";
 
 let inited = false;
 let viewer: Viewer | null = null;
-let doc: Document | undefined = undefined;
+let doc: Document | undefined;
 
 const docInfo = { total: 0, width: 1, height: 1 };
 const flags = PageRenderingflags.REVERSE_BYTE_ORDER | PageRenderingflags.ANNOT;
@@ -22,11 +25,13 @@ function post<T extends MessageOp>(type: T, data?: MessageDataType[T]) {
 }
 
 function renderToImageData(index: number, scale: number) {
-  if (!viewer || !doc) return;
+  if (!viewer || !doc)
+    return;
 
   const page = doc.page(index);
 
-  if (!page) return;
+  if (!page)
+    return;
 
   const width = Math.ceil(docInfo.width * scale);
   const height = Math.ceil(docInfo.height * scale);
@@ -46,7 +51,7 @@ function renderToImageData(index: number, scale: number) {
 async function start() {
   inited = true;
 
-  console.debug('pdf worker pending');
+  console.debug("pdf worker pending");
   self.postMessage({ type: MessageOp.Init });
 
   const pdfium = await createPDFium({
@@ -56,7 +61,7 @@ async function start() {
   viewer = new Viewer(new Runtime(pdfium));
 
   self.postMessage({ type: MessageOp.Inited });
-  console.debug('pdf worker ready');
+  console.debug("pdf worker ready");
 }
 
 async function process({ data }: MessageEvent<MessageData>) {
@@ -64,22 +69,26 @@ async function process({ data }: MessageEvent<MessageData>) {
     await start();
   }
 
-  if (!viewer) return;
+  if (!viewer)
+    return;
 
   const { type } = data;
 
   switch (type) {
     case MessageOp.Open: {
       const buffer = data[type];
-      if (!buffer) return;
+      if (!buffer)
+        return;
 
       doc = viewer.open(new Uint8Array(buffer));
 
-      if (!doc) return;
+      if (!doc)
+        return;
 
       const page = doc.page(0);
 
-      if (!page) return;
+      if (!page)
+        return;
 
       Object.assign(docInfo, {
         total: doc.pageCount(),
@@ -93,17 +102,20 @@ async function process({ data }: MessageEvent<MessageData>) {
     }
 
     case MessageOp.Render: {
-      if (!doc) return;
+      if (!doc)
+        return;
 
       const { index, kind, scale } = data[type];
 
       const { total } = docInfo;
 
-      if (index < 0 || index >= total) return;
+      if (index < 0 || index >= total)
+        return;
 
       queueMicrotask(() => {
         const imageData = renderToImageData(index, scale);
-        if (!imageData) return;
+        if (!imageData)
+          return;
 
         post(MessageOp.Rendered, { index, kind, imageData });
       });
@@ -113,11 +125,11 @@ async function process({ data }: MessageEvent<MessageData>) {
   }
 }
 
-self.addEventListener('message', (event: MessageEvent<MessageData>) => {
+self.addEventListener("message", (event: MessageEvent<MessageData>) => {
   process(event).catch(console.error);
 });
 
-start().catch(error => {
+start().catch((error) => {
   inited = false;
   console.log(error);
 });

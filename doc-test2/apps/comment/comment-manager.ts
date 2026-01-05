@@ -1,12 +1,13 @@
-import type { EditorHost, TextSelection } from '@blocksuite/affine/std';
-import { getSelectedBlocksCommand } from '@blocksuite/affine-shared/commands';
-import * as Y from 'yjs';
+import type { EditorHost, TextSelection } from "@blocksuite/affine/std";
 
-export interface CommentMeta {
+import { getSelectedBlocksCommand } from "@blocksuite/affine-shared/commands";
+import * as Y from "yjs";
+
+export type CommentMeta = {
   id: string;
   date: number;
-}
-export interface CommentRange {
+};
+export type CommentRange = {
   start: {
     id: string;
     index: Y.RelativePosition;
@@ -15,12 +16,12 @@ export interface CommentRange {
     id: string;
     index: Y.RelativePosition;
   };
-}
-export interface CommentContent {
+};
+export type CommentContent = {
   quote: string;
   author: string;
   text: Y.Text;
-}
+};
 
 export type Comment = CommentMeta & CommentRange & CommentContent;
 
@@ -30,18 +31,18 @@ export class CommentManager {
   }
 
   get commentsMap() {
-    return this.host.store.spaceDoc.getMap<Y.Map<unknown>>('comments');
+    return this.host.store.spaceDoc.getMap<Y.Map<unknown>>("comments");
   }
 
   constructor(readonly host: EditorHost) {}
 
   addComment(
     selection: TextSelection,
-    payload: Pick<CommentContent, 'author' | 'text'>
+    payload: Pick<CommentContent, "author" | "text">,
   ): Comment {
     const parseResult = this.parseTextSelection(selection);
     if (!parseResult) {
-      throw new Error('Invalid selection');
+      throw new Error("Invalid selection");
     }
 
     const { quote, range } = parseResult;
@@ -61,17 +62,17 @@ export class CommentManager {
   getComments(): Comment[] {
     const comments: Comment[] = [];
     this.commentsMap.forEach((comment, key) => {
-      const start = comment.get('start') as Comment['start'];
-      const end = comment.get('end') as Comment['end'];
+      const start = comment.get("start") as Comment["start"];
+      const end = comment.get("end") as Comment["end"];
 
       const startIndex = Y.createAbsolutePositionFromRelativePosition(
         start.index,
-        this.host.store.spaceDoc
+        this.host.store.spaceDoc,
       );
       const startBlock = this.host.view.getBlock(start.id);
       const endIndex = Y.createAbsolutePositionFromRelativePosition(
         end.index,
-        this.host.store.spaceDoc
+        this.host.store.spaceDoc,
       );
       const endBlock = this.host.view.getBlock(end.id);
 
@@ -82,13 +83,13 @@ export class CommentManager {
       }
 
       const result: Comment = {
-        id: comment.get('id') as Comment['id'],
-        date: comment.get('date') as Comment['date'],
+        id: comment.get("id") as Comment["id"],
+        date: comment.get("date") as Comment["date"],
         start,
         end,
-        quote: comment.get('quote') as Comment['quote'],
-        author: comment.get('author') as Comment['author'],
-        text: comment.get('text') as Comment['text'],
+        quote: comment.get("quote") as Comment["quote"],
+        author: comment.get("author") as Comment["author"],
+        text: comment.get("text") as Comment["text"],
       };
       comments.push(result);
     });
@@ -96,18 +97,19 @@ export class CommentManager {
   }
 
   parseTextSelection(selection: TextSelection): {
-    quote: CommentContent['quote'];
+    quote: CommentContent["quote"];
     range: CommentRange;
   } | null {
     const [_, ctx] = this._command
       .chain()
       .pipe(getSelectedBlocksCommand, {
         currentTextSelection: selection,
-        types: ['text'],
+        types: ["text"],
       })
       .run();
     const blocks = ctx.selectedBlocks;
-    if (!blocks || blocks.length === 0) return null;
+    if (!blocks || blocks.length === 0)
+      return null;
 
     const { from, to } = selection;
     const fromBlock = blocks[0];
@@ -116,32 +118,34 @@ export class CommentManager {
     const toBlock = blocks[blocks.length - 1];
     const toBlockText = toBlock.model.text;
     const toBlockId = toBlock.model.id;
-    if (!fromBlockText || !toBlockText) return null;
+    if (!fromBlockText || !toBlockText)
+      return null;
 
     const startIndex = Y.createRelativePositionFromTypeIndex(
       fromBlockText.yText,
-      from.index
+      from.index,
     );
     const endIndex = Y.createRelativePositionFromTypeIndex(
       toBlockText.yText,
-      to ? to.index + to.length : from.index + from.length
+      to ? to.index + to.length : from.index + from.length,
     );
     const quote = blocks.reduce((acc, block, index) => {
       const text = block.model.text;
-      if (!text) return acc;
+      if (!text)
+        return acc;
 
       if (index === 0) {
         return (
-          acc +
-          text.yText.toString().slice(from.index, from.index + from.length)
+          acc
+          + text.yText.toString().slice(from.index, from.index + from.length)
         );
       }
       if (index === blocks.length - 1 && to) {
-        return acc + ' ' + text.yText.toString().slice(0, to.index + to.length);
+        return `${acc} ${text.yText.toString().slice(0, to.index + to.length)}`;
       }
 
-      return acc + ' ' + text.yText.toString();
-    }, '');
+      return `${acc} ${text.yText.toString()}`;
+    }, "");
 
     return {
       quote,

@@ -1,11 +1,12 @@
-import { WithDisposable } from '@blocksuite/affine/global/lit';
-import type { RichText } from '@blocksuite/affine/rich-text';
-import { ShadowlessElement, TextSelection } from '@blocksuite/affine/std';
-import { css, html, nothing } from 'lit';
-import { property, query } from 'lit/decorators.js';
-import * as Y from 'yjs';
+import type { RichText } from "@blocksuite/affine/rich-text";
 
-import type { Comment, CommentManager } from './comment-manager.js';
+import { WithDisposable } from "@blocksuite/affine/global/lit";
+import { ShadowlessElement, TextSelection } from "@blocksuite/affine/std";
+import { css, html, nothing } from "lit";
+import { property, query } from "lit/decorators.js";
+import * as Y from "yjs";
+
+import type { Comment, CommentManager } from "./comment-manager.js";
 
 export class CommentInput extends WithDisposable(ShadowlessElement) {
   static override styles = css`
@@ -54,7 +55,7 @@ export class CommentInput extends WithDisposable(ShadowlessElement) {
     const yText = new Y.Text();
     yText.applyDelta(deltas);
     const comment = this.manager.addComment(textSelection, {
-      author: 'Anonymous',
+      author: "Anonymous",
       text: yText,
     });
 
@@ -82,7 +83,7 @@ export class CommentInput extends WithDisposable(ShadowlessElement) {
     const { quote } = parseResult;
 
     const tmpYDoc = new Y.Doc();
-    const tmpYText = tmpYDoc.getText('comment');
+    const tmpYText = tmpYDoc.getText("comment");
 
     return html`<div class="comment-input-container">
       <div class="comment-state">
@@ -106,7 +107,7 @@ export class CommentInput extends WithDisposable(ShadowlessElement) {
     </div>`;
   }
 
-  @query('rich-text')
+  @query("rich-text")
   private accessor _editor!: RichText;
 
   @property({ attribute: false })
@@ -118,6 +119,6 @@ export class CommentInput extends WithDisposable(ShadowlessElement) {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'comment-input': CommentInput;
+    "comment-input": CommentInput;
   }
 }

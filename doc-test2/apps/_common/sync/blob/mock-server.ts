@@ -1,8 +1,9 @@
-import type { BlobSource, BlobState } from '@blocksuite/sync';
-import { BehaviorSubject, ReplaySubject, share, throttleTime } from 'rxjs';
+import type { BlobSource, BlobState } from "@blocksuite/sync";
+
+import { BehaviorSubject, ReplaySubject, share, throttleTime } from "rxjs";
 
 /**
- * @internal just for test
+ * @internal
  *
  * API: /api/collection/:id/blob/:key
  * GET: get blob
@@ -22,12 +23,13 @@ export class MockServerBlobSource implements BlobSource {
     this._states.delete(key);
 
     await fetch(`/api/collection/${this.name}/blob/${key}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   async get(key: string) {
-    if (this._cache.has(key)) return this._cache.get(key)!;
+    if (this._cache.has(key))
+      return this._cache.get(key)!;
 
     let state$ = this._states.get(key);
     if (!state$) {
@@ -43,13 +45,16 @@ export class MockServerBlobSource implements BlobSource {
     try {
       const resp = await fetch(`/api/collection/${this.name}/blob/${key}`);
 
-      if (!resp.ok) throw new Error(`Failed to fetch blob ${key}`);
+      if (!resp.ok)
+        throw new Error(`Failed to fetch blob ${key}`);
 
       blob = await resp.blob();
-    } catch (err) {
+    }
+    catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       nextState(state$, { errorMessage });
-    } finally {
+    }
+    finally {
       nextState(state$, { downloading: false });
 
       if (blob) {
@@ -78,13 +83,15 @@ export class MockServerBlobSource implements BlobSource {
 
     try {
       await fetch(`/api/collection/${this.name}/blob/${key}`, {
-        method: 'PUT',
+        method: "PUT",
         body: value,
       });
-    } catch (err) {
+    }
+    catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       nextState(state$, { errorMessage });
-    } finally {
+    }
+    finally {
       nextState(state$, { uploading: false });
     }
 
@@ -99,14 +106,14 @@ export class MockServerBlobSource implements BlobSource {
 
       this._states.set(key, state$);
 
-      nextState(state$, { errorMessage: 'Blob not found' });
+      nextState(state$, { errorMessage: "Blob not found" });
     }
 
     return state$.pipe(
       throttleTime(1000, undefined, { leading: true, trailing: true }),
       share({
         connector: () => new ReplaySubject(1),
-      })
+      }),
     );
   }
 }
@@ -123,7 +130,7 @@ function defaultState(): BlobState {
 
 function nextState(
   state$: BehaviorSubject<BlobState>,
-  state?: Partial<BlobState>
+  state?: Partial<BlobState>,
 ) {
   state$.next({ ...state$.value, ...state });
 }

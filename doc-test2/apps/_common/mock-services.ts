@@ -1,27 +1,23 @@
-import { toast } from '@blocksuite/affine/components/toast';
+import type { DocMode, ReferenceParams } from "@blocksuite/affine/model";
+import type { CommentId, CommentProvider, DocModeProvider, EditorSetting, GenerateDocUrlService, NotificationService, ParseDocUrlService, ThemeExtension } from "@blocksuite/affine/shared/services";
+import type { BaseSelection, Workspace } from "@blocksuite/affine/store";
+import type { TestAffineEditorContainer } from "@blocksuite/integration-test";
+
+import { toast } from "@blocksuite/affine/components/toast";
 import {
   ColorScheme,
-  type DocMode,
-  type ReferenceParams,
-} from '@blocksuite/affine/model';
+
+} from "@blocksuite/affine/model";
 import {
-  type CommentId,
-  type CommentProvider,
-  type DocModeProvider,
-  type EditorSetting,
+
   GeneralSettingSchema,
-  type GenerateDocUrlService,
-  type NotificationService,
-  type ParseDocUrlService,
-  type ThemeExtension,
-} from '@blocksuite/affine/shared/services';
-import type { BaseSelection, Workspace } from '@blocksuite/affine/store';
-import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { Signal, signal } from '@preact/signals-core';
-import { Subject } from 'rxjs';
+
+} from "@blocksuite/affine/shared/services";
+import { Signal, signal } from "@preact/signals-core";
+import { Subject } from "rxjs";
 
 function getModeFromStorage() {
-  const mapJson = localStorage.getItem('playground:docMode');
+  const mapJson = localStorage.getItem("playground:docMode");
   const mapArray = mapJson ? JSON.parse(mapJson) : [];
   return new Map<string, DocMode>(mapArray);
 }
@@ -29,7 +25,7 @@ function getModeFromStorage() {
 function saveModeToStorage(map: Map<string, DocMode>) {
   const mapArray = Array.from(map);
   const mapJson = JSON.stringify(mapArray);
-  localStorage.setItem('playground:docMode', mapJson);
+  localStorage.setItem("playground:docMode", mapJson);
 }
 
 export function removeModeFromStorage(docId: string) {
@@ -38,7 +34,7 @@ export function removeModeFromStorage(docId: string) {
   saveModeToStorage(modeMap);
 }
 
-const DEFAULT_MODE: DocMode = 'page';
+const DEFAULT_MODE: DocMode = "page";
 const slotMap = new Map<string, Subject<DocMode>>();
 
 export function mockDocModeService(editor: TestAffineEditorContainer) {
@@ -50,7 +46,8 @@ export function mockDocModeService(editor: TestAffineEditorContainer) {
       try {
         const modeMap = getModeFromStorage();
         return modeMap.get(docId) ?? DEFAULT_MODE;
-      } catch {
+      }
+      catch {
         return DEFAULT_MODE;
       }
     },
@@ -73,8 +70,8 @@ export function mockDocModeService(editor: TestAffineEditorContainer) {
       slotMap.get(docId)?.next(mode);
     },
     togglePrimaryMode: (docId: string) => {
-      const mode =
-        docModeService.getPrimaryMode(docId) === 'page' ? 'edgeless' : 'page';
+      const mode
+        = docModeService.getPrimaryMode(docId) === "page" ? "edgeless" : "page";
       docModeService.setPrimaryMode(mode, docId);
       return mode;
     },
@@ -87,19 +84,19 @@ export function mockNotificationService(editor: TestAffineEditorContainer) {
     toast: (message, options) => {
       toast(editor.host!, message, options?.duration);
     },
-    confirm: notification => {
+    confirm: (notification) => {
       return Promise.resolve(confirm(notification.title.toString()));
     },
-    prompt: notification => {
+    prompt: (notification) => {
       return Promise.resolve(
-        prompt(notification.title.toString(), notification.autofill?.toString())
+        prompt(notification.title.toString(), notification.autofill?.toString()),
       );
     },
-    notify: notification => {
+    notify: (notification) => {
       // todo: implement in playground
       console.log(notification);
     },
-    notifyWithUndoAction: notification => {
+    notifyWithUndoAction: (notification) => {
       // todo: implement in playground
       console.log(notification);
     },
@@ -112,8 +109,8 @@ export function mockParseDocUrlService(collection: Workspace) {
     parseDocUrl: (url: string) => {
       if (url && URL.canParse(url)) {
         const path = decodeURIComponent(new URL(url).hash.slice(1));
-        const item =
-          path.length > 0
+        const item
+          = path.length > 0
             ? Array.from(collection.docs.values()).find(doc => doc.id === path)
             : null;
         if (item) {
@@ -122,7 +119,6 @@ export function mockParseDocUrlService(collection: Workspace) {
           };
         }
       }
-      return;
     },
   };
   return parseDocUrlService;
@@ -136,8 +132,8 @@ export class MockEdgelessTheme {
   }
 
   toggleTheme() {
-    const theme =
-      this.theme$.value === ColorScheme.Dark
+    const theme
+      = this.theme$.value === ColorScheme.Dark
         ? ColorScheme.Light
         : ColorScheme.Dark;
     this.theme$.value = theme;
@@ -156,14 +152,15 @@ export function mockGenerateDocUrlService(collection: Workspace) {
   const generateDocUrlService: GenerateDocUrlService = {
     generateDocUrl: (docId: string, params?: ReferenceParams) => {
       const doc = collection.getDoc(docId);
-      if (!doc) return;
+      if (!doc)
+        return;
 
       const url = new URL(location.pathname, location.origin);
       url.search = location.search;
       if (params) {
         const search = url.searchParams;
         for (const [key, value] of Object.entries(params)) {
-          search.set(key, Array.isArray(value) ? value.join(',') : value);
+          search.set(key, Array.isArray(value) ? value.join(",") : value);
         }
       }
       url.hash = encodeURIComponent(docId);
@@ -175,7 +172,8 @@ export function mockGenerateDocUrlService(collection: Workspace) {
 }
 
 export function mockEditorSetting() {
-  if (window.editorSetting$) return window.editorSetting$;
+  if (window.editorSetting$)
+    return window.editorSetting$;
 
   const initialVal = Object.entries(GeneralSettingSchema.shape).reduce(
     (pre: EditorSetting, [key, schema]) => {
@@ -183,7 +181,7 @@ export function mockEditorSetting() {
       pre[key as keyof EditorSetting] = schema.parse(undefined);
       return pre;
     },
-    {} as EditorSetting
+    {} as EditorSetting,
   );
 
   const signal = new Signal<EditorSetting>(initialVal);
@@ -230,7 +228,8 @@ export function mockCommentProvider() {
 
     resolveComment(id: CommentId) {
       const comment = this.comments.get(id);
-      if (!comment) return;
+      if (!comment)
+        return;
       comment.resolved = true;
       this.commentResolveSubject.next(id);
     }
@@ -244,18 +243,20 @@ export function mockCommentProvider() {
       this.commentHighlightSubject.next(id);
     }
 
-    getComments(type: 'resolved' | 'unresolved' | 'all' = 'all') {
+    getComments(type: "resolved" | "unresolved" | "all" = "all") {
       return Array.from(this.comments.entries())
         .filter(([_, comment]) => {
-          if (type === 'all') return true;
-          if (type === 'resolved') return comment.resolved;
+          if (type === "all")
+            return true;
+          if (type === "resolved")
+            return comment.resolved;
           return !comment.resolved;
         })
         .map(([id]) => id);
     }
 
     onCommentAdded(
-      callback: (id: CommentId, selections: BaseSelection[]) => void
+      callback: (id: CommentId, selections: BaseSelection[]) => void,
     ) {
       return this.commentAddSubject.subscribe(({ id, selections }) => {
         callback(id, selections);

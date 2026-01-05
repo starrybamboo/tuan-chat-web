@@ -38,7 +38,7 @@ export enum RenderKind {
   Thumbnail,
 }
 
-export interface MessageDataMap {
+export type MessageDataMap = {
   [MessageOp.Init]: undefined;
   [MessageOp.Inited]: undefined;
   [MessageOp.Open]: ArrayBuffer;
@@ -53,7 +53,7 @@ export interface MessageDataMap {
     kind: RenderKind;
     imageData: ImageData;
   };
-}
+};
 
 export type MessageDataType<T = MessageDataMap> = {
   [P in keyof T]: T[P];
