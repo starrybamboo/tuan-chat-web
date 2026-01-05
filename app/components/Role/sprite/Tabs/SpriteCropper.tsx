@@ -9,7 +9,7 @@ import {
   useCropPreview,
 } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
@@ -113,6 +113,18 @@ export function SpriteCropper({
   const currentUrl = getCurrentSpriteUrl();
   const currentAvatarId = getCurrentAvatarId();
 
+  // 用于标识当前“切换到哪张图”的稳定 key：切换时立刻让预览进入不可见状态，避免中间帧闪烁
+  const spriteSwitchKey = isMutiAvatars
+    ? `avatar:${filteredAvatars[currentSpriteIndex]?.avatarId ?? currentSpriteIndex}`
+    : `url:${currentUrl}`;
+  const latestSwitchKeyRef = useRef<string>(spriteSwitchKey);
+  const [previewReadyKey, setPreviewReadyKey] = useState<string>("");
+  const isPreviewReady = previewReadyKey === spriteSwitchKey;
+
+  useEffect(() => {
+    latestSwitchKeyRef.current = spriteSwitchKey;
+  }, [spriteSwitchKey]);
+
   // 加载状态 - 分离不同操作的loading状态
   const [isCropping, setIsCropping] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -172,7 +184,18 @@ export function SpriteCropper({
   } = useCropPreview({
     mode: useCallback(() => isAvatarMode ? "avatar" : "sprite", [isAvatarMode]),
     onImageLoadExtend: handleImageLoadExtend,
+    // 让首次绘制延后一帧：给外部状态（如 transform）留出提交时间，避免“新画布 + 旧 transform”的中间帧
+    deferInitialPreviewDraw: true,
+    onPreviewUpdate: useCallback(() => {
+      // 只接受“最新切换目标”的预览更新，避免快速切换导致旧回调把预览误标记为 ready
+      if (latestSwitchKeyRef.current === spriteSwitchKey) {
+        setPreviewReadyKey(spriteSwitchKey);
+      }
+    }, [spriteSwitchKey]),
   });
+
+  // 切换图片时立刻让预览不可见（不依赖 effect），等新预览绘制完成后再显示
+  // 这里不需要显式清空 previewReadyKey：isPreviewReady 会因 key 不一致立即变为 false
 
   // 监听操作模式切换和裁剪弹窗关闭，重新绘制 Canvas
   useEffect(() => {
@@ -729,13 +752,14 @@ export function SpriteCropper({
                     : (
                         <>
                           <div className="flex flex-col gap-4">
-                            <RenderPreview
-                              key={`render-${renderKey}`}
-                              previewCanvasRef={previewCanvasRef}
-                              transform={transform}
-                              characterName={characterName}
-                              dialogContent="这是一段示例对话内容。"
-                            />
+                            <div style={{ visibility: isPreviewReady ? "visible" : "hidden" }}>
+                              <RenderPreview
+                                previewCanvasRef={previewCanvasRef}
+                                transform={transform}
+                                characterName={characterName}
+                                dialogContent="这是一段示例对话内容。"
+                              />
+                            </div>
 
                             <TransformControl
                               transform={transform}

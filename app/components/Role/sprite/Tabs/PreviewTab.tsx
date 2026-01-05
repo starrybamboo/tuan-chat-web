@@ -2,8 +2,44 @@ import type { RoleAvatar } from "api";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { parseTransformFromAvatar } from "../utils";
+
+function withOssResizeProcess(url: string, width: number): string {
+  // Avoid touching non-http(s) URLs.
+  if (!url || url.startsWith("blob:") || url.startsWith("data:"))
+    return url;
+
+  const process = `image/resize,w_${Math.max(1, Math.floor(width))}`;
+
+  try {
+    const parsed = new URL(url, typeof window !== "undefined" ? window.location.href : undefined);
+    if (!parsed.searchParams.has("x-oss-process")) {
+      parsed.searchParams.set("x-oss-process", process);
+    }
+    return parsed.toString();
+  }
+  catch {
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}x-oss-process=${encodeURIComponent(process)}`;
+  }
+}
+
+interface RenderTransform {
+  scale: number;
+  positionX: number;
+  positionY: number;
+  alpha: number;
+  rotation: number;
+}
+
+const DEFAULT_TRANSFORM: RenderTransform = {
+  scale: 1,
+  positionX: 0,
+  positionY: 0,
+  alpha: 1,
+  rotation: 0,
+};
 
 interface PreviewTabProps {
   /** 当前选中的头像数据 */
@@ -35,57 +71,154 @@ export function PreviewTab({
   const spriteUrl = currentAvatar?.spriteUrl || null;
   const avatarUrl = currentAvatar?.avatarUrl || null;
 
+  // Sprite preview should not pull the full-size image on initial load.
+  // Use OSS image processing to request a resized variant instead.
+  const spritePreviewUrl = useMemo(() => {
+    if (!spriteUrl)
+      return null;
+
+    const dpr = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+    const baseWidth = isMobileScreen() ? 960 : 1440;
+    const targetWidth = Math.round(baseWidth * dpr);
+    return withOssResizeProcess(spriteUrl, targetWidth);
+  }, [spriteUrl]);
+
   // Canvas ref for render preview
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Transform state for render preview
-  const transform = currentAvatar
-    ? parseTransformFromAvatar(currentAvatar)
-    : {
-        scale: 1,
-        positionX: 0,
-        positionY: 0,
-        alpha: 1,
-        rotation: 0,
-      };
+  const computedTransform = useMemo<RenderTransform>(() => {
+    return currentAvatar
+      ? (parseTransformFromAvatar(currentAvatar) as RenderTransform)
+      : DEFAULT_TRANSFORM;
+  }, [currentAvatar]);
 
-  // Load sprite image to canvas for render preview
-  // Wait for RenderPreview to create the canvas element first
+  // Render preview should avoid showing: old image + new transform (or vice versa).
+  // So we only update the transform after the new sprite image is ready to draw.
+  const [renderTransform, setRenderTransform] = useState<RenderTransform>(() => computedTransform);
+  const [renderSpriteUrl, setRenderSpriteUrl] = useState<string | null>(() => spriteUrl);
+  const pendingRenderImageRef = useRef<HTMLImageElement | null>(null);
+  const pendingRenderSpriteUrlRef = useRef<string | null>(null);
+  const [renderDrawVersion, setRenderDrawVersion] = useState(0);
+
+  // Load sprite image for render preview.
+  // Important: switching avatars quickly can cause async image loads to resolve out of order.
+  // We cancel stale loads and only commit (transform + draw) for the latest selection.
   useEffect(() => {
-    if (previewMode === "render" && spriteUrl) {
-      const timeoutId = setTimeout(() => {
-        const canvas = previewCanvasRef.current;
-        if (!canvas) {
+    if (previewMode !== "render")
+      return;
+
+    // No sprite: reset to computed transform and clear pending work.
+    if (!spriteUrl) {
+      pendingRenderImageRef.current = null;
+      pendingRenderSpriteUrlRef.current = null;
+      setRenderSpriteUrl(null);
+      setRenderTransform(computedTransform);
+      return;
+    }
+
+    let active = true;
+    let rafId: number | null = null;
+    const targetSpriteUrl = spriteUrl;
+    const targetTransform = computedTransform;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    const tryStartLoad = (attemptsLeft: number) => {
+      if (!active)
+        return;
+
+      const canvas = previewCanvasRef.current;
+      if (!canvas) {
+        if (attemptsLeft <= 0) {
           console.error("Canvas not found - RenderPreview may not have created it yet");
           return;
         }
+        rafId = requestAnimationFrame(() => tryStartLoad(attemptsLeft - 1));
+        return;
+      }
 
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          console.error("Failed to get canvas context");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        console.error("Failed to get canvas context");
+        return;
+      }
+
+      img.onload = () => {
+        if (!active)
           return;
-        }
+        // Stash the image and commit the transform first.
+        // Then we draw in a layout effect (paint-safe) to avoid showing a mismatched frame.
+        pendingRenderImageRef.current = img;
+        pendingRenderSpriteUrlRef.current = targetSpriteUrl;
+        setRenderTransform(targetTransform);
+        setRenderDrawVersion(v => v + 1);
+      };
 
-        const img = new Image();
-        img.crossOrigin = "anonymous";
+      img.onerror = (error) => {
+        if (!active)
+          return;
+        console.error("Failed to load sprite image:", error, targetSpriteUrl);
+      };
 
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-        };
+      img.src = targetSpriteUrl;
+    };
 
-        img.onerror = (error) => {
-          console.error("Failed to load sprite image:", error, spriteUrl);
-        };
+    // Wait a few frames for RenderPreview to mount the canvas.
+    tryStartLoad(10);
 
-        img.src = spriteUrl;
-      }, 100); // Wait for RenderPreview to mount and create canvas
+    return () => {
+      active = false;
+      if (rafId != null)
+        cancelAnimationFrame(rafId);
+      img.onload = null;
+      img.onerror = null;
+      // Best-effort abort for in-flight loads.
+      img.src = "";
+    };
+  }, [previewMode, spriteUrl, computedTransform]);
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [previewMode, spriteUrl]);
+  // Draw pending render sprite *after* renderTransform has been committed (layout effect runs before paint).
+  useLayoutEffect(() => {
+    if (previewMode !== "render")
+      return;
+
+    const pendingUrl = pendingRenderSpriteUrlRef.current;
+    const pendingImg = pendingRenderImageRef.current;
+    if (!pendingUrl || !pendingImg)
+      return;
+
+    // Only draw if this pending image matches the current selection.
+    if (pendingUrl !== spriteUrl)
+      return;
+
+    const canvas = previewCanvasRef.current;
+    if (!canvas)
+      return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx)
+      return;
+
+    canvas.width = pendingImg.width;
+    canvas.height = pendingImg.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(pendingImg, 0, 0);
+
+    setRenderSpriteUrl(pendingUrl);
+    pendingRenderImageRef.current = null;
+    pendingRenderSpriteUrlRef.current = null;
+  }, [renderDrawVersion, previewMode, spriteUrl]);
+
+  // If only the transform changes but sprite stays the same, apply immediately.
+  useEffect(() => {
+    if (previewMode !== "render")
+      return;
+    if (!spriteUrl)
+      return;
+    if (spriteUrl !== renderSpriteUrl)
+      return;
+    setRenderTransform(computedTransform);
+  }, [previewMode, spriteUrl, renderSpriteUrl, computedTransform]);
 
   // Cycle through preview modes
   const cyclePreviewMode = () => {
@@ -155,9 +288,11 @@ export function PreviewTab({
             ? (
                 <div className="w-full h-full flex items-center justify-center p-4">
                   <img
-                    src={spriteUrl}
+                    src={spritePreviewUrl ?? spriteUrl}
                     alt="立绘预览"
                     className="max-w-full max-h-full object-contain"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               )
@@ -209,7 +344,7 @@ export function PreviewTab({
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
-                      transform={transform}
+                      transform={renderTransform}
                       characterName={characterName}
                       dialogContent="这是一段示例对话内容。"
                     />
