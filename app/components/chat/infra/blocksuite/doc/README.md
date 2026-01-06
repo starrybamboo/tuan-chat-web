@@ -37,6 +37,83 @@
 
 > 版本要求：本项目 Blocksuite 相关包统一锁定在 `0.22.4`，新增依赖也需对齐，否则容易出现类型/运行时不兼容。
 
+### 依赖包在 AFFiNE 源码中的位置（对照表）
+
+为了在排查问题/阅读源码时能快速定位，本节给出「本项目引用的 `@blocksuite/*` npm 包」在 AFFiNE 仓库（tag：`v0.22.4`）中的源码位置。
+
+说明：
+- 下列路径均以 AFFiNE 仓库根目录为基准（即 `AFFiNE/blocksuite/...`）。
+- `@blocksuite/affine` 是“聚合入口包”，其内部依赖大量 `@blocksuite/affine-block-*` / widgets / inlines 等子包，分别分布在 `blocksuite/affine/blocks`、`blocksuite/affine/widgets`、`blocksuite/affine/inlines` 等目录。
+
+对照表：
+- `@blocksuite/global` → `blocksuite/framework/global`
+- `@blocksuite/store` → `blocksuite/framework/store`
+- `@blocksuite/std` → `blocksuite/framework/std`
+- `@blocksuite/sync` → `blocksuite/framework/sync`
+- `@blocksuite/affine` → `blocksuite/affine/all`
+- `@blocksuite/affine-model` → `blocksuite/affine/model`
+- `@blocksuite/affine-shared` → `blocksuite/affine/shared`
+- `@blocksuite/affine-components` → `blocksuite/affine/components`
+- `@blocksuite/integration-test` → `blocksuite/integration-test`
+
+### `@blocksuite/affine*` 这几个包里都有什么？
+
+下面的说明按 “它负责什么 + 目录里大概有什么 + 我们什么时候会用到” 的方式写，方便你读源码时快速建立心智模型。
+
+#### `@blocksuite/affine`（聚合入口：Affine 风格 blocks/spec/widgets 一揽子）
+
+- 对应源码目录：`blocksuite/affine/all`
+- 定位：**提供 Affine-like 编辑体验的一键入口包**。它并不是“单一模块”，而是把 Affine 生态里常用的 blocks/widgets/inlines/gfx/fragments 等统一通过 subpath exports 对外暴露。
+- 它大概包含什么：
+  - `./blocks/*`：各类默认 block（paragraph/note/surface/database/table…），通常拆成 `index.ts` / `store.ts` / `view.ts` 三类入口。
+  - `./std/*`：将 store + view extensions 组装成可渲染的编辑宿主相关入口。
+  - `./ext-loader`：用于加载 Affine 预设扩展集合（我们构造 `AFFINE_*_EXTENSIONS` 时会用到）。
+  - `./global/*`、`./store/*`：便捷的再导出入口（但要注意“单实例”原则，避免不同入口拿到两份构造器）。
+
+#### `@blocksuite/affine-model`（模型层：更偏数据/语义，不是 UI）
+
+- 对应源码目录：`blocksuite/affine/model`
+- 定位：**Affine 体验的模型/领域层**（偏数据结构、约束、排序等）。从依赖上看，它更多和 `@blocksuite/store`、`yjs`、`zod`、`fractional-indexing` 这一类能力绑定。
+- 你什么时候会用到：
+  - 你不仅要“渲染一个 editor-host”，还要接入更完整的 Affine 语义/模型能力时。
+
+#### `@blocksuite/affine-shared`（共享逻辑：commands/services/adapters/theme 等）
+
+- 对应源码目录：`blocksuite/affine/shared`
+- 定位：**Affine 各模块共享的逻辑与抽象**，介于 model 与 components 之间。
+- 它大概包含什么（从 exports 分组就能看出来）：
+  - `commands`：统一的命令/操作定义（快捷键、编辑命令等）
+  - `services`：共享 Service / DI 相关能力
+  - `adapters`：适配器（导入导出/桥接层等）
+  - `selection`：选区/选择相关共享逻辑
+  - `theme`、`styles`：主题/样式相关的共享约定
+  - `types`、`consts`、`utils`：类型/常量/工具
+
+#### `@blocksuite/affine-components`（UI 组件：工具栏/弹层/菜单/选择器）
+
+- 对应源码目录：`blocksuite/affine/components`
+- 定位：**Affine 编辑器周边 UI 组件库**，供 blocks/widgets/panels 复用。
+- 它大概包含什么：
+  - 基础 UI：tooltip/toast/notification/portal/icon-button
+  - 交互组件：context-menu/toolbar/drop-indicator/filterable-list
+  - 编辑器相关组件：block-selection、linked-doc-title、link-preview 等
+  - 颜色/样式组件：color-picker、smooth-corner 等
+
+### 我们的 playground 做了什么（用于调试与复现）
+
+本项目里提到的 “playground” 指的是：把官方 Blocksuite/AFFiNE playground 的 **starter app** 收编到 `infra/blocksuite/playground`，并通过一个路由页面挂载出来，专门用于复现 UI/交互/上游升级问题。
+
+- 调试入口页面：`/doc-test`（文件：`app/routes/docTest.tsx`）
+- 工作方式：
+  - 页面加载后会动态 import：`@/components/chat/infra/blocksuite/playground/apps/starter/main`
+  - 调用 `startStarterPlayground()` 挂载，卸载时调用 `stopStarterPlayground()` 清理。
+  - playground 会在 DOM 中使用 `#app` 作为挂载点，并可能向 `document.body` 追加若干调试面板组件（我们在 stop 时做了清理）。
+- 数据与存储边界：
+  - playground 使用 `@blocksuite/affine/store/test` 提供的 `TestWorkspace` 来快速拉起一套可运行的 workspace/doc。
+  - 默认主要用于“交互复现/联调”（例如切换模式、测试 blocks/widgets），并不等同于我们在 `SpaceWorkspace` 里实现的“业务侧本地持久化方案”。
+
+注意：业务侧 Blocksuite 集成（Space/Workspace/Doc/Store 运行时）仍以本 README 的 `2.3` 小节为准；playground 只是调试/学习用的快速入口。
+
 ## 2. 目录结构与入口
 
 ### 2.1 编辑器渲染入口（UI）
@@ -48,13 +125,14 @@
 
 ### 2.1.1 调试页（单入口）
 
-用于“稳定复现 Blocksuite UI/交互问题”的独立页面（本地 IndexedDB 持久化）。
+用于“稳定复现 Blocksuite UI/交互问题”的独立页面（挂载收编后的官方 starter playground）。
 
 - 路由：`/doc-test`
 - 文件：app/routes/docTest.tsx
 
 说明：
-- 当前采用固定的 `spaceId=0`、`docId=doc:test`，避免维护多套入口与参数组合。
+- 该页面主要用于复现/调试 playground 侧问题（例如扩展加载、UI 组件、blocks/widgets 行为）。
+- 业务侧存储/运行时请以 `2.3` 小节的 `SpaceWorkspace` 实现为准。
 
 ### 2.2 Spec（Affine-like block tree）
 
