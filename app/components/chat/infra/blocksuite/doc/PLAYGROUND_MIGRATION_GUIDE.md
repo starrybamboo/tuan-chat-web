@@ -4,7 +4,7 @@
 
 适用范围：
 - 你在本项目中看到的 `/blocksuite-playground`（starter app）
-- 从 `doc-test2`、blocksuite-examples、AFFiNE Playground 迁移代码
+- 从 blocksuite-examples、AFFiNE Playground 迁移代码
 
 相关背景/修复记录（偏操作与故障回溯）：
 - Vite/依赖/语法兼容修复记录：见 [docs/2026-01-06_blocksuite-playground-dev-fixes.md](../../../../../../docs/2026-01-06_blocksuite-playground-dev-fixes.md)
@@ -65,7 +65,7 @@ BlockSuite 生态里有大量依赖“运行时身份”的逻辑：
 - 一旦你的代码同时从两个入口拿到“名字相同的类/函数”，就要非常警惕是否会造成**不同构造器实例**。
 
 经验原则（迁移时最稳的做法）：
-- **要么全套沿用官方 playground 的入口组合（例如 doc-test2 方案）**，保证所有相关符号来自同一条依赖链。
+- **要么全套沿用官方 playground 的入口组合**，保证所有相关符号来自同一条依赖链。
 - **要么在本项目里明确规定“数据层/CRDT 相关只用 `@blocksuite/store`”**，并保证渲染/扩展侧不会再从别的入口拿到第二份 store 实现。
 
 ---
