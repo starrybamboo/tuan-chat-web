@@ -30,8 +30,19 @@
       "@blocksuite/affine-widget-viewport-overlay/*": ["./node_modules/@blocksuite/affine-widget-viewport-overlay/dist/*"],
       "@blocksuite/affine-components/*": ["./node_modules/@blocksuite/affine-components/dist/*"],
 
+      "@blocksuite/affine/*": ["./node_modules/@blocksuite/affine/dist/*"],
+
+      "@blocksuite/integration-test": ["./app/types/blocksuite-integration-test.d.ts"],
+      "@blocksuite/integration-test/*": ["./app/types/blocksuite-integration-test.d.ts"],
+
       "@blocksuite/*/store": ["./node_modules/@blocksuite/*/dist/store.d.ts"],
       "@blocksuite/*/view": ["./node_modules/@blocksuite/*/dist/view.d.ts"]
     }
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "doc-test2"
+  ]
 }

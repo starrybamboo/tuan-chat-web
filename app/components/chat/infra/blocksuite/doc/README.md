@@ -6,6 +6,7 @@
 - 业务需求说明（后续需求变更都更新这里）：`BUSINESS.md`
 - 内部数据结构/术语对照：`INTERNAL-DATA.md`
 - 常见问题排查（标题/SlashMenu/Edgeless/样式等）：`TROUBLESHOOTING.md`
+- Playground 移植教学（单实例/dedupe/optimizeDeps/为什么核心包不加 /affine）：`PLAYGROUND_MIGRATION_GUIDE.md`
 - 学习路线（从 BlockSuite 源码到本项目集成）：`LEARNING-PATH.md`
 
 ## 1. 依赖说明（本次新增/使用）

@@ -55,12 +55,14 @@
     "@blocksuite/affine-model": "0.22.4",
     "@blocksuite/affine-shared": "0.22.4",
     "@blocksuite/global": "0.22.4",
+    "@blocksuite/integration-test": "0.22.4",
     "@blocksuite/std": "0.22.4",
     "@blocksuite/store": "0.22.4",
     "@blocksuite/sync": "0.22.4",
     "@ltd/j-toml": "^1.38.0",
     "@react-router/node": "^7.9.4",
     "@react-router/serve": "^7.9.4",
+    "@shoelace-style/shoelace": "2.20.1",
     "@tanstack/react-query": "^5.69.0",
     "@tanstack/react-query-devtools": "^5.72.2",
     "@types/react-image-crop": "^9.0.2",
@@ -99,6 +101,7 @@
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "ts-md5": "^2.0.1",
+    "tweakpane": "^4.0.5",
     "use-immer": "^0.11.0",
     "vaul": "^1.1.2",
     "vite-plugin-babel": "^1.3.2",
@@ -107,6 +110,9 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.11.0",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-proposal-decorators": "^7.28.0",
+    "@babel/preset-env": "^7.28.5",
     "@eslint/js": "^9.23.0",
     "@react-router/dev": "^7.9.4",
     "@tailwindcss/vite": "^4.0.17",
@@ -140,9 +146,13 @@
     "vite-tsconfig-paths": "^5.1.4"
   },
   "pnpm": {
-    "ignoredBuiltDependencies": [
-      "esbuild"
-    ]
+    "overrides": {
+      "@lit/context": "1.1.6",
+      "@lit/reactive-element": "2.1.2",
+      "lit": "3.3.2",
+      "lit-element": "4.2.2",
+      "lit-html": "3.3.2"
+    }
   },
   "lint-staged": {
     "*": "eslint"

@@ -39,6 +39,7 @@ export default [
     route("collection", "routes/collection.tsx"),
     route("resource", "routes/resource.tsx"),
     route("doc-test", "routes/docTest.tsx"),
+    route("blocksuite-playground", "routes/blocksuitePlayground.tsx"),
     route("invite/:code", "routes/invite.tsx"),
   ]),
 ] satisfies RouteConfig;
