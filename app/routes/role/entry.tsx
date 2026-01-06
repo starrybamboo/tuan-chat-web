@@ -22,6 +22,11 @@ export default function RoleCreationPage() {
 
   const [mode, setMode] = useState<"self" | "dice" | "AI" | "ST" | "entry">("entry");
 
+  const handleBackToEntry = () => {
+    navigate("/role");
+    setMode("entry");
+  };
+
   // 检测URL参数，如果有type参数则直接进入创建表单
   useEffect(() => {
     const typeParam = searchParams.get("type");
@@ -53,7 +58,7 @@ export default function RoleCreationPage() {
   if (mode === "self") {
     return (
       <CreateRoleBySelf
-        onBack={() => setMode("entry")}
+        onBack={handleBackToEntry}
         onComplete={handleCreationComplete}
       />
     );
@@ -61,16 +66,16 @@ export default function RoleCreationPage() {
   if (mode === "dice") {
     return (
       <CreateDiceMaiden
-        onBack={() => setMode("entry")}
+        onBack={handleBackToEntry}
         onComplete={handleCreationComplete}
       />
     );
   }
   if (mode === "AI") {
-    return <AICreateRole onBack={() => setMode("entry")} onComplete={handleCreationComplete} />;
+    return <AICreateRole onBack={handleBackToEntry} onComplete={handleCreationComplete} />;
   }
   if (mode === "ST") {
-    return <STCreateRole onBack={() => setMode("entry")} onComplete={handleCreationComplete} />;
+    return <STCreateRole onBack={handleBackToEntry} onComplete={handleCreationComplete} />;
   }
 
   // 默认渲染创建入口
