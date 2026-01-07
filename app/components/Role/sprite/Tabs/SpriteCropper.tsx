@@ -9,7 +9,7 @@ import {
   useCropPreview,
 } from "@/utils/imgCropper";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
@@ -67,9 +67,11 @@ export function SpriteCropper({
   const isMutiAvatars = roleAvatars.length > 0;
   const isAvatarMode = cropMode === "avatar";
 
-  // 根据裁剪模式过滤头像列表
-  const filteredAvatars = roleAvatars.filter(avatar => avatar.spriteUrl);
+  // 裁剪源：默认使用 spriteUrl，可切换为 originUrl（如果存在）
+  const [sourceMode, setSourceMode] = useState<"sprite" | "origin">("sprite");
 
+  // 过滤头像列表：允许使用 spriteUrl 或 originUrl 作为裁剪源
+  const filteredAvatars = roleAvatars.filter(avatar => avatar.spriteUrl || avatar.originUrl);
   // 批量模式下的当前立绘索引，使用传入的初始索引
   const [currentSpriteIndex, setCurrentSpriteIndex] = useState(() => {
     // 确保初始索引在有效范围内
@@ -94,10 +96,28 @@ export function SpriteCropper({
   // 如果处于多选模式且选中了多个头像，则为批量模式
   const operationMode = isMultiSelectMode && selectedIndices.size > 1 ? "batch" : "single";
 
-  // 获取当前立绘URL
-  const getCurrentSpriteUrl = () => {
+  const currentSourceAvatar = filteredAvatars.length > 0 ? filteredAvatars[currentSpriteIndex] : undefined;
+  const canUseOriginForCurrent = !!currentSourceAvatar?.originUrl;
+
+  // 如果当前头像没有 originUrl，则自动回退到 sprite 模式
+  useEffect(() => {
+    if (sourceMode === "origin" && !canUseOriginForCurrent) {
+      setSourceMode("sprite");
+    }
+  }, [sourceMode, canUseOriginForCurrent]);
+
+  const getAvatarSourceUrl = useCallback((avatar?: RoleAvatar): string => {
+    if (!avatar)
+      return "";
+    if (sourceMode === "origin" && avatar.originUrl)
+      return avatar.originUrl;
+    return avatar.spriteUrl || avatar.originUrl || "";
+  }, [sourceMode]);
+
+  // 获取当前裁剪源 URL
+  const getCurrentSourceUrl = () => {
     if (filteredAvatars.length > 0) {
-      return filteredAvatars[currentSpriteIndex]?.spriteUrl || "";
+      return getAvatarSourceUrl(filteredAvatars[currentSpriteIndex]);
     }
     return spriteUrl || "";
   };
@@ -110,13 +130,13 @@ export function SpriteCropper({
     return 0;
   };
 
-  const currentUrl = getCurrentSpriteUrl();
+  const currentUrl = getCurrentSourceUrl();
   const currentAvatarId = getCurrentAvatarId();
 
   // 用于标识当前“切换到哪张图”的稳定 key：切换时立刻让预览进入不可见状态，避免中间帧闪烁
   const spriteSwitchKey = isMutiAvatars
-    ? `avatar:${filteredAvatars[currentSpriteIndex]?.avatarId ?? currentSpriteIndex}`
-    : `url:${currentUrl}`;
+    ? `avatar:${filteredAvatars[currentSpriteIndex]?.avatarId ?? currentSpriteIndex}:source:${sourceMode}`
+    : `url:${currentUrl}:source:${sourceMode}`;
   const latestSwitchKeyRef = useRef<string>(spriteSwitchKey);
   const [previewReadyKey, setPreviewReadyKey] = useState<string>("");
   const isPreviewReady = previewReadyKey === spriteSwitchKey;
@@ -181,6 +201,7 @@ export function SpriteCropper({
     onImageLoad,
     onCropChange,
     onCropComplete: handleCropComplete,
+    reset: resetCropState,
   } = useCropPreview({
     mode: useCallback(() => isAvatarMode ? "avatar" : "sprite", [isAvatarMode]),
     onImageLoadExtend: handleImageLoadExtend,
@@ -194,13 +215,26 @@ export function SpriteCropper({
     }, [spriteSwitchKey]),
   });
 
+  // 切换裁剪源/图片时重置裁剪状态，避免沿用旧的 crop 尺寸导致“看起来没切换”
+  useEffect(() => {
+    resetCropState();
+    setPreviewReadyKey("");
+  }, [currentUrl, resetCropState]);
+
   // 切换图片时立刻让预览不可见（不依赖 effect），等新预览绘制完成后再显示
   // 这里不需要显式清空 previewReadyKey：isPreviewReady 会因 key 不一致立即变为 false
 
   // 监听操作模式切换和裁剪弹窗关闭，重新绘制 Canvas
-  useEffect(() => {
-    if (completedCrop && imgRef.current && previewCanvasRef.current) {
-      const timeoutId = setTimeout(() => {
+  useLayoutEffect(() => {
+    if (!completedCrop || !imgRef.current || !previewCanvasRef.current)
+      return;
+
+    // 等布局/样式应用后再画，避免出现“新布局 + 旧画面/空白”闪烁
+    let raf1 = 0;
+    let raf2 = 0;
+
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
         canvasPreview(
           imgRef.current!,
           previewCanvasRef.current!,
@@ -210,10 +244,13 @@ export function SpriteCropper({
         );
 
         setRenderKey(prev => prev + 1);
-      }, 50); // 增加延迟，确保布局完全稳定
+      });
+    });
 
-      return () => clearTimeout(timeoutId);
-    }
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
   }, [operationMode, completedCrop, isAvatarMode, isCropModalOpen, imgRef, previewCanvasRef]);
 
   /**
@@ -509,7 +546,7 @@ export function SpriteCropper({
         avatarsToProcess,
         MAX_CONCURRENCY,
         async (avatar, index) => {
-          const imageUrl = avatar.spriteUrl;
+          const imageUrl = getAvatarSourceUrl(avatar);
           if (!imageUrl || !avatar.avatarId)
             return null;
 
@@ -633,7 +670,7 @@ export function SpriteCropper({
       for (let i = 0; i < avatarsToProcess.length; i++) {
         const avatar = avatarsToProcess[i];
         // 头像模式下从立绘裁剪头像，立绘模式下处理立绘
-        const imageUrl = avatar.spriteUrl;
+        const imageUrl = getAvatarSourceUrl(avatar);
         if (!imageUrl || !avatar.avatarId)
           continue;
 
@@ -678,44 +715,61 @@ export function SpriteCropper({
           {operationMode === "single" ? "单体模式" : `批量模式 (已选 ${selectedIndices.size} 个)`}
           {isAvatarMode ? " - 从立绘裁剪头像" : " - 立绘裁剪"}
         </h3>
-        {isMultiSelectMode && selectedIndices.size > 1 && (
-          <div className="badge badge-primary">
-            将对选中的
-            {" "}
-            {selectedIndices.size}
-            {" "}
-            个头像进行操作
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {isMutiAvatars && (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost gap-2"
+              disabled={!canUseOriginForCurrent}
+              onClick={() => {
+                setSourceMode(prev => prev === "sprite" ? "origin" : "sprite");
+              }}
+              title={!canUseOriginForCurrent ? "当前头像没有 originUrl" : "切换裁剪源"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+              切换至
+              {sourceMode === "sprite" ? "原图" : "立绘"}
+            </button>
+          )}
+          {isMultiSelectMode && selectedIndices.size > 1 && (
+            <div className="badge badge-primary">
+              将对选中的
+              {" "}
+              {selectedIndices.size}
+              {" "}
+              个头像进行操作
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
         <div className="flex flex-col lg:flex-row items-stretch h-full p-2 min-h-0 overflow-auto">
           {/* 左侧：原始图片裁剪区域 - 移动端隐藏，通过弹窗显示 */}
           <div className="w-full md:basis-1/3 p-2 flex-col items-center order-2 md:order-1 hidden md:flex md:flex-none h-full">
-            <div className="w-full rounded-lg flex items-center justify-center">
-              {currentUrl && (
-                <ReactCrop
-                  crop={crop}
-                  onChange={onCropChange}
-                  onComplete={handleCropComplete}
-                  // 头像模式限制1:1宽高比，立绘模式不限制
-                  aspect={isAvatarMode ? 1 : undefined}
-                  minHeight={10}
-                >
-                  <img
-                    ref={imgRef}
-                    alt="Sprite to crop"
-                    src={currentUrl}
-                    onLoad={onImageLoad}
-                    style={{
-                      maxHeight: "70vh",
-                    }}
-                    crossOrigin="anonymous"
-                  />
-                </ReactCrop>
-              )}
-            </div>
+            {currentUrl && (
+              <ReactCrop
+                crop={crop}
+                onChange={onCropChange}
+                onComplete={handleCropComplete}
+                // 头像模式限制1:1宽高比，立绘模式不限制
+                aspect={isAvatarMode ? 1 : undefined}
+                minHeight={10}
+              >
+                <img
+                  ref={imgRef}
+                  alt="Sprite to crop"
+                  src={currentUrl}
+                  onLoad={onImageLoad}
+                  style={{
+                    maxHeight: "70vh",
+                  }}
+                  crossOrigin="anonymous"
+                />
+              </ReactCrop>
+            )}
           </div>
 
           {/* 右侧：裁剪预览和控制 - 移动端放上面 */}

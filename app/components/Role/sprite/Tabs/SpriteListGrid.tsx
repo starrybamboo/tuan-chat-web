@@ -391,7 +391,6 @@ export function SpriteListGrid({
           <div className="modal-backdrop" onClick={handleCancelDelete}></div>
         </div>
       )}
-
     </>
   );
 }

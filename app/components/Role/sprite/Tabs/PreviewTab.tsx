@@ -2,28 +2,9 @@ import type { RoleAvatar } from "api";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
+import { withOssResizeProcess } from "@/utils/ossImageProcess";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { parseTransformFromAvatar } from "../utils";
-
-function withOssResizeProcess(url: string, width: number): string {
-  // Avoid touching non-http(s) URLs.
-  if (!url || url.startsWith("blob:") || url.startsWith("data:"))
-    return url;
-
-  const process = `image/resize,w_${Math.max(1, Math.floor(width))}`;
-
-  try {
-    const parsed = new URL(url, typeof window !== "undefined" ? window.location.href : undefined);
-    if (!parsed.searchParams.has("x-oss-process")) {
-      parsed.searchParams.set("x-oss-process", process);
-    }
-    return parsed.toString();
-  }
-  catch {
-    const sep = url.includes("?") ? "&" : "?";
-    return `${url}${sep}x-oss-process=${encodeURIComponent(process)}`;
-  }
-}
 
 interface RenderTransform {
   scale: number;
@@ -71,16 +52,23 @@ export function PreviewTab({
   const spriteUrl = currentAvatar?.spriteUrl || null;
   const avatarUrl = currentAvatar?.avatarUrl || null;
 
-  // Sprite preview should not pull the full-size image on initial load.
-  // Use OSS image processing to request a resized variant instead.
+  const MAX_PREVIEW_WIDTH = 1440;
+
+  // Sprite 预览使用 OSS resize，减少首次加载体积（最大宽度限制为 1440）
   const spritePreviewUrl = useMemo(() => {
     if (!spriteUrl)
       return null;
 
-    const dpr = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1;
-    const baseWidth = isMobileScreen() ? 960 : 1440;
-    const targetWidth = Math.round(baseWidth * dpr);
-    return withOssResizeProcess(spriteUrl, targetWidth);
+    const desiredWidth = isMobileScreen() ? 960 : 1440;
+    const width = Math.min(MAX_PREVIEW_WIDTH, desiredWidth);
+    return withOssResizeProcess(spriteUrl, width);
+  }, [spriteUrl]);
+
+  // Render 预览也使用 resize 后的 URL（同样限制到 1440，便于做对比实验）
+  const renderSpriteRequestUrl = useMemo(() => {
+    if (!spriteUrl)
+      return null;
+    return withOssResizeProcess(spriteUrl, MAX_PREVIEW_WIDTH);
   }, [spriteUrl]);
 
   // Canvas ref for render preview
@@ -100,6 +88,9 @@ export function PreviewTab({
   const pendingRenderSpriteUrlRef = useRef<string | null>(null);
   const [renderDrawVersion, setRenderDrawVersion] = useState(0);
 
+  // 图片加载缓存：同一 URL 只加载一次（含 in-flight 复用）
+  const imageLoadCacheRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
+
   // Load sprite image for render preview.
   // Important: switching avatars quickly can cause async image loads to resolve out of order.
   // We cancel stale loads and only commit (transform + draw) for the latest selection.
@@ -108,7 +99,7 @@ export function PreviewTab({
       return;
 
     // No sprite: reset to computed transform and clear pending work.
-    if (!spriteUrl) {
+    if (!renderSpriteRequestUrl) {
       pendingRenderImageRef.current = null;
       pendingRenderSpriteUrlRef.current = null;
       setRenderSpriteUrl(null);
@@ -118,10 +109,36 @@ export function PreviewTab({
 
     let active = true;
     let rafId: number | null = null;
-    const targetSpriteUrl = spriteUrl;
+    const targetSpriteUrl = renderSpriteRequestUrl;
     const targetTransform = computedTransform;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
+
+    const loadImageCached = (url: string) => {
+      const cached = imageLoadCacheRef.current.get(url);
+      if (cached)
+        return cached;
+
+      const promise = new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+
+        img.onload = () => {
+          resolve(img);
+        };
+
+        img.onerror = (error) => {
+          reject(error);
+        };
+
+        img.src = url;
+      }).catch((error) => {
+        // 失败的条目不缓存，方便下次重试
+        imageLoadCacheRef.current.delete(url);
+        throw error;
+      });
+
+      imageLoadCacheRef.current.set(url, promise);
+      return promise;
+    };
 
     const tryStartLoad = (attemptsLeft: number) => {
       if (!active)
@@ -143,7 +160,7 @@ export function PreviewTab({
         return;
       }
 
-      img.onload = () => {
+      loadImageCached(targetSpriteUrl).then((img) => {
         if (!active)
           return;
         // Stash the image and commit the transform first.
@@ -152,15 +169,11 @@ export function PreviewTab({
         pendingRenderSpriteUrlRef.current = targetSpriteUrl;
         setRenderTransform(targetTransform);
         setRenderDrawVersion(v => v + 1);
-      };
-
-      img.onerror = (error) => {
+      }).catch((error) => {
         if (!active)
           return;
         console.error("Failed to load sprite image:", error, targetSpriteUrl);
-      };
-
-      img.src = targetSpriteUrl;
+      });
     };
 
     // Wait a few frames for RenderPreview to mount the canvas.
@@ -170,12 +183,8 @@ export function PreviewTab({
       active = false;
       if (rafId != null)
         cancelAnimationFrame(rafId);
-      img.onload = null;
-      img.onerror = null;
-      // Best-effort abort for in-flight loads.
-      img.src = "";
     };
-  }, [previewMode, spriteUrl, computedTransform]);
+  }, [previewMode, renderSpriteRequestUrl, computedTransform]);
 
   // Draw pending render sprite *after* renderTransform has been committed (layout effect runs before paint).
   useLayoutEffect(() => {
@@ -188,7 +197,7 @@ export function PreviewTab({
       return;
 
     // Only draw if this pending image matches the current selection.
-    if (pendingUrl !== spriteUrl)
+    if (pendingUrl !== renderSpriteRequestUrl)
       return;
 
     const canvas = previewCanvasRef.current;
@@ -207,18 +216,18 @@ export function PreviewTab({
     setRenderSpriteUrl(pendingUrl);
     pendingRenderImageRef.current = null;
     pendingRenderSpriteUrlRef.current = null;
-  }, [renderDrawVersion, previewMode, spriteUrl]);
+  }, [renderDrawVersion, previewMode, renderSpriteRequestUrl]);
 
   // If only the transform changes but sprite stays the same, apply immediately.
   useEffect(() => {
     if (previewMode !== "render")
       return;
-    if (!spriteUrl)
+    if (!renderSpriteRequestUrl)
       return;
-    if (spriteUrl !== renderSpriteUrl)
+    if (renderSpriteRequestUrl !== renderSpriteUrl)
       return;
     setRenderTransform(computedTransform);
-  }, [previewMode, spriteUrl, renderSpriteUrl, computedTransform]);
+  }, [previewMode, renderSpriteRequestUrl, renderSpriteUrl, computedTransform]);
 
   // Cycle through preview modes
   const cyclePreviewMode = () => {
