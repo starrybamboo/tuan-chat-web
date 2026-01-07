@@ -1,6 +1,6 @@
 import { SharpDownload } from "@/icons";
 import * as htmltoimage from "html-to-image";
-import QRCode from "qrcode";
+import * as QRCode from "qrcode";
 import toast from "react-hot-toast";
 
 // 加载图片函数

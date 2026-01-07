@@ -1,3 +1,4 @@
+import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
@@ -14,7 +15,17 @@ import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { tuanchat } from "../../../../api/instance";
 
-function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
+function SpaceSettingWindow({
+  onClose,
+  onEditorActionsChange,
+  onEditorModeChange,
+  hideEditorModeSwitchButton = false,
+}: {
+  onClose: () => void;
+  onEditorActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
+  onEditorModeChange?: (mode: "page" | "edgeless") => void;
+  hideEditorModeSwitchButton?: boolean;
+}) {
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId);
   const setActiveSpaceId = spaceContext.setActiveSpaceId;
@@ -155,15 +166,15 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
+    <div className="w-full p-4 min-w-[40vw] h-[80vh] overflow-hidden">
       {!space
         ? (
             <div className="flex items-center justify-center opacity-70">加载中...</div>
           )
         : (
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="h-full flex flex-col md:flex-row gap-4">
               {/* 左侧：空间信息 */}
-              <div className="md:w-96 shrink-0 space-y-4">
+              <div className="md:w-96 shrink-0 space-y-4 overflow-y-auto">
                 <div className="card bg-base-100 border border-base-300">
                   <div className="card-body p-4">
                     <div className="flex justify-center">
@@ -337,10 +348,19 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               </div>
 
               {/* 右侧：空间描述文档 */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 min-h-0">
                 <BlocksuiteDescriptionEditor
+                  workspaceId={`space:${spaceId}`}
                   spaceId={spaceId}
-                  docId={buildSpaceDocId({ kind: "space_description" })}
+                  docId={buildSpaceDocId({ kind: "space_description", spaceId })}
+                  mode="page"
+                  allowModeSwitch
+                  fullscreenEdgeless
+                  variant="full"
+                  className="h-full"
+                  hideModeSwitchButton={hideEditorModeSwitchButton}
+                  onActionsChange={onEditorActionsChange}
+                  onModeChange={onEditorModeChange}
                 />
               </div>
             </div>

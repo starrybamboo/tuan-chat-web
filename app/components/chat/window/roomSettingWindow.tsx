@@ -254,6 +254,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                         {(propRoomId && (room?.spaceId ?? spaceId))
                           ? (
                               <BlocksuiteDescriptionEditor
+                                workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
                                 spaceId={(room?.spaceId ?? spaceId)!}
                                 docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
                               />

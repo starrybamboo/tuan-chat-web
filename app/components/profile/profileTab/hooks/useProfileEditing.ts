@@ -42,13 +42,6 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
     setEditingDescription("");
   };
 
-  const saveReadMe = async (readMeContent: string) => {
-    await updateUserInfoMutation.mutateAsync({
-      ...user,
-      readMe: readMeContent,
-    } as UserInfoResponse);
-  };
-
   // 头像上传即时保存
   const handleAvatarUpdate = (newAvatarUrl: string) => {
     updateUserInfoMutation.mutate({
@@ -71,7 +64,6 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
     startEditingProfile,
     saveProfile,
     cancelEditingProfile,
-    saveReadMe,
     handleAvatarUpdate,
 
     // API状态

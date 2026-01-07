@@ -121,7 +121,8 @@
 - app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx
   - Props：`{ spaceId, docId, mode?: "page" | "edgeless" }`
   - 通过 `spaceWorkspaceRegistry.getOrCreateSpaceDoc({ spaceId, docId })` 获取 store
-  - 根据 `mode` 选择 `AFFINE_PAGE_STD_EXTENSIONS` / `AFFINE_EDGELESS_STD_EXTENSIONS` 渲染 `editor-host`
+  - 使用 starter playground 同款组装方式创建 `affine-editor-container`（page/edgeless specs 来自 `@blocksuite/integration-test/view`）
+  - `mode` 由 React state 驱动，并通过 DI override 注入 `DocModeProvider`
 
 ### 2.1.1 调试页（单入口）
 

@@ -9,6 +9,7 @@ export default function BlocksuiteClueDescriptionEditor(props: {
   const { spaceId, clueId, className } = props;
   return (
     <BlocksuiteDescriptionEditor
+      workspaceId={`space:${spaceId}`}
       spaceId={spaceId}
       docId={buildSpaceDocId({ kind: "clue_description", clueId })}
       className={className}

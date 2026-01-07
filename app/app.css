@@ -1,3 +1,5 @@
+@layer blocksuite, base, components, utilities;
+
 @import "tailwindcss";
 @plugin "daisyui";
 @plugin "daisyui" {
@@ -106,4 +108,10 @@ body {
 .hidden-scrollbar {
   overflow-y: auto;
   scrollbar-width: none;
+}
+
+@layer utilities {
+  .hidden {
+    display: none !important;
+  }
 }

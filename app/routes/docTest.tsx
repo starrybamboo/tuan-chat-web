@@ -14,10 +14,18 @@ export default function DocTestPage() {
     let disposed = false;
     let stop: (() => void) | null = null;
 
+    const playgroundModuleLoaders = import.meta.glob(
+      "/app/components/chat/infra/blocksuite/playground/apps/starter/main.ts",
+      { import: "*" },
+    ) as Record<string, () => Promise<any>>;
+
     (async () => {
-      const mod = await import(
-        "@/components/chat/infra/blocksuite/playground/apps/starter/main"
-      );
+      const loader = Object.values(playgroundModuleLoaders)[0];
+      if (!loader) {
+        throw new Error("Blocksuite playground module not found");
+      }
+
+      const mod = await loader();
       stop = mod.stopStarterPlayground;
       await mod.startStarterPlayground();
     })().catch((err) => {

@@ -7,7 +7,7 @@ export type SpaceDocKind =
   | "independent";
 
 export type SpaceDocDescriptor =
-  | { kind: "space_description" }
+  | { kind: "space_description"; spaceId: number }
   | { kind: "room_description"; roomId: number }
   | { kind: "clue_description"; clueId: number }
   | { kind: "independent"; docId: string };
@@ -21,7 +21,7 @@ export type SpaceDocDescriptor =
  */
 export function buildSpaceDocId(desc: SpaceDocDescriptor): SpaceDocId {
   if (desc.kind === "space_description")
-    return "space:description";
+    return `space:${desc.spaceId}:description`;
 
   if (desc.kind === "room_description")
     return `room:${desc.roomId}:description`;
@@ -34,14 +34,23 @@ export function buildSpaceDocId(desc: SpaceDocDescriptor): SpaceDocId {
 }
 
 export function parseSpaceDocId(docId: string): SpaceDocDescriptor | null {
-  if (docId === "space:description")
-    return { kind: "space_description" };
-
   const parts = docId.split(":");
   if (parts.length < 2)
     return null;
 
   const [type, idRaw, ...rest] = parts;
+  if (type === "space" && rest.join(":") === "description") {
+    const spaceId = Number(idRaw);
+    if (!Number.isFinite(spaceId) || spaceId <= 0)
+      return null;
+    return { kind: "space_description", spaceId };
+  }
+
+  // Legacy/space-internal docId: `space:description` (no numeric spaceId embedded)
+  // Keep for backward-compat parsing only.
+  if (docId === "space:description")
+    return null;
+
   if (type === "room" && rest.join(":") === "description") {
     const roomId = Number(idRaw);
     if (!Number.isFinite(roomId) || roomId <= 0)

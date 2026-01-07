@@ -18,6 +18,53 @@ import {
 import "./app.css";
 import "./animation.css";
 
+// Patch customElements.define to avoid "already defined" errors from BlockSuite or other libraries during HMR/re-mounts.
+if (typeof window !== "undefined" && window.customElements) {
+  const originalDefine = window.customElements.define;
+  window.customElements.define = function (name, constructor, options) {
+    if (window.customElements.get(name)) {
+      return;
+    }
+    originalDefine.call(this, name, constructor, options);
+  };
+}
+
+// DEV-only: help diagnose "Multiple versions of Lit loaded".
+// If it still happens after dedupe/alias, this prints a stack once so we can
+// pinpoint which module instance is triggering the warning.
+if (typeof window !== "undefined" && import.meta.env.DEV) {
+  const originalWarn = console.warn;
+  let printedLitMultiStack = false;
+
+  console.warn = (...args: unknown[]) => {
+    try {
+      const first = typeof args[0] === "string" ? (args[0] as string) : "";
+      if (!printedLitMultiStack && first.includes("Multiple versions of Lit loaded")) {
+        printedLitMultiStack = true;
+        originalWarn(...args);
+        originalWarn(`[tc] Lit multiple-versions warn stack:\n${new Error().stack ?? ""}`);
+        return;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    originalWarn(...args);
+  };
+}
+
+const queryClient = new QueryClient(
+  {
+    defaultOptions: {
+      queries: {
+        retry: 2, // 请求失败重试次数
+        staleTime: 1000 * 60 * 5,
+      },
+    },
+  },
+);
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -39,15 +86,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        {import.meta.env.DEV && (
-          <script
-            crossOrigin="anonymous"
-            src="https://unpkg.com/react-scan/dist/auto.global.js"
-          />
-        )}
       </head>
       <body>
-        {children}
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -55,33 +98,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-const queryClient = new QueryClient(
-  {
-    defaultOptions: {
-      queries: {
-        retry: 2, // 请求失败重试次数
-        staleTime: 1000 * 60 * 5,
-      },
-    },
-  },
-);
-
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <GlobalContextProvider>
-        {/* <Topbar></Topbar> */}
-        <Outlet />
-        <ReactQueryDevtools initialIsOpen={false} />
-        {/* 挂载popWindow的地方 */}
-        <div id="modal-root"></div>
-        {/* 挂载sideDrawer的地方 */}
-        <div id="side-drawer"></div>
-        <Toaster />
-        {/* ToastWindow渲染器，可以访问Router上下文 */}
-        <ToastWindowRenderer />
-      </GlobalContextProvider>
-    </QueryClientProvider>
+    <GlobalContextProvider>
+      {/* <Topbar></Topbar> */}
+      <Outlet />
+      <ReactQueryDevtools initialIsOpen={false} />
+      {/* 挂载popWindow的地方 */}
+      <div id="modal-root"></div>
+      {/* 挂载sideDrawer的地方 */}
+      <div id="side-drawer"></div>
+      <Toaster />
+      {/* ToastWindow渲染器，可以访问Router上下文 */}
+      <ToastWindowRenderer />
+    </GlobalContextProvider>
   );
 }
 
@@ -103,72 +133,59 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     stack = error.stack;
   }
 
-  // Since this component replaces the entire page when an error occurs,
-  // it needs to render a complete HTML document structure.
   return (
-    <html lang="en" data-theme="light">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>{message}</title>
-        {/* Re-link stylesheets when error replaces the page */}
-        <Links />
-      </head>
-      <body>
-        <main className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-          <div className="card w-full max-w-lg bg-base-100 shadow-xl">
-            <div className="card-body items-center text-center">
-              {/* Alert Icon */}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="stroke-error h-24 w-24"
-                fill="none"
-                viewBox="0 0 24 24"
+    <main className="min-h-screen bg-base-200 flex items-center justify-center p-4">
+      <div className="card w-full max-w-lg bg-base-100 shadow-xl">
+        <div className="card-body items-center text-center">
+          {/* Alert Icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="stroke-error h-24 w-24"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+
+          <h1 className="card-title text-4xl font-bold mt-4">{message}</h1>
+          <p className="py-4 text-lg">{details}</p>
+
+          {/* Collapsible Stack Trace for Dev Mode */}
+          {stack && (
+            <div className="text-left w-full mt-4">
+              <div
+                tabIndex={0}
+                className="collapse collapse-arrow border border-base-300 bg-base-200"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-
-              <h1 className="card-title text-4xl font-bold mt-4">{message}</h1>
-              <p className="py-4 text-lg">{details}</p>
-
-              {/* Collapsible Stack Trace for Dev Mode */}
-              {stack && (
-                <div className="text-left w-full mt-4">
-                  <div
-                    tabIndex={0}
-                    className="collapse collapse-arrow border border-base-300 bg-base-200"
-                  >
-                    <div className="collapse-title font-medium">
-                      Stack Trace (Development Only)
-                    </div>
-                    <div className="collapse-content">
-                      <pre className="w-full p-2 overflow-x-auto bg-neutral text-neutral-content rounded-box text-sm">
-                        <code>{stack}</code>
-                      </pre>
-                    </div>
-                  </div>
+                <div className="collapse-title font-medium">
+                  Stack Trace (Development Only)
                 </div>
-              )}
-
-              <div className="card-actions justify-center mt-6">
-                <button
-                  className="btn btn-primary btn-wide"
-                  // Use replace: true to avoid the error page in browser history
-                  onClick={() => navigate("/", { replace: true })}
-                  type="button"
-                >
-                  返回主页
-                </button>
+                <div className="collapse-content">
+                  <pre className="w-full p-2 overflow-x-auto bg-neutral text-neutral-content rounded-box text-sm">
+                    <code>{stack}</code>
+                  </pre>
+                </div>
               </div>
             </div>
+          )}
+
+          <div className="card-actions justify-center mt-6">
+            <button
+              className="btn btn-primary btn-wide"
+              // Use replace: true to avoid the error page in browser history
+              onClick={() => navigate("/", { replace: true })}
+              type="button"
+            >
+              返回主页
+            </button>
           </div>
-        </main>
-      </body>
-    </html>
+        </div>
+      </div>
+    </main>
   );
 }

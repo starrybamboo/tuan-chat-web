@@ -25,8 +25,8 @@ Electron failed to install correctly,
 node node_modules/electron/install.js
 ```
 
-如果要执行electron-build
-请先把webgal-terre解压到extraResources下，并把terre.exe放在extraResources同级目录下。
+如果要执行 electron 打包（electron-builder）
+请先把 WebGAL_Terre 的 Windows 发行版（包含 `WebGAL_Terre.exe` 及其依赖文件）解压/拷贝到 `extraResources/` 目录下（`WebGAL_Terre.exe` 与该目录同级）。
 
 
 ### 配置环境

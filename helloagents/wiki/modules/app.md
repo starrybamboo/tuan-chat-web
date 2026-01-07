@@ -33,6 +33,7 @@
 
 - 集成代码：`app/components/chat/infra/blocksuite/`
 - 相关文档：`app/components/chat/infra/blocksuite/doc/`（含 `LEARNING-PATH.md` 学习路线）
+- 依赖文档：`helloagents/wiki/vendors/blocksuite/index.md`
 
 ## 变更历史
 

@@ -1,23 +1,46 @@
-import type { DocMode } from "@blocksuite/affine-model";
-import type { DocModeProvider } from "@blocksuite/affine-shared/services";
-import { getOrCreateSpaceDoc } from "@/components/chat/infra/blocksuite/spaceWorkspaceRegistry";
-
-import { AFFINE_EDGELESS_STD_EXTENSIONS, AFFINE_PAGE_STD_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineSpec";
+import type { DocMode } from "@blocksuite/affine/model";
+import type { DocModeProvider } from "@blocksuite/affine/shared/services";
+import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+import { createEmbeddedAffineEditor } from "@/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { ensureDocMeta, getOrCreateDoc, getOrCreateWorkspace } from "@/components/chat/infra/blocksuite/spaceWorkspaceRegistry";
 import { ensureBlocksuiteCoreElementsDefined } from "@/components/chat/infra/blocksuite/spec/coreElements";
 
-import { appendParagraphCommand } from "@blocksuite/affine-block-paragraph";
-import { focusBlockEnd } from "@blocksuite/affine-shared/commands";
-import {
-  DocModeExtension,
-
-} from "@blocksuite/affine-shared/services";
-import { getLastNoteBlock } from "@blocksuite/affine-shared/utils";
-import { BlockStdScope, TextSelection } from "@blocksuite/std";
-
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { Subscription } from "rxjs";
-import "@toeverything/theme/fonts.css";
-import "@toeverything/theme/style.css";
+import "@/components/chat/infra/blocksuite/playground/style.css";
+
+interface BlocksuiteDescriptionEditorProps {
+  /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
+  workspaceId: string;
+  /** 仅 space 场景使用：用于路由跳转 & mentions */
+  spaceId?: number;
+  docId: string;
+  /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
+  variant?: "embedded" | "full";
+  /** 外部强制模式（allowModeSwitch=false 时生效） */
+  mode?: DocMode;
+  /** 是否允许在 page/edgeless 间切换 */
+  allowModeSwitch?: boolean;
+  /** 画布模式下是否支持全屏 */
+  fullscreenEdgeless?: boolean;
+  /** 隐藏内置的“切换到画布/退出画布”按钮（用于把按钮放到外层 topbar） */
+  hideModeSwitchButton?: boolean;
+  /** 对外暴露 editor mode 的控制能力；卸载时会回传 null */
+  onActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
+  /** editor mode 变化回调（page/edgeless） */
+  onModeChange?: (mode: DocMode) => void;
+  className?: string;
+}
+
+export interface BlocksuiteDescriptionEditorActions {
+  toggleMode: () => DocMode;
+  setMode: (mode: DocMode) => void;
+  getMode: () => DocMode;
+}
 
 function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
   const v = (raw ?? "").toLowerCase();
@@ -39,38 +62,118 @@ function getCurrentAppTheme(): "light" | "dark" {
     : "light";
 }
 
-export default function BlocksuiteDescriptionEditor(props: {
-  spaceId: number;
-  docId: string;
-  mode?: "page" | "edgeless";
-  className?: string;
-  variant?: "panel" | "full";
-}) {
-  const { className, docId, mode = "page", spaceId, variant = "panel" } = props;
+function tryFocusEdgelessViewport(editor: any, store: any): boolean {
+  try {
+    const doc = store as any;
+    const rootId = doc?.root?.id;
+    const rootBlock = editor?.host?.view?.getBlock?.(rootId);
+
+    // Prefer higher-level APIs when available.
+    if (typeof rootBlock?.gfx?.fitToScreen === "function") {
+      rootBlock.gfx.fitToScreen();
+      return true;
+    }
+    const service = rootBlock?.service;
+    if (typeof service?.zoomToFit === "function") {
+      service.zoomToFit();
+      return true;
+    }
+  }
+  catch {
+    // ignore
+  }
+  return false;
+}
+
+export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescriptionEditorProps) {
+  const {
+    workspaceId,
+    spaceId,
+    docId,
+    className,
+    variant = "embedded",
+    allowModeSwitch = false,
+    fullscreenEdgeless = false,
+    mode: forcedMode = "page",
+    hideModeSwitchButton = false,
+    onActionsChange,
+    onModeChange,
+  } = props;
+
+  const navigate = useNavigate();
   const isFull = variant === "full";
 
-  // blocksuite 的 DocModeService/ThemeService 会读取 editor viewport（.affine-*-viewport）的 data-theme。
-  // 这里保持和外部主题同步，并允许 blocksuite 内部通过 DocModeProvider 切换模式。
-  const [currentMode, setCurrentMode] = useState<DocMode>(mode);
-  const currentModeRef = useRef<DocMode>(mode);
-
-  useEffect(() => {
-    currentModeRef.current = mode;
-    setCurrentMode(mode);
-  }, [mode]);
+  const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
+  const currentModeRef = useRef<DocMode>(forcedMode);
 
   useEffect(() => {
     currentModeRef.current = currentMode;
+    onModeChange?.(currentMode);
   }, [currentMode]);
 
   const hostContainerRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<HTMLElement | null>(null);
+  const storeRef = useRef<any>(null);
+  const prevModeRef = useRef<DocMode>(forcedMode);
 
   const docModeProvider: DocModeProvider = useMemo(() => {
     // DocModeProvider 是一个“跨 doc/跨 widget”的服务，这里做最小实现：
     // - editor mode 由 React state 驱动
-    // - primary mode 以 docId 为 key 保存在内存（Demo 阶段足够）
+    // - primary mode：
+    //   - allowModeSwitch=false：内存 map（保持旧行为）
+    //   - allowModeSwitch=true：按 spaceId 维度持久化（localStorage）
+    const storageKey = `tc:blocksuite:${workspaceId}:primaryModeByDocId`;
     const primaryModeByDocId = new Map<string, DocMode>();
     const listenersByDocId = new Map<string, Set<(m: DocMode) => void>>();
+
+    const isValidMode = (v: unknown): v is DocMode => v === "page" || v === "edgeless";
+
+    const loadFromStorage = () => {
+      if (!allowModeSwitch)
+        return;
+      if (typeof window === "undefined")
+        return;
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (!raw)
+          return;
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof k === "string" && isValidMode(v)) {
+            primaryModeByDocId.set(k, v);
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const flushToStorage = () => {
+      if (!allowModeSwitch)
+        return;
+      if (typeof window === "undefined")
+        return;
+      try {
+        const obj: Record<string, DocMode> = {};
+        for (const [k, v] of primaryModeByDocId.entries()) {
+          obj[k] = v;
+        }
+        window.localStorage.setItem(storageKey, JSON.stringify(obj));
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    loadFromStorage();
+
+    const emit = (id: string, m: DocMode) => {
+      const listeners = listenersByDocId.get(id);
+      if (listeners) {
+        for (const fn of listeners) fn(m);
+      }
+    };
 
     return {
       setEditorMode: (m: DocMode) => {
@@ -82,21 +185,22 @@ export default function BlocksuiteDescriptionEditor(props: {
       },
       setPrimaryMode: (m: DocMode, id: string) => {
         primaryModeByDocId.set(id, m);
-        const listeners = listenersByDocId.get(id);
-        if (listeners) {
-          for (const fn of listeners) fn(m);
-        }
+        flushToStorage();
+        emit(id, m);
+        // 尽量保持 editor mode 与 primary mode 一致（符合 playground 的体感）。
+        currentModeRef.current = m;
+        setCurrentMode(m);
       },
       getPrimaryMode: (id: string) => {
-        return primaryModeByDocId.get(id) ?? "page";
+        return primaryModeByDocId.get(id) ?? forcedMode;
       },
       togglePrimaryMode: (id: string) => {
-        const next = (primaryModeByDocId.get(id) ?? "page") === "page" ? "edgeless" : "page";
+        const next = (primaryModeByDocId.get(id) ?? forcedMode) === "page" ? "edgeless" : "page";
         primaryModeByDocId.set(id, next);
-        const listeners = listenersByDocId.get(id);
-        if (listeners) {
-          for (const fn of listeners) fn(next);
-        }
+        flushToStorage();
+        emit(id, next);
+        currentModeRef.current = next;
+        setCurrentMode(next);
         return next;
       },
       onPrimaryModeChange: (handler: (m: DocMode) => void, id: string) => {
@@ -115,12 +219,57 @@ export default function BlocksuiteDescriptionEditor(props: {
         return subscription;
       },
     };
-  }, []);
+  }, [allowModeSwitch, forcedMode, workspaceId]);
+
+  const externalActions: BlocksuiteDescriptionEditorActions = useMemo(() => {
+    return {
+      toggleMode: () => {
+        return docModeProvider.togglePrimaryMode(docId);
+      },
+      setMode: (mode: DocMode) => {
+        docModeProvider.setPrimaryMode(mode, docId);
+      },
+      getMode: () => {
+        return docModeProvider.getEditorMode() ?? forcedMode;
+      },
+    };
+  }, [docId, docModeProvider, forcedMode]);
+
+  useEffect(() => {
+    onActionsChange?.(externalActions);
+    return () => {
+      onActionsChange?.(null);
+    };
+  }, [externalActions, onActionsChange]);
+
+  useEffect(() => {
+    if (allowModeSwitch) {
+      try {
+        const initial = docModeProvider.getPrimaryMode(docId);
+        currentModeRef.current = initial;
+        setCurrentMode(initial);
+      }
+      catch {
+        // ignore
+      }
+      return;
+    }
+
+    // 兼容旧行为：当不允许切换时，外部传入的 mode 仍然是“强制模式”。
+    try {
+      docModeProvider.setPrimaryMode(forcedMode, docId);
+    }
+    catch {
+      // ignore
+    }
+  }, [allowModeSwitch, docId, docModeProvider, forcedMode]);
 
   useEffect(() => {
     const container = hostContainerRef.current;
     if (!container)
       return;
+
+    const isFullInEffect = isFull;
 
     // 主题跟随：把站点主题（data-theme / dark class）同步到 viewport。
     const syncPortalsTheme = (theme: "light" | "dark") => {
@@ -171,147 +320,262 @@ export default function BlocksuiteDescriptionEditor(props: {
 
     ensureBlocksuiteCoreElementsDefined();
 
-    const store = getOrCreateSpaceDoc({ spaceId, docId });
-    const base = currentMode === "edgeless" ? AFFINE_EDGELESS_STD_EXTENSIONS : AFFINE_PAGE_STD_EXTENSIONS;
-    // 对齐 AFFiNE：用 DocModeExtension 注入真实 provider（覆盖默认的 DocModeService 占位实现）。
-    const extensions = base.concat([DocModeExtension(docModeProvider)]);
-    const std = new BlockStdScope({ store, extensions });
-    const host = std.render();
+    const workspace = getOrCreateWorkspace(workspaceId);
+    const abort = new AbortController();
+    let createdEditor: any = null;
+    let createdStore: any = null;
 
-    // `editor-host` defaults to `height: 100%` in BlockSuite styles.
-    // In our panel layout, the parent may not have an explicit height,
-    // so we make the host self-sized with a sane minimum height.
-    host.style.height = "auto";
-    host.style.minHeight = "8rem";
-    host.style.width = "100%";
-
-    container.replaceChildren(host);
-
-    // Dev-only: expose objects for console debugging (mimic blocksuite playground).
-    // Usage: `host`, `std`, `blocksuiteStore` in DevTools.
-    if (typeof window !== "undefined" && import.meta.env.DEV) {
-      const g = globalThis as any;
-      g.host = host;
-      g.std = std;
-      g.blocksuiteStore = store;
-      g.TextSelection = TextSelection;
-    }
-
-    // 对齐 Blocksuite playground：保证 std.event.active 与 selection 行为稳定。
-    // - `std.event.active` 影响 selection/事件分发
-    // - 初次挂载时没有明确 selection，paragraph placeholder 可能被误判成多行可见，且输入后不更新
-    const focusEditorHost = () => {
-      if (document.activeElement === host)
-        return;
+    // Hydrate first (restore semantics), then render editor.
+    // This avoids binding the UI to an empty initialized root.
+    (async () => {
+      // 1) Migrate legacy local docId (if needed)
       try {
-        host.focus({ preventScroll: true });
+        const legacyDocId = "space:description";
+        const expectedNewDocId = spaceId ? `space:${spaceId}:description` : "";
+        const runtimeWs = workspace as any;
+        if (expectedNewDocId && docId === expectedNewDocId
+          && typeof runtimeWs?.listKnownDocIds === "function"
+          && typeof runtimeWs?.encodeDocAsUpdate === "function"
+          && typeof runtimeWs?.restoreDocFromUpdate === "function") {
+          const known = runtimeWs.listKnownDocIds() as string[];
+          const hasLegacy = known.includes(legacyDocId);
+          const hasNew = known.includes(docId);
+          if (hasLegacy && !hasNew) {
+            const legacyUpdate = runtimeWs.encodeDocAsUpdate(legacyDocId) as Uint8Array;
+            runtimeWs.restoreDocFromUpdate({ docId, update: legacyUpdate });
+          }
+        }
       }
       catch {
-        host.focus();
+        // ignore migration failures
       }
-    };
 
-    const ensureActiveAndSelection = () => {
-      // 让 blocksuite 进入 active 状态（参考 focusBlockEnd 内部实现）
-      std.event.active = true;
+      // 2) Restore from remote snapshot (if available)
+      // Critical: explicit fetch ensures the store is populated with remote content (correct root block)
+      // *before* the editor is initialized. This prevents 'ensureAffineMinimumBlockData' from creating
+      // a duplicate/conflicting default page, which results in a blank view.
+      if (!abort.signal.aborted) {
+        try {
+          const key = parseDescriptionDocId(docId);
+          if (key) {
+            const remote = await getRemoteSnapshot(key);
+            if (remote?.updateB64) {
+              const update = base64ToUint8Array(remote.updateB64);
+              const runtimeWs = workspace as any;
+              if (typeof runtimeWs.restoreDocFromUpdate === "function") {
+                runtimeWs.restoreDocFromUpdate({ docId, update });
+              }
+            }
+          }
+        }
+        catch (e) {
+          console.error("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot", e);
+        }
+      }
 
-      // 如果当前没有文本光标，则将光标放到最后一个可编辑 paragraph；没有就追加一个
-      if (currentModeRef.current === "edgeless") {
-        // Edgeless 这边后续再补齐；目前这个问题集中在 page paragraph placeholder
+      if (abort.signal.aborted)
         return;
+
+      // 3) Create store + editor after hydrate
+      // Important: don't overwrite existing doc title.
+      ensureDocMeta({ workspaceId, docId });
+      const store = getOrCreateDoc({ workspaceId, docId });
+      createdStore = store;
+
+      if (typeof window !== "undefined" && import.meta.env.DEV) {
+        try {
+          const rootId = (store as any)?.root?.id;
+          const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
+          const first = paragraphs?.[0];
+          const firstText = first?.props?.text;
+          console.debug("[BlocksuiteDescriptionEditor] store ready", {
+            docId,
+            rootId,
+            paragraphCount: paragraphs?.length ?? 0,
+            firstText: firstText?.toString?.() ?? null,
+          });
+        }
+        catch {
+          // ignore
+        }
       }
 
-      const note = getLastNoteBlock(store);
-      const lastBlock = note?.lastChild();
-      if (lastBlock && lastBlock.flavour === "affine:paragraph") {
-        const focusBlock = std.view.getBlock(lastBlock.id) ?? undefined;
-        std.command.exec(focusBlockEnd, { focusBlock, force: true });
-        return;
-      }
+      const editor = createEmbeddedAffineEditor({
+        store,
+        workspace: workspace as any,
+        docModeProvider,
+        spaceId,
+        autofocus: true,
+        onNavigateToDoc: ({ spaceId, docId }) => {
+          const parsed = parseSpaceDocId(docId);
 
-      std.command.exec(appendParagraphCommand);
-    };
+          if (parsed?.kind === "room_description") {
+            navigate(`/chat/${spaceId}/${parsed.roomId}/setting`);
+            return;
+          }
 
-    const rafId = requestAnimationFrame(() => {
-      focusEditorHost();
-      ensureActiveAndSelection();
-    });
+          if (parsed?.kind === "space_description") {
+            navigate(`/chat/${spaceId}/setting`);
+            return;
+          }
 
-    // 修复：多行 placeholder 偶发残留
-    // 原因：paragraph 内部会在 `updateComplete.then(...)` 里异步设置 placeholder visible，
-    // 当 selection 很快切换（例如回车拆分段落）时可能发生竞态：旧段落晚到的 then 重新把 visible 打开。
-    // playground 不容易触发，但在我们宿主/渲染节奏下会出现。
-    // 这里在 selection/input 变化时做一次同步：只有当前 TextSelection 所在 block 的 placeholder 允许显示。
-    const syncPlaceholdersToSelection = () => {
-      const current = std.selection.find(TextSelection) as any;
-      const focusedBlockId: string | undefined = current?.from?.blockId ?? current?.blockId;
+          navigate(`/doc/${spaceId}/${encodeURIComponent(docId)}`);
+        },
+      });
+      createdEditor = editor;
 
-      const placeholders = container.querySelectorAll<HTMLElement>(".affine-paragraph-placeholder.visible");
-      for (const node of placeholders) {
-        const blockEl = node.closest<HTMLElement>("[data-block-id]");
-        const blockId = blockEl?.dataset.blockId;
+      (editor as any).style.display = "block";
+      (editor as any).style.width = "100%";
+      (editor as any).style.minHeight = "8rem";
+      (editor as any).style.height = isFullInEffect ? "100%" : "auto";
 
-        if (!focusedBlockId || !blockId || blockId !== focusedBlockId) {
-          node.style.display = "none";
+      editorRef.current = editor as unknown as HTMLElement;
+      storeRef.current = store;
+      container.replaceChildren(editor as unknown as Node);
+
+      // 确保初始 mode 与 React state 一致。
+      try {
+        if (typeof (editor as any).switchEditor === "function") {
+          (editor as any).switchEditor(currentModeRef.current);
         }
         else {
-          node.style.removeProperty("display");
+          (editor as any).mode = currentModeRef.current;
         }
       }
-    };
-
-    const scheduleSync = () => {
-      requestAnimationFrame(syncPlaceholdersToSelection);
-    };
-
-    const selectionSub = std.selection.slots.changed.subscribe(scheduleSync);
-    host.addEventListener("input", scheduleSync, { capture: true });
-    host.addEventListener("compositionend", scheduleSync, { capture: true });
-
-    // 点击空白区域时：确保 active，并把光标落到可编辑段落
-    const handlePointerDownCapture = (e: PointerEvent) => {
-      focusEditorHost();
-      // 如果点击已经发生在块内部（例如 rich-text 内部），不要强行重置 selection
-      if (e.target instanceof HTMLElement && e.target.closest("rich-text, affine-paragraph")) {
-        std.event.active = true;
-        return;
+      catch {
+        // ignore
       }
-      ensureActiveAndSelection();
-    };
-    container.addEventListener("pointerdown", handlePointerDownCapture, { capture: true });
+
+      if (typeof window !== "undefined" && import.meta.env.DEV) {
+        const g = globalThis as any;
+        g.editor = editor;
+        g.blocksuiteStore = store;
+      }
+    })();
 
     return () => {
+      abort.abort();
       mo.disconnect();
       portalMo.disconnect();
-      cancelAnimationFrame(rafId);
-      selectionSub.unsubscribe();
-      host.removeEventListener("input", scheduleSync, { capture: true } as AddEventListenerOptions);
-      host.removeEventListener("compositionend", scheduleSync, { capture: true } as AddEventListenerOptions);
-      container.removeEventListener("pointerdown", handlePointerDownCapture, { capture: true } as AddEventListenerOptions);
+      editorRef.current = null;
+      storeRef.current = null;
       container.replaceChildren();
 
       if (typeof window !== "undefined" && import.meta.env.DEV) {
         const g = globalThis as any;
-        if (g.host === host)
-          delete g.host;
-        if (g.std === std)
-          delete g.std;
-        if (g.blocksuiteStore === store)
+        if (createdEditor && g.editor === createdEditor)
+          delete g.editor;
+        if (createdStore && g.blocksuiteStore === createdStore)
           delete g.blocksuiteStore;
-        if (g.TextSelection === TextSelection)
-          delete g.TextSelection;
       }
     };
-  }, [currentMode, docId, docModeProvider, spaceId]);
+  }, [docId, docModeProvider, isFull, spaceId, workspaceId]);
+
+  const isEdgelessFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
+
+  useEffect(() => {
+    const editor = editorRef.current as any;
+    if (!editor)
+      return;
+    // Keep mode in sync with outer state.
+    try {
+      // Important: align with blocksuite playground behavior.
+      // `affine-editor-container` switches internal hosts via `switchEditor`.
+      if (typeof editor.switchEditor === "function") {
+        editor.switchEditor(currentMode);
+      }
+      else {
+        editor.mode = currentMode;
+      }
+      editor.style.height = isEdgelessFullscreen || isFull ? "100%" : "auto";
+    }
+    catch {
+      // ignore
+    }
+
+    // If edgeless DOM exists but user can't see it, it's often a viewport transform/zoom issue.
+    // On entering edgeless, try to fit/center once (best-effort; won't run on every render).
+    const prev = prevModeRef.current;
+    prevModeRef.current = currentMode;
+
+    if (prev !== "edgeless" && currentMode === "edgeless") {
+      const run = () => {
+        const e = editorRef.current as any;
+        const s = storeRef.current;
+        if (!e || !s)
+          return;
+        tryFocusEdgelessViewport(e, s);
+      };
+
+      // Delay a bit to allow host/root/service to be ready.
+      requestAnimationFrame(() => {
+        setTimeout(run, 0);
+        setTimeout(run, 120);
+        setTimeout(run, 300);
+      });
+    }
+  }, [currentMode, isEdgelessFullscreen, isFull]);
+
+  useEffect(() => {
+    if (typeof document === "undefined")
+      return;
+    if (!isEdgelessFullscreen)
+      return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isEdgelessFullscreen]);
+
+  const rootClassName = [className, isEdgelessFullscreen ? "fixed inset-0 z-50 p-2 bg-base-100" : ""]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className={className}>
+    <div className={rootClassName}>
       <div
-        className={`rounded-box bg-base-100 border border-base-300 overflow-hidden${isFull ? " h-full flex flex-col" : ""}`}
+        className={`relative bg-base-100 border border-base-300 overflow-hidden${isEdgelessFullscreen ? " h-full" : " rounded-box"}${isFull || isEdgelessFullscreen ? " flex flex-col" : ""}`}
       >
+        {allowModeSwitch
+          ? (
+              hideModeSwitchButton
+                ? null
+                : (
+                    <div className="flex items-center justify-end p-2 border-b border-base-300">
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => {
+                          docModeProvider.togglePrimaryMode(docId);
+                        }}
+                      >
+                        {currentMode === "page" ? "切换到画布" : "退出画布"}
+                      </button>
+                    </div>
+                  )
+            )
+          : null}
+
+        {allowModeSwitch && hideModeSwitchButton && currentMode === "edgeless"
+          ? (
+              <div className="absolute top-2 right-2 z-10">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    docModeProvider.setPrimaryMode("page", docId);
+                  }}
+                >
+                  返回页面
+                </button>
+              </div>
+            )
+          : null}
         <div
           ref={hostContainerRef}
-          className={`${isFull ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
+          className={`${isFull || isEdgelessFullscreen ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
         />
       </div>
     </div>

@@ -38,6 +38,7 @@ export default [
     route("settings", "routes/settings.tsx"),
     route("collection", "routes/collection.tsx"),
     route("resource", "routes/resource.tsx"),
+    route("doc/:spaceId/:docId", "routes/doc.tsx"),
     route("doc-test", "routes/docTest.tsx"),
     route("blocksuite-playground", "routes/blocksuitePlayground.tsx"),
     route("invite/:code", "routes/invite.tsx"),

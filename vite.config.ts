@@ -1,3 +1,5 @@
+import type { Plugin } from "vite";
+
 import * as babelCore from "@babel/core";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -7,10 +9,72 @@ import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-const ReactCompilerConfig = {
+const _ReactCompilerConfig = {
   // React Compiler configuration options
   // You can add specific options here if needed
 };
+
+/**
+ * Fix CommonJS default export issues for modules like lodash that have no default export.
+ * This plugin rewrites code like `import x from 'lodash/debounce'` to work with
+ * lodash's actual named/CommonJS exports at module load time.
+ */
+function fixCjsDefaultExportPlugin(): Plugin {
+  return {
+    name: "fix-cjs-default-export",
+    apply: "serve",
+    transform(code, _id) {
+      // Target modules that commonly have CJS/default export issues
+      const problematicModules = [
+        "lodash/debounce",
+        "lodash/throttle",
+        "lodash/memoize",
+        "lodash/isPlainObject",
+        "lodash/isObject",
+        "use-sync-external-store/shim/with-selector.js",
+        "use-sync-external-store/shim/index.js",
+        "dagre",
+        "qrcode",
+        "quill-delta",
+        "quill-delta/dist/Delta",
+        "quill-delta/dist/Delta.js",
+        "fast-diff",
+        "pngjs",
+        "randombytes",
+        "safe-buffer",
+        "dayjs",
+        "dayjs/dayjs.min.js",
+        "react-fast-compare",
+        "screenfull",
+      ];
+
+      let modified = false;
+      let result = code;
+
+      for (const module of problematicModules) {
+        // Match: import identifier from 'module' or import identifier from "module"
+        const importRegex = new RegExp(
+          `import\\s+([\\w$]+)\\s+from\\s+['"](${module.replace(/\//g, "\\/")})['"](;?)`,
+          "g",
+        );
+
+        if (importRegex.test(result)) {
+          modified = true;
+          result = result.replace(
+            importRegex,
+            (match, identifier) => {
+              // Convert to dynamic import + namespace, then extract the default
+              // This works around the missing default export by using the CJS wrapper
+              return `import * as __module_${identifier} from '${module}'; const ${identifier} = __module_${identifier}.default || __module_${identifier};`;
+            },
+          );
+        }
+      }
+
+      return modified ? { code: result } : null;
+    },
+  };
+}
 
 export default defineConfig(({ command }) => {
   const isDev = command === "serve";
@@ -20,11 +84,15 @@ export default defineConfig(({ command }) => {
     return existsSync(abs) ? realpathSync(abs) : abs;
   };
 
-  const blocksuiteAutoAccessorRE = /@blocksuite[\\/](?:std|affine-model)[\\/]dist[\\/].*\.js(?:\?.*)?$/;
+  // Some BlockSuite dist outputs ship ES2023 auto-accessor syntax:
+  // `accessor foo = ...` which Rollup (and some tooling) may fail to parse.
+  // Downlevel it in Vite's transform pipeline.
+  const blocksuiteAutoAccessorRE = /@blocksuite[\\/](?:std|affine-model|affine-block-[^\\/]+)[\\/]dist[\\/].*\.js(?:\?.*)?$/;
 
   return {
     plugins: [
       tailwindcss(),
+      fixCjsDefaultExportPlugin(),
 
       // Downlevel BlockSuite ES2023 auto-accessor syntax in dist outputs.
       // Example crashing syntax: `accessor color = ...` (brush.js), `accessor elements = ...` (v-line.js).
@@ -65,15 +133,13 @@ export default defineConfig(({ command }) => {
       },
 
       // NOTE:
-      // In dev on Windows, some upstream packages (e.g. BlockSuite/AFFiNE) ship
-      // vanilla-extract `*.css.ts` from node_modules. Using the default `emitCss`
-      // mode can crash the dev server with:
-      // "No CSS for file: .../*.css.ts".
+      // Some upstream packages (e.g. BlockSuite/AFFiNE) ship vanilla-extract sources
+      // or runtime that can reference `document`. In production builds, `emitCss`
+      // evaluates style modules and may crash with `document is not defined`.
       //
-      // Using `transform` in dev avoids the virtual CSS resolution path that
-      // triggers this failure, while keeping `emitCss` for production builds.
+      // Using `transform` avoids executing those modules at build time.
       vanillaExtractPlugin({
-        unstable_mode: isDev ? "transform" : "emitCss",
+        unstable_mode: "transform",
       }),
 
       reactRouter(),
@@ -105,6 +171,7 @@ export default defineConfig(({ command }) => {
         "react",
         "react-dom",
         "react-router",
+        "zustand",
 
         // Ensure BlockSuite/Yjs are singletons. Multiple module instances can
         // break DI tokens (e.g. StoreSelectionExtension) and instance checks
@@ -124,6 +191,7 @@ export default defineConfig(({ command }) => {
         "lit-html",
         "@lit/context",
         "@lit/reactive-element",
+        "@lit/react",
       ],
       alias: [
         // BlockSuite packages export TypeScript sources (`./src/*.ts`) by default.
@@ -187,6 +255,70 @@ export default defineConfig(({ command }) => {
           find: /^@blocksuite\/affine-shared\/(.+)$/,
           replacement: `${nm("node_modules/@blocksuite/affine-shared/dist")}/$1`,
         },
+
+        // Some BlockSuite packages export vanilla-extract `*.css.ts` sources in `exports`.
+        // In production/SSR builds this can crash with `document is not defined`.
+        // Force them to use prebuilt dist outputs.
+        {
+          find: /^@blocksuite\/affine-block-note$/,
+          replacement: nm("node_modules/@blocksuite/affine-block-note/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/affine-block-note\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/affine-block-note/dist")}/$1`,
+        },
+
+        // Force Lit ecosystem to resolve to a single physical copy.
+        // This helps avoid runtime warnings like "Multiple versions of Lit loaded"
+        // when the same version is loaded from different paths (e.g. pnpm virtual store).
+        {
+          find: /^lit$/,
+          replacement: nm("node_modules/lit/index.js"),
+        },
+        {
+          find: /^lit\/(.+)$/,
+          replacement: `${nm("node_modules/lit")}/$1`,
+        },
+        {
+          find: /^lit-html$/,
+          replacement: nm("node_modules/lit-html/lit-html.js"),
+        },
+        {
+          find: /^lit-html\/(.+)$/,
+          replacement: `${nm("node_modules/lit-html")}/$1`,
+        },
+        {
+          find: /^lit-element$/,
+          replacement: nm("node_modules/lit-element/index.js"),
+        },
+        {
+          find: /^lit-element\/(.+)$/,
+          replacement: `${nm("node_modules/lit-element")}/$1`,
+        },
+        {
+          find: /^@lit\/reactive-element$/,
+          replacement: nm("node_modules/@lit/reactive-element/reactive-element.js"),
+        },
+        {
+          find: /^@lit\/reactive-element\/(.+)$/,
+          replacement: `${nm("node_modules/@lit/reactive-element")}/$1`,
+        },
+        {
+          find: /^@lit\/context$/,
+          replacement: nm("node_modules/@lit/context/index.js"),
+        },
+        {
+          find: /^@lit\/context\/(.+)$/,
+          replacement: `${nm("node_modules/@lit/context")}/$1`,
+        },
+        {
+          find: /^@lit\/react$/,
+          replacement: nm("node_modules/@lit/react/index.js"),
+        },
+        {
+          find: /^@lit\/react\/(.+)$/,
+          replacement: `${nm("node_modules/@lit/react")}/$1`,
+        },
         {
           find: "@",
           replacement: resolve(__dirname, "app"),
@@ -208,7 +340,20 @@ export default defineConfig(({ command }) => {
     // Force Vite SSR to bundle/transpile them to avoid runtime syntax errors like:
     // "SyntaxError: Unexpected identifier 'lineStyle'".
     ssr: {
-      noExternal: [/^@blocksuite\//, /^@toeverything\//],
+      noExternal: [
+        /^@blocksuite\//,
+        /^@toeverything\//,
+        "qrcode",
+        "dagre",
+        "lodash",
+        "quill-delta",
+        "quill-delta/dist/Delta",
+        "fast-diff",
+        "use-sync-external-store",
+        "randombytes",
+        "safe-buffer",
+        "pngjs",
+      ],
     },
 
     esbuild: {
@@ -229,6 +374,14 @@ export default defineConfig(({ command }) => {
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
 
+        // Ensure React Router runtime is pre-bundled with the same React instance.
+        "react-router",
+        "zustand",
+
+        // Pixi has a very large module graph; without pre-bundling it can trigger
+        // browser resource exhaustion (ERR_INSUFFICIENT_RESOURCES) in dev.
+        "pixi.js",
+
         // Markdown/code highlighting (CJS interop)
         "lowlight",
         "react-syntax-highlighter",
@@ -238,6 +391,7 @@ export default defineConfig(({ command }) => {
         "lit-html",
         "@lit/context",
         "@lit/reactive-element",
+        "@lit/react",
 
         // Fix CJS/ESM interop for packages that are imported as ESM but are CJS.n
         // This prevents runtime errors like:
@@ -247,17 +401,38 @@ export default defineConfig(({ command }) => {
         "extend",
         "bind-event-listener",
         "bytes",
+        "dagre",
+        "qrcode",
+        "quill-delta",
+        "quill-delta/dist/Delta",
+        "quill-delta/dist/Delta.js",
+        "fast-diff",
+        "pngjs",
+        "randombytes",
+        "safe-buffer",
         "cssesc",
         "deepmerge",
         "picocolors",
         "eventemitter3",
 
         // Fix CJS/ESM interop for upstream deps used by the playground.
+        "lodash",
+        "lodash/debounce",
+        "lodash/throttle",
+        "lodash/memoize",
+        "lodash/isObject",
         "lodash.ismatch",
+        "lodash/isPlainObject",
+        "use-sync-external-store/shim/with-selector",
+        "use-sync-external-store/shim/with-selector.js",
+        "use-sync-external-store/shim/index.js",
+        "use-sync-external-store/shim",
         "simple-xml-to-json",
+        "react-fast-compare",
 
         // Fix CJS/ESM interop for minimatch/glob transitive deps.
         "brace-expansion",
+        "screenfull",
       ],
 
       // IMPORTANT: do NOT pre-bundle `@blocksuite/affine-*` packages.

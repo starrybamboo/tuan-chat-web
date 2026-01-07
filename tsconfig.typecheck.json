@@ -4,7 +4,8 @@
     "paths": {
       "@/*": ["./app/*"],
 
-      "@blocksuite/*": ["./node_modules/@blocksuite/*/dist/index.d.ts"],
+      "@blocksuite/affine-widget-linked-doc": ["./node_modules/@blocksuite/affine-widget-linked-doc/dist/index.d.ts"],
+      "@blocksuite/affine-widget-linked-doc/*": ["./node_modules/@blocksuite/affine-widget-linked-doc/dist/*"],
 
       "@blocksuite/std/*": ["./node_modules/@blocksuite/std/dist/*"],
       "@blocksuite/global/*": ["./node_modules/@blocksuite/global/dist/*"],
@@ -36,13 +37,23 @@
       "@blocksuite/integration-test/*": ["./app/types/blocksuite-integration-test.d.ts"],
 
       "@blocksuite/*/store": ["./node_modules/@blocksuite/*/dist/store.d.ts"],
-      "@blocksuite/*/view": ["./node_modules/@blocksuite/*/dist/view.d.ts"]
+      "@blocksuite/*/view": ["./node_modules/@blocksuite/*/dist/view.d.ts"],
+
+      "@blocksuite/*": ["./node_modules/@blocksuite/*/dist/index.d.ts"]
     }
   },
+  "include": [
+    "app/**/*",
+    ".react-router/types/**/*",
+    "react-router.config.ts",
+    "vite.config.ts",
+    "electron/**/*"
+  ],
   "exclude": [
     "node_modules",
     "dist",
     "build",
-    "doc-test2"
+    "doc-test2",
+    "app/components/chat/infra/blocksuite/playground/**"
   ]
 }

@@ -8,6 +8,7 @@
 
 ### 新增
 - 新增 BlockSuite 学习路线文档：`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
+- 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
 
 ## [1.0.0] - 2025-12-27
 

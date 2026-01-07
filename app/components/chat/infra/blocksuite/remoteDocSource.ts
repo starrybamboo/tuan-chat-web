@@ -1,5 +1,6 @@
 import type { DocSource } from "@blocksuite/sync";
 
+import { debounce } from "lodash";
 import { diffUpdate, encodeStateVectorFromUpdate, mergeUpdates } from "yjs";
 
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
@@ -14,6 +15,8 @@ function parseRemoteKeyFromDocId(docId: string) {
   return parseDescriptionDocId(docId);
 }
 
+const DEBOUNCE_MS = 5000;
+
 /**
  * Remote doc source backed by tuanchat `/blocksuite/doc` snapshot API.
  *
@@ -25,6 +28,7 @@ export class RemoteSnapshotDocSource implements DocSource {
   name = "remote-snapshot";
 
   private readonly cache = new Map<string, Uint8Array>();
+  private readonly pushDebouncers = new Map<string, ReturnType<typeof debounce>>();
 
   private async getRemoteFullUpdate(docId: string): Promise<Uint8Array | null> {
     const key = parseRemoteKeyFromDocId(docId);
@@ -91,6 +95,30 @@ export class RemoteSnapshotDocSource implements DocSource {
     if (!key)
       return;
 
+    // 1. Always queue the incremental update locally first (safety net).
+    // This allows us to debounce the network request without risking data loss.
+    try {
+      await addUpdate(docId, data);
+    }
+    catch {
+      // If local DB fails, we still try to proceed with debounce logic,
+      // though risk of loss increases if tab closes before flush.
+    }
+
+    // 2. Schedule a debounced flush to the server.
+    let debounced = this.pushDebouncers.get(docId);
+    if (!debounced) {
+      debounced = debounce(() => this.flushInternal(docId), DEBOUNCE_MS);
+      this.pushDebouncers.set(docId, debounced);
+    }
+    debounced();
+  }
+
+  private async flushInternal(docId: string) {
+    const key = parseRemoteKeyFromDocId(docId);
+    if (!key)
+      return;
+
     // Merge strategy:
     // - Prefer cached fullUpdate (from pull)
     // - If not cached, fetch remote fullUpdate first to avoid overwriting remote state
@@ -98,7 +126,7 @@ export class RemoteSnapshotDocSource implements DocSource {
     let base = this.cache.get(docId);
     if (!base) {
       try {
-        base = await this.getRemoteFullUpdate(docId) ?? undefined;
+        base = (await this.getRemoteFullUpdate(docId)) ?? undefined;
         if (base)
           this.cache.set(docId, base);
       }
@@ -107,10 +135,14 @@ export class RemoteSnapshotDocSource implements DocSource {
       }
     }
 
+    // Read all pending local updates (including the ones added just before debounce started).
     const pending = await listUpdates(docId);
+    if (!pending.length)
+      return;
+
     const merged = base
-      ? mergeUpdates([base, ...pending, data])
-      : mergeUpdates([...pending, data]);
+      ? mergeUpdates([base, ...pending])
+      : mergeUpdates([...pending]);
 
     try {
       await setRemoteSnapshot({
@@ -122,18 +154,14 @@ export class RemoteSnapshotDocSource implements DocSource {
         },
       });
       this.cache.set(docId, merged);
+
+      // Clear queue only after successful remote persist
       if (pending.length)
         await clearUpdates(docId);
     }
     catch {
-      // Network/server failure: queue the incremental update for later flush.
-      // Swallow errors so blocksuite sync engine keeps working.
-      try {
-        await addUpdate(docId, data);
-      }
-      catch {
-        // ignore
-      }
+      // Network/server failure: do nothing.
+      // Updates remain in 'descriptionDocDb' and will be retried on next flush/pull.
     }
   }
 

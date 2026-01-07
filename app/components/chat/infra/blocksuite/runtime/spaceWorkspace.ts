@@ -19,6 +19,7 @@ import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
 import { applyUpdate, encodeStateAsUpdate } from "yjs";
 
+import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineSpec";
 
 class InMemoryWorkspaceMeta implements WorkspaceMeta {
@@ -201,6 +202,14 @@ export class SpaceWorkspace implements Workspace {
   readonly onLoadAwareness?: (awareness: Awareness) => void;
 
   private readonly _rootDoc: Y.Doc;
+  private readonly _spaces: Y.Map<Y.Doc>;
+  private readonly _onSpacesChanged = () => {
+    this._syncMetaFromSpaces();
+    this._hydrateMissingTitles();
+  };
+
+  private readonly _titleHydrationAbort = new AbortController();
+  private _titleHydrationScheduled = false;
 
   readonly slots = {
     docListUpdated: new Subject<void>(),
@@ -222,6 +231,7 @@ export class SpaceWorkspace implements Workspace {
   constructor(params: { workspaceId: string; storeExtensions?: ExtensionType[] }) {
     this.id = params.workspaceId;
     this._rootDoc = new Y.Doc({ guid: params.workspaceId });
+    this._spaces = this._rootDoc.getMap<Y.Doc>("spaces");
     this.meta = new InMemoryWorkspaceMeta();
     this.storeExtensions = params.storeExtensions ?? AFFINE_STORE_EXTENSIONS;
 
@@ -232,7 +242,7 @@ export class SpaceWorkspace implements Workspace {
     this.docSync = new DocEngine(
       this._rootDoc,
       new IndexedDBDocSource(dbPrefix),
-      [],
+      [new RemoteSnapshotDocSource()],
       logger,
     );
 
@@ -244,6 +254,70 @@ export class SpaceWorkspace implements Workspace {
 
     this.docSync.start();
     this.blobSync.start();
+
+    // Ensure linked-doc can list all docs within this workspace.
+    // linked-doc menu reads from `workspace.meta.docMetas`.
+    this._syncMetaFromSpaces();
+    this._hydrateMissingTitles();
+    this._spaces.observe(this._onSpacesChanged);
+  }
+
+  private _syncMetaFromSpaces() {
+    // Keep meta in sync with all known subdocs.
+    // We don't have server-side meta persistence in demo stage.
+    for (const docId of this._spaces.keys()) {
+      if (this.meta.getDocMeta(docId))
+        continue;
+      this.meta.addDocMeta({
+        id: docId,
+        title: "",
+        tags: [],
+        createDate: Date.now(),
+      });
+    }
+  }
+
+  private _hydrateMissingTitles() {
+    // Titles are derived from document content, so we need to load subdocs.
+    // Do this lazily and in a read-only way to avoid mutating docs during listing.
+    if (this._titleHydrationScheduled)
+      return;
+    this._titleHydrationScheduled = true;
+
+    queueMicrotask(async () => {
+      this._titleHydrationScheduled = false;
+      if (this._titleHydrationAbort.signal.aborted)
+        return;
+
+      const metas = this.meta.docMetas;
+      // Only fill titles for docs we already know exist.
+      const pendingIds = metas
+        .filter(m => !m.title)
+        .map(m => m.id);
+
+      // Avoid blocking the UI if there are many docs.
+      // Process sequentially; break early if disposed.
+      for (const docId of pendingIds) {
+        if (this._titleHydrationAbort.signal.aborted)
+          return;
+
+        try {
+          const doc = (this.getDoc(docId) as SpaceDoc | null) ?? (this.createDoc(docId) as SpaceDoc);
+          doc.load();
+          const store = doc.getStore({ readonly: true });
+          const title = tryDeriveDocTitle(store);
+          if (title) {
+            const meta = this.meta.getDocMeta(docId);
+            if (meta && meta.title !== title) {
+              this.meta.setDocMeta(docId, { title });
+            }
+          }
+        }
+        catch {
+          // ignore; keep empty title
+        }
+      }
+    });
   }
 
   createDoc(docId?: string): Doc {
@@ -293,14 +367,27 @@ export class SpaceWorkspace implements Workspace {
   /**
    * 将 doc 恢复到指定 full update（用于本地版本回滚）。
    *
-   * 注意：这不是持久化 undo 栈；只是把当前内容替换为某个历史版本。
+   * 注意：这将合并更新到现有文档，而不是清除后覆盖（与旧版 behavior 保持一致，避免视图空白）。
    */
   restoreDocFromUpdate(params: { docId: string; update: Uint8Array }) {
     const doc = (this.getDoc(params.docId) as SpaceDoc | null) ?? (this.createDoc(params.docId) as SpaceDoc);
-    doc.load();
-    doc.clear();
-    if (params.update.length)
+
+    // Ensure meta exists so the doc is discoverable by linked-doc menu.
+    if (!this.meta.getDocMeta(params.docId)) {
+      this.meta.addDocMeta({
+        id: params.docId,
+        title: "",
+        tags: [],
+        createDate: Date.now(),
+      });
+    }
+
+    if (params.update.length) {
       applyUpdate(doc.spaceDoc, params.update);
+    }
+
+    // Ensure doc is marked as loaded (and subdoc connected if needed) after applying updates.
+    doc.load();
   }
 
   /**
@@ -315,11 +402,131 @@ export class SpaceWorkspace implements Workspace {
   dispose(): void {
     this.docSync.forceStop();
     this.blobSync.stop();
+    this._spaces.unobserve(this._onSpacesChanged);
+    this._titleHydrationAbort.abort();
     this._docs.clear();
   }
 }
 
 const workspaceById = new Map<string, SpaceWorkspace>();
+
+function ensureAffineMinimumBlockData(store: Store) {
+  // 1) Init if empty
+  if (!store.root) {
+    const pageId = store.addBlock("affine:page", { title: new Text("") });
+    store.addBlock("affine:surface", {}, pageId);
+    // In edgeless mode, notes are positioned by `xywh`. If it's missing, the note
+    // can be effectively invisible on the canvas even though it exists.
+    const noteId = store.addBlock("affine:note", { xywh: "[0, 100, 800, 640]" }, pageId);
+    store.addBlock("affine:paragraph", { text: new Text("") }, noteId);
+    return;
+  }
+
+  // 2) Backfill missing essential props for legacy docs
+  store.transact(() => {
+    const pageModels = store.getModelsByFlavour("affine:page") as Array<any>;
+    for (const m of pageModels) {
+      if (!m?.props?.title) {
+        store.updateBlock(m, { title: new Text("") });
+      }
+    }
+
+    const noteModels = store.getModelsByFlavour("affine:note") as Array<any>;
+    for (const m of noteModels) {
+      if (!m?.props?.xywh) {
+        store.updateBlock(m, { xywh: "[0, 100, 800, 640]" });
+      }
+    }
+
+    const paragraphModels = store.getModelsByFlavour("affine:paragraph") as Array<any>;
+    for (const m of paragraphModels) {
+      if (!m?.props?.text) {
+        store.updateBlock(m, { text: new Text("") });
+      }
+    }
+
+    // 3) Edgeless safety: ensure `affine:surface` exists (edgeless root hard-requires it).
+    // A corrupted doc may lose the surface block (e.g. bad move/delete), which will crash on open.
+    const page = pageModels?.[0] ?? (store as any).root;
+    if (!page)
+      return;
+
+    const sanitizeChildren = (model: any) => {
+      try {
+        const yChildren = model?.yBlock?.get?.("sys:children");
+        const ids = typeof yChildren?.toArray === "function" ? (yChildren.toArray() as string[]) : [];
+        if (!ids.length)
+          return;
+        const children = ids
+          .map(id => (store as any).getBlock?.(id)?.model)
+          .filter(Boolean);
+        if (children.length !== ids.length) {
+          store.updateBlock(model, { children });
+        }
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    let surfaceModels = store.getModelsByFlavour("affine:surface") as Array<any>;
+    if (!surfaceModels?.length) {
+      store.addBlock("affine:surface", {}, page.id);
+      surfaceModels = store.getModelsByFlavour("affine:surface") as Array<any>;
+    }
+
+    const surface = surfaceModels?.[0];
+    if (surface) {
+      // If surface became orphaned, move it back under the page.
+      if (surface.parent?.id !== page.id) {
+        try {
+          (store as any).moveBlocks?.([surface], page);
+        }
+        catch {
+          // ignore
+        }
+      }
+
+      // Repair dangling children arrays (can cause `renderChildren` to hit undefined).
+      sanitizeChildren(page);
+      sanitizeChildren(surface);
+
+      // Frame/edgeless-text blocks must be children of surface.
+      // If the old surface was deleted, these blocks become parentless and later operations will crash.
+      const surfaceParentRequiredFlavours = ["affine:frame", "affine:edgeless-text"] as const;
+      for (const flavour of surfaceParentRequiredFlavours) {
+        const models = store.getModelsByFlavour(flavour) as Array<any>;
+        for (const m of models) {
+          if (m?.parent?.id === surface.id)
+            continue;
+          try {
+            (store as any).moveBlocks?.([m], surface);
+          }
+          catch {
+            // ignore
+          }
+        }
+      }
+
+      // After moves, sanitize once more.
+      sanitizeChildren(surface);
+    }
+  });
+}
+
+function tryDeriveDocTitle(store: Store): string | null {
+  try {
+    const pages = store.getModelsByFlavour("affine:page") as Array<any>;
+    const page = pages?.[0];
+    const title = page?.props?.title;
+    const str = typeof title?.toString === "function" ? title.toString() : "";
+    const trimmed = String(str ?? "").trim();
+    return trimmed || null;
+  }
+  catch {
+    return null;
+  }
+}
 
 export function getOrCreateSpaceWorkspaceRuntime(workspaceId: string): SpaceWorkspace {
   const existing = workspaceById.get(workspaceId);
@@ -340,33 +547,26 @@ export function getOrCreateSpaceDocStore(params: {
 
   doc.load(() => {
     const store = doc.getStore();
-    // 1) 首次初始化：创建最小 Affine-like block tree
-    if (!store.root) {
-      const pageId = store.addBlock("affine:page", { title: new Text("") });
-      store.addBlock("affine:surface", {}, pageId);
-      const noteId = store.addBlock("affine:note", {}, pageId);
-      store.addBlock("affine:paragraph", { text: new Text("") }, noteId);
-      return;
-    }
-
-    // 2) 旧数据迁移：历史版本可能没写入 title/text，导致标题/placeholder/输入行为异常。
-    //    这里在加载时做一次“补齐缺省字段”，确保 paragraph 具备 Text(yText) 可编辑数据源。
-    store.transact(() => {
-      const pageModels = store.getModelsByFlavour("affine:page") as Array<any>;
-      for (const m of pageModels) {
-        if (!m?.props?.title) {
-          store.updateBlock(m, { title: new Text("") });
-        }
-      }
-
-      const paragraphModels = store.getModelsByFlavour("affine:paragraph") as Array<any>;
-      for (const m of paragraphModels) {
-        if (!m?.props?.text) {
-          store.updateBlock(m, { text: new Text("") });
-        }
-      }
-    });
+    ensureAffineMinimumBlockData(store);
   });
 
-  return doc.getStore();
+  // doc.load(initFn) only runs initFn once. If the doc is already loaded in this
+  // session, we still want to backfill missing props for edgeless rendering.
+  const store = doc.getStore();
+  ensureAffineMinimumBlockData(store);
+
+  // Best-effort: sync title into meta so linked-doc can fuzzy-match by title.
+  const title = tryDeriveDocTitle(store);
+  if (title) {
+    const meta = ws.meta.getDocMeta(params.docId);
+    if (!meta || meta.title !== title) {
+      if (!meta) {
+        ws.meta.addDocMeta({ id: params.docId, title, tags: [], createDate: Date.now() });
+      }
+      else {
+        ws.meta.setDocMeta(params.docId, { title });
+      }
+    }
+  }
+  return store;
 }

@@ -1,7 +1,7 @@
 import { tuanchat } from "../../../../../api/instance";
 
-export type DescriptionEntityType = "space" | "room" | "space_clue";
-export type DescriptionDocType = "description";
+export type DescriptionEntityType = "space" | "room" | "space_clue" | "user";
+export type DescriptionDocType = "description" | "readme";
 
 const LEGACY_EXTRA_KEY_PREFIX = "blocksuite_doc";
 
@@ -15,19 +15,55 @@ export type StoredSnapshot = {
   updatedAt: number;
 };
 
-function tryParseSnapshot(raw: string | null | undefined): StoredSnapshot | null {
+type RemoteKey = {
+  entityType: DescriptionEntityType;
+  entityId: number;
+  docType: DescriptionDocType;
+};
+
+function buildRemoteCacheKey(key: RemoteKey) {
+  return `${key.entityType}:${key.entityId}:${key.docType}`;
+}
+
+// De-dupe back-to-back GETs caused by:
+// - pre-hydration fetch in BlocksuiteDescriptionEditor
+// - sync engine pull (RemoteSnapshotDocSource)
+// Also mitigates React StrictMode double-mount in dev.
+const SNAPSHOT_CACHE_TTL_MS = 1500;
+const snapshotCache = new Map<string, { at: number; value: StoredSnapshot | null }>();
+const snapshotInflight = new Map<string, Promise<StoredSnapshot | null>>();
+
+const SNAPSHOT_SET_DEDUPE_MS = 2500;
+const snapshotSetInflight = new Map<string, Promise<void>>();
+const snapshotLastSet = new Map<string, { at: number; updateB64: string }>();
+
+function isStoredSnapshot(v: any): v is StoredSnapshot {
+  return !!v
+    && v.v === 1
+    && typeof v.updateB64 === "string"
+    && typeof v.updatedAt === "number";
+}
+
+function tryParseSnapshot(raw: unknown): StoredSnapshot | null {
   if (!raw)
     return null;
-  try {
-    const parsed = JSON.parse(raw) as StoredSnapshot;
-    if (parsed && parsed.v === 1 && typeof parsed.updateB64 === "string") {
-      return parsed;
+
+  // Backend may return snapshot as a JSON string, or already-parsed object.
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return isStoredSnapshot(parsed) ? parsed : null;
     }
-    return null;
+    catch {
+      return null;
+    }
   }
-  catch {
-    return null;
+
+  if (typeof raw === "object") {
+    return isStoredSnapshot(raw) ? (raw as StoredSnapshot) : null;
   }
+
+  return null;
 }
 
 export async function getRemoteSnapshot(params: {
@@ -35,46 +71,71 @@ export async function getRemoteSnapshot(params: {
   entityId: number;
   docType: DescriptionDocType;
 }): Promise<StoredSnapshot | null> {
+  const cacheKey = buildRemoteCacheKey(params);
+  const cached = snapshotCache.get(cacheKey);
+  if (cached && Date.now() - cached.at <= SNAPSHOT_CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const inflight = snapshotInflight.get(cacheKey);
+  if (inflight) {
+    return inflight;
+  }
+
+  const task = (async (): Promise<StoredSnapshot | null> => {
   // 优先从 blocksuite_doc 表读取
-  const res = await tuanchat.request.request<any>({
-    method: "GET",
-    url: "/blocksuite/doc",
-    query: {
-      entityType: params.entityType,
-      entityId: params.entityId,
-      docType: params.docType,
-    },
-  });
-  const fromTable = tryParseSnapshot(res?.data ?? null);
-  if (fromTable)
-    return fromTable;
+    const res = await tuanchat.request.request<any>({
+      method: "GET",
+      url: "/blocksuite/doc",
+      query: {
+        entityType: params.entityType,
+        entityId: params.entityId,
+        docType: params.docType,
+      },
+    });
+    // Most endpoints wrap data inside ApiResult: { code, msg, data }
+    // Some deployments may return the snapshot object directly.
+    const fromTable = tryParseSnapshot((res as any)?.data ?? res ?? null);
+    if (fromTable)
+      return fromTable;
 
-  // space_clue 仅使用 blocksuite_doc 存储，不做 legacy extra 兼容
-  if (params.entityType === "space_clue")
-    return null;
+    // 仅 space/room 的 description 做 legacy extra 兼容
+    if (params.entityType === "space_clue" || params.entityType === "user" || params.docType !== "description")
+      return null;
 
-  // 兼容迁移：若新表无数据，则尝试从旧 extra 读取一次，并写回新表
-  const legacyKey = buildLegacyExtraKey(params.docType);
-  const legacyRes
+    // 兼容迁移：若新表无数据，则尝试从旧 extra 读取一次，并写回新表
+    const legacyKey = buildLegacyExtraKey(params.docType);
+    const legacyRes
     = params.entityType === "space"
       ? await tuanchat.spaceController.getSpaceExtra(params.entityId, legacyKey)
       : await tuanchat.roomController.getRoomExtra(params.entityId, legacyKey);
-  const legacy = tryParseSnapshot(legacyRes.data ?? null);
-  if (!legacy)
-    return null;
+    const legacy = tryParseSnapshot((legacyRes as any).data ?? null);
+    if (!legacy)
+      return null;
 
-  await tuanchat.request.request<any>({
-    method: "PUT",
-    url: "/blocksuite/doc",
-    body: {
-      entityType: params.entityType,
-      entityId: params.entityId,
-      docType: params.docType,
-      snapshot: JSON.stringify(legacy),
-    },
-    mediaType: "application/json",
-  });
-  return legacy;
+    await tuanchat.request.request<any>({
+      method: "PUT",
+      url: "/blocksuite/doc",
+      body: {
+        entityType: params.entityType,
+        entityId: params.entityId,
+        docType: params.docType,
+        snapshot: JSON.stringify(legacy),
+      },
+      mediaType: "application/json",
+    });
+    return legacy;
+  })();
+
+  snapshotInflight.set(cacheKey, task);
+  try {
+    const value = await task;
+    snapshotCache.set(cacheKey, { at: Date.now(), value });
+    return value;
+  }
+  finally {
+    snapshotInflight.delete(cacheKey);
+  }
 }
 
 export async function setRemoteSnapshot(params: {
@@ -83,7 +144,29 @@ export async function setRemoteSnapshot(params: {
   docType: DescriptionDocType;
   snapshot: StoredSnapshot;
 }): Promise<void> {
-  await tuanchat.request.request<any>({
+  const cacheKey = buildRemoteCacheKey(params);
+  const now = Date.now();
+
+  // If we just sent the exact same snapshot, skip.
+  // This avoids duplicate PUTs caused by sync init + online flush races.
+  const last = snapshotLastSet.get(cacheKey);
+  if (last
+    && last.updateB64 === params.snapshot.updateB64
+    && now - last.at <= SNAPSHOT_SET_DEDUPE_MS) {
+    snapshotCache.set(cacheKey, { at: now, value: params.snapshot });
+    return;
+  }
+
+  // If an identical PUT is already in-flight, reuse it.
+  const inflight = snapshotSetInflight.get(cacheKey);
+  if (inflight
+    && last
+    && last.updateB64 === params.snapshot.updateB64
+    && now - last.at <= SNAPSHOT_SET_DEDUPE_MS) {
+    return inflight;
+  }
+
+  const task = tuanchat.request.request<any>({
     method: "PUT",
     url: "/blocksuite/doc",
     body: {
@@ -93,5 +176,19 @@ export async function setRemoteSnapshot(params: {
       snapshot: JSON.stringify(params.snapshot),
     },
     mediaType: "application/json",
+  }).then(() => {
+    snapshotLastSet.set(cacheKey, { at: Date.now(), updateB64: params.snapshot.updateB64 });
+    snapshotCache.set(cacheKey, { at: Date.now(), value: params.snapshot });
   });
+
+  snapshotSetInflight.set(cacheKey, task);
+  try {
+    await task;
+  }
+  finally {
+    // Only clear if it is still the same task.
+    if (snapshotSetInflight.get(cacheKey) === task) {
+      snapshotSetInflight.delete(cacheKey);
+    }
+  }
 }
