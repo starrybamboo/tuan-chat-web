@@ -2,8 +2,9 @@ import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import type { RoleAvatar } from "api";
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
 import MoodRegulator from "@/components/common/MoodRegulator";
-import { tuanchat } from "api/instance";
+import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 interface AvatarSettingsTabProps {
   /** 有立绘的头像列表 */
@@ -24,7 +25,6 @@ export function AvatarSettingsTab({
   spritesAvatars,
   roleAvatars,
   selectedIndex,
-  onApply,
 }: AvatarSettingsTabProps) {
   // 当前选中的头像（从完整列表中根据 spritesAvatars 的 avatarId 查找）
   const currentSpriteAvatar = spritesAvatars[selectedIndex];
@@ -36,6 +36,16 @@ export function AvatarSettingsTab({
   // 头像标题设置
   const [editingName, setEditingName] = useState("");
   const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
+  const roleIdForMutation = currentAvatar?.roleId ?? currentSpriteAvatar?.roleId ?? 0;
+  const { mutateAsync: updateAvatar, isPending: isSaving } = useUpdateRoleAvatarMutation(roleIdForMutation);
+  const avatarTitleRecord = useMemo<Record<string, string>>(() => {
+    if (!currentAvatar?.avatarTitle)
+      return {};
+    if (typeof currentAvatar.avatarTitle === "string") {
+      return { label: currentAvatar.avatarTitle };
+    }
+    return currentAvatar.avatarTitle as Record<string, string>;
+  }, [currentAvatar]);
 
   // 情绪调节器兜底标签
   const DEFAULT_MOOD_LABELS = useMemo(
@@ -45,9 +55,9 @@ export function AvatarSettingsTab({
 
   // 根据当前选中头像的情绪键生成 labels
   const moodLabels = useMemo(() => {
-    const keys = Object.keys((currentAvatar?.avatarTitle as Record<string, string>) || {});
+    const keys = Object.keys(avatarTitleRecord);
     return keys.length > 0 ? keys : DEFAULT_MOOD_LABELS;
-  }, [currentAvatar, DEFAULT_MOOD_LABELS]);
+  }, [avatarTitleRecord, DEFAULT_MOOD_LABELS]);
 
   // 内部暂存的情绪值（用于应用按钮）
   const [pendingMoodMap, setPendingMoodMap] = useState<Record<string, string>>({});
@@ -55,12 +65,11 @@ export function AvatarSettingsTab({
   // 同步情绪调节器值（当切换立绘时）
   useEffect(() => {
     if (currentAvatar) {
-      const t = (currentAvatar.avatarTitle as Record<string, string>) || {};
-      setPendingMoodMap(t);
-      setEditingName(currentAvatar.avatarTitle?.label || "");
-      moodControlRef.current?.setValue(t);
+      setPendingMoodMap(avatarTitleRecord);
+      setEditingName(avatarTitleRecord.label || "");
+      moodControlRef.current?.setValue(avatarTitleRecord);
     }
-  }, [currentAvatar]);
+  }, [currentAvatar, avatarTitleRecord]);
 
   // 情绪变更回调（仅更新本地暂存）
   const handleMoodChange = useCallback((moodMap: Record<string, string>) => {
@@ -70,26 +79,27 @@ export function AvatarSettingsTab({
 
   // 应用情感设定到选中的头像
   const handleApplyMood = useCallback(async () => {
-    if (currentAvatar?.roleId && currentAvatar?.avatarId) {
+    if (currentAvatar?.avatarId) {
       const nextAvatarTitle: Record<string, string> = {
-        ...((currentAvatar.avatarTitle as Record<string, string>) || {}),
+        ...avatarTitleRecord,
         ...pendingMoodMap,
-        label: editingName.trim() || currentAvatar.avatarTitle?.label || "未命名",
+        label: editingName.trim() || avatarTitleRecord.label || "未命名",
       };
 
-      // 直接调用 API 更新整个 avatarTitle 对象
-      const res = await tuanchat.avatarController.updateRoleAvatar({
-        ...currentAvatar,
-        avatarTitle: nextAvatarTitle,
-      });
-
-      if (res.success) {
-        console.warn("更新情感设定成功");
+      try {
+        await updateAvatar({
+          ...currentAvatar,
+          roleId: currentAvatar.roleId ?? currentSpriteAvatar?.roleId,
+          avatarTitle: nextAvatarTitle,
+        });
+        toast.success("头像设置已保存");
+      }
+      catch (error) {
+        console.error("更新情感设定失败:", error);
+        toast.error("保存失败，请稍后重试");
       }
     }
-    // 应用后关闭弹窗
-    onApply?.();
-  }, [currentAvatar, pendingMoodMap, editingName, onApply]);
+  }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, updateAvatar, avatarTitleRecord]);
 
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
@@ -159,7 +169,7 @@ export function AvatarSettingsTab({
                       controlRef={moodControlRef}
                       onChange={handleMoodChange}
                       labels={moodLabels}
-                      defaultValue={(currentAvatar?.avatarTitle as Record<string, string>) || undefined}
+                      defaultValue={Object.keys(avatarTitleRecord).length ? avatarTitleRecord : undefined}
                       fallbackDefaultLabels={true}
                     />
                   </div>
@@ -185,9 +195,9 @@ export function AvatarSettingsTab({
           type="button"
           className="btn btn-primary"
           onClick={handleApplyMood}
-          disabled={!currentAvatar}
+          disabled={!currentAvatar || isSaving}
         >
-          应用设置
+          {isSaving ? "保存中..." : "应用设置"}
         </button>
       </div>
     </div>

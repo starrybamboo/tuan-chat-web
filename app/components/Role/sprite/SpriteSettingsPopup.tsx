@@ -66,6 +66,7 @@ export function SpriteSettingsPopup({
   // ========== 多选状态管理 ==========
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const isMultiSelectDisabled = activeTab === "setting";
 
   // 当前选中的头像数据
   const currentAvatar = useMemo(() => {
@@ -159,6 +160,14 @@ export function SpriteSettingsPopup({
     setSelectedIndices(indices);
     setIsMultiSelectMode(isMultiMode);
   }, []);
+
+  // 头像设置页禁用多选，并强制回到单选
+  useEffect(() => {
+    if (isMultiSelectDisabled && isMultiSelectMode) {
+      setIsMultiSelectMode(false);
+      setSelectedIndices(new Set());
+    }
+  }, [isMultiSelectDisabled, isMultiSelectMode]);
 
   // 请求批量删除
   const handleBatchDeleteRequest = useCallback(() => {
@@ -326,9 +335,13 @@ export function SpriteSettingsPopup({
                 {!isMultiSelectMode && spritesAvatars.length > 1 && (
                   <button
                     type="button"
-                    className="btn btn-soft bg-base-200 btn-square btn-xs"
-                    onClick={() => setIsMultiSelectMode(true)}
+                    className={`btn btn-soft bg-base-200 btn-square btn-xs ${isMultiSelectDisabled ? "btn-disabled" : ""}`}
+                    onClick={() => {
+                      if (!isMultiSelectDisabled)
+                        setIsMultiSelectMode(true);
+                    }}
                     title="进入选择模式"
+                    disabled={isMultiSelectDisabled}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
