@@ -53,11 +53,8 @@ export function AvatarSettingsTab({
     [],
   );
 
-  // 根据当前选中头像的情绪键生成 labels
-  const moodLabels = useMemo(() => {
-    const keys = Object.keys(avatarTitleRecord);
-    return keys.length > 0 ? keys : DEFAULT_MOOD_LABELS;
-  }, [avatarTitleRecord, DEFAULT_MOOD_LABELS]);
+  // 固定情感标签为默认 8 个
+  const moodLabels = DEFAULT_MOOD_LABELS;
 
   // 内部暂存的情绪值（用于应用按钮）
   const [pendingMoodMap, setPendingMoodMap] = useState<Record<string, string>>({});
@@ -65,11 +62,15 @@ export function AvatarSettingsTab({
   // 同步情绪调节器值（当切换立绘时）
   useEffect(() => {
     if (currentAvatar) {
-      setPendingMoodMap(avatarTitleRecord);
+      const defaultMoodMap: Record<string, string> = {};
+      moodLabels.forEach((label) => {
+        defaultMoodMap[label] = avatarTitleRecord[label] || "";
+      });
+      setPendingMoodMap({ ...defaultMoodMap, label: avatarTitleRecord.label || "" });
       setEditingName(avatarTitleRecord.label || "");
-      moodControlRef.current?.setValue(avatarTitleRecord);
+      moodControlRef.current?.setValue(defaultMoodMap);
     }
-  }, [currentAvatar, avatarTitleRecord]);
+  }, [currentAvatar, avatarTitleRecord, moodLabels]);
 
   // 情绪变更回调（仅更新本地暂存）
   const handleMoodChange = useCallback((moodMap: Record<string, string>) => {
@@ -80,9 +81,20 @@ export function AvatarSettingsTab({
   // 应用情感设定到选中的头像
   const handleApplyMood = useCallback(async () => {
     if (currentAvatar?.avatarId) {
+      const moodKeySet = new Set(moodLabels);
+      const baseMood: Record<string, string> = {};
+      moodKeySet.forEach((key) => {
+        baseMood[key] = avatarTitleRecord[key] || "";
+      });
+
+      const nextMoodMap: Record<string, string> = { ...baseMood };
+      Object.entries(pendingMoodMap).forEach(([key, value]) => {
+        if (moodKeySet.has(key))
+          nextMoodMap[key] = value;
+      });
+
       const nextAvatarTitle: Record<string, string> = {
-        ...avatarTitleRecord,
-        ...pendingMoodMap,
+        ...nextMoodMap,
         label: editingName.trim() || avatarTitleRecord.label || "未命名",
       };
 
@@ -99,7 +111,7 @@ export function AvatarSettingsTab({
         toast.error("保存失败，请稍后重试");
       }
     }
-  }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, updateAvatar, avatarTitleRecord]);
+  }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, updateAvatar, avatarTitleRecord, moodLabels]);
 
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
