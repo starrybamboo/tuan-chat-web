@@ -60,6 +60,7 @@ export function SpriteCropper({
   characterName,
   onCropComplete,
   cropMode = "sprite",
+  onSpriteIndexChange,
   selectedIndices = EMPTY_SET,
   isMultiSelectMode = false,
 }: SpriteCropperProps) {
@@ -95,6 +96,23 @@ export function SpriteCropper({
   // 操作模式：根据外部多选状态自动确定
   // 如果处于多选模式且选中了多个头像，则为批量模式
   const operationMode = isMultiSelectMode && selectedIndices.size > 1 ? "batch" : "single";
+  const selectedAvatarIndices = Array.from(selectedIndices)
+    .filter(index => index >= 0 && index < filteredAvatars.length)
+    .sort((a, b) => a - b);
+  const isBatchMode = operationMode === "batch" && selectedAvatarIndices.length > 0;
+  const currentSelectedPosition = selectedAvatarIndices.indexOf(currentSpriteIndex);
+  const hasPrevSelected = currentSelectedPosition > 0;
+  const hasNextSelected = currentSelectedPosition >= 0 && currentSelectedPosition < selectedAvatarIndices.length - 1;
+
+  useEffect(() => {
+    if (!isBatchMode)
+      return;
+    if (currentSelectedPosition === -1) {
+      const nextIndex = selectedAvatarIndices[0];
+      setCurrentSpriteIndex(nextIndex);
+      onSpriteIndexChange?.(nextIndex);
+    }
+  }, [isBatchMode, currentSelectedPosition, selectedAvatarIndices, onSpriteIndexChange]);
 
   const currentSourceAvatar = filteredAvatars.length > 0 ? filteredAvatars[currentSpriteIndex] : undefined;
   const canUseOriginForCurrent = !!currentSourceAvatar?.originUrl;
@@ -121,6 +139,20 @@ export function SpriteCropper({
     }
     return spriteUrl || "";
   };
+
+  const handleSelectedSwitch = useCallback((direction: "prev" | "next") => {
+    if (!isBatchMode)
+      return;
+    if (currentSelectedPosition === -1)
+      return;
+    const offset = direction === "prev" ? -1 : 1;
+    const nextPosition = currentSelectedPosition + offset;
+    const nextIndex = selectedAvatarIndices[nextPosition];
+    if (nextIndex == null)
+      return;
+    setCurrentSpriteIndex(nextIndex);
+    onSpriteIndexChange?.(nextIndex);
+  }, [isBatchMode, currentSelectedPosition, selectedAvatarIndices, onSpriteIndexChange]);
 
   // 获取当前立绘的avatarId
   const getCurrentAvatarId = () => {
@@ -735,11 +767,9 @@ export function SpriteCropper({
           )}
           {isMultiSelectMode && selectedIndices.size > 1 && (
             <div className="badge badge-primary">
-              将对选中的
-              {" "}
+              选中
               {selectedIndices.size}
-              {" "}
-              个头像进行操作
+              个头像
             </div>
           )}
         </div>
@@ -750,25 +780,59 @@ export function SpriteCropper({
           {/* 左侧：原始图片裁剪区域 - 移动端隐藏，通过弹窗显示 */}
           <div className="w-full md:basis-1/3 p-2 flex-col items-center order-2 md:order-1 hidden md:flex md:flex-none h-full">
             {currentUrl && (
-              <ReactCrop
-                crop={crop}
-                onChange={onCropChange}
-                onComplete={handleCropComplete}
-                // 头像模式限制1:1宽高比，立绘模式不限制
-                aspect={isAvatarMode ? 1 : undefined}
-                minHeight={10}
-              >
-                <img
-                  ref={imgRef}
-                  alt="Sprite to crop"
-                  src={currentUrl}
-                  onLoad={onImageLoad}
-                  style={{
-                    maxHeight: "70vh",
-                  }}
-                  crossOrigin="anonymous"
-                />
-              </ReactCrop>
+              <div className="relative w-full">
+                {isBatchMode && (
+                  <div className="absolute top-2 right-2 z-10 flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectedSwitch("prev");
+                      }}
+                      disabled={!hasPrevSelected || isProcessing}
+                      title="上一个选中头像"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectedSwitch("next");
+                      }}
+                      disabled={!hasNextSelected || isProcessing}
+                      title="下一个选中头像"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                <ReactCrop
+                  crop={crop}
+                  onChange={onCropChange}
+                  onComplete={handleCropComplete}
+                  // 头像模式限制1:1宽高比，立绘模式不限制
+                  aspect={isAvatarMode ? 1 : undefined}
+                  minHeight={10}
+                >
+                  <img
+                    ref={imgRef}
+                    alt="Sprite to crop"
+                    src={currentUrl}
+                    onLoad={onImageLoad}
+                    style={{
+                      maxHeight: "70vh",
+                    }}
+                    crossOrigin="anonymous"
+                  />
+                </ReactCrop>
+              </div>
             )}
           </div>
 
@@ -1041,24 +1105,58 @@ export function SpriteCropper({
             </div>
             <div className="flex items-center justify-center">
               {currentUrl && (
-                <ReactCrop
-                  crop={crop}
-                  onChange={onCropChange}
-                  onComplete={handleCropComplete}
-                  aspect={isAvatarMode ? 1 : undefined}
-                  minHeight={10}
-                >
-                  <img
-                    ref={imgRef}
-                    alt="Sprite to crop modal"
-                    src={currentUrl}
-                    onLoad={onImageLoad}
-                    style={{
-                      maxHeight: "60vh",
-                    }}
-                    crossOrigin="anonymous"
-                  />
-                </ReactCrop>
+                <div className="relative w-full">
+                  {isBatchMode && (
+                    <div className="absolute top-2 right-2 z-10 flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectedSwitch("prev");
+                        }}
+                        disabled={!hasPrevSelected || isProcessing}
+                        title="上一个选中头像"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectedSwitch("next");
+                        }}
+                        disabled={!hasNextSelected || isProcessing}
+                        title="下一个选中头像"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  <ReactCrop
+                    crop={crop}
+                    onChange={onCropChange}
+                    onComplete={handleCropComplete}
+                    aspect={isAvatarMode ? 1 : undefined}
+                    minHeight={10}
+                  >
+                    <img
+                      ref={imgRef}
+                      alt="Sprite to crop modal"
+                      src={currentUrl}
+                      onLoad={onImageLoad}
+                      style={{
+                        maxHeight: "60vh",
+                      }}
+                      crossOrigin="anonymous"
+                    />
+                  </ReactCrop>
+                </div>
               )}
             </div>
             <div className="mt-4 flex justify-end">
