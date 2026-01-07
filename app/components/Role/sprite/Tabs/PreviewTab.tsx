@@ -2,8 +2,25 @@ import type { RoleAvatar } from "api";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { useEffect, useRef, useState } from "react";
+import { withOssResizeProcess } from "@/utils/ossImageProcess";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { parseTransformFromAvatar } from "../utils";
+
+interface RenderTransform {
+  scale: number;
+  positionX: number;
+  positionY: number;
+  alpha: number;
+  rotation: number;
+}
+
+const DEFAULT_TRANSFORM: RenderTransform = {
+  scale: 1,
+  positionX: 0,
+  positionY: 0,
+  alpha: 1,
+  rotation: 0,
+};
 
 interface PreviewTabProps {
   /** 当前选中的头像数据 */
@@ -35,57 +52,182 @@ export function PreviewTab({
   const spriteUrl = currentAvatar?.spriteUrl || null;
   const avatarUrl = currentAvatar?.avatarUrl || null;
 
+  const MAX_PREVIEW_WIDTH = 1440;
+
+  // Sprite 预览使用 OSS resize，减少首次加载体积（最大宽度限制为 1440）
+  const spritePreviewUrl = useMemo(() => {
+    if (!spriteUrl)
+      return null;
+
+    const desiredWidth = isMobileScreen() ? 960 : 1440;
+    const width = Math.min(MAX_PREVIEW_WIDTH, desiredWidth);
+    return withOssResizeProcess(spriteUrl, width);
+  }, [spriteUrl]);
+
+  // Render 预览也使用 resize 后的 URL（同样限制到 1440，便于做对比实验）
+  const renderSpriteRequestUrl = useMemo(() => {
+    if (!spriteUrl)
+      return null;
+    return withOssResizeProcess(spriteUrl, MAX_PREVIEW_WIDTH);
+  }, [spriteUrl]);
+
   // Canvas ref for render preview
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Transform state for render preview
-  const transform = currentAvatar
-    ? parseTransformFromAvatar(currentAvatar)
-    : {
-        scale: 1,
-        positionX: 0,
-        positionY: 0,
-        alpha: 1,
-        rotation: 0,
-      };
+  const computedTransform = useMemo<RenderTransform>(() => {
+    return currentAvatar
+      ? (parseTransformFromAvatar(currentAvatar) as RenderTransform)
+      : DEFAULT_TRANSFORM;
+  }, [currentAvatar]);
 
-  // Load sprite image to canvas for render preview
-  // Wait for RenderPreview to create the canvas element first
+  // Render preview should avoid showing: old image + new transform (or vice versa).
+  // So we only update the transform after the new sprite image is ready to draw.
+  const [renderTransform, setRenderTransform] = useState<RenderTransform>(() => computedTransform);
+  const [renderSpriteUrl, setRenderSpriteUrl] = useState<string | null>(() => spriteUrl);
+  const pendingRenderImageRef = useRef<HTMLImageElement | null>(null);
+  const pendingRenderSpriteUrlRef = useRef<string | null>(null);
+  const [renderDrawVersion, setRenderDrawVersion] = useState(0);
+
+  // 图片加载缓存：同一 URL 只加载一次（含 in-flight 复用）
+  const imageLoadCacheRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
+
+  // Load sprite image for render preview.
+  // Important: switching avatars quickly can cause async image loads to resolve out of order.
+  // We cancel stale loads and only commit (transform + draw) for the latest selection.
   useEffect(() => {
-    if (previewMode === "render" && spriteUrl) {
-      const timeoutId = setTimeout(() => {
-        const canvas = previewCanvasRef.current;
-        if (!canvas) {
-          console.error("Canvas not found - RenderPreview may not have created it yet");
-          return;
-        }
+    if (previewMode !== "render")
+      return;
 
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          console.error("Failed to get canvas context");
-          return;
-        }
+    // No sprite: reset to computed transform and clear pending work.
+    if (!renderSpriteRequestUrl) {
+      pendingRenderImageRef.current = null;
+      pendingRenderSpriteUrlRef.current = null;
+      setRenderSpriteUrl(null);
+      setRenderTransform(computedTransform);
+      return;
+    }
 
+    let active = true;
+    let rafId: number | null = null;
+    const targetSpriteUrl = renderSpriteRequestUrl;
+    const targetTransform = computedTransform;
+
+    const loadImageCached = (url: string) => {
+      const cached = imageLoadCacheRef.current.get(url);
+      if (cached)
+        return cached;
+
+      const promise = new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
 
         img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
+          resolve(img);
         };
 
         img.onerror = (error) => {
-          console.error("Failed to load sprite image:", error, spriteUrl);
+          reject(error);
         };
 
-        img.src = spriteUrl;
-      }, 100); // Wait for RenderPreview to mount and create canvas
+        img.src = url;
+      }).catch((error) => {
+        // 失败的条目不缓存，方便下次重试
+        imageLoadCacheRef.current.delete(url);
+        throw error;
+      });
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [previewMode, spriteUrl]);
+      imageLoadCacheRef.current.set(url, promise);
+      return promise;
+    };
+
+    const tryStartLoad = (attemptsLeft: number) => {
+      if (!active)
+        return;
+
+      const canvas = previewCanvasRef.current;
+      if (!canvas) {
+        if (attemptsLeft <= 0) {
+          console.error("Canvas not found - RenderPreview may not have created it yet");
+          return;
+        }
+        rafId = requestAnimationFrame(() => tryStartLoad(attemptsLeft - 1));
+        return;
+      }
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        console.error("Failed to get canvas context");
+        return;
+      }
+
+      loadImageCached(targetSpriteUrl).then((img) => {
+        if (!active)
+          return;
+        // Stash the image and commit the transform first.
+        // Then we draw in a layout effect (paint-safe) to avoid showing a mismatched frame.
+        pendingRenderImageRef.current = img;
+        pendingRenderSpriteUrlRef.current = targetSpriteUrl;
+        setRenderTransform(targetTransform);
+        setRenderDrawVersion(v => v + 1);
+      }).catch((error) => {
+        if (!active)
+          return;
+        console.error("Failed to load sprite image:", error, targetSpriteUrl);
+      });
+    };
+
+    // Wait a few frames for RenderPreview to mount the canvas.
+    tryStartLoad(10);
+
+    return () => {
+      active = false;
+      if (rafId != null)
+        cancelAnimationFrame(rafId);
+    };
+  }, [previewMode, renderSpriteRequestUrl, computedTransform]);
+
+  // Draw pending render sprite *after* renderTransform has been committed (layout effect runs before paint).
+  useLayoutEffect(() => {
+    if (previewMode !== "render")
+      return;
+
+    const pendingUrl = pendingRenderSpriteUrlRef.current;
+    const pendingImg = pendingRenderImageRef.current;
+    if (!pendingUrl || !pendingImg)
+      return;
+
+    // Only draw if this pending image matches the current selection.
+    if (pendingUrl !== renderSpriteRequestUrl)
+      return;
+
+    const canvas = previewCanvasRef.current;
+    if (!canvas)
+      return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx)
+      return;
+
+    canvas.width = pendingImg.width;
+    canvas.height = pendingImg.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(pendingImg, 0, 0);
+
+    setRenderSpriteUrl(pendingUrl);
+    pendingRenderImageRef.current = null;
+    pendingRenderSpriteUrlRef.current = null;
+  }, [renderDrawVersion, previewMode, renderSpriteRequestUrl]);
+
+  // If only the transform changes but sprite stays the same, apply immediately.
+  useEffect(() => {
+    if (previewMode !== "render")
+      return;
+    if (!renderSpriteRequestUrl)
+      return;
+    if (renderSpriteRequestUrl !== renderSpriteUrl)
+      return;
+    setRenderTransform(computedTransform);
+  }, [previewMode, renderSpriteRequestUrl, renderSpriteUrl, computedTransform]);
 
   // Cycle through preview modes
   const cyclePreviewMode = () => {
@@ -155,9 +297,11 @@ export function PreviewTab({
             ? (
                 <div className="w-full h-full flex items-center justify-center p-4">
                   <img
-                    src={spriteUrl}
+                    src={spritePreviewUrl ?? spriteUrl}
                     alt="立绘预览"
                     className="max-w-full max-h-full object-contain"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               )
@@ -209,7 +353,7 @@ export function PreviewTab({
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
-                      transform={transform}
+                      transform={renderTransform}
                       characterName={characterName}
                       dialogContent="这是一段示例对话内容。"
                     />

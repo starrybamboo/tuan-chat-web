@@ -89,6 +89,16 @@ function CharacterDetailInner({
     [roleAvatarsResponse?.data],
   );
 
+  console.warn(
+    "角色头像列表(roleAvatars):",
+    roleAvatars.map(a => ({
+      avatarId: a.avatarId,
+      originEqualsSprite: !!a.originUrl && a.originUrl === a.spriteUrl,
+      spriteUrl: a.spriteUrl ? `${a.spriteUrl.substring(0, 80)}...` : a.spriteUrl,
+      originUrl: a.originUrl ? `${a.originUrl.substring(0, 80)}...` : a.originUrl,
+    })),
+  );
+
   // 判断是否为骰娘角色（使用实时数据）
   const isDiceMaiden = useMemo(() => {
     const roleData = currentRoleData?.data;

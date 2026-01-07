@@ -94,10 +94,10 @@ export function SpriteListGrid({
 
   // Helper function to get avatar display name
   const getAvatarName = (avatar: RoleAvatar, index: number): string => {
-    const label = avatar.avatarTitle?.label;
-    if (label)
-      return label;
-    return index === 0 ? "默认" : `头像${index + 1}`;
+    const title = avatar.avatarTitle;
+    if (typeof title === "string")
+      return title || `头像${index + 1}`;
+    return title?.label || `头像${index + 1}`;
   };
 
   // Handle name edit start
@@ -391,7 +391,6 @@ export function SpriteListGrid({
           <div className="modal-backdrop" onClick={handleCancelDelete}></div>
         </div>
       )}
-
     </>
   );
 }
