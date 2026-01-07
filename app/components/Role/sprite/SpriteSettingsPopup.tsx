@@ -4,12 +4,13 @@ import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { useBatchDeleteRoleAvatarsMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AvatarLibraryTab } from "./Tabs/AvatarLibraryTab";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 
-export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting";
+export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library";
 
 interface SpriteSettingsPopupProps {
   isOpen: boolean;
@@ -474,6 +475,27 @@ export function SpriteSettingsPopup({
                 </svg>
                 <span>头像设置</span>
               </button>
+
+              {/* 素材库 Tab */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("library")}
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
+                  activeTab === "library"
+                    ? "bg-primary text-primary-content"
+                    : "hover:bg-base-300"
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 flex-shrink-0"
+                  viewBox="0 0 256 256"
+                  fill="currentColor"
+                >
+                  <path d="M223.68,66.15,135.68,18a15.88,15.88,0,0,0-15.36,0l-88,48.17a16,16,0,0,0-8.32,14v95.64a16,16,0,0,0,8.32,14l88,48.17a15.88,15.88,0,0,0,15.36,0l88-48.17a16,16,0,0,0,8.32-14V80.18A16,16,0,0,0,223.68,66.15ZM128,32l80.34,44-29.77,16.3-80.35-44ZM128,120,47.66,76l33.9-18.56,80.34,44ZM40,90l80,43.78v85.79L40,175.82Zm176,85.78h0l-80,43.79V133.82l32-17.51V152a8,8,0,0,0,16,0V107.55L216,90v85.77Z" />
+                </svg>
+                <span>素材库</span>
+              </button>
             </nav>
           </div>
 
@@ -557,6 +579,11 @@ export function SpriteSettingsPopup({
                 selectedIndex={internalIndex}
                 onApply={handleApply}
               />
+            )}
+
+            {/* 素材库内容 */}
+            {activeTab === "library" && (
+              <AvatarLibraryTab />
             )}
           </div>
         </div>
