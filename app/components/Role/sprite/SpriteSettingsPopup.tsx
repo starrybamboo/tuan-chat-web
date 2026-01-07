@@ -4,12 +4,12 @@ import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { useBatchDeleteRoleAvatarsMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { MoodSettingsTab } from "./Tabs/MoodSettingsTab";
+import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 
-export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "mood";
+export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting";
 
 interface SpriteSettingsPopupProps {
   isOpen: boolean;
@@ -32,7 +32,7 @@ interface SpriteSettingsPopupProps {
 
 /**
  * 立绘设置弹窗组件
- * 左侧固定显示头像列表，右侧 tab 切换不同功能：预览、立绘校正、头像校正、情感设定
+ * 左侧固定显示头像列表，右侧 tab 切换不同功能：预览、立绘校正、头像校正、头像设置
  * 内部维护共享的立绘索引状态
  */
 export function SpriteSettingsPopup({
@@ -388,9 +388,13 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" strokeWidth="2" />
-                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 flex-shrink-0"
+                  viewBox="0 0 256 256"
+                  fill="currentColor"
+                >
+                  <path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128,133.33,133.33,0,0,1,48.07,97.25C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z" />
                 </svg>
                 <span>渲染预览</span>
               </button>
@@ -405,9 +409,13 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                  <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 flex-shrink-0"
+                  viewBox="0 0 256 256"
+                  fill="currentColor"
+                >
+                  <path d="M227.32,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H216a8,8,0,0,0,0-16H115.32l112-112A16,16,0,0,0,227.32,73.37ZM136,75.31,152.69,92,68,176.69,51.31,160ZM48,208V179.31L76.69,208Zm48-3.31L79.32,188,164,103.31,180.69,120Zm96-96L147.32,64l24-24L216,84.69Z" />
                 </svg>
                 <span>立绘校正</span>
               </button>
@@ -422,31 +430,36 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" />
-                  <path d="M6 21v-1a6 6 0 0112 0v1" stroke="currentColor" strokeWidth="2" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 flex-shrink-0"
+                  viewBox="0 0 256 256"
+                  fill="currentColor"
+                >
+                  <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z" />
                 </svg>
                 <span>头像校正</span>
               </button>
 
-              {/* 情感设定 Tab */}
+              {/* 头像设置 Tab */}
               <button
                 type="button"
-                onClick={() => setActiveTab("mood")}
+                onClick={() => setActiveTab("setting")}
                 className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
-                  activeTab === "mood"
+                  activeTab === "setting"
                     ? "bg-primary text-primary-content"
                     : "hover:bg-base-300"
                 }`}
               >
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 flex-shrink-0"
+                  viewBox="0 0 256 256"
+                  fill="currentColor"
+                >
+                  <path d="M228.25,63.07l-4.66-2.69a23.6,23.6,0,0,0,0-8.76l4.66-2.69a8,8,0,0,0-8-13.86l-4.67,2.7A23.92,23.92,0,0,0,208,33.38V28a8,8,0,0,0-16,0v5.38a23.92,23.92,0,0,0-7.58,4.39l-4.67-2.7a8,8,0,1,0-8,13.86l4.66,2.69a23.6,23.6,0,0,0,0,8.76l-4.66,2.69a8,8,0,0,0,4,14.93,7.92,7.92,0,0,0,4-1.07l4.67-2.7A23.92,23.92,0,0,0,192,78.62V84a8,8,0,0,0,16,0V78.62a23.92,23.92,0,0,0,7.58-4.39l4.67,2.7a7.92,7.92,0,0,0,4,1.07,8,8,0,0,0,4-14.93ZM192,56a8,8,0,1,1,8,8A8,8,0,0,1,192,56Zm29.35,48.11a8,8,0,0,0-6.57,9.21A88.85,88.85,0,0,1,216,128a87.62,87.62,0,0,1-22.24,58.41,79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75A88,88,0,0,1,128,40a88.76,88.76,0,0,1,14.68,1.22,8,8,0,0,0,2.64-15.78,103.92,103.92,0,1,0,85.24,85.24A8,8,0,0,0,221.35,104.11ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0Z" />
                 </svg>
-                <span>情感设定</span>
+                <span>头像设置</span>
               </button>
             </nav>
           </div>
@@ -523,9 +536,9 @@ export function SpriteSettingsPopup({
               </div>
             )}
 
-            {/* 情感设定内容 */}
-            {activeTab === "mood" && (
-              <MoodSettingsTab
+            {/* 头像设置内容 */}
+            {activeTab === "setting" && (
+              <AvatarSettingsTab
                 spritesAvatars={spritesAvatars}
                 roleAvatars={roleAvatars}
                 selectedIndex={internalIndex}

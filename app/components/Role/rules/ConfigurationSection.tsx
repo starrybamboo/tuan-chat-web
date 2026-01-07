@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
+import { useMemo } from "react";
 import Section from "../Editors/Section";
 import NumericalEditor from "./NumericalEditor";
 
@@ -86,58 +87,6 @@ function toPercent(value?: number, max = 100) {
     return 0;
   const v = Math.max(0, Math.min(value, max));
   return (v / max) * 100;
-}
-
-// 可折叠的模板信息提示组件
-function CollapsibleAlert({ customLabel, type, message }: { customLabel: string; type: "info" | "success"; message: string }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const bgClass = type === "success" ? "bg-success/40" : "bg-info/40";
-  const bgCollapsedClass = type === "success" ? "bg-success/30 hover:bg-success/50" : "bg-info/30 hover:bg-info/50";
-  const iconPath = type === "success"
-    ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-    : "m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
-
-  return (
-    <div
-      className={`cursor-pointer select-none transition-all duration-200 rounded-lg overflow-hidden ${
-        isExpanded ? `alert ${bgClass}` : `h-2 ${bgCollapsedClass}`
-      }`}
-      onClick={() => setIsExpanded(!isExpanded)}
-      title={isExpanded ? "点击收起" : "点击展开提示信息"}
-    >
-      {isExpanded && (
-        <>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            className="stroke-current shrink-0 w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d={iconPath}
-            />
-          </svg>
-          <span>
-            {message.replace("{label}", customLabel)}
-          </span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="w-4 h-4 ml-auto"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-          </svg>
-        </>
-      )}
-    </div>
-  );
 }
 
 export function ConfigurationSection({
@@ -273,9 +222,9 @@ export function ConfigurationSection({
                     )}
 
                     <CollapsibleAlert
-                      customLabel={customLabel}
                       type="success"
                       message="这些{label}已经过自定义修改，不同于规则模版"
+                      replacements={{ label: customLabel }}
                     />
                   </>
                 )
@@ -375,9 +324,9 @@ export function ConfigurationSection({
             )}
 
             <CollapsibleAlert
-              customLabel={customLabel}
               type="info"
               message="这些{label}使用规则模版的默认值，编辑后将移动到上方的自定义区域"
+              replacements={{ label: customLabel }}
             />
 
             <NumericalEditor
