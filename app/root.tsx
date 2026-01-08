@@ -11,6 +11,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
   useNavigate,
 } from "react-router";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
@@ -100,14 +101,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isBlocksuiteFrame = location.pathname.startsWith("/blocksuite-frame");
+
   React.useEffect(() => {
+    if (isBlocksuiteFrame)
+      return;
     try {
       useDrawerPreferenceStore.getState().hydrateFromLocalStorage();
     }
     catch {
       // ignore
     }
-  }, []);
+  }, [isBlocksuiteFrame]);
+
+  // blocksuite iframe 页面只需要渲染路由内容本身：
+  // - 避免重复初始化全局 provider（尤其是 websocket）
+  // - 减少 iframe 冷启动成本
+  if (isBlocksuiteFrame) {
+    return <Outlet />;
+  }
 
   return (
     <GlobalContextProvider>

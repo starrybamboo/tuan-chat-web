@@ -41,7 +41,7 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
     toast("发送成功");
   };
 
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => {
       const newSet = new Set(prev);

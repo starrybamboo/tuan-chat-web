@@ -21,9 +21,9 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const createSpaceMutation = useCreateSpaceMutation();
 
   // 创建空间的头像
-  const [spaceAvatar, setSpaceAvatar] = useState<string>(String(userInfo?.avatar));
+  const [spaceAvatar, setSpaceAvatar] = useState<string>(() => String(userInfo?.avatar));
   // 创建空间的名称
-  const [spaceName, setSpaceName] = useState<string>(`${String(userInfo?.username)}的空间`);
+  const [spaceName, setSpaceName] = useState<string>(() => `${String(userInfo?.username)}的空间`);
 
   // 当前选择的空间规则Id
   const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
@@ -41,7 +41,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
   // 已选择邀请的用户
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(() => new Set());
 
   // 监听头像变化，自动调整文字颜色
   useEffect(() => {
