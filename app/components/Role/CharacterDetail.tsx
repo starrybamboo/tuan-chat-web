@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { ChevronRightIcon, CloseIcon, CopyIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, GirlIcon, InfoIcon, MicrophoneIcon, SaveIcon, SlidersIcon } from "app/icons";
+import { ChevronRightIcon, CloseIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, GirlIcon, InfoIcon, MicrophoneIcon, SaveIcon, SlidersIcon } from "app/icons";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
@@ -361,17 +361,6 @@ function CharacterDetailInner({
     console.warn("头像上传数据:", data);
   };
 
-  // 打开复制角色弹窗
-  const handleOpenCloneModal = () => {
-    const targetType: "dicer" | "normal" = isDiceMaiden ? "dicer" : "normal";
-    setCloneTargetType(targetType);
-    // 同类型复制添加-二周目，跨类型不改变名称
-    setCloneName(localRole.name);
-    setCloneDescription(localRole.description);
-    setIsCloneNameEdited(false); // 重置编辑标志
-    setIsCloneModalOpen(true);
-  };
-
   // 监听类型切换，自动更新名称（仅当用户未手动编辑时）
   useEffect(() => {
     if (!isCloneModalOpen || isCloneNameEdited)
@@ -455,22 +444,6 @@ function CharacterDetailInner({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* 复制角色按钮 - 两种类型都显示，使用 Menu */}
-          <div className="dropdown dropdown-end">
-            <div className="tooltip tooltip-bottom" data-tip={isDiceMaiden ? "复制此骰娘角色" : "复制此角色"}>
-              <button
-                type="button"
-                tabIndex={0}
-                onClick={() => handleOpenCloneModal()}
-                className="btn btn-outline btn-sm md:btn-lg rounded-lg"
-              >
-                <span className="flex items-center gap-1">
-                  <CopyIcon className="w-4 h-4" />
-                  复制
-                </span>
-              </button>
-            </div>
-          </div>
           {!isDiceMaiden && (
             <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速配置角色数据">
               <button
@@ -555,16 +528,6 @@ function CharacterDetailInner({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* 移动端复制角色按钮 */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenCloneModal()}
-                      className="btn btn-success btn-sm"
-                    >
-                      <CopyIcon className="w-4 h-4" />
-                      复制
-                    </button>
-
                     {isEditing
                       ? (
                           <button
