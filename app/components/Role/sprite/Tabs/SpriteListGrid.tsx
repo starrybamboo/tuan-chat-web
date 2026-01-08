@@ -7,7 +7,6 @@ import { BaselineDeleteOutline } from "@/icons";
 import { useState } from "react";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
-import { useAvatarNameEditing } from "../hooks/useAvatarNameEditing";
 
 interface SpriteListGridProps {
   /** 头像/立绘列表 */
@@ -74,9 +73,6 @@ export function SpriteListGrid({
   const currentAvatar = avatars[selectedIndex] || null;
   const selectedAvatarId = currentAvatar?.avatarId || 0;
 
-  // 是否为骰娘模式
-  const isDiceMaiden = role?.type === 1;
-
   // 使用删除 hook（总是调用，但只在管理模式下使用）
   const deletionHook = useAvatarDeletion({
     role,
@@ -86,26 +82,12 @@ export function SpriteListGrid({
     onAvatarSelect,
   });
 
-  // 使用名称编辑 hook（总是调用，但只在骰娘模式下使用）
-  const nameEditingHook = useAvatarNameEditing({
-    roleId: role?.id,
-    avatars,
-  });
-
   // Helper function to get avatar display name
   const getAvatarName = (avatar: RoleAvatar, index: number): string => {
     const title = avatar.avatarTitle;
     if (typeof title === "string")
       return title || `头像${index + 1}`;
     return title?.label || `头像${index + 1}`;
-  };
-
-  // Handle name edit start
-  const handleStartEdit = (avatar: RoleAvatar, index: number) => {
-    if (!avatar.avatarId || !nameEditingHook)
-      return;
-    const currentName = getAvatarName(avatar, index);
-    nameEditingHook.startEditName(avatar.avatarId, currentName);
   };
 
   // 处理删除头像请求
@@ -164,17 +146,13 @@ export function SpriteListGrid({
 
         <div className={`grid ${gridCols} gap-2 overflow-auto content-start`}>
           {avatars.map((avatar, index) => {
-            const isEditing = nameEditingHook?.editingAvatarId === avatar.avatarId;
             const avatarName = getAvatarName(avatar, index);
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
 
             return (
-              <div key={avatar.avatarId} className="flex flex-col gap-1">
+              <div key={avatar.avatarId} className="flex flex-col">
                 <div className="relative group w-full overflow-visible">
                   {/* 头像名称 badge，绝对定位到左上角，z-index 保证在图片之上 */}
-                  <span className="absolute rounded-lg right-1 bottom-2 badge bg-base-300/85 font-semibold badge-sm z-30 pointer-events-auto select-none">
-                    {avatarName}
-                  </span>
                   <button
                     type="button"
                     onClick={() => {
@@ -267,51 +245,9 @@ export function SpriteListGrid({
                   )}
                 </div>
 
-                {/* Dice Maiden name label - editable */}
-                {isDiceMaiden && (
-                  <div className="text-xs text-center">
-                    {isEditing
-                      ? (
-                          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                            <input
-                              type="text"
-                              value={nameEditingHook?.editingName || ""}
-                              onChange={e => nameEditingHook?.updateEditingName(e.target.value)}
-                              onKeyDown={e => avatar.avatarId && nameEditingHook?.handleKeyDown(e, avatar.avatarId)}
-                              className="input input-xs input-bordered flex-1 min-w-0 text-center"
-                              autoFocus
-                              placeholder="输入名称"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => avatar.avatarId && nameEditingHook?.saveAvatarName(avatar.avatarId)}
-                              className="btn btn-xs btn-primary"
-                              title="保存"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => nameEditingHook?.cancelEditName()}
-                              className="btn btn-xs btn-ghost"
-                              title="取消"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )
-                      : (
-                          <button
-                            type="button"
-                            onClick={() => handleStartEdit(avatar, index)}
-                            className="text-base-content/70 hover:text-primary transition-colors truncate w-full"
-                            title="点击编辑名称"
-                          >
-                            {avatarName}
-                          </button>
-                        )}
-                  </div>
-                )}
+                <div className="text-xs text-center text-base-content/70 truncate w-full">
+                  {avatarName}
+                </div>
               </div>
             );
           })}

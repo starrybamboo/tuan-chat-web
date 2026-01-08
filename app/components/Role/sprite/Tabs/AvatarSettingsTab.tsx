@@ -174,7 +174,7 @@ export function AvatarSettingsTab({
                     <div className="font-semibold">情感参数</div>
                     <CollapsibleAlert
                       type="info"
-                      message="提示：情感参数用于导出后的 AI 语音情感。"
+                      message="提示：情感参数用于webgal导出后，确定的 AI 朗读的情感"
                       defaultExpanded={true}
                     />
                     <MoodRegulator

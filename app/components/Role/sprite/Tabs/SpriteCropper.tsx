@@ -895,7 +895,14 @@ export function SpriteCropper({
       </div>
 
       {/* 操作按钮区 - 固定在右下角 */}
-      <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
+      <div className={`mt-4 flex flex-shrink-0 ${operationMode === "batch" ? "justify-between" : "justify-end"} gap-2`}>
+        {operationMode === "batch" && (
+          <div className="text-xs text-base-content/60 self-center">
+            批量模式说明：
+            <br />
+            只会将当前裁剪框应用到所有立绘，切换后应用裁剪框不会分别生效。
+          </div>
+        )}
         {operationMode === "single"
           ? (
               <>
