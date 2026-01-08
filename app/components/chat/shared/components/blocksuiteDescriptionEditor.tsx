@@ -11,7 +11,6 @@ import { ensureBlocksuiteCoreElementsDefined } from "@/components/chat/infra/blo
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Subscription } from "rxjs";
-import "@/components/chat/infra/blocksuite/playground/style.css";
 
 interface BlocksuiteDescriptionEditorProps {
   /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
@@ -328,6 +327,10 @@ export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescription
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
     (async () => {
+      await import("@/components/chat/infra/blocksuite/styles/blocksuiteRuntime.css");
+      if (abort.signal.aborted)
+        return;
+
       // 1) Migrate legacy local docId (if needed)
       try {
         const legacyDocId = "space:description";
@@ -529,7 +532,7 @@ export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescription
     };
   }, [isEdgelessFullscreen]);
 
-  const rootClassName = [className, isEdgelessFullscreen ? "fixed inset-0 z-50 p-2 bg-base-100" : ""]
+  const rootClassName = ["tc-blocksuite-scope", className, isEdgelessFullscreen ? "fixed inset-0 z-50 p-2 bg-base-100" : ""]
     .filter(Boolean)
     .join(" ");
 

@@ -1,0 +1,26 @@
+@import "@toeverything/theme/style.css" layer(blocksuite);
+@import "@toeverything/theme/fonts.css" layer(blocksuite);
+@import "katex/dist/katex.min.css" layer(blocksuite);
+
+@layer blocksuite {
+  /*
+   * KaTeX 默认会在 `body` 上做 counter-reset（用于 equation numbering）。
+   * 在本项目中 KaTeX 目前仅服务于 BlockSuite，因此将其从全局 `body` 移到 blocksuite scope，避免影响站点其他区域。
+   */
+  body {
+    counter-reset: none;
+  }
+
+  .tc-blocksuite-scope {
+    counter-reset: katexEqnNo mmlEqnNo;
+  }
+
+  /*
+   * dat.gui 的默认样式里会使用 `.dg`；BlockSuite playground 会带这套 DOM。
+   * 这里把 overflow 修复限制在 blocksuite scope，避免误伤站点其它 `.dg`。
+   */
+  .tc-blocksuite-scope .dg > ul {
+    overflow: auto;
+  }
+}
+

@@ -19,6 +19,11 @@
 - `pnpm typecheck`：类型检查
 - `pnpm lint` / `pnpm lint:fix`：代码规范检查与自动修复
 
+### 包管理器约定（强制）
+
+- **唯一允许：pnpm**。仓库以 `pnpm-lock.yaml` 为唯一锁文件来源。
+- **禁止使用：npm**（不要执行 `npm install` / `npm ci` / `npm run *`），避免生成/更新 `package-lock.json` 造成依赖漂移。
+
 ### Vite 依赖预打包（optimizeDeps）
 
 本项目开发环境下启用了 `optimizeDeps.noDiscovery = true`，因此需要将存在 CJS/ESM 互操作问题的依赖显式加入 `optimizeDeps.include`。

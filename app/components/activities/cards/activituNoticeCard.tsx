@@ -10,7 +10,7 @@ export default function ActivityNotice() {
         参与「动态页面」设计，赢取限量高额门槛优惠卷！
       </p>
       <button className="bg-pink-500 opacity-50 bg-opacity-20 px-4 py-1 text-pink-100 rounded-lg text-sm font-medium hover:bg-opacity-30 transition-colors" type="button">
-        npm run dev 立即参与
+        pnpm dev 立即参与
       </button>
     </div>
   );
