@@ -838,6 +838,41 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         return;
       }
 
+      if (data.type === "ready") {
+        // iframe 侧可能比 onLoad 更晚才真正 ready；此时再同步一次 mode/theme/height，确保体验稳定。
+        try {
+          const win = iframeRef.current?.contentWindow;
+          if (!win)
+            return;
+          win.postMessage(
+            {
+              tc: "tc-blocksuite-frame",
+              instanceId,
+              type: "set-mode",
+              mode: (currentModeRef.current ?? forcedMode),
+            },
+            getPostMessageTargetOrigin(),
+          );
+          win.postMessage(
+            {
+              tc: "tc-blocksuite-frame",
+              instanceId,
+              type: "theme",
+              theme: getCurrentAppTheme(),
+            },
+            getPostMessageTargetOrigin(),
+          );
+          win.postMessage(
+            { tc: "tc-blocksuite-frame", instanceId, type: "request-height" },
+            getPostMessageTargetOrigin(),
+          );
+        }
+        catch {
+          // ignore
+        }
+        return;
+      }
+
       if (data.type === "navigate" && typeof data.to === "string" && data.to) {
         try {
           navigate(data.to);
@@ -952,80 +987,80 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     return /(?:^|\s)(?:h-\[|h-|min-h-|max-h-)/.test(v);
   }, [className]);
 
-  const iframeStyle: React.CSSProperties = {
-    border: 0,
-    display: "block",
-    background: "transparent",
+  const iframeHeightAttr = (!isEdgelessFullscreenActive && variant !== "full" && iframeHeight && iframeHeight > 0)
+    ? iframeHeight
+    : undefined;
+
+  // 关键：iframe 必须保持“同一个节点”，否则切换到画布全屏时会触发 remount -> iframe reload ->
+  // blocksuite-frame 按 URL 的默认 mode 回到 page，并回传 mode，导致出现“白屏一下又回退”。
+  // 这里通过始终渲染同一层 wrapper（非全屏时使用 `contents`）来避免 remount。
+  const wrapperClassName = isEdgelessFullscreenActive
+    ? [className, "fixed inset-0 z-50 p-2 bg-base-100", "w-full h-full"].filter(Boolean).join(" ")
+    : "contents";
+
+  const iframeClassName = isEdgelessFullscreenActive
+    ? "block w-full h-full border-0 bg-transparent"
+    : [
+        "block",
+        "w-full",
+        "border-0",
+        "bg-transparent",
+        className,
+        (variant !== "full" && !iframeHeightAttr) ? "min-h-32" : "",
+        // full variant 默认填充父容器；但如果外部已显式指定高度（例如 h-[60vh]），不要再追加 h-full 覆盖它。
+        (variant === "full" && !hasExplicitHeightClass) ? "h-full" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+  const syncFrameBasics = () => {
+    try {
+      const win = iframeRef.current?.contentWindow;
+      if (!win)
+        return;
+      // 同步当前 mode（allowModeSwitch 场景也需要，防止 iframe 侧按默认值启动）。
+      win.postMessage(
+        {
+          tc: "tc-blocksuite-frame",
+          instanceId,
+          type: "set-mode",
+          mode: (currentModeRef.current ?? forcedMode),
+        },
+        getPostMessageTargetOrigin(),
+      );
+
+      // 同步主题
+      win.postMessage(
+        {
+          tc: "tc-blocksuite-frame",
+          instanceId,
+          type: "theme",
+          theme: getCurrentAppTheme(),
+        },
+        getPostMessageTargetOrigin(),
+      );
+
+      // 请求一次高度（非全屏 embedded 需要）
+      win.postMessage(
+        { tc: "tc-blocksuite-frame", instanceId, type: "request-height" },
+        getPostMessageTargetOrigin(),
+      );
+    }
+    catch {
+      // ignore
+    }
   };
 
-  if (!isEdgelessFullscreenActive && variant !== "full") {
-    if (iframeHeight && iframeHeight > 0) {
-      iframeStyle.height = `${iframeHeight}px`;
-    }
-    else {
-      iframeStyle.minHeight = "8rem";
-    }
-  }
-
-  // 非全屏场景尽量减少额外 DOM 包裹：直接渲染 iframe（避免“多包一层”导致布局/高度难以控制）。
-  if (!isEdgelessFullscreenActive) {
-    const iframeClassName = [
-      "w-full",
-      className,
-      // full variant 默认填充父容器；但如果外部已显式指定高度（例如 h-[60vh]），不要再追加 h-full 覆盖它。
-      (variant === "full" && !hasExplicitHeightClass) ? "h-full" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    return (
+  return (
+    <div className={wrapperClassName}>
       <iframe
         ref={iframeRef}
         src={src}
         title="blocksuite-editor"
         className={iframeClassName}
-        style={iframeStyle}
+        height={iframeHeightAttr}
         onLoad={() => {
-          try {
-            iframeRef.current?.contentWindow?.postMessage(
-              { tc: "tc-blocksuite-frame", instanceId, type: "request-height" },
-              getPostMessageTargetOrigin(),
-            );
-          }
-          catch {
-            // ignore
-          }
-        }}
-      />
-    );
-  }
-
-  const fullscreenWrapperClassName = [
-    className,
-    "fixed inset-0 z-50 p-2 bg-base-100",
-    "w-full h-full",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  return (
-    <div className={fullscreenWrapperClassName}>
-      <iframe
-        ref={iframeRef}
-        src={src}
-        title="blocksuite-editor"
-        className="w-full h-full"
-        style={iframeStyle}
-        onLoad={() => {
-          try {
-            iframeRef.current?.contentWindow?.postMessage(
-              { tc: "tc-blocksuite-frame", instanceId, type: "request-height" },
-              getPostMessageTargetOrigin(),
-            );
-          }
-          catch {
-            // ignore
-          }
+          syncFrameBasics();
         }}
       />
     </div>
