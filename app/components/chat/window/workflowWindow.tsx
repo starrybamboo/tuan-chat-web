@@ -292,7 +292,7 @@ export default function WorkflowWindow() {
   const spaceInfo = spaceQuery.data?.data;
 
   const userRoomsQuery = useGetUserRoomsQuery(spaceId);
-  const userRooms = useMemo(() => userRoomsQuery.data?.data ?? [], [userRoomsQuery.data?.data]);
+  const userRooms = useMemo<Room[]>(() => userRoomsQuery.data?.data?.rooms ?? [], [userRoomsQuery.data?.data?.rooms]);
   const userRoomNameMap = useMemo(() => {
     const map = new Map<number, string>();
     userRooms.forEach((room) => {

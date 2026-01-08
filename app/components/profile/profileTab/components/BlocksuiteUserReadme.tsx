@@ -2,13 +2,7 @@ import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
 
-import { createEmbeddedAffineEditor } from "@/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor";
-import {
-  getOrCreateSpaceDocStore,
-  getOrCreateSpaceWorkspaceRuntime,
-} from "@/components/chat/infra/blocksuite/runtime/spaceWorkspace";
-import { ensureBlocksuiteCoreElementsDefined } from "@/components/chat/infra/blocksuite/spec/coreElements";
-import { Text } from "@blocksuite/store";
+import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
 
 import { useEffect, useMemo, useRef } from "react";
 import { Subscription } from "rxjs";
@@ -84,6 +78,7 @@ export default function BlocksuiteUserReadme(props: {
 
   const hostContainerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
+  const workspaceRuntimeRef = useRef<any | null>(null);
 
   const docModeProvider: DocModeProvider = useMemo(() => {
     const listeners = new Set<(m: DocMode) => void>();
@@ -117,12 +112,21 @@ export default function BlocksuiteUserReadme(props: {
   const actions: BlocksuiteUserReadmeActions = useMemo(() => {
     return {
       getPersistedContent: () => {
-        const ws = getOrCreateSpaceWorkspaceRuntime(workspaceId) as any;
-        const update = ws.encodeDocAsUpdate(docId) as Uint8Array;
-        return buildPersistedSnapshot(uint8ArrayToBase64(update));
+        const ws = workspaceRuntimeRef.current;
+        try {
+          const update = ws?.encodeDocAsUpdate?.(docId) as Uint8Array | undefined;
+          if (update)
+            return buildPersistedSnapshot(uint8ArrayToBase64(update));
+        }
+        catch {
+          // ignore
+        }
+
+        // Fallback: workspace not ready yet.
+        return buildPersistedSnapshot(uint8ArrayToBase64(new Uint8Array()));
       },
     };
-  }, [docId, workspaceId]);
+  }, [docId]);
 
   useEffect(() => {
     onActionsChange?.(actions);
@@ -136,92 +140,185 @@ export default function BlocksuiteUserReadme(props: {
     if (!container)
       return;
 
-    ensureBlocksuiteCoreElementsDefined();
-
-    const ws = getOrCreateSpaceWorkspaceRuntime(workspaceId) as any;
-
-    // 为了确保「取消编辑」不污染下次打开，这里每次 mount 都重置 doc。
+    // Create/reuse ShadowRoot for strict style scoping.
+    let shadowRoot: ShadowRoot | null = null;
+    let shadowMount: HTMLDivElement | null = null;
     try {
-      ws.removeDoc?.(docId);
+      shadowRoot = container.shadowRoot ?? container.attachShadow({ mode: "open" });
+
+      // Ensure we have a stable mount point.
+      const existing = shadowRoot.querySelector<HTMLDivElement>("[data-tc-blocksuite-mount]");
+      if (existing) {
+        shadowMount = existing;
+      }
+      else {
+        const style = document.createElement("style");
+        style.textContent = `
+          :host { display: block; width: 100%; }
+          [data-tc-blocksuite-mount] { display: block; width: 100%; }
+        `;
+        shadowRoot.appendChild(style);
+
+        shadowMount = document.createElement("div");
+        shadowMount.setAttribute("data-tc-blocksuite-mount", "1");
+        shadowRoot.appendChild(shadowMount);
+      }
     }
     catch {
-      // ignore
+      shadowRoot = null;
+      shadowMount = null;
     }
 
-    const snapshot = tryParsePersistedSnapshot(content);
-    if (snapshot?.updateB64) {
+    // IMPORTANT: start isolation BEFORE importing any blocksuite modules.
+    // Blocksuite may inject global styles during module evaluation.
+    const disposeIsolation = startBlocksuiteStyleIsolation({ shadowRoot });
+
+    let cancelled = false;
+    let disposeEditor: (() => void) | null = null;
+
+    (async () => {
+      const [{ ensureBlocksuiteCoreElementsDefined }, spaceWorkspaceModule, embeddedModule, storeModule] = await Promise.all([
+        import("@/components/chat/infra/blocksuite/spec/coreElements"),
+        import("@/components/chat/infra/blocksuite/runtime/spaceWorkspace"),
+        import("@/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor"),
+        import("@blocksuite/store"),
+      ]);
+
+      if (cancelled)
+        return;
+
+      const { createEmbeddedAffineEditor } = embeddedModule;
+      const { Text } = storeModule;
+
+      ensureBlocksuiteCoreElementsDefined();
+
+      const getOrCreateSpaceWorkspaceRuntime = (spaceWorkspaceModule as any).getOrCreateSpaceWorkspaceRuntime as any;
+      const ws = getOrCreateSpaceWorkspaceRuntime(workspaceId) as any;
+      workspaceRuntimeRef.current = ws;
+
+      // 为了确保「取消编辑」不污染下次打开，这里每次 mount 都重置 doc。
       try {
-        ws.restoreDocFromUpdate({ docId, update: base64ToUint8Array(snapshot.updateB64) });
+        ws.removeDoc?.(docId);
       }
       catch {
         // ignore
       }
-    }
 
-    const store = getOrCreateSpaceDocStore({ workspaceId, docId }) as any;
+      const snapshot = tryParsePersistedSnapshot(content);
+      if (snapshot?.updateB64) {
+        try {
+          ws.restoreDocFromUpdate({ docId, update: base64ToUint8Array(snapshot.updateB64) });
+        }
+        catch {
+          // ignore
+        }
+      }
 
-    // 旧数据兼容：如果 content 不是 blocksuite snapshot，就把它当纯文本写入首段。
-    if (!snapshot) {
-      const rawText = (content ?? "").trim() || defaultReadmePlainText(isOwner);
+      const store = (spaceWorkspaceModule as any).getOrCreateSpaceDocStore({ workspaceId, docId }) as any;
+
+      // 旧数据兼容：如果 content 不是 blocksuite snapshot，就把它当纯文本写入首段。
+      if (!snapshot) {
+        const rawText = (content ?? "").trim() || defaultReadmePlainText(isOwner);
+        try {
+          const paragraphs = store.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
+          const first = paragraphs?.[0];
+          if (first) {
+            store.updateBlock(first, { text: new Text(rawText) });
+          }
+        }
+        catch {
+          // ignore
+        }
+      }
+
+      const editor = createEmbeddedAffineEditor({
+        store,
+        workspace: ws,
+        docModeProvider,
+        spaceId: -1,
+        autofocus: editable,
+      });
+
+      (editor as any).style.display = "block";
+      (editor as any).style.width = "100%";
+      (editor as any).style.minHeight = "8rem";
+      (editor as any).style.height = "auto";
+
+      // 只读模式：尽量用组件自身的只读开关（如不可用再降级）。
+      if (!editable) {
+        try {
+          (editor as any).readOnly = true;
+          (editor as any).readonly = true;
+          (editor as any).setAttribute?.("readonly", "true");
+        }
+        catch {
+          // ignore
+        }
+
+        // 最稳妥的兜底：避免非编辑态被误操作改动内容。
+        // （滚动由页面本身承担，通常不依赖 editor 内部滚动。）
+        (editor as any).style.pointerEvents = "none";
+      }
+
+      editorRef.current = editor as unknown as HTMLElement;
+      if (shadowMount) {
+        shadowMount.replaceChildren(editor as unknown as Node);
+      }
+      else {
+        container.replaceChildren(editor as unknown as Node);
+      }
+
+      // 强制 page 模式（个人简介场景不暴露画布切换按钮）
       try {
-        const paragraphs = store.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
-        const first = paragraphs?.[0];
-        if (first) {
-          store.updateBlock(first, { text: new Text(rawText) });
+        if (typeof (editor as any).switchEditor === "function") {
+          (editor as any).switchEditor("page");
+        }
+        else {
+          (editor as any).mode = "page";
         }
       }
       catch {
         // ignore
       }
-    }
 
-    const editor = createEmbeddedAffineEditor({
-      store,
-      workspace: ws,
-      docModeProvider,
-      spaceId: -1,
-      autofocus: editable,
+      disposeEditor = () => {
+        try {
+          const editorAny = editorRef.current as any;
+          editorAny?.__tc_dispose?.();
+        }
+        catch {
+          // ignore
+        }
+      };
+    })().catch(() => {
+      // ignore
     });
 
-    (editor as any).style.display = "block";
-    (editor as any).style.width = "100%";
-    (editor as any).style.minHeight = "8rem";
-    (editor as any).style.height = "auto";
+    return () => {
+      cancelled = true;
 
-    // 只读模式：尽量用组件自身的只读开关（如不可用再降级）。
-    if (!editable) {
       try {
-        (editor as any).readOnly = true;
-        (editor as any).readonly = true;
-        (editor as any).setAttribute?.("readonly", "true");
+        disposeEditor?.();
       }
       catch {
         // ignore
       }
 
-      // 最稳妥的兜底：避免非编辑态被误操作改动内容。
-      // （滚动由页面本身承担，通常不依赖 editor 内部滚动。）
-      (editor as any).style.pointerEvents = "none";
-    }
-
-    editorRef.current = editor as unknown as HTMLElement;
-    container.replaceChildren(editor as unknown as Node);
-
-    // 强制 page 模式（个人简介场景不暴露画布切换按钮）
-    try {
-      if (typeof (editor as any).switchEditor === "function") {
-        (editor as any).switchEditor("page");
+      try {
+        disposeIsolation?.();
       }
-      else {
-        (editor as any).mode = "page";
+      catch {
+        // ignore
       }
-    }
-    catch {
-      // ignore
-    }
 
-    return () => {
       editorRef.current = null;
+      workspaceRuntimeRef.current = null;
+      try {
+        shadowMount?.replaceChildren();
+      }
+      catch {
+        // ignore
+      }
       container.replaceChildren();
     };
   }, [content, docId, docModeProvider, editable, isOwner, workspaceId]);

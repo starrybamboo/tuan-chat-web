@@ -1,6 +1,4 @@
-import type { Route } from "./+types/create";
-
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: any) {
   return [
     { title: "工作室" },
     {

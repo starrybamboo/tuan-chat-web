@@ -33,38 +33,193 @@ import { mockEditorSetting, mockParseDocUrlService } from "./mock-services";
 const viewManager = getTestViewManager();
 
 let slashMenuSelectionGuardInstalled = false;
+let slashMenuSelectionGuardRefCount = 0;
+let slashMenuSelectionGuardHandler: ((e: Event) => void) | null = null;
 
-function ensureSlashMenuDoesNotClearSelectionOnClick() {
+function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
   if (typeof document === "undefined")
-    return;
-  if (slashMenuSelectionGuardInstalled)
-    return;
-  slashMenuSelectionGuardInstalled = true;
+    return () => {};
 
-  const shouldGuard = (target: EventTarget | null) => {
-    if (!(target instanceof Element))
-      return false;
+  slashMenuSelectionGuardRefCount += 1;
 
-    // The slash menu popover is rendered via a web component (`affine-slash-menu`)
-    // and also uses `.slash-menu` class in its internal DOM.
-    // Preventing default on pointer/mouse down keeps the editor selection,
-    // which some command-based items depend on (e.g. Table/Kanban insertion).
-    return Boolean(
-      target.closest(
-        ".slash-menu, affine-slash-menu, inner-slash-menu, affine-slash-menu-widget",
-      ),
-    );
+  if (!slashMenuSelectionGuardInstalled) {
+    slashMenuSelectionGuardInstalled = true;
+
+    const shouldGuard = (target: EventTarget | null) => {
+      if (!(target instanceof Element))
+        return false;
+
+      // The slash menu popover is rendered via a web component (`affine-slash-menu`)
+      // and also uses `.slash-menu` class in its internal DOM.
+      // Preventing default on pointer/mouse down keeps the editor selection,
+      // which some command-based items depend on (e.g. Table/Kanban insertion).
+      return Boolean(
+        target.closest(
+          ".slash-menu, affine-slash-menu, inner-slash-menu, affine-slash-menu-widget",
+        ),
+      );
+    };
+
+    const handler = (e: Event) => {
+      if (shouldGuard(e.target)) {
+        e.preventDefault();
+      }
+    };
+
+    slashMenuSelectionGuardHandler = handler;
+
+    document.addEventListener("pointerdown", handler, true);
+    document.addEventListener("mousedown", handler, true);
+    document.addEventListener("touchstart", handler, true);
+  }
+
+  return () => {
+    if (typeof document === "undefined")
+      return;
+
+    slashMenuSelectionGuardRefCount -= 1;
+    if (slashMenuSelectionGuardRefCount > 0)
+      return;
+
+    slashMenuSelectionGuardRefCount = 0;
+
+    const handler = slashMenuSelectionGuardHandler;
+    if (!handler)
+      return;
+
+    document.removeEventListener("pointerdown", handler, true);
+    document.removeEventListener("mousedown", handler, true);
+    document.removeEventListener("touchstart", handler, true);
+
+    slashMenuSelectionGuardHandler = null;
+    slashMenuSelectionGuardInstalled = false;
   };
+}
 
-  const handler = (e: Event) => {
-    if (shouldGuard(e.target)) {
-      e.preventDefault();
+function snapshotElementAttributes(el: Element): { attrs: Map<string, string | null>; className: string; styleText: string } {
+  const attrs = new Map<string, string | null>();
+  for (const name of el.getAttributeNames()) {
+    attrs.set(name, el.getAttribute(name));
+  }
+
+  return {
+    attrs,
+    className: (el as any).className ?? "",
+    styleText: (el as HTMLElement).style?.cssText ?? "",
+  };
+}
+
+function restoreElementAttributes(
+  el: Element,
+  snapshot: { attrs: Map<string, string | null>; className: string; styleText: string },
+) {
+  // Remove attributes that didn't exist before
+  for (const name of el.getAttributeNames()) {
+    if (!snapshot.attrs.has(name)) {
+      el.removeAttribute(name);
+    }
+  }
+
+  // Restore original attributes
+  for (const [name, value] of snapshot.attrs.entries()) {
+    if (value === null) {
+      el.removeAttribute(name);
+    }
+    else {
+      el.setAttribute(name, value);
+    }
+  }
+
+  (el as any).className = snapshot.className;
+  if ((el as HTMLElement).style)
+    (el as HTMLElement).style.cssText = snapshot.styleText;
+}
+
+function installGlobalDomStyleGuard(): () => void {
+  if (typeof document === "undefined")
+    return () => {};
+
+  const htmlSnapshot = snapshotElementAttributes(document.documentElement);
+  const bodySnapshot = snapshotElementAttributes(document.body);
+
+  const injectedHeadNodes: Element[] = [];
+  const head = document.head;
+
+  // Snapshot adoptedStyleSheets if the browser supports it.
+  const docAny = document as any;
+  const adoptedStyleSheetsSnapshot: any[] | null = Array.isArray(docAny?.adoptedStyleSheets)
+    ? [...docAny.adoptedStyleSheets]
+    : null;
+
+  let headObserver: MutationObserver | null = null;
+  try {
+    if (head && typeof MutationObserver !== "undefined") {
+      headObserver = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          for (const node of m.addedNodes) {
+            if (!(node instanceof Element))
+              continue;
+
+            const isStyle = node.tagName === "STYLE";
+            const isStylesheetLink
+              = node.tagName === "LINK"
+                && (node.getAttribute("rel") ?? "").toLowerCase() === "stylesheet";
+
+            if (!isStyle && !isStylesheetLink)
+              continue;
+
+            // Mark nodes injected while blocksuite editor is alive so we can safely remove them on dispose.
+            node.setAttribute("data-tc-blocksuite-injected", "1");
+            injectedHeadNodes.push(node);
+          }
+        }
+      });
+
+      headObserver.observe(head, { childList: true, subtree: true });
+    }
+  }
+  catch {
+    headObserver = null;
+  }
+
+  return () => {
+    try {
+      try {
+        headObserver?.disconnect?.();
+      }
+      catch {
+        // ignore
+      }
+
+      // Remove stylesheets injected during editor lifetime.
+      for (let i = injectedHeadNodes.length - 1; i >= 0; i -= 1) {
+        const node = injectedHeadNodes[i];
+        try {
+          if (node.isConnected)
+            node.remove();
+        }
+        catch {
+          // ignore
+        }
+      }
+
+      // Restore adoptedStyleSheets.
+      if (adoptedStyleSheetsSnapshot) {
+        try {
+          docAny.adoptedStyleSheets = adoptedStyleSheetsSnapshot;
+        }
+        catch {
+          // ignore
+        }
+      }
+
+      restoreElementAttributes(document.documentElement, htmlSnapshot);
+      restoreElementAttributes(document.body, bodySnapshot);
+    }
+    catch {
+      // ignore
     }
   };
-
-  document.addEventListener("pointerdown", handler, true);
-  document.addEventListener("mousedown", handler, true);
-  document.addEventListener("touchstart", handler, true);
 }
 
 type WorkspaceLike = {
@@ -81,7 +236,9 @@ export function createEmbeddedAffineEditor(params: {
 }): HTMLElement {
   const { store, workspace, docModeProvider, autofocus = true, onNavigateToDoc } = params;
 
-  ensureSlashMenuDoesNotClearSelectionOnClick();
+  const disposers: Array<() => void> = [];
+  disposers.push(installGlobalDomStyleGuard());
+  disposers.push(installSlashMenuDoesNotClearSelectionOnClick());
 
   // Register custom elements for linked doc, this is crucial for the widget to work
   new LinkedDocViewExtension().effect();
@@ -132,6 +289,21 @@ export function createEmbeddedAffineEditor(params: {
   const editor = document.createElement(
     "affine-editor-container",
   ) as unknown as HTMLElement;
+
+  // Used to scope any injected CSS to this editor only.
+  editor.setAttribute("data-tc-blocksuite-root", "");
+
+  (editor as any).__tc_dispose = () => {
+    // LIFO: revert global side effects after blocksuite teardown.
+    for (let i = disposers.length - 1; i >= 0; i -= 1) {
+      try {
+        disposers[i]?.();
+      }
+      catch {
+        // ignore
+      }
+    }
+  };
 
   editor.autofocus = autofocus;
   (editor as any).doc = storeAny;
@@ -389,11 +561,11 @@ export function createEmbeddedAffineEditor(params: {
   // Inject custom styles to fix layout issues (e.g. Tailwind reset making SVGs block)
   const style = document.createElement("style");
   style.textContent = `
-    .affine-reference svg {
+    [data-tc-blocksuite-root] .affine-reference svg {
       display: inline-block;
       vertical-align: sub;
     }
-    .affine-reference {
+    [data-tc-blocksuite-root] .affine-reference {
       display: inline-flex;
       align-items: center;
       line-height: 24px;

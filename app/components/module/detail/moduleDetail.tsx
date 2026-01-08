@@ -203,8 +203,9 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
       try {
         const roomsData = await tuanchat.roomController.getUserRooms(newSpaceId);
 
-        if (roomsData?.data && roomsData.data.length > 0) {
-          const firstRoomId = roomsData.data[0].roomId;
+        const rooms = roomsData?.data?.rooms;
+        if (rooms && rooms.length > 0) {
+          const firstRoomId = rooms[0].roomId;
           navigate(`/chat/${newSpaceId}/${firstRoomId}`);
         }
         else {

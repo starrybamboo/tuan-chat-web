@@ -1,4 +1,5 @@
 import type { StageEntityResponse } from "api";
+import type { Room } from "api/models/Room";
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
@@ -12,9 +13,9 @@ import DisplayOfLocationDetail from "../../message/location/displayOfLocationDet
 export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) => void }) {
   const { spaceId } = use(RoomContext);
   const userRoomQuery = useGetUserRoomsQuery(spaceId ?? -1);
-  const rooms = useMemo(
-    () => userRoomQuery.data?.data ?? [],
-    [userRoomQuery.data?.data],
+  const rooms = useMemo<Room[]>(
+    () => userRoomQuery.data?.data?.rooms ?? [],
+    [userRoomQuery.data?.data?.rooms],
   );
 
   const [selectedRoomId, setSelectedRoomId] = useState(-1);

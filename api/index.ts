@@ -54,6 +54,7 @@ export type { ApiResultListRoleAbility } from './models/ApiResultListRoleAbility
 export type { ApiResultListRoleAvatar } from './models/ApiResultListRoleAvatar';
 export type { ApiResultListRoom } from './models/ApiResultListRoom';
 export type { ApiResultListRoomMember } from './models/ApiResultListRoomMember';
+export type { RoomListResponse } from './models/RoomListResponse';
 export type { ApiResultListScTransactionVO } from './models/ApiResultListScTransactionVO';
 export type { ApiResultListSpace } from './models/ApiResultListSpace';
 export type { ApiResultListSpaceClue } from './models/ApiResultListSpaceClue';

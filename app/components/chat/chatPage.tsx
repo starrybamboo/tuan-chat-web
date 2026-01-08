@@ -27,7 +27,6 @@ import {
   useAddRoomMemberMutation,
   useAddSpaceMemberMutation,
   useGetSpaceMembersQuery,
-  useGetUserRoomsQueries,
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
   useSetPlayerMutation,
@@ -68,10 +67,14 @@ export default function ChatPage() {
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
-  const rooms = useMemo(() => userRoomQuery.data?.data ?? [], [userRoomQuery.data?.data]);
+  const rooms = useMemo(() => userRoomQuery.data?.data?.rooms ?? [], [userRoomQuery.data?.data?.rooms]);
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
+
+  // 获取当前用户信息（需要在后续 effect / memo 中使用）
+  const globalContext = useGlobalContext();
+  const userId = globalContext.userId || -1;
 
   // space 自定义排序（纯本地）
   // 用一个固定 key 保存所有用户的排序，避免 useLocalStorage 不支持动态 key 的问题。
@@ -80,6 +83,11 @@ export default function ChatPage() {
   // key: userId -> spaceId -> roomIds
   const [roomOrderByUserAndSpace, setRoomOrderByUserAndSpace] = useLocalStorage<Record<string, Record<string, number[]>>>(
     "roomOrderByUserAndSpace",
+    {},
+  );
+  // 用于减少 /room/list 重复请求：缓存 space -> roomIds（按 user 分组）
+  const [spaceRoomIdsByUser, setSpaceRoomIdsByUser] = useLocalStorage<Record<string, Record<string, number[]>>>(
+    "spaceRoomIdsByUser",
     {},
   );
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
@@ -207,17 +215,32 @@ export default function ChatPage() {
     (!isPrivateChatMode && rooms && !urlRoomId) && setActiveRoomId(rooms[0]?.roomId ?? null);
   }, [isPrivateChatMode, rooms, setActiveRoomId, urlRoomId]);
 
-  // 当前激活的空间对应的房间列表
-  const userRoomQueries = useGetUserRoomsQueries(spaces);
-  // 空间对应的房间列表
-  const spaceIdToRooms = useMemo(() => {
-    const result: Record<number, Room[]> = {};
-    for (const space of spaces) {
-      const spaceId = space.spaceId ?? -1;
-      result[spaceId] = userRoomQueries.find(query => query.data?.data?.some(room => room.spaceId === space.spaceId))?.data?.data ?? [];
-    }
-    return result;
-  }, [spaces, userRoomQueries]);
+  // 当前 space 的 rooms 拉取后，更新本地 space->roomIds 映射，避免为了 space 未读数等需求进行批量请求。
+  useEffect(() => {
+    if (isPrivateChatMode)
+      return;
+    if (activeSpaceId == null)
+      return;
+    const roomIds = (rooms ?? [])
+      .map(r => r.roomId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+    const userKey = String(userId);
+    const spaceKey = String(activeSpaceId);
+    setSpaceRoomIdsByUser((prev) => {
+      const prevUserMap = prev[userKey] ?? {};
+      const prevRoomIds = prevUserMap[spaceKey] ?? [];
+      if (prevRoomIds.length === roomIds.length && prevRoomIds.every((v, i) => v === roomIds[i])) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [userKey]: {
+          ...prevUserMap,
+          [spaceKey]: roomIds,
+        },
+      };
+    });
+  }, [activeSpaceId, isPrivateChatMode, rooms, setSpaceRoomIdsByUser, userId]);
 
   // 创建空间弹窗是否打开
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
@@ -258,10 +281,6 @@ export default function ChatPage() {
   // 房间邀请窗口状态
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
-
-  // 获取当前用户信息
-  const globalContext = useGlobalContext();
-  const userId = globalContext.userId || -1;
 
   const spaceOrder = useMemo(() => {
     return spaceOrderByUser[String(userId)] ?? [];
@@ -478,11 +497,11 @@ export default function ChatPage() {
   }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, setActiveRoomId, setActiveSpaceId, spaceMembersQuery.data?.data, spaces]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
+    const roomIds = spaceRoomIdsByUser[String(userId)]?.[String(spaceId)] ?? [];
     let result = 0;
-    for (const room of spaceIdToRooms[spaceId]) {
-      if (room.spaceId === spaceId && room.roomId && activeRoomId !== room.roomId) {
-        result += unreadMessagesNumber[room.roomId] ?? 0;
-      }
+    for (const roomId of roomIds) {
+      if (activeRoomId !== roomId)
+        result += unreadMessagesNumber[roomId] ?? 0;
     }
     return result;
   };
