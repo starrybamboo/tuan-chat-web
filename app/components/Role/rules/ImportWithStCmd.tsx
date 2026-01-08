@@ -1,7 +1,7 @@
-import UTILS from "@/components/common/dicer/utils/utils";
 import { CopyIcon, EditIcon } from "app/icons";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import UTILS from "@/components/common/dicer/utils/utils";
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,

@@ -1,6 +1,8 @@
-import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
+import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { toast } from "react-hot-toast";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -8,8 +10,6 @@ import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { toast } from "react-hot-toast";
 
 export interface RealtimeRenderOrchestratorApi {
   toggleRealtimeRender: () => Promise<void>;

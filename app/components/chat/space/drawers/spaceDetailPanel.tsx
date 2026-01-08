@@ -1,5 +1,7 @@
-import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import type { SpaceDetailTab } from "../spaceHeaderBar";
+import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import { use, useState } from "react";
+import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
@@ -7,8 +9,6 @@ import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { BaselineArrowBackIosNew } from "@/icons";
-import { use, useState } from "react";
-import toast from "react-hot-toast";
 import {
   useAddSpaceMemberMutation,
   useAddSpaceRoleMutation,

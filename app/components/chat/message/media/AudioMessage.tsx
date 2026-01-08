@@ -1,6 +1,6 @@
-import { PauseIcon, PlayIcon } from "@/icons";
 import { useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
+import { PauseIcon, PlayIcon } from "@/icons";
 
 interface AudioMessageProps {
   url: string;

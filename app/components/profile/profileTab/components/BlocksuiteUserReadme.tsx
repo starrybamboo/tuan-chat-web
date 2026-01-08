@@ -1,12 +1,12 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
+import { useEffect, useMemo, useRef } from "react";
+
+import { Subscription } from "rxjs";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
 
 import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
 import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
-
-import { useEffect, useMemo, useRef } from "react";
-import { Subscription } from "rxjs";
 
 export interface BlocksuiteUserReadmeActions {
   /** 获取可落库的字符串（JSON 包裹 base64 Yjs update） */

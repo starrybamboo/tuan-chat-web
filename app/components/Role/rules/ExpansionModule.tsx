@@ -1,9 +1,9 @@
-import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { CloseIcon, EditIcon, SaveIcon } from "app/icons";
 import { useEffect, useMemo, useState } from "react";
+import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
 import { ConfigurationSection } from "./ConfigurationSection";

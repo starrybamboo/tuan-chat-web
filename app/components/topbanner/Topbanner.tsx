@@ -1,3 +1,6 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
@@ -5,9 +8,6 @@ import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
 

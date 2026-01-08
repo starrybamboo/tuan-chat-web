@@ -1,7 +1,7 @@
-import { checkAuthStatus, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
+import { checkAuthStatus, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
 import { AlertMessage } from "./AlertMessage";
 import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";

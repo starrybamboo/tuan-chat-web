@@ -1,5 +1,5 @@
-import RoleAvatarComponent from "@/components/common/roleAvatar";
 import React from "react";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
 
 export default function RoleList({
   roles,

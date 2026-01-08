@@ -2,9 +2,9 @@ import type { RoleAvatar } from "api";
 
 import type { Role } from "../../types";
 
-import { BaselineDeleteOutline } from "@/icons";
-
 import { useState } from "react";
+
+import { BaselineDeleteOutline } from "@/icons";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
 import { useAvatarNameEditing } from "../hooks/useAvatarNameEditing";

@@ -1,6 +1,6 @@
 import type { ScreenSize } from "@/utils/getScreenSize";
-import { getScreenSize } from "@/utils/getScreenSize";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { getScreenSize } from "@/utils/getScreenSize";
 
 /**
  * 在大屏与中屏幕的时候，开启会直接返回children，在小屏幕的时候，开启会占满父元素的宽度

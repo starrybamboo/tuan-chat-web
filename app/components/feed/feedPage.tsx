@@ -1,7 +1,7 @@
-import type { FeedWithStats } from "@/types/feedTypes";
 import type { PostListResponse } from "api";
-import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
+import type { FeedWithStats } from "@/types/feedTypes";
 import { useState } from "react";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { useFeedInfiniteQuery, useFeedPrefetch, useFilterFeeds, useFlattenFeeds, useInfiniteScrollObserver } from "../../../api/hooks/feedQueryHooks";
 
 export default function FeedPage() {

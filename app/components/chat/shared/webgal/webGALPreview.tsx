@@ -3,8 +3,8 @@
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
-import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useState } from "react";
+import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 
 interface WebGALPreviewProps {
   previewUrl: string | null;

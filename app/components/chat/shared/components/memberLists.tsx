@@ -1,10 +1,10 @@
 import type { SpaceMember } from "../../../../../api";
+import React, { use, useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { MemberTypeTag } from "@/components/chat/message/types/memberTypeTag";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import React, { use, useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router";
 import {
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,

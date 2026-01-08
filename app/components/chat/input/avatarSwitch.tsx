@@ -1,3 +1,4 @@
+import React, { use, useLayoutEffect, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -6,7 +7,6 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
-import React, { use, useLayoutEffect, useMemo, useState } from "react";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export default function AvatarSwitch({

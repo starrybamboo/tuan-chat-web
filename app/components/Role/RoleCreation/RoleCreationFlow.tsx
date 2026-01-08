@@ -4,7 +4,6 @@ import type { AIGeneratedData } from "./steps/AIGenerateModal";
 import type { CharacterData } from "./types";
 import type { SetSelectedRoleIdFn } from "./utils/roleCreationHelpers";
 
-import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import {
   useGenerateAbilityByRuleMutation,
   useGenerateBasicInfoByRuleMutation,
@@ -17,6 +16,7 @@ import {
 } from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import RulesSection from "../rules/RulesSection";
 import { UNIFIED_STEPS } from "./constants";
 import RoleCreationLayout from "./RoleCreationLayout";

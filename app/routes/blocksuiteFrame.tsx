@@ -1,10 +1,10 @@
-import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import type { DocMode } from "@blocksuite/affine/model";
 import type { Route } from "./+types/blocksuiteFrame";
+import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
-import { BlocksuiteDescriptionEditorRuntime } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import { BlocksuiteDescriptionEditorRuntime } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
 function getPostMessageTargetOrigin(): string {
   if (typeof window === "undefined") {

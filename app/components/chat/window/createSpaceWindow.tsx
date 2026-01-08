@@ -1,12 +1,12 @@
-import checkBack from "@/components/common/autoContrastText";
-import { MemberSelect } from "@/components/common/memberSelect";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateSpaceMutation } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import { useGetUserFollowingsQuery } from "api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useState } from "react";
+import checkBack from "@/components/common/autoContrastText";
+import { MemberSelect } from "@/components/common/memberSelect";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import { useGlobalContext } from "@/components/globalContextProvider";
 
 interface CreateSpaceWindowProps {
   onSuccess?: () => void;

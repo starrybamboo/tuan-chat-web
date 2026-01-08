@@ -1,6 +1,5 @@
 import type { FriendResponse } from "api/models/FriendResponse";
 
-import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, UsersIcon, XMarkICon } from "@/icons";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -13,6 +12,7 @@ import {
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, UsersIcon, XMarkICon } from "@/icons";
 
 type FriendsTab = "all" | "pending" | "add";
 type AddFriendSearchMode = "id" | "username";

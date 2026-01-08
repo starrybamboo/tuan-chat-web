@@ -1,6 +1,6 @@
 import type { Route } from "./+types/homeTab";
-import HomeTab from "@/components/profile/profileTab/homeTab";
 import { useParams } from "react-router";
+import HomeTab from "@/components/profile/profileTab/homeTab";
 
 export function meta({ params }: Route.MetaArgs) {
   return [

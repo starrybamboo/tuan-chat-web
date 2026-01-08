@@ -1,9 +1,9 @@
 import type { UserRole } from "../../../../api";
+import { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRingLight, NarratorIcon } from "@/icons";
-import { use } from "react";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export function ExpressionChooser({

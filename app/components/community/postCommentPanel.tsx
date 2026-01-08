@@ -1,7 +1,7 @@
 import type { CommentVO, LikeRecordRequest } from "../../../api";
+import { useMemo } from "react";
 import CommentComponent from "@/components/common/comment/commentComponent";
 import { CommentContext } from "@/components/common/comment/commentContext";
-import { useMemo } from "react";
 import { useGetCommentPageInfiniteQuery } from "../../../api/hooks/commentQueryHooks";
 
 /**

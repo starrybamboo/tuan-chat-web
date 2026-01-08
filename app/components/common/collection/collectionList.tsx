@@ -1,8 +1,8 @@
 import type { CollectionList as CollectionListType } from "api";
-import { Arrowleft, Arrowright, BaselineDeleteOutline, Edit2Outline, EllipsisVertical, LockKeyhole, LockKeyholeOpen,
-} from "@/icons";
 import { useGetCollectionListQuery, useGetUserCollectionListsQuery } from "api/hooks/collectionQueryHooks";
 import { useState } from "react";
+import { Arrowleft, Arrowright, BaselineDeleteOutline, Edit2Outline, EllipsisVertical, LockKeyhole, LockKeyholeOpen,
+} from "@/icons";
 
 function CollectionListItem({ c, selectedId, onSelect }: { c: CollectionListType; selectedId?: number; onSelect?: (id: number) => void }) {
   const [showMoreOptions, setShowMoreOptions] = useState(false);

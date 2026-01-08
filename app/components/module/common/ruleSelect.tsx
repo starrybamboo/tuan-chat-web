@@ -1,6 +1,6 @@
-import ScrollList from "@/components/common/list/scrollList";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import { useState } from "react";
+import ScrollList from "@/components/common/list/scrollList";
 
 // 定义渲染组件
 const RuleListItem: React.FC<{ item: ModifiedRuleItem }> = ({ item }) => (

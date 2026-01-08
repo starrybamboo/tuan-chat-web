@@ -1,5 +1,5 @@
-import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import React, { useEffect, useRef } from "react";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import {
   useGetMomentFeedStatsQuery,
   useGetUserMomentFeedInfiniteQuery,

@@ -1,9 +1,9 @@
 import type { UserRole } from "../../../../api";
+import React, { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRingLight } from "@/icons";
-import React, { use } from "react";
 
 /**
  * 角色选择器组件，用于在聊天中选择不同的角色

@@ -1,4 +1,5 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
+import { useRef } from "react";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
@@ -15,7 +16,6 @@ import {
   SwordSwing,
   WebgalIcon,
 } from "@/icons";
-import { useRef } from "react";
 
 interface ChatToolbarProps {
   // 侧边栏状态

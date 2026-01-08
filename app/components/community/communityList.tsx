@@ -1,7 +1,7 @@
 import type { CommunityResponse } from "../../../api/models/CommunityResponse";
-import { UsersIcon } from "@/icons";
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import { UsersIcon } from "@/icons";
 
 interface CommunityListProps {
   /** 社区列表数据 */

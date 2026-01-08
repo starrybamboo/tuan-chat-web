@@ -1,17 +1,17 @@
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type {
   RefObject,
 } from "react";
 import type { UserRole } from "../../api";
-import { Mounter } from "@/components/common/mounter";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
   useState,
 } from "react";
+import { Mounter } from "@/components/common/mounter";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 
 // 定义 props 类型
 interface AtMentionProps {

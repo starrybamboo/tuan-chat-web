@@ -1,8 +1,8 @@
 import type { Route } from "./+types/communityCreatePost";
-import PostEditor from "@/components/community/postEditor";
-import { useCommunityPostPublish } from "@/components/community/useCommunityPostPublish";
 import React from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import PostEditor from "@/components/community/postEditor";
+import { useCommunityPostPublish } from "@/components/community/useCommunityPostPublish";
 
 export function meta(_args: Route.MetaArgs) {
   return [

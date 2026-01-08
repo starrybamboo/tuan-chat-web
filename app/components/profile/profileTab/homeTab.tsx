@@ -1,9 +1,9 @@
+import React from "react";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { PopWindow } from "@/components/common/popWindow";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
-import React from "react";
 
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 import { FollowStats } from "./components/FollowStats";

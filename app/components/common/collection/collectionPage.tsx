@@ -1,10 +1,10 @@
+import { useCreateCollectionListMutation, useGetListCollectionsQuery } from "api/hooks/collectionQueryHooks";
+import { useState } from "react";
 import CollectionList from "@/components/common/collection/collectionList";
 import CollectionPreview from "@/components/common/collection/collectionPreview";
 import CollectionSearchBar from "@/components/common/collection/collectionSearchBar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { useCreateCollectionListMutation, useGetListCollectionsQuery } from "api/hooks/collectionQueryHooks";
-import { useState } from "react";
 
 function NewCollectionForm({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState({

@@ -1,8 +1,8 @@
-import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import Pagination from "@/components/common/pagination";
 
 import 教室图片 from "./images/教室.webp";
 

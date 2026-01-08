@@ -1,11 +1,11 @@
+import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useParams } from "react-router";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { UserDetail } from "@/components/common/userDetail";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
-import { useParams } from "react-router";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetSpaceMembersQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 

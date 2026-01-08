@@ -1,6 +1,6 @@
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import toastWindow from "@/components/common/toastWindow/toastWindow";
 import React, { useRef, useState } from "react";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 
 interface TextStyleToolbarProps {
   /** 输入框的 ref，用于插入文本 */
