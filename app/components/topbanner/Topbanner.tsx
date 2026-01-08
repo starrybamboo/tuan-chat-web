@@ -104,6 +104,7 @@ export default function Topbar() {
               <li><Link to="/chat" onClick={() => setIsDropdownOpen(false)}>聊天</Link></li>
               <li><Link to="/role" onClick={() => setIsDropdownOpen(false)}>角色</Link></li>
               <li><Link to="/module" onClick={() => setIsDropdownOpen(false)}>模组</Link></li>
+              <li><Link to="/doc-test" onClick={() => setIsDropdownOpen(false)}>文档测试</Link></li>
             </ul>
           </div>
 
@@ -122,6 +123,7 @@ export default function Topbar() {
             <Link to="/chat" className="font-normal text-base hover:underline cursor-default">聊天</Link>
             <Link to="/role" className="font-normal text-base hover:underline cursor-default">角色</Link>
             <Link to="/module" className="font-normal text-base hover:underline cursor-default">模组</Link>
+            <Link to="/doc-test" className="font-normal text-base hover:underline cursor-default">文档测试</Link>
           </div>
         </div>
 

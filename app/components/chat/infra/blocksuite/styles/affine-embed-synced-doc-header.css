@@ -1,0 +1,64 @@
+/* Minimal styles to mimic AFFiNE edgeless embed-synced-doc header */
+
+.affine-embed-synced-doc-header,
+.affine-embed-synced-doc-edgeless-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  height: 48px;
+  pointer-events: none; /* header container is non-interactive; buttons opt-in */
+}
+
+/* Ensure buttons are clickable inside the non-interactive header */
+.affine-embed-synced-doc-header [data-icon-variant],
+.affine-embed-synced-doc-edgeless-header [data-icon-variant],
+.affine-embed-synced-doc-header [data-size="custom"],
+.affine-embed-synced-doc-edgeless-header [data-size="custom"] {
+  pointer-events: auto;
+}
+
+/* Title + icon container */
+.affine-embed-synced-doc-title,
+[data-testid="edgeless-embed-synced-doc-title"] {
+  color: var(--affine-text-secondary, #6b7280);
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* Collapsed state: heavier & primary color */
+.affine-embed-synced-doc-title[data-collapsed="true"],
+[data-testid="edgeless-embed-synced-doc-title"][data-collapsed="true"] {
+  color: var(--affine-text-primary, #111827);
+  font-weight: 500;
+}
+
+/* Icon color in title */
+.affine-embed-synced-doc-icon {
+  line-height: 0;
+  color: var(--affine-icon-primary, #374151);
+}
+
+/* Buttons visual baseline */
+.affine-embed-synced-doc-header button,
+.affine-embed-synced-doc-edgeless-header button {
+  border: none;
+  background: transparent;
+  color: var(--affine-icon-transparentBlack, #111827);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* Fold button icon size normalization */
+[data-testid="edgeless-embed-synced-doc-fold-button"] svg {
+  width: 24px;
+  height: 24px;
+}

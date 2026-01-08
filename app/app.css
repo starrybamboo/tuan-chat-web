@@ -1,4 +1,17 @@
+@layer blocksuite;
 @import "tailwindcss";
+@source "./**/*.js";
+@source "./**/*.jsx";
+@source "./**/*.ts";
+@source "./**/*.tsx";
+@source "../api/**/*.js";
+@source "../api/**/*.jsx";
+@source "../api/**/*.ts";
+@source "../api/**/*.tsx";
+@source "../electron/**/*.js";
+@source "../electron/**/*.jsx";
+@source "../electron/**/*.ts";
+@source "../electron/**/*.tsx";
 @plugin "daisyui";
 @plugin "daisyui" {
   themes: all;
@@ -107,3 +120,5 @@ body {
   overflow-y: auto;
   scrollbar-width: none;
 }
+
+/* 不要覆写 Tailwind 的 `.hidden` 为 `!important`：会破坏 `hidden lg:flex` 等响应式切换。 */

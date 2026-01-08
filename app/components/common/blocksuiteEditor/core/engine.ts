@@ -6,6 +6,13 @@ type InnerEditorContainer = {
   edgelessPreset?: unknown[];
 };
 
+async function optionalImport(moduleName: string) {
+  return import(
+    /* @vite-ignore */
+    moduleName
+  );
+}
+
 function applyInnerEditorConfig(root: HTMLElement, options: BlocksuiteEditorOptions) {
   const { autofocus = true, mode = "page", disableEdgeless = true } = options;
 
@@ -46,7 +53,13 @@ function applyInnerEditorConfig(root: HTMLElement, options: BlocksuiteEditorOpti
 }
 
 async function mountSimpleAffine(host: HTMLElement, options: BlocksuiteEditorOptions): Promise<BlocksuiteEditorHandles> {
-  const editorMod = await import("@blocksuite/editor");
+  let editorMod: any;
+  try {
+    editorMod = await optionalImport("@blocksuite/editor");
+  }
+  catch {
+    throw new Error("BlocksuiteEditor engine 'simple' requires optional dependency '@blocksuite/editor' (not installed in this project)");
+  }
   // 确保 customElement('simple-affine-editor') 已注册
   void editorMod.SimpleAffineEditor;
 
@@ -71,11 +84,19 @@ async function mountSimpleAffine(host: HTMLElement, options: BlocksuiteEditorOpt
 async function mountWorkspacePage(host: HTMLElement, options: BlocksuiteEditorOptions): Promise<BlocksuiteEditorHandles> {
   const { docId = "doc:default" } = options;
 
-  const [storeMod, editorMod, modelsMod] = await Promise.all([
-    import("@blocksuite/store"),
-    import("@blocksuite/editor"),
-    import("@blocksuite/blocks/models"),
-  ]);
+  const storeMod = await import("@blocksuite/store");
+
+  let editorMod: any;
+  let modelsMod: any;
+  try {
+    [editorMod, modelsMod] = await Promise.all([
+      optionalImport("@blocksuite/editor"),
+      optionalImport("@blocksuite/blocks/models"),
+    ]);
+  }
+  catch {
+    throw new Error("BlocksuiteEditor engine 'workspace' requires optional dependencies '@blocksuite/editor' and '@blocksuite/blocks/models' (not installed in this project)");
+  }
 
   const { EditorContainer } = editorMod;
   const { AffineSchemas, __unstableSchemas } = modelsMod;

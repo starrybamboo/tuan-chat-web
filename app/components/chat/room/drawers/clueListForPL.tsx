@@ -1,7 +1,6 @@
 import type { SpaceClueCreateRequest } from "../../../../../api";
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import BaseEditor from "@/components/common/blocksuiteEditor/baseEditor";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -571,7 +570,12 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
               <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
                 描述 *
               </label>
-              <BaseEditor />
+              <QuillEditor
+                id="add-clue-description"
+                placeholder={newClue.description || "请输入线索描述"}
+                onchange={val => handleInputChange("description", val)}
+                height="small"
+              />
             </div>
 
             <div>

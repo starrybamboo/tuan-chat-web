@@ -1,13 +1,13 @@
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import RoleList from "@/components/chat/shared/components/roleLists";
 import checkBack from "@/components/common/autoContrastText";
-import ConfirmModal from "@/components/common/comfirmModel";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { BaselineArrowBackIosNew, GirlIcon, Setting } from "@/icons";
 import {
-  useDissolveRoomMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
   useGetRoomModuleRoleQuery,
@@ -16,7 +16,6 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { use, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
@@ -24,13 +23,11 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   roomId?: number;
   defaultTab?: "role" | "setting";
 }) {
-  const navigate = useNavigate();
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
 
   // 获取context，可能为null（当组件在SpaceContext.Provider外部使用时）
   const spaceContext = use(SpaceContext);
-  const setActiveRoomId = spaceContext?.setActiveRoomId;
   const spaceId = spaceContext?.spaceId;
 
   // 获取群组数据
@@ -60,7 +57,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   }, [roomRoles, roomNpcRoles, spaceContext?.isSpaceOwner, userRoles]);
 
   // 解散群组
-  const dissolveRoomMutation = useDissolveRoomMutation();
   const updateRoomMutation = useUpdateRoomMutation();
 
   // 获取当前用户对应的member
@@ -116,13 +112,10 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
     };
   }, [propRoomId, roomMembers, curMember, roomRolesThatUserOwn, useChatBubbleStyle, spaceId]);
 
-  // 控制删除群组的确认弹窗显示
-  const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
-
   const pageTitle = useMemo(() => {
     switch (defaultTab) {
       case "setting":
-        return "房间信息";
+        return "房间资料";
       case "role":
       default:
         return "角色";
@@ -175,7 +168,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
   return (
     <RoomContext value={roomContext}>
-      <div className="flex flex-col h-full w-full max-w-3xl bg-base-100 rounded-lg overflow-hidden">
+      <div className="flex flex-col h-full w-full min-w-[40vw] max-h-[80vh] bg-base-100 rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 px-2 py-1 border-b border-base-300 bg-base-100">
           <button
             type="button"
@@ -211,62 +204,67 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
                 {defaultTab === "setting" && (
                   <div className="p-4">
-                    <div className="w-full max-w-md mx-auto">
-                      {/* 头像上传 */}
-                      <div className="flex justify-center mb-6">
-                        <ImgUploaderWithCopper
-                          key={uploaderKey}
-                          setCopperedDownloadUrl={handleAvatarUpdate}
-                          fileName={`roomId-${room.roomId}`}
-                        >
-                          <div className="relative group overflow-hidden rounded-lg">
-                            <img
-                              src={formData.avatar || room.avatar}
-                              alt={formData.name}
-                              className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                              <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
-                                更新头像
-                              </span>
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {/* 左侧：房间信息 */}
+                      <div className="md:w-96 shrink-0 space-y-4">
+                        <div className="card bg-base-100 border border-base-300">
+                          <div className="card-body p-4">
+                            <div className="flex justify-center">
+                              <ImgUploaderWithCopper
+                                key={uploaderKey}
+                                setCopperedDownloadUrl={handleAvatarUpdate}
+                                fileName={`roomId-${room.roomId}`}
+                              >
+                                <div className="relative group overflow-hidden rounded-lg">
+                                  <img
+                                    src={formData.avatar || room.avatar}
+                                    alt={formData.name}
+                                    className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
+                                    <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
+                                      更新头像
+                                    </span>
+                                  </div>
+                                </div>
+                              </ImgUploaderWithCopper>
+                            </div>
+
+                            <div className="mt-4">
+                              <label className="label mb-2">
+                                <span className="label-text">房间名称</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={formData.name}
+                                className="input input-bordered w-full"
+                                onChange={(e) => {
+                                  setFormData(prev => ({ ...prev, name: e.target.value }));
+                                }}
+                                placeholder="请输入房间名称..."
+                              />
                             </div>
                           </div>
-                        </ImgUploaderWithCopper>
+                        </div>
+
                       </div>
 
-                      {/* 房间名称 */}
-                      <div className="mb-4">
-                        <label className="label mb-2">
-                          <span className="label-text">房间名称</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.name}
-                          className="input input-bordered w-full"
-                          onChange={(e) => {
-                            setFormData(prev => ({ ...prev, name: e.target.value }));
-                          }}
-                          placeholder="请输入房间名称..."
-                        />
+                      {/* 右侧：房间描述文档 */}
+                      <div className="flex-1 min-w-0">
+                        {(propRoomId && (room?.spaceId ?? spaceId))
+                          ? (
+                              <BlocksuiteDescriptionEditor
+                                workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
+                                spaceId={(room?.spaceId ?? spaceId)!}
+                                docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
+                                // 使用 embedded + 自动高度：让外层容器负责滚动，避免 iframe 内部滚动体验割裂。
+                                className="min-h-[320px]"
+                              />
+                            )
+                          : (
+                              <div className="text-sm opacity-70">未选择房间或无法获取spaceId</div>
+                            )}
                       </div>
-                    </div>
-
-                    {/* 保存和删除按钮 */}
-                    <div className="flex justify-between mt-16">
-                      <button
-                        type="button"
-                        className="btn btn-error"
-                        onClick={() => setIsDissolveConfirmOpen(true)}
-                      >
-                        解散房间
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-success"
-                        onClick={handleClose}
-                      >
-                        保存并关闭
-                      </button>
                     </div>
                   </div>
                 )}
@@ -274,26 +272,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
               </div>
             )}
       </div>
-
-      {/* 渲染删除群组的确认弹窗 */}
-      <ConfirmModal
-        isOpen={isDissolveConfirmOpen}
-        onClose={() => setIsDissolveConfirmOpen(false)}
-        title="确认解散房间"
-        message="是否确定要解散该房间？此操作不可逆。"
-        onConfirm={() => {
-          dissolveRoomMutation.mutate(propRoomId ?? -1, {
-            onSuccess: () => {
-              onClose();
-              if (spaceContext?.spaceId) {
-                navigate(`/chat/${spaceContext.spaceId}`, { replace: true });
-              }
-              setIsDissolveConfirmOpen(false);
-              setActiveRoomId?.(null);
-            },
-          });
-        }}
-      />
     </RoomContext>
   );
 }

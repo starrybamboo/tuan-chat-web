@@ -10,7 +10,10 @@ export function useGetGNSQuery(userId: number) {
     return useQuery({
         queryKey: ["getUserPreference", userId],
         queryFn: () => tuanchat.userPreference.getUserPreference(userId),
-        staleTime: 30000,
+        // Cache longer: preferences rarely change and are user-scoped.
+        // React Query v5 uses `gcTime` (was `cacheTime` in v4).
+        staleTime: 10 * 60 * 1000,
+        gcTime: 60 * 60 * 1000,
         enabled: !!userId, // 确保userId存在时才启用查询
     });
 }

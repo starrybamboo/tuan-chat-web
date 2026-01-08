@@ -12,6 +12,25 @@ function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse
     return { name: "未知线索", description: "", img: "" };
   }, [message.extra]);
 
+  const isBlocksuiteSnapshotLike = (text: unknown) => {
+    if (typeof text !== "string")
+      return false;
+    const trimmed = text.trim();
+    if (!trimmed.startsWith("{") || !trimmed.endsWith("}"))
+      return false;
+    try {
+      const obj = JSON.parse(trimmed) as any;
+      return obj && obj.v === 1 && typeof obj.updateB64 === "string";
+    }
+    catch {
+      return false;
+    }
+  };
+
+  const descriptionText = isBlocksuiteSnapshotLike(clueMessage.description)
+    ? "（富文本线索内容，请在右侧线索中查看）"
+    : (clueMessage.description || "无描述信息");
+
   const hasImage = clueMessage.img && clueMessage.img.trim() !== "";
 
   return (
@@ -47,10 +66,7 @@ function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse
 
             {/* 线索描述 */}
             <div className={`text-base text-base-content/90 ${hasImage ? "min-h-[128px]" : ""}`}>
-              <MarkdownMentionViewer
-                markdown={clueMessage.description || "无描述信息"}
-                enableHoverPreview={true}
-              />
+              <MarkdownMentionViewer markdown={descriptionText} enableHoverPreview={true} />
               <div className="clear-both"></div>
             </div>
           </div>

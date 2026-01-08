@@ -69,7 +69,8 @@ export async function htmlToMarkdown(html: string, options: MarkdownHtmlConvertO
 
   const { unified } = await import("unified");
   const { default: rehypeParse } = await import("rehype-parse");
-  const { default: rehypeRemark } = await import("rehype-remark");
+  const rehypeRemarkModuleName: string = "rehype-remark";
+  const { default: rehypeRemark } = await import(rehypeRemarkModuleName);
   const { default: remarkStringify } = await import("remark-stringify");
   const { default: rehypeSanitize } = await import("rehype-sanitize");
 

@@ -1,0 +1,1043 @@
+import type { DocMode } from "@blocksuite/affine/model";
+import type { DocModeProvider } from "@blocksuite/affine/shared/services";
+import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
+
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
+import { Subscription } from "rxjs";
+
+async function loadBlocksuiteRuntime() {
+  const [{ createEmbeddedAffineEditor }, { ensureBlocksuiteCoreElementsDefined }, spaceRegistry] = await Promise.all([
+    import("@/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor"),
+    import("@/components/chat/infra/blocksuite/spec/coreElements"),
+    import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+  ]);
+
+  return {
+    createEmbeddedAffineEditor,
+    ensureBlocksuiteCoreElementsDefined,
+    ensureDocMeta: spaceRegistry.ensureDocMeta,
+    getOrCreateDoc: spaceRegistry.getOrCreateDoc,
+    getOrCreateWorkspace: spaceRegistry.getOrCreateWorkspace,
+  };
+}
+
+interface BlocksuiteDescriptionEditorProps {
+  /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
+  workspaceId: string;
+  /** 仅 space 场景使用：用于路由跳转 & mentions */
+  spaceId?: number;
+  docId: string;
+  /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
+  variant?: "embedded" | "full";
+  /** 只读模式：允许滚动/选择，但不允许编辑 */
+  readOnly?: boolean;
+  /** 外部强制模式（allowModeSwitch=false 时生效） */
+  mode?: DocMode;
+  /** 是否允许在 page/edgeless 间切换 */
+  allowModeSwitch?: boolean;
+  /** 画布模式下是否支持全屏 */
+  fullscreenEdgeless?: boolean;
+  /** 隐藏内置的“切换到画布/退出画布”按钮（用于把按钮放到外层 topbar） */
+  hideModeSwitchButton?: boolean;
+  /** 对外暴露 editor mode 的控制能力；卸载时会回传 null */
+  onActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
+  /** editor mode 变化回调（page/edgeless） */
+  onModeChange?: (mode: DocMode) => void;
+  className?: string;
+}
+
+export interface BlocksuiteDescriptionEditorActions {
+  toggleMode: () => DocMode;
+  setMode: (mode: DocMode) => void;
+  getMode: () => DocMode;
+}
+
+function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
+  const v = (raw ?? "").toLowerCase();
+  // daisyUI 常见：data-theme="dark" | "light" | "cupcake" | "dracula"...
+  if (v.includes("dark") || v.includes("dracula") || v.includes("night")) {
+    return "dark";
+  }
+  return "light";
+}
+
+function getCurrentAppTheme(): "light" | "dark" {
+  if (typeof document === "undefined") {
+    return "light";
+  }
+  const root = document.documentElement;
+  // 优先读取 data-theme，其次读取 class="dark"
+  return normalizeAppThemeToBlocksuiteTheme(root.dataset.theme) === "dark" || root.classList.contains("dark")
+    ? "dark"
+    : "light";
+}
+
+function getPostMessageTargetOrigin(): string {
+  if (typeof window === "undefined") {
+    return "*";
+  }
+
+  // 在 file://（例如 Electron 打包）场景下，location.origin 可能是 "null"。
+  const origin = window.location.origin;
+  if (!origin || origin === "null") {
+    return "*";
+  }
+  return origin;
+}
+
+function isProbablyInIframe(): boolean {
+  if (typeof window === "undefined")
+    return false;
+
+  try {
+    return window.self !== window.top;
+  }
+  catch {
+    // 无法访问 window.top（跨域）时，也视为 iframe 内。
+    return true;
+  }
+}
+
+function tryFocusEdgelessViewport(editor: any, store: any): boolean {
+  try {
+    const doc = store as any;
+    const rootId = doc?.root?.id;
+    const rootBlock = editor?.host?.view?.getBlock?.(rootId);
+
+    // Prefer higher-level APIs when available.
+    if (typeof rootBlock?.gfx?.fitToScreen === "function") {
+      rootBlock.gfx.fitToScreen();
+      return true;
+    }
+    const service = rootBlock?.service;
+    if (typeof service?.zoomToFit === "function") {
+      service.zoomToFit();
+      return true;
+    }
+  }
+  catch {
+    // ignore
+  }
+  return false;
+}
+
+export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionEditorProps) {
+  const {
+    workspaceId,
+    spaceId,
+    docId,
+    className,
+    variant = "embedded",
+    readOnly = false,
+    allowModeSwitch = false,
+    fullscreenEdgeless = false,
+    mode: forcedMode = "page",
+    hideModeSwitchButton = false,
+    onActionsChange,
+    onModeChange,
+  } = props;
+
+  const navigate = useNavigate();
+  const isFull = variant === "full";
+
+  const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
+  const currentModeRef = useRef<DocMode>(forcedMode);
+
+  useEffect(() => {
+    currentModeRef.current = currentMode;
+    onModeChange?.(currentMode);
+  }, [currentMode]);
+
+  const hostContainerRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<HTMLElement | null>(null);
+  const storeRef = useRef<any>(null);
+  const prevModeRef = useRef<DocMode>(forcedMode);
+
+  const docModeProvider: DocModeProvider = useMemo(() => {
+    // DocModeProvider 是一个“跨 doc/跨 widget”的服务，这里做最小实现：
+    // - editor mode 由 React state 驱动
+    // - primary mode：
+    //   - allowModeSwitch=false：内存 map（保持旧行为）
+    //   - allowModeSwitch=true：按 spaceId 维度持久化（localStorage）
+    const storageKey = `tc:blocksuite:${workspaceId}:primaryModeByDocId`;
+    const primaryModeByDocId = new Map<string, DocMode>();
+    const listenersByDocId = new Map<string, Set<(m: DocMode) => void>>();
+
+    const isValidMode = (v: unknown): v is DocMode => v === "page" || v === "edgeless";
+
+    const loadFromStorage = () => {
+      if (!allowModeSwitch)
+        return;
+      if (typeof window === "undefined")
+        return;
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (!raw)
+          return;
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof k === "string" && isValidMode(v)) {
+            primaryModeByDocId.set(k, v);
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const flushToStorage = () => {
+      if (!allowModeSwitch)
+        return;
+      if (typeof window === "undefined")
+        return;
+      try {
+        const obj: Record<string, DocMode> = {};
+        for (const [k, v] of primaryModeByDocId.entries()) {
+          obj[k] = v;
+        }
+        window.localStorage.setItem(storageKey, JSON.stringify(obj));
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    loadFromStorage();
+
+    const emit = (id: string, m: DocMode) => {
+      const listeners = listenersByDocId.get(id);
+      if (listeners) {
+        for (const fn of listeners) fn(m);
+      }
+    };
+
+    return {
+      setEditorMode: (m: DocMode) => {
+        currentModeRef.current = m;
+        setCurrentMode(m);
+      },
+      getEditorMode: () => {
+        return currentModeRef.current;
+      },
+      setPrimaryMode: (m: DocMode, id: string) => {
+        primaryModeByDocId.set(id, m);
+        flushToStorage();
+        emit(id, m);
+        // 尽量保持 editor mode 与 primary mode 一致（符合 playground 的体感）。
+        currentModeRef.current = m;
+        setCurrentMode(m);
+      },
+      getPrimaryMode: (id: string) => {
+        return primaryModeByDocId.get(id) ?? forcedMode;
+      },
+      togglePrimaryMode: (id: string) => {
+        const next = (primaryModeByDocId.get(id) ?? forcedMode) === "page" ? "edgeless" : "page";
+        primaryModeByDocId.set(id, next);
+        flushToStorage();
+        emit(id, next);
+        currentModeRef.current = next;
+        setCurrentMode(next);
+        return next;
+      },
+      onPrimaryModeChange: (handler: (m: DocMode) => void, id: string) => {
+        let listeners = listenersByDocId.get(id);
+        if (!listeners) {
+          listeners = new Set();
+          listenersByDocId.set(id, listeners);
+        }
+        listeners.add(handler);
+
+        const subscription = new Subscription();
+        subscription.add(() => {
+          const set = listenersByDocId.get(id);
+          set?.delete(handler);
+        });
+        return subscription;
+      },
+    };
+  }, [allowModeSwitch, forcedMode, workspaceId]);
+
+  const externalActions: BlocksuiteDescriptionEditorActions = useMemo(() => {
+    return {
+      toggleMode: () => {
+        return docModeProvider.togglePrimaryMode(docId);
+      },
+      setMode: (mode: DocMode) => {
+        docModeProvider.setPrimaryMode(mode, docId);
+      },
+      getMode: () => {
+        return docModeProvider.getEditorMode() ?? forcedMode;
+      },
+    };
+  }, [docId, docModeProvider, forcedMode]);
+
+  useEffect(() => {
+    onActionsChange?.(externalActions);
+    return () => {
+      onActionsChange?.(null);
+    };
+  }, [externalActions, onActionsChange]);
+
+  useEffect(() => {
+    if (allowModeSwitch) {
+      try {
+        const initial = docModeProvider.getPrimaryMode(docId);
+        currentModeRef.current = initial;
+        setCurrentMode(initial);
+      }
+      catch {
+        // ignore
+      }
+      return;
+    }
+
+    // 兼容旧行为：当不允许切换时，外部传入的 mode 仍然是“强制模式”。
+    try {
+      docModeProvider.setPrimaryMode(forcedMode, docId);
+    }
+    catch {
+      // ignore
+    }
+  }, [allowModeSwitch, docId, docModeProvider, forcedMode]);
+
+  useEffect(() => {
+    const container = hostContainerRef.current;
+    if (!container)
+      return;
+
+    const isFullInEffect = isFull;
+
+    // IMPORTANT: 在导入任何 blocksuite 模块前启动隔离器（blocksuite 可能在模块执行期注入全局样式/副作用）。
+    const disposeIsolation = startBlocksuiteStyleIsolation();
+
+    const scopeRoot = (container.closest?.(".tc-blocksuite-scope") as HTMLElement | null) ?? container;
+
+    // 主题跟随：把站点主题（data-theme / dark class）同步到 viewport。
+    const syncPortalsTheme = (theme: "light" | "dark") => {
+      // Slash menu / tooltip 等弹层通过 portal 挂到 body 下的 `.blocksuite-portal` 容器。
+      // 如果只给 viewport 设置 data-theme，弹层会继承不到 `[data-theme=...]` 下的 affine 变量，导致“样式不对”。
+      // 这里仅给 blocksuite 自己的 portal 容器打标，不改 body/html，避免影响站点（例如 daisyUI 的 data-theme）。
+      const portals = document.querySelectorAll<HTMLElement>(".blocksuite-portal");
+      for (const el of portals) {
+        el.dataset.theme = theme;
+        el.classList.toggle("dark", theme === "dark");
+      }
+    };
+
+    const syncTheme = () => {
+      const theme = getCurrentAppTheme();
+      scopeRoot.dataset.theme = theme;
+      scopeRoot.classList.toggle("dark", theme === "dark");
+      syncPortalsTheme(theme);
+    };
+    syncTheme();
+
+    const root = document.documentElement;
+    const mo = new MutationObserver(() => syncTheme());
+    mo.observe(root, { attributes: true, attributeFilter: ["data-theme", "class"] });
+
+    // 监听 portal 的创建（比如打开 slash menu 时才创建），确保后创建的 portal 也能拿到正确主题。
+    const body = document.body;
+    const portalMo = new MutationObserver((mutations) => {
+      const theme = scopeRoot.dataset.theme === "dark" ? "dark" : "light";
+
+      for (const m of mutations) {
+        for (const added of m.addedNodes) {
+          if (!(added instanceof HTMLElement))
+            continue;
+          if (added.classList.contains("blocksuite-portal")) {
+            added.dataset.theme = theme;
+            added.classList.toggle("dark", theme === "dark");
+            continue;
+          }
+          const nested = added.querySelectorAll?.(".blocksuite-portal");
+          if (!nested?.length)
+            continue;
+          for (const el of nested) {
+            if (el instanceof HTMLElement) {
+              el.dataset.theme = theme;
+              el.classList.toggle("dark", theme === "dark");
+            }
+          }
+        }
+      }
+    });
+    portalMo.observe(body, { childList: true, subtree: true });
+    const abort = new AbortController();
+    let createdEditor: any = null;
+    let createdStore: any = null;
+
+    // Hydrate first (restore semantics), then render editor.
+    // This avoids binding the UI to an empty initialized root.
+    (async () => {
+      // 在 blocksuite 初始化前确保运行时 CSS 已经注入（并做作用域重写），避免加载期间污染全局样式。
+      try {
+        await ensureBlocksuiteRuntimeStyles();
+      }
+      catch {
+        // ignore
+      }
+
+      const runtime = await loadBlocksuiteRuntime();
+      if (abort.signal.aborted)
+        return;
+
+      runtime.ensureBlocksuiteCoreElementsDefined();
+
+      const workspace = runtime.getOrCreateWorkspace(workspaceId);
+
+      // 1) Migrate legacy local docId (if needed)
+      try {
+        const legacyDocId = "space:description";
+        const expectedNewDocId = spaceId ? `space:${spaceId}:description` : "";
+        const runtimeWs = workspace as any;
+        if (expectedNewDocId && docId === expectedNewDocId
+          && typeof runtimeWs?.listKnownDocIds === "function"
+          && typeof runtimeWs?.encodeDocAsUpdate === "function"
+          && typeof runtimeWs?.restoreDocFromUpdate === "function") {
+          const known = runtimeWs.listKnownDocIds() as string[];
+          const hasLegacy = known.includes(legacyDocId);
+          const hasNew = known.includes(docId);
+          if (hasLegacy && !hasNew) {
+            const legacyUpdate = runtimeWs.encodeDocAsUpdate(legacyDocId) as Uint8Array;
+            runtimeWs.restoreDocFromUpdate({ docId, update: legacyUpdate });
+          }
+        }
+      }
+      catch {
+        // ignore migration failures
+      }
+
+      // 2) Restore from remote snapshot (if available)
+      // Critical: explicit fetch ensures the store is populated with remote content (correct root block)
+      // *before* the editor is initialized. This prevents 'ensureAffineMinimumBlockData' from creating
+      // a duplicate/conflicting default page, which results in a blank view.
+      if (!abort.signal.aborted) {
+        try {
+          const key = parseDescriptionDocId(docId);
+          if (key) {
+            const remote = await getRemoteSnapshot(key);
+            if (remote?.updateB64) {
+              const update = base64ToUint8Array(remote.updateB64);
+              const runtimeWs = workspace as any;
+              if (typeof runtimeWs.restoreDocFromUpdate === "function") {
+                runtimeWs.restoreDocFromUpdate({ docId, update });
+              }
+            }
+          }
+        }
+        catch (e) {
+          console.error("[BlocksuiteDescriptionEditor] Failed to restore remote snapshot", e);
+        }
+      }
+
+      if (abort.signal.aborted)
+        return;
+
+      // 3) Create store + editor after hydrate
+      // Important: don't overwrite existing doc title.
+      runtime.ensureDocMeta({ workspaceId, docId });
+      const store = runtime.getOrCreateDoc({ workspaceId, docId });
+      createdStore = store;
+
+      if (typeof window !== "undefined" && import.meta.env.DEV) {
+        try {
+          const rootId = (store as any)?.root?.id;
+          const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
+          const first = paragraphs?.[0];
+          const firstText = first?.props?.text;
+          console.warn("[BlocksuiteDescriptionEditor] store ready", {
+            docId,
+            rootId,
+            paragraphCount: paragraphs?.length ?? 0,
+            firstText: firstText?.toString?.() ?? null,
+          });
+        }
+        catch {
+          // ignore
+        }
+      }
+
+      const editor = runtime.createEmbeddedAffineEditor({
+        store,
+        workspace: workspace as any,
+        docModeProvider,
+        spaceId,
+        autofocus: !readOnly,
+        onNavigateToDoc: ({ spaceId, docId }) => {
+          const parsed = parseSpaceDocId(docId);
+
+          const go = (to: string) => {
+            if (isProbablyInIframe()) {
+              try {
+                window.parent.postMessage(
+                  {
+                    tc: "tc-blocksuite-frame",
+                    type: "navigate",
+                    to,
+                  },
+                  getPostMessageTargetOrigin(),
+                );
+                return;
+              }
+              catch {
+                // ignore
+              }
+            }
+            navigate(to);
+          };
+
+          if (parsed?.kind === "room_description") {
+            go(`/chat/${spaceId}/${parsed.roomId}/setting`);
+            return;
+          }
+
+          if (parsed?.kind === "space_description") {
+            go(`/chat/${spaceId}/setting`);
+            return;
+          }
+
+          go(`/doc/${spaceId}/${encodeURIComponent(docId)}`);
+        },
+      });
+      createdEditor = editor;
+
+      (editor as any).style.display = "block";
+      (editor as any).style.width = "100%";
+      (editor as any).style.minHeight = "8rem";
+      (editor as any).style.height = isFullInEffect ? "100%" : "auto";
+
+      if (readOnly) {
+        try {
+          (editor as any).readOnly = true;
+          (editor as any).readonly = true;
+          (editor as any).setAttribute?.("readonly", "true");
+        }
+        catch {
+          // ignore
+        }
+      }
+
+      editorRef.current = editor as unknown as HTMLElement;
+      storeRef.current = store;
+
+      container.replaceChildren(editor as unknown as Node);
+
+      // 确保初始 mode 与 React state 一致。
+      try {
+        if (typeof (editor as any).switchEditor === "function") {
+          (editor as any).switchEditor(currentModeRef.current);
+        }
+        else {
+          (editor as any).mode = currentModeRef.current;
+        }
+      }
+      catch {
+        // ignore
+      }
+
+      if (typeof window !== "undefined" && import.meta.env.DEV) {
+        const g = globalThis as any;
+        g.editor = editor;
+        g.blocksuiteStore = store;
+      }
+    })();
+
+    return () => {
+      abort.abort();
+      mo.disconnect();
+      portalMo.disconnect();
+
+      try {
+        const editorAny = createdEditor as any;
+        editorAny?.__tc_dispose?.();
+      }
+      catch {
+        // ignore
+      }
+
+      try {
+        disposeIsolation?.();
+      }
+      catch {
+        // ignore
+      }
+
+      editorRef.current = null;
+      storeRef.current = null;
+      try {
+        container.replaceChildren();
+      }
+      catch {
+        // ignore
+      }
+
+      if (typeof window !== "undefined" && import.meta.env.DEV) {
+        const g = globalThis as any;
+        if (createdEditor && g.editor === createdEditor)
+          delete g.editor;
+        if (createdStore && g.blocksuiteStore === createdStore)
+          delete g.blocksuiteStore;
+      }
+    };
+  }, [docId, docModeProvider, isFull, spaceId, workspaceId]);
+
+  const isEdgelessFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
+
+  const hasHeightConstraintClass = useMemo(() => {
+    const v = (className ?? "").trim();
+    if (!v)
+      return false;
+    // 仅把“显式限制高度”的情况当成需要内部滚动：h-* / h-[...] / max-h-*
+    // min-h-* 只是下限，不应触发内部滚动。
+    return /(?:^|\s)(?:h-\[|h-|max-h-)/.test(v);
+  }, [className]);
+
+  const viewportOverflowClass = currentMode === "page"
+    ? ((isFull || isEdgelessFullscreen || hasHeightConstraintClass) ? "overflow-auto" : "overflow-visible")
+    : "overflow-hidden";
+
+  useEffect(() => {
+    const editor = editorRef.current as any;
+    if (!editor)
+      return;
+    // Keep mode in sync with outer state.
+    try {
+      // Important: align with blocksuite playground behavior.
+      // `affine-editor-container` switches internal hosts via `switchEditor`.
+      if (typeof editor.switchEditor === "function") {
+        editor.switchEditor(currentMode);
+      }
+      else {
+        editor.mode = currentMode;
+      }
+      editor.style.height = isEdgelessFullscreen || isFull ? "100%" : "auto";
+    }
+    catch {
+      // ignore
+    }
+
+    // If edgeless DOM exists but user can't see it, it's often a viewport transform/zoom issue.
+    // On entering edgeless, try to fit/center once (best-effort; won't run on every render).
+    const prev = prevModeRef.current;
+    prevModeRef.current = currentMode;
+
+    if (prev !== "edgeless" && currentMode === "edgeless") {
+      const run = () => {
+        const e = editorRef.current as any;
+        const s = storeRef.current;
+        if (!e || !s)
+          return;
+        tryFocusEdgelessViewport(e, s);
+      };
+
+      // Delay a bit to allow host/root/service to be ready.
+      requestAnimationFrame(() => {
+        setTimeout(run, 0);
+        setTimeout(run, 120);
+        setTimeout(run, 300);
+      });
+    }
+  }, [currentMode, isEdgelessFullscreen, isFull]);
+
+  useEffect(() => {
+    if (typeof document === "undefined")
+      return;
+    if (!isEdgelessFullscreen)
+      return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isEdgelessFullscreen]);
+
+  const rootClassName = ["tc-blocksuite-scope", className, isEdgelessFullscreen ? "fixed inset-0 z-50 p-2 bg-base-100" : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className={rootClassName}>
+      <div
+        className={`relative bg-base-100 border border-base-300 ${viewportOverflowClass}${isEdgelessFullscreen ? " h-full" : " rounded-box"}${isFull || isEdgelessFullscreen ? " flex flex-col" : ""}`}
+      >
+        {allowModeSwitch
+          ? (
+              hideModeSwitchButton
+                ? null
+                : (
+                    <div className="flex items-center justify-end p-2 border-b border-base-300">
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => {
+                          docModeProvider.togglePrimaryMode(docId);
+                        }}
+                      >
+                        {currentMode === "page" ? "切换到画布" : "退出画布"}
+                      </button>
+                    </div>
+                  )
+            )
+          : null}
+
+        {allowModeSwitch && hideModeSwitchButton && currentMode === "edgeless"
+          ? (
+              <div className="absolute top-2 right-2 z-10">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    docModeProvider.setPrimaryMode("page", docId);
+                  }}
+                >
+                  返回页面
+                </button>
+              </div>
+            )
+          : null}
+        <div
+          ref={hostContainerRef}
+          className={`${isFull || isEdgelessFullscreen ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEditorProps) {
+  const {
+    workspaceId,
+    spaceId,
+    docId,
+    variant = "embedded",
+    mode: forcedMode = "page",
+    readOnly = false,
+    allowModeSwitch = false,
+    fullscreenEdgeless = false,
+    hideModeSwitchButton = false,
+    className,
+    onActionsChange,
+    onModeChange,
+  } = props;
+
+  const navigate = useNavigate();
+
+  // 用 React 的 useId 保证 SSR/CSR 一致（即使未来开启 SSR 也不容易触发 hydration mismatch）。
+  const instanceId = useId();
+
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
+  const [iframeHeight, setIframeHeight] = useState<number | null>(null);
+  const currentModeRef = useRef<DocMode>(forcedMode);
+
+  // 当外部强制 mode 变化时，同步本地 ref（以及 iframe 侧）。
+  useEffect(() => {
+    if (allowModeSwitch)
+      return;
+    currentModeRef.current = forcedMode;
+    setFrameMode(forcedMode);
+    try {
+      iframeRef.current?.contentWindow?.postMessage(
+        {
+          tc: "tc-blocksuite-frame",
+          instanceId,
+          type: "set-mode",
+          mode: forcedMode,
+        },
+        getPostMessageTargetOrigin(),
+      );
+    }
+    catch {
+      // ignore
+    }
+  }, [allowModeSwitch, forcedMode, instanceId]);
+
+  const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
+
+  const actions: BlocksuiteDescriptionEditorActions = useMemo(() => {
+    const post = (payload: any) => {
+      try {
+        iframeRef.current?.contentWindow?.postMessage(payload, getPostMessageTargetOrigin());
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    return {
+      toggleMode: () => {
+        const prev = currentModeRef.current ?? forcedMode;
+        const next = prev === "page" ? "edgeless" : "page";
+        currentModeRef.current = next;
+        setFrameMode(next);
+        onModeChange?.(next);
+        post({ tc: "tc-blocksuite-frame", instanceId, type: "set-mode", mode: next });
+        return next;
+      },
+      setMode: (m: DocMode) => {
+        currentModeRef.current = m;
+        setFrameMode(m);
+        onModeChange?.(m);
+        post({ tc: "tc-blocksuite-frame", instanceId, type: "set-mode", mode: m });
+      },
+      getMode: () => {
+        return currentModeRef.current ?? forcedMode;
+      },
+    };
+  }, [forcedMode, instanceId, onModeChange]);
+
+  useEffect(() => {
+    onActionsChange?.(actions);
+    return () => {
+      onActionsChange?.(null);
+    };
+  }, [actions, onActionsChange]);
+
+  // 父子窗口通信：mode 同步、导航委托、主题同步。
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    const expectedOrigin = window.location.origin;
+
+    const onMessage = (e: MessageEvent) => {
+      // Origin 校验：file:// 场景可能是 "null"，此时降级只做 source 校验 + instanceId 校验。
+      const originOk = !expectedOrigin || expectedOrigin === "null" ? true : e.origin === expectedOrigin;
+      if (!originOk)
+        return;
+
+      if (e.source !== iframeRef.current?.contentWindow)
+        return;
+
+      const data: any = e.data;
+      if (!data || data.tc !== "tc-blocksuite-frame")
+        return;
+
+      if (data.instanceId && data.instanceId !== instanceId)
+        return;
+
+      if (data.type === "mode" && (data.mode === "page" || data.mode === "edgeless")) {
+        const next = data.mode as DocMode;
+        currentModeRef.current = next;
+        setFrameMode(next);
+        onModeChange?.(next);
+        return;
+      }
+
+      if (data.type === "height" && typeof data.height === "number" && Number.isFinite(data.height) && data.height > 0) {
+        setIframeHeight(Math.ceil(data.height));
+        return;
+      }
+
+      if (data.type === "navigate" && typeof data.to === "string" && data.to) {
+        try {
+          navigate(data.to);
+        }
+        catch {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("message", onMessage);
+    };
+  }, [instanceId, navigate, onModeChange]);
+
+  // 画布全屏：需要由宿主处理（iframe 内的 fixed 只能覆盖 iframe 自己）。
+  useEffect(() => {
+    if (typeof document === "undefined")
+      return;
+
+    if (!isEdgelessFullscreenActive)
+      return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isEdgelessFullscreenActive]);
+
+  // 主题同步：把站点主题（data-theme / dark class）推送到 iframe 的 html 上。
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    const postTheme = () => {
+      const theme = getCurrentAppTheme();
+      try {
+        iframeRef.current?.contentWindow?.postMessage(
+          {
+            tc: "tc-blocksuite-frame",
+            instanceId,
+            type: "theme",
+            theme,
+          },
+          getPostMessageTargetOrigin(),
+        );
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    postTheme();
+
+    const root = document.documentElement;
+    let mo: MutationObserver | null = null;
+    try {
+      mo = new MutationObserver(() => {
+        postTheme();
+      });
+      mo.observe(root, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    }
+    catch {
+      mo = null;
+    }
+
+    return () => {
+      try {
+        mo?.disconnect?.();
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, [instanceId]);
+
+  const src = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("instanceId", instanceId);
+    params.set("workspaceId", workspaceId);
+    if (typeof spaceId === "number" && Number.isFinite(spaceId))
+      params.set("spaceId", String(spaceId));
+    params.set("docId", docId);
+    params.set("variant", variant);
+    params.set("readOnly", readOnly ? "1" : "0");
+    params.set("allowModeSwitch", allowModeSwitch ? "1" : "0");
+    params.set("fullscreenEdgeless", fullscreenEdgeless ? "1" : "0");
+    params.set("hideModeSwitchButton", hideModeSwitchButton ? "1" : "0");
+    params.set("mode", forcedMode);
+
+    return `/blocksuite-frame?${params.toString()}`;
+  }, [
+    allowModeSwitch,
+    docId,
+    forcedMode,
+    fullscreenEdgeless,
+    hideModeSwitchButton,
+    instanceId,
+    readOnly,
+    spaceId,
+    variant,
+    workspaceId,
+  ]);
+
+  const hasExplicitHeightClass = useMemo(() => {
+    const v = (className ?? "").trim();
+    if (!v)
+      return false;
+    // Tailwind 高度相关：h-*, h-[...], min-h-*, max-h-*
+    return /(?:^|\s)(?:h-\[|h-|min-h-|max-h-)/.test(v);
+  }, [className]);
+
+  const iframeStyle: React.CSSProperties = {
+    border: 0,
+    display: "block",
+    background: "transparent",
+  };
+
+  if (!isEdgelessFullscreenActive && variant !== "full") {
+    if (iframeHeight && iframeHeight > 0) {
+      iframeStyle.height = `${iframeHeight}px`;
+    }
+    else {
+      iframeStyle.minHeight = "8rem";
+    }
+  }
+
+  // 非全屏场景尽量减少额外 DOM 包裹：直接渲染 iframe（避免“多包一层”导致布局/高度难以控制）。
+  if (!isEdgelessFullscreenActive) {
+    const iframeClassName = [
+      "w-full",
+      className,
+      // full variant 默认填充父容器；但如果外部已显式指定高度（例如 h-[60vh]），不要再追加 h-full 覆盖它。
+      (variant === "full" && !hasExplicitHeightClass) ? "h-full" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      <iframe
+        ref={iframeRef}
+        src={src}
+        title="blocksuite-editor"
+        className={iframeClassName}
+        style={iframeStyle}
+        onLoad={() => {
+          try {
+            iframeRef.current?.contentWindow?.postMessage(
+              { tc: "tc-blocksuite-frame", instanceId, type: "request-height" },
+              getPostMessageTargetOrigin(),
+            );
+          }
+          catch {
+            // ignore
+          }
+        }}
+      />
+    );
+  }
+
+  const fullscreenWrapperClassName = [
+    className,
+    "fixed inset-0 z-50 p-2 bg-base-100",
+    "w-full h-full",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className={fullscreenWrapperClassName}>
+      <iframe
+        ref={iframeRef}
+        src={src}
+        title="blocksuite-editor"
+        className="w-full h-full"
+        style={iframeStyle}
+        onLoad={() => {
+          try {
+            iframeRef.current?.contentWindow?.postMessage(
+              { tc: "tc-blocksuite-frame", instanceId, type: "request-height" },
+              getPostMessageTargetOrigin(),
+            );
+          }
+          catch {
+            // ignore
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescriptionEditorProps) {
+  // 在顶层窗口：只渲染 iframe（避免 blocksuite 运行时在主页面注入任何全局副作用）。
+  // 在 iframe 内/非浏览器环境：渲染真实 editor。
+  if (typeof window !== "undefined" && !isProbablyInIframe()) {
+    return <BlocksuiteDescriptionEditorIframeHost {...props} />;
+  }
+
+  return <BlocksuiteDescriptionEditorRuntime {...props} />;
+}

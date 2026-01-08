@@ -75,6 +75,10 @@ function RoomSideDrawersImpl({
     : Math.max(mapMinWidth, window.innerWidth - 360);
   const safeMapWidth = clamp(mapDrawerWidth, Math.min(720, mapMaxWidth), mapMaxWidth);
 
+  const webgalMaxWidth = typeof window === "undefined"
+    ? 900
+    : Math.max(360, window.innerWidth - 500);
+
   const rightDrawerBaseClass = "h-full bg-base-100 z-20 flex-shrink-0";
   const rightDrawerOverlayAnchorClass = "top-0 right-0";
   const rightDrawerHandlePosition = "left" as const;
@@ -159,7 +163,7 @@ function RoomSideDrawersImpl({
         className={`${rightDrawerBaseClass} overflow-hidden ${rightDrawerOverlayAnchorClass}`}
         initialWidth={webgalDrawerWidth}
         onWidthChange={setWebgalDrawerWidth}
-        maxWidth={window.innerWidth - 500}
+        maxWidth={webgalMaxWidth}
         handlePosition={rightDrawerHandlePosition}
       >
         <WebGALPreview

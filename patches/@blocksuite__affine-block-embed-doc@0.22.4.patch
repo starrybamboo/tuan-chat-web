@@ -1,0 +1,40 @@
+diff --git "a/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/7c3b6fd8c0e32655af4adceddd13210d/dist/embed-synced-doc-block/embed-edgeless-synced-doc-block.js" "b/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/ac28f8cda9cc3c06a07bc44952634f28/dist/embed-synced-doc-block/embed-edgeless-synced-doc-block.js"
+index ef5c8e064f65adc8646f1b7824f38d274d336ed1..972ed2a8439847366c0b8d10e45f246f890f37f0 100644
+--- "a/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/7c3b6fd8c0e32655af4adceddd13210d/dist/embed-synced-doc-block/embed-edgeless-synced-doc-block.js"
++++ "b/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/ac28f8cda9cc3c06a07bc44952634f28/dist/embed-synced-doc-block/embed-edgeless-synced-doc-block.js"
+@@ -201,13 +201,13 @@ let EmbedEdgelessSyncedDocBlockComponent = (() => {
+             const bound = Bound.deserialize(xywh$.value);
+             this.embedContainerStyle.width = `${bound.w}px`;
+             this.embedContainerStyle.height = `${bound.h}px`;
+-            this.cardStyleMap = {
++            this.cardStyleMap = styleMap({
+                 display: 'block',
+                 width: `${EMBED_CARD_WIDTH[style]}px`,
+                 height: `${EMBED_CARD_HEIGHT[style]}px`,
+                 transform: `scale(${bound.w / EMBED_CARD_WIDTH[style]}, ${bound.h / EMBED_CARD_HEIGHT[style]})`,
+                 transformOrigin: '0 0',
+-            };
++            });
+             return this.renderPageContent();
+         }
+         #useCaptionEditor_accessor_storage;
+diff --git "a/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/7c3b6fd8c0e32655af4adceddd13210d/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts" "b/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/ac28f8cda9cc3c06a07bc44952634f28/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts"
+index 55d81238a1e8dacc87c2caea4fcb69c9a29be28d..7b1921088aabb5ff4ceeb55b6345b00f340ea7cd 100644
+--- "a/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/7c3b6fd8c0e32655af4adceddd13210d/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts"
++++ "b/C:/Users/\351\231\215\346\230\237\351\251\260/AppData/Local/Temp/ac28f8cda9cc3c06a07bc44952634f28/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts"
+@@ -181,13 +181,13 @@ export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
+     this.embedContainerStyle.width = `${bound.w}px`;
+     this.embedContainerStyle.height = `${bound.h}px`;
+ 
+-    this.cardStyleMap = {
++    this.cardStyleMap = styleMap({
+       display: 'block',
+       width: `${EMBED_CARD_WIDTH[style]}px`,
+       height: `${EMBED_CARD_HEIGHT[style]}px`,
+       transform: `scale(${bound.w / EMBED_CARD_WIDTH[style]}, ${bound.h / EMBED_CARD_HEIGHT[style]})`,
+       transformOrigin: '0 0',
+-    };
++    });
+ 
+     return this.renderPageContent();
+   }

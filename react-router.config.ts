@@ -3,17 +3,12 @@ import type { Config } from "@react-router/dev/config";
 
 export default {
   // Config options...
-  // 传统 SSR 模式（稳定可靠）
+  // 关闭 SSR（SPA Mode）
   ssr: false,
-  // 预渲染配置 - 构建时生成静态 HTML
+  // 关闭构建期 prerender，避免构建期执行路由（等同 SSR 执行）
   prerender: [
     "/",
     "/chat",
-    "/community",
-    "/activities",
-    "/feed",
     "/role",
-    "/module/detail",
-    "/collection",
   ],
 } satisfies Config;

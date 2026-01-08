@@ -36,5 +36,5 @@
 - [架构设计](arch.md)
 - [API 手册](api.md)
 - [数据模型](data.md)
+- [Blocksuite 依赖文档](vendors/blocksuite/index.md)
 - [变更历史](../history/index.md)
-
