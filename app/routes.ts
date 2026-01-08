@@ -17,7 +17,6 @@ export default [
         route(":roleId?", "routes/role/roleId.tsx"), // -> /role/:roleId?
       ]),
     ]),
-    route("create/:editingStageId?", "routes/create.tsx"),
     route("activities", "routes/activities.tsx"),
 
     ...prefix("profile/:userId", [
@@ -29,7 +28,6 @@ export default [
     ]),
 
     route("module", "routes/module/index.tsx"),
-    route("module/create", "routes/module/create.tsx"),
     route("module/detail/:id?", "routes/module/detail.tsx"),
     route("chat/:spaceId?/:roomId?/:messageId?", "routes/chat.tsx"),
     route("community/:communityId?", "routes/community.tsx"),

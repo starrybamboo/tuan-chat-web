@@ -54,6 +54,13 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // 存储当前选择的图片文件
   const imgFile = useRef<File>(null);
 
+  // 存储用户最初选择的原始图片文件（未裁剪）
+  const originalFileRef = useRef<File | null>(null);
+
+  // originUrl：用户选择的原图上传得到的 URL（压缩参数使用 UploadUtils 默认值）
+  const [originUrl, setOriginUrl] = useState("");
+  const originUrlPromiseRef = useRef<Promise<string> | null>(null);
+
   // 提交状态
   const [isSubmiting, setisSubmiting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -126,6 +133,11 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     }
     // 清除文件引用
     imgFile.current = null;
+
+    // 清除原图与 originUrl
+    originalFileRef.current = null;
+    setOriginUrl("");
+    originUrlPromiseRef.current = null;
   }
 
   // 使用防抖 Hook 更新预览画布（已集成在 useCropPreview 中）
@@ -143,6 +155,21 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
 
     setIsOpen(true);
     imgFile.current = file;
+    originalFileRef.current = file;
+
+    // 选择文件后立即上传 originUrl（不裁剪），用于后续在裁剪器切换回原图
+    setOriginUrl("");
+    originUrlPromiseRef.current = (async () => {
+      try {
+        const url = await uploadUtils.uploadImg(file, scene);
+        setOriginUrl(url);
+        return url;
+      }
+      catch (error) {
+        console.error("originUrl 上传失败:", error);
+        return "";
+      }
+    })();
 
     setCrop(undefined); // Makes crop preview update between images.
     const reader = new FileReader();
@@ -197,9 +224,29 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
           setCopperedDownloadUrl(copperedDownloadUrl);
         }
+
+        // 确保 originUrl 已经上传完成（若用户很快提交，这里会等待）
+        let resolvedOriginUrl = originUrl;
+        if (!resolvedOriginUrl && originUrlPromiseRef.current) {
+          resolvedOriginUrl = await originUrlPromiseRef.current;
+        }
+        if (!resolvedOriginUrl && originalFileRef.current) {
+          try {
+            resolvedOriginUrl = await uploadUtils.uploadImg(originalFileRef.current, scene);
+            setOriginUrl(resolvedOriginUrl);
+          }
+          catch (error) {
+            console.error("originUrl 二次上传失败:", error);
+          }
+        }
+
         if (mutate !== undefined) {
-          console.warn("CharacterCopper: 传递Transform数据", transform);
-          mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl, transform });
+          mutate({
+            avatarUrl: copperedDownloadUrl,
+            spriteUrl: downloadUrl,
+            originUrl: resolvedOriginUrl || undefined,
+            transform,
+          });
         }
         // 延迟关闭弹窗和重置状态，避免抖动
         setTimeout(() => {

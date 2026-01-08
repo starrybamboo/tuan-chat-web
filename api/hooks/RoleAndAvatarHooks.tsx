@@ -609,9 +609,9 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; originUrl?: string; transform?: Transform; autoApply?: boolean; autoNameFirst?: boolean; }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform, autoApply = true, autoNameFirst = false }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, originUrl, transform, autoApply = true, autoNameFirst = false }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
@@ -623,7 +623,8 @@ export function useUploadAvatarMutation() {
         autoApply,
         autoNameFirst,
         avatarUrl: avatarUrl.substring(0, 50) + "...",
-        spriteUrl: spriteUrl.substring(0, 50) + "..."
+        spriteUrl: spriteUrl.substring(0, 50) + "...",
+        originUrl: originUrl ? originUrl.substring(0, 50) + "..." : undefined,
       });
 
       try {
@@ -652,6 +653,7 @@ export function useUploadAvatarMutation() {
             avatarId,
             avatarUrl,
             spriteUrl,
+            originUrl,
             spriteXPosition: t.positionX,
             spriteYPosition: t.positionY,
             spriteScale: t.scale,
@@ -662,7 +664,30 @@ export function useUploadAvatarMutation() {
             console.error("头像更新失败", uploadRes);
             return undefined;
           }
-          console.warn("头像上传成功，包含Transform参数");
+
+          // 最小化调试信息：仅关注上传到后端的 spriteUrl/originUrl 以及后端返回体里保存的值
+          try {
+            const saved = uploadRes.data;
+            console.warn("Avatar upload origin/sprite", {
+              roleId,
+              avatarId,
+              request: {
+                spriteUrl: spriteUrl ? `${spriteUrl.substring(0, 80)}...` : undefined,
+                originUrl: originUrl ? `${originUrl.substring(0, 80)}...` : undefined,
+                originEqualsSprite: !!originUrl && originUrl === spriteUrl,
+              },
+              saved: saved
+                ? {
+                    spriteUrl: saved.spriteUrl ? `${saved.spriteUrl.substring(0, 80)}...` : undefined,
+                    originUrl: saved.originUrl ? `${saved.originUrl.substring(0, 80)}...` : undefined,
+                    originEqualsSprite: !!saved.originUrl && saved.originUrl === saved.spriteUrl,
+                  }
+                : undefined,
+            });
+          }
+          catch (e) {
+            console.warn("Avatar upload origin/sprite: debug log failed", e);
+          }
           
           // 根据 autoApply 参数决定是否自动应用头像
           if (autoApply) {

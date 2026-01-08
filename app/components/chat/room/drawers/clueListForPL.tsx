@@ -1,6 +1,7 @@
 import type { SpaceClueCreateRequest } from "../../../../../api";
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import BaseEditor from "@/components/common/blocksuiteEditor/baseEditor";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -68,6 +69,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
 
   const [newClue, setNewClue] = useState({
     name: "",
+    description: "",
     image: "",
     note: "",
     clueStarsId: selectedFolderId,
@@ -145,22 +147,22 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       return;
     }
 
+    if (!newClue.description.trim()) {
+      toast.error("请输入线索描述");
+      return;
+    }
+
     if (newClue.clueStarsId === -1) {
       toast.error("请选择线索夹");
       return;
     }
 
     try {
-      // 确保创建线索的目标文件夹是当前选中状态
-      if (newClue.clueStarsId !== selectedFolderId) {
-        setSelectedFolderId(newClue.clueStarsId);
-        setOpenFolderId(newClue.clueStarsId);
-      }
-
       const request: Array<SpaceClueCreateRequest> = [
         {
           clueStarsId: newClue.clueStarsId,
           name: newClue.name,
+          description: newClue.description,
           image: newClue.image,
           note: newClue.note,
         },
@@ -172,22 +174,12 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       setShowAddClue(false);
       setNewClue({
         name: "",
+        description: "",
         image: "",
         note: "",
         clueStarsId: selectedFolderId,
       });
-
-      // 创建接口不返回 id：通过刷新列表，尽量定位到本次新增的线索并自动打开详情
-      const refreshed = await getCluesByClueStarsQuery.refetch();
-      const list = refreshed.data?.data ?? [];
-      const candidates = list
-        .filter(c => (c.name ?? "") === newClue.name)
-        .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
-      const created = (candidates[0] ?? list.slice().sort((a, b) => (b.id ?? 0) - (a.id ?? 0))[0]);
-
-      if (created?.id) {
-        handleViewClue(created);
-      }
+      getCluesByClueStarsQuery.refetch();
     }
     catch {
       toast.error("添加线索失败");
@@ -292,7 +284,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     return (
       <DisplayOfItemDetail
         manualData={selectedManualClue}
-        spaceId={spaceId ?? -1}
         onSend={handleSend}
         onUpdate={handleClueUpdate}
       />
@@ -378,6 +369,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                       type="button"
                       onClick={() => toggleFolder(folder.id!)}
                       className="btn flex w-full max-w-64 mx-auto gap-3 p-3 bg-base-200 rounded-lg items-center hover:bg-base-300 transition border border-base-300"
+                      aria-expanded={openFolderId === folder.id}
                       aria-controls={`clue-drawer-${folder.id}`}
                     >
                       <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
@@ -555,8 +547,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                   线索夹
                 </label>
                 <select
-                  id="add-clue-folder"
-                  title="选择线索夹"
                   value={newClue.clueStarsId}
                   onChange={e => handleInputChange("clueStarsId", e.target.value)}
                   className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -575,6 +565,13 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                       )}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
+                描述 *
+              </label>
+              <BaseEditor />
             </div>
 
             <div>
@@ -660,7 +657,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                             type="text"
                             value={editFolderName}
                             onChange={e => setEditFolderName(e.target.value)}
-                            aria-label="编辑线索夹名称"
                             className="flex-1 px-2 py-1 border border-blue-300 rounded bg-white dark:bg-neutral-600 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
