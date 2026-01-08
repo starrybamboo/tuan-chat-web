@@ -528,7 +528,7 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 消息选择
    */
-  const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(new Set());
+  const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const isSelecting = selectedMessageIds.size > 0;
 
   const toggleMessageSelection = useCallback((messageId: number) => {

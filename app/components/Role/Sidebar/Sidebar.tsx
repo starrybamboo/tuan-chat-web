@@ -232,7 +232,7 @@ export function Sidebar({
   const normalRoles = filteredRoles.filter(role => role.type !== 1);
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedRoles, setSelectedRoles] = useState<Set<number>>(new Set());
+  const [selectedRoles, setSelectedRoles] = useState<Set<number>>(() => new Set());
 
   // 切换选择模式
   const toggleSelectionMode = () => {

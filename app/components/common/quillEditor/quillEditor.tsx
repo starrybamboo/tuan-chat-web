@@ -4,7 +4,7 @@ import type { StageEntityResponse } from "api";
 import type quill from "quill";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
+import { useModuleContext } from "@/components/module/workPlace/context/moduleContext";
 import { BaselineAutoAwesomeMotion } from "@/icons";
 import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlTagWysiwyg";
 import { htmlToMarkdown } from "./htmlToMarkdown";

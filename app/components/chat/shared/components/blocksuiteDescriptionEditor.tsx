@@ -144,7 +144,16 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   } = props;
 
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
   const isFull = variant === "full";
+
+  const readOnlyRef = useRef(readOnly);
+  useEffect(() => {
+    readOnlyRef.current = readOnly;
+  }, [readOnly]);
 
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
   const currentModeRef = useRef<DocMode>(forcedMode);
@@ -152,7 +161,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   useEffect(() => {
     currentModeRef.current = currentMode;
     onModeChange?.(currentMode);
-  }, [currentMode]);
+  }, [currentMode, onModeChange]);
 
   const hostContainerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
@@ -470,7 +479,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         workspace: workspace as any,
         docModeProvider,
         spaceId,
-        autofocus: !readOnly,
+        autofocus: !readOnlyRef.current,
         onNavigateToDoc: ({ spaceId, docId }) => {
           const parsed = parseSpaceDocId(docId);
 
@@ -491,7 +500,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                 // ignore
               }
             }
-            navigate(to);
+            navigateRef.current(to);
           };
 
           if (parsed?.kind === "room_description") {
@@ -514,7 +523,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       (editor as any).style.minHeight = "8rem";
       (editor as any).style.height = isFullInEffect ? "100%" : "auto";
 
-      if (readOnly) {
+      if (readOnlyRef.current) {
         try {
           (editor as any).readOnly = true;
           (editor as any).readonly = true;
@@ -589,6 +598,24 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     };
   }, [docId, docModeProvider, isFull, spaceId, workspaceId]);
 
+  useEffect(() => {
+    const editor = editorRef.current as any;
+    if (!editor)
+      return;
+
+    try {
+      editor.readOnly = readOnly;
+      editor.readonly = readOnly;
+      if (readOnly)
+        editor.setAttribute?.("readonly", "true");
+      else
+        editor.removeAttribute?.("readonly");
+    }
+    catch {
+      // ignore
+    }
+  }, [readOnly]);
+
   const isEdgelessFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
 
   const hasHeightConstraintClass = useMemo(() => {
@@ -629,6 +656,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     const prev = prevModeRef.current;
     prevModeRef.current = currentMode;
 
+    let rafId: number | null = null;
+    let t0: ReturnType<typeof setTimeout> | null = null;
+    let t1: ReturnType<typeof setTimeout> | null = null;
+    let t2: ReturnType<typeof setTimeout> | null = null;
+
     if (prev !== "edgeless" && currentMode === "edgeless") {
       const run = () => {
         const e = editorRef.current as any;
@@ -639,12 +671,47 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       };
 
       // Delay a bit to allow host/root/service to be ready.
-      requestAnimationFrame(() => {
-        setTimeout(run, 0);
-        setTimeout(run, 120);
-        setTimeout(run, 300);
+      rafId = requestAnimationFrame(() => {
+        t0 = setTimeout(run, 0);
+        t1 = setTimeout(run, 120);
+        t2 = setTimeout(run, 300);
       });
     }
+
+    return () => {
+      if (rafId !== null) {
+        try {
+          cancelAnimationFrame(rafId);
+        }
+        catch {
+          // ignore
+        }
+      }
+      if (t0) {
+        try {
+          clearTimeout(t0);
+        }
+        catch {
+          // ignore
+        }
+      }
+      if (t1) {
+        try {
+          clearTimeout(t1);
+        }
+        catch {
+          // ignore
+        }
+      }
+      if (t2) {
+        try {
+          clearTimeout(t2);
+        }
+        catch {
+          // ignore
+        }
+      }
+    };
   }, [currentMode, isEdgelessFullscreen, isFull]);
 
   useEffect(() => {
@@ -887,7 +954,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     return () => {
       window.removeEventListener("message", onMessage);
     };
-  }, [instanceId, navigate, onModeChange]);
+  }, [forcedMode, instanceId, navigate, onModeChange]);
 
   // 画布全屏：需要由宿主处理（iframe 内的 fixed 只能覆盖 iframe 自己）。
   useEffect(() => {
@@ -951,21 +1018,19 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     };
   }, [instanceId]);
 
-  const src = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("instanceId", instanceId);
-    params.set("workspaceId", workspaceId);
-    if (typeof spaceId === "number" && Number.isFinite(spaceId))
-      params.set("spaceId", String(spaceId));
-    params.set("docId", docId);
-    params.set("variant", variant);
-    params.set("readOnly", readOnly ? "1" : "0");
-    params.set("allowModeSwitch", allowModeSwitch ? "1" : "0");
-    params.set("fullscreenEdgeless", fullscreenEdgeless ? "1" : "0");
-    params.set("hideModeSwitchButton", hideModeSwitchButton ? "1" : "0");
-    params.set("mode", forcedMode);
-
-    return `/blocksuite-frame?${params.toString()}`;
+  const initParams = useMemo(() => {
+    return {
+      instanceId,
+      workspaceId,
+      spaceId: typeof spaceId === "number" && Number.isFinite(spaceId) ? String(spaceId) : undefined,
+      docId,
+      variant,
+      readOnly: readOnly ? "1" : "0",
+      allowModeSwitch: allowModeSwitch ? "1" : "0",
+      fullscreenEdgeless: fullscreenEdgeless ? "1" : "0",
+      hideModeSwitchButton: hideModeSwitchButton ? "1" : "0",
+      mode: forcedMode,
+    };
   }, [
     allowModeSwitch,
     docId,
@@ -978,6 +1043,16 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     variant,
     workspaceId,
   ]);
+
+  const src = useMemo(() => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(initParams)) {
+      if (v === undefined)
+        continue;
+      params.set(k, String(v));
+    }
+    return `/blocksuite-frame?${params.toString()}`;
+  }, [initParams]);
 
   const hasExplicitHeightClass = useMemo(() => {
     const v = (className ?? "").trim();
@@ -1051,6 +1126,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     }
   };
 
+  /* eslint-disable react-dom/no-unsafe-iframe-sandbox */
   return (
     <div className={wrapperClassName}>
       <iframe
@@ -1058,6 +1134,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         src={src}
         title="blocksuite-editor"
         className={iframeClassName}
+        sandbox="allow-scripts allow-same-origin"
         height={iframeHeightAttr}
         onLoad={() => {
           syncFrameBasics();
@@ -1065,6 +1142,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       />
     </div>
   );
+  /* eslint-enable react-dom/no-unsafe-iframe-sandbox */
 }
 
 export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescriptionEditorProps) {
