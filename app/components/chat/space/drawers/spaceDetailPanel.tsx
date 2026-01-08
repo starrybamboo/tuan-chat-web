@@ -1,5 +1,6 @@
 import type { SpaceDetailTab } from "../spaceHeaderBar";
 import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+
 import { use, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
