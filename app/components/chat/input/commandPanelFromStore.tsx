@@ -1,6 +1,6 @@
+import React from "react";
 import CommandPanel from "@/components/chat/input/commandPanel";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
-import React from "react";
 
 export default function CommandPanelFromStore({
   handleSelectCommand,

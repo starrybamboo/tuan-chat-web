@@ -1,14 +1,14 @@
 import type { Role } from "@/components/Role/types";
+import { useEffect, useState } from "react";
+import { useNavigate, useOutletContext, useSearchParams } from "react-router";
+
 import AICreateRole from "@/components/Role/RoleCreation/AICreateRole";
 import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
-
 // 导入您的创建组件
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
 import { setRoleRule } from "@/utils/roleRuleStorage";
-import { useEffect, useState } from "react";
-import { useNavigate, useOutletContext, useSearchParams } from "react-router";
 
 interface RoleContext {
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;

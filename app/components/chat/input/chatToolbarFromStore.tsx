@@ -1,9 +1,9 @@
+import React from "react";
 import ChatToolbar from "@/components/chat/input/chatToolbar";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import React from "react";
 
 type ChatToolbarProps = React.ComponentProps<typeof ChatToolbar>;
 

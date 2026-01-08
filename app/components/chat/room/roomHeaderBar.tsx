@@ -1,3 +1,4 @@
+import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import {
@@ -7,7 +8,6 @@ import {
   SharpDownload,
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
-import React from "react";
 
 export interface RoomHeaderBarProps {
   roomName?: string;

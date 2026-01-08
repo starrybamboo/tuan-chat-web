@@ -1,9 +1,6 @@
 import type { Route } from "./+types/root";
-import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
-
-import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
-import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
 import { Toaster } from "react-hot-toast";
@@ -16,6 +13,9 @@ import {
   ScrollRestoration,
   useNavigate,
 } from "react-router";
+import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
+import { GlobalContextProvider } from "@/components/globalContextProvider";
 import "./app.css";
 import "./animation.css";
 
@@ -134,7 +134,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   if (isRouteErrorResponse(error)) {
     message = error.status === 404 ? "Page Not Found" : "An Error Occurred";
     details
-        = error.status === 404
+      = error.status === 404
         ? "页面不存在"
         : error.data?.message || error.statusText;
   }

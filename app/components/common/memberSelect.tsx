@@ -1,5 +1,5 @@
-import MemberInfoComponent from "@/components/common/memberInfo";
 import React from "react";
+import MemberInfoComponent from "@/components/common/memberInfo";
 
 interface MemberSelectProps {
   /** 可选的成员列表 */

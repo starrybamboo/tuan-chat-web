@@ -1,9 +1,9 @@
 import type { ChatMessageResponse } from "../../../../api";
-import { ChatBubble } from "@/components/chat/message/chatBubble";
-import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import * as htmltoimage from "html-to-image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { ChatBubble } from "@/components/chat/message/chatBubble";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 
 async function loadQRCode() {
   const mod = await import("qrcode");

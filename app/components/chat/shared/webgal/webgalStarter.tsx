@@ -1,7 +1,7 @@
+import { toast } from "react-hot-toast";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
-import { toast } from "react-hot-toast";
 
 export default function WebgalStarter({ className, children }: { className: string; children: React.ReactNode }) {
   async function startWebgal() {

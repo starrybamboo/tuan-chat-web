@@ -1,7 +1,7 @@
 import type { PostListWithStatsResponse } from "api";
-import UserAvatarComponent from "@/components/common/userAvatar";
 import React from "react";
 import { useNavigate } from "react-router";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "./slidableChatPreview";
 
 interface CommunityPostCardProps {

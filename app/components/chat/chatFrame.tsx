@@ -5,6 +5,9 @@ import type {
   ImageMessage,
   Message,
 } from "../../../api";
+import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { Virtuoso } from "react-virtuoso";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleChooser from "@/components/chat/input/roleChooser";
@@ -22,9 +25,6 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { getImageSize } from "@/utils/getImgSize";
-import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { Virtuoso } from "react-virtuoso";
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,

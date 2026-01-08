@@ -1,11 +1,11 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../../../api";
 
+import React, { use, useMemo, useRef } from "react";
 import ChatFrame from "@/components/chat/chatFrame";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { XMarkICon } from "@/icons";
-import React, { use, useMemo, useRef } from "react";
 
 export default function MessageThreadDrawer() {
   const roomContext = use(RoomContext);

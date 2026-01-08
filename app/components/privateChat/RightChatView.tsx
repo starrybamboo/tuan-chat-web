@@ -1,6 +1,6 @@
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetInboxMessageWithUserQuery } from "api/hooks/MessageDirectQueryHooks";
 import { useParams } from "react-router";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import ContextMenu from "./components/ContextMenu";
 import MessageInput from "./components/MessageInput";
 import MessageWindow from "./components/MessageWindow";

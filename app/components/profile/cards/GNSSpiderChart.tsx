@@ -1,8 +1,8 @@
+import { useEffect, useState } from "react";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import GNSPreferenceEditor from "@/components/profile/popWindows/GNSEditorPop";
 
-import { useEffect, useState } from "react";
+import GNSPreferenceEditor from "@/components/profile/popWindows/GNSEditorPop";
 import { useGetGNSQuery, useUpsertGNSMutation } from "../../../../api/hooks/userGNSQuerryHooks";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";

@@ -4,12 +4,12 @@
 
 import type { Crop, PixelCrop } from "react-image-crop";
 
-import { PopWindow } from "@/components/common/popWindow";
-import { canvasPreview, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
-
-import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
+
+import { PopWindow } from "@/components/common/popWindow";
+import { canvasPreview, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
+import { UploadUtils } from "@/utils/UploadUtils";
 import "react-image-crop/dist/ReactCrop.css";
 
 // 原先强制 1:1，现在改成自由裁剪：初始化给一个居中稍大的默认矩形（不锁定比例）

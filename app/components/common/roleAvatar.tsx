@@ -1,10 +1,10 @@
+import { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { use } from "react";
 import {
   useGetRoleAvatarQuery,
 } from "../../../api/hooks/RoleAndAvatarHooks";

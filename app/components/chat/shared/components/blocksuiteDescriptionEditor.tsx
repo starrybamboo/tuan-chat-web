@@ -1,15 +1,15 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
-import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
-import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
-import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
-
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Subscription } from "rxjs";
+import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+
+import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
 
 async function loadBlocksuiteRuntime() {
   const [{ createEmbeddedAffineEditor }, { ensureBlocksuiteCoreElementsDefined }, spaceRegistry] = await Promise.all([

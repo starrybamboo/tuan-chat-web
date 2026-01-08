@@ -1,8 +1,8 @@
 import type { Emoji } from "api/models/Emoji";
-import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { UploadUtils } from "@/utils/UploadUtils";
 import { useCreateEmojiMutation, useDeleteEmojiMutation, useGetUserEmojisQuery } from "api/hooks/emojiQueryHooks";
 import { useState } from "react";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
+import { UploadUtils } from "@/utils/UploadUtils";
 
 export default function EmojiWindow({ onChoose }:
 {

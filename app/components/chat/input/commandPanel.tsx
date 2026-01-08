@@ -1,6 +1,6 @@
+import React from "react";
 import { getCommandList } from "@/components/common/dicer/cmdPre";
 import { webgalCommands } from "@/components/common/dicer/commands";
-import React from "react";
 
 /**
  * 定义命令面板支持的命令模式类型

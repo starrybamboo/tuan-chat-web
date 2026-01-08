@@ -1,7 +1,7 @@
-import { Mounter } from "@/components/common/mounter";
-import { isLgScreen } from "@/utils/getScreenSize";
 // 检测屏幕尺寸
 import React from "react";
+import { Mounter } from "@/components/common/mounter";
+import { isLgScreen } from "@/utils/getScreenSize";
 
 /**
  * 侧边抽屉组件

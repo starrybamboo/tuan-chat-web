@@ -1,7 +1,7 @@
 import type { ChatMessageResponse } from "../../../../../api";
+import { useMemo } from "react";
 import BetterImg from "@/components/common/betterImg";
 import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
-import { useMemo } from "react";
 
 function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   const { message } = messageResponse;

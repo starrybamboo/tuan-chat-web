@@ -1,11 +1,11 @@
-import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
-
 import type { Room } from "../../../../api";
+
+import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
+import React, { useMemo, useRef, useState } from "react";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { ChevronDown, Setting } from "@/icons";
-import React, { useMemo, useRef, useState } from "react";
 
 export interface ChatRoomListPanelProps {
   isPrivateChatMode: boolean;

@@ -1,6 +1,6 @@
+import { useEffect, useRef } from "react";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { useEffect, useRef } from "react";
 
 interface Props {
   spaceId: number;

@@ -1,9 +1,9 @@
 import type { CollectionCheckRequest } from "../../../../api";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { Arrowleft, Arrowright, RoundStarBorder, RoundStarFilled } from "@/icons";
 import { useEffect, useState } from "react";
-
 import toast from "react-hot-toast";
+import { useGlobalContext } from "@/components/globalContextProvider";
+
+import { Arrowleft, Arrowright, RoundStarBorder, RoundStarFilled } from "@/icons";
 import {
   useAddCollectionMutation,
   useAddToListMutation,

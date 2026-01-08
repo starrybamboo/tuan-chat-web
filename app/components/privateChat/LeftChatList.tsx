@@ -1,7 +1,7 @@
+import { useNavigate, useParams } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { UsersIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { useNavigate, useParams } from "react-router";
 import ChatList from "./components/ChatList";
 import ContextMenuCommon from "./components/ContextMenuCommon";
 import { useContextMenuCommon } from "./hooks/useContextMenuCommon";

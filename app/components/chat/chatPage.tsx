@@ -1,4 +1,15 @@
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+import {
+  useAddRoomMemberMutation,
+  useAddSpaceMemberMutation,
+  useGetSpaceMembersQuery,
+  useGetUserRoomsQuery,
+  useGetUserSpacesQuery,
+  useSetPlayerMutation,
+} from "api/hooks/chatQueryHooks";
+import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
@@ -22,17 +33,6 @@ import FriendsPage from "@/components/privateChat/FriendsPage";
 import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
-import {
-  useAddRoomMemberMutation,
-  useAddSpaceMemberMutation,
-  useGetSpaceMembersQuery,
-  useGetUserRoomsQuery,
-  useGetUserSpacesQuery,
-  useSetPlayerMutation,
-} from "api/hooks/chatQueryHooks";
-import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
 
 /**
  * chat板块的主组件

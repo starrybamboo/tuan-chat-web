@@ -1,8 +1,8 @@
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useGlobalContext } from "@/components/globalContextProvider";
 
 export default function InvitePage() {
   const { code } = useParams<{ code: string }>();

@@ -1,3 +1,5 @@
+import { useDebounce } from "ahooks";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
@@ -16,17 +18,15 @@ import {
   YoutubeSolid,
 } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { useDebounce } from "ahooks";
-import React, { useEffect, useMemo, useRef, useState } from "react";
 
-type MarkdownFormatType =
-  | "strong" | "em" | "code" | "blockquote" | "codeBlock"
-  | "ul" | "ol" | "li"
-  | "a" | "img"
-  | "p" | "pre" | "hr" | "br" | "del"
-  | "table" | "thead" | "tbody" | "tr" | "th" | "td"
-  | "bilibili" | "youtube" |
-  "detail";
+type MarkdownFormatType
+  = | "strong" | "em" | "code" | "blockquote" | "codeBlock"
+    | "ul" | "ol" | "li"
+    | "a" | "img"
+    | "p" | "pre" | "hr" | "br" | "del"
+    | "table" | "thead" | "tbody" | "tr" | "th" | "td"
+    | "bilibili" | "youtube"
+    | "detail";
 
 /**
  * markdown编辑器

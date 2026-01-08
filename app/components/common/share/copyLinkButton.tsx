@@ -1,5 +1,5 @@
-import { Link } from "@/icons";
 import { toast } from "react-hot-toast";
+import { Link } from "@/icons";
 
 interface CopyLinkButtonProps {
   title?: string;

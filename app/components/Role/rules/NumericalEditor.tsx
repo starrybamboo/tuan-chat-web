@@ -22,12 +22,12 @@ interface NumericalEditorProps {
 }
 
 // Reducer actions
-type DataAction =
-  | { type: "SYNC_PROPS"; payload: NumericalData }
-  | { type: "UPDATE_FIELD"; payload: { key: string; value: string } }
-  | { type: "ADD_FIELD"; payload: { key: string; value: string } }
-  | { type: "DELETE_FIELD"; payload: string }
-  | { type: "RENAME_FIELD"; payload: { oldKey: string; newKey: string } };
+type DataAction
+  = | { type: "SYNC_PROPS"; payload: NumericalData }
+    | { type: "UPDATE_FIELD"; payload: { key: string; value: string } }
+    | { type: "ADD_FIELD"; payload: { key: string; value: string } }
+    | { type: "DELETE_FIELD"; payload: string }
+    | { type: "RENAME_FIELD"; payload: { oldKey: string; newKey: string } };
 
 // Reducer function
 function dataReducer(state: NumericalData, action: DataAction): NumericalData {

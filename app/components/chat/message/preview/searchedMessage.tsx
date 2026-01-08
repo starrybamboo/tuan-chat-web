@@ -1,7 +1,7 @@
 import type { ChatMessageResponse } from "../../../../../api";
+import React from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import React from "react";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
 function HighlightText({ text, keyword }: { text: string; keyword: string }) {

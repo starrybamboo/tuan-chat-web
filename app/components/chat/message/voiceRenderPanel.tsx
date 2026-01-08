@@ -1,8 +1,8 @@
 import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { EMOTION_LABELS, emotionRecordToVector, normalizeEmotionVector, PREDEFINED_ANIMATIONS } from "@/types/voiceRenderTypes";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface VoiceRenderPanelProps {
   /** 当前情感向量（消息级别设置） */

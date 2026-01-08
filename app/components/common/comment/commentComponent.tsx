@@ -1,4 +1,5 @@
 import type { CommentVO } from "api";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
@@ -7,7 +8,6 @@ import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDeleteCommentMutation, useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
 /**

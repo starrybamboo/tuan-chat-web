@@ -1,7 +1,7 @@
+import React, { useMemo, useState } from "react";
 import UserModulesList from "@/components/profile/workTabPart/moudleList";
 import PostsList from "@/components/profile/workTabPart/postsList";
 import RolesList from "@/components/profile/workTabPart/rolesList";
-import React, { useMemo, useState } from "react";
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 

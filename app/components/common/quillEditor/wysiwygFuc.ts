@@ -177,14 +177,14 @@ export function detectInlineFormats(
   // 常规场景：闭合标记在空格左侧，匹配形如 **text**␠ / __text__␠ / ~~text~~␠
   // 三种模式的正则，锚定到 leftText 的末尾（即空格之前）
   const patterns: Array<{ re: RegExp; attr: "bold" | "underline" | "strike" | "italic"; open: number; close: number; token?: string }>
-        = [
-          // 允许内部出现普通字符与空格；后续我们自行修剪首尾至多一个空格
-          { re: /\*\*([^*]+)\*\*$/, attr: "bold", open: 2, close: 2, token: "**" },
-          { re: /__([^_]+)__$/, attr: "underline", open: 2, close: 2, token: "__" },
-          { re: /~~([^~]+)~~$/, attr: "strike", open: 2, close: 2, token: "~~" },
-          { re: /\*([^*]+)\*$/, attr: "italic", open: 1, close: 1, token: "*" },
-          { re: /_([^_]+)_$/, attr: "italic", open: 1, close: 1, token: "_" },
-        ];
+    = [
+      // 允许内部出现普通字符与空格；后续我们自行修剪首尾至多一个空格
+      { re: /\*\*([^*]+)\*\*$/, attr: "bold", open: 2, close: 2, token: "**" },
+      { re: /__([^_]+)__$/, attr: "underline", open: 2, close: 2, token: "__" },
+      { re: /~~([^~]+)~~$/, attr: "strike", open: 2, close: 2, token: "~~" },
+      { re: /\*([^*]+)\*$/, attr: "italic", open: 1, close: 1, token: "*" },
+      { re: /_([^_]+)_$/, attr: "italic", open: 1, close: 1, token: "_" },
+    ];
 
   for (const pat of patterns) {
     const m = pat.re.exec(leftText);

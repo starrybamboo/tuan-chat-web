@@ -1,6 +1,6 @@
 import type { Route } from "./+types/dashBoard";
-import Topbar from "@/components/topbanner/Topbanner";
 import { Outlet } from "react-router";
+import Topbar from "@/components/topbanner/Topbanner";
 
 export function meta(_args: Route.MetaArgs) {
   return [

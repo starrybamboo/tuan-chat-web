@@ -1,8 +1,8 @@
 import type { UserInfoResponse } from "../../../../../api";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-
-import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import React, { useState } from "react";
+
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 
 interface UserAvatarProps {
   user: UserInfoResponse | undefined;

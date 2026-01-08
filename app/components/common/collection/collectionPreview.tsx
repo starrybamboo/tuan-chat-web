@@ -1,6 +1,6 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
-import { useLayoutEffect, useRef, useState } from "react";
 
 interface CollectionPreviewProps {
   collectionId?: number;

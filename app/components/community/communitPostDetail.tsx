@@ -1,10 +1,10 @@
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import BetterImg from "@/components/common/betterImg";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import PostActionBar from "@/components/community/postActionBar";
 import PostCommentPanel from "@/components/community/postCommentPanel";
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
 import SlidableChatPreview from "./slidableChatPreview";

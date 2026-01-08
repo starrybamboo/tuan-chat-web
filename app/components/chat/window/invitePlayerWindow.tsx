@@ -1,6 +1,6 @@
-import { SpaceContext } from "@/components/chat/core/spaceContext";
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 
 export default function InvitePlayerWindow() {

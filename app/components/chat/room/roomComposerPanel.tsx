@@ -1,7 +1,8 @@
+import type { UserRole } from "../../../../api";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import type { UserRole } from "../../../../api";
 
+import React from "react";
 import AtMentionController from "@/components/atMentionController";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import AvatarSwitch from "@/components/chat/input/avatarSwitch";
@@ -16,7 +17,6 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
-import React from "react";
 
 export interface RoomComposerPanelProps {
   roomId: number;

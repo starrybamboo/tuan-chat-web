@@ -1,16 +1,16 @@
 export type SpaceDocId = string;
 
-export type SpaceDocKind =
-  | "space_description"
-  | "room_description"
-  | "clue_description"
-  | "independent";
+export type SpaceDocKind
+  = | "space_description"
+    | "room_description"
+    | "clue_description"
+    | "independent";
 
-export type SpaceDocDescriptor =
-  | { kind: "space_description"; spaceId: number }
-  | { kind: "room_description"; roomId: number }
-  | { kind: "clue_description"; clueId: number }
-  | { kind: "independent"; docId: string };
+export type SpaceDocDescriptor
+  = | { kind: "space_description"; spaceId: number }
+    | { kind: "room_description"; roomId: number }
+    | { kind: "clue_description"; clueId: number }
+    | { kind: "independent"; docId: string };
 
 /**
  * Space 内文档的 docId 规范（仅需在一个 space/workspace 内唯一）。

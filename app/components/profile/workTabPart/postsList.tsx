@@ -1,11 +1,11 @@
 import type { PostListWithStatsResponse } from "api";
 import type { PagePostRequest } from "api/models/PagePostRequest";
-import CommunityPostCard from "@/components/community/communityPostCard";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { ContentIcon } from "@/icons";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { useEffect, useMemo } from "react";
 import { Link } from "react-router";
+import CommunityPostCard from "@/components/community/communityPostCard";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { ContentIcon } from "@/icons";
 import { usePageUserPostsInfiniteQuery } from "../../../../api/hooks/communityQueryHooks";
 
 const PAGE_SIZE = 10;

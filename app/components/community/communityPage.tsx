@@ -1,10 +1,10 @@
 import type { CommunityContextType } from "@/components/community/communityContext";
+import React, { useMemo } from "react";
+import { useNavigate, useParams } from "react-router";
 import IllegalURLPage from "@/components/common/illegalURLPage";
 import { CommunityContext } from "@/components/community/communityContext";
 import CommunityList from "@/components/community/communityList";
 import CommunityPostList from "@/components/community/communityPostList";
-import React, { useMemo } from "react";
-import { useNavigate, useParams } from "react-router";
 import {
   useGetCommunityInfoQuery,
   useListCommunitiesQuery,

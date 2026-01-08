@@ -1,8 +1,8 @@
+import React from "react";
+import { Link } from "react-router";
 import Pagination from "@/components/common/pagination";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import UserRoleCard from "@/components/profile/cards/userRoleCard";
-import React from "react";
-import { Link } from "react-router";
 
 interface UserRolesListProps {
   userId: number;

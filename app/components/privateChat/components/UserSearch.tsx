@@ -1,5 +1,4 @@
 import type { FriendResponse } from "api/models/FriendResponse";
-import { HomeIcon, Search, XMarkICon } from "@/icons";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -12,6 +11,7 @@ import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/Us
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
+import { HomeIcon, Search, XMarkICon } from "@/icons";
 
 type AddFriendSearchMode = "id" | "username";
 

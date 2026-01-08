@@ -1,8 +1,8 @@
 import type { SubmitHandler } from "react-hook-form";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import message from "@/components/common/message/message";
 import { useAddModuleMutation } from "api/hooks/moduleQueryHooks";
 import { useForm } from "react-hook-form";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import message from "@/components/common/message/message";
 
 export interface ModuleCreateRequest {
   ruleId: number;

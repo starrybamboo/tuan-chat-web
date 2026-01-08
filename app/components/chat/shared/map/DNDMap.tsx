@@ -1,4 +1,5 @@
 import type { UserRole } from "../../../../../api";
+import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
@@ -6,7 +7,6 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
-import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
 import { useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 

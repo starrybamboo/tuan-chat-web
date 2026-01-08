@@ -1,10 +1,4 @@
 import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
-import checkBack from "@/components/common/autoContrastText";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import {
   useGetSpaceInfoQuery,
   useGetUserSpacesQuery,
@@ -13,6 +7,12 @@ import {
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import checkBack from "@/components/common/autoContrastText";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { tuanchat } from "../../../../api/instance";
 
 function SpaceSettingWindow({

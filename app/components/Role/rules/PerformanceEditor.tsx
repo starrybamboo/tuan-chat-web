@@ -1,10 +1,10 @@
-import { useIsMobile } from "@/utils/getScreenSize";
-import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
+import { useIsMobile } from "@/utils/getScreenSize";
+import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";

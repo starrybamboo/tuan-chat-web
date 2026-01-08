@@ -1,10 +1,10 @@
 import type { PostListWithStatsResponse } from "api";
-import IllegalURLPage from "@/components/common/illegalURLPage";
-import { CommunityContext } from "@/components/community/communityContext";
-import CommunityPostCard from "@/components/community/communityPostCard";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { useDebounce } from "ahooks";
 import React, { use, useEffect, useMemo, useRef, useState } from "react";
+import IllegalURLPage from "@/components/common/illegalURLPage";
+import { CommunityContext } from "@/components/community/communityContext";
+import CommunityPostCard from "@/components/community/communityPostCard";
 import {
   usePageCommunityPostsInfiniteQuery,
 } from "../../../api/hooks/communityQueryHooks";

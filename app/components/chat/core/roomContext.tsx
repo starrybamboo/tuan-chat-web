@@ -1,10 +1,10 @@
-import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
 // src/context/chat-context.tsx
 import type {
   ChatMessageResponse,
   SpaceMember,
   UserRole,
 } from "../../../../api";
+import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
 import { createContext } from "react";
 
 export interface RoomContextType {

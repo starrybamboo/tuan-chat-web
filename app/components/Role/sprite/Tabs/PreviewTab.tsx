@@ -1,9 +1,9 @@
 import type { RoleAvatar } from "api";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { withOssResizeProcess } from "@/utils/ossImageProcess";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { parseTransformFromAvatar } from "../utils";
 
 interface RenderTransform {

@@ -10,9 +10,9 @@ type SearchDocParams = {
   skipSelection?: boolean;
 };
 
-type SearchDocResult =
-  | { docId: string; isNewDoc: boolean }
-  | { userInput: string };
+type SearchDocResult
+  = | { docId: string; isNewDoc: boolean }
+    | { userInput: string };
 
 export type BlocksuiteQuickSearchService = {
   searchDoc: (params: SearchDocParams) => Promise<SearchDocResult | null>;

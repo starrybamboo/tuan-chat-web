@@ -106,9 +106,9 @@ export async function getRemoteSnapshot(params: {
     // 兼容迁移：若新表无数据，则尝试从旧 extra 读取一次，并写回新表
     const legacyKey = buildLegacyExtraKey(params.docType);
     const legacyRes
-    = params.entityType === "space"
-      ? await tuanchat.spaceController.getSpaceExtra(params.entityId, legacyKey)
-      : await tuanchat.roomController.getRoomExtra(params.entityId, legacyKey);
+      = params.entityType === "space"
+        ? await tuanchat.spaceController.getSpaceExtra(params.entityId, legacyKey)
+        : await tuanchat.roomController.getRoomExtra(params.entityId, legacyKey);
     const legacy = tryParseSnapshot((legacyRes as any).data ?? null);
     if (!legacy)
       return null;

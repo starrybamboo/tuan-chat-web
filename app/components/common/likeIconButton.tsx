@@ -2,9 +2,9 @@
  * 喜欢的图标
  */
 import type { LikeRecordRequest } from "../../../api";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import React from "react";
 import { toast } from "react-hot-toast";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   useGetLikeCountQuery,
   useIsLikedQuery,
@@ -41,7 +41,7 @@ export default function LikeIconButton({
 
   // 优先用外部传入的 likeCount
   const finalLikeCount
-      = likeCount !== undefined ? likeCount : likeCountQuery.data?.data ?? 0;
+    = likeCount !== undefined ? likeCount : likeCountQuery.data?.data ?? 0;
 
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();

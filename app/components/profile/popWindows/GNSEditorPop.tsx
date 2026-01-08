@@ -66,9 +66,9 @@ export function GNSPreferenceEditor({
 
   const isDisabled = isLoading || saving;
   const unchanged
-      = ratings.Gamism === initialRatings.Gamism
-        && ratings.Narrativism === initialRatings.Narrativism
-        && ratings.Simulationism === initialRatings.Simulationism;
+    = ratings.Gamism === initialRatings.Gamism
+      && ratings.Narrativism === initialRatings.Narrativism
+      && ratings.Simulationism === initialRatings.Simulationism;
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">

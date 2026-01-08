@@ -1,5 +1,6 @@
-import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
 import type { ChatMessageResponse, Message } from "../../../../api";
+import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
+import React, { use, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
@@ -19,7 +20,6 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChatBubbleEllipsesOutline } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatTimeSmartly } from "@/utils/dateUtil";
-import React, { use, useMemo, useState } from "react";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";

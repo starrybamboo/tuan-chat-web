@@ -1,5 +1,5 @@
-import toastWindow from "@/components/common/toastWindow/toastWindow";
 import React, { useRef } from "react";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import useSearchParamsState from "../customHooks/useSearchParamState";
 import CopyLinkButton from "./copyLinkButton";
 import SavePictureButton from "./savePictureButton";
