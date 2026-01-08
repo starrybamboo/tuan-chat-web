@@ -150,12 +150,9 @@ export function SpriteListGrid({
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
 
             return (
-              <div key={avatar.avatarId} className="flex flex-col gap-1">
+              <div key={avatar.avatarId} className="flex flex-col">
                 <div className="relative group w-full overflow-visible">
                   {/* 头像名称 badge，绝对定位到左上角，z-index 保证在图片之上 */}
-                  <span className="absolute rounded-lg right-1 bottom-2 badge bg-base-300/85 font-semibold badge-sm z-30 pointer-events-auto select-none">
-                    {avatarName}
-                  </span>
                   <button
                     type="button"
                     onClick={() => {
