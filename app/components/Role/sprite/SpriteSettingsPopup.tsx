@@ -1,9 +1,9 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "../types";
-import { PopWindow } from "@/components/common/popWindow";
-import { isMobileScreen } from "@/utils/getScreenSize";
 import { useBatchDeleteRoleAvatarsMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PopWindow } from "@/components/common/popWindow";
+import { isMobileScreen } from "@/utils/getScreenSize";
 import { AvatarLibraryTab } from "./Tabs/AvatarLibraryTab";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";

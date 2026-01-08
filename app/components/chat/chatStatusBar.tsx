@@ -1,8 +1,8 @@
 // 类型导入 (parent-type)
 import type { ChatStatusType } from "../../../api/wsModels";
-import UserIdToName from "@/components/chat/shared/components/userIdToName";
 // 外部库
 import React, { useMemo } from "react";
+import UserIdToName from "@/components/chat/shared/components/userIdToName";
 
 interface ChatStatusBarProps {
   roomId: number;

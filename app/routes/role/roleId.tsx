@@ -1,9 +1,9 @@
 import type { Role } from "@/components/Role/types";
-import CharacterDetail from "@/components/Role/CharacterDetail";
-import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 import { useEffect } from "react";
 // --- CHANGED --- 引入更多 react-router hooks
 import { Navigate, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router";
+import CharacterDetail from "@/components/Role/CharacterDetail";
+import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
 // 定义从 Outlet Context 接收的数据类型
 interface RoleContext {

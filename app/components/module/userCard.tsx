@@ -1,5 +1,5 @@
-import UserAvatarComponent from "@/components/common/userAvatar";
 import { useNavigate } from "react-router";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "../globalContextProvider";
 
 function UserCard({ className }: { className?: string }) {

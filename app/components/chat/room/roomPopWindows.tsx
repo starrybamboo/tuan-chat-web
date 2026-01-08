@@ -1,7 +1,7 @@
+import React from "react";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import { PopWindow } from "@/components/common/popWindow";
-import React from "react";
 
 export interface RoomPopWindowsProps {
   isRoleHandleOpen: boolean;

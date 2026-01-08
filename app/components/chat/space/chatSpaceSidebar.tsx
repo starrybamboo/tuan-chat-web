@@ -1,8 +1,8 @@
 import type { Space } from "../../../../api";
 
+import React, { useMemo, useRef, useState } from "react";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import { AddIcon } from "@/icons";
-import React, { useMemo, useRef, useState } from "react";
 
 export interface ChatSpaceSidebarProps {
   isPrivateChatMode: boolean;

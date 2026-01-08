@@ -1,7 +1,7 @@
-import { SpaceContext } from "@/components/chat/core/spaceContext";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGetRoomRoleQuery } from "api/hooks/chatQueryHooks";
 import React, { use, useMemo } from "react";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGetSpaceModuleRoleQuery } from "../../../../api/hooks/spaceModuleHooks";
 import { RoomContext } from "../core/roomContext";
 

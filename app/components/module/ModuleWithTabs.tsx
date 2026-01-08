@@ -1,6 +1,6 @@
+import { useState } from "react";
 import CollectionPage from "@/components/common/collection/collectionPage";
 import ResourcePage from "@/components/resource/pages/resourcePage";
-import { useState } from "react";
 import ModuleHome from "./home/Modulehome";
 
 type TabType = "module" | "resource" | "collection";

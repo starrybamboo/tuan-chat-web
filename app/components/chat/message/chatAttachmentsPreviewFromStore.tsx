@@ -1,8 +1,8 @@
+import React from "react";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import BetterImg from "@/components/common/betterImg";
-import { MusicNote } from "@/icons";
 
-import React from "react";
+import { MusicNote } from "@/icons";
 
 export default function ChatAttachmentsPreviewFromStore() {
   const imgFiles = useChatComposerStore(state => state.imgFiles);

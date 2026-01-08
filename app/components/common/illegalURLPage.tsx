@@ -1,6 +1,6 @@
-import { CompassIcon, HomeIcon } from "@/icons";
 import React from "react";
 import { Link } from "react-router";
+import { CompassIcon, HomeIcon } from "@/icons";
 
 /**
  * 当URL非法的时候，显示的页面

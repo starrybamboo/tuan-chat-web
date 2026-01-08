@@ -1,10 +1,10 @@
-import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import type { RoleAvatar } from "api";
-import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
-import MoodRegulator from "@/components/common/MoodRegulator";
+import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
+import MoodRegulator from "@/components/common/MoodRegulator";
 
 interface AvatarSettingsTabProps {
   /** 有立绘的头像列表 */

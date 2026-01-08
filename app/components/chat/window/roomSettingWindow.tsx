@@ -1,12 +1,4 @@
 import type { RoomContextType } from "@/components/chat/core/roomContext";
-import { RoomContext } from "@/components/chat/core/roomContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
-import RoleList from "@/components/chat/shared/components/roleLists";
-import checkBack from "@/components/common/autoContrastText";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { BaselineArrowBackIosNew, GirlIcon, Setting } from "@/icons";
 import {
   useGetMemberListQuery,
   useGetRoomInfoQuery,
@@ -16,6 +8,14 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { use, useEffect, useMemo, useState } from "react";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import RoleList from "@/components/chat/shared/components/roleLists";
+import checkBack from "@/components/common/autoContrastText";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { BaselineArrowBackIosNew, GirlIcon, Setting } from "@/icons";
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {

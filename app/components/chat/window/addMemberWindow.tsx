@@ -1,8 +1,8 @@
+import { use, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import UserAvatarComponent from "@/components/common/userAvatar";
 
-import { use, useMemo, useState } from "react";
+import UserAvatarComponent from "@/components/common/userAvatar";
 
 import { useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";

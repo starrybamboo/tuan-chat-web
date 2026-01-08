@@ -1,11 +1,14 @@
-import type { AtMentionHandle } from "@/components/atMentionController";
-import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
-
-import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, SpaceMember, UserRole } from "../../../../api";
+
 import type { ClueMessage } from "../../../../api/models/ClueMessage";
+import type { AtMentionHandle } from "@/components/atMentionController";
+import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
+import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+// *** 导入新组件及其 Handle 类型 ***
+import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 // hooks (local)
 import ChatFrame from "@/components/chat/chatFrame";
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
@@ -30,9 +33,6 @@ import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre"
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
-// *** 导入新组件及其 Handle 类型 ***
-import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,

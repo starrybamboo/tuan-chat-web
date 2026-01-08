@@ -1,5 +1,5 @@
-import { AddIcon, ChevronDown, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
 import React from "react";
+import { AddIcon, ChevronDown, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
 
 export type SpaceDetailTab = "members" | "workflow" | "setting";
 

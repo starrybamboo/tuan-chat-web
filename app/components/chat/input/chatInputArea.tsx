@@ -1,6 +1,6 @@
 import type { UserRole } from "../../../../api";
-import { getEditorRange } from "@/utils/getSelectionCoords";
 import React, { useImperativeHandle, useRef } from "react";
+import { getEditorRange } from "@/utils/getSelectionCoords";
 
 // --- 外部接口 ---
 

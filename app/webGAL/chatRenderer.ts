@@ -686,9 +686,9 @@ export class ChatRenderer {
                 ? (await this.getAndUploadSprite(repliedMessage)) ?? undefined
                 : undefined;
               const noNeedChangeSprite
-                  = repliedSpriteName
-                    ? (spriteState.has(messageSpriteName || "") && spriteState.has(repliedSpriteName))
-                    : (spriteState.has(messageSpriteName || ""));
+                = repliedSpriteName
+                  ? (spriteState.has(messageSpriteName || "") && spriteState.has(repliedSpriteName))
+                  : (spriteState.has(messageSpriteName || ""));
               const avatar = (typeof message.avatarId === "number" && message.avatarId > 0)
                 ? await this.fetchAvatar(message.avatarId)
                 : undefined;

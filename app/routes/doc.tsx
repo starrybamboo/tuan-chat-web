@@ -1,7 +1,7 @@
 import type { Route } from "./+types/doc";
 
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { useParams } from "react-router";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
 export function meta(_args: Route.MetaArgs) {
   return [

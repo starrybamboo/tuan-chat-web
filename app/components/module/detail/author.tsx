@@ -1,10 +1,10 @@
+// import { useAddModuleMutation, useAddMutation, useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useCallback, useState } from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
-// import { useAddModuleMutation, useAddMutation, useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import { useCallback, useState } from "react";
 
 export default function Author({ userId }: { userId?: number }) {
   // 获取全局用户ID

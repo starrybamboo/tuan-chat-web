@@ -1,16 +1,16 @@
-import type { ImageLoadContext } from "@/utils/imgCropper";
 import type { RoleAvatar } from "api";
 import type { Transform } from "../TransformControl";
+import type { ImageLoadContext } from "@/utils/imgCropper";
 
+import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ReactCrop } from "react-image-crop";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   canvasPreview,
   canvasToBlob,
   useCropPreview,
 } from "@/utils/imgCropper";
-import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
 import { TransformControl } from "../TransformControl";
