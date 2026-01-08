@@ -146,11 +146,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
       </div>
 
       <UserReadMe
-        user={user}
         userId={userId}
         loginUserId={loginUserId}
-        onSave={profileEditing.saveReadMe}
-        isSaving={profileEditing.isSaving}
       />
 
       <PopWindow

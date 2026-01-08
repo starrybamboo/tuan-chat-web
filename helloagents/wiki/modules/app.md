@@ -8,7 +8,7 @@
 
 - **职责:** 页面路由、页面组件、通用组件与工具库组织
 - **状态:** ?开发中
-- **最后更新:** 2025-12-27
+- **最后更新:** 2026-01-08
 
 ## 规范
 
@@ -27,7 +27,18 @@
 
 - `api`：后端 API/WS 调用
 
+## 关键子模块
+
+### Blocksuite 集成
+
+- 集成代码：`app/components/chat/infra/blocksuite/`
+- 相关文档：`app/components/chat/infra/blocksuite/doc/`（含 `LEARNING-PATH.md` 学习路线）
+- 依赖文档：`helloagents/wiki/vendors/blocksuite/index.md`
+- 嵌入式隔离（官方兼容）：在 blocksuite 初始化前调用 `startBlocksuiteStyleIsolation` + `ensureBlocksuiteRuntimeStyles`，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的 `body{counter-reset}` 作用域化到 `.tc-blocksuite-scope`/`.blocksuite-portal`，避免污染同页其它 UI
+- iframe 强隔离（最稳）：通过 `blocksuite-frame` 路由在 iframe 内运行 Blocksuite，主窗口仅作为 iframe 宿主，并用 `postMessage` 同步 mode/theme/导航，彻底避免同页其它 UI 被全局注入污染
+- 主题同步：仅同步到 `.tc-blocksuite-scope` 与 `.blocksuite-portal`（不改动 `html/body`），确保弹层与编辑器主题一致
+- 上游副作用规避：通过 `pnpm.patchedDependencies` 修补 blocksuite 0.22.4 中对 `document.body.style` 的全局写入（见 `patches/@blocksuite__*.patch`）
+
 ## 变更历史
 
 （从 `helloagents/history/` 自动补全）
-

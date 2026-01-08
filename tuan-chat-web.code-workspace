@@ -17,6 +17,19 @@
 		},
 		{
 			"path": "../../software/WebGal_Terre/public/games/realtime_10387"
-		}	],
+		},
+		{
+			"path": "../zuul"
+		},
+		{
+			"path": "../blocksuite-examples"
+		},
+		{
+			"path": "../AFFiNE"
+		},
+		{
+			"path": "../blocksuite"
+		}
+	],
 	"settings": {}
 }

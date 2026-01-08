@@ -60,7 +60,8 @@ export default function InvitePage() {
         }
 
         // 获取用户在该空间下的所有群组（这里用不了useQuery就直接用tuanchat了）
-        const { data: roomsData } = await tuanchat.roomController.getUserRooms(spaceId);
+        const { data: roomList } = await tuanchat.roomController.getUserRooms(spaceId);
+        const roomsData = roomList?.rooms;
         if (roomsData && roomsData.length > 0) {
           const firstRoomId = roomsData[0].roomId;
           navigate(`/chat/${spaceId}/${firstRoomId}`);

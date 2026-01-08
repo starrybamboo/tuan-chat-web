@@ -232,11 +232,20 @@ export default function FriendsPage({
             {tab === "all" && (
               <div className="flex flex-col">
                 {filteredFriends.map((friend, index) => (
-                  <button
+                  <div
                     key={friend?.userId || index}
-                    type="button"
                     className="w-full text-left flex items-center justify-between hover:bg-base-200 rounded-md px-3 py-2"
                     onClick={() => navigate(`/chat/private/${friend?.userId}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.target !== e.currentTarget)
+                        return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(`/chat/private/${friend?.userId}`);
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="avatar w-9">
@@ -289,7 +298,7 @@ export default function FriendsPage({
                       </div>
                     </div>
                     <div className="w-2"></div>
-                  </button>
+                  </div>
                 ))}
 
                 {filteredFriends.length === 0 && (

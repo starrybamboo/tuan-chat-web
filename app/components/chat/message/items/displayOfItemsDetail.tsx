@@ -38,6 +38,7 @@ interface DisplayOfItemDetailProps {
   stageId?: number;
   entityType?: number;
   roomId?: number;
+  spaceId?: number;
 }
 
 function DisplayOfItemDetail({
@@ -48,6 +49,7 @@ function DisplayOfItemDetail({
   stageId = -1,
   entityType = 1,
   roomId,
+  spaceId: _spaceId,
 }: DisplayOfItemDetailProps) {
   // 如果提供了 manualData，则使用手动数据，否则通过 itemId 获取数据
   const { data, isLoading, isError } = useModuleItemDetailQuery(
@@ -140,7 +142,6 @@ function DisplayOfItemDetail({
         const updateRequest = {
           id: manualData.id,
           name: displayData.name,
-          description: displayData.description,
           image: displayData.image,
           note: displayData.note,
           clueStarsId: manualData.clueStarsId,
@@ -228,7 +229,8 @@ function DisplayOfItemDetail({
   const clueMessage: ClueMessage = {
     img: displayData.image ?? "",
     name: displayData.name ?? "",
-    description: displayData.description ?? "",
+    // 线索描述已迁移为 blocksuite 富文本；这里给消息体一个占位，避免发送 JSON 快照
+    description: useManualData ? "（富文本线索）" : (displayData.description ?? ""),
   };
 
   const isUpdating = useManualData ? updateClueMutation.isPending : updateEntityMutation.isPending;
@@ -350,6 +352,8 @@ function DisplayOfItemDetail({
           </div>
         </div>
       </div>
+
+      {/** 线索描述暂不使用 Blocksuite（先按房间/空间优先） */}
 
       {/* 内容区域 */}
       <div className="p-7 space-y-6">

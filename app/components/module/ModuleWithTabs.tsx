@@ -3,7 +3,7 @@ import ResourcePage from "@/components/resource/pages/resourcePage";
 import { useState } from "react";
 import ModuleHome from "./home/Modulehome";
 
-type TabType = "module" | "resource" | "collection" | "create";
+type TabType = "module" | "resource" | "collection";
 
 export default function ModuleWithTabs() {
   const [activeTab, setActiveTab] = useState<TabType>("module");

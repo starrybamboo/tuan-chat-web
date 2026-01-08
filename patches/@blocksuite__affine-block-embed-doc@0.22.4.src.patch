@@ -1,0 +1,20 @@
+diff --git a/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts b/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts
+index 55d81238a1e8dacc87c2caea4fcb69c9a29be28d..7b1921088aabb5ff4ceeb55b6345b00f340ea7cd 100644
+--- a/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts
++++ b/src/embed-synced-doc-block/embed-edgeless-synced-doc-block.ts
+@@ -181,13 +181,13 @@ export class EmbedEdgelessSyncedDocBlockComponent extends toEdgelessEmbedBlock(
+     this.embedContainerStyle.width = `${bound.w}px`;
+     this.embedContainerStyle.height = `${bound.h}px`;
+ 
+-    this.cardStyleMap = {
++    this.cardStyleMap = styleMap({
+       display: 'block',
+       width: `${EMBED_CARD_WIDTH[style]}px`,
+       height: `${EMBED_CARD_HEIGHT[style]}px`,
+       transform: `scale(${bound.w / EMBED_CARD_WIDTH[style]}, ${bound.h / EMBED_CARD_HEIGHT[style]})`,
+       transformOrigin: '0 0',
+-    };
++    });
+ 
+     return this.renderPageContent();
+   }

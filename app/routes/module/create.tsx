@@ -1,7 +1,6 @@
-import type { Route } from "./+types/create";
 import ModuleCreateMain from "@/components/module/create/ModuleCreateMain";
 
-export function meta(_args: Route.MetaArgs) {
+export function meta(_args: any) {
   return [
     { title: "创建模组" },
     { name: "description", content: "Create your own module here" },

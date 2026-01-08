@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **运行环境:** Node.js ≥ 22
-- **包管理:** pnpm（仓库包含 `pnpm-lock.yaml`）
+- **包管理:** pnpm（仓库包含 `pnpm-lock.yaml`；禁止 npm 以避免生成 `package-lock.json`）
 - **前端:** React 19 + React Router 7（RSC/Vite）
 - **语言:** TypeScript
 - **样式:** Tailwind CSS + daisyUI
@@ -61,4 +61,3 @@ OpenAPI 源文件：`api/tuanchat_OpenAPI.json`
 - **开发启动:** `pnpm dev`
 - **Electron 开发:** `pnpm electron:dev`
 - **Electron 打包:** `pnpm electron:build`
-

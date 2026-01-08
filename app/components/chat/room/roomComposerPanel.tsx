@@ -11,6 +11,7 @@ import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttachmentsPreviewFromStore";
 import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
+import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -103,6 +104,27 @@ function RoomComposerPanelImpl({
   onCompositionEnd,
   inputDisabled,
 }: RoomComposerPanelProps) {
+  const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
+  const audioFile = useChatComposerStore(state => state.audioFile);
+
+  const prevImgFilesCountRef = React.useRef(imgFilesCount);
+  const prevHasAudioRef = React.useRef(Boolean(audioFile));
+
+  React.useEffect(() => {
+    const prevImgFilesCount = prevImgFilesCountRef.current;
+    const prevHasAudio = prevHasAudioRef.current;
+
+    const hasNewImages = imgFilesCount > prevImgFilesCount;
+    const hasNewAudio = Boolean(audioFile) && !prevHasAudio;
+
+    if (hasNewImages || hasNewAudio) {
+      chatInputRef.current?.focus();
+    }
+
+    prevImgFilesCountRef.current = imgFilesCount;
+    prevHasAudioRef.current = Boolean(audioFile);
+  }, [audioFile, chatInputRef, imgFilesCount]);
+
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 

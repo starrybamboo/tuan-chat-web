@@ -49,7 +49,7 @@ export type UserRole = {
     extra?: Record<string, string>;
     createTime?: string;
     updateTime?: string;
-    role?: boolean;
     diceMaiden?: boolean;
+    role?: boolean;
 };
 

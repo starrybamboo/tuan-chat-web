@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2024",
     "jsx": "react-jsx",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "lib": ["DOM", "DOM.Iterable", "ES2024", "ESNext.Iterator", "ESNext.Promise"],
+    "useDefineForClassFields": false,
     "baseUrl": ".",
     "ignoreDeprecations": "5.0",
     "rootDirs": [".", "./.react-router/types"],
@@ -24,5 +25,10 @@
     "**/.server/**/*",
     "**/.client/**/*",
     ".react-router/types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
   ]
 }

@@ -8,6 +8,10 @@ lint.out
 /.react-router/
 /build/
 
+# Package managers
+package-lock.json
+npm-shrinkwrap.json
+
 # Created by https://www.toptal.com/developers/gitignore/api/windows,macos,webstorm+all,node,react,linux,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,macos,webstorm+all,node,react,linux,visualstudiocode
 

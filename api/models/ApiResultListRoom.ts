@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Room } from './Room';
+import type { RoomListResponse } from './RoomListResponse';
 /**
  * 基础返回体
  */
@@ -22,6 +22,6 @@ export type ApiResultListRoom = {
     /**
      * 返回对象
      */
-    data?: Array<Room>;
+    data?: RoomListResponse;
 };
 

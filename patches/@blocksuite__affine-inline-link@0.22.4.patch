@@ -1,0 +1,55 @@
+diff --git a/dist/link-node/link-popup/link-popup.js b/dist/link-node/link-popup/link-popup.js
+index 5a0f370c33919a6be61f00bcc4692fa147f4dcb7..392f5762a06dc8cbefe4cebb94fa8dc605994801 100644
+--- a/dist/link-node/link-popup/link-popup.js
++++ b/dist/link-node/link-popup/link-popup.js
+@@ -208,11 +208,20 @@ let LinkPopup = (() => {
+                 return;
+             }
+             // disable body scroll
+-            this._bodyOverflowStyle = document.body.style.overflow;
+-            document.body.style.overflow = 'hidden';
++            const overflowTarget = (() => {
++                const el = this instanceof HTMLElement ? this : null;
++                const root = el?.getRootNode?.();
++                const host = root && root.host;
++                if (host instanceof HTMLElement)
++                    return host;
++                const closest = el?.closest?.('.blocksuite-portal, .tc-blocksuite-scope');
++                return closest instanceof HTMLElement ? closest : document.body;
++            })();
++            this._bodyOverflowStyle = overflowTarget.style.overflow;
++            overflowTarget.style.overflow = 'hidden';
+             this.disposables.add({
+                 dispose: () => {
+-                    document.body.style.overflow = this._bodyOverflowStyle;
++                    overflowTarget.style.overflow = this._bodyOverflowStyle;
+                 },
+             });
+         }
+diff --git a/src/link-node/link-popup/link-popup.ts b/src/link-node/link-popup/link-popup.ts
+index 194977febb55aeac7f725c403b6ecfb77f22da13..cca2e6456f49942c3fc5639740b4c43c8736bb67 100644
+--- a/src/link-node/link-popup/link-popup.ts
++++ b/src/link-node/link-popup/link-popup.ts
+@@ -228,11 +228,19 @@ export class LinkPopup extends WithDisposable(ShadowlessElement) {
+     }
+ 
+     // disable body scroll
+-    this._bodyOverflowStyle = document.body.style.overflow;
+-    document.body.style.overflow = 'hidden';
++    const overflowTarget = (() => {
++      const el = this instanceof HTMLElement ? this : null;
++      const root = (el as any)?.getRootNode?.() as unknown;
++      const host = (root as any)?.host;
++      if (host instanceof HTMLElement) return host;
++      const closest = el?.closest?.('.blocksuite-portal, .tc-blocksuite-scope');
++      return closest instanceof HTMLElement ? closest : document.body;
++    })();
++    this._bodyOverflowStyle = overflowTarget.style.overflow;
++    overflowTarget.style.overflow = 'hidden';
+     this.disposables.add({
+       dispose: () => {
+-        document.body.style.overflow = this._bodyOverflowStyle;
++        overflowTarget.style.overflow = this._bodyOverflowStyle;
+       },
+     });
+   }

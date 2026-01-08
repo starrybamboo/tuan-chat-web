@@ -524,16 +524,6 @@ export function useGetUserRoomsQuery(spaceId: number) {
         enabled: spaceId != -1
     });
 }
-export function useGetUserRoomsQueries(spaces: Space[]) {
-    return useQueries({
-        queries: spaces.map(space => ({
-            queryKey: ['getUserRooms', space.spaceId],  // 保持与useGetUserRoomsQuery一致的queryKey格式
-            queryFn: () => tuanchat.roomController.getUserRooms(space.spaceId ?? -1),
-            staleTime: 300000, // 保持一致的5分钟缓存
-            enabled: space.spaceId != -1
-        })),
-    });
-}
 
 /**
  * 获取群组角色列表

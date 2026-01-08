@@ -9,7 +9,6 @@
       "to": "extraResources"
     }
   ],
-  "extraFiles": ["./videos", "./cvideo"],
   "directories": {
     "output": "./release"
   },

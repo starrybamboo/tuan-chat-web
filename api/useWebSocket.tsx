@@ -175,6 +175,10 @@ export function useWebSocket() {
 
   const wsRef = useRef<WebSocket | null>(null);
   const isConnected = () => wsRef.current?.readyState === WebSocket.OPEN;
+  const isConnecting = () => wsRef.current?.readyState === WebSocket.CONNECTING;
+  // 标记“组件主动关闭”（例如 React StrictMode 的 effect cleanup），避免误判为网络错误并触发重连/报错。
+  const closingRef = useRef(false);
+  const connectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(() => {}));
   // 接受消息的存储
@@ -319,16 +323,36 @@ export function useWebSocket() {
   }, [syncWsDebugToWindow]);
 
   useEffect(() => {
-    connect();
+    // React 18 StrictMode(dev) 会触发 effect: setup -> cleanup -> setup。
+    // 如果这里立刻 new WebSocket，然后马上在 cleanup close，浏览器会打印“closed before established”。
+    // 因此把 connect 延迟到下一 tick，并在 cleanup 里取消。
+    closingRef.current = false;
+    if (connectTimerRef.current) {
+      clearTimeout(connectTimerRef.current);
+    }
+    connectTimerRef.current = setTimeout(() => {
+      if (!closingRef.current) {
+        connect();
+      }
+    }, 0);
     return () => {
+      closingRef.current = true;
+      if (connectTimerRef.current) {
+        clearTimeout(connectTimerRef.current);
+        connectTimerRef.current = null;
+      }
       if (reconnectTimer.current) {
         clearTimeout(reconnectTimer.current);
       }
       stopHeartbeat();
       if (wsRef.current) {
         // 设置 onclose 为 null 防止在手动关闭时触发重连逻辑
+        wsRef.current.onopen = null;
+        wsRef.current.onmessage = null;
+        wsRef.current.onerror = null;
         wsRef.current.onclose = null;
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
   }, []);
@@ -337,9 +361,13 @@ export function useWebSocket() {
    * 核心连接逻辑
    */
   const connect = useCallback(() => {
-    if (isConnected()){
+    // OPEN/CONNECTING 都视为“已在连接生命周期中”，避免重复创建连接。
+    if (isConnected() || isConnecting()){
       return;
     }
+
+    // 本次 connect 属于“正常建立连接”，重置手动关闭标记。
+    closingRef.current = false;
     // 连接前，先重置消息
     queryClient.resetQueries({ queryKey: ["getMsgPage"] });
     try {
@@ -357,6 +385,9 @@ export function useWebSocket() {
       };
 
       wsRef.current.onclose = (event) => {
+        if (closingRef.current) {
+          return;
+        }
         console.log(`Close code: ${event.code}, Reason: ${event.reason}`);
         stopHeartbeat();
 
@@ -387,6 +418,9 @@ export function useWebSocket() {
         }
       };
       wsRef.current.onerror = (error) => {
+        if (closingRef.current) {
+          return;
+        }
         console.error("WebSocket error:", error);
         wsRef.current?.close();
       };
@@ -623,7 +657,7 @@ export function useWebSocket() {
    * 聊天状态控制 (type: 4)
    */
   async function send(request: WsMessage<any>) {
-    if (!isConnected) {
+    if (!isConnected()) {
       connect()
     }
     console.log("发送消息: ",request);
