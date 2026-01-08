@@ -1,6 +1,7 @@
 @import "@toeverything/theme/style.css" layer(blocksuite);
 @import "@toeverything/theme/fonts.css" layer(blocksuite);
 @import "katex/dist/katex.min.css" layer(blocksuite);
+@import "./affine-embed-synced-doc-header.css" layer(blocksuite);
 
 @layer blocksuite {
   /*

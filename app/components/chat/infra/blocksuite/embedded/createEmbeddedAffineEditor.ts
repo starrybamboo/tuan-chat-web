@@ -21,8 +21,6 @@ import {
 import { getTestViewManager } from "@blocksuite/integration-test/view";
 import { html } from "lit";
 
-import "../styles/affine-embed-synced-doc-header.css";
-
 import { tuanchat } from "api/instance";
 
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";

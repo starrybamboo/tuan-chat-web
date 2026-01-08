@@ -1,0 +1,72 @@
+diff --git a/dist/selection-controller.js b/dist/selection-controller.js
+index 9048288e13184e738f2fe7e80d0150012ebc9558..d5e00d662b938f2f0e20acebd80c04bd06e36a7a 100644
+--- a/dist/selection-controller.js
++++ b/dist/selection-controller.js
+@@ -256,7 +256,6 @@ export class SelectionController {
+         columnDragPreview.style.left = `${cellRect.left - containerRect.left}px`;
+         columnDragPreview.style.width = `${cellRect.width}px`;
+         this.host.append(columnDragPreview);
+-        document.body.style.pointerEvents = 'none';
+         const onMove = (x) => {
+             const { targetIndex, isForward } = getTargetIndexByDraggingOffset(columnOffsets, draggingIndex, x - initialDiffX);
+             if (targetIndex != null) {
+@@ -272,7 +271,6 @@ export class SelectionController {
+         const onEnd = () => {
+             const targetIndex = this.dataManager.ui.columnIndicatorIndex$.value;
+             this.dataManager.ui.columnIndicatorIndex$.value = undefined;
+-            document.body.style.pointerEvents = 'auto';
+             columnDragPreview.remove();
+             if (targetIndex != null) {
+                 this.dataManager.moveColumn(draggingIndex, targetIndex === 0 ? undefined : targetIndex - 1);
+@@ -329,7 +327,6 @@ export class SelectionController {
+         rowDragPreview.style.top = `${cellRect.top - containerRect.top - 0.5}px`;
+         rowDragPreview.style.height = `${cellRect.height}px`;
+         this.host.append(rowDragPreview);
+-        document.body.style.pointerEvents = 'none';
+         const onMove = (y) => {
+             const { targetIndex, isForward } = getTargetIndexByDraggingOffset(rowOffsets, draggingIndex, y - initialDiffY);
+             if (targetIndex != null) {
+@@ -345,7 +342,6 @@ export class SelectionController {
+         const onEnd = () => {
+             const targetIndex = this.dataManager.ui.rowIndicatorIndex$.value;
+             this.dataManager.ui.rowIndicatorIndex$.value = undefined;
+-            document.body.style.pointerEvents = 'auto';
+             rowDragPreview.remove();
+             if (targetIndex != null) {
+                 this.dataManager.moveRow(draggingIndex, targetIndex === 0 ? undefined : targetIndex - 1);
+diff --git a/src/selection-controller.ts b/src/selection-controller.ts
+index 3a6c393c3d4506c91ac75a4678ae0d14f2c866ea..e132950d0e8fbf2bd6568a74b41772ec19bb5932 100644
+--- a/src/selection-controller.ts
++++ b/src/selection-controller.ts
+@@ -137,7 +137,6 @@ export class SelectionController implements ReactiveController {
+     columnDragPreview.style.left = `${cellRect.left - containerRect.left}px`;
+     columnDragPreview.style.width = `${cellRect.width}px`;
+     this.host.append(columnDragPreview);
+-    document.body.style.pointerEvents = 'none';
+     const onMove = (x: number) => {
+       const { targetIndex, isForward } = getTargetIndexByDraggingOffset(
+         columnOffsets,
+@@ -156,7 +155,6 @@ export class SelectionController implements ReactiveController {
+     const onEnd = () => {
+       const targetIndex = this.dataManager.ui.columnIndicatorIndex$.value;
+       this.dataManager.ui.columnIndicatorIndex$.value = undefined;
+-      document.body.style.pointerEvents = 'auto';
+       columnDragPreview.remove();
+       if (targetIndex != null) {
+         this.dataManager.moveColumn(
+@@ -225,7 +223,6 @@ export class SelectionController implements ReactiveController {
+     rowDragPreview.style.top = `${cellRect.top - containerRect.top - 0.5}px`;
+     rowDragPreview.style.height = `${cellRect.height}px`;
+     this.host.append(rowDragPreview);
+-    document.body.style.pointerEvents = 'none';
+     const onMove = (y: number) => {
+       const { targetIndex, isForward } = getTargetIndexByDraggingOffset(
+         rowOffsets,
+@@ -244,7 +241,6 @@ export class SelectionController implements ReactiveController {
+     const onEnd = () => {
+       const targetIndex = this.dataManager.ui.rowIndicatorIndex$.value;
+       this.dataManager.ui.rowIndicatorIndex$.value = undefined;
+-      document.body.style.pointerEvents = 'auto';
+       rowDragPreview.remove();
+       if (targetIndex != null) {
+         this.dataManager.moveRow(

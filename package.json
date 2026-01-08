@@ -159,7 +159,10 @@
     },
     "patchedDependencies": {
       "lz-string@1.5.0": "patches/lz-string@1.5.0.patch",
-      "@blocksuite/affine-block-embed-doc@0.22.4": "patches/@blocksuite__affine-block-embed-doc@0.22.4.src.patch"
+      "@blocksuite/affine-block-embed-doc@0.22.4": "patches/@blocksuite__affine-block-embed-doc@0.22.4.src.patch",
+      "@blocksuite/affine-block-table@0.22.4": "patches/@blocksuite__affine-block-table@0.22.4.patch",
+      "@blocksuite/affine-inline-link@0.22.4": "patches/@blocksuite__affine-inline-link@0.22.4.patch",
+      "@blocksuite/data-view@0.22.4": "patches/@blocksuite__data-view@0.22.4.patch"
     }
   },
   "lint-staged": {

@@ -2,6 +2,7 @@ import type { Route } from "./+types/root";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 
 import { GlobalContextProvider } from "@/components/globalContextProvider";
+import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
@@ -99,6 +100,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  React.useEffect(() => {
+    try {
+      useDrawerPreferenceStore.getState().hydrateFromLocalStorage();
+    }
+    catch {
+      // ignore
+    }
+  }, []);
+
   return (
     <GlobalContextProvider>
       {/* <Topbar></Topbar> */}

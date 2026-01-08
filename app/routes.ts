@@ -3,6 +3,9 @@ import type { RouteConfig } from "@react-router/dev/routes";
 import { index, layout, prefix, route } from "@react-router/dev/routes";
 
 export default [
+  // Blocksuite iframe: used for strong style isolation.
+  route("blocksuite-frame", "routes/blocksuiteFrame.tsx"),
+
   // index("routes/dashBoard.tsx"),
   layout("routes/dashBoard.tsx", [
     // 临时举措

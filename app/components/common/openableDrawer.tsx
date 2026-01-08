@@ -1,3 +1,4 @@
+import type { ScreenSize } from "@/utils/getScreenSize";
 import { getScreenSize } from "@/utils/getScreenSize";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -41,6 +42,30 @@ export function OpenAbleDrawer({
   onWidthChange?: (width: number) => void;
   handlePosition?: "left" | "right";
 }) {
+  // IMPORTANT: 避免 SSR hydration mismatch。
+  // 服务器端无法获知真实屏幕尺寸，首屏统一按 "lg" 渲染；客户端 mount 后再计算真实值并触发一次更新。
+  const [screenSize, setScreenSize] = useState<ScreenSize>("lg");
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    const update = () => {
+      try {
+        setScreenSize(getScreenSize());
+      }
+      catch {
+        setScreenSize("lg");
+      }
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   const clamp = useCallback((value: number, min: number, max: number) => {
     const safeMin = Number.isFinite(min) ? min : 0;
     const safeMax = Number.isFinite(max) ? max : safeMin;
@@ -74,7 +99,7 @@ export function OpenAbleDrawer({
     const baseMax = base.max;
 
     // 覆盖模式或小屏：不需要根据父容器收紧
-    if (!isOpen || getScreenSize() === "sm" || overWrite) {
+    if (!isOpen || screenSize === "sm" || overWrite) {
       return { min: baseMin, max: baseMax };
     }
 
@@ -88,7 +113,7 @@ export function OpenAbleDrawer({
     const effectiveMax = Math.min(baseMax, maxAllowed);
     const effectiveMin = Math.min(baseMin, effectiveMax);
     return { min: effectiveMin, max: effectiveMax };
-  }, [getBaseBounds, isOpen, minRemainingWidth, overWrite]);
+  }, [getBaseBounds, isOpen, minRemainingWidth, overWrite, screenSize]);
 
   useLayoutEffect(() => {
     const next = recomputeBounds();
@@ -148,7 +173,7 @@ export function OpenAbleDrawer({
     return null;
   }
 
-  if (getScreenSize() === "sm" || overWrite) {
+  if (screenSize === "sm" || overWrite) {
     return (
       <div className={`w-full absolute ${className}`}>
         {children}

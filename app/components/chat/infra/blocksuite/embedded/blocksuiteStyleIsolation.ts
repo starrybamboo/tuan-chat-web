@@ -296,7 +296,7 @@ function restoreElementAttributes(el: Element, snapshot: ElementSnapshot) {
  *
  * Important: call this BEFORE dynamically importing any blocksuite modules.
  */
-export function startBlocksuiteStyleIsolation(options?: { shadowRoot?: ShadowRoot | null }): () => void {
+export function startBlocksuiteStyleIsolation(): () => void {
   if (typeof document === "undefined")
     return () => {};
 
@@ -321,27 +321,6 @@ export function startBlocksuiteStyleIsolation(options?: { shadowRoot?: ShadowRoo
 
   const htmlSnapshot = snapshotElementAttributes(document.documentElement);
   const bodySnapshot = snapshotElementAttributes(document.body);
-
-  const shadowRoot = options?.shadowRoot ?? null;
-  let shadowStyleHost: HTMLElement | null = null;
-  if (shadowRoot) {
-    try {
-      const existingHost = shadowRoot.querySelector<HTMLElement>("[data-tc-blocksuite-style-host]");
-      if (existingHost) {
-        shadowStyleHost = existingHost;
-      }
-      else {
-        shadowStyleHost = document.createElement("div");
-        shadowStyleHost.setAttribute("data-tc-blocksuite-style-host", "1");
-        // Avoid affecting layout.
-        shadowStyleHost.style.display = "none";
-        shadowRoot.appendChild(shadowStyleHost);
-      }
-    }
-    catch {
-      shadowStyleHost = null;
-    }
-  }
 
   const injectedStyleElements: Element[] = [];
   const head = document.head;
@@ -376,16 +355,6 @@ export function startBlocksuiteStyleIsolation(options?: { shadowRoot?: ShadowRoo
               continue;
 
             node.setAttribute("data-tc-blocksuite-injected", "1");
-
-            // If a ShadowRoot is provided, immediately move the stylesheet into it.
-            if (shadowStyleHost) {
-              try {
-                shadowStyleHost.appendChild(node);
-              }
-              catch {
-                // ignore
-              }
-            }
 
             injectedStyleElements.push(node);
           }
@@ -423,26 +392,12 @@ export function startBlocksuiteStyleIsolation(options?: { shadowRoot?: ShadowRoo
   };
 
   const restoreCssHooks = installCssStyleSheetMutationHooks(cssMutationState);
-  let restoreAdoptedRedirect: (() => void) | null = null;
-  if (shadowRoot) {
-    restoreAdoptedRedirect = installDocumentAdoptedStyleSheetsRedirect({
-      shadowRoot,
-      documentAdoptedSnapshot: adoptedStyleSheetsSnapshot,
-    });
-  }
 
   const disposeInternal = () => {
     try {
       // Restore CSSStyleSheet prototype patches first.
       try {
         restoreCssHooks?.();
-      }
-      catch {
-        // ignore
-      }
-
-      try {
-        restoreAdoptedRedirect?.();
       }
       catch {
         // ignore

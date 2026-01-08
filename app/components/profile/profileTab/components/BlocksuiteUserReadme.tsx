@@ -3,6 +3,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
 
 import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
+import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
 
 import { useEffect, useMemo, useRef } from "react";
 import { Subscription } from "rxjs";
@@ -140,43 +141,82 @@ export default function BlocksuiteUserReadme(props: {
     if (!container)
       return;
 
-    // Create/reuse ShadowRoot for strict style scoping.
-    let shadowRoot: ShadowRoot | null = null;
-    let shadowMount: HTMLDivElement | null = null;
-    try {
-      shadowRoot = container.shadowRoot ?? container.attachShadow({ mode: "open" });
-
-      // Ensure we have a stable mount point.
-      const existing = shadowRoot.querySelector<HTMLDivElement>("[data-tc-blocksuite-mount]");
-      if (existing) {
-        shadowMount = existing;
-      }
-      else {
-        const style = document.createElement("style");
-        style.textContent = `
-          :host { display: block; width: 100%; }
-          [data-tc-blocksuite-mount] { display: block; width: 100%; }
-        `;
-        shadowRoot.appendChild(style);
-
-        shadowMount = document.createElement("div");
-        shadowMount.setAttribute("data-tc-blocksuite-mount", "1");
-        shadowRoot.appendChild(shadowMount);
-      }
-    }
-    catch {
-      shadowRoot = null;
-      shadowMount = null;
-    }
-
     // IMPORTANT: start isolation BEFORE importing any blocksuite modules.
     // Blocksuite may inject global styles during module evaluation.
-    const disposeIsolation = startBlocksuiteStyleIsolation({ shadowRoot });
+    const disposeIsolation = startBlocksuiteStyleIsolation();
+
+    const scopeRoot = (container.closest?.(".tc-blocksuite-scope") as HTMLElement | null) ?? container;
+
+    const normalizeTheme = (raw: string | null | undefined): "light" | "dark" => {
+      const v = (raw ?? "").toLowerCase();
+      if (v.includes("dark") || v.includes("dracula") || v.includes("night"))
+        return "dark";
+      return "light";
+    };
+
+    const getTheme = (): "light" | "dark" => {
+      const root = document.documentElement;
+      return normalizeTheme(root.dataset.theme) === "dark" || root.classList.contains("dark")
+        ? "dark"
+        : "light";
+    };
+
+    const syncPortalsTheme = (theme: "light" | "dark") => {
+      const portals = document.querySelectorAll<HTMLElement>(".blocksuite-portal");
+      for (const el of portals) {
+        el.dataset.theme = theme;
+        el.classList.toggle("dark", theme === "dark");
+      }
+    };
+
+    const syncTheme = () => {
+      const theme = getTheme();
+      scopeRoot.dataset.theme = theme;
+      scopeRoot.classList.toggle("dark", theme === "dark");
+      syncPortalsTheme(theme);
+    };
+
+    syncTheme();
+
+    const themeMo = new MutationObserver(() => syncTheme());
+    themeMo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+
+    const portalMo = new MutationObserver((mutations) => {
+      const theme = scopeRoot.dataset.theme === "dark" ? "dark" : "light";
+      for (const m of mutations) {
+        for (const added of m.addedNodes) {
+          if (!(added instanceof HTMLElement))
+            continue;
+          if (added.classList.contains("blocksuite-portal")) {
+            added.dataset.theme = theme;
+            added.classList.toggle("dark", theme === "dark");
+            continue;
+          }
+          const nested = added.querySelectorAll?.(".blocksuite-portal");
+          if (!nested?.length)
+            continue;
+          for (const el of nested) {
+            if (el instanceof HTMLElement) {
+              el.dataset.theme = theme;
+              el.classList.toggle("dark", theme === "dark");
+            }
+          }
+        }
+      }
+    });
+    portalMo.observe(document.body, { childList: true, subtree: true });
 
     let cancelled = false;
     let disposeEditor: (() => void) | null = null;
 
     (async () => {
+      try {
+        await ensureBlocksuiteRuntimeStyles();
+      }
+      catch {
+        // ignore
+      }
+
       const [{ ensureBlocksuiteCoreElementsDefined }, spaceWorkspaceModule, embeddedModule, storeModule] = await Promise.all([
         import("@/components/chat/infra/blocksuite/spec/coreElements"),
         import("@/components/chat/infra/blocksuite/runtime/spaceWorkspace"),
@@ -261,12 +301,7 @@ export default function BlocksuiteUserReadme(props: {
       }
 
       editorRef.current = editor as unknown as HTMLElement;
-      if (shadowMount) {
-        shadowMount.replaceChildren(editor as unknown as Node);
-      }
-      else {
-        container.replaceChildren(editor as unknown as Node);
-      }
+      container.replaceChildren(editor as unknown as Node);
 
       // 强制 page 模式（个人简介场景不暴露画布切换按钮）
       try {
@@ -296,6 +331,8 @@ export default function BlocksuiteUserReadme(props: {
 
     return () => {
       cancelled = true;
+      themeMo.disconnect();
+      portalMo.disconnect();
 
       try {
         disposeEditor?.();
@@ -314,17 +351,18 @@ export default function BlocksuiteUserReadme(props: {
       editorRef.current = null;
       workspaceRuntimeRef.current = null;
       try {
-        shadowMount?.replaceChildren();
+        container.replaceChildren();
       }
       catch {
         // ignore
       }
-      container.replaceChildren();
     };
   }, [content, docId, docModeProvider, editable, isOwner, workspaceId]);
 
+  const rootClassName = ["tc-blocksuite-scope", className].filter(Boolean).join(" ");
+
   return (
-    <div className={className}>
+    <div className={rootClassName}>
       <div ref={hostContainerRef} className="w-full" />
     </div>
   );

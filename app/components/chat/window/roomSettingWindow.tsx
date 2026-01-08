@@ -257,6 +257,8 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                                 workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
                                 spaceId={(room?.spaceId ?? spaceId)!}
                                 docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
+                                // 使用 embedded + 自动高度：让外层容器负责滚动，避免 iframe 内部滚动体验割裂。
+                                className="min-h-[320px]"
                               />
                             )
                           : (
