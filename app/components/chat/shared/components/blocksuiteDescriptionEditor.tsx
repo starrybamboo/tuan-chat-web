@@ -3,14 +3,27 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
-import { createEmbeddedAffineEditor } from "@/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-import { ensureDocMeta, getOrCreateDoc, getOrCreateWorkspace } from "@/components/chat/infra/blocksuite/spaceWorkspaceRegistry";
-import { ensureBlocksuiteCoreElementsDefined } from "@/components/chat/infra/blocksuite/spec/coreElements";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Subscription } from "rxjs";
+
+async function loadBlocksuiteRuntime() {
+  const [{ createEmbeddedAffineEditor }, { ensureBlocksuiteCoreElementsDefined }, spaceRegistry] = await Promise.all([
+    import("@/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor"),
+    import("@/components/chat/infra/blocksuite/spec/coreElements"),
+    import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+  ]);
+
+  return {
+    createEmbeddedAffineEditor,
+    ensureBlocksuiteCoreElementsDefined,
+    ensureDocMeta: spaceRegistry.ensureDocMeta,
+    getOrCreateDoc: spaceRegistry.getOrCreateDoc,
+    getOrCreateWorkspace: spaceRegistry.getOrCreateWorkspace,
+  };
+}
 
 interface BlocksuiteDescriptionEditorProps {
   /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
@@ -316,10 +329,6 @@ export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescription
       }
     });
     portalMo.observe(body, { childList: true, subtree: true });
-
-    ensureBlocksuiteCoreElementsDefined();
-
-    const workspace = getOrCreateWorkspace(workspaceId);
     const abort = new AbortController();
     let createdEditor: any = null;
     let createdStore: any = null;
@@ -327,6 +336,14 @@ export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescription
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
     (async () => {
+      const runtime = await loadBlocksuiteRuntime();
+      if (abort.signal.aborted)
+        return;
+
+      runtime.ensureBlocksuiteCoreElementsDefined();
+
+      const workspace = runtime.getOrCreateWorkspace(workspaceId);
+
       await import("@/components/chat/infra/blocksuite/styles/blocksuiteRuntime.css");
       if (abort.signal.aborted)
         return;
@@ -381,8 +398,8 @@ export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescription
 
       // 3) Create store + editor after hydrate
       // Important: don't overwrite existing doc title.
-      ensureDocMeta({ workspaceId, docId });
-      const store = getOrCreateDoc({ workspaceId, docId });
+      runtime.ensureDocMeta({ workspaceId, docId });
+      const store = runtime.getOrCreateDoc({ workspaceId, docId });
       createdStore = store;
 
       if (typeof window !== "undefined" && import.meta.env.DEV) {
@@ -403,7 +420,7 @@ export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescription
         }
       }
 
-      const editor = createEmbeddedAffineEditor({
+      const editor = runtime.createEmbeddedAffineEditor({
         store,
         workspace: workspace as any,
         docModeProvider,

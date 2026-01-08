@@ -1,17 +1,15 @@
 import CollectionPage from "@/components/common/collection/collectionPage";
-import Work from "@/components/create/workPlace/work";
 import ResourcePage from "@/components/resource/pages/resourcePage";
 import { useState } from "react";
 import ModuleHome from "./home/Modulehome";
 
-type TabType = "module" | "resource" | "collection" | "create";
+type TabType = "module" | "resource" | "collection";
 
 export default function ModuleWithTabs() {
   const [activeTab, setActiveTab] = useState<TabType>("module");
 
   const tabs = [
     { key: "module" as const, label: "模组列表" },
-    { key: "create" as const, label: "创作模组" },
     { key: "resource" as const, label: "跑团素材" },
     { key: "collection" as const, label: "收藏的素材" },
   ];
@@ -30,12 +28,6 @@ export default function ModuleWithTabs() {
         return (
           <div className="[&>div]:!bg-transparent [&>div]:!min-h-0 [&>div]:!p-0 [&>div>div:first-child]:!hidden [&>div>div:nth-child(2)]:!mt-0">
             <CollectionPage />
-          </div>
-        );
-      case "create":
-        return (
-          <div className="[&>div]:!bg-transparent [&>div]:!min-h-0 [&_button[class*='fixed']]:!hidden">
-            <Work />
           </div>
         );
       default:

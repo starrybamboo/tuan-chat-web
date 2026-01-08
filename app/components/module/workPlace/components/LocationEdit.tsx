@@ -1,7 +1,7 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import { invokeSaveWithTinyRetry } from "@/components/create/workPlace/components/invokeSaveWithTinyRetry";
-import { useModuleContext } from "@/components/create/workPlace/context/_moduleContext";
+import { invokeSaveWithTinyRetry } from "@/components/module/workPlace/components/invokeSaveWithTinyRetry";
+import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";

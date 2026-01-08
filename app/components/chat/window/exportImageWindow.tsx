@@ -2,9 +2,13 @@ import type { ChatMessageResponse } from "../../../../api";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import * as htmltoimage from "html-to-image";
-import * as QRCode from "qrcode";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+async function loadQRCode() {
+  const mod = await import("qrcode");
+  return (mod as any).default ?? mod;
+}
 
 interface ExportImageWindowProps {
   /** 选中的消息列表 */
@@ -70,6 +74,10 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
   useEffect(() => {
     const generateQRCode = async () => {
       try {
+        if (typeof window === "undefined")
+          return;
+
+        const QRCode = await loadQRCode();
         const shareUrl = getShareUrl();
         const dataUrl = await QRCode.toDataURL(shareUrl, {
           width: 120,
@@ -154,6 +162,7 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
 
       // 如果启用二维码，生成并绘制
       if (showQRCode) {
+        const QRCode = await loadQRCode();
         const shareUrl = getShareUrl();
         const qrCodeDataUrl = await QRCode.toDataURL(shareUrl, {
           width: QR_SIZE,

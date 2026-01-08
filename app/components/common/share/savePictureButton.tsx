@@ -1,6 +1,5 @@
 import { SharpDownload } from "@/icons";
 import * as htmltoimage from "html-to-image";
-import * as QRCode from "qrcode";
 import toast from "react-hot-toast";
 
 // 加载图片函数
@@ -23,6 +22,10 @@ interface SavePictureButtonProps {
 export default function SavePictureButton({ targetRef, qrLink, className }: SavePictureButtonProps) {
   const handleShare = async () => {
     try {
+      if (typeof window === "undefined") {
+        return;
+      }
+
       // 暂时移除googleFonts，避免跨域问题
       const googleFonts = Array.from(document.querySelectorAll("link[href*=\"fonts.googleapis.com\"]"));
       googleFonts.forEach(link => link.remove());
@@ -77,6 +80,8 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
       googleFonts.forEach(link => document.head.appendChild(link));
 
       // 生成二维码
+      const QRCodeModule = await import("qrcode");
+      const QRCode = (QRCodeModule.default ?? QRCodeModule) as typeof import("qrcode");
       const QRCodeDataUrl = await QRCode.toDataURL(qrLink, { width: 100 });
 
       // 随机数量团子

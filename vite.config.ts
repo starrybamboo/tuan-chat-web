@@ -340,11 +340,15 @@ export default defineConfig(({ command }) => {
     // Force Vite SSR to bundle/transpile them to avoid runtime syntax errors like:
     // "SyntaxError: Unexpected identifier 'lineStyle'".
     ssr: {
+      // `dagre` is pure CommonJS (module.exports). If we bundle it into SSR ESM,
+      // it may be evaluated without a CJS wrapper and crash with `module is not defined`.
+      external: [
+        "dagre",
+        "qrcode",
+      ],
       noExternal: [
         /^@blocksuite\//,
         /^@toeverything\//,
-        "qrcode",
-        "dagre",
         "lodash",
         "quill-delta",
         "quill-delta/dist/Delta",
