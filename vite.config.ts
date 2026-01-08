@@ -77,7 +77,7 @@ function fixCjsDefaultExportPlugin(): Plugin {
 }
 
 export default defineConfig(({ command }) => {
-  const isDev = command === "serve";
+  const _isDev = command === "serve";
 
   const nm = (p: string) => {
     const abs = resolve(__dirname, p);

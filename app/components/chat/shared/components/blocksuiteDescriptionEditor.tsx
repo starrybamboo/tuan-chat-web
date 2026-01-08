@@ -453,7 +453,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
           const first = paragraphs?.[0];
           const firstText = first?.props?.text;
-          console.debug("[BlocksuiteDescriptionEditor] store ready", {
+          console.warn("[BlocksuiteDescriptionEditor] store ready", {
             docId,
             rootId,
             paragraphCount: paragraphs?.length ?? 0,
@@ -949,7 +949,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     if (!v)
       return false;
     // Tailwind 高度相关：h-*, h-[...], min-h-*, max-h-*
-    return /(?:^|\s)(h-\[|h-|min-h-|max-h-)/.test(v);
+    return /(?:^|\s)(?:h-\[|h-|min-h-|max-h-)/.test(v);
   }, [className]);
 
   const iframeStyle: React.CSSProperties = {

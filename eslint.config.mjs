@@ -17,6 +17,7 @@ export default antfu(
       "public/**",
       "api/**",
       ".github/**",
+      "app/components/chat/infra/blocksuite/playground/**",
       "**/*.md",
       "eslint-report.json",
       "android/**",
@@ -57,6 +58,13 @@ export default antfu(
           ignore: ["README.md"],
         },
       ],
+    },
+  },
+  {
+    // preset 对 tsx 的默认 no-console 更严格，这里统一为 warn，并允许 warn/error
+    files: ["**/*.{jsx,tsx}"],
+    rules: {
+      "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
   {

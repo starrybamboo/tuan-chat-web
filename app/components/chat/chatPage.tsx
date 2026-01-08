@@ -1,5 +1,4 @@
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
-import type { Room } from "../../../api";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";

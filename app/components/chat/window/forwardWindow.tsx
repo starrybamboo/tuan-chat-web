@@ -1,4 +1,3 @@
-import type { Room } from "api/models/Room";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import React, { useMemo, useState } from "react";

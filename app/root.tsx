@@ -1,8 +1,8 @@
 import type { Route } from "./+types/root";
-import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
-
-import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+
+import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
+import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
@@ -43,7 +43,7 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
       if (!printedLitMultiStack && first.includes("Multiple versions of Lit loaded")) {
         printedLitMultiStack = true;
         originalWarn(...args);
-        originalWarn(`[tc] Lit multiple-versions warn stack:\n${new Error().stack ?? ""}`);
+        originalWarn(`[tc] Lit multiple-versions warn stack:\n${new Error("Lit multiple-versions warn stack").stack ?? ""}`);
         return;
       }
     }

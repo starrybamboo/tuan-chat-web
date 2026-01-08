@@ -28,7 +28,6 @@ import { ParagraphViewExtension } from "@blocksuite/affine-block-paragraph/view"
 import { RootStoreExtension } from "@blocksuite/affine-block-root/store";
 import { RootViewExtension } from "@blocksuite/affine-block-root/view";
 import { SurfaceRefStoreExtension } from "@blocksuite/affine-block-surface-ref/store";
-
 import { SurfaceRefViewExtension } from "@blocksuite/affine-block-surface-ref/view";
 import { SurfaceStoreExtension } from "@blocksuite/affine-block-surface/store";
 import { SurfaceViewExtension } from "@blocksuite/affine-block-surface/view";

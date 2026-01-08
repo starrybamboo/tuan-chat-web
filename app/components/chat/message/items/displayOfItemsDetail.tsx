@@ -49,7 +49,7 @@ function DisplayOfItemDetail({
   stageId = -1,
   entityType = 1,
   roomId,
-  spaceId,
+  spaceId: _spaceId,
 }: DisplayOfItemDetailProps) {
   // 如果提供了 manualData，则使用手动数据，否则通过 itemId 获取数据
   const { data, isLoading, isError } = useModuleItemDetailQuery(

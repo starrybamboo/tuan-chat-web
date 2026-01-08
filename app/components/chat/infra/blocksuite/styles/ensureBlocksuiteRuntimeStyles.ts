@@ -11,7 +11,7 @@ function rewriteThemeRoot(cssText: string): string {
 function rewriteKatexGlobalCounterReset(cssText: string): string {
   // KaTeX 会在 `body` 上做 counter-reset，用于 equation numbering；限制到 blocksuite scope。
   return cssText.replace(
-    /body\s*\{\s*counter-reset\s*:\s*katexEqnNo\s+mmlEqnNo\s*;?\s*\}/g,
+    /body\s*\{\s*counter-reset\s*:\s*katexEqnNo\s+mmlEqnNo\s*(?:;\s*)?\}/g,
     `${SCOPE_SELECTOR}{counter-reset:katexEqnNo mmlEqnNo}`,
   );
 }
@@ -66,4 +66,3 @@ export async function ensureBlocksuiteRuntimeStyles(): Promise<void> {
 
   return installPromise;
 }
-

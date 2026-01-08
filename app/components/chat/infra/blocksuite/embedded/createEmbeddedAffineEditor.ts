@@ -26,7 +26,7 @@ import { tuanchat } from "api/instance";
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { insertMentionAtCurrentSelection } from "../services/mentionPicker";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
-import { mockEditorSetting, mockParseDocUrlService } from "./mock-services";
+import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
 
 const viewManager = getTestViewManager();
 

@@ -16,7 +16,7 @@ type GlobalIsolationState = {
   disposeInternal: (() => void) | null;
 };
 
-function installDocumentAdoptedStyleSheetsRedirect(params: {
+function _installDocumentAdoptedStyleSheetsRedirect(params: {
   shadowRoot: ShadowRoot;
   documentAdoptedSnapshot: any[] | null;
 }): () => void {
