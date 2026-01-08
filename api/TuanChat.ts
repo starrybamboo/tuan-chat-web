@@ -15,10 +15,10 @@ import { CollectionControllerService } from './services/CollectionControllerServ
 import { CollectionListControllerService } from './services/CollectionListControllerService';
 import { CollectionListItemControllerService } from './services/CollectionListItemControllerService';
 import { CommentControllerService } from './services/CommentControllerService';
-import { CommitControllerService } from './services/CommitControllerService';
 import { CommunityService } from './services/CommunityService';
 import { CommunityPostControllerService } from './services/CommunityPostControllerService';
 import { CounterService } from './services/CounterService';
+import { DatabaseBackupService } from './services/DatabaseBackupService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
 import { DistributedTaskService } from './services/DistributedTaskService';
 import { DistributedTaskSchedulerService } from './services/DistributedTaskSchedulerService';
@@ -67,10 +67,10 @@ export class TuanChat {
     public readonly collectionListController: CollectionListControllerService;
     public readonly collectionListItemController: CollectionListItemControllerService;
     public readonly commentController: CommentControllerService;
-    public readonly commitController: CommitControllerService;
     public readonly community: CommunityService;
     public readonly communityPostController: CommunityPostControllerService;
     public readonly counter: CounterService;
+    public readonly databaseBackup: DatabaseBackupService;
     public readonly diceCommentController: DiceCommentControllerService;
     public readonly distributedTask: DistributedTaskService;
     public readonly distributedTaskScheduler: DistributedTaskSchedulerService;
@@ -110,7 +110,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://localhost:8081',
+            BASE: config?.BASE ?? 'http://101.126.143.129:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -130,10 +130,10 @@ export class TuanChat {
         this.collectionListController = new CollectionListControllerService(this.request);
         this.collectionListItemController = new CollectionListItemControllerService(this.request);
         this.commentController = new CommentControllerService(this.request);
-        this.commitController = new CommitControllerService(this.request);
         this.community = new CommunityService(this.request);
         this.communityPostController = new CommunityPostControllerService(this.request);
         this.counter = new CounterService(this.request);
+        this.databaseBackup = new DatabaseBackupService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
         this.distributedTask = new DistributedTaskService(this.request);
         this.distributedTaskScheduler = new DistributedTaskSchedulerService(this.request);

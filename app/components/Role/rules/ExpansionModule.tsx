@@ -73,10 +73,10 @@ export default function ExpansionModule({
     copywritingTemplates?: Record<string, string[]>;
   }>({});
 
-  // 当 roleId 变化时，重置本地编辑状态，防止显示上一个角色的内容
+  // 当 roleId 或 ruleId 变化时，重置本地编辑状态，防止显示上一次编辑的内容
   useEffect(() => {
     setLocalEdits({});
-  }, [roleId]);
+  }, [roleId, selectedRuleId]);
 
   // 构建当前渲染所需的数据
   const renderData = useMemo(() => {
