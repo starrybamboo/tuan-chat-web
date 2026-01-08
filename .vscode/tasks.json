@@ -13,6 +13,28 @@
       "isBackground": false,
       "problemMatcher": [],
       "group": "build"
+    },
+    {
+      "label": "kill-port-5177",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "$p=(Get-NetTCPConnection -LocalPort 5177 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($p) { Stop-Process -Id $p -Force; Write-Output \"Killed PID $p\" } else { Write-Output \"No listener on 5177\" }; exit 0"
+      ],
+      "isBackground": false
+    },
+    {
+      "label": "dev-check",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "Set-Location -Path 'd:\\A_programming\\tuan-chat-web'; pnpm -s dev"
+      ],
+      "isBackground": false
     }
   ]
 }

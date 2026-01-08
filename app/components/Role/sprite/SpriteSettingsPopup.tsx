@@ -65,7 +65,7 @@ export function SpriteSettingsPopup({
   const [wasOpen, setWasOpen] = useState(false);
 
   // ========== 多选状态管理 ==========
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(() => new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const isMultiSelectDisabled = activeTab === "setting";
 

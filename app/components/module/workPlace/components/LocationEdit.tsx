@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { invokeSaveWithTinyRetry } from "@/components/module/workPlace/components/invokeSaveWithTinyRetry";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
+import { useModuleContext } from "@/components/module/workPlace/context/moduleContext";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
 
 interface LocationEditProps {

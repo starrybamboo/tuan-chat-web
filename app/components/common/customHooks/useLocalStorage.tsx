@@ -39,7 +39,7 @@ export function getLocalStorageValue<T>(key: string, defaultValue: T): T {
  * @template T 状态类型
  */
 export function useLocalStorage<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [value, setValue] = useState<T>(getLocalStorageValue(key, defaultValue));
+  const [value, setValue] = useState<T>(() => getLocalStorageValue(key, defaultValue));
   // console.log(value, key);
   useEffect(() => {
     localStorage.setItem(key, JSON.stringify(value));

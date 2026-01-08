@@ -333,6 +333,30 @@ export default defineConfig(({ command }) => {
       port: 5177,
       strictPort: true,
       host: "0.0.0.0",
+      // Pre-transform requested modules more aggressively in dev.
+      // This often helps heavy ESM graphs (like BlockSuite) on first open.
+      preTransformRequests: true,
+      // Warm up the most expensive routes/modules in dev to reduce the first-load latency.
+      // This does NOT change module resolution (unlike optimizeDeps for @blocksuite/*).
+      warmup: {
+        clientFiles: [
+          // iframe route entry
+          "app/routes/blocksuiteFrame.tsx",
+
+          // iframe host + runtime loader
+          "app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx",
+
+          // runtime dynamic imports (from loadBlocksuiteRuntime)
+          "app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.ts",
+          "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts",
+
+          // core custom elements registration
+          "app/components/chat/infra/blocksuite/spec/coreElements.ts",
+
+          // common doc sources/providers
+          "app/components/chat/infra/blocksuite/remoteDocSource.ts",
+        ],
+      },
     },
 
     // React Router dev loads route modules in SSR. Some upstream packages (e.g. BlockSuite)
@@ -386,16 +410,23 @@ export default defineConfig(({ command }) => {
         // browser resource exhaustion (ERR_INSUFFICIENT_RESOURCES) in dev.
         "pixi.js",
 
+        // BlockSuite/AFFiNE transitive deps:
+        // Pre-bundle these to reduce the amount of /node_modules/* requests in dev.
+        // (We still exclude @blocksuite/* themselves to keep single-instance guarantees.)
+        "zod",
+        "yjs",
+        "rxjs",
+        "@preact/signals-core",
+
         // Markdown/code highlighting (CJS interop)
         "lowlight",
         "react-syntax-highlighter",
 
-        "lit",
-        "lit-element",
-        "lit-html",
-        "@lit/context",
-        "@lit/reactive-element",
-        "@lit/react",
+        // NOTE: Avoid pre-bundling lit/@lit and @blocksuite/* here.
+        // They are extremely sensitive to duplicate module instances
+        // (e.g. Lit's ReactiveElement / custom element constructors).
+        // Mixing Vite pre-bundled deps with our alias-to-dist strategy can lead to
+        // runtime errors like: "Failed to construct 'HTMLElement': Illegal constructor".
 
         // Fix CJS/ESM interop for packages that are imported as ESM but are CJS.n
         // This prevents runtime errors like:
@@ -442,6 +473,19 @@ export default defineConfig(({ command }) => {
       // IMPORTANT: do NOT pre-bundle `@blocksuite/affine-*` packages.
       // Many of them include `*.css.ts` (vanilla-extract) sources.
       exclude: [
+        // BlockSuite/lit are intentionally excluded to prevent duplicate instances
+        // between Vite pre-bundled deps and our alias-to-dist resolution.
+        "@blocksuite/global",
+        "@blocksuite/store",
+        "@blocksuite/std",
+        "@blocksuite/sync",
+        "lit",
+        "lit-element",
+        "lit-html",
+        "@lit/context",
+        "@lit/reactive-element",
+        "@lit/react",
+
         "@blocksuite/affine",
         "@blocksuite/affine-ext-loader",
         "@blocksuite/affine-shared",
@@ -469,13 +513,6 @@ export default defineConfig(({ command }) => {
         "@blocksuite/data-view",
 
         "@blocksuite/integration-test",
-
-        // Ensure these are not pre-bundled to avoid duplicate module graphs
-        // (breaks DI tokens / instanceof checks).
-        "@blocksuite/global",
-        "@blocksuite/store",
-        "@blocksuite/std",
-        "@blocksuite/sync",
       ],
     },
   };
