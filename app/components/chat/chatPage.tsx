@@ -579,128 +579,209 @@ export default function ChatPage() {
     });
   };
 
+  const mainContent = isPrivateChatMode
+    ? (
+        activeRoomId
+          ? (
+              <RightChatView
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              />
+            )
+          : (
+              <FriendsPage
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              />
+            )
+      )
+    : (
+        <>
+          {
+            activeSpaceId
+              ? (
+                  mainView === "spaceDetail"
+                    ? (
+                        <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                          <div className="w-full h-full overflow-auto flex justify-center p-2">
+                            <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
+                          </div>
+                        </div>
+                      )
+                    : (mainView === "roomSetting" && roomSettingState)
+                        ? (
+                            <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                              <div className="w-full h-full overflow-auto flex justify-center p-2">
+                                <RoomSettingWindow
+                                  roomId={roomSettingState.roomId}
+                                  onClose={closeRoomSettingPage}
+                                  defaultTab={roomSettingState.tab}
+                                />
+                              </div>
+                            </div>
+                          )
+                        : (
+                            <RoomWindow
+                              roomId={activeRoomId ?? -1}
+                              spaceId={activeSpaceId ?? -1}
+                              targetMessageId={targetMessageId}
+                            />
+                          )
+                )
+              : (
+                  <div className="flex items-center justify-center w-full h-full font-bold">
+                    <span className="text-center lg:hidden">请从右侧选择房间</span>
+                  </div>
+                )
+          }
+        </>
+      );
+
   return (
     <SpaceContext value={spaceContext}>
-      <div className="flex flex-row bg-base-100 flex-1 h-full relative">
-        {/* 只有小屏才允许收起侧边栏 */}
-        <OpenAbleDrawer
-          isOpen={screenSize === "sm" ? isOpenLeftDrawer : true}
-          className="h-full z-10 w-full bg-base-100"
-          initialWidth={chatLeftPanelWidth}
-          minWidth={200}
-          maxWidth={700}
-          onWidthChange={setChatLeftPanelWidth}
-          handlePosition="right"
-        >
-          <div className="h-full flex flex-row w-full min-w-0">
-            {/* 空间列表 */}
-            <ChatSpaceSidebar
-              isPrivateChatMode={isPrivateChatMode}
-              spaces={orderedSpaces}
-              spaceOrderIds={orderedSpaceIds}
-              onReorderSpaceIds={setUserSpaceOrder}
-              activeSpaceId={activeSpaceId}
-              getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-              privateUnreadMessagesNumber={privateEntryBadgeCount}
-              onOpenPrivate={() => {
-                setActiveSpaceId(null);
-                setActiveRoomId(null);
-                navigate("/chat/private");
-              }}
-              onSelectSpace={(spaceId) => {
-                setActiveSpaceId(spaceId);
-              }}
-              onCreateSpace={() => {
-                setIsSpaceHandleOpen(true);
-              }}
-              onSpaceContextMenu={handleSpaceContextMenu}
-            />
-            <div className="w-px bg-base-300"></div>
-            {/* 房间列表 */}
-            <ChatRoomListPanel
-              isPrivateChatMode={isPrivateChatMode}
-              activeSpaceId={activeSpaceId}
-              activeSpaceName={activeSpace?.name}
-              activeSpaceIsArchived={activeSpaceIsArchived}
-              isSpaceOwner={!!spaceContext.isSpaceOwner}
-              rooms={orderedRooms}
-              roomOrderIds={orderedRoomIds}
-              onReorderRoomIds={setUserRoomOrder}
-              activeRoomId={activeRoomId}
-              unreadMessagesNumber={unreadMessagesNumber}
-              onContextMenu={handleContextMenu}
-              onInviteMember={() => setIsMemberHandleOpen(true)}
-              onOpenSpaceDetailPanel={openSpaceDetailPanel}
-              onSelectRoom={(roomId) => {
-                setActiveRoomId(roomId);
-              }}
-              onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
-              onOpenRoomSetting={(roomId, tab) => {
-                openRoomSettingPage(roomId, tab);
-              }}
-              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-              onCreateRoom={() => {
-                if (activeSpaceId) {
-                  setIsRoomHandleOpen(true);
-                }
-              }}
-            />
-          </div>
-        </OpenAbleDrawer>
-        {/* 聊天记录窗口，输入窗口，侧边栏 */}
-        {isPrivateChatMode
+      <div className={`flex flex-row flex-1 h-full relative ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
+        {screenSize === "sm"
           ? (
-              activeRoomId
-                ? (
-                    <RightChatView
-                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              <>
+                {/* 只有小屏才允许收起侧边栏 */}
+                <OpenAbleDrawer
+                  isOpen={isOpenLeftDrawer}
+                  className="h-full z-10 w-full bg-base-200"
+                  initialWidth={chatLeftPanelWidth}
+                  minWidth={200}
+                  maxWidth={700}
+                  onWidthChange={setChatLeftPanelWidth}
+                  handlePosition="right"
+                >
+                  <div className="h-full flex flex-row w-full min-w-0">
+                    {/* 空间列表 */}
+                    <ChatSpaceSidebar
+                      isPrivateChatMode={isPrivateChatMode}
+                      spaces={orderedSpaces}
+                      spaceOrderIds={orderedSpaceIds}
+                      onReorderSpaceIds={setUserSpaceOrder}
+                      activeSpaceId={activeSpaceId}
+                      getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+                      privateUnreadMessagesNumber={privateEntryBadgeCount}
+                      onOpenPrivate={() => {
+                        setActiveSpaceId(null);
+                        setActiveRoomId(null);
+                        navigate("/chat/private");
+                      }}
+                      onSelectSpace={(spaceId) => {
+                        setActiveSpaceId(spaceId);
+                      }}
+                      onCreateSpace={() => {
+                        setIsSpaceHandleOpen(true);
+                      }}
+                      onSpaceContextMenu={handleSpaceContextMenu}
                     />
-                  )
-                : (
-                    <FriendsPage
+                    <div className="w-px bg-base-300"></div>
+                    {/* 房间列表 */}
+                    <ChatRoomListPanel
+                      isPrivateChatMode={isPrivateChatMode}
+                      activeSpaceId={activeSpaceId}
+                      activeSpaceName={activeSpace?.name}
+                      activeSpaceIsArchived={activeSpaceIsArchived}
+                      isSpaceOwner={!!spaceContext.isSpaceOwner}
+                      rooms={orderedRooms}
+                      roomOrderIds={orderedRoomIds}
+                      onReorderRoomIds={setUserRoomOrder}
+                      activeRoomId={activeRoomId}
+                      unreadMessagesNumber={unreadMessagesNumber}
+                      onContextMenu={handleContextMenu}
+                      onInviteMember={() => setIsMemberHandleOpen(true)}
+                      onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                      onSelectRoom={(roomId) => {
+                        setActiveRoomId(roomId);
+                      }}
+                      onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+                      onOpenRoomSetting={(roomId, tab) => {
+                        openRoomSettingPage(roomId, tab);
+                      }}
                       setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                      onCreateRoom={() => {
+                        if (activeSpaceId) {
+                          setIsRoomHandleOpen(true);
+                        }
+                      }}
                     />
-                  )
+                  </div>
+                </OpenAbleDrawer>
+                {/* 聊天记录窗口，输入窗口，侧边栏 */}
+                {mainContent}
+              </>
             )
           : (
               <>
-                {
-                  activeSpaceId
-                    ? (
-                        mainView === "spaceDetail"
-                          ? (
-                              <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                <div className="w-full h-full overflow-auto flex justify-center p-2">
-                                  <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
-                                </div>
-                              </div>
-                            )
-                          : (mainView === "roomSetting" && roomSettingState)
-                              ? (
-                                  <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                    <div className="w-full h-full overflow-auto flex justify-center p-2">
-                                      <RoomSettingWindow
-                                        roomId={roomSettingState.roomId}
-                                        onClose={closeRoomSettingPage}
-                                        defaultTab={roomSettingState.tab}
-                                      />
-                                    </div>
-                                  </div>
-                                )
-                              : (
-                                  <RoomWindow
-                                    roomId={activeRoomId ?? -1}
-                                    spaceId={activeSpaceId ?? -1}
-                                    targetMessageId={targetMessageId}
-                                  />
-                                )
-                      )
-                    : (
-                        <div className="flex items-center justify-center w-full h-full font-bold">
-                          <span className="text-center lg:hidden">请从右侧选择房间</span>
-                        </div>
-                      )
-                }
+                {/* 桌面端：空间列表不在圆角容器内 */}
+                <div className="bg-base-200 h-full">
+                  <ChatSpaceSidebar
+                    isPrivateChatMode={isPrivateChatMode}
+                    spaces={orderedSpaces}
+                    spaceOrderIds={orderedSpaceIds}
+                    onReorderSpaceIds={setUserSpaceOrder}
+                    activeSpaceId={activeSpaceId}
+                    getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+                    privateUnreadMessagesNumber={privateEntryBadgeCount}
+                    onOpenPrivate={() => {
+                      setActiveSpaceId(null);
+                      setActiveRoomId(null);
+                      navigate("/chat/private");
+                    }}
+                    onSelectSpace={(spaceId) => {
+                      setActiveSpaceId(spaceId);
+                    }}
+                    onCreateSpace={() => {
+                      setIsSpaceHandleOpen(true);
+                    }}
+                    onSpaceContextMenu={handleSpaceContextMenu}
+                  />
+                </div>
+
+                {/* 桌面端：房间列表 + 右侧视图放在同一容器，并做左上圆角 */}
+                <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
+                  <OpenAbleDrawer
+                    isOpen={true}
+                    className="h-full z-10 w-full bg-base-200"
+                    initialWidth={chatLeftPanelWidth}
+                    minWidth={200}
+                    maxWidth={700}
+                    onWidthChange={setChatLeftPanelWidth}
+                    handlePosition="right"
+                  >
+                    <div className="h-full flex flex-row w-full min-w-0 ">
+                      {/* 房间列表 */}
+                      <ChatRoomListPanel
+                        isPrivateChatMode={isPrivateChatMode}
+                        activeSpaceId={activeSpaceId}
+                        activeSpaceName={activeSpace?.name}
+                        activeSpaceIsArchived={activeSpaceIsArchived}
+                        isSpaceOwner={!!spaceContext.isSpaceOwner}
+                        rooms={orderedRooms}
+                        roomOrderIds={orderedRoomIds}
+                        onReorderRoomIds={setUserRoomOrder}
+                        activeRoomId={activeRoomId}
+                        unreadMessagesNumber={unreadMessagesNumber}
+                        onContextMenu={handleContextMenu}
+                        onInviteMember={() => setIsMemberHandleOpen(true)}
+                        onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                        onSelectRoom={(roomId) => {
+                          setActiveRoomId(roomId);
+                        }}
+                        onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+                        onOpenRoomSetting={(roomId, tab) => {
+                          openRoomSettingPage(roomId, tab);
+                        }}
+                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        onCreateRoom={() => {
+                          if (activeSpaceId) {
+                            setIsRoomHandleOpen(true);
+                          }
+                        }}
+                      />
+                    </div>
+                  </OpenAbleDrawer>
+                  {mainContent}
+                </div>
               </>
             )}
 

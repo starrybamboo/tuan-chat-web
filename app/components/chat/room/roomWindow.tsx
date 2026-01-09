@@ -896,6 +896,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     toast.success("已清除立绘");
   }, [isRealtimeRenderActive, roomId, send]);
 
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+  const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (backgroundUrl) {
+      const id = setTimeout(() => setDisplayedBgUrl(backgroundUrl), 0);
+      return () => clearTimeout(id);
+    }
+  }, [backgroundUrl]);
+
   return (
     <RoomContext value={roomContext}>
       <RoomSideDrawerGuards spaceId={spaceId} />
@@ -908,70 +917,86 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         chatHistoryLoading={!!chatHistory?.loading}
         onApiChange={handleRealtimeRenderApiChange}
       />
-      <div className="flex flex-col h-full w-full shadow-sm min-h-0">
-        <RoomHeaderBar
-          roomName={room?.name}
-          toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+      <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-300">
+        {/* 背景图片层：覆盖 header + 主聊天区 + 输入区 */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500 z-0"
+          style={{
+            backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
+            opacity: backgroundUrl ? 1 : 0,
+          }}
         />
-        <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex flex-col bg-base-100 relative min-h-0">
-          <div className="flex-1 w-full flex min-h-0">
-            {/* 主聊天区（可点击切换输入目标） */}
-            <div
-              className={`bg-base-100 flex-1 flex-shrink-0 ${composerTarget === "main" ? "ring-2 ring-info/40 ring-inset" : ""}`}
-              onMouseDown={() => setComposerTarget("main")}
-            >
-              <ChatFrame
-                key={roomId}
-                virtuosoRef={virtuosoRef}
+        <div
+          className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs transition-opacity duration-500 z-0"
+          style={{
+            opacity: backgroundUrl ? 1 : 0,
+          }}
+        />
+
+        <div className="relative z-10 flex flex-col h-full min-h-0">
+          <RoomHeaderBar
+            roomName={room?.name}
+            toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+          />
+          <div className="flex-1 w-full flex flex-col bg-transparent relative min-h-0">
+            <div className="flex-1 w-full flex min-h-0">
+              {/* 主聊天区（可点击切换输入目标） */}
+              <div
+                className={`bg-transparent flex-1 flex-shrink-0 ${composerTarget === "main" ? "ring-2 ring-info/40 ring-inset" : ""}`}
+                onMouseDown={() => setComposerTarget("main")}
               >
-              </ChatFrame>
+                <ChatFrame
+                  key={roomId}
+                  virtuosoRef={virtuosoRef}
+                  onBackgroundUrlChange={setBackgroundUrl}
+                >
+                </ChatFrame>
+              </div>
+
+              {/* 右侧面板（Thread/其它抽屉） */}
+              <RoomSideDrawers
+                onClueSend={handleClueSend}
+                stopRealtimeRender={handleStopRealtimeRender}
+              />
             </div>
 
-            {/* 右侧面板（Thread/其它抽屉） */}
-            <RoomSideDrawers
-              onClueSend={handleClueSend}
-              stopRealtimeRender={handleStopRealtimeRender}
+            {/* 共享输入区域（主区 + Thread 共用） */}
+            <RoomComposerPanel
+              roomId={roomId}
+              userId={Number(userId)}
+              webSocketUtils={webSocketUtils}
+              handleSelectCommand={handleSelectCommand}
+              ruleId={space?.ruleId ?? -1}
+              handleMessageSubmit={handleMessageSubmit}
+              onAIRewrite={handleQuickRewrite}
+              currentChatStatus={myStatue as any}
+              onChangeChatStatus={handleManualStatusChange}
+              isSpectator={isSpectator}
+              onToggleRealtimeRender={handleToggleRealtimeRender}
+              onSendEffect={handleSendEffect}
+              onClearBackground={handleClearBackground}
+              onClearFigure={handleClearFigure}
+              noRole={noRole}
+              notMember={notMember}
+              isSubmitting={isSubmitting}
+              placeholderText={placeholderText}
+              curRoleId={curRoleId}
+              curAvatarId={curAvatarId}
+              setCurRoleId={setCurRoleId}
+              setCurAvatarId={setCurAvatarId}
+              roomRoles={roomRoles}
+              chatInputRef={chatInputRef as any}
+              atMentionRef={atMentionRef as any}
+              onInputSync={handleInputAreaChange}
+              onPasteFiles={handlePasteFiles}
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
+              onMouseDown={handleMouseDown}
+              onCompositionStart={() => isComposingRef.current = true}
+              onCompositionEnd={() => isComposingRef.current = false}
+              inputDisabled={notMember && noRole}
             />
           </div>
-
-          <div className="h-px bg-base-300 flex-shrink-0"></div>
-          {/* 共享输入区域（主区 + Thread 共用） */}
-          <RoomComposerPanel
-            roomId={roomId}
-            userId={Number(userId)}
-            webSocketUtils={webSocketUtils}
-            handleSelectCommand={handleSelectCommand}
-            ruleId={space?.ruleId ?? -1}
-            handleMessageSubmit={handleMessageSubmit}
-            onAIRewrite={handleQuickRewrite}
-            currentChatStatus={myStatue as any}
-            onChangeChatStatus={handleManualStatusChange}
-            isSpectator={isSpectator}
-            onToggleRealtimeRender={handleToggleRealtimeRender}
-            onSendEffect={handleSendEffect}
-            onClearBackground={handleClearBackground}
-            onClearFigure={handleClearFigure}
-            noRole={noRole}
-            notMember={notMember}
-            isSubmitting={isSubmitting}
-            placeholderText={placeholderText}
-            curRoleId={curRoleId}
-            curAvatarId={curAvatarId}
-            setCurRoleId={setCurRoleId}
-            setCurAvatarId={setCurAvatarId}
-            roomRoles={roomRoles}
-            chatInputRef={chatInputRef as any}
-            atMentionRef={atMentionRef as any}
-            onInputSync={handleInputAreaChange}
-            onPasteFiles={handlePasteFiles}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            onMouseDown={handleMouseDown}
-            onCompositionStart={() => isComposingRef.current = true}
-            onCompositionEnd={() => isComposingRef.current = false}
-            inputDisabled={notMember && noRole}
-          />
         </div>
       </div>
 

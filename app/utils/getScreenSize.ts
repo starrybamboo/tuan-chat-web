@@ -31,20 +31,20 @@ export function isLgScreen() {
 
 /**
  * 检测是否为中等屏幕及以上 (>= 768px)
- * 对应 Tailwind 的 md 断点
+ * 对应 getScreenSize 的 md 断点 (>= 640px)
  */
 export function isMdScreen() {
-  return typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+  return typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
 }
 
 /**
- * 检测是否为移动端 (< 768px)
- * 即 Tailwind md 断点以下
+ * 检测是否为移动端 (< 640px)
+ * 即 getScreenSize 的 sm
  */
 export function isMobileScreen() {
   if (typeof window === "undefined")
     return false;
-  return window.innerWidth < 768;
+  return window.innerWidth < 640;
 }
 
 /**
@@ -56,7 +56,7 @@ export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
     // 初始化时立即设置正确的值
     setIsMobile(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
@@ -76,7 +76,7 @@ export function useIsMdScreen() {
   const [isMd, setIsMd] = useState(true);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const mediaQuery = window.matchMedia("(min-width: 640px)");
     // 初始化时立即设置正确的值
     setIsMd(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMd(e.matches);

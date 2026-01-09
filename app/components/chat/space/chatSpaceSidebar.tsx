@@ -1,5 +1,6 @@
 import type { Space } from "../../../../api";
 
+import { ChatCircleIcon } from "@phosphor-icons/react";
 import React, { useMemo, useRef, useState } from "react";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import { AddIcon } from "@/icons";
@@ -92,7 +93,7 @@ export default function ChatSpaceSidebar({
   };
 
   return (
-    <div className="flex flex-col py-2 bg-base-300/40 h-full overflow-y-auto">
+    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto">
       {/* 私信入口 */}
       <div className="rounded w-10 relative mx-2">
         <div
@@ -114,9 +115,7 @@ export default function ChatSpaceSidebar({
                   </span>
                 )
               : null}
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-            </svg>
+            <ChatCircleIcon className="size-6" weight="bold" />
           </div>
         </button>
       </div>

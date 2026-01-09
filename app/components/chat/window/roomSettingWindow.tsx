@@ -15,7 +15,7 @@ import RoleList from "@/components/chat/shared/components/roleLists";
 import checkBack from "@/components/common/autoContrastText";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { BaselineArrowBackIosNew, GirlIcon, Setting } from "@/icons";
+import { BaselineArrowBackIosNew, RoleListIcon, Setting } from "@/icons";
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
@@ -128,7 +128,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
         return Setting;
       case "role":
       default:
-        return GirlIcon;
+        return RoleListIcon;
     }
   }, [defaultTab]);
 

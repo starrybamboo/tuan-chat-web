@@ -9,7 +9,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 }) {
   return (
     <div
-      className={`group relative w-10 py-1 rounded ${isActive ? "bg-info-content/40" : ""}`}
+      className="group relative w-10 my-1 rounded"
       key={space.spaceId}
     >
       <div

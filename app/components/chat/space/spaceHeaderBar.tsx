@@ -1,3 +1,4 @@
+import { HouseIcon } from "@phosphor-icons/react";
 import React from "react";
 import { AddIcon, ChevronDown, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
 
@@ -13,15 +14,18 @@ export interface SpaceHeaderBarProps {
 
 export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember }: SpaceHeaderBarProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-1 gap-2 min-w-0">
-      <div className="dropdown dropdown-bottom flex-1 min-w-0">
+    <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl">
+      <div className="dropdown dropdown-bottom min-w-0 ml-1">
         <button
           type="button"
           tabIndex={0}
           className="btn btn-ghost btn-sm px-2 min-w-0 gap-2 justify-start rounded-lg w-full"
           aria-label="空间选项"
         >
-          <span className="text-lg font-bold truncate leading-none min-w-0 flex-1">{spaceName}</span>
+          <HouseIcon className="size-4 opacity-70 inline-block" weight="fill" />
+          <span className="text-base font-bold truncate leading-none min-w-0 flex-1 text-left">
+            {spaceName}
+          </span>
           {isArchived && (
             <span className="badge badge-sm">已归档</span>
           )}
@@ -68,7 +72,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
           )}
         </ul>
       </div>
-      <div className="flex gap-1 flex-shrink-0">
+      <div className="flex gap-2 flex-shrink-0 mr-2">
         <div className="tooltip tooltip-bottom" data-tip="邀请成员">
           <button
             type="button"
