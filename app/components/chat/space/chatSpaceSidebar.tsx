@@ -93,7 +93,7 @@ export default function ChatSpaceSidebar({
   };
 
   return (
-    <div className="flex flex-col py-2 bg-base-300/40 h-full overflow-y-auto">
+    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto">
       {/* 私信入口 */}
       <div className="rounded w-10 relative mx-2">
         <div

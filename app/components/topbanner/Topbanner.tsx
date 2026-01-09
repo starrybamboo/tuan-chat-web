@@ -124,7 +124,7 @@ export default function Topbar() {
   return (
     <div className="w-full">
       <div
-        className={`px-2 bg-base-200 flex justify-between mx-auto w-full transition-all duration-300 ease-out ${
+        className={`relative z-50 px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible transition-all duration-300 ease-out ${
           isIconShifted ? "py-2" : "py-1"
         }`}
       >
@@ -152,7 +152,7 @@ export default function Topbar() {
               <img
                 src="http://47.119.147.6/tuan/favicon.ico"
                 alt="Logo"
-                className="h-6 w-6 ml-2 mr-4 transition-transform duration-300 ease-out"
+                className="h-6 w-6 mx-3 transition-transform duration-300 ease-out"
               />
             </Link>
           </div>
