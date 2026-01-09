@@ -174,7 +174,7 @@ function RoomComposerPanelImpl({
   }, [chatInputRef]);
 
   return (
-    <div className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
+    <div className="bg-base-100 px-3 py-2 flex flex-col">
       <div className="relative flex-1 flex flex-col min-w-0">
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}

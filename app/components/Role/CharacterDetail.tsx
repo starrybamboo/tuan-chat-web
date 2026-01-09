@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { ChevronRightIcon, CloseIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, GirlIcon, InfoIcon, MicrophoneIcon, SaveIcon, SlidersIcon } from "app/icons";
+import { ChevronRightIcon, CloseIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, InfoIcon, MicrophoneIcon, RoleListIcon, SaveIcon, SlidersIcon } from "app/icons";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
@@ -926,7 +926,7 @@ function CharacterDetailInner({
               onClick={() => setCloneTargetType("normal")}
               className={`btn flex-1 ${cloneTargetType === "normal" ? "btn-primary" : "btn-outline"}`}
             >
-              <GirlIcon className="w-4 h-4 mr-1" />
+              <RoleListIcon className="w-4 h-4 mr-1" />
               复制为普通角色
             </button>
           </div>

@@ -1,5 +1,6 @@
 import type { RoleAvatar } from "api";
 import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
+import { UserCircle } from "@phosphor-icons/react";
 import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -189,12 +190,7 @@ export function AvatarSettingsTab({
               )
             : (
                 <div className="flex flex-col items-center justify-center h-full text-base-content/50">
-                  <svg className="w-16 h-16 mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <UserCircle className="w-16 h-16 mb-2 opacity-50" weight="duotone" aria-hidden="true" />
                   <p>请从左侧选择一个头像</p>
                 </div>
               )}

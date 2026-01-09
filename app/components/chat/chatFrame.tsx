@@ -55,6 +55,7 @@ interface ChatFrameProps {
   enableEffects?: boolean;
   enableUnreadIndicator?: boolean;
   isMessageMovable?: (message: Message) => boolean;
+  onBackgroundUrlChange?: (url: string | null) => void;
 }
 
 interface ThreadHintMeta {
@@ -71,6 +72,7 @@ function ChatFrame(props: ChatFrameProps) {
     enableEffects = true,
     enableUnreadIndicator = true,
     isMessageMovable,
+    onBackgroundUrlChange,
   } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -414,6 +416,10 @@ function ChatFrame(props: ChatFrameProps) {
 
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    onBackgroundUrlChange?.(enableEffects ? currentBackgroundUrl : null);
+  }, [currentBackgroundUrl, enableEffects, onBackgroundUrlChange]);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   useEffect(() => {

@@ -104,8 +104,8 @@ function SearchBar({ className = "" }: SearchBarProps) {
   return (
     <div className={`relative ${className}`}>
       {/* 搜索栏 */}
-      <div className="flex items-center gap-1 bg-base-200 rounded-lg overflow-hidden">
-        <div className="flex items-center flex-1 px-3 py-2">
+      <div className="flex h-8 items-center gap-1 bg-base-200 rounded-lg overflow-hidden border border-base-300">
+        <div className="flex h-full items-center flex-1 px-3">
           <input
             type="text"
             placeholder="搜索聊天记录..."
@@ -117,7 +117,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
           {searchText && (
             <button
               onClick={handleClear}
-              className="text-base-content/60 hover:text-base-content transition-colors ml-2"
+              className="flex items-center justify-center text-base-content/60 hover:text-base-content transition-colors ml-2"
               type="button"
             >
               <XMarkICon className="size-4" />
@@ -126,11 +126,11 @@ function SearchBar({ className = "" }: SearchBarProps) {
         </div>
         <button
           onClick={handleSearch}
-          className="px-3 py-2 text-base-content/60 hover:text-info hover:bg-base-300 transition-colors"
+          className="h-full px-3 flex items-center justify-center text-base-content/60 hover:text-info hover:bg-base-300 transition-colors"
           disabled={!searchText.trim()}
           type="button"
         >
-          <SearchFilled className="size-5" />
+          <SearchFilled className="size-4" />
         </button>
       </div>
 
