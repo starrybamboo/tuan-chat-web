@@ -1,7 +1,7 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
@@ -456,6 +456,21 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       const store = runtime.getOrCreateDoc({ workspaceId, docId });
       createdStore = store;
 
+      // Align with blocksuite playground behavior:
+      // ensure doc is loaded and history is reset after hydration/restore.
+      try {
+        (store as any)?.load?.();
+      }
+      catch {
+        // ignore
+      }
+      try {
+        (store as any)?.resetHistory?.();
+      }
+      catch {
+        // ignore
+      }
+
       if (typeof window !== "undefined" && import.meta.env.DEV) {
         try {
           const rootId = (store as any)?.root?.id;
@@ -538,6 +553,59 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       storeRef.current = store;
 
       container.replaceChildren(editor as unknown as Node);
+
+      // Fallback undo/redo shortcuts (some embedded hosts may miss built-in keymap binding).
+      // Only intercept when the focus is inside the editor container.
+      const onUndoRedoKeyDown = (e: KeyboardEvent) => {
+        const isMod = e.ctrlKey || e.metaKey;
+        if (!isMod)
+          return;
+
+        const key = (e.key ?? "").toLowerCase();
+        const isUndo = key === "z" && !e.shiftKey;
+        const isRedo = key === "y" || (key === "z" && e.shiftKey);
+        if (!isUndo && !isRedo)
+          return;
+
+        const active = document.activeElement as HTMLElement | null;
+        const root = hostContainerRef.current;
+        if (!root)
+          return;
+
+        const hasFocusInside = !!(active && (root.contains(active) || (editor as any)?.contains?.(active)));
+        if (!hasFocusInside)
+          return;
+
+        const storeAny = store as any;
+        const editorAny = editor as any;
+        const historyAny = storeAny?.history;
+
+        const undo = storeAny?.undo ?? historyAny?.undo ?? editorAny?.undo;
+        const redo = storeAny?.redo ?? historyAny?.redo ?? editorAny?.redo;
+
+        const fn: unknown = isUndo ? undo : redo;
+        if (typeof fn !== "function")
+          return;
+
+        e.preventDefault();
+        try {
+          if (fn === storeAny?.undo || fn === storeAny?.redo) {
+            (fn as Function).call(storeAny);
+          }
+          else if (fn === historyAny?.undo || fn === historyAny?.redo) {
+            (fn as Function).call(historyAny);
+          }
+          else {
+            (fn as Function).call(editorAny);
+          }
+        }
+        catch {
+          // ignore
+        }
+      };
+
+      // Use AbortController to auto-remove listener on cleanup.
+      window.addEventListener("keydown", onUndoRedoKeyDown, { capture: true, signal: abort.signal });
 
       // 确保初始 mode 与 React state 一致。
       try {
@@ -1134,6 +1202,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         src={src}
         title="blocksuite-editor"
         className={iframeClassName}
+        allow="clipboard-read; clipboard-write"
         sandbox="allow-scripts allow-same-origin"
         height={iframeHeightAttr}
         onLoad={() => {
@@ -1146,11 +1215,15 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 }
 
 export default function BlocksuiteDescriptionEditor(props: BlocksuiteDescriptionEditorProps) {
-  // 在顶层窗口：只渲染 iframe（避免 blocksuite 运行时在主页面注入任何全局副作用）。
-  // 在 iframe 内/非浏览器环境：渲染真实 editor。
-  if (typeof window !== "undefined" && !isProbablyInIframe()) {
-    return <BlocksuiteDescriptionEditorIframeHost {...props} />;
-  }
+  // 重要：不能用 `typeof window`/`window.top` 来做 SSR 分支，否则服务端与客户端首屏树不一致会触发 hydration mismatch（React #418）。
+  // 这里用路由路径判断：
+  // - /blocksuite-frame：iframe 内页面，渲染真实 editor
+  // - 其他页面：顶层窗口，渲染 iframe host（隔离 blocksuite 的全局副作用）
+  const location = useLocation();
+  const isFrameRoute = location.pathname === "/blocksuite-frame";
 
-  return <BlocksuiteDescriptionEditorRuntime {...props} />;
+  if (isFrameRoute) {
+    return <BlocksuiteDescriptionEditorRuntime {...props} />;
+  }
+  return <BlocksuiteDescriptionEditorIframeHost {...props} />;
 }

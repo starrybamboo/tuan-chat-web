@@ -58,6 +58,12 @@ function SpaceSettingWindow({
     ruleId: 1,
   });
 
+  // 让卸载时的自动保存拿到最新值（避免闭包捕获初始 state）
+  const latestFormDataRef = useRef(formData);
+  useEffect(() => {
+    latestFormDataRef.current = formData;
+  }, [formData]);
+
   // 初始化表单（仅一次）
   const didInitFormRef = useRef(false);
   useEffect(() => {
@@ -75,6 +81,11 @@ function SpaceSettingWindow({
 
   // 骰娘相关
   const [diceRollerId, setDiceRollerId] = useState(2);
+  const latestDiceRollerIdRef = useRef(diceRollerId);
+  useEffect(() => {
+    latestDiceRollerIdRef.current = diceRollerId;
+  }, [diceRollerId]);
+
   const didInitDiceRef = useRef(false);
   useEffect(() => {
     if (!space || didInitDiceRef.current)
@@ -135,21 +146,28 @@ function SpaceSettingWindow({
 
   const updateSpaceMutation = useUpdateSpaceMutation();
 
-  const handleSave = () => {
-    if (!space || !Number.isFinite(spaceId) || spaceId <= 0)
+  const handleSave = (params?: { data?: typeof formData; dicerRoleId?: number }) => {
+    if (!Number.isFinite(spaceId) || spaceId <= 0)
       return;
+
+    // 未初始化表单时不触发保存，避免覆盖后端已有数据
+    if (!didInitFormRef.current)
+      return;
+
+    const data = params?.data ?? latestFormDataRef.current;
+    const dicerRoleId = params?.dicerRoleId ?? latestDiceRollerIdRef.current;
 
     updateSpaceMutation.mutate({
       spaceId,
-      name: formData.name,
-      description: formData.description,
-      avatar: formData.avatar,
-      ruleId: formData.ruleId,
+      name: data.name,
+      description: data.description,
+      avatar: data.avatar,
+      ruleId: data.ruleId,
     });
     tuanchat.spaceController.setSpaceExtra({
       spaceId,
       key: "dicerRoleId",
-      value: String(diceRollerId),
+      value: String(dicerRoleId),
     });
   };
 
