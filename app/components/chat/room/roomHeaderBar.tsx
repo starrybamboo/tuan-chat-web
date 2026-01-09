@@ -23,7 +23,12 @@ function RoomHeaderBarImpl({
 
   return (
     <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
-      <div className="flex justify-between items-center glass w-full px-2 h-10">
+      <div
+        className="flex justify-between items-center w-full px-2 h-10
+        bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
+        border border-white/40 dark:border-white/10
+        shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+      >
         <div className="flex items-center gap-2">
           <div className="sm:hidden">
             <button
