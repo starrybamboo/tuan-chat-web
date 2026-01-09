@@ -1,3 +1,4 @@
+import { ArchiveBoxIcon, ChatsIcon, GearSixIcon, IdentificationCardIcon, SignOutIcon, TreasureChestIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -8,6 +9,7 @@ import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
 
@@ -15,6 +17,8 @@ export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
+  const [isIconShifted, setIsIconShifted] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
   const handleClick = (e?: React.MouseEvent) => {
@@ -58,8 +62,39 @@ export default function Topbar() {
     };
   }, [isDropdownOpen]);
 
+  // 点击外部关闭用户菜单（Popover）
+  useEffect(() => {
+    if (!isUserDropdownOpen)
+      return;
+
+    const handleClickOutside = (event: Event) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsUserDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [isUserDropdownOpen]);
+
   const isLoggedIn = authStatus?.isLoggedIn || false;
   const userId = isLoggedIn ? (authStatus?.uid ?? 0) : 0;
+
+  const userInfoQuery = useGetUserInfoQuery(userId);
+  const username = userInfoQuery.data?.data?.username;
 
   // 处理用户菜单导航并关闭下拉菜单
   const handleUserNavigation = (path: string) => {
@@ -79,142 +114,226 @@ export default function Topbar() {
     window.location.reload();
   };
 
+  const navItems = [
+    { to: "/chat", label: "聊天", icon: ChatsIcon },
+    { to: "/role", label: "角色", icon: IdentificationCardIcon },
+    { to: "/module", label: "模组", icon: TreasureChestIcon },
+    { to: "/doc-test", label: "文档测试", icon: ArchiveBoxIcon },
+  ];
+
   return (
     <div className="w-full">
-      <div className="p-1 bg-base-300 flex justify-between">
+      <div
+        className={`px-2 bg-base-200 flex justify-between mx-auto w-full transition-all duration-300 ease-out ${
+          isIconShifted ? "py-2" : "py-1"
+        }`}
+      >
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
-          {/* 移动端下拉菜单按钮 */}
-          <div ref={dropdownRef} className={`dropdown lg:hidden ${isDropdownOpen ? "dropdown-open" : ""}`}>
-            <div
-              role="button"
-              className="btn btn-square btn-ghost focus:outline-none active:bg-transparent hover:bg-base-200"
-              style={{
-                WebkitTapHighlightColor: "transparent",
-                touchAction: "manipulation",
-              }}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              onBlur={() => setIsDropdownOpen(false)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block h-5 w-5 stroke-current">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-              </svg>
-            </div>
-            <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3 text-base-content">
-              <li><Link to="/chat" onClick={() => setIsDropdownOpen(false)}>聊天</Link></li>
-              <li><Link to="/role" onClick={() => setIsDropdownOpen(false)}>角色</Link></li>
-              <li><Link to="/module" onClick={() => setIsDropdownOpen(false)}>模组</Link></li>
-              <li><Link to="/doc-test" onClick={() => setIsDropdownOpen(false)}>文档测试</Link></li>
-            </ul>
-          </div>
+          <div className="flex">
+            <Link
+              to="/chat"
+              onClick={(event) => {
+                // 仅在桌面（min-width: 1024px，对应 Tailwind 的 lg）允许切换展开/收起
+                if (typeof window !== "undefined" && window.matchMedia) {
+                  const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+                  if (!isDesktop) {
+                    // 移动端不阻止默认行为，保持正常导航
+                    return;
+                  }
+                }
 
-          <div className="hidden lg:flex">
-            <Link to="/chat">
+                event.preventDefault();
+                setIsIconShifted(prev => !prev);
+              }}
+              aria-expanded={isIconShifted}
+              className="flex items-center"
+            >
               <img
                 src="http://47.119.147.6/tuan/favicon.ico"
                 alt="Logo"
-                className="h-8 w-8 mr-4 ml-2"
+                className="h-6 w-6 ml-2 mr-4 transition-transform duration-300 ease-out"
               />
             </Link>
           </div>
 
-          {/* 导航链接 - 在移动端隐藏 */}
-          <div className="hidden lg:flex gap-7">
-            <Link to="/chat" className="font-normal text-base hover:underline cursor-default">聊天</Link>
-            <Link to="/role" className="font-normal text-base hover:underline cursor-default">角色</Link>
-            <Link to="/module" className="font-normal text-base hover:underline cursor-default">模组</Link>
-            <Link to="/doc-test" className="font-normal text-base hover:underline cursor-default">文档测试</Link>
+          <div
+            className={`hidden lg:flex items-center gap-3 overflow-hidden transition-all duration-300 ease-out ${
+              isIconShifted ? "opacity-100 translate-x-0" : "max-w-0 opacity-0 -translate-x-2"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.to} className="tooltip tooltip-bottom" data-tip={item.label}>
+                    <Link
+                      to={item.to}
+                      className="btn btn-ghost btn-sm gap-2 hover:bg-base-200"
+                      aria-label={item.label}
+                    >
+                      <Icon className="size-6 opacity-80" />
+                      <span className="text-sm whitespace-nowrap">{item.label}</span>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+            {!isIconShifted && <div className="mx-1 border-1 border-l h-5 opacity-40" />}
           </div>
         </div>
 
         {/* 右侧用户区域 */}
         {!isLoading && (
           <div className="navbar-end gap-1 md:gap-2">
+            <div
+              className={`flex items-center gap-2 transition-all duration-300 ease-out ${
+                isIconShifted ? "opacity-0 translate-x-2 pointer-events-none" : "opacity-100 translate-x-0"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.to} className="tooltip tooltip-bottom" data-tip={item.label}>
+                      <Link
+                        to={item.to}
+                        className="btn btn-ghost btn-square btn-sm hover:bg-base-200"
+                        aria-label={item.label}
+                      >
+                        <Icon className="size-6 opacity-80" />
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mx-2 border-1 border-l h-5 opacity-40" />
+            </div>
             <div className="flex items-center gap-1">
-              <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span>
+              {/* <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span> */}
               <div className="tooltip tooltip-bottom" data-tip="Discord：Bug反馈">
                 <a
                   href="https://discord.gg/JbfkEqR6Wp"
                   target="_blank"
                   rel="noreferrer noopener"
                   aria-label="Discord Bug反馈"
-                  className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
+                  className="btn btn-ghost btn-square btn-sm hover:bg-base-200 transition-colors duration-200"
                 >
-                  <DiscordIcon className="size-5 opacity-80" />
+                  <DiscordIcon className="size-6 opacity-80" />
                 </a>
               </div>
               <div className="tooltip tooltip-bottom" data-tip="QQ：扫码反馈 Bug">
                 <button
                   type="button"
                   aria-label="QQ Bug反馈"
-                  className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
+                  className="btn btn-ghost btn-square btn-sm hover:bg-base-200 transition-colors duration-200"
                   onClick={() => setIsBugQqOpen(true)}
                 >
-                  <QQIcon className="size-5 opacity-80" />
+                  <QQIcon className="size-6 opacity-80" />
                 </button>
               </div>
             </div>
             {isLoggedIn
               ? (
-                  <div className="dropdown dropdown-end">
-                    <div
+                  <div
+                    ref={userDropdownRef}
+                    className={`dropdown dropdown-end ${isUserDropdownOpen ? "dropdown-open" : ""}`}
+                  >
+                    <button
                       tabIndex={0}
-                      role="button"
-                      className="btn btn-ghost flex items-center gap-2"
+                      type="button"
+                      className="btn btn-ghost btn-circle btn-sm hover:bg-base-200"
                       onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                     >
                       <UserAvatarComponent
                         userId={userId || 1}
-                        width={8}
+                        width={6}
                         isRounded={true}
-                        withName={true}
+                        withName={false}
                         stopPopWindow={true}
+                        clickEnterProfilePage={false}
                       />
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </div>
-                    <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
-                      <li>
-                        <a onClick={() => handleUserNavigation(`/profile/${userId}`)}>个人中心</a>
-                      </li>
-                      <li>
-                        <a onClick={() => handleUserNavigation("/settings")}>设置</a>
-                      </li>
-                      <li
-                        className="flex justify-between cursor-pointer"
-                        onClick={e => handleClick(e)}
-                        role="button"
-                        aria-label="切换主题"
-                      >
-                        <div className="flex justify-between gap-2">
-                          <span className="select-none pr-10">主题切换</span>
-                          <div className="scale-70" ref={switchRef}>
-                            <ThemeSwitch />
+                    </button>
+                    <div tabIndex={0} className="dropdown-content z-[50] card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
+                      {/* Header */}
+                      <div className="card-body p-4 border-b border-base-300">
+                        <div className="flex items-center gap-3">
+                          <UserAvatarComponent
+                            userId={userId || 1}
+                            width={10}
+                            isRounded={true}
+                            withName={false}
+                            stopPopWindow={true}
+                            clickEnterProfilePage={false}
+                          />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {username || `用户 ${userId}`}
+                            </div>
+                            <p className="text-xs opacity-60 truncate">
+                              ID:
+                              {userId}
+                            </p>
                           </div>
                         </div>
-                      </li>
-                      {
-                        isElectronEnv() && (
-                          <li
-                            className="flex justify-between cursor-pointer"
-                            onClick={handleClick}
-                            role="button"
-                            aria-label="切换主题"
-                          >
-                            <WebgalStarter className="flex justify-between gap-2 w-full">
-                              <span className="select-none">启动WebGAL</span>
-                              <WebgalIcon className="size-5"></WebgalIcon>
-                            </WebgalStarter>
-                          </li>
-                        )
-                      }
-                      <li>
-                        <a onClick={handleLogout}>
+                      </div>
+
+                      {/* Body */}
+                      <div className="p-2 space-y-1">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+                          onClick={() => handleUserNavigation(`/profile/${userId}`)}
+                        >
+                          <UserIcon className="size-4" />
+                          个人中心
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+                          onClick={() => handleUserNavigation("/settings")}
+                        >
+                          <GearSixIcon className="size-4" />
+                          设置
+                        </button>
+                        <div
+                          className="btn btn-ghost btn-sm w-full justify-between gap-2 font-normal"
+                          onClick={e => handleClick(e)}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="scale-75" ref={switchRef}>
+                              <ThemeSwitch />
+                            </div>
+                            主题切换
+                          </div>
+                        </div>
+                        {isElectronEnv() && (
+                          <WebgalStarter className="w-full">
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+                            >
+                              <WebgalIcon className="size-4" />
+                              启动 WebGAL
+                            </button>
+                          </WebgalStarter>
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="p-2 border-t border-base-300">
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm w-full gap-2"
+                          onClick={handleLogout}
+                        >
+                          <SignOutIcon className="size-4" />
                           退出登录
-                        </a>
-                      </li>
-                    </ul>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )
               : (

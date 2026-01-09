@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import React from "react";
+import { DiscordLogoIcon, QrCodeIcon } from "@phosphor-icons/react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索
@@ -12,26 +12,7 @@ import React from "react";
 // 其他关键词：bug反馈，社区，群组，discord
 export function DiscordIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      {/* 外框 */}
-      <path d="M7 7c2-1.5 8-1.5 10 0c1.6 2 2.2 4.5 2 7.2c-.2 2.3-1.2 3.8-2.2 4.8c-.8-.3-1.6-.7-2.4-1.1c-.6.2-1.6.4-2.4.4s-1.8-.2-2.4-.4c-.8.4-1.6.8-2.4 1.1c-1-1-2-2.5-2.2-4.8C4.8 11.5 5.4 9 7 7" />
-      {/* 眼睛 */}
-      <path d="M9.2 12.3h.01" />
-      <path d="M14.8 12.3h.01" />
-      {/* 微笑 */}
-      <path d="M9.8 14.7c.7.6 1.4.8 2.2.8s1.5-.2 2.2-.8" />
-    </svg>
+    <DiscordLogoIcon {...props} />
   );
 }
 
@@ -39,28 +20,10 @@ export function DiscordIcon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：bug反馈，QQ群，二维码，qq
 export function QQIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M7.5 15.5c-2.8 0-4.5-1.6-4.5-4.2C3 8.7 5.2 7 8 7h3c.7 0 1.4.1 2 .3" />
-      <path d="M7.8 15.3L6 17" />
-      <path d="M16.5 17.5c2.8 0 4.5-1.6 4.5-4.2C21 10.7 18.8 9 16 9h-3c-2.8 0-5 1.7-5 4.3c0 2.6 1.7 4.2 4.5 4.2" />
-      <path d="M16.2 17.3L18 19" />
-    </svg>
+    <QrCodeIcon {...props} />
   );
 }
 
-// 终端命令图标
-// 其他关键词：控制台，命令行，shell，terminal
 export function CommandSolid(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
