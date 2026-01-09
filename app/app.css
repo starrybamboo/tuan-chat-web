@@ -32,7 +32,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "forest";
+  name: "dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
@@ -46,7 +46,7 @@
   --noise: 0;
 }
 
-@custom-variant dark (&:where([data-theme=forest], [data-theme=forest] *));
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @theme {
   --font-sans:

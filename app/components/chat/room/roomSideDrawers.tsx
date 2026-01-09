@@ -14,6 +14,7 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
+import { BaselineArrowBackIosNew } from "@/icons";
 
 export interface RoomSideDrawersProps {
   onClueSend: (clue: ClueMessage) => void;
@@ -93,7 +94,19 @@ function RoomSideDrawersImpl({
         onWidthChange={setUserDrawerWidth}
         handlePosition={rightDrawerHandlePosition}
       >
-        <RoomUserList></RoomUserList>
+        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
+          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
+            <button
+              type="button"
+              aria-label="关闭侧边栏"
+              className="btn btn-ghost btn-square btn-sm"
+              onClick={() => setSideDrawerState("none")}
+            >
+              <BaselineArrowBackIosNew className="size-5" />
+            </button>
+          </div>
+        </div>
+        <RoomUserList />
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "role"}
@@ -102,7 +115,19 @@ function RoomSideDrawersImpl({
         onWidthChange={setRoleDrawerWidth}
         handlePosition={rightDrawerHandlePosition}
       >
-        <RoomRoleList></RoomRoleList>
+        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
+          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
+            <button
+              type="button"
+              aria-label="关闭侧边栏"
+              className="btn btn-ghost btn-square btn-sm"
+              onClick={() => setSideDrawerState("none")}
+            >
+              <BaselineArrowBackIosNew className="size-5" />
+            </button>
+          </div>
+        </div>
+        <RoomRoleList />
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={isThreadPaneOpen}
@@ -126,7 +151,19 @@ function RoomSideDrawersImpl({
         onWidthChange={setInitiativeDrawerWidth}
         handlePosition={rightDrawerHandlePosition}
       >
-        <InitiativeList></InitiativeList>
+        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
+          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
+            <button
+              type="button"
+              aria-label="关闭侧边栏"
+              className="btn btn-ghost btn-square btn-sm"
+              onClick={() => setSideDrawerState("none")}
+            >
+              <BaselineArrowBackIosNew className="size-5" />
+            </button>
+          </div>
+        </div>
+        <InitiativeList />
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "map"}
@@ -138,7 +175,19 @@ function RoomSideDrawersImpl({
         maxWidth={mapMaxWidth}
         handlePosition={rightDrawerHandlePosition}
       >
-        <DNDMap></DNDMap>
+        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
+          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
+            <button
+              type="button"
+              aria-label="关闭侧边栏"
+              className="btn btn-ghost btn-square btn-sm"
+              onClick={() => setSideDrawerState("none")}
+            >
+              <BaselineArrowBackIosNew className="size-5" />
+            </button>
+          </div>
+        </div>
+        <DNDMap />
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "clue"}
@@ -147,7 +196,19 @@ function RoomSideDrawersImpl({
         onWidthChange={setClueDrawerWidth}
         handlePosition={rightDrawerHandlePosition}
       >
-        <ClueListForPL onSend={onClueSend}></ClueListForPL>
+        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
+          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
+            <button
+              type="button"
+              aria-label="关闭侧边栏"
+              className="btn btn-ghost btn-square btn-sm"
+              onClick={() => setSideDrawerState("none")}
+            >
+              <BaselineArrowBackIosNew className="size-5" />
+            </button>
+          </div>
+        </div>
+        <ClueListForPL onSend={onClueSend} />
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "export"}
@@ -156,7 +217,19 @@ function RoomSideDrawersImpl({
         onWidthChange={setExportDrawerWidth}
         handlePosition={rightDrawerHandlePosition}
       >
-        <ExportChatDrawer></ExportChatDrawer>
+        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
+          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
+            <button
+              type="button"
+              aria-label="关闭侧边栏"
+              className="btn btn-ghost btn-square btn-sm"
+              onClick={() => setSideDrawerState("none")}
+            >
+              <BaselineArrowBackIosNew className="size-5" />
+            </button>
+          </div>
+        </div>
+        <ExportChatDrawer />
       </OpenAbleDrawer>
       <OpenAbleDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "webgal"}
@@ -166,6 +239,22 @@ function RoomSideDrawersImpl({
         maxWidth={webgalMaxWidth}
         handlePosition={rightDrawerHandlePosition}
       >
+        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
+          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
+            <button
+              type="button"
+              aria-label="关闭侧边栏"
+              className="btn btn-ghost btn-square btn-sm"
+              onClick={() => {
+                stopRealtimeRender();
+                setIsRealtimeRenderEnabled(false);
+                setSideDrawerState("none");
+              }}
+            >
+              <BaselineArrowBackIosNew className="size-5" />
+            </button>
+          </div>
+        </div>
         <WebGALPreview
           previewUrl={realtimePreviewUrl}
           isActive={isRealtimeRenderActive}

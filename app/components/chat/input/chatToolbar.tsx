@@ -185,7 +185,7 @@ export function ChatToolbar({
               className="tooltip tooltip-bottom"
               data-tip="发送表情"
             >
-              <EmojiIconWhite className="size-7 jump_icon"></EmojiIconWhite>
+              <EmojiIconWhite className="size-6 jump_icon"></EmojiIconWhite>
             </div>
           </div>
           <ul
@@ -211,7 +211,7 @@ export function ChatToolbar({
         })}
         >
           <div className="tooltip tooltip-bottom" data-tip="发送图片">
-            <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
+            <GalleryBroken className="size-6 cursor-pointer jump_icon"></GalleryBroken>
           </div>
         </ImgUploader>
 
@@ -219,7 +219,7 @@ export function ChatToolbar({
         {setAudioFile && (
           <div className="tooltip tooltip-bottom" data-tip="发送音频">
             <MusicNote
-              className="size-7 cursor-pointer jump_icon"
+              className="size-6 cursor-pointer jump_icon relative -top-px"
               onClick={() => audioInputRef.current?.click()}
             />
             <input
@@ -247,7 +247,7 @@ export function ChatToolbar({
               className="tooltip tooltip-bottom"
               data-tip="编辑AI重写提示词"
             >
-              <SparklesOutline className="size-7 cursor-pointer jump_icon" />
+              <SparklesOutline className="size-6 cursor-pointer jump_icon" />
             </div>
           </summary>
           <div
@@ -360,7 +360,7 @@ export function ChatToolbar({
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="导演控制台"
             >
-              <CommandSolid className="size-7" />
+              <CommandSolid className="size-6" />
             </div>
             <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
               {onSendEffect && (
@@ -389,7 +389,7 @@ export function ChatToolbar({
             data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
             onClick={onToggleRealtimeRender}
           >
-            <WebgalIcon className={`size-7 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+            <WebgalIcon className={`size-6 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
           </div>
         )}
 
@@ -413,7 +413,7 @@ export function ChatToolbar({
               data-tip="查看线索"
               onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
             >
-              <Detective className="size-7"></Detective>
+              <Detective className="size-6"></Detective>
             </div>
 
             <div
@@ -421,7 +421,7 @@ export function ChatToolbar({
               data-tip="展示先攻表"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
             >
-              <SwordSwing className="size-7 jump_icon"></SwordSwing>
+              <SwordSwing className="size-6 jump_icon"></SwordSwing>
             </div>
 
             <div
@@ -429,7 +429,7 @@ export function ChatToolbar({
               data-tip="地图"
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
             >
-              <PointOnMapPerspectiveLinear className="size-7 jump_icon"></PointOnMapPerspectiveLinear>
+              <PointOnMapPerspectiveLinear className="size-6 jump_icon"></PointOnMapPerspectiveLinear>
             </div>
           </>
         )}
@@ -440,7 +440,7 @@ export function ChatToolbar({
             data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
           >
             <DiceD6Icon
-              className={`size-7 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+              className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
               onClick={onToggleRunMode}
             />
           </div>
@@ -449,7 +449,7 @@ export function ChatToolbar({
         {/* 发送按钮 */}
         <div className="tooltip tooltip-bottom" data-tip="发送">
           <SendIcon
-            className={`size-7 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
+            className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
             onClick={handleMessageSubmit}
           >
           </SendIcon>

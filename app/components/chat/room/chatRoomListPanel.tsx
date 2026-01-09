@@ -57,6 +57,7 @@ export default function ChatRoomListPanel({
   const isDraggingRef = useRef(false);
   const [draggingRoomId, setDraggingRoomId] = useState<number | null>(null);
   const [draftOrderIds, setDraftOrderIds] = useState<number[] | null>(null);
+  const isDragging = draggingRoomId != null;
 
   const roomsInSpace = useMemo(() => {
     return rooms.filter(room => room.spaceId === activeSpaceId);
@@ -120,7 +121,7 @@ export default function ChatRoomListPanel({
 
   return (
     <div
-      className="flex flex-col gap-2 py-2 w-full h-full flex-1 bg-base-200/40 min-h-0 min-w-0"
+      className="flex flex-col gap-2 w-full h-full flex-1 bg-base-200 min-h-0 min-w-0 rounded-tl-xl border-l border-t border-gray-300 dark:border-gray-700"
       onContextMenu={onContextMenu}
     >
       {isPrivateChatMode
@@ -140,11 +141,11 @@ export default function ChatRoomListPanel({
                     onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
                     onInviteMember={onInviteMember}
                   />
-                  <div className="h-px bg-base-300"></div>
+                  {/* <div className="h-px bg-base-300"></div> */}
                 </>
               )}
 
-              <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
+              <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full ">
                 {renderRooms.map((room) => {
                   return (
                     <React.Fragment key={room.roomId}>
@@ -155,6 +156,11 @@ export default function ChatRoomListPanel({
                         onDragStart={(e) => {
                           if (!onReorderRoomIds)
                             return;
+                          const target = e.target as HTMLElement | null;
+                          if (target?.closest?.("[data-no-drag=\"true\"]")) {
+                            e.preventDefault();
+                            return;
+                          }
                           const rid = room.roomId;
                           if (typeof rid !== "number")
                             return;
@@ -225,40 +231,43 @@ export default function ChatRoomListPanel({
                           }}
                           isActive={activeRoomId === room.roomId}
                         >
-                        </RoomButton>
-                        {/* 房间操作菜单 - 交互参考 SpaceHeaderBar 的 dropdown */}
-                        <div className="dropdown dropdown-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <div className="tooltip tooltip-left" data-tip="房间操作">
-                            <button
-                              type="button"
-                              tabIndex={0}
-                              className="btn btn-ghost btn-sm btn-square"
-                              aria-label="房间操作"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                            >
-                              <ChevronDown className="size-5 opacity-70" />
-                            </button>
-                          </div>
-
-                          <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2">
-                            <li>
+                          {/* 房间操作菜单 - 绝对定位在 RoomButton 右侧内部 */}
+                          <div
+                            data-no-drag="true"
+                            className={`dropdown dropdown-left transition-opacity ${isDragging ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100"}`}
+                          >
+                            <div className="tooltip tooltip-left" data-tip="房间操作">
                               <button
                                 type="button"
-                                className="gap-3"
+                                tabIndex={0}
+                                className="btn btn-ghost btn-sm btn-square"
+                                aria-label="房间操作"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onOpenRoomSetting(room.roomId ?? null, "setting");
-                                  (document.activeElement as HTMLElement | null)?.blur?.();
                                 }}
                               >
-                                <Setting className="size-4 opacity-70" />
-                                <span className="flex-1 text-left">房间资料</span>
+                                <ChevronDown className="size-5 opacity-70" />
                               </button>
-                            </li>
-                          </ul>
-                        </div>
+                            </div>
+
+                            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2">
+                              <li>
+                                <button
+                                  type="button"
+                                  className="gap-3"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenRoomSetting(room.roomId ?? null, "setting");
+                                    (document.activeElement as HTMLElement | null)?.blur?.();
+                                  }}
+                                >
+                                  <Setting className="size-4 opacity-70" />
+                                  <span className="flex-1 text-left">房间资料</span>
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        </RoomButton>
                       </div>
                     </React.Fragment>
                   );

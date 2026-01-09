@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import React from "react";
+import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, UsersIcon } from "@phosphor-icons/react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索
@@ -12,26 +12,7 @@ import React from "react";
 // 其他关键词：bug反馈，社区，群组，discord
 export function DiscordIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      {/* 外框 */}
-      <path d="M7 7c2-1.5 8-1.5 10 0c1.6 2 2.2 4.5 2 7.2c-.2 2.3-1.2 3.8-2.2 4.8c-.8-.3-1.6-.7-2.4-1.1c-.6.2-1.6.4-2.4.4s-1.8-.2-2.4-.4c-.8.4-1.6.8-2.4 1.1c-1-1-2-2.5-2.2-4.8C4.8 11.5 5.4 9 7 7" />
-      {/* 眼睛 */}
-      <path d="M9.2 12.3h.01" />
-      <path d="M14.8 12.3h.01" />
-      {/* 微笑 */}
-      <path d="M9.8 14.7c.7.6 1.4.8 2.2.8s1.5-.2 2.2-.8" />
-    </svg>
+    <DiscordLogoIcon {...props} />
   );
 }
 
@@ -39,28 +20,10 @@ export function DiscordIcon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：bug反馈，QQ群，二维码，qq
 export function QQIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M7.5 15.5c-2.8 0-4.5-1.6-4.5-4.2C3 8.7 5.2 7 8 7h3c.7 0 1.4.1 2 .3" />
-      <path d="M7.8 15.3L6 17" />
-      <path d="M16.5 17.5c2.8 0 4.5-1.6 4.5-4.2C21 10.7 18.8 9 16 9h-3c-2.8 0-5 1.7-5 4.3c0 2.6 1.7 4.2 4.5 4.2" />
-      <path d="M16.2 17.3L18 19" />
-    </svg>
+    <QrCodeIcon {...props} />
   );
 }
 
-// 终端命令图标
-// 其他关键词：控制台，命令行，shell，terminal
 export function CommandSolid(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -135,27 +98,7 @@ export function DiceD6Icon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：破损图片，加载失败，图像错误，占位图
 export function GalleryBroken(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <g fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="16" cy="8" r="2"></circle>
-        <path
-          strokeLinecap="round"
-          d="m2 12.5l1.752-1.533a2.3 2.3 0 0 1 3.14.105l4.29 4.29a2 2 0 0 0 2.564.222l.299-.21a3 3 0 0 1 3.731.225L21 18.5"
-        >
-        </path>
-        <path
-          strokeLinecap="round"
-          d="M22 12c0 4.714 0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464c.974.974 1.3 2.343 1.41 4.536"
-        >
-        </path>
-      </g>
-    </svg>
+    <ImageIcon {...props} />
   );
 }
 
@@ -203,26 +146,9 @@ export function MoreMenu(props: SVGProps<SVGSVGElement>) {
 
 // 女孩头像图标
 // 其他关键词：女孩，女童，孩子，用户头像
-export function GirlIcon(props: SVGProps<SVGSVGElement>) {
+export function RoleListIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <g fill="currentColor">
-        <path d="M10 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0m5 1a1 1 0 1 0 0-2a1 1 0 0 0 0 2">
-        </path>
-        <path
-          fillRule="evenodd"
-          d="M12.024 2H12C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10c0-5.258-4.058-9.568-9.212-9.97v-.002A10 10 0 0 0 12.025 2M12 20a8 8 0 0 0 7.742-10.022a10.02 10.02 0 0 1-8.981-4.376a7.98 7.98 0 0 1-5.692 2.4A8 8 0 0 0 12 20m-.021-16h.045z"
-          clipRule="evenodd"
-        >
-        </path>
-      </g>
-    </svg>
+    <AddressBookIcon {...props} />
   );
 }
 
@@ -573,28 +499,7 @@ export function FoldDown(props: SVGProps<SVGSVGElement>) {
 
 // 用户组图标
 // 其他关键词：团队，群组，成员
-export function UsersIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      >
-        <path d="M12 4a3 3 0 1 0 0 6a3 3 0 0 0 0-6M8 12a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4M2 20h20">
-        </path>
-      </g>
-    </svg>
-  );
-}
+export { UsersIcon };
 
 // 指南针图标
 // 其他关键词：导航，方向，探索
@@ -679,19 +584,7 @@ export function XMarkICon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：用户，账户，个人资料
 export function MemberIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M5.5 7a3 3 0 1 1 6 0a3 3 0 0 1-6 0m3-5a5 5 0 1 0 0 10a5 5 0 0 0 0-10m7 0h-1v2h1a3 3 0 1 1 0 6h-1v2h1a5 5 0 0 0 0-10M0 19a5 5 0 0 1 5-5h7a5 5 0 0 1 5 5v2h-2v-2a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v2H0zm24 0a5 5 0 0 0-5-5h-1v2h1a3 3 0 0 1 3 3v2h2z"
-      >
-      </path>
-    </svg>
+    <UsersIcon {...props} />
   );
 }
 
@@ -721,19 +614,7 @@ export function SwordSwing(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：后退，上一步，返回
 export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M17.77 3.77L16 2L6 12l10 10l1.77-1.77L9.54 12z"
-      >
-      </path>
-    </svg>
+    <CaretLeftIcon weight="bold" {...props} />
   );
 }
 
@@ -830,19 +711,7 @@ export function ChevronRight(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：笑脸，emoji，表情，明色
 export function EmojiIconWhite(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 2048 2048"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M640 896q-27 0-50-10t-40-27t-28-41t-10-50q0-27 10-50t27-40t41-28t50-10q27 0 50 10t40 27t28 41t10 50q0 27-10 50t-27 40t-41 28t-50 10m768 0q-27 0-50-10t-40-27t-28-41t-10-50q0-27 10-50t27-40t41-28t50-10q27 0 50 10t40 27t28 41t10 50q0 27-10 50t-27 40t-41 28t-50 10M1024 0q141 0 272 36t245 103t207 160t160 208t103 245t37 272q0 141-36 272t-103 245t-160 207t-208 160t-245 103t-272 37q-141 0-272-36t-245-103t-207-160t-160-208t-103-244t-37-273q0-141 36-272t103-245t160-207t208-160T751 37t273-37m0 1920q123 0 237-32t214-90t182-141t140-181t91-214t32-238q0-123-32-237t-90-214t-141-182t-181-140t-214-91t-238-32q-123 0-237 32t-214 90t-182 141t-140 181t-91 214t-32 238q0 123 32 237t90 214t141 182t181 140t214 91t238 32m0-384q73 0 141-20t128-57t106-90t81-118l115 58q-41 81-101 147t-134 112t-159 71t-177 25t-177-25t-159-71t-134-112t-101-147l115-58q33 65 80 118t107 90t127 57t142 20"
-      >
-      </path>
-    </svg>
+    <SmileyIcon {...props} />
   );
 }
 
@@ -1024,20 +893,7 @@ export function DraggableIcon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：展开，折叠，向下
 export function ChevronDown(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <polyline points="6,9 12,15 18,9"></polyline>
-    </svg>
+    <CaretDownIcon weight="bold" {...props} />
   );
 }
 
@@ -1483,20 +1339,7 @@ export function ConnectionIcon() {
 // 加号图标
 export function AddIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
+    <PlusIcon weight="bold" size={20} />
   );
 }
 
@@ -1938,18 +1781,7 @@ export function PauseIcon(props: SVGProps<SVGSVGElement>) {
 // 音乐图标
 export function MusicNote(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-      />
-    </svg>
+    <MusicNotesIcon {...props} />
   );
 }
 
