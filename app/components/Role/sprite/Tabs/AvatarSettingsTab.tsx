@@ -123,7 +123,7 @@ export function AvatarSettingsTab({
   return (
     <div className="h-full flex flex-col">
       {/* 标题 */}
-      <div className="flex justify-between items-center mb-2 flex-shrink-0 min-h-8">
+      <div className="flex justify-between items-center mb-2 shrink-0 min-h-8">
         <h3 className="text-lg font-semibold">头像设置</h3>
       </div>
 
@@ -135,7 +135,7 @@ export function AvatarSettingsTab({
                 <div className="flex flex-col gap-4">
                   {/* 头像展示 + 标题表单 */}
                   <div className="flex flex-col sm:flex-row gap-4 items-start">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       {avatarDisplayUrl
                         ? (
                             <img
@@ -155,11 +155,15 @@ export function AvatarSettingsTab({
 
                     <div className="flex flex-col gap-4 w-full sm:max-w-sm min-w-0 min-h-32">
                       <div className="flex flex-col gap-2">
-                        <label className="font-semibold flex-shrink-0">头像标题</label>
+                        <label className="font-semibold shrink-0" htmlFor="avatar-title">
+                          头像标题
+                        </label>
                         <input
+                          id="avatar-title"
                           className="input input-md input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                           value={editingName}
                           onChange={e => setEditingName(e.target.value)}
+                          placeholder="请输入头像标题"
                         />
                       </div>
                       <div className="text-xs font-mono text-base-content/70 mt-auto">
@@ -198,7 +202,7 @@ export function AvatarSettingsTab({
       </div>
 
       {/* 应用按钮 */}
-      <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
+      <div className="mt-4 flex justify-end gap-2 shrink-0">
         <button
           type="button"
           className="btn btn-primary"

@@ -251,12 +251,12 @@ export function SpriteSettingsPopup({
             {uploadNotification.type === "success"
               ? (
                   <CheckCircleIcon
-                    className="flex-shrink-0 h-6 w-6"
+                    className="shrink-0 h-6 w-6"
                     aria-hidden="true"
                   />
                 )
               : (
-                  <XCircleIcon className="flex-shrink-0 h-6 w-6" aria-hidden="true" />
+                  <XCircleIcon className="shrink-0 h-6 w-6" aria-hidden="true" />
                 )}
             <span>{uploadNotification.message}</span>
           </div>
@@ -265,9 +265,9 @@ export function SpriteSettingsPopup({
 
       <div className="flex flex-col md:flex-row w-full h-full md:w-[80vw] md:max-w-6xl md:h-[80vh]">
         {/* 左侧头像列表 - 固定显示 */}
-        <div className="md:w-80 flex-shrink-0 border-b md:border-b-0 md:border-r border-base-300 bg-base-200/30 flex flex-col">
+        <div className="md:w-80 shrink-0 border-b md:border-b-0 md:border-r border-base-300 bg-base-200/30 flex flex-col">
           {/* 头像列表标题栏 */}
-          <div className="flex-shrink-0 border-b border-base-300 bg-base-200/50">
+          <div className="shrink-0 border-b border-base-300 bg-base-200/50">
             <div className="flex justify-between items-center p-2 py-3.5">
               <h3 className="text-lg font-semibold">头像列表</h3>
               <div className="flex gap-2">
@@ -360,7 +360,7 @@ export function SpriteSettingsPopup({
         {/* 右侧内容区域 */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Tab 导航栏 */}
-          <div className="flex-shrink-0 border-b border-base-300 bg-base-200/50">
+          <div className="shrink-0 border-b border-base-300 bg-base-200/50">
             <nav className="flex p-2 gap-2 overflow-x-auto">
               {/* 预览 Tab */}
               <button
@@ -372,7 +372,7 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <EyeIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <EyeIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
                 <span>渲染预览</span>
               </button>
 
@@ -386,7 +386,7 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <CropIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <CropIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
                 <span>立绘校正</span>
               </button>
 
@@ -400,7 +400,7 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <UserFocusIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <UserFocusIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
                 <span>头像校正</span>
               </button>
 
@@ -414,7 +414,7 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <GearIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <GearIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
                 <span>头像设置</span>
               </button>
 
@@ -428,7 +428,7 @@ export function SpriteSettingsPopup({
                     : "hover:bg-base-300"
                 }`}
               >
-                <PackageIcon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                <PackageIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
                 <span>素材库</span>
               </button>
             </nav>

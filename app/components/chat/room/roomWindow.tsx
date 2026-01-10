@@ -16,11 +16,13 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
+import BgmFloatingBall from "@/components/chat/room/bgmFloatingBall";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomPopWindows from "@/components/chat/room/roomPopWindows";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
+import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
@@ -49,6 +51,14 @@ import { MessageType } from "../../../../api/wsModels";
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
+
+  // BGM：切换/卸载房间时视为“打断”，停止播放但不影响用户是否已主动关闭（dismiss）
+  useEffect(() => {
+    useBgmStore.getState().setActiveRoomId(roomId);
+    return () => {
+      useBgmStore.getState().setActiveRoomId(null);
+    };
+  }, [roomId]);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
   const room = useGetRoomInfoQuery(roomId).data?.data;
@@ -137,10 +147,20 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
 
-  const curRoleId = curRoleIdMap[roomId] ?? roomRolesThatUserOwn[0]?.roleId ?? -1;
+  const storedRoleId = curRoleIdMap[roomId];
+  const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? -1;
+  const curRoleId = (storedRoleId == null)
+    ? fallbackRoleId
+    : (storedRoleId <= 0 && !spaceContext.isSpaceOwner)
+        ? fallbackRoleId
+        : storedRoleId;
   const setCurRoleId = useCallback((roleId: number) => {
+    if (roleId <= 0 && !spaceContext.isSpaceOwner) {
+      toast.error("只有KP可以使用旁白");
+      return;
+    }
     setCurRoleIdForRoom(roomId, roleId);
-  }, [roomId, setCurRoleIdForRoom]);
+  }, [roomId, setCurRoleIdForRoom, spaceContext.isSpaceOwner]);
 
   const curAvatarId = curAvatarIdMap[curRoleId] ?? -1;
   const setCurAvatarId = useCallback((_avatarId: number) => {
@@ -552,14 +572,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
 
-    // WebGAL 联动模式下允许无角色发送（作为旁白）
-    const disableSendMessage = (noRole && !webgalLinkMode) || notMember || noInput || isSubmitting;
+    const isKP = spaceContext.isSpaceOwner;
+    const isNarrator = noRole;
+
+    // 旁白不再依赖联动模式，但仅KP可用
+    const disableSendMessage = (notMember || noInput || isSubmitting)
+      || (isNarrator && !isKP);
 
     if (disableSendMessage) {
       if (notMember)
         toast.error("您是观战，不能发送消息");
-      else if (noRole && !webgalLinkMode)
-        toast.error("请先拉入你的角色，之后才能发送消息。");
+      else if (isNarrator && !isKP)
+        toast.error("旁白仅KP可用，请先选择/拉入你的角色");
       else if (noInput)
         toast.error("请输入内容");
       else if (isSubmitting)
@@ -830,11 +854,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const placeholderText = (() => {
+    const isKP = spaceContext.isSpaceOwner;
     if (notMember) {
       return "你是观战成员，不能发送消息";
     }
-    if (noRole) {
+    if (noRole && !isKP) {
       return "请先拉入你的角色，之后才能发送消息。";
+    }
+    if (noRole && isKP) {
+      return "旁白模式：在此输入消息...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
     }
     if (curAvatarId <= 0) {
       return "请为你的角色添加至少一个表情差分（头像）。";
@@ -895,6 +923,19 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
     toast.success("已清除立绘");
   }, [isRealtimeRenderActive, roomId, send]);
+
+  // KP：停止全员BGM（广播系统消息）
+  const handleStopBgmForAll = useCallback(() => {
+    send({
+      roomId,
+      roleId: undefined,
+      avatarId: undefined,
+      content: "[停止BGM]",
+      messageType: MessageType.SYSTEM,
+      extra: {},
+    });
+    toast.success("已发送停止BGM");
+  }, [roomId, send]);
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
@@ -976,6 +1017,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onSendEffect={handleSendEffect}
               onClearBackground={handleClearBackground}
               onClearFigure={handleClearFigure}
+              isKP={spaceContext.isSpaceOwner}
+              onStopBgmForAll={handleStopBgmForAll}
               noRole={noRole}
               notMember={notMember}
               isSubmitting={isSubmitting}
@@ -996,6 +1039,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onCompositionEnd={() => isComposingRef.current = false}
               inputDisabled={notMember && noRole}
             />
+
+            {/* BGM 悬浮球：仅在本房间有BGM且用户未主动关闭时显示 */}
+            <BgmFloatingBall roomId={roomId} />
           </div>
         </div>
       </div>

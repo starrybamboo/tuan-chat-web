@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2024",
+    "target": "ES2022",
     "jsx": "react-jsx",
-    "lib": ["DOM", "DOM.Iterable", "ES2024", "ESNext.Iterator", "ESNext.Promise"],
+    "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
     "useDefineForClassFields": false,
     "baseUrl": ".",
-    "ignoreDeprecations": "5.0",
     "rootDirs": [".", "./.react-router/types"],
     "module": "ES2022",
     "moduleResolution": "bundler",

@@ -97,7 +97,7 @@ export default function ChatSpaceSidebar({
       {/* 私信入口 */}
       <div className="rounded w-10 relative mx-2">
         <div
-          className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
+          className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
           }`}
         />
         <button
