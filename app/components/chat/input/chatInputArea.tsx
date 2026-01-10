@@ -70,6 +70,9 @@ interface ChatInputAreaProps {
   // 简单的状态 Props
   disabled: boolean;
   placeholder: string;
+
+  /** 可选：用于外层自定义高度/滚动等样式 */
+  className?: string;
 }
 
 /**
@@ -162,12 +165,13 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   };
 
   /**
-   * [内部 DOM 方法] 获取光标周围的文本
+   * [内部 DOM 方法] 获取光标前/后文本
    */
   const getTextAroundCursorInternal = (): { before: string; after: string } => {
     const editor = internalTextareaRef.current;
-    if (!editor)
+    if (!editor) {
       return { before: "", after: "" };
+    }
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
@@ -293,13 +297,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
 
   return (
     <div
-      className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea chatInputTextarea"
-      style={{
-        wordBreak: "break-all",
-        wordWrap: "break-word",
-        whiteSpace: "pre-wrap",
-        overflowWrap: "anywhere",
-      }}
+      className={`w-full overflow-auto resize-none p-2 focus:outline-none div-textarea chatInputTextarea ${props.className ?? ""}`}
       ref={internalTextareaRef}
       onInput={handleInputInternal} // 使用内部的 input 处理器
       onKeyDown={props.onKeyDown} // 转发给父组件

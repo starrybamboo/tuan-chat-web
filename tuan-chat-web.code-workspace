@@ -31,5 +31,7 @@
 			"path": "../blocksuite"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"vsicons.presets.nestjs": true
+	}
 }

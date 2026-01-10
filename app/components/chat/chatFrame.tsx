@@ -97,6 +97,10 @@ function ChatFrame(props: ChatFrameProps) {
   const updateMessageMutation = useUpdateMessageMutation();
 
   const handleToggleNarrator = useCallback((messageId: number) => {
+    if (!spaceContext.isSpaceOwner) {
+      toast.error("只有KP可以切换旁白");
+      return;
+    }
     const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
     if (!message)
       return;
@@ -153,7 +157,7 @@ function ChatFrame(props: ChatFrameProps) {
         },
       });
     }
-  }, [roomContext, updateMessageMutation]);
+  }, [roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -662,6 +666,8 @@ function ChatFrame(props: ChatFrameProps) {
   const dragStartMessageIdRef = useRef(-1);
   const isDragging = dragStartMessageIdRef.current >= 0;
   const indicatorRef = useRef<HTMLDivElement | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const pendingDragCheckRef = useRef<{ target: HTMLDivElement; clientY: number } | null>(null);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
@@ -715,34 +721,66 @@ function ChatFrame(props: ChatFrameProps) {
       });
     }
   }, [historyMessages, isMessageMovable, updateMessage]);
+  const cleanupDragIndicator = useCallback(() => {
+    pendingDragCheckRef.current = null;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    indicatorRef.current?.remove();
+    curDragOverMessageRef.current = null;
+    dropPositionRef.current = "before";
+  }, []);
+
   /**
-   * 检查拖拽的位置
+   * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
    */
-  const checkPosition = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const scheduleCheckPosition = useCallback((target: HTMLDivElement, clientY: number) => {
     if (dragStartMessageIdRef.current === -1) {
       return;
     }
-    const target = e.currentTarget;
-    curDragOverMessageRef.current = target;
-    const rect = target.getBoundingClientRect();
-    const relativeY = e.clientY - rect.top;
+    pendingDragCheckRef.current = { target, clientY };
+    if (rafIdRef.current !== null) {
+      return;
+    }
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const pending = pendingDragCheckRef.current;
+      pendingDragCheckRef.current = null;
+      if (!pending || dragStartMessageIdRef.current === -1) {
+        return;
+      }
 
-    const indicator = document.createElement("div");
-    indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
-    indicator.style.zIndex = "50";
-    if (relativeY < rect.height / 2) {
-      indicator.style.top = "-1px";
-      indicator.style.bottom = "auto";
-      dropPositionRef.current = "before";
-    }
-    else {
-      indicator.style.top = "auto";
-      indicator.style.bottom = "-1px";
-      dropPositionRef.current = "after";
-    }
-    indicatorRef.current?.remove();
-    curDragOverMessageRef.current?.appendChild(indicator);
-    indicatorRef.current = indicator;
+      const { target, clientY } = pending;
+      curDragOverMessageRef.current = target;
+
+      const rect = target.getBoundingClientRect();
+      const relativeY = clientY - rect.top;
+      const nextPosition: "before" | "after" = relativeY < rect.height / 2 ? "before" : "after";
+
+      let indicator = indicatorRef.current;
+      if (!indicator) {
+        indicator = document.createElement("div");
+        indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
+        indicator.style.zIndex = "50";
+        indicatorRef.current = indicator;
+      }
+
+      if (indicator.parentElement !== target) {
+        indicator.remove();
+        target.appendChild(indicator);
+      }
+
+      dropPositionRef.current = nextPosition;
+      if (nextPosition === "before") {
+        indicator.style.top = "-1px";
+        indicator.style.bottom = "auto";
+      }
+      else {
+        indicator.style.top = "auto";
+        indicator.style.bottom = "-1px";
+      }
+    });
   }, []);
   /**
    * 拖拽起始化
@@ -752,21 +790,16 @@ function ChatFrame(props: ChatFrameProps) {
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageId;
     // 设置拖动预览图像
-    const parent = e.currentTarget.parentElement!;
-    let clone: HTMLElement;
-    // 创建拖拽预览元素
-    if (isSelecting && selectedMessageIds.size > 0) {
-      clone = document.createElement("div");
-      clone.className = "p-2 bg-info text-info-content rounded";
-      clone.textContent = `移动${selectedMessageIds.size}条消息`;
-    }
-    else {
-      clone = parent.cloneNode(true) as HTMLElement;
-    }
-    clone.style.width = `${e.currentTarget.offsetWidth}px`;
+    // 创建轻量拖拽预览元素（避免 clone 大块复杂 DOM 造成拖拽卡顿）
+    const clone = document.createElement("div");
+    clone.className = "p-2 bg-info text-info-content rounded shadow";
+    clone.textContent = isSelecting && selectedMessageIds.size > 0
+      ? `移动${selectedMessageIds.size}条消息`
+      : "移动消息";
+
     clone.style.position = "fixed";
     clone.style.top = "-9999px";
-    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
+    clone.style.width = `${Math.min(320, e.currentTarget.offsetWidth)}px`;
     clone.style.opacity = "0.5";
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
@@ -779,8 +812,13 @@ function ChatFrame(props: ChatFrameProps) {
       return;
     }
     e.dataTransfer.dropEffect = "move";
-    checkPosition(e);
-  }, [checkPosition]);
+    scheduleCheckPosition(e.currentTarget, e.clientY);
+  }, [scheduleCheckPosition]);
+
+  const handleDragEnd = useCallback(() => {
+    dragStartMessageIdRef.current = -1;
+    cleanupDragIndicator();
+  }, [cleanupDragIndicator]);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -810,8 +848,8 @@ function ChatFrame(props: ChatFrameProps) {
     }
 
     dragStartMessageIdRef.current = -1;
-    indicatorRef.current?.remove();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages]);
+    cleanupDragIndicator();
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator]);
 
   /**
    * 右键菜单
@@ -910,6 +948,7 @@ function ChatFrame(props: ChatFrameProps) {
         onDrop={e => handleDrop(e, indexInHistoryMessages)}
         draggable={isSelecting && movable}
         onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
+        onDragEnd={handleDragEnd}
       >
         {
           movable
@@ -920,6 +959,7 @@ function ChatFrame(props: ChatFrameProps) {
                       group-hover:opacity-100 z-100`}
               draggable={movable}
               onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
+              onDragEnd={handleDragEnd}
             >
               <DraggableIcon className="size-6 "></DraggableIcon>
             </div>
@@ -947,6 +987,7 @@ function ChatFrame(props: ChatFrameProps) {
     handleDragLeave,
     handleDrop,
     handleDragStart,
+    handleDragEnd,
     isMessageMovable,
     threadHintMetaByMessageId,
   ]);

@@ -1,5 +1,6 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import { useRef } from "react";
+import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
@@ -18,6 +19,13 @@ import {
 } from "@/icons";
 
 interface ChatToolbarProps {
+  /** 当前房间（用于BGM个人开关/停止全员BGM） */
+  roomId?: number;
+  /** 是否为KP（房主） */
+  isKP?: boolean;
+  /** KP：发送停止全员BGM指令 */
+  onStopBgmForAll?: () => void;
+
   // 侧边栏状态
   sideDrawerState: SideDrawerState;
   setSideDrawerState: (state: SideDrawerState) => void;
@@ -69,6 +77,9 @@ interface ChatToolbarProps {
 }
 
 export function ChatToolbar({
+  roomId,
+  isKP = false,
+  onStopBgmForAll,
   sideDrawerState,
   setSideDrawerState,
   updateEmojiUrls,
@@ -98,6 +109,11 @@ export function ChatToolbar({
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
 
+  const bgmTrack = useBgmStore(state => (roomId != null ? state.trackByRoomId[roomId] : undefined));
+  const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
+  const bgmIsPlaying = useBgmStore(state => (roomId != null ? (state.isPlaying && state.playingRoomId === roomId) : false));
+  const bgmToggle = useBgmStore(state => state.userToggle);
+
   const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !setAudioFile)
@@ -114,15 +130,14 @@ export function ChatToolbar({
         {/* 聊天状态选择器 - 观战成员不显示 */}
         {!isSpectator && (
           <div
-            className="dropdown dropdown-top"
-            style={{ pointerEvents: "auto" }}
+            className="dropdown dropdown-top pointer-events-auto"
           >
             <div
               role="button"
               tabIndex={0}
               aria-label="切换聊天状态"
               className="min-w-0 cursor-pointer list-none px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info"
-              style={{ pointerEvents: "auto", position: "relative" }}
+              title="切换聊天状态"
             >
               <span
                 className={
@@ -142,8 +157,7 @@ export function ChatToolbar({
             </div>
             <ul
               tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm"
-              style={{ zIndex: 9999, position: "absolute" }}
+              className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm z-[9999] absolute"
             >
               {[
                 { value: "idle", label: "空闲", desc: "清除正在输入" },
@@ -180,7 +194,7 @@ export function ChatToolbar({
           </div>
         )}
         <div className="dropdown dropdown-top">
-          <div role="button" tabIndex={2} className="">
+          <div role="button" tabIndex={2} className="cursor-pointer" aria-label="发送表情" title="发送表情">
             <div
               className="tooltip tooltip-bottom"
               data-tip="发送表情"
@@ -227,20 +241,47 @@ export function ChatToolbar({
               ref={audioInputRef}
               className="hidden"
               accept="audio/*"
+              title="选择音频文件"
+              aria-label="选择音频文件"
               onChange={handleAudioSelect}
             />
           </div>
         )}
 
+        {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
+        {roomId != null && bgmTrack && (
+          <div className="tooltip tooltip-bottom" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
+            <button
+              type="button"
+              className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
+              disabled={bgmDismissed}
+              onClick={() => void bgmToggle(roomId)}
+            >
+              {bgmIsPlaying ? "关闭BGM" : "开启BGM"}
+            </button>
+          </div>
+        )}
+
+        {/* KP：停止全员BGM（发送系统消息） */}
+        {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
+          <div className="tooltip tooltip-bottom" data-tip="停止全员BGM">
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost text-error"
+              onClick={onStopBgmForAll}
+            >
+              停止全员BGM
+            </button>
+          </div>
+        )}
+
         {/* AI重写提示词编辑 */}
         <details
-          className="dropdown dropdown-top"
-          style={{ pointerEvents: "auto" }}
+          className="dropdown dropdown-top pointer-events-auto"
         >
           <summary
             tabIndex={3}
-            className="cursor-pointer list-none"
-            style={{ pointerEvents: "auto", position: "relative" }}
+            className="cursor-pointer list-none pointer-events-auto relative"
             onClick={e => e.stopPropagation()}
           >
             <div
@@ -252,8 +293,7 @@ export function ChatToolbar({
           </summary>
           <div
             tabIndex={3}
-            className="dropdown-content bg-base-100 rounded-box z-50 p-3 shadow-lg border border-base-300"
-            style={{ width: "360px", zIndex: 9999, position: "absolute" }}
+            className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[360px] z-[9999] absolute"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex flex-col gap-2">
@@ -359,6 +399,8 @@ export function ChatToolbar({
               role="button"
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="导演控制台"
+              aria-label="导演控制台"
+              title="导演控制台"
             >
               <CommandSolid className="size-6" />
             </div>
@@ -373,7 +415,7 @@ export function ChatToolbar({
               )}
               {(onClearBackground || onClearFigure) && (
                 <>
-                  <div className="divider my-1"></div>
+                  <li className="divider my-1" role="separator"></li>
                   {onClearBackground && <li><a onClick={onClearBackground}>🗑️ 清除背景</a></li>}
                   {onClearFigure && <li><a onClick={onClearFigure}>👤 清除立绘</a></li>}
                 </>

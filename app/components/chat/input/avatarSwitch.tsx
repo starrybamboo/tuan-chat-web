@@ -21,7 +21,7 @@ export default function AvatarSwitch({
   setCurRoleId: (value: number) => void;
 }) {
   const roomContext = use(RoomContext);
-  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const _webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
 
@@ -38,8 +38,8 @@ export default function AvatarSwitch({
   const roleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const currentRole = useMemo(() => userRoles.find(r => r.roleId === curRoleId), [userRoles, curRoleId]);
 
-  // 判断是否为旁白模式（WebGAL 联动模式下无角色）
-  const isNarratorMode = curRoleId <= 0 && webgalLinkMode;
+  // 判断是否为旁白模式（无角色）
+  const isNarratorMode = curRoleId <= 0;
 
   const draftCustomRoleName = draftCustomRoleNameMap[curRoleId];
   const displayName = (draftCustomRoleName?.trim() || currentRole?.roleName || "");
@@ -178,7 +178,7 @@ export default function AvatarSwitch({
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
-          showNarratorOption={webgalLinkMode}
+          showNarratorOption={true}
         />
       </ul>
     </div>

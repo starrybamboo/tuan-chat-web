@@ -91,6 +91,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
             setRoomAvatar(url);
           }}
           fileName={`new-room-avatar-${Date.now()}`}
+          aspect={1}
         >
           <div className="relative group overflow-hidden rounded-lg">
             <img

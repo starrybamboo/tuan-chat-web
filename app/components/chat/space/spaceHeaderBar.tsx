@@ -29,7 +29,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
           {isArchived && (
             <span className="badge badge-sm">已归档</span>
           )}
-          <ChevronDown className="size-4 opacity-60 flex-shrink-0" />
+          <ChevronDown className="size-4 opacity-60 shrink-0" />
         </button>
         <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-56 p-2">
           <li>
@@ -72,7 +72,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
           )}
         </ul>
       </div>
-      <div className="flex gap-2 flex-shrink-0 mr-2">
+      <div className="flex gap-2 shrink-0 mr-2">
         <div className="tooltip tooltip-bottom" data-tip="邀请成员">
           <button
             type="button"
