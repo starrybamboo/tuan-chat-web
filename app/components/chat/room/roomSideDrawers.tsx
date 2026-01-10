@@ -55,6 +55,7 @@ function RoomSideDrawersImpl({
   const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
   const clueDrawerWidth = useDrawerPreferenceStore(state => state.clueDrawerWidth);
   const mapDrawerWidth = useDrawerPreferenceStore(state => state.mapDrawerWidth);
+  const setMapDrawerWidth = useDrawerPreferenceStore(state => state.setMapDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
   const webgalDrawerWidth = useDrawerPreferenceStore(state => state.webgalDrawerWidth);
 
@@ -94,6 +95,37 @@ function RoomSideDrawersImpl({
     setIsRealtimeRenderEnabled(false);
     setSideDrawerState("none");
   }, [setIsRealtimeRenderEnabled, setSideDrawerState, stopRealtimeRender]);
+
+  const handleMapResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = mapDrawerWidth;
+    const minWidth = mapMinWidth;
+    const maxWidth = mapMaxWidth;
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const nextWidth = clamp(startWidth - deltaX, minWidth, maxWidth);
+      setMapDrawerWidth(nextWidth);
+    };
+
+    const handleUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+  }, [clamp, mapDrawerWidth, mapMaxWidth, mapMinWidth, setMapDrawerWidth]);
 
   return (
     <>
@@ -142,8 +174,16 @@ function RoomSideDrawersImpl({
         direction="right"
         onClose={handleCloseSideDrawer}
       >
-        <div className="overflow-auto flex-1">
-          <DNDMap />
+        <div className="flex h-full">
+          <div
+            className="w-10 shrink-0 border-r border-base-200 bg-base-100/70 cursor-col-resize flex items-center justify-center"
+            onMouseDown={handleMapResizeStart}
+          >
+            <div aria-hidden className="h-96 w-1.5 rounded-full bg-base-300" />
+          </div>
+          <div className="overflow-auto flex-1 min-w-0">
+            <DNDMap />
+          </div>
         </div>
       </VaulSideDrawer>
       <VaulSideDrawer
