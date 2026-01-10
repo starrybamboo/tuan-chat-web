@@ -7,6 +7,7 @@ import {
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
@@ -58,6 +59,27 @@ function SpaceSettingWindow({
     ruleId: 1,
   });
 
+  // 自动保存状态管理（防抖 + 并发合并 + 失败重试）
+  const lastSavedSnapshotRef = useRef<string>("");
+  const dirtyRef = useRef(false);
+  const saveDebounceTimerRef = useRef<number | null>(null);
+  const retryTimerRef = useRef<number | null>(null);
+  const retryDelayMsRef = useRef(2000);
+  const isSavingRef = useRef(false);
+  const saveQueuedRef = useRef(false);
+  const lastFailureToastAtRef = useRef(0);
+
+  const buildSnapshot = (data: typeof formData, dicerRoleId: number) => {
+    // JSON.stringify 在这里足够；字段量很少。
+    return JSON.stringify({
+      name: data.name,
+      description: data.description,
+      avatar: data.avatar,
+      ruleId: data.ruleId,
+      dicerRoleId,
+    });
+  };
+
   // 让卸载时的自动保存拿到最新值（避免闭包捕获初始 state）
   const latestFormDataRef = useRef(formData);
   useEffect(() => {
@@ -77,6 +99,27 @@ function SpaceSettingWindow({
       ruleId: space.ruleId || 1,
     });
     didInitFormRef.current = true;
+
+    // 初始化后同步 lastSavedSnapshot，避免首次渲染触发自动保存。
+    const extraRaw = space.extra ?? "{}";
+    let initialDicerRoleId = latestDiceRollerIdRef.current;
+    try {
+      const extra = JSON.parse(extraRaw);
+      const nextId = Number(extra?.dicerRoleId);
+      if (Number.isFinite(nextId) && nextId > 0) {
+        initialDicerRoleId = nextId;
+      }
+    }
+    catch {
+      // ignore
+    }
+    lastSavedSnapshotRef.current = buildSnapshot({
+      name: space.name || "",
+      description: space.description || "",
+      avatar: space.avatar || "",
+      ruleId: space.ruleId || 1,
+    }, initialDicerRoleId);
+    dirtyRef.current = false;
   }, [space]);
 
   // 骰娘相关
@@ -146,7 +189,7 @@ function SpaceSettingWindow({
 
   const updateSpaceMutation = useUpdateSpaceMutation();
 
-  const handleSave = (params?: { data?: typeof formData; dicerRoleId?: number }) => {
+  const saveNow = async (params?: { data?: typeof formData; dicerRoleId?: number }) => {
     if (!Number.isFinite(spaceId) || spaceId <= 0)
       return;
 
@@ -157,24 +200,132 @@ function SpaceSettingWindow({
     const data = params?.data ?? latestFormDataRef.current;
     const dicerRoleId = params?.dicerRoleId ?? latestDiceRollerIdRef.current;
 
-    updateSpaceMutation.mutate({
-      spaceId,
-      name: data.name,
-      description: data.description,
-      avatar: data.avatar,
-      ruleId: data.ruleId,
+    const snapshot = buildSnapshot(data, dicerRoleId);
+    if (snapshot === lastSavedSnapshotRef.current) {
+      dirtyRef.current = false;
+      return;
+    }
+
+    const updatePromise = new Promise<void>((resolve, reject) => {
+      updateSpaceMutation.mutate({
+        spaceId,
+        name: data.name,
+        description: data.description,
+        avatar: data.avatar,
+        ruleId: data.ruleId,
+      }, {
+        onSuccess: () => resolve(),
+        onError: err => reject(err),
+      });
     });
-    tuanchat.spaceController.setSpaceExtra({
+
+    const extraPromise = tuanchat.spaceController.setSpaceExtra({
       spaceId,
       key: "dicerRoleId",
       value: String(dicerRoleId),
     });
+
+    await Promise.all([updatePromise, extraPromise]);
+
+    lastSavedSnapshotRef.current = snapshot;
+    dirtyRef.current = false;
+    retryDelayMsRef.current = 2000;
   };
 
-  // 离开空间资料时自动保存
+  const flushAutoSave = async () => {
+    if (isSavingRef.current) {
+      saveQueuedRef.current = true;
+      return;
+    }
+    if (!dirtyRef.current)
+      return;
+
+    isSavingRef.current = true;
+    try {
+      await saveNow();
+    }
+    catch (err) {
+      // 失败提示（节流，避免疯狂刷 toast）
+      const now = Date.now();
+      if (now - lastFailureToastAtRef.current > 3000) {
+        toast.error("空间设置自动保存失败，将自动重试");
+        lastFailureToastAtRef.current = now;
+      }
+
+      dirtyRef.current = true;
+      if (retryTimerRef.current) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+
+      const delay = retryDelayMsRef.current;
+      retryDelayMsRef.current = Math.min(Math.floor(retryDelayMsRef.current * 1.6), 30000);
+      retryTimerRef.current = window.setTimeout(() => {
+        retryTimerRef.current = null;
+        flushAutoSave();
+      }, delay);
+    }
+    finally {
+      isSavingRef.current = false;
+      if (saveQueuedRef.current) {
+        saveQueuedRef.current = false;
+        // 如果在保存期间有新改动，立刻再 flush 一次。
+        if (dirtyRef.current) {
+          void flushAutoSave();
+        }
+      }
+    }
+  };
+
+  const scheduleAutoSave = () => {
+    if (!didInitFormRef.current)
+      return;
+
+    // 标记 dirty
+    dirtyRef.current = buildSnapshot(latestFormDataRef.current, latestDiceRollerIdRef.current) !== lastSavedSnapshotRef.current;
+    if (!dirtyRef.current)
+      return;
+
+    if (saveDebounceTimerRef.current) {
+      window.clearTimeout(saveDebounceTimerRef.current);
+      saveDebounceTimerRef.current = null;
+    }
+    saveDebounceTimerRef.current = window.setTimeout(() => {
+      saveDebounceTimerRef.current = null;
+      void flushAutoSave();
+    }, 800);
+  };
+
+  // 监听变更：自动保存
+  useEffect(() => {
+    if (!didInitFormRef.current)
+      return;
+    scheduleAutoSave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData]);
+
+  useEffect(() => {
+    if (!didInitFormRef.current)
+      return;
+    scheduleAutoSave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diceRollerId]);
+
+  // 离开空间资料时自动保存（兜底）
   useEffect(() => {
     return () => {
-      handleSave();
+      if (saveDebounceTimerRef.current) {
+        window.clearTimeout(saveDebounceTimerRef.current);
+        saveDebounceTimerRef.current = null;
+      }
+      if (retryTimerRef.current) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+
+      // 直接保存一次（不防抖），确保关闭时尽量落库。
+      // 这里不 await，避免阻塞卸载流程。
+      void saveNow();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -200,6 +351,7 @@ function SpaceSettingWindow({
                         key={uploaderKey}
                         setCopperedDownloadUrl={handleAvatarUpdate}
                         fileName={`spaceId-${space.spaceId}`}
+                        aspect={1}
                       >
                         <div className="relative group overflow-hidden rounded-lg">
                           <img

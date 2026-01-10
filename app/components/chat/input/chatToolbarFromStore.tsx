@@ -8,11 +8,17 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 type ChatToolbarProps = React.ComponentProps<typeof ChatToolbar>;
 
 export default function ChatToolbarFromStore({
+  roomId,
+  isKP,
+  onStopBgmForAll,
   noRole,
   notMember,
   isSubmitting,
   ...rest
-}: Omit<ChatToolbarProps, "disableSendMessage" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "setAudioFile"> & {
+}: Omit<ChatToolbarProps, "disableSendMessage" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
+  roomId: number;
+  isKP?: boolean;
+  onStopBgmForAll?: () => void;
   noRole: boolean;
   notMember: boolean;
   isSubmitting: boolean;
@@ -33,6 +39,9 @@ export default function ChatToolbarFromStore({
   return (
     <ChatToolbar
       {...rest}
+      roomId={roomId}
+      isKP={isKP}
+      onStopBgmForAll={onStopBgmForAll}
       webgalLinkMode={webgalLinkMode}
       updateEmojiUrls={updateEmojiUrls}
       updateImgFiles={updateImgFiles}

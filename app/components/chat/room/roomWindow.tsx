@@ -21,12 +21,14 @@ import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomPopWindows from "@/components/chat/room/roomPopWindows";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
+import BgmFloatingBall from "@/components/chat/room/bgmFloatingBall";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
@@ -49,6 +51,14 @@ import { MessageType } from "../../../../api/wsModels";
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
+
+  // BGM：切换/卸载房间时视为“打断”，停止播放但不影响用户是否已主动关闭（dismiss）
+  useEffect(() => {
+    useBgmStore.getState().setActiveRoomId(roomId);
+    return () => {
+      useBgmStore.getState().setActiveRoomId(null);
+    };
+  }, [roomId]);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
   const room = useGetRoomInfoQuery(roomId).data?.data;
@@ -896,6 +906,19 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     toast.success("已清除立绘");
   }, [isRealtimeRenderActive, roomId, send]);
 
+  // KP：停止全员BGM（广播系统消息）
+  const handleStopBgmForAll = useCallback(() => {
+    send({
+      roomId,
+      roleId: undefined,
+      avatarId: undefined,
+      content: "[停止BGM]",
+      messageType: MessageType.SYSTEM,
+      extra: {},
+    });
+    toast.success("已发送停止BGM");
+  }, [roomId, send]);
+
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -976,6 +999,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onSendEffect={handleSendEffect}
               onClearBackground={handleClearBackground}
               onClearFigure={handleClearFigure}
+              isKP={spaceContext.isSpaceOwner}
+              onStopBgmForAll={handleStopBgmForAll}
               noRole={noRole}
               notMember={notMember}
               isSubmitting={isSubmitting}
@@ -996,6 +1021,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onCompositionEnd={() => isComposingRef.current = false}
               inputDisabled={notMember && noRole}
             />
+
+            {/* BGM 悬浮球：仅在本房间有BGM且用户未主动关闭时显示 */}
+            <BgmFloatingBall roomId={roomId} />
           </div>
         </div>
       </div>

@@ -21,6 +21,8 @@ import { FrameStoreExtension } from "@blocksuite/affine-block-frame/store";
 import { FrameViewExtension } from "@blocksuite/affine-block-frame/view";
 import { ImageStoreExtension } from "@blocksuite/affine-block-image/store";
 import { ImageViewExtension } from "@blocksuite/affine-block-image/view";
+import { ListStoreExtension } from "@blocksuite/affine-block-list/store";
+import { ListViewExtension } from "@blocksuite/affine-block-list/view";
 import { NoteStoreExtension } from "@blocksuite/affine-block-note/store";
 import { NoteViewExtension } from "@blocksuite/affine-block-note/view";
 import { ParagraphStoreExtension } from "@blocksuite/affine-block-paragraph/store";
@@ -47,6 +49,8 @@ import { InlinePresetViewExtension } from "@blocksuite/affine-inline-preset/view
 import { RefNodeSlotsProvider } from "@blocksuite/affine-inline-reference";
 import { ReferenceStoreExtension } from "@blocksuite/affine-inline-reference/store";
 import { ReferenceViewExtension } from "@blocksuite/affine-inline-reference/view";
+import { ConnectorStoreExtension } from "@blocksuite/affine-gfx-connector/store";
+import { ConnectorViewExtension } from "@blocksuite/affine-gfx-connector/view";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import {
   CitationService,
@@ -85,6 +89,8 @@ const storeManager = new StoreExtensionManager([
   RootStoreExtension,
   NoteStoreExtension,
   ParagraphStoreExtension,
+  // `affine:list`（bulleted/numbered list）
+  ListStoreExtension,
   SurfaceStoreExtension,
   // `affine:edgeless-text`（edgeless 画布上的文本）
   EdgelessTextStoreExtension,
@@ -109,6 +115,8 @@ const storeManager = new StoreExtensionManager([
   ReferenceStoreExtension,
   LinkStoreExtension,
   FootnoteStoreExtension,
+  // Edgeless connector tool (arrow/line connector)
+  ConnectorStoreExtension,
 ]);
 
 const viewManager = new ViewExtensionManager([
@@ -116,6 +124,7 @@ const viewManager = new ViewExtensionManager([
   RootViewExtension,
   NoteViewExtension,
   ParagraphViewExtension,
+  ListViewExtension,
   SurfaceViewExtension,
   EdgelessTextViewExtension,
   FrameViewExtension,
@@ -144,6 +153,9 @@ const viewManager = new ViewExtensionManager([
   LinkedDocViewExtension,
   ViewportOverlayViewExtension,
   DocTitleViewExtension,
+
+  // Edgeless connector tool (arrow/line connector)
+  ConnectorViewExtension,
 ]);
 
 export const AFFINE_STORE_EXTENSIONS: ExtensionType[] = (storeManager.get("store") as ExtensionType[]).concat([

@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 
 import { PopWindow } from "@/components/common/popWindow";
-import { canvasPreview, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
+import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -35,6 +35,10 @@ interface ImgUploaderWithCopperProps {
   children: React.ReactNode;
   fileName?: string;
   mutate?: (data: any) => void;
+  /**
+   * 固定裁剪比例（例如头像传 1 表示 1:1）。不传则为自由裁剪。
+   */
+  aspect?: number;
 }
 
 /**
@@ -45,9 +49,10 @@ interface ImgUploaderWithCopperProps {
  * @param {React.ReactNode} props.children 触发上传的子元素
  * @param {string} props.fileName 没什么用的参数，为了兼容旧代码。在图床使用hash作为文件名。
  * @param {(data: any) => void} [props.mutate] 可选的更新函数
+ * @param {number} [props.aspect] 固定裁剪比例（例如头像 1:1）
  * @constructor
  */
-export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
+export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate, aspect }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils();
   // 控制弹窗的显示与隐藏
@@ -99,9 +104,33 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       const naturalW = imgEl.naturalWidth || imgEl.width;
       const naturalH = imgEl.naturalHeight || imgEl.height;
       setStatusMessage("已加载图片，请调整裁剪框以生成预览...");
-      setCrop(makeInitialFreeCrop(naturalW, naturalH));
-      // completedCrop 由 onComplete 更新 - 在加载时清空旧的 completedCrop
-      setCompletedCrop(undefined);
+      const initialCrop = typeof aspect === "number" && aspect > 0
+        ? createCenteredAspectCrop(naturalW, naturalH, aspect)
+        : makeInitialFreeCrop(naturalW, naturalH);
+      setCrop(initialCrop);
+
+      // 立即生成一次 pixel crop，让预览能直接出现（避免必须先拖一下才有预览）
+      const renderedW = imgEl.width || naturalW;
+      const renderedH = imgEl.height || naturalH;
+      if (
+        initialCrop.unit === "%"
+        && typeof initialCrop.width === "number"
+        && typeof initialCrop.height === "number"
+        && typeof initialCrop.x === "number"
+        && typeof initialCrop.y === "number"
+      ) {
+        setCompletedCrop({
+          unit: "px",
+          x: Math.round((initialCrop.x / 100) * renderedW),
+          y: Math.round((initialCrop.y / 100) * renderedH),
+          width: Math.round((initialCrop.width / 100) * renderedW),
+          height: Math.round((initialCrop.height / 100) * renderedH),
+        });
+      }
+      else {
+        // completedCrop 由 onComplete 更新 - 在加载时清空旧的 completedCrop
+        setCompletedCrop(undefined);
+      }
       clearPreviewCanvas();
     }
     catch (err) {
@@ -282,6 +311,8 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
         onChange={handleFileChange}
         className="hidden"
         accept="image/*"
+        title="选择图片文件"
+        aria-label="选择图片文件"
       />
       <div onClick={() => fileInputRef.current?.click()}>
         {children}
@@ -295,7 +326,8 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={c => setCompletedCrop(c)}
-                // 不再传 aspect，实现自由比例裁剪
+                // 传入 aspect 时锁定裁剪比例（例如头像 1:1）
+                aspect={aspect}
                 minHeight={10}
                 keepSelection={true}
                 disabled={false}
@@ -334,7 +366,14 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
               {
                 isSubmitting
                   ? (
-                      <button className={isMobile ? "btn loading btn-sm" : "btn loading"} disabled={true} type="button"></button>
+                      <button
+                        className={isMobile ? "btn loading btn-sm" : "btn loading"}
+                        disabled={true}
+                        type="button"
+                        aria-label="上传中"
+                      >
+                        <span className="sr-only">上传中</span>
+                      </button>
                     )
                   : (
                       <div className={isMobile ? "flex flex-col gap-2 w-full" : "flex flex-row justify-center gap-4"}>

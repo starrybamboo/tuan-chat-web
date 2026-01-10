@@ -16,8 +16,16 @@ import {
   SwordSwing,
   WebgalIcon,
 } from "@/icons";
+import { useBgmStore } from "@/components/chat/stores/bgmStore";
 
 interface ChatToolbarProps {
+  /** 当前房间（用于BGM个人开关/停止全员BGM） */
+  roomId?: number;
+  /** 是否为KP（房主） */
+  isKP?: boolean;
+  /** KP：发送停止全员BGM指令 */
+  onStopBgmForAll?: () => void;
+
   // 侧边栏状态
   sideDrawerState: SideDrawerState;
   setSideDrawerState: (state: SideDrawerState) => void;
@@ -69,6 +77,9 @@ interface ChatToolbarProps {
 }
 
 export function ChatToolbar({
+  roomId,
+  isKP = false,
+  onStopBgmForAll,
   sideDrawerState,
   setSideDrawerState,
   updateEmojiUrls,
@@ -97,6 +108,11 @@ export function ChatToolbar({
   setAudioFile,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
+
+  const bgmTrack = useBgmStore(state => (roomId != null ? state.trackByRoomId[roomId] : undefined));
+  const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
+  const bgmIsPlaying = useBgmStore(state => (roomId != null ? (state.isPlaying && state.playingRoomId === roomId) : false));
+  const bgmToggle = useBgmStore(state => state.userToggle);
 
   const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -229,6 +245,33 @@ export function ChatToolbar({
               accept="audio/*"
               onChange={handleAudioSelect}
             />
+          </div>
+        )}
+
+        {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
+        {roomId != null && bgmTrack && (
+          <div className="tooltip tooltip-bottom" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
+            <button
+              type="button"
+              className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
+              disabled={bgmDismissed}
+              onClick={() => void bgmToggle(roomId)}
+            >
+              {bgmIsPlaying ? "关闭BGM" : "开启BGM"}
+            </button>
+          </div>
+        )}
+
+        {/* KP：停止全员BGM（发送系统消息） */}
+        {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
+          <div className="tooltip tooltip-bottom" data-tip="停止全员BGM">
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost text-error"
+              onClick={onStopBgmForAll}
+            >
+              停止全员BGM
+            </button>
           </div>
         )}
 

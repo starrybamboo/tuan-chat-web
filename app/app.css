@@ -89,6 +89,13 @@ body {
   opacity: 0.6;
 }
 
+.chatInputTextarea {
+  word-break: break-all;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 @keyframes jump {
   0%,
   100% {

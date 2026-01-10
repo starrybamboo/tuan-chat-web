@@ -189,24 +189,26 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
               <div className="flex-1 flex items-center justify-center opacity-70">加载中...</div>
             )
           : (
-              <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="flex-1 min-h-0 overflow-hidden">
                 {defaultTab === "role" && (
-                  <div className="space-y-2 p-4">
-                    <div className="flex flex-row justify-center items-center gap-2 px-4">
-                      <p>
-                        房间角色 -
-                        {roomRoles.length}
-                      </p>
+                  <div className="h-full overflow-y-auto">
+                    <div className="space-y-2 p-4">
+                      <div className="flex flex-row justify-center items-center gap-2 px-4">
+                        <p>
+                          房间角色 -
+                          {roomRoles.length}
+                        </p>
+                      </div>
+                      <RoleList roles={roomRoles} />
                     </div>
-                    <RoleList roles={roomRoles} />
                   </div>
                 )}
 
                 {defaultTab === "setting" && (
-                  <div className="p-4">
-                    <div className="flex flex-col md:flex-row gap-4">
+                  <div className="p-4 h-full min-h-0">
+                    <div className="flex flex-col md:flex-row gap-4 h-full min-h-0">
                       {/* 左侧：房间信息 */}
-                      <div className="md:w-96 shrink-0 space-y-4">
+                      <div className="md:w-96 shrink-0 space-y-4 min-h-0 overflow-y-auto">
                         <div className="card bg-base-100 border border-base-300">
                           <div className="card-body p-4">
                             <div className="flex justify-center">
@@ -214,6 +216,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                                 key={uploaderKey}
                                 setCopperedDownloadUrl={handleAvatarUpdate}
                                 fileName={`roomId-${room.roomId}`}
+                                aspect={1}
                               >
                                 <div className="relative group overflow-hidden rounded-lg">
                                   <img
@@ -250,15 +253,18 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                       </div>
 
                       {/* 右侧：房间描述文档 */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
                         {(propRoomId && (room?.spaceId ?? spaceId))
                           ? (
                               <BlocksuiteDescriptionEditor
                                 workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
                                 spaceId={(room?.spaceId ?? spaceId)!}
                                 docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
-                                // 使用 embedded + 自动高度：让外层容器负责滚动，避免 iframe 内部滚动体验割裂。
-                                className="min-h-[320px]"
+                                mode="page"
+                                allowModeSwitch
+                                fullscreenEdgeless
+                                variant="full"
+                                className="h-full"
                               />
                             )
                           : (

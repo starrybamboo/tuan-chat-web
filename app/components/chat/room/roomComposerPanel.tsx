@@ -40,6 +40,11 @@ export interface RoomComposerPanelProps {
   onClearBackground: () => void;
   onClearFigure: () => void;
 
+  /** KP（房主）权限标记，用于显示“停止全员BGM” */
+  isKP?: boolean;
+  /** KP：停止全员BGM */
+  onStopBgmForAll?: () => void;
+
   noRole: boolean;
   notMember: boolean;
   isSubmitting: boolean;
@@ -84,6 +89,8 @@ function RoomComposerPanelImpl({
   onSendEffect,
   onClearBackground,
   onClearFigure,
+  isKP,
+  onStopBgmForAll,
   noRole,
   notMember,
   isSubmitting,
@@ -179,12 +186,13 @@ function RoomComposerPanelImpl({
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
           ruleId={ruleId}
-          className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
+          className="absolute bottom-full w-full mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
         />
 
         <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
 
         <ChatToolbarFromStore
+          roomId={roomId}
           sideDrawerState={sideDrawerState}
           setSideDrawerState={setSideDrawerState}
           handleMessageSubmit={handleMessageSubmit}
@@ -208,6 +216,8 @@ function RoomComposerPanelImpl({
           onSendEffect={onSendEffect}
           onClearBackground={onClearBackground}
           onClearFigure={onClearFigure}
+          isKP={isKP}
+          onStopBgmForAll={onStopBgmForAll}
           noRole={noRole}
           notMember={notMember}
           isSubmitting={isSubmitting}
@@ -223,7 +233,7 @@ function RoomComposerPanelImpl({
           </AvatarSwitch>
 
           <div
-            className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
+            className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-lg flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col overflow-hidden"
             onDragOver={(e) => {
               if (isFileDrag(e.dataTransfer)) {
                 e.preventDefault();
@@ -277,7 +287,7 @@ function RoomComposerPanelImpl({
 
                   <button
                     type="button"
-                    className="btn btn-xs btn-ghost flex-shrink-0"
+                    className="btn btn-xs btn-ghost shrink-0"
                     onClick={() => {
                       setComposerTarget("main");
                       setThreadRootMessageId(undefined);
@@ -315,6 +325,7 @@ function RoomComposerPanelImpl({
               onCompositionEnd={onCompositionEnd}
               disabled={inputDisabled}
               placeholder={placeholderText}
+              className="min-h-12 max-h-[20dvh] overflow-y-auto"
             />
 
             <TextStyleToolbar

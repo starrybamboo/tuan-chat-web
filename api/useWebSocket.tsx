@@ -23,6 +23,8 @@ import {
 } from "./hooks/messageSessionQueryHooks";
 import type {MessageSessionResponse} from "./models/MessageSessionResponse";
 import type {ApiResultListMessageSessionResponse} from "./models/ApiResultListMessageSessionResponse";
+import { MessageType } from "./wsModels";
+import { useBgmStore } from "@/components/chat/stores/bgmStore";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -551,6 +553,37 @@ export function useWebSocket() {
       if (messagesToAdd.length === 0 || messagesToAdd[messagesToAdd.length-1].message.messageId !== chatMessageResponse.message.messageId){
         messagesToAdd.push(chatMessageResponse);
       }
+
+      // --- BGM 同步播放：在把消息写入本地缓存前先触发播放/停止副作用 ---
+      for (const msg of messagesToAdd) {
+        const m = msg?.message;
+        if (!m)
+          continue;
+
+        // (1) KP 发起 BGM：SOUND + purpose=bgm
+        if (m.messageType === MessageType.SOUND) {
+          const sound = (m.extra as any)?.soundMessage ?? (m.extra as any);
+          const purpose = sound?.purpose;
+          const url = sound?.url;
+          if (purpose === "bgm" && typeof url === "string" && url) {
+            void useBgmStore.getState().onBgmStartFromWs(m.roomId, {
+              url,
+              volume: sound?.volume,
+              fileName: sound?.fileName,
+              messageId: m.messageId,
+            });
+          }
+        }
+
+        // (2) KP 停止全员 BGM：SYSTEM 且 content 包含 [停止BGM]
+        if (m.messageType === MessageType.SYSTEM) {
+          const content = (m.content ?? "").toString();
+          if (content.includes("[停止BGM]")) {
+            useBgmStore.getState().onBgmStopFromWs(m.roomId);
+          }
+        }
+      }
+
       updateReceivedMessages(draft => {
         if (draft[roomId]) {
           draft[roomId].push(...messagesToAdd);

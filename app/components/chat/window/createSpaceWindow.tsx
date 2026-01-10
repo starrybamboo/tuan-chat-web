@@ -89,10 +89,12 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
             setSpaceAvatar(url);
           }}
           fileName={`new-space-avatar-${Date.now()}`}
+          aspect={1}
         >
           <div className="relative group overflow-hidden rounded-lg">
             <img
               src={spaceAvatar}
+              alt="space avatar"
               className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
             />
             <div
