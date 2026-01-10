@@ -1,3 +1,4 @@
+import { UsersIcon } from "@phosphor-icons/react";
 import React, { use } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -32,11 +33,14 @@ export default function RoomUserList() {
   return (
     <div className="space-y-2 p-2 overflow-auto items-center flex flex-col">
       {/* 群成员列表 */}
-      <div className="flex flex-row justify-center items-center gap-2 min-w-60">
-        <p className="text-center">
-          群成员-
-          {members.length}
-        </p>
+      <div className="flex flex-row justify-between items-center gap-2 min-w-60 mt-2">
+        <div className="flex items-center gap-2">
+          <UsersIcon className="inline size-5" />
+          <p className="text-start font-semibold">
+            群成员-
+            {members.length}
+          </p>
+        </div>
         {curMember?.memberType === 1 && (
           <button
             className="btn btn-dash btn-info"
@@ -46,6 +50,10 @@ export default function RoomUserList() {
             添加成员
           </button>
         )}
+      </div>
+      <div
+        className="divider w-full"
+      >
       </div>
       <MemberLists members={members} className={getScreenSize() === "sm" ? "w-full" : "w-60"} isSpace={false}></MemberLists>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>

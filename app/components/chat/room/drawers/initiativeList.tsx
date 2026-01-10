@@ -211,23 +211,23 @@ export default function InitiativeList() {
           </div>
 
           {/* 内容区 */}
-          <div className="px-4 py-3 space-y-4">
+          <div className="px-4 py-3 space-y-3">
             {/* 添加表单 */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="flex-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <input
                   type="text"
                   placeholder="角色名"
                   value={newItem.name}
                   onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg flex-[2] min-w-0"
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg col-span-2"
                 />
                 <input
                   type="text"
                   placeholder="先攻"
                   value={newItem.value}
                   onChange={e => setNewItem({ ...newItem, value: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg flex-1 min-w-[4rem] text-right"
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg text-left"
                 />
                 {/* 新增：当前 HP / 最大 HP 手动输入 */}
                 <input
@@ -235,20 +235,20 @@ export default function InitiativeList() {
                   placeholder="当前HP"
                   value={newItem.hp}
                   onChange={e => setNewItem({ ...newItem, hp: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg flex-1 min-w-[4rem] text-right"
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg text-left"
                 />
                 <input
                   type="text"
                   placeholder="最大HP"
                   value={newItem.maxHp}
                   onChange={e => setNewItem({ ...newItem, maxHp: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg flex-1 min-w-[4rem] text-right"
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg text-left col-span-2"
                 />
               </div>
               <button
                 type="button"
                 onClick={handleAdd}
-                className="btn btn-md rounded px-5 bg-primary text-primary-content border-none hover:bg-primary/90 shadow-sm w-full sm:w-auto disabled:bg-base-300 disabled:text-base-content/40"
+                className="btn btn-md rounded px-5 bg-primary text-primary-content border-none hover:bg-primary/90 shadow-sm w-full disabled:bg-base-300 disabled:text-base-content/40"
                 disabled={
                   !newItem.name
                   || Number.isNaN(Number(newItem.value))
@@ -287,7 +287,7 @@ export default function InitiativeList() {
                 return (
                   <div
                     key={item.name}
-                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-base-200/70 transition-colors group"
+                    className="flex items-start justify-between gap-3 px-3 py-2 rounded-lg hover:bg-base-200/70 transition-colors group"
                   >
                     {/* 左侧：名称 + HP 显示 / 编辑 + 血条 */}
                     <div className="flex flex-col flex-1 min-w-0 gap-1">
@@ -300,13 +300,13 @@ export default function InitiativeList() {
                             ),
                           );
                         }}
-                        className="font-medium text-sm text-base-content truncate max-w-[9rem] sm:max-w-[12rem]"
+                        className="font-medium text-sm text-base-content truncate max-w-[9rem] sm:max-w-[12rem] min-h-6 leading-6 inline-flex items-center"
                         usingInput
                       >
                       </EditableField>
 
                       {/* HP 编辑行 */}
-                      <div className="flex items-center gap-2 text-xs text-base-content/70">
+                      <div className="flex items-center gap-2 text-xs text-base-content/70 leading-5">
                         <span className="whitespace-nowrap">HP</span>
                         <EditableField
                           content={hp != null ? String(hp) : ""}
@@ -320,7 +320,7 @@ export default function InitiativeList() {
                               ),
                             );
                           }}
-                          className="w-[3rem] text-right"
+                          className="w-[3rem] text-right tabular-nums min-h-5 leading-5 inline-flex items-center justify-end"
                           usingInput
                           type="number"
                         />
@@ -337,7 +337,7 @@ export default function InitiativeList() {
                               ),
                             );
                           }}
-                          className="w-[3rem] text-right"
+                          className="w-[3rem] text-right tabular-nums min-h-5 leading-5 inline-flex items-center justify-end"
                           usingInput
                           type="number"
                         />
@@ -355,7 +355,7 @@ export default function InitiativeList() {
                     </div>
 
                     {/* 右侧：先攻数值 + 删除 */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 pt-0.5">
                       <EditableField
                         content={item.value.toString()}
                         handleContentUpdate={(newValue) => {
@@ -365,7 +365,7 @@ export default function InitiativeList() {
                             ),
                           );
                         }}
-                        className="w-[3.5rem] text-right text-sm tabular-nums text-base-content/90"
+                        className="w-[3.5rem] text-right text-sm tabular-nums text-base-content/90 min-h-6 leading-6 inline-flex items-center justify-end"
                         usingInput
                         type="number"
                       >

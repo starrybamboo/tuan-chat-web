@@ -1,4 +1,5 @@
 import type { ExportOptions } from "@/utils/exportChatMessages";
+import { ExportIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -153,19 +154,16 @@ export default function ExportChatDrawer() {
   };
 
   return (
-    <div className="flex flex-col h-full p-4 gap-4">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-semibold">导出聊天记录</h3>
-        <p className="text-sm opacity-70">
-          当前共有
-          {" "}
+    <div className="flex flex-col h-full p-4 gap-2">
+      <div className="flex flex-col py-2">
+        <h3 className="font-semibold">
+          <ExportIcon className="size-5 inline mr-2" />
+          导出聊天记录-
           {historyMessages.length}
-          {" "}
-          条消息
-        </p>
+        </h3>
       </div>
 
-      <div className="divider my-2"></div>
+      <div className="divider my-0"></div>
 
       {/* 导出选项 */}
       <div className="flex flex-col gap-3">

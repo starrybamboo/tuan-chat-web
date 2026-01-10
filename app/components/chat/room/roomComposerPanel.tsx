@@ -4,7 +4,6 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
-import ChatStatusBar from "@/components/chat/chatStatusBar";
 import AvatarSwitch from "@/components/chat/input/avatarSwitch";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
@@ -189,10 +188,11 @@ function RoomComposerPanelImpl({
           className="absolute bottom-full w-full mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
         />
 
-        <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
-
         <ChatToolbarFromStore
           roomId={roomId}
+          statusUserId={userId}
+          statusWebSocketUtils={webSocketUtils}
+          statusExcludeSelf={false}
           sideDrawerState={sideDrawerState}
           setSideDrawerState={setSideDrawerState}
           handleMessageSubmit={handleMessageSubmit}
@@ -223,7 +223,7 @@ function RoomComposerPanelImpl({
           isSubmitting={isSubmitting}
         />
 
-        <div className="flex gap-2 items-stretch">
+        <div className="flex gap-2 items-end">
           <AvatarSwitch
             curRoleId={curRoleId}
             curAvatarId={curAvatarId}

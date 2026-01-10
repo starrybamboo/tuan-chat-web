@@ -1,5 +1,5 @@
 import type { UserRole } from "../../../../../api";
-import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
+import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
@@ -9,6 +9,23 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
+
+const GRID_COLOR_OPTIONS = [
+  { value: "#3b82f6", label: "blue", className: "bg-blue-500 border-blue-500" },
+  { value: "#6366f1", label: "indigo", className: "bg-indigo-500 border-indigo-500" },
+  { value: "#ec4899", label: "pink", className: "bg-pink-500 border-pink-500" },
+  { value: "#ef4444", label: "red", className: "bg-red-500 border-red-500" },
+  { value: "#f97316", label: "orange", className: "bg-orange-500 border-orange-500" },
+  { value: "#f59e0b", label: "amber", className: "bg-amber-500 border-amber-500" },
+  { value: "#10b981", label: "emerald", className: "bg-emerald-500 border-emerald-500" },
+] as const;
+
+function withHexAlpha(hex: string, alphaHex: string) {
+  // #RRGGBB -> #RRGGBBAA; 其他格式（含 alpha、非 hex）则原样返回
+  if (hex.startsWith("#") && hex.length === 7)
+    return `${hex}${alphaHex}`;
+  return hex;
+}
 
 /**
  * 可拖动的头像组件
@@ -20,7 +37,7 @@ import { useGetRoleAvatarQuery } from "../../../../../api/hooks/RoleAndAvatarHoo
  * @param onTouchDrop 触摸拖拽释放事件（移动端使用）
  * @constructor
  */
-const RoleStamp = React.memo(({ role, onDragStart, scale: _scale = 1, className, size, onTouchDrop, mapTransform }: {
+const RoleStamp = React.memo(({ role, onDragStart, scale: _scale = 1, className, size, onTouchDrop, mapTransform, showTooltip = true }: {
   role: UserRole;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
   scale?: number;
@@ -28,39 +45,17 @@ const RoleStamp = React.memo(({ role, onDragStart, scale: _scale = 1, className,
   size?: number;
   onTouchDrop?: (role: UserRole, x: number, y: number) => void;
   mapTransform?: { scale: number; x: number; y: number };
+  showTooltip?: boolean;
 }) => {
   const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
   const containerRef = useRef<HTMLDivElement>(null);
-  const nameRef = useRef<HTMLSpanElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   // 移动端拖拽状态
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const touchStartPos = useRef({ x: 0, y: 0 });
   const dragThreshold = 10; // 拖拽阈值，避免误触
-
-  // 使用 useLayoutEffect 将字体大小设置为容器高度的一定比例
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const name = nameRef.current;
-
-    if (!container || !name)
-      return;
-      // The observer will fire when the container's size is first calculated or when it changes.
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height = entry.contentRect.height;
-        if (height > 0) {
-          name.style.fontSize = `${height * 0.22}px`;
-        }
-      }
-    });
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   // 触摸事件处理
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -192,12 +187,14 @@ const RoleStamp = React.memo(({ role, onDragStart, scale: _scale = 1, className,
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="absolute bottom-full w-full flex justify-center items-center bg-base-100/50 rounded">
-        <span ref={nameRef} className="max-w-full truncate rounded bg-opacity-70 select-none pointer-events-none">
+      {showTooltip && isHovered && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded bg-base-100/90 text-xs shadow-lg text-base-content whitespace-nowrap pointer-events-none z-30">
           {role.roleName}
-        </span>
-      </div>
+        </div>
+      )}
       <img
         src={roleAvatar?.avatarUrl}
         alt={role.roleName}
@@ -261,13 +258,23 @@ export default function DNDMap() {
   // 移动端 RoleStamp 尺寸控制
   const defaultRoleStampSize = useMemo(() => {
     const isMobile = typeof window !== "undefined" && "ontouchstart" in window;
-    return isMobile ? 48 : 64; // 移动端使用小一些的尺寸
+    return isMobile ? 32 : 48; // 移动端使用小一些的尺寸
   }, []);
+  const avatarOverlap = useMemo(() => Math.round(defaultRoleStampSize * 0.3), [defaultRoleStampSize]);
+  const [hoveredRoleId, setHoveredRoleId] = useState<number | null>(null);
 
   // 筛选未放置的角色
   const unplacedRoles = useMemo(() => {
     return roomRoles.filter(role => !stampPositions[role.roleId]);
   }, [roomRoles, stampPositions]);
+
+  const unplacedRoleRows = useMemo(() => {
+    const rows: UserRole[][] = [];
+    for (let i = 0; i < unplacedRoles.length; i += 5) {
+      rows.push(unplacedRoles.slice(i, i + 5));
+    }
+    return rows;
+  }, [unplacedRoles]);
 
   // --- 事件处理 ---
   const handleUpdateMapImg = useCallback(async (img: File) => {
@@ -634,7 +641,7 @@ export default function DNDMap() {
                   <div
                     key={cellKey}
                     className="border flex items-center justify-center border-dashed"
-                    style={{ border: `1px dashed ${gridColor}80` }}
+                    style={{ border: `1px dashed ${withHexAlpha(gridColor, "CC")}` }}
                     onDragOver={handleDragOver}
                     onDrop={e => handleDropOnGrid(e, row, col)}
                   >
@@ -664,27 +671,71 @@ export default function DNDMap() {
         onDragOver={handleDragOver}
         onDrop={handleDropOnPanel}
       >
-        <h2 className="text-lg font-bold mb-4">地图编辑器</h2>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-lg font-bold">地图编辑器</h2>
+          <button
+            className="btn btn-error btn-xs"
+            type="button"
+            onClick={handleResetClick}
+          >
+            重置地图
+          </button>
+        </div>
         <div className={`flex flex-col flex-1 ${isCompactMode ? "" : "overflow-auto"}`}>
           {/* 网格设置区域 */}
-          <div className={`flex ${isCompactMode ? "flex-row gap-4 flex-shrink-0" : "flex-col"}`}>
-            <div className="form-control">
-              <label className="label"><span className="label-text">行数</span></label>
+          <div className={`flex ${isCompactMode ? "flex-row gap-3 flex-shrink-0" : "flex-col gap-2"}`}>
+            <label className="input bg-base-200 rounded-md w-full border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300">
+              <span className="text-xs text-base-content/60">行数</span>
+              <span aria-hidden className="mx-1 h-4 w-px bg-base-content/20" />
               <input
                 type="number"
                 value={gridSize.rows}
-                onChange={e => setGridSize({ ...gridSize, rows: Number.parseInt(e.target.value) })}
-                className="input input-bordered w-full"
+                onChange={(e) => {
+                  const next = Number.parseInt(e.target.value);
+                  if (Number.isNaN(next)) {
+                    return;
+                  }
+                  setGridSize({ ...gridSize, rows: Math.min(20, next) });
+                }}
+                className="grow bg-transparent rounded-md outline-none ring-0"
               />
-            </div>
-            <div className={`form-control ${isCompactMode ? "" : "pt-2"}`}>
-              <label className="label"><span className="label-text">列数</span></label>
+            </label>
+            <label className="input bg-base-200 rounded-md w-full border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300">
+              <span className="text-xs text-base-content/60">列数</span>
+              <span aria-hidden className="mx-1 h-4 w-px bg-base-content/20" />
               <input
                 type="number"
                 value={gridSize.cols}
-                onChange={e => setGridSize({ ...gridSize, cols: Number.parseInt(e.target.value) })}
-                className="input input-bordered w-full"
+                onChange={(e) => {
+                  const next = Number.parseInt(e.target.value);
+                  if (Number.isNaN(next)) {
+                    return;
+                  }
+                  setGridSize({ ...gridSize, cols: Math.min(20, next) });
+                }}
+                className="grow bg-transparent rounded-md outline-none ring-0"
               />
+            </label>
+
+            <div className="flex flex-col items-center gap-2 rounded-md">
+              <span className="text-xs text-base-content/60">网格线</span>
+              <div className="flex items-center gap-1.5">
+                {GRID_COLOR_OPTIONS.map((option) => {
+                  const isSelected = gridColor.toLowerCase() === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-label={option.label}
+                      aria-pressed={isSelected}
+                      onClick={() => setGridColor(option.value)}
+                      className={`size-3 rounded-full border ${option.className} shadow-sm transition-transform ${
+                        isSelected ? "ring-2 ring-primary/60 ring-offset-2 ring-offset-base-100" : ""
+                      }`}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -692,19 +743,36 @@ export default function DNDMap() {
           <div className="flex-1 flex flex-col min-h-0">
             <div className={`divider ${isCompactMode ? "divider-horizontal" : ""}`}></div>
             <h3 className="font-semibold pb-2">角色 (拖动到地图)</h3>
-            <div className={`flex-grow overflow-y-auto ${
+            <div className={`flex-grow pt-6 ${
               isCompactMode ? "min-w-0" : ""
             }`}
             >
-              <div className="flex gap-2 pt-4 flex-wrap">
-                {unplacedRoles.map(role => (
-                  <div className="aspect-square flex items-center justify-center" key={role.roleId}>
-                    <RoleStamp
-                      role={role}
-                      onDragStart={handleDragStart}
-                      onTouchDrop={handleTouchDrop}
-                      size={defaultRoleStampSize}
-                    />
+              <div className="flex flex-col gap-4">
+                {unplacedRoleRows.map(row => (
+                  <div key={row.map(r => r.roleId).join("-")} className="flex items-center">
+                    {row.map((role, index) => {
+                      const isHovered = hoveredRoleId === role.roleId;
+                      return (
+                        <div
+                          key={role.roleId}
+                          className="transition-transform"
+                          style={{
+                            marginLeft: index === 0 ? 0 : -avatarOverlap,
+                            zIndex: isHovered ? 50 : row.length - index,
+                            transform: isHovered ? "translateY(-6px)" : undefined,
+                          }}
+                          onMouseEnter={() => setHoveredRoleId(role.roleId)}
+                          onMouseLeave={() => setHoveredRoleId(null)}
+                        >
+                          <RoleStamp
+                            role={role}
+                            onDragStart={handleDragStart}
+                            onTouchDrop={handleTouchDrop}
+                            size={defaultRoleStampSize}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -712,37 +780,7 @@ export default function DNDMap() {
           </div>
 
           {/* 颜色和重置区域 */}
-          <div className={`flex-shrink-0 ${
-            isCompactMode ? "flex flex-col justify-end gap-2" : ""
-          }`}
-          >
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">网格线颜色</span>
-              </label>
-              <div className="relative w-full h-10">
-                <div
-                  className="w-full h-full rounded-lg border border-base-content/20"
-                  style={{ backgroundColor: gridColor }}
-                >
-                </div>
-                <input
-                  type="color"
-                  value={gridColor}
-                  onChange={e => setGridColor(e.target.value)}
-                  className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
-                />
-              </div>
-            </div>
-            <div className="divider"></div>
-            <button
-              className="btn btn-error btn-sm"
-              type="button"
-              onClick={handleResetClick}
-            >
-              重置地图
-            </button>
-          </div>
+          <div className={`flex-shrink-0 ${isCompactMode ? "pb-2" : "pb-2"}`} />
         </div>
       </div>
     </div>
