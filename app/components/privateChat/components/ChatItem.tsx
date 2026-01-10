@@ -82,6 +82,9 @@ export default function ChatItem({
 
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
+    if (currentContactUserId === id) {
+      return;
+    }
     navigate(`/chat/private/${id}`);
     updateReadlinePosition(id);
     if (getScreenSize() === "sm") {
