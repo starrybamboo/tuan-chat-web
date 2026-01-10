@@ -590,13 +590,13 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         e.preventDefault();
         try {
           if (fn === storeAny?.undo || fn === storeAny?.redo) {
-            (fn as Function).call(storeAny);
+            Reflect.apply(fn as (...args: unknown[]) => unknown, storeAny, []);
           }
           else if (fn === historyAny?.undo || fn === historyAny?.redo) {
-            (fn as Function).call(historyAny);
+            Reflect.apply(fn as (...args: unknown[]) => unknown, historyAny, []);
           }
           else {
-            (fn as Function).call(editorAny);
+            Reflect.apply(fn as (...args: unknown[]) => unknown, editorAny, []);
           }
         }
         catch {

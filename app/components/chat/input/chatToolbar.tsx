@@ -1,5 +1,6 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import { useRef } from "react";
+import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
@@ -16,7 +17,6 @@ import {
   SwordSwing,
   WebgalIcon,
 } from "@/icons";
-import { useBgmStore } from "@/components/chat/stores/bgmStore";
 
 interface ChatToolbarProps {
   /** 当前房间（用于BGM个人开关/停止全员BGM） */

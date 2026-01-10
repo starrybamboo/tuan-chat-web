@@ -6,7 +6,7 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -69,7 +69,14 @@ function SpaceSettingWindow({
   const saveQueuedRef = useRef(false);
   const lastFailureToastAtRef = useRef(0);
 
-  const buildSnapshot = (data: typeof formData, dicerRoleId: number) => {
+  // 骰娘相关
+  const [diceRollerId, setDiceRollerId] = useState(2);
+  const latestDiceRollerIdRef = useRef(diceRollerId);
+  useEffect(() => {
+    latestDiceRollerIdRef.current = diceRollerId;
+  }, [diceRollerId]);
+
+  const buildSnapshot = useCallback((data: typeof formData, dicerRoleId: number) => {
     // JSON.stringify 在这里足够；字段量很少。
     return JSON.stringify({
       name: data.name,
@@ -78,7 +85,7 @@ function SpaceSettingWindow({
       ruleId: data.ruleId,
       dicerRoleId,
     });
-  };
+  }, []);
 
   // 让卸载时的自动保存拿到最新值（避免闭包捕获初始 state）
   const latestFormDataRef = useRef(formData);
@@ -120,14 +127,7 @@ function SpaceSettingWindow({
       ruleId: space.ruleId || 1,
     }, initialDicerRoleId);
     dirtyRef.current = false;
-  }, [space]);
-
-  // 骰娘相关
-  const [diceRollerId, setDiceRollerId] = useState(2);
-  const latestDiceRollerIdRef = useRef(diceRollerId);
-  useEffect(() => {
-    latestDiceRollerIdRef.current = diceRollerId;
-  }, [diceRollerId]);
+  }, [space, buildSnapshot]);
 
   const didInitDiceRef = useRef(false);
   useEffect(() => {
@@ -244,7 +244,7 @@ function SpaceSettingWindow({
     try {
       await saveNow();
     }
-    catch (err) {
+    catch {
       // 失败提示（节流，避免疯狂刷 toast）
       const now = Date.now();
       if (now - lastFailureToastAtRef.current > 3000) {

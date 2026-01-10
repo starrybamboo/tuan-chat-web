@@ -1,6 +1,6 @@
 import React from "react";
-import { MusicNote } from "@/icons";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
+import { MusicNote } from "@/icons";
 
 export default function BgmFloatingBall({ roomId }: { roomId: number }) {
   const track = useBgmStore(state => state.trackByRoomId[roomId]);
@@ -12,7 +12,7 @@ export default function BgmFloatingBall({ roomId }: { roomId: number }) {
     return null;
 
   return (
-    <div className="fixed right-4 bottom-32 z-50" style={{ pointerEvents: "auto" }}>
+    <div className="fixed right-4 bottom-32 z-50 pointer-events-auto">
       <button
         type="button"
         className="btn btn-circle btn-sm bg-base-100 border border-base-300 shadow-sm"

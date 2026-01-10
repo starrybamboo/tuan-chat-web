@@ -21,7 +21,7 @@ export default function AvatarSwitch({
   setCurRoleId: (value: number) => void;
 }) {
   const roomContext = use(RoomContext);
-  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const _webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
 

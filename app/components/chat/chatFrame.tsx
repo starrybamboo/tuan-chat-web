@@ -790,9 +790,8 @@ function ChatFrame(props: ChatFrameProps) {
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageId;
     // 设置拖动预览图像
-    let clone: HTMLElement;
     // 创建轻量拖拽预览元素（避免 clone 大块复杂 DOM 造成拖拽卡顿）
-    clone = document.createElement("div");
+    const clone = document.createElement("div");
     clone.className = "p-2 bg-info text-info-content rounded shadow";
     clone.textContent = isSelecting && selectedMessageIds.size > 0
       ? `移动${selectedMessageIds.size}条消息`
@@ -850,7 +849,7 @@ function ChatFrame(props: ChatFrameProps) {
 
     dragStartMessageIdRef.current = -1;
     cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages]);
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator]);
 
   /**
    * 右键菜单

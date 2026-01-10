@@ -37,6 +37,8 @@ import { TableStoreExtension } from "@blocksuite/affine-block-table/store";
 import { TableViewExtension } from "@blocksuite/affine-block-table/view";
 import { StoreExtensionManager, ViewExtensionManager } from "@blocksuite/affine-ext-loader";
 import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
+import { ConnectorStoreExtension } from "@blocksuite/affine-gfx-connector/store";
+import { ConnectorViewExtension } from "@blocksuite/affine-gfx-connector/view";
 import { FootnoteStoreExtension } from "@blocksuite/affine-inline-footnote/store";
 import { FootnoteViewExtension } from "@blocksuite/affine-inline-footnote/view";
 import { LatexStoreExtension } from "@blocksuite/affine-inline-latex/store";
@@ -49,8 +51,6 @@ import { InlinePresetViewExtension } from "@blocksuite/affine-inline-preset/view
 import { RefNodeSlotsProvider } from "@blocksuite/affine-inline-reference";
 import { ReferenceStoreExtension } from "@blocksuite/affine-inline-reference/store";
 import { ReferenceViewExtension } from "@blocksuite/affine-inline-reference/view";
-import { ConnectorStoreExtension } from "@blocksuite/affine-gfx-connector/store";
-import { ConnectorViewExtension } from "@blocksuite/affine-gfx-connector/view";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import {
   CitationService,

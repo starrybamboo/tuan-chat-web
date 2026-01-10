@@ -1,10 +1,10 @@
 import type { UserRole } from "../../../../api";
 import { use } from "react";
+import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRingLight, NarratorIcon } from "@/icons";
-import { toast } from "react-hot-toast";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export function ExpressionChooser({
