@@ -49,9 +49,9 @@ export function ExpressionChooser({
   return (
     <div className="flex flex-col md:flex-row w-[88vw] md:w-full min-w-0 md:min-w-[600px] max-h-[70vh] md:max-h-[50vh] overflow-hidden">
       {/* 左侧：角色列表 */}
-      <div className="w-full md:w-1/3 min-w-0 md:min-w-[180px] border-b md:border-b-0 md:border-r border-base-300 pb-3 md:pb-0 md:pr-3">
+      <div className="w-full md:w-1/3 min-w-0 md:min-w-[180px] border-b md:border-b-0 md:border-r border-base-300 p-2 md:pb-0 md:pr-3">
         <div className="text-sm font-semibold mb-3 text-center">角色选择</div>
-        <div className="space-y-2 max-h-[22vh] md:max-h-[42vh] overflow-y-auto">
+        <div className="space-y-2 max-h-[22vh] md:max-h-[42vh] overflow-y-auto px-1 -mx-1">
           {/* 旁白选项（WebGAL 联动模式） */}
           {showNarratorOption && (
             <div

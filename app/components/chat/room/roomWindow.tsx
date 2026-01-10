@@ -1010,7 +1010,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 />
               </div>
             </div>
-            <div className="dropdown dropdown-top dropdown-end">
+            <div className="dropdown dropdown-top">
               <button
                 type="button"
                 className="btn btn-ghost btn-xs"
@@ -1019,7 +1019,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               >
                 <UserSwitchIcon className="size-6" />
               </button>
-              <ul className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-md p-2 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden">
+              <ul className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden min-w-[320px] w-max max-w-[min(400px,90vw)]">
                 <ExpressionChooser
                   roleId={curRoleId}
                   handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
