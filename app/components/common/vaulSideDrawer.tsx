@@ -7,6 +7,8 @@ interface VaulSideDrawerProps {
   className?: string;
   /** 抽屉内容的宽度，默认 310px */
   width?: number | string;
+  /** 点击外部时触发关闭 */
+  onClose?: () => void;
 }
 
 /**
@@ -14,7 +16,7 @@ interface VaulSideDrawerProps {
  * 浮在内容上方，不占据空间
  * - 无遮罩层
  * - 高度不占满全屏（预留 header 和输入框空间）
- * - 点击外部不收起，只能通过外部按钮控制
+ * - 点击外部可收起（传入 onClose）
  */
 export function VaulSideDrawer({
   isOpen,
@@ -22,12 +24,14 @@ export function VaulSideDrawer({
   direction = "right",
   className = "",
   width = 310,
+  onClose,
 }: VaulSideDrawerProps) {
   const widthStyle = typeof width === "number" ? `${width}px` : width;
 
   // 用于控制动画：mounted 表示 DOM 是否存在，visible 表示是否展示（触发动画）
   const [mounted, setMounted] = useState(isOpen);
   const [visible, setVisible] = useState(false);
+  const drawerRef = React.useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +51,30 @@ export function VaulSideDrawer({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!mounted || !onClose) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (drawerRef.current?.contains(target)) {
+        return;
+      }
+      onClose();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown, true);
+    document.addEventListener("touchstart", handlePointerDown, true);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown, true);
+      document.removeEventListener("touchstart", handlePointerDown, true);
+    };
+  }, [mounted, onClose]);
+
   // 根据方向设置位置样式，top/bottom 预留空间给 header 和输入框
   const positionClasses = direction === "left"
     ? "left-2 top-24 bottom-36"
@@ -62,6 +90,7 @@ export function VaulSideDrawer({
 
   return (
     <div
+      ref={drawerRef}
       className={`${positionClasses} fixed z-[100] outline-none flex ${className}`}
       style={{
         width: widthStyle,

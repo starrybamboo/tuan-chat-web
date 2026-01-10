@@ -29,6 +29,8 @@ function RoomSideDrawersImpl({
 
   // Discord 风格：Thread 以“右侧固定分栏面板”展示，不作为可滑出的 drawer
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
+  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const isThreadPaneOpen = !!threadRootMessageId;
 
@@ -78,12 +80,28 @@ function RoomSideDrawersImpl({
     : Math.max(mapMinWidth, window.innerWidth - 360);
   const safeMapWidth = clamp(mapDrawerWidth, Math.min(720, mapMaxWidth), mapMaxWidth);
 
+  const handleCloseSideDrawer = React.useCallback(() => {
+    setSideDrawerState("none");
+  }, [setSideDrawerState]);
+
+  const handleCloseThread = React.useCallback(() => {
+    setThreadRootMessageId(undefined);
+    setComposerTarget("main");
+  }, [setComposerTarget, setThreadRootMessageId]);
+
+  const handleCloseWebgal = React.useCallback(() => {
+    stopRealtimeRender();
+    setIsRealtimeRenderEnabled(false);
+    setSideDrawerState("none");
+  }, [setIsRealtimeRenderEnabled, setSideDrawerState, stopRealtimeRender]);
+
   return (
     <>
       <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "user"}
         width={userDrawerWidth}
         direction="right"
+        onClose={handleCloseSideDrawer}
       >
         <div className="overflow-auto flex-1">
           <RoomUserList />
@@ -93,6 +111,7 @@ function RoomSideDrawersImpl({
         isOpen={!isThreadPaneOpen && sideDrawerState === "role"}
         width={roleDrawerWidth}
         direction="right"
+        onClose={handleCloseSideDrawer}
       >
         <div className="overflow-auto flex-1">
           <RoomRoleList />
@@ -103,6 +122,7 @@ function RoomSideDrawersImpl({
         width={safeThreadWidth}
         direction="right"
         className={composerTarget === "thread" ? "ring-2 ring-info/40 ring-inset" : ""}
+        onClose={handleCloseThread}
       >
         <MessageThreadDrawer />
       </VaulSideDrawer>
@@ -110,6 +130,7 @@ function RoomSideDrawersImpl({
         isOpen={!isThreadPaneOpen && sideDrawerState === "initiative"}
         width={safeInitiativeWidth}
         direction="right"
+        onClose={handleCloseSideDrawer}
       >
         <div className="overflow-auto flex-1">
           <InitiativeList />
@@ -119,6 +140,7 @@ function RoomSideDrawersImpl({
         isOpen={!isThreadPaneOpen && sideDrawerState === "map"}
         width={safeMapWidth}
         direction="right"
+        onClose={handleCloseSideDrawer}
       >
         <div className="overflow-auto flex-1">
           <DNDMap />
@@ -128,6 +150,7 @@ function RoomSideDrawersImpl({
         isOpen={!isThreadPaneOpen && sideDrawerState === "clue"}
         width={clueDrawerWidth}
         direction="right"
+        onClose={handleCloseSideDrawer}
       >
         <div className="overflow-auto flex-1">
           <ClueListForPL onSend={onClueSend} />
@@ -137,6 +160,7 @@ function RoomSideDrawersImpl({
         isOpen={!isThreadPaneOpen && sideDrawerState === "export"}
         width={exportDrawerWidth}
         direction="right"
+        onClose={handleCloseSideDrawer}
       >
         <div className="overflow-auto flex-1">
           <ExportChatDrawer />
@@ -146,14 +170,13 @@ function RoomSideDrawersImpl({
         isOpen={!isThreadPaneOpen && sideDrawerState === "webgal"}
         width={webgalDrawerWidth}
         direction="right"
+        onClose={handleCloseWebgal}
       >
         <WebGALPreview
           previewUrl={realtimePreviewUrl}
           isActive={isRealtimeRenderActive}
           onClose={() => {
-            stopRealtimeRender();
-            setIsRealtimeRenderEnabled(false);
-            setSideDrawerState("none");
+            handleCloseWebgal();
           }}
         />
       </VaulSideDrawer>
