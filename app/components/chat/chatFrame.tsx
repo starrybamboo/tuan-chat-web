@@ -1022,7 +1022,7 @@ function ChatFrame(props: ChatFrameProps) {
           {/* Overlay for tint and blur */}
           <div
             ref={backgroundOverlayRef}
-            className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
+            className="absolute inset-0 bg-white/30 dark:bg-slate-950/40 backdrop-blur-xs z-0 transition-opacity duration-500"
           />
 
           {/* Pixi Overlay */}

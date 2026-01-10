@@ -26,8 +26,7 @@ function RoomHeaderBarImpl({
       <div
         className="flex justify-between items-center w-full px-2 h-10
         bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
-        border border-white/40 dark:border-white/10
-        shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+        border border-white/40 dark:border-white/10"
       >
         <div className="flex items-center gap-2">
           <div className="sm:hidden">
