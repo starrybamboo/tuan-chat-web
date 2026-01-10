@@ -1,5 +1,6 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import { useRef } from "react";
+import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -43,6 +44,10 @@ interface ChatToolbarProps {
   // 新增：当前聊天状态 & 手动切换
   currentChatStatus: "idle" | "input" | "wait" | "leave";
   onChangeChatStatus: (status: "idle" | "input" | "wait" | "leave") => void;
+  // ChatStatusBar 所需
+  statusUserId?: number | null;
+  statusWebSocketUtils?: any;
+  statusExcludeSelf?: boolean;
   // 是否是观战成员
   isSpectator?: boolean;
   // 实时渲染相关
@@ -88,6 +93,9 @@ export function ChatToolbar({
   handleMessageSubmit,
   currentChatStatus,
   onChangeChatStatus,
+  statusUserId,
+  statusWebSocketUtils,
+  statusExcludeSelf = false,
   isSpectator = false,
   isRealtimeRenderActive = false,
   onToggleRealtimeRender,
@@ -125,73 +133,19 @@ export function ChatToolbar({
   };
 
   return (
-    <div className="flex pr-1 pl-2 justify-between flex-wrap gap-y-2">
+    <div className="flex pr-1 justify-between flex-wrap gap-y-2">
       <div className="flex gap-2 flex-wrap items-center">
-        {/* 聊天状态选择器 - 观战成员不显示 */}
-        {!isSpectator && (
-          <div
-            className="dropdown dropdown-top pointer-events-auto"
-          >
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label="切换聊天状态"
-              className="min-w-0 cursor-pointer list-none px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info"
-              title="切换聊天状态"
-            >
-              <span
-                className={
-                  currentChatStatus === "input"
-                    ? "text-info"
-                    : currentChatStatus === "wait"
-                      ? "text-warning"
-                      : currentChatStatus === "leave" ? "text-error" : "opacity-70"
-                }
-              >
-                {currentChatStatus === "idle" && "空闲"}
-                {currentChatStatus === "input" && "输入中"}
-                {currentChatStatus === "wait" && "等待扮演"}
-                {currentChatStatus === "leave" && "暂离"}
-              </span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
-            </div>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm z-[9999] absolute"
-            >
-              {[
-                { value: "idle", label: "空闲", desc: "清除正在输入" },
-                { value: "input", label: "输入中", desc: "标记正在输入" },
-                { value: "wait", label: "等待扮演", desc: "等待他人行动" },
-                { value: "leave", label: "暂离", desc: "临时离开" },
-              ].map(item => (
-                <li key={item.value}>
-                  <a
-                    className={`flex flex-col gap-0.5 py-1 ${currentChatStatus === item.value ? "active bg-base-200" : ""}`}
-                    onClick={(e) => {
-                      console.warn("🔘 状态按钮被点击", {
-                        clickedValue: item.value,
-                        currentStatus: currentChatStatus,
-                        onChangeChatStatus: typeof onChangeChatStatus,
-                      });
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.warn("✅ 调用 onChangeChatStatus", item.value);
-                      onChangeChatStatus(item.value as any);
-                      // 关闭 dropdown
-                      const elem = document.activeElement as HTMLElement;
-                      if (elem) {
-                        elem.blur();
-                      }
-                    }}
-                  >
-                    <span className="leading-none">{item.label}</span>
-                    <span className="text-[10px] opacity-60 leading-none">{item.desc}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {roomId != null && statusWebSocketUtils && (
+          <ChatStatusBar
+            roomId={roomId}
+            userId={statusUserId}
+            webSocketUtils={statusWebSocketUtils}
+            excludeSelf={statusExcludeSelf}
+            currentChatStatus={currentChatStatus}
+            onChangeChatStatus={onChangeChatStatus}
+            isSpectator={isSpectator}
+            className="mb-0 -mt-0"
+          />
         )}
         <div className="dropdown dropdown-top">
           <div role="button" tabIndex={2} className="cursor-pointer" aria-label="发送表情" title="发送表情">
