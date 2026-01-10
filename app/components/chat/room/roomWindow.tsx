@@ -147,10 +147,20 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
 
-  const curRoleId = curRoleIdMap[roomId] ?? roomRolesThatUserOwn[0]?.roleId ?? -1;
+  const storedRoleId = curRoleIdMap[roomId];
+  const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? -1;
+  const curRoleId = (storedRoleId == null)
+    ? fallbackRoleId
+    : (storedRoleId <= 0 && !spaceContext.isSpaceOwner)
+        ? fallbackRoleId
+        : storedRoleId;
   const setCurRoleId = useCallback((roleId: number) => {
+    if (roleId <= 0 && !spaceContext.isSpaceOwner) {
+      toast.error("只有KP可以使用旁白");
+      return;
+    }
     setCurRoleIdForRoom(roomId, roleId);
-  }, [roomId, setCurRoleIdForRoom]);
+  }, [roomId, setCurRoleIdForRoom, spaceContext.isSpaceOwner]);
 
   const curAvatarId = curAvatarIdMap[curRoleId] ?? -1;
   const setCurAvatarId = useCallback((_avatarId: number) => {
@@ -562,14 +572,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
 
-    // WebGAL 联动模式下允许无角色发送（作为旁白）
-    const disableSendMessage = (noRole && !webgalLinkMode) || notMember || noInput || isSubmitting;
+    const isKP = spaceContext.isSpaceOwner;
+    const isNarrator = noRole;
+
+    // 旁白不再依赖联动模式，但仅KP可用
+    const disableSendMessage = (notMember || noInput || isSubmitting)
+      || (isNarrator && !isKP);
 
     if (disableSendMessage) {
       if (notMember)
         toast.error("您是观战，不能发送消息");
-      else if (noRole && !webgalLinkMode)
-        toast.error("请先拉入你的角色，之后才能发送消息。");
+      else if (isNarrator && !isKP)
+        toast.error("旁白仅KP可用，请先选择/拉入你的角色");
       else if (noInput)
         toast.error("请输入内容");
       else if (isSubmitting)
@@ -840,11 +854,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const placeholderText = (() => {
+    const isKP = spaceContext.isSpaceOwner;
     if (notMember) {
       return "你是观战成员，不能发送消息";
     }
-    if (noRole) {
+    if (noRole && !isKP) {
       return "请先拉入你的角色，之后才能发送消息。";
+    }
+    if (noRole && isKP) {
+      return "旁白模式：在此输入消息...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
     }
     if (curAvatarId <= 0) {
       return "请为你的角色添加至少一个表情差分（头像）。";

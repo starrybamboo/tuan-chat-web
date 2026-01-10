@@ -4,13 +4,14 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRingLight, NarratorIcon } from "@/icons";
+import { toast } from "react-hot-toast";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export function ExpressionChooser({
   roleId,
   handleExpressionChange,
   handleRoleChange,
-  showNarratorOption = false,
+  showNarratorOption = true,
 }: {
   roleId: number;
   handleExpressionChange: (avatarId: number) => void;
@@ -20,6 +21,8 @@ export function ExpressionChooser({
 }) {
   const roomContext = use(RoomContext);
   const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
+
+  const isKP = (roomContext.curMember?.memberType ?? -1) === 1;
 
   const selectedRoleId = roleId;
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
@@ -36,6 +39,10 @@ export function ExpressionChooser({
 
   // 切换到旁白模式
   const handleNarratorSelect = () => {
+    if (!isKP) {
+      toast.error("只有KP可以使用旁白");
+      return;
+    }
     handleRoleChange(-1); // roleId <= 0 表示旁白
   };
 
@@ -49,7 +56,9 @@ export function ExpressionChooser({
           {showNarratorOption && (
             <div
               onClick={handleNarratorSelect}
-              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-base-200 transition-colors ${
+              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                isKP ? "cursor-pointer hover:bg-base-200" : "cursor-not-allowed opacity-60"
+              } ${
                 isNarratorMode ? "bg-base-200 ring-2 ring-secondary/30" : ""
               }`}
             >
@@ -58,7 +67,7 @@ export function ExpressionChooser({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">旁白</div>
-                <div className="text-xs text-base-content/50">无角色叙述</div>
+                <div className="text-xs text-base-content/50">{isKP ? "无角色叙述" : "仅KP可用"}</div>
                 {isNarratorMode && (
                   <div className="text-xs text-secondary mt-1">已选中</div>
                 )}
@@ -66,7 +75,7 @@ export function ExpressionChooser({
             </div>
           )}
           {
-            availableRoles.length === 0 && !showNarratorOption && (
+            availableRoles.length === 0 && (!showNarratorOption || !isKP) && (
               <div className="text-center text-sm text-gray-500 py-4">无可用角色</div>
             )
           }
