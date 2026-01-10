@@ -674,7 +674,7 @@ export default function ChatPage() {
                       }}
                       onSpaceContextMenu={handleSpaceContextMenu}
                     />
-                    <div className="w-px bg-base-300"></div>
+                    {/* <div className="w-px bg-base-300"></div> */}
                     {/* 房间列表 */}
                     <ChatRoomListPanel
                       isPrivateChatMode={isPrivateChatMode}
