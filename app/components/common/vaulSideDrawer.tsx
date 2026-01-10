@@ -56,9 +56,16 @@ export function VaulSideDrawer({
       return;
     }
 
-    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+    const handleDocumentClick = (event: MouseEvent) => {
       const target = event.target as Node | null;
       if (!target) {
+        return;
+      }
+      if (target instanceof Element && target.closest("[data-side-drawer-toggle=\"true\"]")) {
+        return;
+      }
+      const modalRoot = document.getElementById("modal-root");
+      if (modalRoot?.contains(target)) {
         return;
       }
       if (drawerRef.current?.contains(target)) {
@@ -67,11 +74,9 @@ export function VaulSideDrawer({
       onClose();
     };
 
-    document.addEventListener("mousedown", handlePointerDown, true);
-    document.addEventListener("touchstart", handlePointerDown, true);
+    document.addEventListener("click", handleDocumentClick);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown, true);
-      document.removeEventListener("touchstart", handlePointerDown, true);
+      document.removeEventListener("click", handleDocumentClick);
     };
   }, [mounted, onClose]);
 

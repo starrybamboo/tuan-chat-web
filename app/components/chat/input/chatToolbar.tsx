@@ -453,6 +453,7 @@ export function ChatToolbar({
             <div
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="查看线索"
+              data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
             >
               <Detective className="size-6"></Detective>
@@ -461,6 +462,7 @@ export function ChatToolbar({
             <div
               className="tooltip tooltip-bottom"
               data-tip="展示先攻表"
+              data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
             >
               <SwordSwing className="size-6 jump_icon"></SwordSwing>
@@ -469,6 +471,7 @@ export function ChatToolbar({
             <div
               className="tooltip tooltip-bottom"
               data-tip="地图"
+              data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
             >
               <PointOnMapPerspectiveLinear className="size-6 jump_icon"></PointOnMapPerspectiveLinear>
