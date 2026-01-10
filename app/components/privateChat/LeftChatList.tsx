@@ -1,6 +1,6 @@
+import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
 import { useNavigate, useParams } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { UsersIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import ChatList from "./components/ChatList";
 import ContextMenuCommon from "./components/ContextMenuCommon";
@@ -23,7 +23,6 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const currentContactUserId = urlRoomId
     ? Number.parseInt(urlRoomId)
     : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
-  const isFriendsPage = currentContactUserId === null;
 
   // 私聊列表相关数据和操作
   const {
@@ -61,7 +60,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   return (
     <div
-      className="flex flex-col h-full bg-base-100"
+      className="rounded-tl-xl flex flex-col h-full bg-base-200"
       onContextMenu={(e) => {
         e.stopPropagation();
       }}
@@ -70,26 +69,44 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
         className="flex-1 w-full"
         style={customScrollbarStyle}
       >
-        <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
-          <span className="text-lg transform -translate-y-0.5">
-            {isShowFriendsList ? "好友" : "私信"}
-          </span>
-        </div>
+        <div className="flex items-center justify-between h-10 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
+          <div className="flex items-center justify-start gap-2 min-w-0 flex-1">
+            <ChatCircleIcon className="size-4 opacity-70 inline-block" weight="fill" />
+            <span className="text-base font-bold truncate leading-none min-w-0 flex-1 text-left">
+              {isShowFriendsList ? "好友" : "私信"}
+            </span>
+          </div>
 
-        <div className="px-2 pt-2">
-          <button
-            type="button"
-            className={`btn btn-ghost w-full justify-start gap-2 ${isFriendsPage ? "bg-base-200" : ""}`}
-            onClick={() => {
-              navigate("/chat/private");
-              setTimeout(() => {
-                setIsOpenLeftDrawer(false);
-              }, 0);
-            }}
-          >
-            <UsersIcon className="size-5 opacity-70" />
-            <span>好友</span>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square"
+              aria-label="好友列表"
+              title="好友列表"
+              onClick={() => {
+                navigate("/chat/private?tab=all");
+                setTimeout(() => {
+                  setIsOpenLeftDrawer(false);
+                }, 0);
+              }}
+            >
+              <UserListIcon className="size-6 opacity-70" weight="fill" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square"
+              aria-label="添加好友"
+              title="添加好友"
+              onClick={() => {
+                navigate("/chat/private?tab=add");
+                setTimeout(() => {
+                  setIsOpenLeftDrawer(false);
+                }, 0);
+              }}
+            >
+              <UserCirclePlusIcon className="size-6 opacity-70" weight="fill" />
+            </button>
+          </div>
         </div>
 
         {isLoading

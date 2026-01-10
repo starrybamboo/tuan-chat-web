@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, UsersIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, HouseIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon } from "@phosphor-icons/react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索
@@ -530,24 +530,7 @@ export function CompassIcon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：首页，家，主页面
 export function HomeIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      >
-        <path d="M3 9l9-7l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path>
-        <path d="M9 22V12h6v10"></path>
-      </g>
-    </svg>
+    <HouseIcon {...props} />
   );
 }
 
@@ -1678,19 +1661,7 @@ export function Edit2Outline(props: SVGProps<SVGSVGElement>) {
 // 垃圾桶图标
 export function BaselineDeleteOutline(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM8 9h8v10H8zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"
-      >
-      </path>
-    </svg>
+    <TrashSimpleIcon {...props} />
   );
 }
 // 任务提醒图标

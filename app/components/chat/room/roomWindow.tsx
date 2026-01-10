@@ -968,7 +968,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           }}
         />
         <div
-          className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs transition-opacity duration-500 z-0"
+          className="absolute inset-0 bg-white/30 dark:bg-slate-950/40 backdrop-blur-xs transition-opacity duration-500 z-0"
           style={{
             opacity: backgroundUrl ? 1 : 0,
           }}

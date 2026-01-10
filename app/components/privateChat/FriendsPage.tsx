@@ -1,5 +1,4 @@
 import type { FriendResponse } from "api/models/FriendResponse";
-
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -10,9 +9,9 @@ import {
   useSendFriendRequestMutation,
 } from "api/hooks/friendQueryHooks";
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, UsersIcon, XMarkICon } from "@/icons";
+import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, SearchFilled, XMarkICon } from "@/icons";
 
 type FriendsTab = "all" | "pending" | "add";
 type AddFriendSearchMode = "id" | "username";
@@ -27,12 +26,16 @@ export default function FriendsPage({
 
   const [tab, setTab] = useState<FriendsTab>("all");
   const [friendKeyword, setFriendKeyword] = useState("");
+  const friendSearchInputRef = useRef<HTMLInputElement>(null);
 
   // 允许通过 URL 控制默认页签：/chat/private?tab=pending
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam === "all" || tabParam === "pending" || tabParam === "add") {
       setTab(tabParam);
+    }
+    else {
+      setTab("all");
     }
   }, [searchParams]);
 
@@ -58,6 +61,10 @@ export default function FriendsPage({
     const list = friendRequestPageQuery.data?.data?.list || [];
     return list.filter((r: any) => r?.type === "received" && r?.status === 1);
   }, [friendRequestPageQuery.data]);
+
+  const showTopSubBar = tab === "all" || tab === "pending";
+  const topSubBarLabel = tab === "pending" ? "待处理请求" : "好友总数";
+  const topSubBarCount = tab === "pending" ? pendingReceivedRequests.length : friendUserInfos.length;
 
   const acceptFriendRequestMutation = useAcceptFriendRequestMutation();
   const rejectFriendRequestMutation = useRejectFriendRequestMutation();
@@ -138,103 +145,128 @@ export default function FriendsPage({
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-base-100">
+    <div className="flex flex-col h-full w-full bg-white/30 dark:bg-slate-950/30">
       {/* 顶部栏 */}
-      <div className="h-12 w-full border-b border-base-300 flex items-center gap-3 px-4">
-        <ChevronRight
-          onClick={() => setIsOpenLeftDrawer(true)}
-          className="size-6 sm:hidden"
-        />
-        <div className="flex items-center gap-2 min-w-0">
-          <UsersIcon className="size-5 opacity-70" />
-          <span className="font-semibold">好友</span>
-        </div>
+      <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-10">
+        <div
+          className="flex justify-between items-center w-full px-2 h-10
+          bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
+          border border-white/40 dark:border-white/10"
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="sm:hidden">
+              <button
+                type="button"
+                aria-label="打开左侧边栏"
+                className="btn btn-ghost btn-square btn-sm"
+                onClick={() => setIsOpenLeftDrawer(true)}
+              >
+                <ChevronRight className="size-6" />
+              </button>
+            </div>
+            <span className="text-base font-bold truncate leading-none min-w-0 text-left ml-3">
+              # 好友列表
+            </span>
 
-        {/* 交互左对齐：全部/待处理同组切换，添加好友单独强调 */}
-        <div className="flex items-center gap-2">
-          <div className="join">
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${tab === "all" ? "btn-active" : "btn-ghost"}`}
-              onClick={() => setTab("all")}
-            >
-              全部
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${tab === "pending" ? "btn-active" : "btn-ghost"}`}
-              onClick={() => setTab("pending")}
-            >
-              <span className="indicator">
-                {pendingBadgeText && (
-                  <span className="indicator-item badge badge-error badge-xs">
-                    {pendingBadgeText}
-                  </span>
-                )}
-                <span>
-                  待处理
+            <span aria-hidden="true" className="mx-1 text-base-content/50">
+              •
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={`btn btn-sm rounded-md border border-gray-300 dark:border-gray-700 ${tab === "all" ? "btn-active" : "btn-ghost"}`}
+                onClick={() => setTab("all")}
+              >
+                全部
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm rounded-md border border-gray-300 dark:border-gray-700 ${tab === "pending" ? "btn-active" : "btn-ghost"}`}
+                onClick={() => setTab("pending")}
+              >
+                <span className="indicator">
+                  {pendingBadgeText && (
+                    <span className="indicator-item badge badge-error badge-xs">
+                      {pendingBadgeText}
+                    </span>
+                  )}
+                  <span>待处理</span>
                 </span>
-              </span>
-            </button>
+              </button>
+            </div>
           </div>
-
-          <button
-            type="button"
-            className={`btn btn-sm ${tab === "add" ? "btn-success" : "btn-outline btn-success"}`}
-            onClick={() => setTab("add")}
-          >
-            添加好友
-          </button>
         </div>
       </div>
 
       {/* 内容区：中间列表 + 右侧活动 */}
       <div className="flex flex-1 min-h-0">
         {/* 中间 */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          {/* 搜索（仅在线/全部） */}
+        <div className="flex-1 min-w-0 flex flex-col px-6">
           {tab === "all" && (
-            <div className="px-4 py-3">
-              <div className="relative">
-                <input
-                  type="text"
-                  className="input input-sm w-full"
-                  placeholder="搜索"
-                  value={friendKeyword}
-                  onChange={e => setFriendKeyword(e.target.value)}
-                />
-                {friendKeyword
-                  ? (
+            <div className="mt-2 py-2">
+              <div className="relative w-full">
+                <div className="border border-gray-300 dark:border-gray-700 flex h-10 items-center gap-1 bg-base-200 rounded-lg overflow-hidden">
+                  <div className="flex h-full items-center flex-1 px-3">
+                    <input
+                      ref={friendSearchInputRef}
+                      type="text"
+                      placeholder="搜索好友..."
+                      className="bg-transparent border-none outline-none flex-1 text-sm placeholder:text-base-content/60"
+                      value={friendKeyword}
+                      onChange={e => setFriendKeyword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setFriendKeyword("");
+                        }
+                      }}
+                    />
+                    {friendKeyword && (
                       <button
                         type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-square"
                         onClick={() => setFriendKeyword("")}
+                        className="flex items-center justify-center text-base-content/60 hover:text-base-content transition-colors ml-2"
                         aria-label="清空"
                       >
                         <XMarkICon className="size-4" />
                       </button>
-                    )
-                  : (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60">
-                        <Search className="size-4" />
-                      </div>
                     )}
+                  </div>
+                  <button
+                    type="button"
+                    className="h-full px-3 flex items-center justify-center text-base-content/60 hover:text-info hover:bg-base-300 transition-colors"
+                    disabled={!friendKeyword.trim()}
+                    aria-label="搜索"
+                    onClick={() => friendSearchInputRef.current?.focus()}
+                  >
+                    <SearchFilled className="size-4" />
+                  </button>
+                </div>
               </div>
+            </div>
+          )}
+          {showTopSubBar && (
+            <div className="py-4 border-b border-gray-300 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium opacity-80">
+                  {topSubBarLabel}
+                  {" "}
+                  -
+                  {" "}
+                  {topSubBarCount}
+                </div>
 
-              <div className="text-xs opacity-70 mt-3">
-                好友总数 —
-                {friendUserInfos.length}
               </div>
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-auto px-2 pb-2">
+          <div className="flex-1 min-h-0 overflow-auto pb-2">
             {tab === "all" && (
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-2 w-full py-2">
                 {filteredFriends.map((friend, index) => (
                   <div
                     key={friend?.userId || index}
-                    className="w-full text-left flex items-center justify-between hover:bg-base-200 rounded-md px-3 py-2"
+                    className="w-full text-left flex items-center justify-between hover:bg-base-300 rounded-md h-16"
                     onClick={() => navigate(`/chat/private/${friend?.userId}`)}
                     role="button"
                     tabIndex={0}
@@ -247,21 +279,25 @@ export default function FriendsPage({
                       }
                     }}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="avatar w-9">
-                        <img
-                          className="rounded-full"
-                          src={friend?.avatar}
-                          alt={friend?.username}
-                        />
-                      </div>
-                      <div className="min-w-0 flex items-center gap-2">
-                        <div className="min-w-0">
-                          <div className="font-medium truncate">
-                            {friend?.username || `用户${friend?.userId}`}
-                          </div>
-                          <div className="text-xs opacity-70 truncate">{friend?.userId}</div>
+                    <div className="flex items-center gap-3 min-w-0 justify-between w-full">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className="avatar w-12">
+                          <img
+                            className="rounded-full"
+                            src={friend?.avatar}
+                            alt={friend?.username}
+                          />
                         </div>
+                        <div className="min-w-0 flex items-center gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">
+                              {friend?.username || `用户${friend?.userId}`}
+                            </div>
+                            <div className="text-xs opacity-70 truncate">{friend?.userId}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0 items-center">
                         {/* 交互左对齐：把“主页”按钮放到左侧信息区 */}
                         <button
                           type="button"
@@ -273,7 +309,7 @@ export default function FriendsPage({
                           aria-label="查看主页"
                           title="前往主页"
                         >
-                          <HomeIcon className="size-4" />
+                          <HomeIcon className="size-6" />
                         </button>
 
                         <button
@@ -284,7 +320,7 @@ export default function FriendsPage({
                             e.stopPropagation();
                             if (!friend?.userId)
                               return;
-                            // eslint-disable-next-line no-alert
+                              // eslint-disable-next-line no-alert
                             const ok = window.confirm(`确定删除好友「${friend?.username || friend.userId}」吗？`);
                             if (!ok)
                               return;
@@ -293,7 +329,7 @@ export default function FriendsPage({
                           aria-label="删除好友"
                           title="删除好友"
                         >
-                          <BaselineDeleteOutline className="size-4" />
+                          <BaselineDeleteOutline className="size-6" />
                         </button>
                       </div>
                     </div>
@@ -380,57 +416,60 @@ export default function FriendsPage({
             {/* 添加好友 */}
             {tab === "add" && (
               <div className="px-4 pt-4">
-                <div className="font-semibold">添加好友</div>
-                <div className="text-xs opacity-70 mt-1">通过用户ID或用户名发送好友申请。</div>
+                <div className="rounded-xl border border-base-300 bg-base-200/40 p-4 sm:p-6">
+                  <div className="text-lg font-semibold">添加好友</div>
+                  <div className="text-sm opacity-70 mt-1">通过用户ID或用户名发送好友申请。</div>
 
-                <div className="mt-4">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="input input-md w-full"
-                      placeholder="输入用户ID或用户名，按 Enter 或点击搜索"
-                      value={inputKeyword}
-                      onChange={(e) => {
-                        setInputKeyword(e.target.value);
-                        if (!e.target.value.trim()) {
-                          setSearching(false);
-                          setSearchUserId(-1);
-                          setSearchUsername("");
-                          setSearchMode("id");
-                          setNotice("");
-                          setVerifyMsg("");
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          searchInputKeyword();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-sm btn-square"
-                      onClick={searchInputKeyword}
-                      aria-label="搜索"
-                    >
-                      <Search className="size-5" />
-                    </button>
-                    <button
-                      type="button"
-                      className="absolute right-12 top-1/2 -translate-y-1/2 btn btn-ghost btn-sm btn-square"
-                      onClick={() => {
-                        setInputKeyword("");
-                        setSearching(false);
-                        setSearchUserId(-1);
-                        setSearchUsername("");
-                        setSearchMode("id");
-                        setNotice("");
-                        setVerifyMsg("");
-                      }}
-                      aria-label="清空"
-                    >
-                      <XMarkICon className="size-5" />
-                    </button>
+                  <div className="mt-4">
+                    <div className="flex flex-col gap-2 rounded-xl border border-base-300 bg-base-100 px-3 py-2 sm:flex-row sm:items-center">
+                      <input
+                        type="text"
+                        className="input input-md w-full bg-transparent border-none focus:outline-none sm:flex-1"
+                        placeholder="输入用户ID或用户名，按 Enter 或点击搜索"
+                        value={inputKeyword}
+                        onChange={(e) => {
+                          setInputKeyword(e.target.value);
+                          if (!e.target.value.trim()) {
+                            setSearching(false);
+                            setSearchUserId(-1);
+                            setSearchUsername("");
+                            setSearchMode("id");
+                            setNotice("");
+                            setVerifyMsg("");
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            searchInputKeyword();
+                          }
+                        }}
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm btn-square"
+                          onClick={() => {
+                            setInputKeyword("");
+                            setSearching(false);
+                            setSearchUserId(-1);
+                            setSearchUsername("");
+                            setSearchMode("id");
+                            setNotice("");
+                            setVerifyMsg("");
+                          }}
+                          aria-label="清空"
+                        >
+                          <XMarkICon className="size-5" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={searchInputKeyword}
+                        >
+                          <Search className="size-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   {notice && (
@@ -598,7 +637,7 @@ export default function FriendsPage({
         </div>
 
         {/* 右侧：当前活动（Discord 风格，桌面展示） */}
-        <div className="hidden lg:flex w-80 border-l border-base-300 bg-base-200/20 flex-col p-4">
+        <div className="hidden lg:flex w-80 border-l border-base-300 bg-base-200 flex-col p-4">
           <div className="font-semibold">当前活动</div>
           <div className="mt-6 text-center">
             <div className="font-bold">现在还安静……</div>

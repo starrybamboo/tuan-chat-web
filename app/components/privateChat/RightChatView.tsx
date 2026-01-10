@@ -23,7 +23,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
 
   return (
     <div
-      className="flex-1 bg-base-100 border-l border-base-300 flex flex-col"
+      className="w-full h-full bg-base-100 border-l border-base-300 flex flex-col"
       onContextMenu={handleContextMenu}
       onClick={() => setContextMenu(null)}
     >

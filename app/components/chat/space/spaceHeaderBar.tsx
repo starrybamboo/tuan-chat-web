@@ -14,12 +14,12 @@ export interface SpaceHeaderBarProps {
 
 export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember }: SpaceHeaderBarProps) {
   return (
-    <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl">
-      <div className="dropdown dropdown-bottom min-w-0 ml-1">
+    <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
+      <div className="dropdown dropdown-bottom min-w-0">
         <button
           type="button"
           tabIndex={0}
-          className="btn btn-ghost btn-sm px-2 min-w-0 gap-2 justify-start rounded-lg w-full"
+          className="btn btn-ghost btn-sm px-0 min-w-0 gap-2 justify-start rounded-lg w-full"
           aria-label="空间选项"
         >
           <HouseIcon className="size-4 opacity-70 inline-block" weight="fill" />
