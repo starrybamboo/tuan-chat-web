@@ -13,6 +13,7 @@ interface ChatStatusBarProps {
   currentChatStatus?: ChatStatusType | "idle";
   onChangeChatStatus?: (status: ChatStatusType | "idle") => void;
   isSpectator?: boolean;
+  compact?: boolean;
 }
 
 /**
@@ -31,6 +32,7 @@ export default function ChatStatusBar({
   currentChatStatus,
   onChangeChatStatus,
   isSpectator = false,
+  compact = false,
 }: ChatStatusBarProps) {
   const grouped = useMemo(() => {
     const statusPriority: ChatStatusType[] = ["input", "wait", "leave"]; // idle 不展示
@@ -69,7 +71,7 @@ export default function ChatStatusBar({
   const resolveUserNameNode = (uid: number) => <UserIdToName userId={uid} className="inline" />;
 
   return (
-    <div className={`mb-1 -mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/80 ${className ?? ""}`}>
+    <div className={`${compact ? "mb-0 mt-0" : "mb-1 -mt-1"} flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/80 ${className ?? ""}`}>
       <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-base-200 border border-base-300">
         {showSelector && (
           <div className="dropdown dropdown-top pointer-events-auto">

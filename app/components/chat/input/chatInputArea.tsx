@@ -190,6 +190,14 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     return { before: beforeRange.toString(), after: afterRange.toString() };
   };
 
+  const updateHasTextFlag = () => {
+    const editor = internalTextareaRef.current;
+    if (!editor)
+      return;
+    const text = editor.textContent ?? "";
+    editor.dataset.hasText = text.trim().length > 0 ? "true" : "false";
+  };
+
   /**
    * [事件] 处理输入。这是连接 DOM 和 React 状态的核心桥梁。
    */
@@ -197,6 +205,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     // 解析内容并将纯文本和提及列表发送给父组件
     const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
     props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
+    updateHasTextFlag();
   };
 
   /**
@@ -238,6 +247,10 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     // 如果既没有图片也没有纯文本，允许默认行为（例如复杂 HTML 由浏览器处理）
   };
 
+  React.useEffect(() => {
+    updateHasTextFlag();
+  }, []);
+
   // --- 暴露 Ref API ---
   useImperativeHandle(ref, () => ({
     /**
@@ -246,6 +259,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     setContent: (htmlContent: string) => {
       if (internalTextareaRef.current) {
         internalTextareaRef.current.innerHTML = htmlContent;
+        updateHasTextFlag();
 
         // 将光标移动到末尾
         if (htmlContent) {

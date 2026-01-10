@@ -14,11 +14,15 @@ export default function AvatarSwitch({
   curAvatarId,
   setCurAvatarId,
   setCurRoleId,
+  layout = "vertical",
+  dropdownPosition = "top",
 }: {
   curRoleId: number;
   curAvatarId: number;
   setCurAvatarId: (value: number) => void;
   setCurRoleId: (value: number) => void;
+  layout?: "vertical" | "horizontal";
+  dropdownPosition?: "top" | "bottom";
 }) {
   const roomContext = use(RoomContext);
   const _webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
@@ -60,18 +64,29 @@ export default function AvatarSwitch({
   }, [setCurAvatarId, roleAvatars, curAvatarId, currentRole]);
 
   // WebGAL 联动模式下的旁白模式
+  const isHorizontal = layout === "horizontal";
+  const wrapperClassName = isHorizontal
+    ? `dropdown dropdown-${dropdownPosition} flex items-center gap-2`
+    : `dropdown dropdown-${dropdownPosition} flex-shrink-0 w-10 md:w-14`;
+  const tooltipClassName = isHorizontal
+    ? "tooltip flex items-center gap-2"
+    : "tooltip flex justify-center flex-col items-center space-y-2";
+  const nameClassName = isHorizontal
+    ? "text-sm truncate max-w-[140px] text-left cursor-text"
+    : "text-sm truncate w-full text-center cursor-text";
+
   if (isNarratorMode) {
     return (
-      <div className="dropdown dropdown-top flex-shrink-0 w-10 md:w-14">
+      <div className={wrapperClassName}>
         <div role="button" tabIndex={0} className="">
           <div
-            className="tooltip flex justify-center flex-col items-center space-y-2"
+            className={tooltipClassName}
             data-tip="当前为旁白模式，点击切换角色"
           >
             <div className="size-10 md:size-14 rounded-full bg-base-300 flex items-center justify-center">
               <NarratorIcon className="size-6 md:size-8 text-base-content/60" />
             </div>
-            <div className="text-sm truncate w-full text-center text-base-content/60">
+            <div className={`${isHorizontal ? "text-left" : "text-center"} text-sm truncate w-full text-base-content/60`}>
               旁白
             </div>
           </div>
@@ -107,9 +122,9 @@ export default function AvatarSwitch({
   }
 
   return (
-    <div className="dropdown dropdown-top flex-shrink-0 w-10 md:w-14 ">
+    <div className={wrapperClassName}>
       <div
-        className="tooltip flex justify-center flex-col items-center space-y-2"
+        className={tooltipClassName}
         data-tip="切换角色和表情"
       >
         <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
@@ -125,7 +140,7 @@ export default function AvatarSwitch({
 
         {!isEditingName && (
           <div
-            className="text-sm truncate w-full text-center cursor-text"
+            className={nameClassName}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -140,7 +155,7 @@ export default function AvatarSwitch({
 
         {isEditingName && (
           <input
-            className="input input-xs input-bordered w-full text-center bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info"
+            className={`input input-xs input-bordered w-full ${isHorizontal ? "text-left" : "text-center"} bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info`}
             value={editingName}
             autoFocus
             onClick={(e) => {

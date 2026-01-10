@@ -8,20 +8,24 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 // *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 // hooks (local)
 import ChatFrame from "@/components/chat/chatFrame";
+import ChatStatusBar from "@/components/chat/chatStatusBar";
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
+import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import BgmFloatingBall from "@/components/chat/room/bgmFloatingBall";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomPopWindows from "@/components/chat/room/roomPopWindows";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
+import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
@@ -32,7 +36,9 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { NarratorIcon, UserSwitchIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -76,6 +82,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
+  const [sidebarCardHost, setSidebarCardHost] = useState<HTMLElement | null>(null);
+  const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    setSidebarCardHost(document.getElementById("chat-sidebar-user-card"));
+  }, []);
 
   // 输入区编辑态：放入 zustand store，避免 RoomWindow 每次敲字重渲染
   const resetChatInputUi = useChatInputUiStore(state => state.reset);
@@ -166,6 +181,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const setCurAvatarId = useCallback((_avatarId: number) => {
     setCurAvatarIdForRole(curRoleId, _avatarId);
   }, [curRoleId, setCurAvatarIdForRole]);
+
+  const currentRole = useMemo(() => {
+    return roomRolesThatUserOwn.find(role => role.roleId === curRoleId);
+  }, [roomRolesThatUserOwn, curRoleId]);
+
+  const displayRoleName = useMemo(() => {
+    if (curRoleId <= 0) {
+      return "旁白";
+    }
+    const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
+    return draftName || currentRole?.roleName || "未选择角色";
+  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap]);
 
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
@@ -939,6 +966,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
+  const [currentEffect, setCurrentEffect] = useState<string | null>(null);
   useEffect(() => {
     if (backgroundUrl) {
       const id = setTimeout(() => setDisplayedBgUrl(backgroundUrl), 0);
@@ -946,8 +974,69 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
   }, [backgroundUrl]);
 
+  const sidebarUserCard = sidebarCardHost
+    ? createPortal(
+        <div className="w-full">
+          <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 px-2 py-2 shadow-sm">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {curRoleId <= 0
+                ? (
+                    <div className="size-10 rounded-full bg-base-300 flex items-center justify-center flex-shrink-0">
+                      <NarratorIcon className="size-6 text-base-content/60" />
+                    </div>
+                  )
+                : (
+                    <RoleAvatarComponent
+                      avatarId={curAvatarId}
+                      width={10}
+                      isRounded={true}
+                      withTitle={false}
+                      stopPopWindow={true}
+                      alt={displayRoleName || "无头像"}
+                    />
+                  )}
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium truncate">{displayRoleName}</div>
+                <ChatStatusBar
+                  roomId={roomId}
+                  userId={Number(userId)}
+                  webSocketUtils={webSocketUtils}
+                  excludeSelf={true}
+                  currentChatStatus={myStatue as any}
+                  onChangeChatStatus={handleManualStatusChange}
+                  isSpectator={isSpectator}
+                  compact={true}
+                  className="mt-0.5"
+                />
+              </div>
+            </div>
+            <div className="dropdown dropdown-top dropdown-end">
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                aria-label="切换角色"
+                title="切换角色"
+              >
+                <UserSwitchIcon className="size-6" />
+              </button>
+              <ul className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-md p-2 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden">
+                <ExpressionChooser
+                  roleId={curRoleId}
+                  handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
+                  handleRoleChange={roleId => setCurRoleId(roleId)}
+                  showNarratorOption={true}
+                />
+              </ul>
+            </div>
+          </div>
+        </div>,
+        sidebarCardHost,
+      )
+    : null;
+
   return (
     <RoomContext value={roomContext}>
+      {sidebarUserCard}
       <RoomSideDrawerGuards spaceId={spaceId} />
       <RealtimeRenderOrchestrator
         spaceId={spaceId}
@@ -974,6 +1063,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           }}
         />
 
+        {/* Pixi 特效层：覆盖 header + 主聊天区 + 输入区（在 UI 内容之下） */}
+        <PixiOverlay effectName={currentEffect} />
+
         <div className="relative z-10 flex flex-col h-full min-h-0">
           <RoomHeaderBar
             roomName={room?.name}
@@ -983,13 +1075,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <div className="flex-1 w-full flex min-h-0">
               {/* 主聊天区（可点击切换输入目标） */}
               <div
-                className={`bg-transparent flex-1 flex-shrink-0 ${composerTarget === "main" ? "ring-2 ring-info/40 ring-inset" : ""}`}
+                className={`bg-transparent flex-1 flex-shrink-0 ${composerTarget === "main" ? "" : ""}`}
                 onMouseDown={() => setComposerTarget("main")}
               >
                 <ChatFrame
                   key={roomId}
                   virtuosoRef={virtuosoRef}
                   onBackgroundUrlChange={setBackgroundUrl}
+                  onEffectChange={setCurrentEffect}
                 >
                 </ChatFrame>
               </div>

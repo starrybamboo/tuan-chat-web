@@ -79,6 +79,14 @@ interface ChatToolbarProps {
   onInsertWebgalCommandPrefix?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
+  layout?: "stacked" | "inline";
+  showStatusBar?: boolean;
+  showWebgalLinkToggle?: boolean;
+  showRunModeToggle?: boolean;
+  showMainActions?: boolean;
+  showSendButton?: boolean;
+  showWebgalControls?: boolean;
+  showRunControls?: boolean;
 }
 
 export function ChatToolbar({
@@ -114,8 +122,17 @@ export function ChatToolbar({
   onClearFigure,
   onInsertWebgalCommandPrefix,
   setAudioFile,
+  layout = "stacked",
+  showStatusBar = true,
+  showWebgalLinkToggle = true,
+  showRunModeToggle = true,
+  showMainActions = true,
+  showSendButton = true,
+  showWebgalControls = true,
+  showRunControls = true,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const isInline = layout === "inline";
 
   const bgmTrack = useBgmStore(state => (roomId != null ? state.trackByRoomId[roomId] : undefined));
   const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
@@ -133,9 +150,9 @@ export function ChatToolbar({
   };
 
   return (
-    <div className="flex pr-1 justify-between flex-wrap gap-y-2">
-      <div className="flex gap-2 flex-wrap items-center">
-        {roomId != null && statusWebSocketUtils && (
+    <div className={`flex ${isInline ? "mt-2 items-start gap-2 flex-nowrap" : "pr-1 justify-between flex-wrap gap-y-2"}`}>
+      <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap"}`}>
+        {showStatusBar && roomId != null && statusWebSocketUtils && (
           <ChatStatusBar
             roomId={roomId}
             userId={statusUserId}
@@ -147,136 +164,140 @@ export function ChatToolbar({
             className="mb-0 -mt-0"
           />
         )}
-        <div className="dropdown dropdown-top">
-          <div role="button" tabIndex={2} className="cursor-pointer" aria-label="发送表情" title="发送表情">
-            <div
-              className="tooltip tooltip-bottom"
-              data-tip="发送表情"
-            >
-              <EmojiIconWhite className="size-6 jump_icon"></EmojiIconWhite>
-            </div>
-          </div>
-          <ul
-            tabIndex={2}
-            className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
-          >
-            <EmojiWindow onChoose={async (emoji) => {
-              updateEmojiUrls((draft) => {
-                const newUrl = emoji?.imageUrl;
-                if (newUrl && !draft.includes(newUrl)) {
-                  draft.push(newUrl);
-                }
-              });
-            }}
-            >
-            </EmojiWindow>
-          </ul>
-        </div>
-
-        {/* 发送图片 */}
-        <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-          draft.push(newImg);
-        })}
-        >
-          <div className="tooltip tooltip-bottom" data-tip="发送图片">
-            <GalleryBroken className="size-6 cursor-pointer jump_icon"></GalleryBroken>
-          </div>
-        </ImgUploader>
-
-        {/* 发送音频 */}
-        {setAudioFile && (
-          <div className="tooltip tooltip-bottom" data-tip="发送音频">
-            <MusicNote
-              className="size-6 cursor-pointer jump_icon relative -top-px"
-              onClick={() => audioInputRef.current?.click()}
-            />
-            <input
-              type="file"
-              ref={audioInputRef}
-              className="hidden"
-              accept="audio/*"
-              title="选择音频文件"
-              aria-label="选择音频文件"
-              onChange={handleAudioSelect}
-            />
-          </div>
-        )}
-
-        {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
-        {roomId != null && bgmTrack && (
-          <div className="tooltip tooltip-bottom" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
-            <button
-              type="button"
-              className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
-              disabled={bgmDismissed}
-              onClick={() => void bgmToggle(roomId)}
-            >
-              {bgmIsPlaying ? "关闭BGM" : "开启BGM"}
-            </button>
-          </div>
-        )}
-
-        {/* KP：停止全员BGM（发送系统消息） */}
-        {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
-          <div className="tooltip tooltip-bottom" data-tip="停止全员BGM">
-            <button
-              type="button"
-              className="btn btn-xs btn-ghost text-error"
-              onClick={onStopBgmForAll}
-            >
-              停止全员BGM
-            </button>
-          </div>
-        )}
-
-        {/* AI重写提示词编辑 */}
-        <details
-          className="dropdown dropdown-top pointer-events-auto"
-        >
-          <summary
-            tabIndex={3}
-            className="cursor-pointer list-none pointer-events-auto relative"
-            onClick={e => e.stopPropagation()}
-          >
-            <div
-              className="tooltip tooltip-bottom"
-              data-tip="编辑AI重写提示词"
-            >
-              <SparklesOutline className="size-6 cursor-pointer jump_icon" />
-            </div>
-          </summary>
-          <div
-            tabIndex={3}
-            className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[360px] z-[9999] absolute"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex flex-col gap-2">
-              <div className="flex items-end justify-between gap-3">
-                <label className="text-sm font-medium">AI重写提示词</label>
-                <span className="text-xs opacity-60 select-none">失焦自动保存</span>
+        {showMainActions && (
+          <>
+            <div className="dropdown dropdown-top">
+              <div role="button" tabIndex={2} className="cursor-pointer" aria-label="发送表情" title="发送表情">
+                <div
+                  className="tooltip tooltip-bottom"
+                  data-tip="发送表情"
+                >
+                  <EmojiIconWhite className="size-6 jump_icon"></EmojiIconWhite>
+                </div>
               </div>
-              <p className="text-xs opacity-70 leading-snug">
-                `Tab` 触发 AI 重写；提示词会作为“重写要求”使用。
-              </p>
-              <textarea
-                className="textarea textarea-bordered w-full min-h-28 max-h-48 text-sm leading-relaxed resize-none"
-                placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
-                defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
-                onBlur={(e) => {
-                  if (e.target.value.trim()) {
-                    localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
-                  }
+              <ul
+                tabIndex={2}
+                className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
+              >
+                <EmojiWindow onChoose={async (emoji) => {
+                  updateEmojiUrls((draft) => {
+                    const newUrl = emoji?.imageUrl;
+                    if (newUrl && !draft.includes(newUrl)) {
+                      draft.push(newUrl);
+                    }
+                  });
                 }}
-              />
+                >
+                </EmojiWindow>
+              </ul>
             </div>
-          </div>
-        </details>
+
+            {/* 发送图片 */}
+            <ImgUploader setImg={newImg => updateImgFiles((draft) => {
+              draft.push(newImg);
+            })}
+            >
+              <div className="tooltip tooltip-bottom" data-tip="发送图片">
+                <GalleryBroken className="size-6 cursor-pointer jump_icon"></GalleryBroken>
+              </div>
+            </ImgUploader>
+
+            {/* 发送音频 */}
+            {setAudioFile && (
+              <div className="tooltip tooltip-bottom" data-tip="发送音频">
+                <MusicNote
+                  className="size-6 cursor-pointer jump_icon relative -top-px"
+                  onClick={() => audioInputRef.current?.click()}
+                />
+                <input
+                  type="file"
+                  ref={audioInputRef}
+                  className="hidden"
+                  accept="audio/*"
+                  title="选择音频文件"
+                  aria-label="选择音频文件"
+                  onChange={handleAudioSelect}
+                />
+              </div>
+            )}
+
+            {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
+            {roomId != null && bgmTrack && (
+              <div className="tooltip tooltip-bottom" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
+                <button
+                  type="button"
+                  className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
+                  disabled={bgmDismissed}
+                  onClick={() => void bgmToggle(roomId)}
+                >
+                  {bgmIsPlaying ? "关闭BGM" : "开启BGM"}
+                </button>
+              </div>
+            )}
+
+            {/* KP：停止全员BGM（发送系统消息） */}
+            {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
+              <div className="tooltip tooltip-bottom" data-tip="停止全员BGM">
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost text-error"
+                  onClick={onStopBgmForAll}
+                >
+                  停止全员BGM
+                </button>
+              </div>
+            )}
+
+            {/* AI重写提示词编辑 */}
+            <details
+              className="dropdown dropdown-top pointer-events-auto"
+            >
+              <summary
+                tabIndex={3}
+                className="cursor-pointer list-none pointer-events-auto relative"
+                onClick={e => e.stopPropagation()}
+              >
+                <div
+                  className="tooltip tooltip-bottom"
+                  data-tip="编辑AI重写提示词"
+                >
+                  <SparklesOutline className="size-6 cursor-pointer jump_icon" />
+                </div>
+              </summary>
+              <div
+                tabIndex={3}
+                className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[360px] z-[9999] absolute"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-end justify-between gap-3">
+                    <label className="text-sm font-medium">AI重写提示词</label>
+                    <span className="text-xs opacity-60 select-none">失焦自动保存</span>
+                  </div>
+                  <p className="text-xs opacity-70 leading-snug">
+                    `Tab` 触发 AI 重写；提示词会作为“重写要求”使用。
+                  </p>
+                  <textarea
+                    className="textarea textarea-bordered w-full min-h-28 max-h-48 text-sm leading-relaxed resize-none"
+                    placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
+                    defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) {
+                        localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </details>
+          </>
+        )}
       </div>
 
       {/* 右侧按钮组 */}
-      <div className="flex gap-2 flex-wrap justify-end items-center flex-grow">
+      <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"}`}>
         {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
-        {webgalLinkMode && onInsertWebgalCommandPrefix && (
+        {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && (
           <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
             <button
               type="button"
@@ -289,7 +310,7 @@ export function ChatToolbar({
         )}
 
         {/* 默认立绘位置选择器（仅在联动模式下显示） */}
-        {webgalLinkMode && onSetDefaultFigurePosition && (
+        {showWebgalControls && webgalLinkMode && onSetDefaultFigurePosition && (
           <div className="flex items-center gap-1">
             <div className="tooltip tooltip-bottom" data-tip="本角色默认位置（点击取消选择）">
               <div className="join">
@@ -318,7 +339,7 @@ export function ChatToolbar({
         )}
 
         {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
-        {webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
+        {showWebgalControls && webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
           <div className="flex items-center gap-2 text-xs">
             {onToggleDialogNotend && (
               <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
@@ -346,7 +367,7 @@ export function ChatToolbar({
         )}
 
         {/* WebGAL 导演控制台 */}
-        {webgalLinkMode && onSendEffect && (
+        {showWebgalControls && webgalLinkMode && onSendEffect && (
           <div className="dropdown dropdown-top dropdown-end">
             <div
               tabIndex={0}
@@ -379,7 +400,7 @@ export function ChatToolbar({
         )}
 
         {/* 实时渲染按钮：仅在联动模式开启时展示 */}
-        {webgalLinkMode && onToggleRealtimeRender && (
+        {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
           <div
             className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
             data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
@@ -390,7 +411,7 @@ export function ChatToolbar({
         )}
 
         {/* WebGAL 联动模式按钮 */}
-        {onToggleWebgalLinkMode && (
+        {showWebgalLinkToggle && onToggleWebgalLinkMode && (
           <div
             className="tooltip tooltip-bottom"
             data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
@@ -402,7 +423,7 @@ export function ChatToolbar({
           </div>
         )}
 
-        {runModeEnabled && (
+        {showRunControls && runModeEnabled && (
           <>
             <div
               className="tooltip tooltip-bottom hover:text-info"
@@ -433,7 +454,7 @@ export function ChatToolbar({
           </>
         )}
 
-        {onToggleRunMode && (
+        {showRunModeToggle && onToggleRunMode && (
           <div
             className="tooltip tooltip-bottom"
             data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
@@ -446,13 +467,15 @@ export function ChatToolbar({
         )}
 
         {/* 发送按钮 */}
-        <div className="tooltip tooltip-bottom" data-tip="发送">
-          <SendIcon
-            className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
-            onClick={handleMessageSubmit}
-          >
-          </SendIcon>
-        </div>
+        {showSendButton && (
+          <div className="tooltip tooltip-bottom" data-tip="发送">
+            <SendIcon
+              className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
+              onClick={handleMessageSubmit}
+            >
+            </SendIcon>
+          </div>
+        )}
       </div>
     </div>
   );

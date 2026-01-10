@@ -50,6 +50,10 @@ export default function PixiOverlay({ effectName }: PixiOverlayProps) {
 
         if (containerRef.current) {
           containerRef.current.appendChild(app.canvas);
+
+          // Ensure the canvas itself doesn't introduce an opaque background.
+          app.canvas.style.background = "transparent";
+          app.canvas.style.display = "block";
         }
 
         appRef.current = app;
@@ -156,7 +160,8 @@ export default function PixiOverlay({ effectName }: PixiOverlayProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, [isInitialized]);
 
-  return <div ref={containerRef} className="absolute inset-0 pointer-events-none z-10 overflow-hidden" />;
+  // Keep this behind the actual chat UI; parent container can overlay its content.
+  return <div ref={containerRef} className="absolute inset-0 pointer-events-none z-0 overflow-hidden" />;
 }
 
 function createRainEffect(

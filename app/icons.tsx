@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, HouseIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, HouseIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索
@@ -21,6 +21,12 @@ export function DiscordIcon(props: SVGProps<SVGSVGElement>) {
 export function QQIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <QrCodeIcon {...props} />
+  );
+}
+
+export function UserSwitchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <UserSwitch {...props} />
   );
 }
 
