@@ -756,7 +756,7 @@ export default function ChatPage() {
                         onWidthChange={setChatLeftPanelWidth}
                         handlePosition="right"
                       >
-                        <div className="h-full flex flex-row w-full min-w-0 ">
+                        <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
                           {/* 房间列表 */}
                           <ChatRoomListPanel
                             isPrivateChatMode={isPrivateChatMode}

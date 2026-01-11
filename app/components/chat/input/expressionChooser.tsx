@@ -47,9 +47,9 @@ export function ExpressionChooser({
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-[88vw] md:w-full min-w-0 md:min-w-[600px] max-h-[70vh] md:max-h-[50vh] overflow-hidden">
+    <div className="flex flex-col md:flex-row w-[80vw] md:w-full min-w-0 md:min-w-0 max-w-full max-h-[70vh] md:max-h-[50vh] overflow-hidden">
       {/* 左侧：角色列表 */}
-      <div className="w-full md:w-1/3 min-w-0 md:min-w-[180px] border-b md:border-b-0 md:border-r border-base-300 p-2 md:pb-0 md:pr-3">
+      <div className="w-full md:w-2/3 min-w-0 md:min-w-[180px] border-b md:border-b-0 md:border-r border-base-300 p-2 md:pb-0 md:pr-3">
         <div className="text-sm font-semibold mb-3 text-center">角色选择</div>
         <div className="space-y-2 max-h-[22vh] md:max-h-[42vh] overflow-y-auto px-1 -mx-1">
           {/* 旁白选项（WebGAL 联动模式） */}
@@ -59,18 +59,20 @@ export function ExpressionChooser({
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
                 isKP ? "cursor-pointer hover:bg-base-200" : "cursor-not-allowed opacity-60"
               } ${
-                isNarratorMode ? "bg-base-200 ring-2 ring-secondary/30" : ""
+                isNarratorMode ? "bg-base-200 ring-2 ring-inset ring-secondary/30" : ""
               }`}
             >
               <div className="size-10 rounded-full bg-base-300 flex items-center justify-center flex-shrink-0">
                 <NarratorIcon className="size-6 text-base-content/60" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">旁白</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium truncate">旁白</div>
+                  {isNarratorMode && (
+                    <div className="text-xs text-secondary">已选中</div>
+                  )}
+                </div>
                 <div className="text-xs text-base-content/50">{isKP ? "无角色叙述" : "仅KP可用"}</div>
-                {isNarratorMode && (
-                  <div className="text-xs text-secondary mt-1">已选中</div>
-                )}
               </div>
             </div>
           )}
@@ -85,7 +87,7 @@ export function ExpressionChooser({
                 key={role.roleId}
                 onClick={() => handleRoleSelect(role)}
                 className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-base-200 transition-colors ${
-                  selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-primary/30" : ""
+                  selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-inset ring-primary/30" : ""
                 }`}
               >
                 <RoleAvatarComponent
@@ -96,10 +98,12 @@ export function ExpressionChooser({
                   stopPopWindow={true}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{role.roleName}</div>
-                  {selectedRoleId === role.roleId && (
-                    <div className="text-xs text-primary mt-1">已选中</div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium truncate">{role.roleName}</div>
+                    {selectedRoleId === role.roleId && (
+                      <div className="text-xs text-primary">已选中</div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -119,12 +123,12 @@ export function ExpressionChooser({
       </div>
 
       {/* 右侧：表情列表 */}
-      <div className="w-full md:w-2/3 min-w-0 md:min-w-[380px] md:pl-3">
+      <div className="w-full md:w-1/3 min-w-0 md:min-w-[380px] md:pl-3">
         {/* 旁白模式下不显示表情 */}
         {isNarratorMode
           ? (
-              <div className="text-center py-12 text-gray-500">
-                <NarratorIcon className="size-16 mx-auto mb-4 text-base-content/30" />
+              <div className="text-center text-gray-500">
+                <NarratorIcon className="size-16 mx-auto text-base-content/30" />
                 <div className="text-sm mb-2">旁白模式</div>
                 <div className="text-xs text-base-content/50">旁白消息没有角色头像和表情</div>
               </div>
@@ -132,7 +136,7 @@ export function ExpressionChooser({
           : roleAvatars && roleAvatars.length > 0
             ? (
                 <div className="max-h-[40vh] md:max-h-[35vh] overflow-y-auto">
-                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                  <div className="grid grid-cols-4">
                     {roleAvatars.map(avatar => (
                       <div
                         onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}
@@ -142,7 +146,7 @@ export function ExpressionChooser({
                       >
                         <RoleAvatarComponent
                           avatarId={avatar.avatarId || -1}
-                          width={12}
+                          width={16}
                           isRounded={false}
                           withTitle={false}
                           stopPopWindow={true}

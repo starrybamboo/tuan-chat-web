@@ -1013,13 +1013,17 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <div className="dropdown dropdown-top">
               <button
                 type="button"
-                className="btn btn-ghost btn-xs"
+                tabIndex={0}
+                className="btn btn-circle btn-ghost btn-xs"
                 aria-label="切换角色"
                 title="切换角色"
               >
                 <UserSwitchIcon className="size-6" />
               </button>
-              <ul className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden min-w-[320px] w-max max-w-[min(400px,90vw)]">
+              <ul
+                tabIndex={0}
+                className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-160 mb-6"
+              >
                 <ExpressionChooser
                   roleId={curRoleId}
                   handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
