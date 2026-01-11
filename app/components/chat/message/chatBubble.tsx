@@ -781,14 +781,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 py-2 group"
+              className="flex w-full items-start gap-3 py-2 group"
               key={message.messageId}
             >
               {/* Avatar */}
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
                   avatarId={message.avatarId ?? 0}
-                  width={10}
+                  width={12}
                   isRounded={true}
                   withTitle={false}
                   stopPopWindow={true}
@@ -820,7 +820,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     : (
                         <span
                           onClick={handleRoleNameClick}
-                          className={`text-sm text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
+                          className={`text-sm font-medium text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
                         >
                           {displayRoleName}
                           {customRoleName && <span className="text-xs text-primary ml-1">*</span>}

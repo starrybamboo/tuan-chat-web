@@ -7,7 +7,7 @@ interface VaulSideDrawerProps {
   className?: string;
   /** 抽屉内容的宽度，默认 310px */
   width?: number | string;
-  /** 点击外部时触发关闭 */
+  /** 由外部控制关闭 */
   onClose?: () => void;
 }
 
@@ -16,7 +16,6 @@ interface VaulSideDrawerProps {
  * 浮在内容上方，不占据空间
  * - 无遮罩层
  * - 高度不占满全屏（预留 header 和输入框空间）
- * - 点击外部可收起（传入 onClose）
  */
 export function VaulSideDrawer({
   isOpen,
@@ -24,14 +23,12 @@ export function VaulSideDrawer({
   direction = "right",
   className = "",
   width = 310,
-  onClose,
 }: VaulSideDrawerProps) {
   const widthStyle = typeof width === "number" ? `${width}px` : width;
 
   // 用于控制动画：mounted 表示 DOM 是否存在，visible 表示是否展示（触发动画）
   const [mounted, setMounted] = useState(isOpen);
   const [visible, setVisible] = useState(false);
-  const drawerRef = React.useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -51,35 +48,6 @@ export function VaulSideDrawer({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!mounted || !onClose) {
-      return;
-    }
-
-    const handleDocumentClick = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) {
-        return;
-      }
-      if (target instanceof Element && target.closest("[data-side-drawer-toggle=\"true\"]")) {
-        return;
-      }
-      const modalRoot = document.getElementById("modal-root");
-      if (modalRoot?.contains(target)) {
-        return;
-      }
-      if (drawerRef.current?.contains(target)) {
-        return;
-      }
-      onClose();
-    };
-
-    document.addEventListener("click", handleDocumentClick);
-    return () => {
-      document.removeEventListener("click", handleDocumentClick);
-    };
-  }, [mounted, onClose]);
-
   // 根据方向设置位置样式，top/bottom 预留空间给 header 和输入框
   const positionClasses = direction === "left"
     ? "left-2 top-24 bottom-36"
@@ -95,7 +63,6 @@ export function VaulSideDrawer({
 
   return (
     <div
-      ref={drawerRef}
       className={`${positionClasses} fixed z-[100] outline-none flex ${className}`}
       style={{
         width: widthStyle,

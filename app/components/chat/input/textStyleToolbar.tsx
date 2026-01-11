@@ -1,5 +1,6 @@
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
 interface TextStyleToolbarProps {
@@ -421,9 +422,19 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
 export function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: TextStyleToolbarProps) {
   // 保存选区信息的 ref
   const savedSelectionRef = useRef<SavedSelection | null>(null);
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const [isFloatingVisible, setIsFloatingVisible] = useState(false);
+  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null);
+  const scheduledUpdateIdRef = useRef<number | null>(null);
 
-  if (!visible)
-    return null;
+  // visible 关闭时强制隐藏浮动工具栏（但不要条件调用 hooks）
+  useEffect(() => {
+    if (!visible) {
+      setIsFloatingVisible(false);
+      setToolbarPos(null);
+      savedSelectionRef.current = null;
+    }
+  }, [visible]);
 
   /**
    * 保存当前选区信息
@@ -448,6 +459,102 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
       isInEditor,
     };
   };
+
+  const updateFloatingFromSelection = useCallback(() => {
+    const editor = chatInputRef.current?.getRawElement();
+    if (!editor)
+      return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      setIsFloatingVisible(false);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const isInEditor = editor.contains(range.commonAncestorContainer);
+    const text = selection.toString();
+    if (!isInEditor || !text.trim() || range.collapsed) {
+      setIsFloatingVisible(false);
+      return;
+    }
+
+    const rects = range.getClientRects();
+    const rect = rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
+    if (!rect || (rect.width === 0 && rect.height === 0)) {
+      setIsFloatingVisible(false);
+      return;
+    }
+
+    savedSelectionRef.current = {
+      range: range.cloneRange(),
+      text,
+      isInEditor,
+    };
+    setToolbarPos({ x: rect.left + rect.width / 2, y: rect.top });
+    setIsFloatingVisible(true);
+  }, [chatInputRef]);
+
+  const scheduleUpdateFloatingFromSelection = useCallback(() => {
+    if (typeof window === "undefined")
+      return;
+
+    if (scheduledUpdateIdRef.current !== null) {
+      window.clearTimeout(scheduledUpdateIdRef.current);
+      scheduledUpdateIdRef.current = null;
+    }
+
+    scheduledUpdateIdRef.current = window.setTimeout(() => {
+      scheduledUpdateIdRef.current = null;
+      updateFloatingFromSelection();
+    }, 0);
+  }, [updateFloatingFromSelection]);
+
+  useEffect(() => {
+    if (!visible)
+      return;
+    if (typeof document === "undefined")
+      return;
+
+    const handleMouseUp = () => {
+      scheduleUpdateFloatingFromSelection();
+    };
+
+    const handleSelectionChange = () => {
+      scheduleUpdateFloatingFromSelection();
+    };
+
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (toolbarRef.current && toolbarRef.current.contains(event.target as Node)) {
+        return;
+      }
+      setIsFloatingVisible(false);
+    };
+
+    const handleScroll = () => {
+      if (isFloatingVisible) {
+        updateFloatingFromSelection();
+      }
+    };
+
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("selectionchange", handleSelectionChange);
+    document.addEventListener("mousedown", handleDocumentMouseDown);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleScroll);
+
+    return () => {
+      if (scheduledUpdateIdRef.current !== null) {
+        window.clearTimeout(scheduledUpdateIdRef.current);
+        scheduledUpdateIdRef.current = null;
+      }
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      document.removeEventListener("mousedown", handleDocumentMouseDown);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [isFloatingVisible, scheduleUpdateFloatingFromSelection, updateFloatingFromSelection, visible]);
 
   /**
    * 恢复选区并插入文本（支持撤销）
@@ -499,7 +606,9 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
   // 添加注音
   const handleAddRuby = () => {
     // 保存当前选区
-    savedSelectionRef.current = saveSelection();
+    if (!savedSelectionRef.current) {
+      savedSelectionRef.current = saveSelection();
+    }
     const selectedText = savedSelectionRef.current?.text || "";
 
     toastWindow(onClose => (
@@ -518,7 +627,9 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
   // 添加彩色文字
   const handleAddColor = () => {
     // 保存当前选区
-    savedSelectionRef.current = saveSelection();
+    if (!savedSelectionRef.current) {
+      savedSelectionRef.current = saveSelection();
+    }
     const selectedText = savedSelectionRef.current?.text || "";
 
     toastWindow(onClose => (
@@ -537,7 +648,9 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
   // 添加斜体
   const handleAddItalic = () => {
     // 保存当前选区
-    savedSelectionRef.current = saveSelection();
+    if (!savedSelectionRef.current) {
+      savedSelectionRef.current = saveSelection();
+    }
     const selectedText = savedSelectionRef.current?.text || "";
 
     toastWindow(onClose => (
@@ -556,7 +669,9 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
   // 高级样式
   const handleAdvancedStyle = () => {
     // 保存当前选区
-    savedSelectionRef.current = saveSelection();
+    if (!savedSelectionRef.current) {
+      savedSelectionRef.current = saveSelection();
+    }
     const selectedText = savedSelectionRef.current?.text || "";
 
     toastWindow(onClose => (
@@ -602,65 +717,79 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
     ));
   };
 
-  return (
-    <div className={`flex items-center gap-0.5 text-xs opacity-60 hover:opacity-100 transition-opacity ${className}`}>
+  if (!visible || !isFloatingVisible || !toolbarPos || typeof document === "undefined") {
+    return null;
+  }
 
-      {/* 注音按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAddRuby}
-        title="添加注音（振り仮名）"
-      >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <text x="4" y="20" fontSize="12" fill="currentColor" stroke="none">文</text>
-          <text x="14" y="10" fontSize="6" fill="currentColor" stroke="none">あ</text>
-        </svg>
-        <span>注音</span>
-      </button>
+  return createPortal(
+    <div
+      ref={toolbarRef}
+      className={`fixed z-[9999] ${className}`}
+      style={{
+        left: toolbarPos.x,
+        top: toolbarPos.y - 8,
+        transform: "translate(-50%, -100%)",
+      }}
+    >
+      <div className="flex items-center gap-0.5 text-xs bg-base-100/95 border border-base-300 rounded-full px-1.5 py-1 shadow-lg backdrop-blur">
+        {/* 彩色文字按钮 */}
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
+          onClick={handleAddColor}
+          title="添加彩色文字"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+            <circle cx="8" cy="8" r="4" fill="#FF0000" />
+            <circle cx="16" cy="8" r="4" fill="#00AA00" />
+            <circle cx="12" cy="14" r="4" fill="#0088FF" />
+          </svg>
+          <span>彩色</span>
+        </button>
 
-      {/* 彩色文字按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAddColor}
-        title="添加彩色文字"
-      >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
-          <circle cx="8" cy="8" r="4" fill="#FF0000" />
-          <circle cx="16" cy="8" r="4" fill="#00AA00" />
-          <circle cx="12" cy="14" r="4" fill="#0088FF" />
-        </svg>
-        <span>彩色</span>
-      </button>
+        {/* 斜体按钮 */}
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
+          onClick={handleAddItalic}
+          title="添加斜体文字"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 5v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V5h-8z" />
+          </svg>
+          <span>斜体</span>
+        </button>
 
-      {/* 斜体按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAddItalic}
-        title="添加斜体文字"
-      >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M10 5v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V5h-8z" />
-        </svg>
-        <span>斜体</span>
-      </button>
+        {/* 注音按钮 */}
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
+          onClick={handleAddRuby}
+          title="添加注音（振り仮名）"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <text x="4" y="20" fontSize="12" fill="currentColor" stroke="none">文</text>
+            <text x="14" y="10" fontSize="6" fill="currentColor" stroke="none">あ</text>
+          </svg>
+          <span>注音</span>
+        </button>
 
-      {/* 高级样式按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAdvancedStyle}
-        title="高级样式设置"
-      >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
-          <circle cx="12" cy="12" r="4" />
-        </svg>
-        <span>高级</span>
-      </button>
-    </div>
+        {/* 高级样式按钮 */}
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
+          onClick={handleAdvancedStyle}
+          title="高级样式设置"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
+            <circle cx="12" cy="12" r="4" />
+          </svg>
+          <span>高级</span>
+        </button>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

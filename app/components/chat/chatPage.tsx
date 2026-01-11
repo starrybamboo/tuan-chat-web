@@ -651,104 +651,31 @@ export default function ChatPage() {
                   onWidthChange={setChatLeftPanelWidth}
                   handlePosition="right"
                 >
-                  <div className="h-full flex flex-row w-full min-w-0">
-                    {/* 空间列表 */}
-                    <ChatSpaceSidebar
-                      isPrivateChatMode={isPrivateChatMode}
-                      spaces={orderedSpaces}
-                      spaceOrderIds={orderedSpaceIds}
-                      onReorderSpaceIds={setUserSpaceOrder}
-                      activeSpaceId={activeSpaceId}
-                      getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-                      privateUnreadMessagesNumber={privateEntryBadgeCount}
-                      onOpenPrivate={() => {
-                        setActiveSpaceId(null);
-                        setActiveRoomId(null);
-                        navigate("/chat/private");
-                      }}
-                      onSelectSpace={(spaceId) => {
-                        setActiveSpaceId(spaceId);
-                      }}
-                      onCreateSpace={() => {
-                        setIsSpaceHandleOpen(true);
-                      }}
-                      onSpaceContextMenu={handleSpaceContextMenu}
-                    />
-                    {/* <div className="w-px bg-base-300"></div> */}
-                    {/* 房间列表 */}
-                    <ChatRoomListPanel
-                      isPrivateChatMode={isPrivateChatMode}
-                      activeSpaceId={activeSpaceId}
-                      activeSpaceName={activeSpace?.name}
-                      activeSpaceIsArchived={activeSpaceIsArchived}
-                      isSpaceOwner={!!spaceContext.isSpaceOwner}
-                      rooms={orderedRooms}
-                      roomOrderIds={orderedRoomIds}
-                      onReorderRoomIds={setUserRoomOrder}
-                      activeRoomId={activeRoomId}
-                      unreadMessagesNumber={unreadMessagesNumber}
-                      onContextMenu={handleContextMenu}
-                      onInviteMember={() => setIsMemberHandleOpen(true)}
-                      onOpenSpaceDetailPanel={openSpaceDetailPanel}
-                      onSelectRoom={(roomId) => {
-                        setActiveRoomId(roomId);
-                      }}
-                      onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
-                      onOpenRoomSetting={(roomId, tab) => {
-                        openRoomSettingPage(roomId, tab);
-                      }}
-                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                      onCreateRoom={() => {
-                        if (activeSpaceId) {
-                          setIsRoomHandleOpen(true);
-                        }
-                      }}
-                    />
-                  </div>
-                </OpenAbleDrawer>
-                {/* 聊天记录窗口，输入窗口，侧边栏 */}
-                {mainContent}
-              </>
-            )
-          : (
-              <>
-                {/* 桌面端：空间列表不在圆角容器内 */}
-                <div className="bg-base-200 h-full">
-                  <ChatSpaceSidebar
-                    isPrivateChatMode={isPrivateChatMode}
-                    spaces={orderedSpaces}
-                    spaceOrderIds={orderedSpaceIds}
-                    onReorderSpaceIds={setUserSpaceOrder}
-                    activeSpaceId={activeSpaceId}
-                    getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-                    privateUnreadMessagesNumber={privateEntryBadgeCount}
-                    onOpenPrivate={() => {
-                      setActiveSpaceId(null);
-                      setActiveRoomId(null);
-                      navigate("/chat/private");
-                    }}
-                    onSelectSpace={(spaceId) => {
-                      setActiveSpaceId(spaceId);
-                    }}
-                    onCreateSpace={() => {
-                      setIsSpaceHandleOpen(true);
-                    }}
-                    onSpaceContextMenu={handleSpaceContextMenu}
-                  />
-                </div>
-
-                {/* 桌面端：房间列表 + 右侧视图放在同一容器，并做左上圆角 */}
-                <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
-                  <OpenAbleDrawer
-                    isOpen={true}
-                    className="h-full z-10 w-full bg-base-200"
-                    initialWidth={chatLeftPanelWidth}
-                    minWidth={200}
-                    maxWidth={700}
-                    onWidthChange={setChatLeftPanelWidth}
-                    handlePosition="right"
-                  >
-                    <div className="h-full flex flex-row w-full min-w-0 ">
+                  <div className="h-full flex flex-col w-full min-w-0 relative">
+                    <div className="flex flex-row w-full min-w-0 flex-1 min-h-0">
+                      {/* 空间列表 */}
+                      <ChatSpaceSidebar
+                        isPrivateChatMode={isPrivateChatMode}
+                        spaces={orderedSpaces}
+                        spaceOrderIds={orderedSpaceIds}
+                        onReorderSpaceIds={setUserSpaceOrder}
+                        activeSpaceId={activeSpaceId}
+                        getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+                        privateUnreadMessagesNumber={privateEntryBadgeCount}
+                        onOpenPrivate={() => {
+                          setActiveSpaceId(null);
+                          setActiveRoomId(null);
+                          navigate("/chat/private");
+                        }}
+                        onSelectSpace={(spaceId) => {
+                          setActiveSpaceId(spaceId);
+                        }}
+                        onCreateSpace={() => {
+                          setIsSpaceHandleOpen(true);
+                        }}
+                        onSpaceContextMenu={handleSpaceContextMenu}
+                      />
+                      {/* <div className="w-px bg-base-300"></div> */}
                       {/* 房间列表 */}
                       <ChatRoomListPanel
                         isPrivateChatMode={isPrivateChatMode}
@@ -779,7 +706,94 @@ export default function ChatPage() {
                         }}
                       />
                     </div>
-                  </OpenAbleDrawer>
+                    <div
+                      id="chat-sidebar-user-card"
+                      className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                    />
+                  </div>
+                </OpenAbleDrawer>
+                {/* 聊天记录窗口，输入窗口，侧边栏 */}
+                {mainContent}
+              </>
+            )
+          : (
+              <>
+                {/* 桌面端：房间列表 + 右侧视图放在同一容器，并做左上圆角 */}
+                <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
+                  <div className="flex flex-col bg-base-200 h-full relative">
+                    <div className="flex flex-row flex-1 min-h-0">
+                      {/* 桌面端：空间列表不在圆角容器内 */}
+                      <div className="bg-base-200 h-full">
+                        <ChatSpaceSidebar
+                          isPrivateChatMode={isPrivateChatMode}
+                          spaces={orderedSpaces}
+                          spaceOrderIds={orderedSpaceIds}
+                          onReorderSpaceIds={setUserSpaceOrder}
+                          activeSpaceId={activeSpaceId}
+                          getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+                          privateUnreadMessagesNumber={privateEntryBadgeCount}
+                          onOpenPrivate={() => {
+                            setActiveSpaceId(null);
+                            setActiveRoomId(null);
+                            navigate("/chat/private");
+                          }}
+                          onSelectSpace={(spaceId) => {
+                            setActiveSpaceId(spaceId);
+                          }}
+                          onCreateSpace={() => {
+                            setIsSpaceHandleOpen(true);
+                          }}
+                          onSpaceContextMenu={handleSpaceContextMenu}
+                        />
+                      </div>
+
+                      <OpenAbleDrawer
+                        isOpen={true}
+                        className="h-full z-10 w-full bg-base-200"
+                        initialWidth={chatLeftPanelWidth}
+                        minWidth={200}
+                        maxWidth={700}
+                        onWidthChange={setChatLeftPanelWidth}
+                        handlePosition="right"
+                      >
+                        <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
+                          {/* 房间列表 */}
+                          <ChatRoomListPanel
+                            isPrivateChatMode={isPrivateChatMode}
+                            activeSpaceId={activeSpaceId}
+                            activeSpaceName={activeSpace?.name}
+                            activeSpaceIsArchived={activeSpaceIsArchived}
+                            isSpaceOwner={!!spaceContext.isSpaceOwner}
+                            rooms={orderedRooms}
+                            roomOrderIds={orderedRoomIds}
+                            onReorderRoomIds={setUserRoomOrder}
+                            activeRoomId={activeRoomId}
+                            unreadMessagesNumber={unreadMessagesNumber}
+                            onContextMenu={handleContextMenu}
+                            onInviteMember={() => setIsMemberHandleOpen(true)}
+                            onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                            onSelectRoom={(roomId) => {
+                              setActiveRoomId(roomId);
+                            }}
+                            onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+                            onOpenRoomSetting={(roomId, tab) => {
+                              openRoomSettingPage(roomId, tab);
+                            }}
+                            setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                            onCreateRoom={() => {
+                              if (activeSpaceId) {
+                                setIsRoomHandleOpen(true);
+                              }
+                            }}
+                          />
+                        </div>
+                      </OpenAbleDrawer>
+                    </div>
+                    <div
+                      id="chat-sidebar-user-card"
+                      className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                    />
+                  </div>
                   {mainContent}
                 </div>
               </>
