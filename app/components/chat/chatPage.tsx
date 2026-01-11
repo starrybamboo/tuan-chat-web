@@ -637,7 +637,7 @@ export default function ChatPage() {
 
   return (
     <SpaceContext value={spaceContext}>
-      <div className={`flex flex-row flex-1 h-full relative ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
+      <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
         {screenSize === "sm"
           ? (
               <>

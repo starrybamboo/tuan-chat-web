@@ -1014,7 +1014,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             </div>
             <div className="flex items-center gap-2">
               {/* Identification / Role detail dropdown */}
-              <div className="dropdown dropdown-top dropdown-center">
+              <div className="dropdown dropdown-top dropdown-start">
                 <button
                   type="button"
                   tabIndex={0}
@@ -1026,7 +1026,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 </button>
                 <ul
                   tabIndex={0}
-                  className="dropdown-content bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-140 mb-6"
+                  className="dropdown-content bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-240 mb-6"
                 >
                   <div className="p-2 w-full max-w-[90vw]">
                     <RoleDetail roleId={curRoleId} allowKickOut={false} />
@@ -1034,7 +1034,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 </ul>
               </div>
             </div>
-            <div className="dropdown dropdown-top dropdown-center">
+            <div className="dropdown dropdown-top dropdown-start">
               <button
                 type="button"
                 tabIndex={0}

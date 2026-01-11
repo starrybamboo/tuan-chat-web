@@ -150,7 +150,7 @@ export function ChatToolbar({
 
   return (
     <div className={`flex ${isInline ? " items-start gap-2 flex-nowrap" : "pr-1 justify-between flex-wrap gap-y-2"}`}>
-      <div className={`flex mt-4 ${isInline ? " items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap"}`}>
+      <div className={`flex ${isInline ? " items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap"}`}>
         {showStatusBar && roomId != null && statusWebSocketUtils && (
           <ChatStatusBar
             roomId={roomId}
@@ -160,7 +160,6 @@ export function ChatToolbar({
             currentChatStatus={currentChatStatus}
             onChangeChatStatus={onChangeChatStatus}
             isSpectator={isSpectator}
-            className="mb-0 -mt-0"
           />
         )}
         {showMainActions && (
@@ -176,7 +175,7 @@ export function ChatToolbar({
               </div>
               <ul
                 tabIndex={2}
-                className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto mb-6"
+                className="dropdown-content menu bg-base-100 rounded-box z-20 w-96 p-2 shadow-sm overflow-y-auto mb-6"
               >
                 <EmojiWindow onChoose={async (emoji) => {
                   updateEmojiUrls((draft) => {
@@ -331,7 +330,7 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div
-        className={`flex mr-2 mt-1 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"} ${
+        className={`flex mr-2 mt-2 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"} ${
           isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
         }`}
       >
