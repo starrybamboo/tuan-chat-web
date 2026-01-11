@@ -181,7 +181,7 @@ function RoomComposerPanelImpl({
 
   return (
     <div className="bg-transparent z-20">
-      <div className="relative flex-1 flex flex-col min-w-0 gap-2">
+      <div className="relative flex-1 flex flex-col min-w-0 gap-2 p-2">
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
           ruleId={ruleId}
@@ -189,7 +189,7 @@ function RoomComposerPanelImpl({
         />
 
         <div
-          className="flex flex-col gap-2 rounded-md  p-2"
+          className="flex flex-col gap-2 rounded-md"
           onDragOver={(e) => {
             if (isFileDrag(e.dataTransfer)) {
               e.preventDefault();
@@ -273,8 +273,8 @@ function RoomComposerPanelImpl({
           <div className="flex items-end gap-2">
             <div className="flex-1 min-w-0 relative">
               {(webgalLinkMode || runModeEnabled) && (
-                <div className="absolute right-2 -top-14 z-10">
-                  <div className="flex items-start gap-2 bg-base-100/80 border border-base-300 rounded-md px-2 py-1 shadow-sm pointer-events-auto">
+                <div className="absolute right-2 -top-13 z-10">
+                  <div className="flex items-start gap-2 bg-base-100/80 border border-base-300 rounded-md shadow-sm pointer-events-auto">
                     <ChatToolbarFromStore
                       roomId={roomId}
                       statusUserId={userId}
@@ -320,22 +320,24 @@ function RoomComposerPanelImpl({
                   </div>
                 </div>
               )}
-              <div className="flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 px-2 min-h-14">
-                <ChatInputArea
-                  ref={chatInputRef}
-                  onInputSync={onInputSync}
-                  onPasteFiles={onPasteFiles}
-                  onKeyDown={onKeyDown}
-                  onKeyUp={onKeyUp}
-                  onMouseDown={onMouseDown}
-                  onCompositionStart={onCompositionStart}
-                  onCompositionEnd={onCompositionEnd}
-                  disabled={inputDisabled}
-                  placeholder={placeholderText}
-                  className="min-h-10 max-h-[20dvh] overflow-y-auto flex-1 mt-2"
-                />
+              <div className="relative flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 p-2">
+                <div className="flex-1 min-w-0 pr-20">
+                  <ChatInputArea
+                    ref={chatInputRef}
+                    onInputSync={onInputSync}
+                    onPasteFiles={onPasteFiles}
+                    onKeyDown={onKeyDown}
+                    onKeyUp={onKeyUp}
+                    onMouseDown={onMouseDown}
+                    onCompositionStart={onCompositionStart}
+                    onCompositionEnd={onCompositionEnd}
+                    disabled={inputDisabled}
+                    placeholder={placeholderText}
+                    className="min-h-10 max-h-[20dvh] overflow-y-auto"
+                  />
+                </div>
 
-                <div className="self-start">
+                <div className="absolute right-2 top-4">
                   <ChatToolbarFromStore
                     roomId={roomId}
                     statusUserId={userId}

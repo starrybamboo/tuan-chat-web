@@ -71,8 +71,8 @@ export default function ChatStatusBar({
   const resolveUserNameNode = (uid: number) => <UserIdToName userId={uid} className="inline" />;
 
   return (
-    <div className={`${compact ? "mb-0 mt-0" : "mb-1 -mt-1"} flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/80 ${className ?? ""}`}>
-      <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-base-200 border border-base-300">
+    <div className={`${compact ? "mb-0 mt-0" : "mb-1 -mt-1"} flex flex-wrap items-center gap-x-3 text-xs text-base-content/80 ${className ?? ""}`}>
+      <div className="inline-flex items-center gap-2 px-2 rounded-full bg-base-200 border border-base-300">
         {showSelector && (
           <div className="dropdown dropdown-top pointer-events-auto">
             <div
