@@ -979,7 +979,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const sidebarUserCard = sidebarCardHost
     ? createPortal(
         <div className="w-full">
-          <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm px-2">
+          <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm p-2">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {curRoleId <= 0
                 ? (
@@ -990,7 +990,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 : (
                     <RoleAvatarComponent
                       avatarId={curAvatarId}
-                      width={14}
+                      width={10}
                       isRounded={true}
                       withTitle={false}
                       stopPopWindow={true}
@@ -998,7 +998,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                     />
                   )}
               <div className="min-w-0 flex-1">
-                <div className=" font-medium truncate ml-1">{displayRoleName}</div>
+                <div className="text-sm font-medium truncate ml-1">{displayRoleName}</div>
                 <ChatStatusBar
                   roomId={roomId}
                   userId={Number(userId)}
