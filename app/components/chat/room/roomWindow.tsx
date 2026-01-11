@@ -6,6 +6,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import { IdentificationCardIcon } from "@phosphor-icons/react";
 // *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -37,6 +38,7 @@ import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { NarratorIcon, UserSwitchIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
@@ -977,7 +979,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const sidebarUserCard = sidebarCardHost
     ? createPortal(
         <div className="w-full">
-          <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 px-2 py-2 shadow-sm">
+          <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm px-2">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {curRoleId <= 0
                 ? (
@@ -988,7 +990,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 : (
                     <RoleAvatarComponent
                       avatarId={curAvatarId}
-                      width={10}
+                      width={14}
                       isRounded={true}
                       withTitle={false}
                       stopPopWindow={true}
@@ -996,7 +998,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                     />
                   )}
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{displayRoleName}</div>
+                <div className=" font-medium truncate ml-1">{displayRoleName}</div>
                 <ChatStatusBar
                   roomId={roomId}
                   userId={Number(userId)}
@@ -1006,15 +1008,37 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onChangeChatStatus={handleManualStatusChange}
                   isSpectator={isSpectator}
                   compact={true}
-                  className="mt-0.5"
+                  className=""
                 />
               </div>
             </div>
-            <div className="dropdown dropdown-top">
+            <div className="flex items-center gap-2">
+              {/* Identification / Role detail dropdown */}
+              <div className="dropdown dropdown-top dropdown-center">
+                <button
+                  type="button"
+                  tabIndex={0}
+                  className="btn btn-circle btn-ghost btn-sm"
+                  aria-label="角色详情"
+                  title="角色详情"
+                >
+                  <IdentificationCardIcon className="size-6" />
+                </button>
+                <ul
+                  tabIndex={0}
+                  className="dropdown-content bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-140 mb-6"
+                >
+                  <div className="p-2 w-full max-w-[90vw]">
+                    <RoleDetail roleId={curRoleId} allowKickOut={false} />
+                  </div>
+                </ul>
+              </div>
+            </div>
+            <div className="dropdown dropdown-top dropdown-center">
               <button
                 type="button"
                 tabIndex={0}
-                className="btn btn-circle btn-ghost btn-xs"
+                className="btn btn-circle btn-ghost btn-sm"
                 aria-label="切换角色"
                 title="切换角色"
               >
@@ -1032,6 +1056,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 />
               </ul>
             </div>
+
           </div>
         </div>,
         sidebarCardHost,

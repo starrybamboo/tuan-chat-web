@@ -1,21 +1,19 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
+import { CheckerboardIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
 import { useRef } from "react";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
-  CommandSolid,
   Detective,
   DiceD6Icon,
   EmojiIconWhite,
   GalleryBroken,
   LinkFilled,
   MusicNote,
-  PointOnMapPerspectiveLinear,
   SendIcon,
   SparklesOutline,
-  SwordSwing,
   WebgalIcon,
 } from "@/icons";
 
@@ -133,6 +131,7 @@ export function ChatToolbar({
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const isInline = layout === "inline";
+  const isRunModeOnly = runModeEnabled && !webgalLinkMode;
 
   const bgmTrack = useBgmStore(state => (roomId != null ? state.trackByRoomId[roomId] : undefined));
   const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
@@ -166,7 +165,7 @@ export function ChatToolbar({
         )}
         {showMainActions && (
           <>
-            <div className="dropdown dropdown-top">
+            <div className="dropdown dropdown-top dropdown-center">
               <div role="button" tabIndex={2} className="cursor-pointer" aria-label="发送表情" title="发送表情">
                 <div
                   className="tooltip tooltip-bottom"
@@ -177,7 +176,7 @@ export function ChatToolbar({
               </div>
               <ul
                 tabIndex={2}
-                className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
+                className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto mb-6"
               >
                 <EmojiWindow onChoose={async (emoji) => {
                   updateEmojiUrls((draft) => {
@@ -315,12 +314,27 @@ export function ChatToolbar({
                 </div>
               </div>
             </details>
+
+            {/* 发送按钮 */}
+            {showSendButton && (
+              <div className="tooltip tooltip-bottom" data-tip="发送">
+                <SendIcon
+                  className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
+                  onClick={handleMessageSubmit}
+                >
+                </SendIcon>
+              </div>
+            )}
           </>
         )}
       </div>
 
       {/* 右侧按钮组 */}
-      <div className={`flex mr-2 mt-1 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"}`}>
+      <div
+        className={`flex mr-2 mt-1 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"} ${
+          isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
+        }`}
+      >
         {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
         {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && (
           <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
@@ -402,9 +416,9 @@ export function ChatToolbar({
               aria-label="导演控制台"
               title="导演控制台"
             >
-              <CommandSolid className="size-6" />
+              <FilmSlateIcon className="size-6" />
             </div>
-            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mb-4">
               {onSendEffect && (
                 <>
                   <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>
@@ -431,12 +445,12 @@ export function ChatToolbar({
             data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
             onClick={onToggleRealtimeRender}
           >
-            <WebgalIcon className={`size-6 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+            <WebgalIcon className={`size-5 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
           </div>
         )}
 
         {showRunControls && runModeEnabled && (
-          <div className="flex gap-2 mt-1 ml-0.5">
+          <div className="flex gap-2 ml-0.5">
             <div
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="查看线索"
@@ -452,7 +466,7 @@ export function ChatToolbar({
               data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
             >
-              <SwordSwing className="size-6 jump_icon"></SwordSwing>
+              <SwordIcon className="size-6 jump_icon"></SwordIcon>
             </div>
 
             <div
@@ -461,19 +475,8 @@ export function ChatToolbar({
               data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
             >
-              <PointOnMapPerspectiveLinear className="size-6 jump_icon"></PointOnMapPerspectiveLinear>
+              <CheckerboardIcon className="size-6 jump_icon"></CheckerboardIcon>
             </div>
-          </div>
-        )}
-
-        {/* 发送按钮 */}
-        {showSendButton && (
-          <div className="tooltip tooltip-bottom" data-tip="发送">
-            <SendIcon
-              className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
-              onClick={handleMessageSubmit}
-            >
-            </SendIcon>
           </div>
         )}
       </div>
