@@ -320,7 +320,7 @@ function RoomComposerPanelImpl({
                   </div>
                 </div>
               )}
-              <div className="flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 px-2 py-2 min-h-14">
+              <div className="flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 px-2 min-h-14">
                 <ChatInputArea
                   ref={chatInputRef}
                   onInputSync={onInputSync}
@@ -332,7 +332,7 @@ function RoomComposerPanelImpl({
                   onCompositionEnd={onCompositionEnd}
                   disabled={inputDisabled}
                   placeholder={placeholderText}
-                  className="min-h-10 max-h-[20dvh] overflow-y-auto flex-1"
+                  className="min-h-10 max-h-[20dvh] overflow-y-auto flex-1 mt-2"
                 />
 
                 <div className="self-start">

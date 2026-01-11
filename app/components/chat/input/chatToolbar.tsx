@@ -150,8 +150,8 @@ export function ChatToolbar({
   };
 
   return (
-    <div className={`flex ${isInline ? "mt-2 items-start gap-2 flex-nowrap" : "pr-1 justify-between flex-wrap gap-y-2"}`}>
-      <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap"}`}>
+    <div className={`flex ${isInline ? " items-start gap-2 flex-nowrap" : "pr-1 justify-between flex-wrap gap-y-2"}`}>
+      <div className={`flex mt-4 ${isInline ? " items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap"}`}>
         {showStatusBar && roomId != null && statusWebSocketUtils && (
           <ChatStatusBar
             roomId={roomId}
@@ -217,6 +217,31 @@ export function ChatToolbar({
                   title="选择音频文件"
                   aria-label="选择音频文件"
                   onChange={handleAudioSelect}
+                />
+              </div>
+            )}
+
+            {/* WebGAL 联动模式按钮 */}
+            {showWebgalLinkToggle && onToggleWebgalLinkMode && (
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
+              >
+                <LinkFilled
+                  className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+                  onClick={onToggleWebgalLinkMode}
+                />
+              </div>
+            )}
+
+            {showRunModeToggle && onToggleRunMode && (
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
+              >
+                <DiceD6Icon
+                  className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+                  onClick={onToggleRunMode}
                 />
               </div>
             )}
@@ -295,7 +320,7 @@ export function ChatToolbar({
       </div>
 
       {/* 右侧按钮组 */}
-      <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"}`}>
+      <div className={`flex p-1 mr-2 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"}`}>
         {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
         {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && (
           <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
@@ -340,7 +365,7 @@ export function ChatToolbar({
 
         {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
         {showWebgalControls && webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs mt-1.5">
             {onToggleDialogNotend && (
               <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
                 <input
@@ -410,19 +435,6 @@ export function ChatToolbar({
           </div>
         )}
 
-        {/* WebGAL 联动模式按钮 */}
-        {showWebgalLinkToggle && onToggleWebgalLinkMode && (
-          <div
-            className="tooltip tooltip-bottom"
-            data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
-          >
-            <LinkFilled
-              className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
-              onClick={onToggleWebgalLinkMode}
-            />
-          </div>
-        )}
-
         {showRunControls && runModeEnabled && (
           <>
             <div
@@ -452,18 +464,6 @@ export function ChatToolbar({
               <PointOnMapPerspectiveLinear className="size-6 jump_icon"></PointOnMapPerspectiveLinear>
             </div>
           </>
-        )}
-
-        {showRunModeToggle && onToggleRunMode && (
-          <div
-            className="tooltip tooltip-bottom"
-            data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
-          >
-            <DiceD6Icon
-              className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
-              onClick={onToggleRunMode}
-            />
-          </div>
         )}
 
         {/* 发送按钮 */}
