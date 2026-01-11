@@ -320,7 +320,7 @@ export function ChatToolbar({
       </div>
 
       {/* 右侧按钮组 */}
-      <div className={`flex p-1 mr-2 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"}`}>
+      <div className={`flex mr-2 mt-1 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"}`}>
         {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
         {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && (
           <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
@@ -393,7 +393,7 @@ export function ChatToolbar({
 
         {/* WebGAL 导演控制台 */}
         {showWebgalControls && webgalLinkMode && onSendEffect && (
-          <div className="dropdown dropdown-top dropdown-end">
+          <div className="dropdown dropdown-top dropdown-end mt-0.5">
             <div
               tabIndex={0}
               role="button"
@@ -427,7 +427,7 @@ export function ChatToolbar({
         {/* 实时渲染按钮：仅在联动模式开启时展示 */}
         {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
           <div
-            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+            className={`tooltip tooltip-bottom mt-0.5 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
             data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
             onClick={onToggleRealtimeRender}
           >
@@ -436,7 +436,7 @@ export function ChatToolbar({
         )}
 
         {showRunControls && runModeEnabled && (
-          <>
+          <div className="flex gap-2 mt-1 ml-0.5">
             <div
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="查看线索"
@@ -463,7 +463,7 @@ export function ChatToolbar({
             >
               <PointOnMapPerspectiveLinear className="size-6 jump_icon"></PointOnMapPerspectiveLinear>
             </div>
-          </>
+          </div>
         )}
 
         {/* 发送按钮 */}
