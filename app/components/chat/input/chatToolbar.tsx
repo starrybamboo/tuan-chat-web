@@ -1,6 +1,6 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import { CheckerboardIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
-import { useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
@@ -130,6 +130,10 @@ export function ChatToolbar({
   showRunControls = true,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const aiPromptDropdownRef = useRef<HTMLDivElement>(null);
+  const emojiDropdownRef = useRef<HTMLDivElement>(null);
+  const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const isInline = layout === "inline";
   const isRunModeOnly = runModeEnabled && !webgalLinkMode;
 
@@ -137,6 +141,49 @@ export function ChatToolbar({
   const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
   const bgmIsPlaying = useBgmStore(state => (roomId != null ? (state.isPlaying && state.playingRoomId === roomId) : false));
   const bgmToggle = useBgmStore(state => state.userToggle);
+
+  const blurAiPromptFocus = useCallback(() => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && aiPromptDropdownRef.current?.contains(active)) {
+      active.blur();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (aiPromptDropdownRef.current?.contains(target)) {
+        setIsEmojiOpen(false);
+        return;
+      }
+      if (emojiDropdownRef.current?.contains(target)) {
+        setIsAiPromptOpen(false);
+        return;
+      }
+
+      setIsAiPromptOpen(false);
+      setIsEmojiOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown, true);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAiPromptOpen) {
+      setIsEmojiOpen(false);
+    }
+    else {
+      blurAiPromptFocus();
+    }
+  }, [isAiPromptOpen, blurAiPromptFocus]);
+
+  useEffect(() => {
+    if (isEmojiOpen)
+      setIsAiPromptOpen(false);
+  }, [isEmojiOpen]);
 
   const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -162,10 +209,72 @@ export function ChatToolbar({
             isSpectator={isSpectator}
           />
         )}
+
         {showMainActions && (
           <>
-            <div className="dropdown dropdown-top dropdown-center">
-              <div role="button" tabIndex={2} className="cursor-pointer" aria-label="发送表情" title="发送表情">
+            {/* AI重写提示词编辑 */}
+            <div
+              ref={aiPromptDropdownRef}
+              className={`dropdown dropdown-top dropdown-center pointer-events-auto ${isAiPromptOpen ? "dropdown-open" : ""}`}
+            >
+              <div
+                role="button"
+                tabIndex={3}
+                className="cursor-pointer pointer-events-auto relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEmojiOpen(false);
+                  setIsAiPromptOpen(prev => !prev);
+                }}
+              >
+                <div
+                  className="tooltip tooltip-bottom"
+                  data-tip="编辑AI重写提示词"
+                >
+                  <SparklesOutline className="size-6 cursor-pointer jump_icon" />
+                </div>
+              </div>
+              <div
+                tabIndex={3}
+                className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[360px] z-[9999] absolute mb-6"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-end justify-between gap-3">
+                    <label className="text-sm font-medium">AI重写提示词</label>
+                    <span className="text-xs opacity-60 select-none">失焦自动保存</span>
+                  </div>
+                  <p className="text-xs opacity-70 leading-snug">
+                    `Tab` 触发 AI 重写；提示词会作为“重写要求”使用。
+                  </p>
+                  <textarea
+                    className="textarea textarea-bordered w-full min-h-28 max-h-48 text-sm leading-relaxed resize-none"
+                    placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
+                    defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) {
+                        localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              ref={emojiDropdownRef}
+              className={`dropdown dropdown-top dropdown-center ${isEmojiOpen ? "dropdown-open" : ""}`}
+            >
+              <div
+                role="button"
+                tabIndex={2}
+                className="cursor-pointer"
+                aria-label="发送表情"
+                title="发送表情"
+                onClick={() => {
+                  setIsAiPromptOpen(false);
+                  setIsEmojiOpen(prev => !prev);
+                }}
+              >
                 <div
                   className="tooltip tooltip-bottom"
                   data-tip="发送表情"
@@ -270,49 +379,6 @@ export function ChatToolbar({
                 </button>
               </div>
             )}
-
-            {/* AI重写提示词编辑 */}
-            <details
-              className="dropdown dropdown-top pointer-events-auto"
-            >
-              <summary
-                tabIndex={3}
-                className="cursor-pointer list-none pointer-events-auto relative"
-                onClick={e => e.stopPropagation()}
-              >
-                <div
-                  className="tooltip tooltip-bottom"
-                  data-tip="编辑AI重写提示词"
-                >
-                  <SparklesOutline className="size-6 cursor-pointer jump_icon" />
-                </div>
-              </summary>
-              <div
-                tabIndex={3}
-                className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[360px] z-[9999] absolute"
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-end justify-between gap-3">
-                    <label className="text-sm font-medium">AI重写提示词</label>
-                    <span className="text-xs opacity-60 select-none">失焦自动保存</span>
-                  </div>
-                  <p className="text-xs opacity-70 leading-snug">
-                    `Tab` 触发 AI 重写；提示词会作为“重写要求”使用。
-                  </p>
-                  <textarea
-                    className="textarea textarea-bordered w-full min-h-28 max-h-48 text-sm leading-relaxed resize-none"
-                    placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
-                    defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
-                    onBlur={(e) => {
-                      if (e.target.value.trim()) {
-                        localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </details>
 
             {/* 发送按钮 */}
             {showSendButton && (
