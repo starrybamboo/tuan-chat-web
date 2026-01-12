@@ -270,7 +270,7 @@ function RoomComposerPanelImpl({
             </div>
           )}
 
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0 relative">
               {(webgalLinkMode || runModeEnabled) && (
                 <div className="absolute right-2 -top-13 z-10">
@@ -320,24 +320,22 @@ function RoomComposerPanelImpl({
                   </div>
                 </div>
               )}
-              <div className="relative flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 p-2">
-                <div className="flex-1 min-w-0 pr-20">
-                  <ChatInputArea
-                    ref={chatInputRef}
-                    onInputSync={onInputSync}
-                    onPasteFiles={onPasteFiles}
-                    onKeyDown={onKeyDown}
-                    onKeyUp={onKeyUp}
-                    onMouseDown={onMouseDown}
-                    onCompositionStart={onCompositionStart}
-                    onCompositionEnd={onCompositionEnd}
-                    disabled={inputDisabled}
-                    placeholder={placeholderText}
-                    className="min-h-10 max-h-[20dvh] overflow-y-auto"
-                  />
-                </div>
+              <div className="flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 p-2">
+                <ChatInputArea
+                  ref={chatInputRef}
+                  onInputSync={onInputSync}
+                  onPasteFiles={onPasteFiles}
+                  onKeyDown={onKeyDown}
+                  onKeyUp={onKeyUp}
+                  onMouseDown={onMouseDown}
+                  onCompositionStart={onCompositionStart}
+                  onCompositionEnd={onCompositionEnd}
+                  disabled={inputDisabled}
+                  placeholder={placeholderText}
+                  className="min-h-10 max-h-[20dvh] overflow-y-auto"
+                />
 
-                <div className="absolute right-2 top-4">
+                <div className="self-start mt-2">
                   <ChatToolbarFromStore
                     roomId={roomId}
                     statusUserId={userId}
