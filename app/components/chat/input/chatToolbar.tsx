@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   Detective,
@@ -134,6 +135,8 @@ export function ChatToolbar({
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
   const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const screenSize = useScreenSize();
+  const isMobile = screenSize === "sm";
   const isInline = layout === "inline";
   const isStacked = !isInline;
   const isRunModeOnly = runModeEnabled && !webgalLinkMode;
@@ -231,15 +234,15 @@ export function ChatToolbar({
                   }}
                 >
                   <div
-                    className="tooltip tooltip-top"
-                    data-tip="编辑AI重写提示词"
+                    className={isMobile ? "" : "tooltip tooltip-top"}
+                    data-tip={isMobile ? undefined : "编辑AI重写提示词"}
                   >
                     <SparklesOutline className="size-6 cursor-pointer jump_icon mt-1 md:mt-0" />
                   </div>
                 </div>
                 <div
                   tabIndex={3}
-                  className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[280px] sm:w-[360px] z-[9999] absolute mb-6"
+                  className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[220px] md:w-[280px] z-[9999] absolute mb-6"
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="flex flex-col gap-2">
@@ -279,15 +282,15 @@ export function ChatToolbar({
                   }}
                 >
                   <div
-                    className="tooltip tooltip-top"
-                    data-tip="发送表情"
+                    className={isMobile ? "" : "tooltip tooltip-top"}
+                    data-tip={isMobile ? undefined : "发送表情"}
                   >
                     <EmojiIconWhite className="size-6 jump_icon mt-1 md:mt-0"></EmojiIconWhite>
                   </div>
                 </div>
                 <ul
                   tabIndex={2}
-                  className="dropdown-content menu bg-base-100 rounded-box z-20 w-72 sm:w-96 p-2 shadow-sm overflow-y-auto mb-6"
+                  className="dropdown-content menu bg-base-100 rounded-box z-[9999] w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
                 >
                   <EmojiWindow onChoose={async (emoji) => {
                     updateEmojiUrls((draft) => {
@@ -307,14 +310,14 @@ export function ChatToolbar({
                 draft.push(newImg);
               })}
               >
-                <div className="tooltip tooltip-top" data-tip="发送图片">
+                <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送图片"}>
                   <GalleryBroken className="size-6 cursor-pointer jump_icon mt-1 md:mt-0"></GalleryBroken>
                 </div>
               </ImgUploader>
 
               {/* 发送音频 */}
               {setAudioFile && (
-                <div className="tooltip tooltip-top" data-tip="发送音频">
+                <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送音频"}>
                   <MusicNote
                     className="size-6 cursor-pointer jump_icon relative md:-top-px"
                     onClick={() => audioInputRef.current?.click()}
@@ -525,7 +528,7 @@ export function ChatToolbar({
             >
               <FilmSlateIcon className="size-6" />
             </div>
-            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mb-4">
+            <ul tabIndex={0} className="dropdown-content z-[9999] menu p-2 shadow bg-base-100 rounded-box w-52 mb-4">
               {onSendEffect && (
                 <>
                   <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>

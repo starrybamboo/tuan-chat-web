@@ -117,7 +117,7 @@ export default function AvatarSwitch({
         </div>
         <ul
           tabIndex={0}
-          className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+          className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
         >
           <ExpressionChooser
             roleId={curRoleId}
@@ -211,7 +211,7 @@ export default function AvatarSwitch({
       </div>
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+        className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
       >
         <ExpressionChooser
           roleId={curRoleId}
