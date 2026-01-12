@@ -111,6 +111,7 @@ function RoomComposerPanelImpl({
 }: RoomComposerPanelProps) {
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
+  const composerRootRef = React.useRef<HTMLDivElement | null>(null);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -129,6 +130,35 @@ function RoomComposerPanelImpl({
     prevImgFilesCountRef.current = imgFilesCount;
     prevHasAudioRef.current = Boolean(audioFile);
   }, [audioFile, chatInputRef, imgFilesCount]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const target = composerRootRef.current;
+    if (!target) {
+      return;
+    }
+    const root = document.documentElement;
+    const update = () => {
+      const { height } = target.getBoundingClientRect();
+      root.style.setProperty("--chat-composer-height", `${height}px`);
+    };
+    update();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => {
+        window.removeEventListener("resize", update);
+        root.style.removeProperty("--chat-composer-height");
+      };
+    }
+    const observer = new ResizeObserver(() => update());
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--chat-composer-height");
+    };
+  }, []);
 
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -180,7 +210,7 @@ function RoomComposerPanelImpl({
   }, [chatInputRef]);
 
   return (
-    <div className="bg-transparent z-20">
+    <div ref={composerRootRef} className="bg-transparent z-20">
       <div className="relative flex-1 flex flex-col min-w-0 gap-2 p-2">
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}

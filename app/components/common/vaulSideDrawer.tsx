@@ -59,8 +59,9 @@ export function VaulSideDrawer({
 
   // 根据方向设置位置样式，top/bottom 预留空间给 header 和输入框
   const positionClasses = direction === "left"
-    ? "left-2 top-24 bottom-36"
-    : "right-2 top-24 bottom-36";
+    ? "left-2 top-24"
+    : "right-2 top-24";
+  const bottomOffset = "calc(var(--chat-composer-height, 9rem) + 56px)";
 
   const translateX = direction === "left"
     ? (visible ? "translateX(0)" : "translateX(-100%)")
@@ -79,6 +80,7 @@ export function VaulSideDrawer({
         transform: translateX,
         opacity: visible ? 1 : 0,
         transition: "transform 200ms ease-out, opacity 200ms ease-out",
+        bottom: bottomOffset,
       }}
     >
       <div className="bg-base-100 h-full w-full grow flex flex-col rounded-2xl shadow-xl overflow-hidden">
