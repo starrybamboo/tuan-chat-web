@@ -970,20 +970,53 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
+  const [isRoleSwitchDropdownOpen, setIsRoleSwitchDropdownOpen] = useState(false);
+
   // 侧边栏底部头像卡片：点击卡片任意空白处也能呼出“切换角色”的 dropdown
   const roleSwitchTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const roleSwitchDropdownRef = useRef<HTMLDivElement | null>(null);
   const handleSidebarAvatarCardClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement | null;
     if (!target)
+      return;
+
+    // dropdown 内的点击不触发卡片级打开逻辑（否则会导致闪烁/无法关闭）
+    if (target.closest(".dropdown") || target.closest(".dropdown-content"))
       return;
 
     // 点击了内部按钮/输入等交互元素时，不触发卡片级打开逻辑
     if (target.closest("button, a, input, textarea, select"))
       return;
 
-    roleSwitchTriggerRef.current?.focus();
-    roleSwitchTriggerRef.current?.click();
+    setIsRoleSwitchDropdownOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        queueMicrotask(() => {
+          roleSwitchTriggerRef.current?.focus();
+        });
+      }
+      return next;
+    });
   }, []);
+
+  useEffect(() => {
+    if (!isRoleSwitchDropdownOpen)
+      return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target)
+        return;
+      if (roleSwitchDropdownRef.current?.contains(target))
+        return;
+      setIsRoleSwitchDropdownOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isRoleSwitchDropdownOpen]);
 
   useEffect(() => {
     if (backgroundUrl) {
@@ -1053,7 +1086,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 </ul>
               </div>
             </div>
-            <div className="dropdown dropdown-top dropdown-end">
+            <div
+              ref={roleSwitchDropdownRef}
+              className={`dropdown dropdown-top dropdown-center ${isRoleSwitchDropdownOpen ? "dropdown-open" : ""}`}
+            >
               <button
                 ref={roleSwitchTriggerRef}
                 type="button"
@@ -1061,12 +1097,16 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 className="btn btn-circle btn-ghost btn-sm"
                 aria-label="切换角色"
                 title="切换角色"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsRoleSwitchDropdownOpen(prev => !prev);
+                }}
               >
                 <UserSwitchIcon className="size-6" />
               </button>
               <ul
                 tabIndex={0}
-                className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-160 mb-6"
+                className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-120 mb-6 ml-6"
               >
                 <ExpressionChooser
                   roleId={curRoleId}
