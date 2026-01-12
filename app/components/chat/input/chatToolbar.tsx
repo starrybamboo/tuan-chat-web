@@ -1,20 +1,19 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
-import { useRef } from "react";
+import { CheckerboardIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import ChatStatusBar from "@/components/chat/chatStatusBar";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
-  CommandSolid,
   Detective,
   DiceD6Icon,
   EmojiIconWhite,
   GalleryBroken,
   LinkFilled,
   MusicNote,
-  PointOnMapPerspectiveLinear,
   SendIcon,
   SparklesOutline,
-  SwordSwing,
   WebgalIcon,
 } from "@/icons";
 
@@ -43,6 +42,10 @@ interface ChatToolbarProps {
   // 新增：当前聊天状态 & 手动切换
   currentChatStatus: "idle" | "input" | "wait" | "leave";
   onChangeChatStatus: (status: "idle" | "input" | "wait" | "leave") => void;
+  // ChatStatusBar 所需
+  statusUserId?: number | null;
+  statusWebSocketUtils?: any;
+  statusExcludeSelf?: boolean;
   // 是否是观战成员
   isSpectator?: boolean;
   // 实时渲染相关
@@ -74,6 +77,14 @@ interface ChatToolbarProps {
   onInsertWebgalCommandPrefix?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
+  layout?: "stacked" | "inline";
+  showStatusBar?: boolean;
+  showWebgalLinkToggle?: boolean;
+  showRunModeToggle?: boolean;
+  showMainActions?: boolean;
+  showSendButton?: boolean;
+  showWebgalControls?: boolean;
+  showRunControls?: boolean;
 }
 
 export function ChatToolbar({
@@ -88,6 +99,9 @@ export function ChatToolbar({
   handleMessageSubmit,
   currentChatStatus,
   onChangeChatStatus,
+  statusUserId,
+  statusWebSocketUtils,
+  statusExcludeSelf = false,
   isSpectator = false,
   isRealtimeRenderActive = false,
   onToggleRealtimeRender,
@@ -106,13 +120,70 @@ export function ChatToolbar({
   onClearFigure,
   onInsertWebgalCommandPrefix,
   setAudioFile,
+  layout = "stacked",
+  showStatusBar = true,
+  showWebgalLinkToggle = true,
+  showRunModeToggle = true,
+  showMainActions = true,
+  showSendButton = true,
+  showWebgalControls = true,
+  showRunControls = true,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const aiPromptDropdownRef = useRef<HTMLDivElement>(null);
+  const emojiDropdownRef = useRef<HTMLDivElement>(null);
+  const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const isInline = layout === "inline";
+  const isRunModeOnly = runModeEnabled && !webgalLinkMode;
 
   const bgmTrack = useBgmStore(state => (roomId != null ? state.trackByRoomId[roomId] : undefined));
   const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
   const bgmIsPlaying = useBgmStore(state => (roomId != null ? (state.isPlaying && state.playingRoomId === roomId) : false));
   const bgmToggle = useBgmStore(state => state.userToggle);
+
+  const blurAiPromptFocus = useCallback(() => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && aiPromptDropdownRef.current?.contains(active)) {
+      active.blur();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (aiPromptDropdownRef.current?.contains(target)) {
+        setIsEmojiOpen(false);
+        return;
+      }
+      if (emojiDropdownRef.current?.contains(target)) {
+        setIsAiPromptOpen(false);
+        return;
+      }
+
+      setIsAiPromptOpen(false);
+      setIsEmojiOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown, true);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAiPromptOpen) {
+      setIsEmojiOpen(false);
+    }
+    else {
+      blurAiPromptFocus();
+    }
+  }, [isAiPromptOpen, blurAiPromptFocus]);
+
+  useEffect(() => {
+    if (isEmojiOpen)
+      setIsAiPromptOpen(false);
+  }, [isEmojiOpen]);
 
   const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,204 +196,212 @@ export function ChatToolbar({
   };
 
   return (
-    <div className="flex pr-1 pl-2 justify-between flex-wrap gap-y-2">
-      <div className="flex gap-2 flex-wrap items-center">
-        {/* 聊天状态选择器 - 观战成员不显示 */}
-        {!isSpectator && (
-          <div
-            className="dropdown dropdown-top pointer-events-auto"
-          >
+    <div className={`flex ${isInline ? " items-start gap-2 flex-nowrap" : "pr-1 justify-between flex-wrap gap-y-2"}`}>
+      <div className={`flex ${isInline ? " items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap"}`}>
+        {showStatusBar && roomId != null && statusWebSocketUtils && (
+          <ChatStatusBar
+            roomId={roomId}
+            userId={statusUserId}
+            webSocketUtils={statusWebSocketUtils}
+            excludeSelf={statusExcludeSelf}
+            currentChatStatus={currentChatStatus}
+            onChangeChatStatus={onChangeChatStatus}
+            isSpectator={isSpectator}
+          />
+        )}
+
+        {showMainActions && (
+          <>
+            {/* AI重写提示词编辑 */}
             <div
-              role="button"
-              tabIndex={0}
-              aria-label="切换聊天状态"
-              className="min-w-0 cursor-pointer list-none px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info"
-              title="切换聊天状态"
+              ref={aiPromptDropdownRef}
+              className={`dropdown dropdown-top dropdown-center pointer-events-auto ${isAiPromptOpen ? "dropdown-open" : ""}`}
             >
-              <span
-                className={
-                  currentChatStatus === "input"
-                    ? "text-info"
-                    : currentChatStatus === "wait"
-                      ? "text-warning"
-                      : currentChatStatus === "leave" ? "text-error" : "opacity-70"
-                }
+              <div
+                role="button"
+                tabIndex={3}
+                className="cursor-pointer pointer-events-auto relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEmojiOpen(false);
+                  setIsAiPromptOpen(prev => !prev);
+                }}
               >
-                {currentChatStatus === "idle" && "空闲"}
-                {currentChatStatus === "input" && "输入中"}
-                {currentChatStatus === "wait" && "等待扮演"}
-                {currentChatStatus === "leave" && "暂离"}
-              </span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
-            </div>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm z-[9999] absolute"
-            >
-              {[
-                { value: "idle", label: "空闲", desc: "清除正在输入" },
-                { value: "input", label: "输入中", desc: "标记正在输入" },
-                { value: "wait", label: "等待扮演", desc: "等待他人行动" },
-                { value: "leave", label: "暂离", desc: "临时离开" },
-              ].map(item => (
-                <li key={item.value}>
-                  <a
-                    className={`flex flex-col gap-0.5 py-1 ${currentChatStatus === item.value ? "active bg-base-200" : ""}`}
-                    onClick={(e) => {
-                      console.warn("🔘 状态按钮被点击", {
-                        clickedValue: item.value,
-                        currentStatus: currentChatStatus,
-                        onChangeChatStatus: typeof onChangeChatStatus,
-                      });
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.warn("✅ 调用 onChangeChatStatus", item.value);
-                      onChangeChatStatus(item.value as any);
-                      // 关闭 dropdown
-                      const elem = document.activeElement as HTMLElement;
-                      if (elem) {
-                        elem.blur();
+                <div
+                  className="tooltip tooltip-bottom"
+                  data-tip="编辑AI重写提示词"
+                >
+                  <SparklesOutline className="size-6 cursor-pointer jump_icon" />
+                </div>
+              </div>
+              <div
+                tabIndex={3}
+                className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[360px] z-[9999] absolute mb-6"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-end justify-between gap-3">
+                    <label className="text-sm font-medium">AI重写提示词</label>
+                    <span className="text-xs opacity-60 select-none">失焦自动保存</span>
+                  </div>
+                  <p className="text-xs opacity-70 leading-snug">
+                    `Tab` 触发 AI 重写；提示词会作为“重写要求”使用。
+                  </p>
+                  <textarea
+                    className="textarea textarea-bordered w-full min-h-28 max-h-48 text-sm leading-relaxed resize-none"
+                    placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
+                    defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) {
+                        localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
                       }
                     }}
-                  >
-                    <span className="leading-none">{item.label}</span>
-                    <span className="text-[10px] opacity-60 leading-none">{item.desc}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="dropdown dropdown-top">
-          <div role="button" tabIndex={2} className="cursor-pointer" aria-label="发送表情" title="发送表情">
-            <div
-              className="tooltip tooltip-bottom"
-              data-tip="发送表情"
-            >
-              <EmojiIconWhite className="size-6 jump_icon"></EmojiIconWhite>
-            </div>
-          </div>
-          <ul
-            tabIndex={2}
-            className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
-          >
-            <EmojiWindow onChoose={async (emoji) => {
-              updateEmojiUrls((draft) => {
-                const newUrl = emoji?.imageUrl;
-                if (newUrl && !draft.includes(newUrl)) {
-                  draft.push(newUrl);
-                }
-              });
-            }}
-            >
-            </EmojiWindow>
-          </ul>
-        </div>
-
-        {/* 发送图片 */}
-        <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-          draft.push(newImg);
-        })}
-        >
-          <div className="tooltip tooltip-bottom" data-tip="发送图片">
-            <GalleryBroken className="size-6 cursor-pointer jump_icon"></GalleryBroken>
-          </div>
-        </ImgUploader>
-
-        {/* 发送音频 */}
-        {setAudioFile && (
-          <div className="tooltip tooltip-bottom" data-tip="发送音频">
-            <MusicNote
-              className="size-6 cursor-pointer jump_icon relative -top-px"
-              onClick={() => audioInputRef.current?.click()}
-            />
-            <input
-              type="file"
-              ref={audioInputRef}
-              className="hidden"
-              accept="audio/*"
-              title="选择音频文件"
-              aria-label="选择音频文件"
-              onChange={handleAudioSelect}
-            />
-          </div>
-        )}
-
-        {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
-        {roomId != null && bgmTrack && (
-          <div className="tooltip tooltip-bottom" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
-            <button
-              type="button"
-              className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
-              disabled={bgmDismissed}
-              onClick={() => void bgmToggle(roomId)}
-            >
-              {bgmIsPlaying ? "关闭BGM" : "开启BGM"}
-            </button>
-          </div>
-        )}
-
-        {/* KP：停止全员BGM（发送系统消息） */}
-        {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
-          <div className="tooltip tooltip-bottom" data-tip="停止全员BGM">
-            <button
-              type="button"
-              className="btn btn-xs btn-ghost text-error"
-              onClick={onStopBgmForAll}
-            >
-              停止全员BGM
-            </button>
-          </div>
-        )}
-
-        {/* AI重写提示词编辑 */}
-        <details
-          className="dropdown dropdown-top pointer-events-auto"
-        >
-          <summary
-            tabIndex={3}
-            className="cursor-pointer list-none pointer-events-auto relative"
-            onClick={e => e.stopPropagation()}
-          >
-            <div
-              className="tooltip tooltip-bottom"
-              data-tip="编辑AI重写提示词"
-            >
-              <SparklesOutline className="size-6 cursor-pointer jump_icon" />
-            </div>
-          </summary>
-          <div
-            tabIndex={3}
-            className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[360px] z-[9999] absolute"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex flex-col gap-2">
-              <div className="flex items-end justify-between gap-3">
-                <label className="text-sm font-medium">AI重写提示词</label>
-                <span className="text-xs opacity-60 select-none">失焦自动保存</span>
+                  />
+                </div>
               </div>
-              <p className="text-xs opacity-70 leading-snug">
-                `Tab` 触发 AI 重写；提示词会作为“重写要求”使用。
-              </p>
-              <textarea
-                className="textarea textarea-bordered w-full min-h-28 max-h-48 text-sm leading-relaxed resize-none"
-                placeholder="例如：请优化这段文字的表达，使其更加清晰流畅"
-                defaultValue={localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅"}
-                onBlur={(e) => {
-                  if (e.target.value.trim()) {
-                    localStorage.setItem("ai-rewrite-prompt", e.target.value.trim());
-                  }
-                }}
-              />
             </div>
-          </div>
-        </details>
+            <div
+              ref={emojiDropdownRef}
+              className={`dropdown dropdown-top dropdown-center ${isEmojiOpen ? "dropdown-open" : ""}`}
+            >
+              <div
+                role="button"
+                tabIndex={2}
+                className="cursor-pointer"
+                aria-label="发送表情"
+                title="发送表情"
+                onClick={() => {
+                  setIsAiPromptOpen(false);
+                  setIsEmojiOpen(prev => !prev);
+                }}
+              >
+                <div
+                  className="tooltip tooltip-bottom"
+                  data-tip="发送表情"
+                >
+                  <EmojiIconWhite className="size-6 jump_icon"></EmojiIconWhite>
+                </div>
+              </div>
+              <ul
+                tabIndex={2}
+                className="dropdown-content menu bg-base-100 rounded-box z-20 w-96 p-2 shadow-sm overflow-y-auto mb-6"
+              >
+                <EmojiWindow onChoose={async (emoji) => {
+                  updateEmojiUrls((draft) => {
+                    const newUrl = emoji?.imageUrl;
+                    if (newUrl && !draft.includes(newUrl)) {
+                      draft.push(newUrl);
+                    }
+                  });
+                }}
+                >
+                </EmojiWindow>
+              </ul>
+            </div>
+
+            {/* 发送图片 */}
+            <ImgUploader setImg={newImg => updateImgFiles((draft) => {
+              draft.push(newImg);
+            })}
+            >
+              <div className="tooltip tooltip-bottom" data-tip="发送图片">
+                <GalleryBroken className="size-6 cursor-pointer jump_icon"></GalleryBroken>
+              </div>
+            </ImgUploader>
+
+            {/* 发送音频 */}
+            {setAudioFile && (
+              <div className="tooltip tooltip-bottom" data-tip="发送音频">
+                <MusicNote
+                  className="size-6 cursor-pointer jump_icon relative -top-px"
+                  onClick={() => audioInputRef.current?.click()}
+                />
+                <input
+                  type="file"
+                  ref={audioInputRef}
+                  className="hidden"
+                  accept="audio/*"
+                  title="选择音频文件"
+                  aria-label="选择音频文件"
+                  onChange={handleAudioSelect}
+                />
+              </div>
+            )}
+
+            {/* WebGAL 联动模式按钮 */}
+            {showWebgalLinkToggle && onToggleWebgalLinkMode && (
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
+              >
+                <LinkFilled
+                  className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+                  onClick={onToggleWebgalLinkMode}
+                />
+              </div>
+            )}
+
+            {showRunModeToggle && onToggleRunMode && (
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
+              >
+                <DiceD6Icon
+                  className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+                  onClick={onToggleRunMode}
+                />
+              </div>
+            )}
+
+            {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
+            {roomId != null && bgmTrack && (
+              <div className="tooltip tooltip-bottom" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
+                <button
+                  type="button"
+                  className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
+                  disabled={bgmDismissed}
+                  onClick={() => void bgmToggle(roomId)}
+                >
+                  {bgmIsPlaying ? "关闭BGM" : "开启BGM"}
+                </button>
+              </div>
+            )}
+
+            {/* KP：停止全员BGM（发送系统消息） */}
+            {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
+              <div className="tooltip tooltip-bottom" data-tip="停止全员BGM">
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost text-error"
+                  onClick={onStopBgmForAll}
+                >
+                  停止全员BGM
+                </button>
+              </div>
+            )}
+
+            {/* 发送按钮 */}
+            {showSendButton && (
+              <div className="tooltip tooltip-bottom" data-tip="发送">
+                <SendIcon
+                  className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
+                  onClick={handleMessageSubmit}
+                >
+                </SendIcon>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* 右侧按钮组 */}
-      <div className="flex gap-2 flex-wrap justify-end items-center flex-grow">
+      <div
+        className={`flex mr-2 mt-2 ${isInline ? "items-start gap-2 flex-nowrap" : "items-center gap-2 flex-wrap justify-end flex-grow"} ${
+          isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
+        }`}
+      >
         {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
-        {webgalLinkMode && onInsertWebgalCommandPrefix && (
+        {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && (
           <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
             <button
               type="button"
@@ -335,7 +414,7 @@ export function ChatToolbar({
         )}
 
         {/* 默认立绘位置选择器（仅在联动模式下显示） */}
-        {webgalLinkMode && onSetDefaultFigurePosition && (
+        {showWebgalControls && webgalLinkMode && onSetDefaultFigurePosition && (
           <div className="flex items-center gap-1">
             <div className="tooltip tooltip-bottom" data-tip="本角色默认位置（点击取消选择）">
               <div className="join">
@@ -364,8 +443,8 @@ export function ChatToolbar({
         )}
 
         {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
-        {webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
-          <div className="flex items-center gap-2 text-xs">
+        {showWebgalControls && webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
+          <div className="flex items-center gap-2 text-xs mt-1.5">
             {onToggleDialogNotend && (
               <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
                 <input
@@ -392,8 +471,8 @@ export function ChatToolbar({
         )}
 
         {/* WebGAL 导演控制台 */}
-        {webgalLinkMode && onSendEffect && (
-          <div className="dropdown dropdown-top dropdown-end">
+        {showWebgalControls && webgalLinkMode && onSendEffect && (
+          <div className="dropdown dropdown-top dropdown-end mt-0.5">
             <div
               tabIndex={0}
               role="button"
@@ -402,9 +481,9 @@ export function ChatToolbar({
               aria-label="导演控制台"
               title="导演控制台"
             >
-              <CommandSolid className="size-6" />
+              <FilmSlateIcon className="size-6" />
             </div>
-            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mb-4">
               {onSendEffect && (
                 <>
                   <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>
@@ -425,34 +504,22 @@ export function ChatToolbar({
         )}
 
         {/* 实时渲染按钮：仅在联动模式开启时展示 */}
-        {webgalLinkMode && onToggleRealtimeRender && (
+        {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
           <div
-            className={`tooltip tooltip-bottom ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+            className={`tooltip tooltip-bottom mt-0.5 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
             data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
             onClick={onToggleRealtimeRender}
           >
-            <WebgalIcon className={`size-6 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+            <WebgalIcon className={`size-5 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
           </div>
         )}
 
-        {/* WebGAL 联动模式按钮 */}
-        {onToggleWebgalLinkMode && (
-          <div
-            className="tooltip tooltip-bottom"
-            data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
-          >
-            <LinkFilled
-              className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
-              onClick={onToggleWebgalLinkMode}
-            />
-          </div>
-        )}
-
-        {runModeEnabled && (
-          <>
+        {showRunControls && runModeEnabled && (
+          <div className="flex gap-2 ml-0.5">
             <div
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="查看线索"
+              data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
             >
               <Detective className="size-6"></Detective>
@@ -461,41 +528,22 @@ export function ChatToolbar({
             <div
               className="tooltip tooltip-bottom"
               data-tip="展示先攻表"
+              data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
             >
-              <SwordSwing className="size-6 jump_icon"></SwordSwing>
+              <SwordIcon className="size-6 jump_icon"></SwordIcon>
             </div>
 
             <div
               className="tooltip tooltip-bottom"
               data-tip="地图"
+              data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
             >
-              <PointOnMapPerspectiveLinear className="size-6 jump_icon"></PointOnMapPerspectiveLinear>
+              <CheckerboardIcon className="size-6 jump_icon"></CheckerboardIcon>
             </div>
-          </>
-        )}
-
-        {onToggleRunMode && (
-          <div
-            className="tooltip tooltip-bottom"
-            data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
-          >
-            <DiceD6Icon
-              className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
-              onClick={onToggleRunMode}
-            />
           </div>
         )}
-
-        {/* 发送按钮 */}
-        <div className="tooltip tooltip-bottom" data-tip="发送">
-          <SendIcon
-            className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
-            onClick={handleMessageSubmit}
-          >
-          </SendIcon>
-        </div>
       </div>
     </div>
   );

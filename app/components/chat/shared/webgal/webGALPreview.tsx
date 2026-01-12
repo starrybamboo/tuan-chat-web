@@ -10,6 +10,7 @@ import { getDefaultTerrePort, getTerreBaseUrl } from "@/webGAL/terreConfig";
 interface WebGALPreviewProps {
   previewUrl: string | null;
   isActive: boolean;
+  isResizing?: boolean;
   onClose?: () => void;
   className?: string;
 }
@@ -136,6 +137,7 @@ function WebGALSettingsModal({
 export default function WebGALPreview({
   previewUrl,
   isActive,
+  isResizing = false,
   onClose,
   className,
 }: WebGALPreviewProps) {
@@ -283,7 +285,7 @@ export default function WebGALPreview({
       <div className="flex-1 relative bg-black">
         <iframe
           src={previewUrl}
-          className="absolute inset-0 w-full h-full border-0"
+          className={`absolute inset-0 w-full h-full border-0 ${isResizing ? "pointer-events-none" : ""}`}
           title="WebGAL 实时预览"
           allow="autoplay; fullscreen"
           sandbox="allow-scripts allow-same-origin"

@@ -26,8 +26,7 @@ function RoomHeaderBarImpl({
       <div
         className="flex justify-between items-center w-full px-2 h-10
         bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
-        border border-white/40 dark:border-white/10
-        shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+        border border-white/40 dark:border-white/10"
       >
         <div className="flex items-center gap-2">
           <div className="sm:hidden">
@@ -52,6 +51,7 @@ function RoomHeaderBarImpl({
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
             data-tip="导出记录"
+            data-side-drawer-toggle="true"
             onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
           >
             <ExportIcon className="size-6" />
@@ -59,6 +59,7 @@ function RoomHeaderBarImpl({
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
             data-tip="房间成员"
+            data-side-drawer-toggle="true"
             onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
           >
             <MemberIcon className="size-6" />
@@ -66,6 +67,7 @@ function RoomHeaderBarImpl({
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
             data-tip="房间角色"
+            data-side-drawer-toggle="true"
             onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
           >
             <RoleListIcon className="size-6" />

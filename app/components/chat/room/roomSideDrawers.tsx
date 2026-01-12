@@ -13,8 +13,7 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { BaselineArrowBackIosNew } from "@/icons";
+import { VaulSideDrawer } from "@/components/common/vaulSideDrawer";
 
 export interface RoomSideDrawersProps {
   onClueSend: (clue: ClueMessage) => void;
@@ -30,27 +29,35 @@ function RoomSideDrawersImpl({
 
   // Discord 风格：Thread 以“右侧固定分栏面板”展示，不作为可滑出的 drawer
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
+  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const isThreadPaneOpen = !!threadRootMessageId;
 
   const realtimePreviewUrl = useRealtimeRenderStore(state => state.previewUrl);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
+  const [isWebgalResizing, setIsWebgalResizing] = React.useState(false);
+
+  // 从 webgal drawer 切到其它 drawer 时，确保停止实时渲染
+  const prevSideDrawerStateRef = React.useRef(sideDrawerState);
+  React.useEffect(() => {
+    const prev = prevSideDrawerStateRef.current;
+    prevSideDrawerStateRef.current = sideDrawerState;
+    if (prev === "webgal" && sideDrawerState !== "webgal") {
+      stopRealtimeRender();
+      setIsRealtimeRenderEnabled(false);
+    }
+  }, [setIsRealtimeRenderEnabled, sideDrawerState, stopRealtimeRender]);
 
   const userDrawerWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
-  const setUserDrawerWidth = useDrawerPreferenceStore(state => state.setUserDrawerWidth);
   const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
-  const setRoleDrawerWidth = useDrawerPreferenceStore(state => state.setRoleDrawerWidth);
   const threadDrawerWidth = useDrawerPreferenceStore(state => state.threadDrawerWidth);
-  const setThreadDrawerWidth = useDrawerPreferenceStore(state => state.setThreadDrawerWidth);
   const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
-  const setInitiativeDrawerWidth = useDrawerPreferenceStore(state => state.setInitiativeDrawerWidth);
   const clueDrawerWidth = useDrawerPreferenceStore(state => state.clueDrawerWidth);
-  const setClueDrawerWidth = useDrawerPreferenceStore(state => state.setClueDrawerWidth);
   const mapDrawerWidth = useDrawerPreferenceStore(state => state.mapDrawerWidth);
   const setMapDrawerWidth = useDrawerPreferenceStore(state => state.setMapDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
-  const setExportDrawerWidth = useDrawerPreferenceStore(state => state.setExportDrawerWidth);
   const webgalDrawerWidth = useDrawerPreferenceStore(state => state.webgalDrawerWidth);
   const setWebgalDrawerWidth = useDrawerPreferenceStore(state => state.setWebgalDrawerWidth);
 
@@ -62,209 +69,218 @@ function RoomSideDrawersImpl({
   const initiativeMinWidth = 280;
   const safeInitiativeWidth = clamp(initiativeDrawerWidth, initiativeMinWidth, initiativeMaxWidth);
 
-  // Thread 宽度：允许拖拽调整，并随窗口变化放宽最大宽度
+  // Thread 宽度
   const threadMinWidth = 360;
   const threadMaxWidth = typeof window === "undefined"
     ? 900
     : Math.max(threadMinWidth, window.innerWidth - 360);
   const safeThreadWidth = clamp(threadDrawerWidth, threadMinWidth, threadMaxWidth);
 
-  // 给地图留出主聊天区空间：最大宽度随窗口变化，但不小于最小宽度
+  // 地图宽度
   const mapMinWidth = 560;
   const mapMaxWidth = typeof window === "undefined"
     ? 1100
     : Math.max(mapMinWidth, window.innerWidth - 360);
   const safeMapWidth = clamp(mapDrawerWidth, Math.min(720, mapMaxWidth), mapMaxWidth);
 
+  // WebGAL 宽度
+  const webgalMinWidth = 520;
   const webgalMaxWidth = typeof window === "undefined"
-    ? 900
-    : Math.max(360, window.innerWidth - 500);
+    ? 1100
+    : Math.max(webgalMinWidth, window.innerWidth - 360);
+  const safeWebgalWidth = clamp(webgalDrawerWidth, webgalMinWidth, webgalMaxWidth);
+  const drawerCloseDragThreshold = 80;
 
-  const rightDrawerBaseClass = "h-full bg-base-100 z-20 flex-shrink-0";
-  const rightDrawerOverlayAnchorClass = "top-0 right-0";
-  const rightDrawerHandlePosition = "left" as const;
+  const handleCloseSideDrawer = React.useCallback(() => {
+    setSideDrawerState("none");
+  }, [setSideDrawerState]);
+
+  const handleCloseThread = React.useCallback(() => {
+    setThreadRootMessageId(undefined);
+    setComposerTarget("main");
+  }, [setComposerTarget, setThreadRootMessageId]);
+
+  const handleCloseWebgal = React.useCallback(() => {
+    stopRealtimeRender();
+    setIsRealtimeRenderEnabled(false);
+    setSideDrawerState("none");
+    setIsWebgalResizing(false);
+  }, [setIsRealtimeRenderEnabled, setSideDrawerState, stopRealtimeRender]);
+
+  const handleMapResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = mapDrawerWidth;
+    const minWidth = mapMinWidth;
+    const maxWidth = mapMaxWidth;
+    let closed = false;
+
+    function handleUp() {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    }
+
+    function handleMove(moveEvent: MouseEvent) {
+      if (closed) {
+        return;
+      }
+      const deltaX = moveEvent.clientX - startX;
+      if (deltaX > startWidth - minWidth + drawerCloseDragThreshold) {
+        closed = true;
+        handleCloseSideDrawer();
+        handleUp();
+        return;
+      }
+      const nextWidth = clamp(startWidth - deltaX, minWidth, maxWidth);
+      setMapDrawerWidth(nextWidth);
+    }
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+  }, [clamp, drawerCloseDragThreshold, handleCloseSideDrawer, mapDrawerWidth, mapMaxWidth, mapMinWidth, setMapDrawerWidth]);
+
+  const handleWebgalResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = webgalDrawerWidth;
+    const minWidth = webgalMinWidth;
+    const maxWidth = webgalMaxWidth;
+    let closed = false;
+    setIsWebgalResizing(true);
+
+    function handleUp() {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      setIsWebgalResizing(false);
+    }
+
+    function handleMove(moveEvent: MouseEvent) {
+      if (closed) {
+        return;
+      }
+      const deltaX = moveEvent.clientX - startX;
+      if (deltaX > startWidth - minWidth + drawerCloseDragThreshold) {
+        closed = true;
+        handleCloseWebgal();
+        handleUp();
+        return;
+      }
+      const nextWidth = clamp(startWidth - deltaX, minWidth, maxWidth);
+      setWebgalDrawerWidth(nextWidth);
+    }
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+  }, [clamp, drawerCloseDragThreshold, handleCloseWebgal, setWebgalDrawerWidth, webgalDrawerWidth, webgalMaxWidth, webgalMinWidth]);
 
   return (
     <>
-      <div className="w-px bg-base-300 flex-shrink-0"></div>
-      <OpenAbleDrawer
+      <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "user"}
-        className={`${rightDrawerBaseClass} overflow-auto ${rightDrawerOverlayAnchorClass}`}
-        initialWidth={userDrawerWidth}
-        onWidthChange={setUserDrawerWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={userDrawerWidth}
+        direction="right"
+        onClose={handleCloseSideDrawer}
       >
-        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
-          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
-            <button
-              type="button"
-              aria-label="关闭侧边栏"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => setSideDrawerState("none")}
-            >
-              <BaselineArrowBackIosNew className="size-5" />
-            </button>
-          </div>
+        <div className="overflow-auto flex-1">
+          <RoomUserList />
         </div>
-        <RoomUserList />
-      </OpenAbleDrawer>
-      <OpenAbleDrawer
+      </VaulSideDrawer>
+      <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "role"}
-        className={`${rightDrawerBaseClass} overflow-auto ${rightDrawerOverlayAnchorClass}`}
-        initialWidth={roleDrawerWidth}
-        onWidthChange={setRoleDrawerWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={roleDrawerWidth}
+        direction="right"
+        onClose={handleCloseSideDrawer}
       >
-        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
-          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
-            <button
-              type="button"
-              aria-label="关闭侧边栏"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => setSideDrawerState("none")}
-            >
-              <BaselineArrowBackIosNew className="size-5" />
-            </button>
-          </div>
+        <div className="overflow-auto flex-1">
+          <RoomRoleList />
         </div>
-        <RoomRoleList />
-      </OpenAbleDrawer>
-      <OpenAbleDrawer
+      </VaulSideDrawer>
+      <VaulSideDrawer
         isOpen={isThreadPaneOpen}
-        className={`${rightDrawerBaseClass} overflow-hidden ${rightDrawerOverlayAnchorClass} ${composerTarget === "thread" ? "ring-2 ring-info/40 ring-inset" : ""}`}
-        initialWidth={safeThreadWidth}
-        minWidth={threadMinWidth}
-        maxWidth={threadMaxWidth}
-        minRemainingWidth={360}
-        onWidthChange={setThreadDrawerWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={safeThreadWidth}
+        direction="right"
+        className={composerTarget === "thread" ? "ring-2 ring-info/40 ring-inset" : ""}
+        onClose={handleCloseThread}
       >
         <MessageThreadDrawer />
-      </OpenAbleDrawer>
-      <OpenAbleDrawer
+      </VaulSideDrawer>
+      <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "initiative"}
-        className={`${rightDrawerBaseClass} overflow-auto ${rightDrawerOverlayAnchorClass}`}
-        initialWidth={safeInitiativeWidth}
-        minWidth={initiativeMinWidth}
-        maxWidth={initiativeMaxWidth}
-        minRemainingWidth={360}
-        onWidthChange={setInitiativeDrawerWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={safeInitiativeWidth}
+        direction="right"
+        onClose={handleCloseSideDrawer}
       >
-        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
-          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
-            <button
-              type="button"
-              aria-label="关闭侧边栏"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => setSideDrawerState("none")}
-            >
-              <BaselineArrowBackIosNew className="size-5" />
-            </button>
-          </div>
+        <div className="overflow-auto flex-1">
+          <InitiativeList />
         </div>
-        <InitiativeList />
-      </OpenAbleDrawer>
-      <OpenAbleDrawer
+      </VaulSideDrawer>
+      <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "map"}
-        className={`${rightDrawerBaseClass} overflow-auto ${rightDrawerOverlayAnchorClass}`}
-        initialWidth={safeMapWidth}
-        minWidth={mapMinWidth}
-        minRemainingWidth={360}
-        onWidthChange={setMapDrawerWidth}
-        maxWidth={mapMaxWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={safeMapWidth}
+        direction="right"
+        showResizeHandle
+        onResizeHandleMouseDown={handleMapResizeStart}
+        onClose={handleCloseSideDrawer}
       >
-        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
-          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
-            <button
-              type="button"
-              aria-label="关闭侧边栏"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => setSideDrawerState("none")}
-            >
-              <BaselineArrowBackIosNew className="size-5" />
-            </button>
-          </div>
+        <div className="overflow-auto h-full">
+          <DNDMap />
         </div>
-        <DNDMap />
-      </OpenAbleDrawer>
-      <OpenAbleDrawer
+      </VaulSideDrawer>
+      <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "clue"}
-        className={`${rightDrawerBaseClass} overflow-auto ${rightDrawerOverlayAnchorClass}`}
-        initialWidth={clueDrawerWidth}
-        onWidthChange={setClueDrawerWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={clueDrawerWidth}
+        direction="right"
+        onClose={handleCloseSideDrawer}
       >
-        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
-          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
-            <button
-              type="button"
-              aria-label="关闭侧边栏"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => setSideDrawerState("none")}
-            >
-              <BaselineArrowBackIosNew className="size-5" />
-            </button>
-          </div>
+        <div className="overflow-auto flex-1">
+          <ClueListForPL onSend={onClueSend} />
         </div>
-        <ClueListForPL onSend={onClueSend} />
-      </OpenAbleDrawer>
-      <OpenAbleDrawer
+      </VaulSideDrawer>
+      <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "export"}
-        className={`${rightDrawerBaseClass} overflow-auto ${rightDrawerOverlayAnchorClass}`}
-        initialWidth={exportDrawerWidth}
-        onWidthChange={setExportDrawerWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={exportDrawerWidth}
+        direction="right"
+        onClose={handleCloseSideDrawer}
       >
-        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
-          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
-            <button
-              type="button"
-              aria-label="关闭侧边栏"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => setSideDrawerState("none")}
-            >
-              <BaselineArrowBackIosNew className="size-5" />
-            </button>
-          </div>
+        <div className="overflow-auto flex-1">
+          <ExportChatDrawer />
         </div>
-        <ExportChatDrawer />
-      </OpenAbleDrawer>
-      <OpenAbleDrawer
+      </VaulSideDrawer>
+      <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "webgal"}
-        className={`${rightDrawerBaseClass} overflow-hidden ${rightDrawerOverlayAnchorClass}`}
-        initialWidth={webgalDrawerWidth}
-        onWidthChange={setWebgalDrawerWidth}
-        maxWidth={webgalMaxWidth}
-        handlePosition={rightDrawerHandlePosition}
+        width={safeWebgalWidth}
+        direction="right"
+        showResizeHandle
+        onResizeHandleMouseDown={handleWebgalResizeStart}
+        onClose={handleCloseWebgal}
       >
-        <div className="sticky top-0 z-30 flex justify-end p-2 bg-base-100">
-          <div className="tooltip tooltip-left" data-tip="关闭侧边栏">
-            <button
-              type="button"
-              aria-label="关闭侧边栏"
-              className="btn btn-ghost btn-square btn-sm"
-              onClick={() => {
-                stopRealtimeRender();
-                setIsRealtimeRenderEnabled(false);
-                setSideDrawerState("none");
-              }}
-            >
-              <BaselineArrowBackIosNew className="size-5" />
-            </button>
-          </div>
-        </div>
         <WebGALPreview
           previewUrl={realtimePreviewUrl}
           isActive={isRealtimeRenderActive}
+          isResizing={isWebgalResizing}
           onClose={() => {
-            stopRealtimeRender();
-            setIsRealtimeRenderEnabled(false);
-            setSideDrawerState("none");
+            handleCloseWebgal();
           }}
         />
-      </OpenAbleDrawer>
+      </VaulSideDrawer>
     </>
   );
 }

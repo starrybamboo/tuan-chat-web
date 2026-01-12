@@ -4,8 +4,6 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
-import ChatStatusBar from "@/components/chat/chatStatusBar";
-import AvatarSwitch from "@/components/chat/input/avatarSwitch";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
 import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore";
@@ -96,9 +94,9 @@ function RoomComposerPanelImpl({
   isSubmitting,
   placeholderText,
   curRoleId,
-  curAvatarId,
-  setCurRoleId,
-  setCurAvatarId,
+  curAvatarId: _curAvatarId,
+  setCurRoleId: _setCurRoleId,
+  setCurAvatarId: _setCurAvatarId,
   roomRoles,
   chatInputRef,
   atMentionRef,
@@ -113,6 +111,7 @@ function RoomComposerPanelImpl({
 }: RoomComposerPanelProps) {
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
+  const composerRootRef = React.useRef<HTMLDivElement | null>(null);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -132,9 +131,39 @@ function RoomComposerPanelImpl({
     prevHasAudioRef.current = Boolean(audioFile);
   }, [audioFile, chatInputRef, imgFilesCount]);
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const target = composerRootRef.current;
+    if (!target) {
+      return;
+    }
+    const root = document.documentElement;
+    const update = () => {
+      const { height } = target.getBoundingClientRect();
+      root.style.setProperty("--chat-composer-height", `${height}px`);
+    };
+    update();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => {
+        window.removeEventListener("resize", update);
+        root.style.removeProperty("--chat-composer-height");
+      };
+    }
+    const observer = new ResizeObserver(() => update());
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--chat-composer-height");
+    };
+  }, []);
+
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const toggleWebgalLinkMode = useRoomPreferenceStore(state => state.toggleWebgalLinkMode);
 
   const autoReplyMode = useRoomPreferenceStore(state => state.autoReplyMode);
@@ -181,165 +210,218 @@ function RoomComposerPanelImpl({
   }, [chatInputRef]);
 
   return (
-    <div className="bg-base-100 px-3 py-2 flex flex-col">
-      <div className="relative flex-1 flex flex-col min-w-0">
+    <div ref={composerRootRef} className="bg-transparent z-20">
+      <div className="relative flex-1 flex flex-col min-w-0 gap-2 p-2">
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
           ruleId={ruleId}
-          className="absolute bottom-full w-full mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
+          className="absolute bottom-full w-full mb-2 bg-base-200 rounded-md overflow-hidden z-10"
         />
 
-        <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
-
-        <ChatToolbarFromStore
-          roomId={roomId}
-          sideDrawerState={sideDrawerState}
-          setSideDrawerState={setSideDrawerState}
-          handleMessageSubmit={handleMessageSubmit}
-          onAIRewrite={onAIRewrite}
-          currentChatStatus={currentChatStatus}
-          onChangeChatStatus={onChangeChatStatus}
-          isSpectator={isSpectator}
-          onToggleRealtimeRender={onToggleRealtimeRender}
-          onToggleWebgalLinkMode={toggleWebgalLinkMode}
-          onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-          autoReplyMode={autoReplyMode}
-          onToggleAutoReplyMode={toggleAutoReplyMode}
-          runModeEnabled={runModeEnabled}
-          onToggleRunMode={onToggleRunMode}
-          defaultFigurePosition={defaultFigurePosition}
-          onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-          dialogNotend={dialogNotend}
-          onToggleDialogNotend={toggleDialogNotend}
-          dialogConcat={dialogConcat}
-          onToggleDialogConcat={toggleDialogConcat}
-          onSendEffect={onSendEffect}
-          onClearBackground={onClearBackground}
-          onClearFigure={onClearFigure}
-          isKP={isKP}
-          onStopBgmForAll={onStopBgmForAll}
-          noRole={noRole}
-          notMember={notMember}
-          isSubmitting={isSubmitting}
-        />
-
-        <div className="flex gap-2 items-stretch">
-          <AvatarSwitch
-            curRoleId={curRoleId}
-            curAvatarId={curAvatarId}
-            setCurAvatarId={setCurAvatarId}
-            setCurRoleId={setCurRoleId}
-          >
-          </AvatarSwitch>
-
-          <div
-            className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-lg flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col overflow-hidden"
-            onDragOver={(e) => {
-              if (isFileDrag(e.dataTransfer)) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-              }
-            }}
-            onDrop={(e) => {
-              if (!isFileDrag(e.dataTransfer))
-                return;
+        <div
+          className="flex flex-col gap-2 rounded-md"
+          onDragOver={(e) => {
+            if (isFileDrag(e.dataTransfer)) {
               e.preventDefault();
-              e.stopPropagation();
-              addDroppedFilesToComposer(e.dataTransfer);
-            }}
-          >
-            <ChatAttachmentsPreviewFromStore />
+              e.dataTransfer.dropEffect = "copy";
+            }
+          }}
+          onDrop={(e) => {
+            if (!isFileDrag(e.dataTransfer))
+              return;
+            e.preventDefault();
+            e.stopPropagation();
+            addDroppedFilesToComposer(e.dataTransfer);
+          }}
+        >
+          <ChatAttachmentsPreviewFromStore />
 
-            {replyMessage && (
-              <div className="p-2 pb-1">
-                <RepliedMessage
-                  replyMessage={replyMessage}
-                  className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm p-1"
-                />
-              </div>
-            )}
+          {replyMessage && (
+            <div className="p-2 pb-1">
+              <RepliedMessage
+                replyMessage={replyMessage}
+                className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-1"
+              />
+            </div>
+          )}
 
-            {threadRootMessageId && (
-              <div className="p-2 pb-1">
-                <div className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm p-2 justify-between">
-                  <div className="min-w-0 flex items-center gap-2">
-                    <div className="join">
-                      <button
-                        type="button"
-                        className={`btn btn-xs join-item ${composerTarget === "main" ? "btn-info" : "btn-ghost"}`}
-                        onClick={() => setComposerTarget("main")}
-                      >
-                        主区
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn btn-xs join-item ${composerTarget === "thread" ? "btn-info" : "btn-ghost"}`}
-                        onClick={() => setComposerTarget("thread")}
-                      >
-                        子区
-                      </button>
-                    </div>
-                    <span className="text-xs text-base-content/60 truncate">
-                      🧵
-                      {threadRootMessageId}
-                    </span>
+          {threadRootMessageId && (
+            <div className="p-2 pb-1">
+              <div className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-2 justify-between">
+                <div className="min-w-0 flex items-center gap-2">
+                  <div className="join">
+                    <button
+                      type="button"
+                      className={`btn btn-xs join-item ${composerTarget === "main" ? "btn-info" : "btn-ghost"}`}
+                      onClick={() => setComposerTarget("main")}
+                    >
+                      主区
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-xs join-item ${composerTarget === "thread" ? "btn-info" : "btn-ghost"}`}
+                      onClick={() => setComposerTarget("thread")}
+                    >
+                      子区
+                    </button>
                   </div>
+                  <span className="text-xs text-base-content/60 truncate">
+                    🧵
+                    {threadRootMessageId}
+                  </span>
+                </div>
 
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost shrink-0"
-                    onClick={() => {
-                      setComposerTarget("main");
-                      setThreadRootMessageId(undefined);
-                    }}
-                  >
-                    关闭
-                  </button>
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost shrink-0"
+                  onClick={() => {
+                    setComposerTarget("main");
+                    setThreadRootMessageId(undefined);
+                  }}
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          )}
+
+          {insertAfterMessageId && (
+            <div className="p-2 pb-1">
+              <div className="flex flex-row gap-2 items-center bg-info/20 rounded-md shadow-sm text-sm p-2 justify-between">
+                <span className="text-info-content">📍 将在消息后插入</span>
+                <button
+                  type="button"
+                  className="btn btn-xs btn-ghost"
+                  onClick={() => setInsertAfterMessageId(undefined)}
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-0 relative">
+              {(webgalLinkMode || runModeEnabled) && (
+                <div className="absolute right-2 -top-13 z-10">
+                  <div className="flex items-start gap-2 bg-base-100/80 border border-base-300 rounded-md shadow-sm pointer-events-auto">
+                    <ChatToolbarFromStore
+                      roomId={roomId}
+                      statusUserId={userId}
+                      statusWebSocketUtils={webSocketUtils}
+                      statusExcludeSelf={false}
+                      sideDrawerState={sideDrawerState}
+                      setSideDrawerState={setSideDrawerState}
+                      handleMessageSubmit={handleMessageSubmit}
+                      onAIRewrite={onAIRewrite}
+                      currentChatStatus={currentChatStatus}
+                      onChangeChatStatus={onChangeChatStatus}
+                      isSpectator={isSpectator}
+                      onToggleRealtimeRender={onToggleRealtimeRender}
+                      onToggleWebgalLinkMode={toggleWebgalLinkMode}
+                      onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
+                      autoReplyMode={autoReplyMode}
+                      onToggleAutoReplyMode={toggleAutoReplyMode}
+                      runModeEnabled={runModeEnabled}
+                      onToggleRunMode={onToggleRunMode}
+                      defaultFigurePosition={defaultFigurePosition}
+                      onSetDefaultFigurePosition={onSetDefaultFigurePosition}
+                      dialogNotend={dialogNotend}
+                      onToggleDialogNotend={toggleDialogNotend}
+                      dialogConcat={dialogConcat}
+                      onToggleDialogConcat={toggleDialogConcat}
+                      onSendEffect={onSendEffect}
+                      onClearBackground={onClearBackground}
+                      onClearFigure={onClearFigure}
+                      isKP={isKP}
+                      onStopBgmForAll={onStopBgmForAll}
+                      noRole={noRole}
+                      notMember={notMember}
+                      isSubmitting={isSubmitting}
+                      layout="inline"
+                      showStatusBar={false}
+                      showWebgalLinkToggle={false}
+                      showRunModeToggle={false}
+                      showMainActions={false}
+                      showSendButton={false}
+                      showWebgalControls={true}
+                      showRunControls={true}
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 p-2">
+                <ChatInputArea
+                  ref={chatInputRef}
+                  onInputSync={onInputSync}
+                  onPasteFiles={onPasteFiles}
+                  onKeyDown={onKeyDown}
+                  onKeyUp={onKeyUp}
+                  onMouseDown={onMouseDown}
+                  onCompositionStart={onCompositionStart}
+                  onCompositionEnd={onCompositionEnd}
+                  disabled={inputDisabled}
+                  placeholder={placeholderText}
+                  className="min-h-10 max-h-[20dvh] overflow-y-auto"
+                />
+
+                <div className="self-start mt-2">
+                  <ChatToolbarFromStore
+                    roomId={roomId}
+                    statusUserId={userId}
+                    statusWebSocketUtils={webSocketUtils}
+                    statusExcludeSelf={false}
+                    sideDrawerState={sideDrawerState}
+                    setSideDrawerState={setSideDrawerState}
+                    handleMessageSubmit={handleMessageSubmit}
+                    onAIRewrite={onAIRewrite}
+                    currentChatStatus={currentChatStatus}
+                    onChangeChatStatus={onChangeChatStatus}
+                    isSpectator={isSpectator}
+                    onToggleRealtimeRender={onToggleRealtimeRender}
+                    onToggleWebgalLinkMode={toggleWebgalLinkMode}
+                    onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
+                    autoReplyMode={autoReplyMode}
+                    onToggleAutoReplyMode={toggleAutoReplyMode}
+                    runModeEnabled={runModeEnabled}
+                    onToggleRunMode={onToggleRunMode}
+                    defaultFigurePosition={defaultFigurePosition}
+                    onSetDefaultFigurePosition={onSetDefaultFigurePosition}
+                    dialogNotend={dialogNotend}
+                    onToggleDialogNotend={toggleDialogNotend}
+                    dialogConcat={dialogConcat}
+                    onToggleDialogConcat={toggleDialogConcat}
+                    onSendEffect={onSendEffect}
+                    onClearBackground={onClearBackground}
+                    onClearFigure={onClearFigure}
+                    isKP={isKP}
+                    onStopBgmForAll={onStopBgmForAll}
+                    noRole={noRole}
+                    notMember={notMember}
+                    isSubmitting={isSubmitting}
+                    layout="inline"
+                    showStatusBar={false}
+                    showWebgalLinkToggle={true}
+                    showRunModeToggle={true}
+                    showWebgalControls={false}
+                    showRunControls={false}
+                  />
                 </div>
               </div>
-            )}
 
-            {insertAfterMessageId && (
-              <div className="p-2 pb-1">
-                <div className="flex flex-row gap-2 items-center bg-info/20 rounded-box shadow-sm text-sm p-2 justify-between">
-                  <span className="text-info-content">📍 将在消息后插入</span>
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost"
-                    onClick={() => setInsertAfterMessageId(undefined)}
-                  >
-                    取消
-                  </button>
-                </div>
-              </div>
-            )}
+              <TextStyleToolbar
+                chatInputRef={chatInputRef as any}
+                className="px-2 pt-1"
+              />
+            </div>
 
-            <ChatInputArea
-              ref={chatInputRef}
-              onInputSync={onInputSync}
-              onPasteFiles={onPasteFiles}
-              onKeyDown={onKeyDown}
-              onKeyUp={onKeyUp}
-              onMouseDown={onMouseDown}
-              onCompositionStart={onCompositionStart}
-              onCompositionEnd={onCompositionEnd}
-              disabled={inputDisabled}
-              placeholder={placeholderText}
-              className="min-h-12 max-h-[20dvh] overflow-y-auto"
-            />
-
-            <TextStyleToolbar
+            <AtMentionController
+              ref={atMentionRef}
               chatInputRef={chatInputRef as any}
-              className="px-2 pb-1"
-            />
+              allRoles={roomRoles}
+            >
+            </AtMentionController>
           </div>
-
-          <AtMentionController
-            ref={atMentionRef}
-            chatInputRef={chatInputRef as any}
-            allRoles={roomRoles}
-          >
-          </AtMentionController>
         </div>
       </div>
     </div>

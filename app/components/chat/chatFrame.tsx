@@ -13,7 +13,6 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
-import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
@@ -56,6 +55,7 @@ interface ChatFrameProps {
   enableUnreadIndicator?: boolean;
   isMessageMovable?: (message: Message) => boolean;
   onBackgroundUrlChange?: (url: string | null) => void;
+  onEffectChange?: (effectName: string | null) => void;
 }
 
 interface ThreadHintMeta {
@@ -73,6 +73,7 @@ function ChatFrame(props: ChatFrameProps) {
     enableUnreadIndicator = true,
     isMessageMovable,
     onBackgroundUrlChange,
+    onEffectChange,
   } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -427,6 +428,10 @@ function ChatFrame(props: ChatFrameProps) {
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   useEffect(() => {
+    onEffectChange?.(enableEffects ? currentEffect : null);
+  }, [currentEffect, enableEffects, onEffectChange]);
+
+  useEffect(() => {
     if (!enableEffects) {
       return;
     }
@@ -509,31 +514,7 @@ function ChatFrame(props: ChatFrameProps) {
    * 但我们故意不更新 displayedBgUrl！它依然保持着 url_A 的值。
    * 结果就是：背景图层虽然要变透明了，但它的 backgroundImage 样式里依然是上一张图片。这样，动画就有了可以“操作”的视觉内容，能够平滑地将这张图片淡出，直到完全透明。
    */
-  const [displayedBgUrl, setDisplayedBgUrl] = useState(currentBackgroundUrl);
-  useEffect(() => {
-    if (!enableEffects) {
-      return;
-    }
-    if (currentBackgroundUrl) {
-      const id = setTimeout(() => setDisplayedBgUrl(currentBackgroundUrl), 0);
-      return () => clearTimeout(id);
-    }
-  }, [enableEffects, currentBackgroundUrl]);
-
-  const backgroundLayerRef = useRef<HTMLDivElement | null>(null);
-  const backgroundOverlayRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!enableEffects) {
-      return;
-    }
-    if (backgroundLayerRef.current) {
-      backgroundLayerRef.current.style.backgroundImage = displayedBgUrl ? `url('${displayedBgUrl}')` : "none";
-      backgroundLayerRef.current.style.opacity = currentBackgroundUrl ? "1" : "0";
-    }
-    if (backgroundOverlayRef.current) {
-      backgroundOverlayRef.current.style.opacity = currentBackgroundUrl ? "1" : "0";
-    }
-  }, [enableEffects, displayedBgUrl, currentBackgroundUrl]);
+  // 背景图渲染已提升到 RoomWindow，此处仅负责计算并通过 onBackgroundUrlChange 上报。
 
   /**
    * 消息选择
@@ -1012,24 +993,6 @@ function ChatFrame(props: ChatFrameProps) {
    */
   return (
     <div className="h-full relative">
-      {enableEffects && (
-        <>
-          {/* Background Image Layer */}
-          <div
-            ref={backgroundLayerRef}
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
-          />
-          {/* Overlay for tint and blur */}
-          <div
-            ref={backgroundOverlayRef}
-            className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
-          />
-
-          {/* Pixi Overlay */}
-          <PixiOverlay effectName={currentEffect} />
-        </>
-      )}
-
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}

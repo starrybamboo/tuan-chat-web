@@ -9,6 +9,11 @@ interface ChatStatusBarProps {
   userId: number | undefined | null;
   webSocketUtils: any;
   excludeSelf?: boolean;
+  className?: string;
+  currentChatStatus?: ChatStatusType | "idle";
+  onChangeChatStatus?: (status: ChatStatusType | "idle") => void;
+  isSpectator?: boolean;
+  compact?: boolean;
 }
 
 /**
@@ -18,7 +23,17 @@ interface ChatStatusBarProps {
  * - 同一状态多个用户合并展示: `3 人正在输入...`
  * - Hover / Tooltip: 展示所有用户名 (用换行分隔)
  */
-export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeSelf = true }: ChatStatusBarProps) {
+export default function ChatStatusBar({
+  roomId,
+  userId,
+  webSocketUtils,
+  excludeSelf = true,
+  className,
+  currentChatStatus,
+  onChangeChatStatus,
+  isSpectator = false,
+  compact = false,
+}: ChatStatusBarProps) {
   const grouped = useMemo(() => {
     const statusPriority: ChatStatusType[] = ["input", "wait", "leave"]; // idle 不展示
     const raw = (webSocketUtils.chatStatus?.[roomId] ?? []) as { userId: number; status: ChatStatusType }[];
@@ -31,7 +46,8 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
       .filter(g => g.users.length > 0);
   }, [excludeSelf, roomId, userId, webSocketUtils.chatStatus]);
 
-  if (grouped.length === 0)
+  const showSelector = !isSpectator && currentChatStatus && onChangeChatStatus;
+  if (grouped.length === 0 && !showSelector)
     return null;
 
   const renderLabel = (t: ChatStatusType) => {
@@ -55,17 +71,73 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
   const resolveUserNameNode = (uid: number) => <UserIdToName userId={uid} className="inline" />;
 
   return (
-    <div className="mb-1 -mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-base-content/80">
-      {grouped.map((g) => {
-        const nameNodes = g.users.map(resolveUserNameNode);
-        const tooltipLines = g.users.map(u => `#${u}`).join("\n");
-        const isSingle = nameNodes.length === 1;
-        return (
-          <div
-            key={g.type}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-base-200 border border-base-300"
-          >
-            <span className={colorMap[g.type] || "text-base-content/70"}>
+    <div className={`${compact ? "mb-0 mt-0" : "mb-1 -mt-1"} flex flex-wrap items-center gap-x-3 text-xs text-base-content/80 ${className ?? ""}`}>
+      <div className="inline-flex items-center gap-2 px-2 rounded-full bg-base-200 border border-base-300">
+        {showSelector && (
+          <div className="dropdown dropdown-top pointer-events-auto">
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="切换聊天状态"
+              className="min-w-0 cursor-pointer list-none flex items-center text-xs select-none gap-1 hover:text-info"
+              title="切换聊天状态"
+            >
+              <span
+                className={
+                  currentChatStatus === "input"
+                    ? "text-info"
+                    : currentChatStatus === "wait"
+                      ? "text-warning"
+                      : currentChatStatus === "leave" ? "text-error" : "opacity-70"
+                }
+              >
+                {currentChatStatus === "idle" && "空闲"}
+                {currentChatStatus === "input" && "输入中"}
+                {currentChatStatus === "wait" && "等待扮演"}
+                {currentChatStatus === "leave" && "暂离"}
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
+            </div>
+            <ul
+              tabIndex={0}
+              className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm z-[9999] absolute"
+            >
+              {[
+                { value: "idle", label: "空闲", desc: "清除正在输入" },
+                { value: "input", label: "输入中", desc: "标记正在输入" },
+                { value: "wait", label: "等待扮演", desc: "等待他人行动" },
+                { value: "leave", label: "暂离", desc: "临时离开" },
+              ].map(item => (
+                <li key={item.value}>
+                  <a
+                    className={`flex flex-col gap-0.5 py-1 ${currentChatStatus === item.value ? "active bg-base-200" : ""}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onChangeChatStatus(item.value as any);
+                      const elem = document.activeElement as HTMLElement;
+                      if (elem) {
+                        elem.blur();
+                      }
+                    }}
+                  >
+                    <span className="leading-none">{item.label}</span>
+                    <span className="text-[10px] opacity-60 leading-none">{item.desc}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {grouped.length > 0 && (
+          <span className="h-3 w-px bg-base-content/20" aria-hidden />
+        )}
+        {grouped.map((g, groupIndex) => {
+          const nameNodes = g.users.map(resolveUserNameNode);
+          const tooltipLines = g.users.map(u => `#${u}`).join("\n");
+          const isSingle = nameNodes.length === 1;
+          return (
+            <span key={g.type} className={colorMap[g.type] || "text-base-content/70"}>
               <span className="tooltip tooltip-top whitespace-pre-line" data-tip={tooltipLines}>
                 {isSingle
                   ? (
@@ -91,10 +163,11 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
                       </>
                     )}
               </span>
+              {groupIndex < grouped.length - 1 && <span className="opacity-50 mx-2">/</span>}
             </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,6 @@
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
     "useDefineForClassFields": false,
-    "ignoreDeprecations": "5.0",
     "baseUrl": ".",
     "rootDirs": [".", "./.react-router/types"],
     "module": "ES2022",

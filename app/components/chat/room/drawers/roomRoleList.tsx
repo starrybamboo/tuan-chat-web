@@ -1,3 +1,4 @@
+import { AddressBookIcon } from "@phosphor-icons/react";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -55,32 +56,36 @@ export default function RoomRoleList() {
   return (
     <div className="space-y-2 p-2 overflow-auto items-center flex flex-col">
       {/* 房间角色列表 */}
-      <div className="flex flex-row justify-center items-center gap-2 min-w-60">
-        <p className="text-center">
-          角色列表-
-          <span className="text-sm">{roomRoles.length + moduleRoles.length}</span>
-        </p>
+      <div className="flex flex-row justify-between items-center gap-2 min-w-60 py-2 mt-2">
+        <div className="flex items-center gap-2">
+          <AddressBookIcon className="size-5" />
+          <p className="text-start font-semibold">
+            角色列表-
+            <span className="text-sm">{roomRoles.length + moduleRoles.length}</span>
+          </p>
+        </div>
+        <div className="flex flex-row gap-2">
+          {(curMember?.memberType === 1 || curMember?.memberType === 2) && (
+            <button
+              type="button"
+              className="btn btn-xs btn-dash btn-info"
+              onClick={() => setIsRoleHandleOpen(true)}
+            >
+              角色+
+            </button>
+          )}
+          {curMember?.memberType === 1 && (
+            <button
+              type="button"
+              className="btn btn-xs btn-dash btn-info"
+              onClick={() => setIsModuleRoleHandleOpen(true)}
+            >
+              NPC+
+            </button>
+          )}
+        </div>
       </div>
-      <div className="flex flex-row gap-4">
-        {(curMember?.memberType === 1 || curMember?.memberType === 2) && (
-          <button
-            type="button"
-            className="btn btn-dash btn-info"
-            onClick={() => setIsRoleHandleOpen(true)}
-          >
-            添加角色
-          </button>
-        )}
-        {curMember?.memberType === 1 && (
-          <button
-            type="button"
-            className="btn btn-dash btn-info"
-            onClick={() => setIsModuleRoleHandleOpen(true)}
-          >
-            添加NPC
-          </button>
-        )}
-      </div>
+      <div className="divider w-full"></div>
       <RoleList roles={roomRoles} className={listWidth} />
       <RoleList roles={moduleRoles} className={listWidth} isModuleRole={true} />
 

@@ -84,9 +84,25 @@ body {
   }
 }
 
-.div-textarea:empty::before {
+.div-textarea {
+  position: relative;
+}
+
+.div-textarea[data-has-text="false"]::before {
   content: attr(data-placeholder);
   opacity: 0.6;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  padding: 0.5rem;
+  white-space: pre-wrap;
+}
+
+.chatInputTextarea {
+  word-break: break-all;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .chatInputTextarea {
