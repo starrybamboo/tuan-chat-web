@@ -107,8 +107,8 @@ function RoomSideDrawersImpl({
     setIsWebgalResizing(false);
   }, [setIsRealtimeRenderEnabled, setSideDrawerState, stopRealtimeRender]);
 
-  const handleMapResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.button !== 0) {
+  const handleMapResizeStart = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
     event.preventDefault();
@@ -119,15 +119,22 @@ function RoomSideDrawersImpl({
     const minWidth = mapMinWidth;
     const maxWidth = mapMaxWidth;
     let closed = false;
+    const target = event.currentTarget;
+    const pointerId = event.pointerId;
+    target.setPointerCapture(pointerId);
 
     function handleUp() {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
+      if (target.hasPointerCapture(pointerId)) {
+        target.releasePointerCapture(pointerId);
+      }
     }
 
-    function handleMove(moveEvent: MouseEvent) {
+    function handleMove(moveEvent: PointerEvent) {
       if (closed) {
         return;
       }
@@ -144,12 +151,13 @@ function RoomSideDrawersImpl({
 
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
   }, [clamp, drawerCloseDragThreshold, handleCloseSideDrawer, mapDrawerWidth, mapMaxWidth, mapMinWidth, setMapDrawerWidth]);
 
-  const handleWebgalResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.button !== 0) {
+  const handleWebgalResizeStart = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
     event.preventDefault();
@@ -160,17 +168,24 @@ function RoomSideDrawersImpl({
     const minWidth = webgalMinWidth;
     const maxWidth = webgalMaxWidth;
     let closed = false;
+    const target = event.currentTarget;
+    const pointerId = event.pointerId;
+    target.setPointerCapture(pointerId);
     setIsWebgalResizing(true);
 
     function handleUp() {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
+      if (target.hasPointerCapture(pointerId)) {
+        target.releasePointerCapture(pointerId);
+      }
       setIsWebgalResizing(false);
     }
 
-    function handleMove(moveEvent: MouseEvent) {
+    function handleMove(moveEvent: PointerEvent) {
       if (closed) {
         return;
       }
@@ -187,8 +202,9 @@ function RoomSideDrawersImpl({
 
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
   }, [clamp, drawerCloseDragThreshold, handleCloseWebgal, setWebgalDrawerWidth, webgalDrawerWidth, webgalMaxWidth, webgalMinWidth]);
 
   return (

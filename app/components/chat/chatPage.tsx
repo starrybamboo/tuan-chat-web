@@ -59,6 +59,23 @@ export default function ChatPage() {
     !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (screenSize === "sm" && !isPrivateChatMode),
   );
 
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const className = "chat-lock-scroll";
+    const body = document.body;
+    if (screenSize === "sm") {
+      body.classList.add(className);
+    }
+    else {
+      body.classList.remove(className);
+    }
+    return () => {
+      body.classList.remove(className);
+    };
+  }, [screenSize]);
+
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
 
@@ -713,7 +730,12 @@ export default function ChatPage() {
                   </div>
                 </OpenAbleDrawer>
                 {/* 聊天记录窗口，输入窗口，侧边栏 */}
-                {mainContent}
+                <div
+                  className={`flex-1 min-h-0 min-w-0 transition-opacity ${isOpenLeftDrawer ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                  aria-hidden={isOpenLeftDrawer}
+                >
+                  {mainContent}
+                </div>
               </>
             )
           : (

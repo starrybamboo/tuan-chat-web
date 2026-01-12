@@ -184,7 +184,7 @@ export function VoiceRenderPanel({
     if (!hasEmotion && !initialPosition)
       return null;
     return (
-      <div className="flex items-center gap-1 text-xs text-base-content/60 mt-1">
+      <div className="flex items-center gap-1 text-xs text-base-content/60 mt-1 max-w-full overflow-x-hidden">
         <span className="opacity-60">
           {localPosition === "left" ? "←" : localPosition === "center" ? "○" : "→"}
         </span>
@@ -199,11 +199,11 @@ export function VoiceRenderPanel({
   }
 
   return (
-    <div className="mt-2 text-xs">
+    <div className="mt-2 text-xs max-w-full min-w-0 overflow-x-hidden">
       {/* 第一行：立绘位置 + 对话参数 + 情感预设 */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap max-w-full min-w-0">
         {/* 立绘位置 - 紧凑的按钮组，点击已选中的按钮会取消选中 */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 min-w-0">
           <span className="text-base-content/60">位置</span>
           <div className="join">
             {(["left", "center", "right"] as const).map(pos => (
@@ -221,10 +221,10 @@ export function VoiceRenderPanel({
           {!localPosition && <span className="text-warning text-xs">无立绘</span>}
         </div>
 
-        <span className="text-base-content/30">|</span>
+        <span className="text-base-content/30 hidden sm:inline">|</span>
 
         {/* 对话参数：-notend、-concat 和黑屏切换 */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
             <input
               type="checkbox"
@@ -267,11 +267,11 @@ export function VoiceRenderPanel({
           )}
         </div>
 
-        <span className="text-base-content/30">|</span>
-        <span className="text-base-content/30">|</span>
+        <span className="text-base-content/30 hidden sm:inline">|</span>
+        <span className="text-base-content/30 hidden sm:inline">|</span>
 
         {/* 情感预设 - 紧凑的按钮组 */}
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1 flex-wrap min-w-0">
           <span className="text-base-content/60">情感</span>
           {emotionPresets.map(preset => (
             <button
@@ -288,7 +288,7 @@ export function VoiceRenderPanel({
         </div>
 
         {/* 高级调节触发器 + 清除按钮 */}
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="flex items-center gap-1 w-full sm:w-auto sm:ml-auto">
           <button
             type="button"
             className={`btn btn-xs btn-ghost ${showAdvanced ? "text-primary" : ""}`}
@@ -312,13 +312,13 @@ export function VoiceRenderPanel({
 
       {/* 高级调节面板（折叠） */}
       {showAdvanced && (
-        <div className="mt-3 p-3 bg-base-200/50 rounded-lg border border-base-300 space-y-4">
+        <div className="mt-3 p-3 bg-base-200/50 rounded-lg border border-base-300 space-y-4 max-w-full min-w-0">
           {/* 动画设置 */}
           <div className="space-y-2">
             <span className="text-xs text-base-content/70 font-semibold">立绘动画</span>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* 一次性动画 */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 min-w-0">
                 <span className="text-xs text-base-content/60">动画效果</span>
                 <select
                   title="选择动画效果"
@@ -333,7 +333,7 @@ export function VoiceRenderPanel({
                 </select>
               </div>
               {/* 进场动画 */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 min-w-0">
                 <span className="text-xs text-base-content/60">进场动画</span>
                 <select
                   title="选择进场动画"
@@ -348,7 +348,7 @@ export function VoiceRenderPanel({
                 </select>
               </div>
               {/* 出场动画 */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 min-w-0">
                 <span className="text-xs text-base-content/60">出场动画</span>
                 <select
                   title="选择出场动画"
@@ -373,7 +373,7 @@ export function VoiceRenderPanel({
             <span className="text-xs text-base-content/70 font-semibold">情感向量</span>
             <div className="space-y-2">
               {EMOTION_LABELS.map((label, index) => (
-                <div key={label} className="flex items-center gap-2">
+                <div key={label} className="flex items-center gap-2 min-w-0">
                   <span className="w-10 text-xs text-base-content/70 font-medium shrink-0">{label}</span>
                   <input
                     type="range"
@@ -383,7 +383,7 @@ export function VoiceRenderPanel({
                     title={`${label}情感强度`}
                     value={localVector[index] ?? 0}
                     onChange={e => handleEmotionChange(index, Number.parseFloat(e.target.value))}
-                    className="range range-xs range-primary flex-1"
+                    className="range range-xs range-primary flex-1 min-w-0"
                   />
                   <span className="w-8 text-xs text-right font-mono text-base-content/70 font-semibold shrink-0">
                     {(localVector[index] ?? 0).toFixed(1)}

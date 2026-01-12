@@ -94,9 +94,9 @@ export default function AudioMessage({ url, duration: initialDuration }: AudioMe
   };
 
   return (
-    <div className="flex items-center gap-3 p-2 bg-base-200 rounded-lg min-w-[200px] max-w-[300px]">
+    <div className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 bg-base-200 rounded-lg min-w-[160px] sm:min-w-[200px] max-w-[260px] sm:max-w-[300px]">
       <button
-        className="btn btn-circle btn-sm btn-primary flex-shrink-0"
+        className="btn btn-circle btn-xs sm:btn-sm btn-primary flex-shrink-0"
         onClick={togglePlay}
         disabled={isLoading}
         type="button"
@@ -107,10 +107,10 @@ export default function AudioMessage({ url, duration: initialDuration }: AudioMe
             )
           : isPlaying
             ? (
-                <PauseIcon className="size-4" />
+                <PauseIcon className="size-3 sm:size-4" />
               )
             : (
-                <PlayIcon className="size-4 ml-0.5" />
+                <PlayIcon className="size-3 sm:size-4 ml-0.5" />
               )}
       </button>
 

@@ -28,7 +28,7 @@ function RoomHeaderBarImpl({
         bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
         border border-white/40 dark:border-white/10"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="sm:hidden">
             <button
               type="button"
@@ -39,12 +39,10 @@ function RoomHeaderBarImpl({
               <BaselineArrowBackIosNew className="size-6" />
             </button>
           </div>
-          <span className="text-center font-semibold line-clamp-1">
-            「
-            {" "}
+          <span className="text-center font-semibold line-clamp-1 truncate max-w-[50vw] sm:max-w-none min-w-0 text-sm sm:text-base">
+            <span className="hidden sm:inline">「 </span>
             {roomName}
-            {" "}
-            」
+            <span className="hidden sm:inline"> 」</span>
           </span>
         </div>
         <div className="flex gap-2 items-center overflow-visible">
