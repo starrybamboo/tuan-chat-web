@@ -105,11 +105,27 @@ body {
     font-size: 15px; /* 基础缩放 (15/16=0.9375) */
     --scale-factor: 0.9375;
   }
+
+  /* 移动端：聊天输入框文字与 placeholder 同步变小（仅影响 ChatInputArea） */
+  .chatInputTextarea {
+    font-size: 0.875rem;
+  }
+  .chatInputTextarea.div-textarea[data-has-text="false"]::before {
+    font-size: inherit;
+  }
 }
 @media (max-width: 480px) {
   :root {
     font-size: 14px; /* 基础缩放 (14/16=0.875) */
     --scale-factor: 0.875;
+  }
+
+  /* 更窄屏进一步缩小 */
+  .chatInputTextarea {
+    font-size: 0.8125rem;
+  }
+  .chatInputTextarea.div-textarea[data-has-text="false"]::before {
+    font-size: inherit;
   }
 }
 

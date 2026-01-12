@@ -4,6 +4,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
+import AvatarSwitch from "@/components/chat/input/avatarSwitch";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
 import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore";
@@ -95,9 +96,9 @@ function RoomComposerPanelImpl({
   isSubmitting,
   placeholderText,
   curRoleId,
-  curAvatarId: _curAvatarId,
-  setCurRoleId: _setCurRoleId,
-  setCurAvatarId: _setCurAvatarId,
+  curAvatarId,
+  setCurRoleId,
+  setCurAvatarId,
   roomRoles,
   chatInputRef,
   atMentionRef,
@@ -115,6 +116,7 @@ function RoomComposerPanelImpl({
   const composerRootRef = React.useRef<HTMLDivElement | null>(null);
   const screenSize = useScreenSize();
   const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
+  const isMobile = screenSize === "sm";
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -354,19 +356,50 @@ function RoomComposerPanelImpl({
                 </div>
               )}
               <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start border border-base-300 rounded-xl bg-base-100/80 p-2">
-                <ChatInputArea
-                  ref={chatInputRef}
-                  onInputSync={onInputSync}
-                  onPasteFiles={onPasteFiles}
-                  onKeyDown={onKeyDown}
-                  onKeyUp={onKeyUp}
-                  onMouseDown={onMouseDown}
-                  onCompositionStart={onCompositionStart}
-                  onCompositionEnd={onCompositionEnd}
-                  disabled={inputDisabled}
-                  placeholder={placeholderText}
-                  className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
-                />
+                {isMobile
+                  ? (
+                      <div className="flex items-end gap-2">
+                        <ChatInputArea
+                          ref={chatInputRef}
+                          onInputSync={onInputSync}
+                          onPasteFiles={onPasteFiles}
+                          onKeyDown={onKeyDown}
+                          onKeyUp={onKeyUp}
+                          onMouseDown={onMouseDown}
+                          onCompositionStart={onCompositionStart}
+                          onCompositionEnd={onCompositionEnd}
+                          disabled={inputDisabled}
+                          placeholder={placeholderText}
+                          className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
+                        />
+                        <AvatarSwitch
+                          curRoleId={curRoleId}
+                          curAvatarId={curAvatarId}
+                          setCurAvatarId={setCurAvatarId}
+                          setCurRoleId={setCurRoleId}
+                          layout="horizontal"
+                          dropdownPosition="top"
+                          dropdownAlign="end"
+                          showName={false}
+                          avatarWidth={8}
+                        />
+                      </div>
+                    )
+                  : (
+                      <ChatInputArea
+                        ref={chatInputRef}
+                        onInputSync={onInputSync}
+                        onPasteFiles={onPasteFiles}
+                        onKeyDown={onKeyDown}
+                        onKeyUp={onKeyUp}
+                        onMouseDown={onMouseDown}
+                        onCompositionStart={onCompositionStart}
+                        onCompositionEnd={onCompositionEnd}
+                        disabled={inputDisabled}
+                        placeholder={placeholderText}
+                        className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
+                      />
+                    )}
 
                 <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
                   <ChatToolbarFromStore

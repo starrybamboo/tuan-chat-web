@@ -969,6 +969,22 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
+
+  // 侧边栏底部头像卡片：点击卡片任意空白处也能呼出“切换角色”的 dropdown
+  const roleSwitchTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const handleSidebarAvatarCardClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (!target)
+      return;
+
+    // 点击了内部按钮/输入等交互元素时，不触发卡片级打开逻辑
+    if (target.closest("button, a, input, textarea, select"))
+      return;
+
+    roleSwitchTriggerRef.current?.focus();
+    roleSwitchTriggerRef.current?.click();
+  }, []);
+
   useEffect(() => {
     if (backgroundUrl) {
       const id = setTimeout(() => setDisplayedBgUrl(backgroundUrl), 0);
@@ -979,7 +995,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const sidebarUserCard = sidebarCardHost
     ? createPortal(
         <div className="w-full">
-          <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm p-2">
+          <div
+            className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm p-2 cursor-pointer"
+            onClick={handleSidebarAvatarCardClick}
+          >
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {curRoleId <= 0
                 ? (
@@ -1034,8 +1053,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 </ul>
               </div>
             </div>
-            <div className="dropdown dropdown-top dropdown-start">
+            <div className="dropdown dropdown-top dropdown-end">
               <button
+                ref={roleSwitchTriggerRef}
                 type="button"
                 tabIndex={0}
                 className="btn btn-circle btn-ghost btn-sm"
