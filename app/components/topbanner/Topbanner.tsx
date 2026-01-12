@@ -130,7 +130,7 @@ export default function Topbar() {
       >
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
-          <div className="flex">
+          <div className="hidden md:flex">
             <Link
               to="/chat"
               onClick={(event) => {

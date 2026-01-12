@@ -15,6 +15,7 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 
 export interface RoomComposerPanelProps {
   roomId: number;
@@ -112,6 +113,8 @@ function RoomComposerPanelImpl({
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const composerRootRef = React.useRef<HTMLDivElement | null>(null);
+  const screenSize = useScreenSize();
+  const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -303,7 +306,7 @@ function RoomComposerPanelImpl({
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0 relative">
               {(webgalLinkMode || runModeEnabled) && (
-                <div className="absolute right-2 -top-13 z-10">
+                <div className="absolute right-2 -top-11 sm:-top-13 z-10">
                   <div className="flex items-start gap-2 bg-base-100/80 border border-base-300 rounded-md shadow-sm pointer-events-auto">
                     <ChatToolbarFromStore
                       roomId={roomId}
@@ -338,7 +341,7 @@ function RoomComposerPanelImpl({
                       noRole={noRole}
                       notMember={notMember}
                       isSubmitting={isSubmitting}
-                      layout="inline"
+                      layout={toolbarLayout}
                       showStatusBar={false}
                       showWebgalLinkToggle={false}
                       showRunModeToggle={false}
@@ -350,7 +353,7 @@ function RoomComposerPanelImpl({
                   </div>
                 </div>
               )}
-              <div className="flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 p-2">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start border border-base-300 rounded-xl bg-base-100/80 p-2">
                 <ChatInputArea
                   ref={chatInputRef}
                   onInputSync={onInputSync}
@@ -362,10 +365,10 @@ function RoomComposerPanelImpl({
                   onCompositionEnd={onCompositionEnd}
                   disabled={inputDisabled}
                   placeholder={placeholderText}
-                  className="min-h-10 max-h-[20dvh] overflow-y-auto"
+                  className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
                 />
 
-                <div className="self-start mt-2">
+                <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
                   <ChatToolbarFromStore
                     roomId={roomId}
                     statusUserId={userId}
@@ -399,7 +402,7 @@ function RoomComposerPanelImpl({
                     noRole={noRole}
                     notMember={notMember}
                     isSubmitting={isSubmitting}
-                    layout="inline"
+                    layout={toolbarLayout}
                     showStatusBar={false}
                     showWebgalLinkToggle={true}
                     showRunModeToggle={true}

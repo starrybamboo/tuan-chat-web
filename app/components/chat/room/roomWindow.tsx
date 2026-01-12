@@ -1104,7 +1104,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <div className="flex-1 w-full flex min-h-0">
               {/* 主聊天区（可点击切换输入目标） */}
               <div
-                className={`bg-transparent flex-1 flex-shrink-0 ${composerTarget === "main" ? "" : ""}`}
+                className={`bg-transparent flex-1 flex-shrink-0 min-h-0 ${composerTarget === "main" ? "" : ""}`}
                 onMouseDown={() => setComposerTarget("main")}
               >
                 <ChatFrame

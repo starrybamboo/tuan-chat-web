@@ -1,7 +1,6 @@
 import type { Route } from "./+types/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
 import { Toaster } from "react-hot-toast";
 import {
@@ -126,7 +125,6 @@ export default function App() {
     <GlobalContextProvider>
       {/* <Topbar></Topbar> */}
       <Outlet />
-      <ReactQueryDevtools initialIsOpen={false} />
       {/* 挂载popWindow的地方 */}
       <div id="modal-root"></div>
       {/* 挂载sideDrawer的地方 */}

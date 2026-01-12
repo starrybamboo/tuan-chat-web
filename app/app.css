@@ -64,10 +64,39 @@ body {
 }
 
 body {
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
   max-height: 100vh;
   min-height: 100vh;
   overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+  body {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 100dvh;
+  }
+}
+
+.chat-lock-scroll {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+@supports (height: 100dvh) {
+  .chat-lock-scroll {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 100dvh;
+  }
 }
 
 /* 全局缩放系数变量，用于优化移动端的组件大小*/
