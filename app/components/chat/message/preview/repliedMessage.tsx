@@ -38,7 +38,7 @@ export default function RepliedMessage({ replyMessage, className }: {
       <span className="opacity-60 inline flex-shrink-0">回复</span>
       {isTextMessage
         ? (
-            <span className="text-sm line-clamp-3 opacity-60 break-words">
+            <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
               {role?.roleName || "未命名角色"}
               {": "}
               {replyMessage.content}
@@ -46,7 +46,7 @@ export default function RepliedMessage({ replyMessage, className }: {
           )
         : replyMessage.extra?.imageMessage?.url
           ? (
-              <span className="text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
+              <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
                 {role?.roleName || "未命名角色"}
                 {": "}
                 <img
@@ -59,7 +59,7 @@ export default function RepliedMessage({ replyMessage, className }: {
               </span>
             )
           : (
-              <span className="text-sm line-clamp-3 opacity-60 break-words">
+              <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
                 {role?.roleName || "未命名角色"}
                 {": "}
                 非文本内容

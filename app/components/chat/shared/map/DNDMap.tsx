@@ -5,7 +5,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { getScreenSize } from "@/utils/getScreenSize";
+import { useIsMobile } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
@@ -212,7 +212,7 @@ export default function DNDMap() {
   const uploadUtil = useMemo(() => new UploadUtils(), []);
 
   // --- 响应式状态管理 ---
-  const isCompactMode = getScreenSize() === "sm";
+  const isCompactMode = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // --- 状态管理 ---
@@ -593,8 +593,8 @@ export default function DNDMap() {
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full bg-base-200 overflow-auto ${
-        isCompactMode ? "flex flex-col" : "flex"
+      className={`w-full h-full bg-base-200 ${
+        isCompactMode ? "flex flex-col overflow-hidden" : "flex overflow-auto"
       }`}
     >
       {/* 主地图区域 */}
@@ -666,7 +666,7 @@ export default function DNDMap() {
       {/* 控制面板 */}
       <div
         className={`p-4 flex flex-col shadow-lg bg-base-100 ${
-          isCompactMode ? "w-full max-h-64 overflow-auto" : "w-64 h-full"
+          isCompactMode ? "w-full flex-1 overflow-y-auto" : "w-64 h-full"
         }`}
         onDragOver={handleDragOver}
         onDrop={handleDropOnPanel}
@@ -683,7 +683,7 @@ export default function DNDMap() {
         </div>
         <div className={`flex flex-col flex-1 ${isCompactMode ? "" : "overflow-auto"}`}>
           {/* 网格设置区域 */}
-          <div className={`flex ${isCompactMode ? "flex-row gap-3 flex-shrink-0" : "flex-col gap-2"}`}>
+          <div className={`${isCompactMode ? "grid grid-cols-2 gap-3 flex-shrink-0" : "flex flex-col gap-2"}`}>
             <label className="input bg-base-200 rounded-md w-full border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300">
               <span className="text-xs text-base-content/60">行数</span>
               <span aria-hidden className="mx-1 h-4 w-px bg-base-content/20" />
@@ -717,7 +717,7 @@ export default function DNDMap() {
               />
             </label>
 
-            <div className="flex flex-col items-center gap-2 rounded-md">
+            <div className={`flex flex-col items-center gap-2 rounded-md ${isCompactMode ? "col-span-2" : ""}`}>
               <span className="text-xs text-base-content/60">网格线</span>
               <div className="flex items-center gap-1.5">
                 {GRID_COLOR_OPTIONS.map((option) => {
@@ -742,7 +742,9 @@ export default function DNDMap() {
           {/* 角色区域 */}
           <div className="flex-1 flex flex-col min-h-0">
             <div className={`divider ${isCompactMode ? "divider-horizontal" : ""}`}></div>
-            <h3 className="font-semibold pb-2">角色 (拖动到地图)</h3>
+            {!isCompactMode && (
+              <h3 className="font-semibold pb-2">角色 (拖动到地图)</h3>
+            )}
             <div className={`flex-grow pt-6 ${
               isCompactMode ? "min-w-0" : ""
             }`}

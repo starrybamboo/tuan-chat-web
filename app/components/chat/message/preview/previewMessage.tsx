@@ -24,7 +24,7 @@ export function PreviewMessage({ message, className }: {
   const isDeleted = messageBody?.status === 1;
 
   return (
-    <span className={`text-sm line-clamp-3 opacity-60 break-words ${className}`}>
+    <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words ${className}`}>
       {
         isDeleted
           ? "[原消息已被删除]"

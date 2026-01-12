@@ -20,6 +20,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChatBubbleEllipsesOutline } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatTimeSmartly } from "@/utils/dateUtil";
+import { getScreenSize } from "@/utils/getScreenSize";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
@@ -53,6 +54,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
+
+  const isMobile = getScreenSize() === "sm";
 
   const isThreadRoot = message.messageType === MESSAGE_TYPE.THREAD_ROOT && message.threadId === message.messageId;
   const threadTitle = (message.extra as any)?.title || message.content;
@@ -478,10 +481,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       contentElements.push(
         <div
           key="reply"
-          className="flex flex-row gap-2 py-1 "
+          className="flex flex-row gap-1.5 sm:gap-2 py-0.5 sm:py-1"
           onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
         >
-          <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
+          <span className="opacity-60 inline flex-shrink-0 text-xs sm:text-sm">| 回复</span>
           <PreviewMessage
             message={message.replyMessageId}
           >
@@ -622,10 +625,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   // 黑屏文字的特殊渲染
   if (isIntroText) {
     return (
-      <div className="flex w-full py-2 group">
+      <div className="flex w-full py-1.5 sm:py-2 group">
         <div className="flex-1 min-w-0 p-2">
           {/* 黑屏文字样式：黑色背景，白色文字，居中显示 */}
-          <div className="bg-black text-white rounded-lg p-4 text-center relative">
+          <div className="bg-black text-white rounded-lg p-3 sm:p-4 text-center relative">
             {/* 类型标识和操作按钮 */}
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {canEdit && (
@@ -655,7 +658,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             <EditableField
               content={message.content}
               handleContentUpdate={handleContentUpdate}
-              className="whitespace-pre-wrap text-lg"
+              className="whitespace-pre-wrap text-sm sm:text-base lg:text-lg"
               canEdit={canEdit}
               fieldId={`msg${message.messageId}`}
             />
@@ -677,7 +680,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       <div className="flex w-full py-1 group">
         <div className="flex-1 min-w-0 px-2 py-1">
           {/* 旁白样式：无头像，居中或左对齐，斜体 */}
-          <div className="bg-base-200/50 rounded-lg p-2 relative">
+          <div className="bg-base-200/50 rounded-lg p-1 sm:p-2 relative">
             {/* 类型标识和操作按钮 */}
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {/* WebGAL 联动模式下显示切换黑屏按钮 */}
@@ -708,7 +711,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 : (<span className="badge badge-xs badge-secondary">旁白</span>)}
             </div>
             {/* 内容 - 支持文本、图片、音频等 */}
-            <div className="italic text-base-content/80">
+            <div className="italic text-xs sm:text-sm lg:text-base text-base-content/80">
               {renderedContent}
             </div>
 
@@ -727,20 +730,20 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   if (isThreadRoot) {
     const creatorName = displayRoleName || role?.roleName?.trim() || "";
     return (
-      <div className="w-full py-2">
+      <div className="w-full py-1.5 sm:py-2">
         <div
-          className="w-full rounded-md border border-base-300 bg-base-200/40 px-3 py-2 cursor-pointer hover:bg-base-200 transition-colors"
+          className="w-full rounded-md border border-base-300 bg-base-200/40 px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer hover:bg-base-200 transition-colors"
           onClick={handleOpenThreadRoot}
         >
-          <div className="flex items-center gap-2 text-sm text-base-content/80">
-            <ChatBubbleEllipsesOutline className="w-4 h-4 opacity-70" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-base-content/80">
+            <ChatBubbleEllipsesOutline className="w-3 h-3 sm:w-4 sm:h-4 opacity-70" />
             <div className="min-w-0 flex-1">
               <span className="font-medium text-base-content/90">{creatorName || "某人"}</span>
               <span className="mx-1">开始了一个子区：</span>
               <span className="font-medium text-base-content/90 truncate">{threadTitle}</span>
               <button
                 type="button"
-                className="ml-2 link link-hover text-sm"
+                className="ml-2 link link-hover text-xs sm:text-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleOpenThreadRoot();
@@ -753,7 +756,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           </div>
 
           <div className="mt-2 flex items-center gap-2">
-            <div className="flex items-center gap-2 rounded-md bg-base-100/70 border border-base-300 px-2 py-1">
+            <div className="flex items-center gap-2 rounded-md bg-base-100/70 border border-base-300 px-2 py-0.5 sm:py-1">
               <RoleAvatarComponent
                 avatarId={message.avatarId ?? 0}
                 width={6}
@@ -781,21 +784,21 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-3 py-2 group"
+              className="flex w-full items-start gap-1.5 sm:gap-3 py-1 sm:py-2 group"
               key={message.messageId}
             >
               {/* Avatar */}
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
                   avatarId={message.avatarId ?? 0}
-                  width={12}
+                  width={isMobile ? 10 : 12}
                   isRounded={true}
                   withTitle={false}
                   stopPopWindow={true}
                 />
               </div>
               <div className="flex flex-col items-start">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 w-full min-w-0">
                   {isEditingRoleName
                     ? (
                         <div className="flex items-center gap-1">
@@ -820,19 +823,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     : (
                         <span
                           onClick={handleRoleNameClick}
-                          className={`text-sm font-medium text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
+                          className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
                         >
                           {displayRoleName}
                           {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
                         </span>
                       )}
-                  <span className="text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+                  <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </span>
                 </div>
                 <div
-                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
+                  className="max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
                 >
                   {renderedContent}
                   {threadHintNode}
@@ -858,15 +861,15 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           )
         : (
             <div
-              className="flex w-full py-2"
+              className="flex w-full py-1.5 sm:py-2"
               key={message.messageId}
             >
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 pr-2 sm:pr-3">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
+                <div className="w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId ?? 0}
-                    width={20}
+                    width={isMobile ? 10 : 20}
                     isRounded={false}
                     withTitle={false}
                     stopPopWindow={true}
@@ -875,7 +878,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1 min-w-0 p-1 pr-2 sm:pr-5">
+              <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
                 {/* 角色名 */}
                 <div className="flex justify-between items-center w-full gap-2">
                   {isEditingRoleName
@@ -901,7 +904,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                       )
                     : (
                         <div
-                          className={`cursor-pointer font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
+                          className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
                           onClick={handleRoleNameClick}
                         >
                           <div className="truncate">
@@ -915,7 +918,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     {formattedTime}
                   </div>
                 </div>
-                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer break-words">
+                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base">
                   {renderedContent}
                   {threadHintNode}
                   {/* 内嵌语音渲染设置面板 - 文本消息显示 */}

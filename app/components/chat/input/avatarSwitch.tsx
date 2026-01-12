@@ -16,6 +16,9 @@ export default function AvatarSwitch({
   setCurRoleId,
   layout = "vertical",
   dropdownPosition = "top",
+  dropdownAlign = "start",
+  showName = true,
+  avatarWidth,
 }: {
   curRoleId: number;
   curAvatarId: number;
@@ -23,6 +26,9 @@ export default function AvatarSwitch({
   setCurRoleId: (value: number) => void;
   layout?: "vertical" | "horizontal";
   dropdownPosition?: "top" | "bottom";
+  dropdownAlign?: "start" | "end";
+  showName?: boolean;
+  avatarWidth?: React.ComponentProps<typeof RoleAvatarComponent>["width"];
 }) {
   const roomContext = use(RoomContext);
   const _webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
@@ -66,14 +72,30 @@ export default function AvatarSwitch({
   // WebGAL 联动模式下的旁白模式
   const isHorizontal = layout === "horizontal";
   const wrapperClassName = isHorizontal
-    ? `dropdown dropdown-${dropdownPosition} flex items-center gap-2`
-    : `dropdown dropdown-${dropdownPosition} flex-shrink-0 w-10 md:w-14`;
+    ? `dropdown dropdown-${dropdownPosition} dropdown-${dropdownAlign} flex items-center gap-2`
+    : `dropdown dropdown-${dropdownPosition} dropdown-${dropdownAlign} flex-shrink-0 w-10 md:w-14`;
   const tooltipClassName = isHorizontal
     ? "tooltip flex items-center gap-2"
     : "tooltip flex justify-center flex-col items-center space-y-2";
   const nameClassName = isHorizontal
     ? "text-sm truncate max-w-[140px] text-left cursor-text"
     : "text-sm truncate w-full text-center cursor-text";
+  const sizeClassMap: Record<NonNullable<typeof avatarWidth>, string> = {
+    6: "w-6 h-6",
+    8: "w-8 h-8",
+    10: "w-10 h-10",
+    12: "w-12 h-12",
+    14: "w-14 h-14",
+    16: "w-16 h-16",
+    18: "w-18 h-18",
+    20: "w-20 h-20",
+    24: "w-24 h-24",
+    30: "w-30 h-30",
+    32: "w-32 h-32",
+    36: "w-36 h-36",
+  };
+  const computedAvatarWidth = avatarWidth ?? (getScreenSize() === "sm" ? 10 : 14);
+  const narratorSizeClass = sizeClassMap[computedAvatarWidth] ?? "w-10 h-10";
 
   if (isNarratorMode) {
     return (
@@ -83,17 +105,19 @@ export default function AvatarSwitch({
             className={tooltipClassName}
             data-tip="当前为旁白模式，点击切换角色"
           >
-            <div className="size-10 md:size-14 rounded-full bg-base-300 flex items-center justify-center">
-              <NarratorIcon className="size-6 md:size-8 text-base-content/60" />
+            <div className={`${narratorSizeClass} rounded-full bg-base-300 flex items-center justify-center`}>
+              <NarratorIcon className={computedAvatarWidth <= 8 ? "size-5 text-base-content/60" : "size-6 md:size-8 text-base-content/60"} />
             </div>
-            <div className={`${isHorizontal ? "text-left" : "text-center"} text-sm truncate w-full text-base-content/60`}>
-              旁白
-            </div>
+            {showName && (
+              <div className={`${isHorizontal ? "text-left" : "text-center"} text-sm truncate w-full text-base-content/60`}>
+                旁白
+              </div>
+            )}
           </div>
         </div>
         <ul
           tabIndex={0}
-          className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+          className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
         >
           <ExpressionChooser
             roleId={curRoleId}
@@ -130,7 +154,7 @@ export default function AvatarSwitch({
         <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
           <RoleAvatarComponent
             avatarId={curAvatarId}
-            width={getScreenSize() === "sm" ? 10 : 14}
+            width={computedAvatarWidth}
             isRounded={true}
             withTitle={false}
             stopPopWindow={true}
@@ -138,7 +162,7 @@ export default function AvatarSwitch({
           />
         </div>
 
-        {!isEditingName && (
+        {showName && !isEditingName && (
           <div
             className={nameClassName}
             onClick={(e) => {
@@ -153,7 +177,7 @@ export default function AvatarSwitch({
           </div>
         )}
 
-        {isEditingName && (
+        {showName && isEditingName && (
           <input
             className={`input input-xs input-bordered w-full ${isHorizontal ? "text-left" : "text-center"} bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info`}
             value={editingName}
@@ -187,7 +211,7 @@ export default function AvatarSwitch({
       </div>
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+        className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
       >
         <ExpressionChooser
           roleId={curRoleId}

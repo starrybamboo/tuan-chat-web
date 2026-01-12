@@ -969,6 +969,55 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
+
+  const [isRoleSwitchDropdownOpen, setIsRoleSwitchDropdownOpen] = useState(false);
+
+  // 侧边栏底部头像卡片：点击卡片任意空白处也能呼出“切换角色”的 dropdown
+  const roleSwitchTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const roleSwitchDropdownRef = useRef<HTMLDivElement | null>(null);
+  const handleSidebarAvatarCardClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (!target)
+      return;
+
+    // dropdown 内的点击不触发卡片级打开逻辑（否则会导致闪烁/无法关闭）
+    if (target.closest(".dropdown") || target.closest(".dropdown-content"))
+      return;
+
+    // 点击了内部按钮/输入等交互元素时，不触发卡片级打开逻辑
+    if (target.closest("button, a, input, textarea, select"))
+      return;
+
+    setIsRoleSwitchDropdownOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        queueMicrotask(() => {
+          roleSwitchTriggerRef.current?.focus();
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isRoleSwitchDropdownOpen)
+      return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target)
+        return;
+      if (roleSwitchDropdownRef.current?.contains(target))
+        return;
+      setIsRoleSwitchDropdownOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isRoleSwitchDropdownOpen]);
+
   useEffect(() => {
     if (backgroundUrl) {
       const id = setTimeout(() => setDisplayedBgUrl(backgroundUrl), 0);
@@ -979,7 +1028,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const sidebarUserCard = sidebarCardHost
     ? createPortal(
         <div className="w-full">
-          <div className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm p-2">
+          <div
+            className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm p-2 cursor-pointer"
+            onClick={handleSidebarAvatarCardClick}
+          >
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {curRoleId <= 0
                 ? (
@@ -1034,19 +1086,27 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                 </ul>
               </div>
             </div>
-            <div className="dropdown dropdown-top dropdown-start">
+            <div
+              ref={roleSwitchDropdownRef}
+              className={`dropdown dropdown-top dropdown-center ${isRoleSwitchDropdownOpen ? "dropdown-open" : ""}`}
+            >
               <button
+                ref={roleSwitchTriggerRef}
                 type="button"
                 tabIndex={0}
                 className="btn btn-circle btn-ghost btn-sm"
                 aria-label="切换角色"
                 title="切换角色"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsRoleSwitchDropdownOpen(prev => !prev);
+                }}
               >
                 <UserSwitchIcon className="size-6" />
               </button>
               <ul
                 tabIndex={0}
-                className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-160 mb-6"
+                className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-120 mb-6 ml-6"
               >
                 <ExpressionChooser
                   roleId={curRoleId}
@@ -1104,7 +1164,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             <div className="flex-1 w-full flex min-h-0">
               {/* 主聊天区（可点击切换输入目标） */}
               <div
-                className={`bg-transparent flex-1 flex-shrink-0 ${composerTarget === "main" ? "" : ""}`}
+                className={`bg-transparent flex-1 flex-shrink-0 min-h-0 ${composerTarget === "main" ? "" : ""}`}
                 onMouseDown={() => setComposerTarget("main")}
               >
                 <ChatFrame
