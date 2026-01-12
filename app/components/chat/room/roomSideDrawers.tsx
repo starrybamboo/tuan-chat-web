@@ -37,6 +37,7 @@ function RoomSideDrawersImpl({
   const realtimePreviewUrl = useRealtimeRenderStore(state => state.previewUrl);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
+  const [isWebgalResizing, setIsWebgalResizing] = React.useState(false);
 
   // 从 webgal drawer 切到其它 drawer 时，确保停止实时渲染
   const prevSideDrawerStateRef = React.useRef(sideDrawerState);
@@ -103,6 +104,7 @@ function RoomSideDrawersImpl({
     stopRealtimeRender();
     setIsRealtimeRenderEnabled(false);
     setSideDrawerState("none");
+    setIsWebgalResizing(false);
   }, [setIsRealtimeRenderEnabled, setSideDrawerState, stopRealtimeRender]);
 
   const handleMapResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
@@ -158,12 +160,14 @@ function RoomSideDrawersImpl({
     const minWidth = webgalMinWidth;
     const maxWidth = webgalMaxWidth;
     let closed = false;
+    setIsWebgalResizing(true);
 
     function handleUp() {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
+      setIsWebgalResizing(false);
     }
 
     function handleMove(moveEvent: MouseEvent) {
@@ -271,6 +275,7 @@ function RoomSideDrawersImpl({
         <WebGALPreview
           previewUrl={realtimePreviewUrl}
           isActive={isRealtimeRenderActive}
+          isResizing={isWebgalResizing}
           onClose={() => {
             handleCloseWebgal();
           }}
