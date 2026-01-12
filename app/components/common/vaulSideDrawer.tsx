@@ -9,6 +9,11 @@ interface VaulSideDrawerProps {
   width?: number | string;
   /** 由外部控制关闭 */
   onClose?: () => void;
+  /** 可选：显示可拖拽调整宽度的手柄 */
+  showResizeHandle?: boolean;
+  onResizeHandleMouseDown?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  resizeHandleClassName?: string;
+  resizeHandleIndicatorClassName?: string;
 }
 
 /**
@@ -23,6 +28,10 @@ export function VaulSideDrawer({
   direction = "right",
   className = "",
   width = 310,
+  showResizeHandle = false,
+  onResizeHandleMouseDown,
+  resizeHandleClassName = "",
+  resizeHandleIndicatorClassName = "",
 }: VaulSideDrawerProps) {
   const widthStyle = typeof width === "number" ? `${width}px` : width;
 
@@ -56,6 +65,7 @@ export function VaulSideDrawer({
   const translateX = direction === "left"
     ? (visible ? "translateX(0)" : "translateX(-100%)")
     : (visible ? "translateX(0)" : "translateX(100%)");
+  const resizeHandlePositionClass = direction === "left" ? "border-l" : "border-r";
 
   if (!mounted) {
     return null;
@@ -72,7 +82,39 @@ export function VaulSideDrawer({
       }}
     >
       <div className="bg-base-100 h-full w-full grow flex flex-col rounded-2xl shadow-xl overflow-hidden">
-        {children}
+        {showResizeHandle
+          ? (
+              <div className="flex h-full">
+                {direction === "right" && (
+                  <div
+                    className={`w-10 shrink-0 ${resizeHandlePositionClass} border-base-200 bg-base-100/70 cursor-col-resize flex items-center justify-center ${resizeHandleClassName}`}
+                    onMouseDown={onResizeHandleMouseDown}
+                  >
+                    <div
+                      aria-hidden
+                      className={`h-96 w-1.5 rounded-full bg-base-300 ${resizeHandleIndicatorClassName}`}
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 h-full">
+                  {children}
+                </div>
+                {direction === "left" && (
+                  <div
+                    className={`w-10 shrink-0 ${resizeHandlePositionClass} border-base-200 bg-base-100/70 cursor-col-resize flex items-center justify-center ${resizeHandleClassName}`}
+                    onMouseDown={onResizeHandleMouseDown}
+                  >
+                    <div
+                      aria-hidden
+                      className={`h-96 w-1.5 rounded-full bg-base-300 ${resizeHandleIndicatorClassName}`}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          : (
+              children
+            )}
       </div>
     </div>
   );

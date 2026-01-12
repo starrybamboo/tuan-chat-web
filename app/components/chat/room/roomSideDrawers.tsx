@@ -58,6 +58,7 @@ function RoomSideDrawersImpl({
   const setMapDrawerWidth = useDrawerPreferenceStore(state => state.setMapDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
   const webgalDrawerWidth = useDrawerPreferenceStore(state => state.webgalDrawerWidth);
+  const setWebgalDrawerWidth = useDrawerPreferenceStore(state => state.setWebgalDrawerWidth);
 
   const clamp = React.useCallback((value: number, min: number, max: number) => {
     return Math.min(max, Math.max(min, value));
@@ -80,6 +81,14 @@ function RoomSideDrawersImpl({
     ? 1100
     : Math.max(mapMinWidth, window.innerWidth - 360);
   const safeMapWidth = clamp(mapDrawerWidth, Math.min(720, mapMaxWidth), mapMaxWidth);
+
+  // WebGAL 宽度
+  const webgalMinWidth = 520;
+  const webgalMaxWidth = typeof window === "undefined"
+    ? 1100
+    : Math.max(webgalMinWidth, window.innerWidth - 360);
+  const safeWebgalWidth = clamp(webgalDrawerWidth, webgalMinWidth, webgalMaxWidth);
+  const drawerCloseDragThreshold = 80;
 
   const handleCloseSideDrawer = React.useCallback(() => {
     setSideDrawerState("none");
@@ -107,25 +116,76 @@ function RoomSideDrawersImpl({
     const startWidth = mapDrawerWidth;
     const minWidth = mapMinWidth;
     const maxWidth = mapMaxWidth;
+    let closed = false;
 
-    const handleMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const nextWidth = clamp(startWidth - deltaX, minWidth, maxWidth);
-      setMapDrawerWidth(nextWidth);
-    };
-
-    const handleUp = () => {
+    function handleUp() {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
-    };
+    }
+
+    function handleMove(moveEvent: MouseEvent) {
+      if (closed) {
+        return;
+      }
+      const deltaX = moveEvent.clientX - startX;
+      if (deltaX > startWidth - minWidth + drawerCloseDragThreshold) {
+        closed = true;
+        handleCloseSideDrawer();
+        handleUp();
+        return;
+      }
+      const nextWidth = clamp(startWidth - deltaX, minWidth, maxWidth);
+      setMapDrawerWidth(nextWidth);
+    }
 
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
-  }, [clamp, mapDrawerWidth, mapMaxWidth, mapMinWidth, setMapDrawerWidth]);
+  }, [clamp, drawerCloseDragThreshold, handleCloseSideDrawer, mapDrawerWidth, mapMaxWidth, mapMinWidth, setMapDrawerWidth]);
+
+  const handleWebgalResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = webgalDrawerWidth;
+    const minWidth = webgalMinWidth;
+    const maxWidth = webgalMaxWidth;
+    let closed = false;
+
+    function handleUp() {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    }
+
+    function handleMove(moveEvent: MouseEvent) {
+      if (closed) {
+        return;
+      }
+      const deltaX = moveEvent.clientX - startX;
+      if (deltaX > startWidth - minWidth + drawerCloseDragThreshold) {
+        closed = true;
+        handleCloseWebgal();
+        handleUp();
+        return;
+      }
+      const nextWidth = clamp(startWidth - deltaX, minWidth, maxWidth);
+      setWebgalDrawerWidth(nextWidth);
+    }
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+  }, [clamp, drawerCloseDragThreshold, handleCloseWebgal, setWebgalDrawerWidth, webgalDrawerWidth, webgalMaxWidth, webgalMinWidth]);
 
   return (
     <>
@@ -172,18 +232,12 @@ function RoomSideDrawersImpl({
         isOpen={!isThreadPaneOpen && sideDrawerState === "map"}
         width={safeMapWidth}
         direction="right"
+        showResizeHandle
+        onResizeHandleMouseDown={handleMapResizeStart}
         onClose={handleCloseSideDrawer}
       >
-        <div className="flex h-full">
-          <div
-            className="w-10 shrink-0 border-r border-base-200 bg-base-100/70 cursor-col-resize flex items-center justify-center"
-            onMouseDown={handleMapResizeStart}
-          >
-            <div aria-hidden className="h-96 w-1.5 rounded-full bg-base-300" />
-          </div>
-          <div className="overflow-auto flex-1 min-w-0">
-            <DNDMap />
-          </div>
+        <div className="overflow-auto h-full">
+          <DNDMap />
         </div>
       </VaulSideDrawer>
       <VaulSideDrawer
@@ -208,8 +262,10 @@ function RoomSideDrawersImpl({
       </VaulSideDrawer>
       <VaulSideDrawer
         isOpen={!isThreadPaneOpen && sideDrawerState === "webgal"}
-        width={webgalDrawerWidth}
+        width={safeWebgalWidth}
         direction="right"
+        showResizeHandle
+        onResizeHandleMouseDown={handleWebgalResizeStart}
         onClose={handleCloseWebgal}
       >
         <WebGALPreview
