@@ -20,7 +20,7 @@ import * as Y from "yjs";
 import { applyUpdate, encodeStateAsUpdate } from "yjs";
 
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
-import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineSpec";
+import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineStoreExtensions";
 
 class InMemoryWorkspaceMeta implements WorkspaceMeta {
   private _docMetas: DocMeta[] = [];

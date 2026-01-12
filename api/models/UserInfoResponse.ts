@@ -13,6 +13,10 @@ export type UserInfoResponse = {
      */
     avatar?: string;
     /**
+     * 头像缩略图的url
+     */
+    avatarThumbUrl?: string;
+    /**
      * 1 在线 0 离线
      */
     activeStatus?: string;

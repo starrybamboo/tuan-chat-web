@@ -1,4 +1,5 @@
 {
+
   "version": "2.0.0",
   "tasks": [
     {
@@ -35,6 +36,46 @@
         "Set-Location -Path 'd:\\A_programming\\tuan-chat-web'; pnpm -s dev"
       ],
       "isBackground": false
+    },
+    {
+      "label": "typecheck",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "typecheck"
+      ],
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "lint"
+      ],
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "typecheck(openapi)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "typecheck"
+      ],
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "typecheck(openapi)-2",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "typecheck"
+      ],
+      "isBackground": false,
+      "problemMatcher": []
     }
   ]
 }

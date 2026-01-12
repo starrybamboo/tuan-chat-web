@@ -39,6 +39,10 @@
       "description": "AI帮写相关接口"
     },
     {
+      "name": "DatabaseBackup",
+      "description": "数据库备份管理"
+    },
+    {
       "name": "AvatarController",
       "description": "头像相关接口"
     },
@@ -963,6 +967,147 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/sidebarTree": {
+      "get": {
+        "tags": [
+          "space-sidebar-tree-controller"
+        ],
+        "summary": "获取空间侧边栏频道树",
+        "operationId": "getSidebarTree",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultSpaceSidebarTreeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "space-sidebar-tree-controller"
+        ],
+        "summary": "设置空间侧边栏频道树",
+        "operationId": "setSidebarTree",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceSidebarTreeSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultSpaceSidebarTreeResponse"
                 }
               }
             }
@@ -3996,6 +4141,163 @@
         }
       }
     },
+    "/blocksuite/doc": {
+      "get": {
+        "tags": [
+          "blocksuite-doc-controller"
+        ],
+        "summary": "获取Blocksuite文档快照",
+        "operationId": "getDoc",
+        "parameters": [
+          {
+            "name": "entityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "docType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "blocksuite-doc-controller"
+        ],
+        "summary": "新增或修改Blocksuite文档快照",
+        "operationId": "upsertDoc",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlocksuiteDocUpsertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/avatar": {
       "get": {
         "tags": [
@@ -5100,6 +5402,147 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultRoom"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/module/role": {
+      "get": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "获取空间的所有NPC，仅kp调用",
+        "operationId": "spaceRole",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListUserRole"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "将角色作为NPC添加到空间",
+        "operationId": "addSpaceRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceRole"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -13289,6 +13732,67 @@
         }
       }
     },
+    "/backup/trigger": {
+      "post": {
+        "tags": [
+          "DatabaseBackup"
+        ],
+        "description": "手动触发数据库备份（用于测试）",
+        "operationId": "triggerBackup",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/websocket/doc/generate": {
       "post": {
         "tags": [
@@ -14343,78 +14847,6 @@
         }
       }
     },
-    "/space/module/role": {
-      "get": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "获取空间的所有NPC，仅kp调用",
-        "operationId": "spaceRole",
-        "parameters": [
-          {
-            "name": "spaceId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListUserRole"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/space/member/list": {
       "get": {
         "tags": [
@@ -15371,7 +15803,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListRoom"
+                  "$ref": "#/components/schemas/ApiResultRoomListResponse"
                 }
               }
             }
@@ -16003,157 +16435,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultDouble"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/module/commit": {
-      "get": {
-        "tags": [
-          "CommitController"
-        ],
-        "operationId": "getModuleInfo",
-        "parameters": [
-          {
-            "name": "moduleId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "branchId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultModuleInfo"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/module/commit/info": {
-      "get": {
-        "tags": [
-          "CommitController"
-        ],
-        "operationId": "getModuleInfoByCommitId",
-        "parameters": [
-          {
-            "name": "commitId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultModuleInfo"
                 }
               }
             }
@@ -18718,7 +18999,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultVoid": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -18744,7 +19025,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResult": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -18895,6 +19176,10 @@
           "avatar": {
             "type": "string",
             "description": "头像的url"
+          },
+          "avatarThumbUrl": {
+            "type": "string",
+            "description": "头像缩略图的url"
           },
           "activeStatus": {
             "type": "string",
@@ -19107,6 +19392,76 @@
           }
         },
         "description": "基础返回体"
+      },
+      "SpaceSidebarTreeSetRequest": {
+        "required": [
+          "expectedVersion",
+          "spaceId",
+          "treeJson"
+        ],
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "description": "期望版本号（乐观锁）",
+            "format": "int64"
+          },
+          "treeJson": {
+            "type": "string",
+            "description": "频道树JSON"
+          }
+        },
+        "description": "设置空间侧边栏频道树请求"
+      },
+      "ApiResultSpaceSidebarTreeResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SpaceSidebarTreeResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "SpaceSidebarTreeResponse": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "version": {
+            "type": "integer",
+            "description": "当前版本号",
+            "format": "int64"
+          },
+          "treeJson": {
+            "type": "string",
+            "description": "频道树JSON（为空表示尚未初始化）"
+          }
+        },
+        "description": "空间侧边栏频道树返回"
       },
       "PlayerGrantRequest": {
         "required": [
@@ -20348,6 +20703,34 @@
         },
         "description": "模组更新请求"
       },
+      "BlocksuiteDocUpsertRequest": {
+        "required": [
+          "docType",
+          "entityId",
+          "entityType",
+          "snapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "description": "实体类型(space/room/space_clue)"
+          },
+          "entityId": {
+            "type": "integer",
+            "description": "实体id",
+            "format": "int64"
+          },
+          "docType": {
+            "type": "string",
+            "description": "文档类型(description等)"
+          },
+          "snapshot": {
+            "type": "string",
+            "description": "快照(JSON字符串，v1包含updateB64等)"
+          }
+        }
+      },
       "RoleAvatar": {
         "type": "object",
         "properties": {
@@ -20834,6 +21217,22 @@
           }
         },
         "description": "Room对象"
+      },
+      "SpaceRole": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间id",
+            "format": "int64"
+          },
+          "roleId": {
+            "type": "integer",
+            "description": "角色id（历史字段名 stage_entity_id）",
+            "format": "int64"
+          }
+        },
+        "description": "空间角色映射"
       },
       "ApiResultLong": {
         "required": [
@@ -21624,10 +22023,10 @@
             "type": "string",
             "format": "date-time"
           },
-          "diceMaiden": {
+          "role": {
             "type": "boolean"
           },
-          "role": {
+          "diceMaiden": {
             "type": "boolean"
           }
         },
@@ -25482,8 +25881,14 @@
             "format": "int32"
           },
           "parent": {
-            "type": "string",
-            "description": "从哪个模组fork来"
+            "type": "integer",
+            "description": "从哪个模组fork来",
+            "format": "int64"
+          },
+          "rootModuleId": {
+            "type": "integer",
+            "description": "所属fork网络的根模组ID(搜索折叠用)",
+            "format": "int64"
           },
           "commitId": {
             "type": "integer",
@@ -26302,7 +26707,7 @@
         },
         "description": "RoomMember对象"
       },
-      "ApiResultListRoom": {
+      "ApiResultRoomListResponse": {
         "required": [
           "success"
         ],
@@ -26322,14 +26727,28 @@
             "description": "错误消息"
           },
           "data": {
+            "$ref": "#/components/schemas/RoomListResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "RoomListResponse": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "rooms": {
             "type": "array",
-            "description": "返回对象",
+            "description": "房间列表",
             "items": {
               "$ref": "#/components/schemas/Room"
             }
           }
         },
-        "description": "基础返回体"
+        "description": "空间下房间列表复合返回"
       },
       "ApiResultUserRole": {
         "required": [
@@ -26436,94 +26855,6 @@
           }
         },
         "description": "基础返回体"
-      },
-      "ApiResultModuleInfo": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/ModuleInfo"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ModuleInfo": {
-        "type": "object",
-        "properties": {
-          "responses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StageEntityResponse"
-            }
-          },
-          "moduleMap": {
-            "$ref": "#/components/schemas/ModuleMap"
-          }
-        },
-        "description": "返回对象"
-      },
-      "ModuleMap": {
-        "type": "object",
-        "properties": {
-          "sceneMap": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景versionId，到相邻场景的list",
-              "items": {
-                "type": "integer",
-                "description": "存储场景versionId，到相邻场景的list",
-                "format": "int64"
-              }
-            },
-            "description": "存储场景versionId，到相邻场景的list"
-          }
-        }
-      },
-      "StageEntityResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string"
-          },
-          "entityType": {
-            "type": "integer",
-            "description": "实体类型(item, role, scene)",
-            "format": "int32"
-          },
-          "versionId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "entityInfo": {
-            "type": "object",
-            "description": "实体详情"
-          },
-          "diffType": {
-            "type": "integer",
-            "description": "change接口使用，1删除，2修改，3新增，若为新增，则只实体只有一个id",
-            "format": "int32"
-          }
-        }
       },
       "ApiResultItemResponse": {
         "required": [

@@ -29,6 +29,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   // 获取context，可能为null（当组件在SpaceContext.Provider外部使用时）
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext?.spaceId;
+  const isKP = Boolean(spaceContext?.isSpaceOwner);
 
   // 获取群组数据
   const getRoomInfoQuery = useGetRoomInfoQuery(propRoomId ?? -1);
@@ -254,21 +255,29 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
                       {/* 右侧：房间描述文档 */}
                       <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
-                        {(propRoomId && (room?.spaceId ?? spaceId))
+                        {!isKP
                           ? (
-                              <BlocksuiteDescriptionEditor
-                                workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
-                                spaceId={(room?.spaceId ?? spaceId)!}
-                                docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
-                                mode="page"
-                                allowModeSwitch
-                                fullscreenEdgeless
-                                variant="full"
-                                className="h-full"
-                              />
+                              <div className="h-full w-full flex items-center justify-center text-sm opacity-70">
+                                仅KP可查看房间文档
+                              </div>
                             )
                           : (
-                              <div className="text-sm opacity-70">未选择房间或无法获取spaceId</div>
+                              (propRoomId && (room?.spaceId ?? spaceId))
+                                ? (
+                                    <BlocksuiteDescriptionEditor
+                                      workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
+                                      spaceId={(room?.spaceId ?? spaceId)!}
+                                      docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
+                                      mode="page"
+                                      allowModeSwitch
+                                      fullscreenEdgeless
+                                      variant="full"
+                                      className="h-full"
+                                    />
+                                  )
+                                : (
+                                    <div className="text-sm opacity-70">未选择房间或无法获取spaceId</div>
+                                  )
                             )}
                       </div>
                     </div>

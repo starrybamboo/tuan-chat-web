@@ -42,6 +42,14 @@
 
 ---
 
+## 2.5 SSR / React Router 注意事项
+
+- React Router dev/SSR 在服务端会评估部分路由/组件模块，因此禁止在 SSR 入口组件的模块顶层静态导入 Blocksuite runtime/registry（可能间接拉起 `lit`/`lit-html` 并触发 `document is not defined`）。
+- 推荐做法：在 `useEffect`/事件回调等“仅客户端执行”的边界内使用 `import()` 动态加载，并在 cleanup 中解除订阅，避免竞态与泄漏。
+- 本项目示例：`app/components/chat/chatPage.tsx` 订阅 doc metas 时改为动态 `import("@/components/chat/infra/blocksuite/spaceDocCollectionRegistry")`，用于规避 SSR 阶段的 DOM 全局对象访问。
+
+---
+
 ## 3. 包导航
 
 - [`@blocksuite/affine`](affine.md)

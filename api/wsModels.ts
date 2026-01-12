@@ -259,6 +259,15 @@ export interface MemberChatStatusPush extends BaseMessage<{
     type: 17;
 }
 
+// 空间频道树变更 (type: 22)
+export interface SpaceSidebarTreeUpdatedPush extends BaseMessage<{
+    spaceId: number;
+    version: number;
+    updatedBy?: number;
+}> {
+    type: 22;
+}
+
 // 模组角色变动 (type: 18)
 export interface ModRoleChangePush extends BaseMessage<{}> {
     type: 18;

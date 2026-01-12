@@ -3,8 +3,9 @@
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
+import { getDefaultTerrePort, getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {
   previewUrl: string | null;
@@ -13,19 +14,32 @@ interface WebGALPreviewProps {
   className?: string;
 }
 
-/** TTS 设置对话框 */
-function TTSSettingsModal({
+/** WebGAL 设置对话框（TTS + Terre 端口） */
+function WebGALSettingsModal({
   isOpen,
   onClose,
   apiUrl,
+  terrePortOverride,
   onSave,
 }: {
   isOpen: boolean;
   onClose: () => void;
   apiUrl: string;
-  onSave: (url: string) => void;
+  terrePortOverride: number | null;
+  onSave: (next: { apiUrl: string; terrePortOverride: number | null }) => void;
 }) {
   const [inputUrl, setInputUrl] = useState(apiUrl);
+  const [inputPort, setInputPort] = useState(terrePortOverride ? String(terrePortOverride) : "");
+  const [portError, setPortError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setInputUrl(apiUrl);
+  }, [apiUrl, isOpen]);
+
+  useEffect(() => {
+    setInputPort(terrePortOverride ? String(terrePortOverride) : "");
+    setPortError(null);
+  }, [terrePortOverride, isOpen]);
 
   if (!isOpen)
     return null;
@@ -33,7 +47,7 @@ function TTSSettingsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-base-100 rounded-lg shadow-xl p-4 w-80 max-w-[90vw]">
-        <h3 className="font-medium text-lg mb-4">TTS 配音设置</h3>
+        <h3 className="font-medium text-lg mb-4">WebGAL 设置</h3>
 
         <div className="form-control mb-4">
           <label className="label">
@@ -53,6 +67,33 @@ function TTSSettingsModal({
           </label>
         </div>
 
+        <div className="form-control mb-4">
+          <label className="label">
+            <span className="label-text">WebGAL (Terre) 端口</span>
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            className="input input-bordered input-sm w-full"
+            placeholder={String(getDefaultTerrePort())}
+            value={inputPort}
+            onChange={(e) => {
+              setInputPort(e.target.value);
+              setPortError(null);
+            }}
+          />
+          <label className="label">
+            <span className="label-text-alt text-base-content/50">
+              留空使用默认端口 (环境变量 VITE_TERRE_URL)
+            </span>
+          </label>
+          {portError && (
+            <div className="text-xs text-error -mt-2">
+              {portError}
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end gap-2">
           <button
             type="button"
@@ -65,7 +106,22 @@ function TTSSettingsModal({
             type="button"
             className="btn btn-primary btn-sm"
             onClick={() => {
-              onSave(inputUrl.trim());
+              const trimmedPort = inputPort.trim();
+              let nextTerrePortOverride: number | null = null;
+              if (trimmedPort) {
+                const parsed = Number(trimmedPort);
+                const normalized = Number.isFinite(parsed) ? Math.floor(parsed) : Number.NaN;
+                if (!Number.isFinite(normalized) || normalized < 1 || normalized > 65535) {
+                  setPortError("端口必须是 1-65535 的整数");
+                  return;
+                }
+                nextTerrePortOverride = normalized;
+              }
+
+              onSave({
+                apiUrl: inputUrl.trim(),
+                terrePortOverride: nextTerrePortOverride,
+              });
               onClose();
             }}
           >
@@ -85,10 +141,17 @@ export default function WebGALPreview({
 }: WebGALPreviewProps) {
   const [showSettings, setShowSettings] = useState(false);
 
+  const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
+  useEffect(() => {
+    void ensureHydrated();
+  }, [ensureHydrated]);
+
   const ttsEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const setTtsEnabled = useRealtimeRenderStore(state => state.setTtsEnabled);
   const ttsApiUrl = useRealtimeRenderStore(state => state.ttsApiUrl);
   const setTtsApiUrl = useRealtimeRenderStore(state => state.setTtsApiUrl);
+  const terrePortOverride = useRealtimeRenderStore(state => state.terrePortOverride);
+  const setTerrePortOverride = useRealtimeRenderStore(state => state.setTerrePortOverride);
   const miniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
   const setMiniAvatarEnabled = useRealtimeRenderStore(state => state.setMiniAvatarEnabled);
   const autoFigureEnabled = useRealtimeRenderStore(state => state.autoFigureEnabled);
@@ -99,16 +162,29 @@ export default function WebGALPreview({
       <div className={`flex flex-col h-full ${className ?? ""}`}>
         <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
           <span className="font-medium text-sm">WebGAL 实时预览</span>
-          {onClose && (
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="btn btn-ghost btn-xs btn-circle"
-              onClick={onClose}
-              title="关闭预览"
+              className="btn btn-ghost btn-xs"
+              title="设置"
+              onClick={() => setShowSettings(true)}
             >
-              ✕
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </button>
-          )}
+            {onClose && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs btn-circle"
+                onClick={onClose}
+                title="关闭预览"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center text-base-content/50 text-sm">
           <div className="text-center">
@@ -177,9 +253,8 @@ export default function WebGALPreview({
                   const match = previewUrl.match(/\/games\/([^/]+)/);
                   if (match) {
                     const gameName = match[1];
-                    const terreUrl = import.meta.env.VITE_TERRE_URL || "http://localhost:3001";
                     // 直接跳转到编辑页面
-                    return `${terreUrl}/#/game/${gameName}`;
+                    return `${getTerreBaseUrl()}/#/game/${gameName}`;
                   }
                   return previewUrl;
                 })()
@@ -215,12 +290,16 @@ export default function WebGALPreview({
         />
       </div>
 
-      {/* TTS 设置对话框 */}
-      <TTSSettingsModal
+      {/* WebGAL 设置对话框 */}
+      <WebGALSettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         apiUrl={ttsApiUrl}
-        onSave={setTtsApiUrl}
+        terrePortOverride={terrePortOverride}
+        onSave={({ apiUrl, terrePortOverride }) => {
+          setTtsApiUrl(apiUrl);
+          setTerrePortOverride(terrePortOverride);
+        }}
       />
     </div>
   );

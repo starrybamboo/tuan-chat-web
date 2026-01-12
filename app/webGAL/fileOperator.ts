@@ -1,6 +1,7 @@
 import type { GameInfoDto } from "@/webGAL/apis";
 
-import { terreApis } from "@/webGAL/index";
+import { getTerreApis } from "@/webGAL/index";
+import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 /**
  * WebGAL 调试命令枚举
@@ -103,12 +104,12 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   formData.append("files", file);
   formData.append("targetDirectory", path);
 
-  await terreApis.assetsControllerUpload(formData);
+  await getTerreApis().assetsControllerUpload(formData);
   return safeFileName;
 };
 
 export async function readTextFile(game: string, path: string): Promise<string> {
-  const url = `${import.meta.env.VITE_TERRE_URL}/games/${game}/game/${path}`;
+  const url = `${getTerreBaseUrl()}/games/${game}/game/${path}`;
   const response = await fetch(url);
   if (!response.ok)
     throw new Error(`Failed to read file: ${response.statusText}`);
@@ -116,14 +117,14 @@ export async function readTextFile(game: string, path: string): Promise<string> 
 }
 
 export async function checkGameExist(game: string): Promise<boolean> {
-  const gameList: GameInfoDto[] = await terreApis.manageGameControllerGetGameList();
+  const gameList: GameInfoDto[] = await getTerreApis().manageGameControllerGetGameList();
   if (!gameList)
     return false;
   return gameList.some(item => item.name === game);
 }
 
 export async function fetchFolder(folderPath: string) {
-  const res = await terreApis.assetsControllerReadAssets(folderPath);
+  const res = await getTerreApis().assetsControllerReadAssets(folderPath);
   const data = res as unknown as object;
   if ("dirInfo" in data && data.dirInfo) {
     const dirInfo = (data.dirInfo as IFile[]).map(item => ({ ...item, path: `${folderPath}/${item.name}` }));
