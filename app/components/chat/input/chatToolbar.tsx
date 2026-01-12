@@ -517,7 +517,7 @@ export function ChatToolbar({
 
         {/* WebGAL 导演控制台 */}
         {showWebgalControls && webgalLinkMode && onSendEffect && (
-          <div className="dropdown dropdown-top dropdown-end mt-0.5 md:mt-1">
+          <div className="dropdown dropdown-top dropdown-center md:dropdown-end mt-0.5 md:mt-1">
             <div
               tabIndex={0}
               role="button"
