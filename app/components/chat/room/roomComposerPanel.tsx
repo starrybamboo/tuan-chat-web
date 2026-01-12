@@ -111,6 +111,7 @@ function RoomComposerPanelImpl({
 }: RoomComposerPanelProps) {
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
+  const composerRootRef = React.useRef<HTMLDivElement | null>(null);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -129,6 +130,35 @@ function RoomComposerPanelImpl({
     prevImgFilesCountRef.current = imgFilesCount;
     prevHasAudioRef.current = Boolean(audioFile);
   }, [audioFile, chatInputRef, imgFilesCount]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const target = composerRootRef.current;
+    if (!target) {
+      return;
+    }
+    const root = document.documentElement;
+    const update = () => {
+      const { height } = target.getBoundingClientRect();
+      root.style.setProperty("--chat-composer-height", `${height}px`);
+    };
+    update();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => {
+        window.removeEventListener("resize", update);
+        root.style.removeProperty("--chat-composer-height");
+      };
+    }
+    const observer = new ResizeObserver(() => update());
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--chat-composer-height");
+    };
+  }, []);
 
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -180,7 +210,7 @@ function RoomComposerPanelImpl({
   }, [chatInputRef]);
 
   return (
-    <div className="bg-transparent z-20">
+    <div ref={composerRootRef} className="bg-transparent z-20">
       <div className="relative flex-1 flex flex-col min-w-0 gap-2 p-2">
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
@@ -270,7 +300,7 @@ function RoomComposerPanelImpl({
             </div>
           )}
 
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0 relative">
               {(webgalLinkMode || runModeEnabled) && (
                 <div className="absolute right-2 -top-13 z-10">
@@ -320,24 +350,22 @@ function RoomComposerPanelImpl({
                   </div>
                 </div>
               )}
-              <div className="relative flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 p-2">
-                <div className="flex-1 min-w-0 pr-20">
-                  <ChatInputArea
-                    ref={chatInputRef}
-                    onInputSync={onInputSync}
-                    onPasteFiles={onPasteFiles}
-                    onKeyDown={onKeyDown}
-                    onKeyUp={onKeyUp}
-                    onMouseDown={onMouseDown}
-                    onCompositionStart={onCompositionStart}
-                    onCompositionEnd={onCompositionEnd}
-                    disabled={inputDisabled}
-                    placeholder={placeholderText}
-                    className="min-h-10 max-h-[20dvh] overflow-y-auto"
-                  />
-                </div>
+              <div className="flex items-start gap-2 border border-base-300 rounded-xl bg-base-100/80 p-2">
+                <ChatInputArea
+                  ref={chatInputRef}
+                  onInputSync={onInputSync}
+                  onPasteFiles={onPasteFiles}
+                  onKeyDown={onKeyDown}
+                  onKeyUp={onKeyUp}
+                  onMouseDown={onMouseDown}
+                  onCompositionStart={onCompositionStart}
+                  onCompositionEnd={onCompositionEnd}
+                  disabled={inputDisabled}
+                  placeholder={placeholderText}
+                  className="min-h-10 max-h-[20dvh] overflow-y-auto"
+                />
 
-                <div className="absolute right-2 top-4">
+                <div className="self-start mt-2">
                   <ChatToolbarFromStore
                     roomId={roomId}
                     statusUserId={userId}
