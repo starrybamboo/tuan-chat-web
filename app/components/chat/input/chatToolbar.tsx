@@ -137,6 +137,7 @@ export function ChatToolbar({
   const isInline = layout === "inline";
   const isStacked = !isInline;
   const isRunModeOnly = runModeEnabled && !webgalLinkMode;
+  const isMobileLinkCompact = isStacked && webgalLinkMode;
 
   const bgmTrack = useBgmStore(state => (roomId != null ? state.trackByRoomId[roomId] : undefined));
   const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
@@ -217,7 +218,7 @@ export function ChatToolbar({
               {/* AI重写提示词编辑 */}
               <div
                 ref={aiPromptDropdownRef}
-                className={`dropdown dropdown-top dropdown-center pointer-events-auto ${isAiPromptOpen ? "dropdown-open" : ""}`}
+                className={`dropdown dropdown-top dropdown-start md:dropdown-center pointer-events-auto ${isAiPromptOpen ? "dropdown-open" : ""}`}
               >
                 <div
                   role="button"
@@ -230,10 +231,10 @@ export function ChatToolbar({
                   }}
                 >
                   <div
-                    className="tooltip tooltip-bottom"
+                    className="tooltip tooltip-top"
                     data-tip="编辑AI重写提示词"
                   >
-                    <SparklesOutline className="size-6 cursor-pointer jump_icon" />
+                    <SparklesOutline className="size-6 cursor-pointer jump_icon mt-1 md:mt-0" />
                   </div>
                 </div>
                 <div
@@ -264,7 +265,7 @@ export function ChatToolbar({
               </div>
               <div
                 ref={emojiDropdownRef}
-                className={`dropdown dropdown-top dropdown-center ${isEmojiOpen ? "dropdown-open" : ""}`}
+                className={`dropdown dropdown-top dropdown-start md:dropdown-center ${isEmojiOpen ? "dropdown-open" : ""}`}
               >
                 <div
                   role="button"
@@ -278,10 +279,10 @@ export function ChatToolbar({
                   }}
                 >
                   <div
-                    className="tooltip tooltip-bottom"
+                    className="tooltip tooltip-top"
                     data-tip="发送表情"
                   >
-                    <EmojiIconWhite className="size-6 jump_icon"></EmojiIconWhite>
+                    <EmojiIconWhite className="size-6 jump_icon mt-1 md:mt-0"></EmojiIconWhite>
                   </div>
                 </div>
                 <ul
@@ -306,16 +307,16 @@ export function ChatToolbar({
                 draft.push(newImg);
               })}
               >
-                <div className="tooltip tooltip-bottom" data-tip="发送图片">
-                  <GalleryBroken className="size-6 cursor-pointer jump_icon"></GalleryBroken>
+                <div className="tooltip tooltip-top" data-tip="发送图片">
+                  <GalleryBroken className="size-6 cursor-pointer jump_icon mt-1 md:mt-0"></GalleryBroken>
                 </div>
               </ImgUploader>
 
               {/* 发送音频 */}
               {setAudioFile && (
-                <div className="tooltip tooltip-bottom" data-tip="发送音频">
+                <div className="tooltip tooltip-top" data-tip="发送音频">
                   <MusicNote
-                    className="size-6 cursor-pointer jump_icon relative -top-px"
+                    className="size-6 cursor-pointer jump_icon relative md:-top-px"
                     onClick={() => audioInputRef.current?.click()}
                   />
                   <input
@@ -333,11 +334,11 @@ export function ChatToolbar({
               {/* WebGAL 联动模式按钮 */}
               {showWebgalLinkToggle && onToggleWebgalLinkMode && !isStacked && (
                 <div
-                  className="tooltip tooltip-bottom"
+                  className="tooltip tooltip-top"
                   data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
                 >
                   <LinkFilled
-                    className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+                    className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
                     onClick={onToggleWebgalLinkMode}
                   />
                 </div>
@@ -345,11 +346,11 @@ export function ChatToolbar({
 
               {showRunModeToggle && onToggleRunMode && !isStacked && (
                 <div
-                  className="tooltip tooltip-bottom"
+                  className="tooltip tooltip-top"
                   data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
                 >
                   <DiceD6Icon
-                    className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+                    className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
                     onClick={onToggleRunMode}
                   />
                 </div>
@@ -357,7 +358,7 @@ export function ChatToolbar({
 
               {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
               {roomId != null && bgmTrack && (
-                <div className="tooltip tooltip-bottom" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
+                <div className="tooltip tooltip-top" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
                   <button
                     type="button"
                     className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
@@ -371,7 +372,7 @@ export function ChatToolbar({
 
               {/* KP：停止全员BGM（发送系统消息） */}
               {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
-                <div className="tooltip tooltip-bottom" data-tip="停止全员BGM">
+                <div className="tooltip tooltip-top" data-tip="停止全员BGM">
                   <button
                     type="button"
                     className="btn btn-xs btn-ghost text-error"
@@ -384,9 +385,9 @@ export function ChatToolbar({
 
               {/* 发送按钮 */}
               {showSendButton && !isStacked && (
-                <div className="tooltip tooltip-bottom" data-tip="发送">
+                <div className="tooltip tooltip-top" data-tip="发送">
                   <SendIcon
-                    className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
+                    className={`size-6 font-light hover:text-info md:mb-1 ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
                     onClick={handleMessageSubmit}
                   >
                   </SendIcon>
@@ -398,7 +399,7 @@ export function ChatToolbar({
               <div className="flex items-center gap-2 flex-nowrap">
                 {showWebgalLinkToggle && onToggleWebgalLinkMode && (
                   <div
-                    className="tooltip tooltip-bottom"
+                    className="tooltip tooltip-top"
                     data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
                   >
                     <LinkFilled
@@ -410,7 +411,7 @@ export function ChatToolbar({
 
                 {showRunModeToggle && onToggleRunMode && (
                   <div
-                    className="tooltip tooltip-bottom"
+                    className="tooltip tooltip-top"
                     data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
                   >
                     <DiceD6Icon
@@ -421,7 +422,7 @@ export function ChatToolbar({
                 )}
 
                 {showSendButton && (
-                  <div className="tooltip tooltip-bottom" data-tip="发送">
+                  <div className="tooltip tooltip-top" data-tip="发送">
                     <SendIcon
                       className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
                       onClick={handleMessageSubmit}
@@ -442,11 +443,11 @@ export function ChatToolbar({
         }`}
       >
         {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
-        {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && (
-          <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
+        {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && !isMobileLinkCompact && (
+          <div className="tooltip tooltip-top" data-tip="WebGAL 指令（插入 % 前缀）">
             <button
               type="button"
-              className="btn btn-xs btn-ghost border border-base-300"
+              className="btn btn-xs btn-ghost border border-base-300 md:mt-1"
               onClick={onInsertWebgalCommandPrefix}
             >
               %指令
@@ -455,15 +456,15 @@ export function ChatToolbar({
         )}
 
         {/* 默认立绘位置选择器（仅在联动模式下显示） */}
-        {showWebgalControls && webgalLinkMode && onSetDefaultFigurePosition && (
+        {showWebgalControls && webgalLinkMode && onSetDefaultFigurePosition && !isMobileLinkCompact && (
           <div className="flex items-center gap-1">
-            <div className="tooltip tooltip-bottom" data-tip="本角色默认位置（点击取消选择）">
+            <div className="tooltip tooltip-top" data-tip="本角色默认位置（点击取消选择）">
               <div className="join">
                 {(["left", "center", "right"] as const).map(pos => (
                   <button
                     key={pos}
                     type="button"
-                    className={`join-item btn btn-xs px-2 ${defaultFigurePosition === pos ? "btn-primary" : "btn-ghost"}`}
+                    className={`join-item btn btn-xs px-2 md:mt-1 ${defaultFigurePosition === pos ? "btn-primary" : "btn-ghost"}`}
                     onClick={() => {
                       // 如果点击的是当前选中的位置，则取消选择
                       if (defaultFigurePosition === pos) {
@@ -485,7 +486,7 @@ export function ChatToolbar({
 
         {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
         {showWebgalControls && webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
-          <div className="flex items-center gap-2 text-xs mt-1.5">
+          <div className="flex items-center gap-2 text-xs md:mt-2">
             {onToggleDialogNotend && (
               <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
                 <input
@@ -494,7 +495,7 @@ export function ChatToolbar({
                   checked={dialogNotend}
                   onChange={onToggleDialogNotend}
                 />
-                <span className="tooltip tooltip-bottom" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
+                <span className="tooltip tooltip-top" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
               </label>
             )}
             {onToggleDialogConcat && (
@@ -505,7 +506,7 @@ export function ChatToolbar({
                   checked={dialogConcat}
                   onChange={onToggleDialogConcat}
                 />
-                <span className="tooltip tooltip-bottom" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
+                <span className="tooltip tooltip-top" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
               </label>
             )}
           </div>
@@ -513,11 +514,11 @@ export function ChatToolbar({
 
         {/* WebGAL 导演控制台 */}
         {showWebgalControls && webgalLinkMode && onSendEffect && (
-          <div className="dropdown dropdown-top dropdown-end mt-0.5">
+          <div className="dropdown dropdown-top dropdown-end mt-0.5 md:mt-1">
             <div
               tabIndex={0}
               role="button"
-              className="tooltip tooltip-bottom hover:text-info"
+              className="tooltip tooltip-top hover:text-info"
               data-tip="导演控制台"
               aria-label="导演控制台"
               title="导演控制台"
@@ -547,18 +548,18 @@ export function ChatToolbar({
         {/* 实时渲染按钮：仅在联动模式开启时展示 */}
         {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
           <div
-            className={`tooltip tooltip-bottom mt-0.5 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+            className={`tooltip tooltip-top mt-0.5 md:mt-1 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
             data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
             onClick={onToggleRealtimeRender}
           >
-            <WebgalIcon className={`size-5 cursor-pointer ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
+            <WebgalIcon className={`size-5 cursor-pointer mb-2 md:mb-0 ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
           </div>
         )}
 
         {showRunControls && runModeEnabled && (
-          <div className="flex gap-2 ml-0.5">
+          <div className="flex gap-2 ml-0.5 mb-1 md:mb-0 md:mt-1">
             <div
-              className="tooltip tooltip-bottom hover:text-info"
+              className="tooltip tooltip-top hover:text-info"
               data-tip="查看线索"
               data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
@@ -567,7 +568,7 @@ export function ChatToolbar({
             </div>
 
             <div
-              className="tooltip tooltip-bottom"
+              className="tooltip tooltip-top"
               data-tip="展示先攻表"
               data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
@@ -576,7 +577,7 @@ export function ChatToolbar({
             </div>
 
             <div
-              className="tooltip tooltip-bottom"
+              className="tooltip tooltip-top"
               data-tip="地图"
               data-side-drawer-toggle="true"
               onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}

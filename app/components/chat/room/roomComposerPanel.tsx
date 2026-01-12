@@ -307,7 +307,7 @@ function RoomComposerPanelImpl({
             <div className="flex-1 min-w-0 relative">
               {(webgalLinkMode || runModeEnabled) && (
                 <div className="absolute right-2 -top-11 sm:-top-13 z-10">
-                  <div className="flex items-start gap-2 bg-base-100/80 border border-base-300 rounded-md shadow-sm pointer-events-auto">
+                  <div className="flex items-start gap-2 bg-base-100/80 border border-base-300 rounded-md shadow-sm pointer-events-auto px-1 sm:p-0">
                     <ChatToolbarFromStore
                       roomId={roomId}
                       statusUserId={userId}
