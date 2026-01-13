@@ -33,6 +33,27 @@
 - `git worktree remove D:\A_collection\tuan-chat-web.worktrees\items-detail`
 - （可选）`git branch -d session/20260113-1530_items-detail`
 
+## 一键合并与清理（脚本）
+
+为减少人工操作，本仓库提供一键脚本：`scripts/integrate-session.ps1`。
+
+**推荐用法：在 session worktree 中执行（会合并到 `dev-jxc` 并移除当前 session worktree）**
+
+- 交互确认：
+  - `.\scripts\integrate-session.ps1`
+- 无交互（自动继续）：
+  - `.\scripts\integrate-session.ps1 -Yes`
+- 合并后删除 session 分支（可选）：
+  - `.\scripts\integrate-session.ps1 -Yes -DeleteBranch`
+- 自动提交未提交改动后再合并（可选）：
+  - `.\scripts\integrate-session.ps1 -Yes -AutoCommit -CommitMessage "fix: room setting context menu"`
+- 仅预览将执行的操作（不会产生改动）：
+  - `.\scripts\integrate-session.ps1 -DryRun`
+
+**说明**
+- 脚本会执行 `git merge --no-ff`，因此会产生一次 merge commit（仅本地，不会自动 push）。
+- 若主 worktree 存在未提交改动，脚本会直接中止以避免丢失改动；session worktree 默认也会中止，可用 `-AutoCommit` 自动提交。
+
 ## 重要边界与安全约束
 
 - 若主 worktree 存在大量未提交改动，**先提示用户处理（提交/暂存/迁移）**，避免继续“打架”。

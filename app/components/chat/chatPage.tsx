@@ -1256,6 +1256,7 @@ export default function ChatPage() {
         activeRoomId={activeRoomId}
         onClose={closeContextMenu}
         onInvitePlayer={handleInvitePlayer}
+        onOpenRoomSetting={openRoomSettingPage}
       />
 
       <SpaceContextMenu
