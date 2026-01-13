@@ -10,8 +10,15 @@
 - 新增 BlockSuite 学习路线文档：`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
 - 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
 - WebGAL 实时预览设置支持配置 Terre 端口，并将 TTS/WebGAL 设置改为 IndexedDB 持久化
+- Chat 房间列表：分类标题右侧新增“+”创建入口，可创建房间/文档并自动加入分类（持久化到 `/space/sidebarTree`）
+- 新增 AI 生图测试页：`/ai-image`（Electron 主进程代理请求 NovelAI，便于本地调试）
+
+### 变更
+- 房间列表分类右侧“+”改为“标签页式”创建面板（参考邀请好友），同一弹窗内完成创建房间/文档
+- 文档查看统一使用 Chat 内主视图（`/chat/:spaceId/doc/:docId`），兼容入口 `/doc/:spaceId/:docId` 改为跳转到 Chat 布局（保留侧边栏并支持当前文档高亮）
 
 ### 修复
+- 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）
 - BlockSuite 相关样式改为按需注入，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的全局 `body{counter-reset}` 重写为 `.tc-blocksuite-scope`/`.blocksuite-portal` 范围内生效
 - 修复 Blocksuite 嵌入页面导致同页其它 UI 样式/交互被污染：在 blocksuite 初始化前注入作用域运行时样式，并通过 pnpm patch 将 overflow/cursor 等 `document.body.style` 副作用限制到 blocksuite scope/portal
 - 修复 Blocksuite 嵌入场景仍可能出现“同页其它 UI 变化/二次进入样式失效”：默认改为 iframe 强隔离（新增 `blocksuite-frame` 路由），主窗口不再执行 blocksuite runtime
@@ -27,6 +34,9 @@
 - 为 `app/root.tsx` 的 `Layout` 增加默认 `data-theme="light"`，避免未挂载主题切换组件时 DaisyUI 主题变量缺失导致 UI 样式异常
 - 统一包管理器为 pnpm：移除 `package-lock.json`，在 `package.json` 标注 `packageManager`，并在知识库中移除 npm/Docker 相关说明
 - WebGAL 实时渲染创建游戏不再使用 `WebGAL Black` 模板（不传 `templateDir`），创建失败直接返回失败
+- 修复房间列表右键菜单“房间资料”无法打开：为 `ChatPageContextMenu` 传入 `onOpenRoomSetting` 回调并跳转到房间资料页
+- 修复房间列表“新增分类”后新分类闪开闪关/无法展开：新增分类写入 `/space/sidebarTree`，并在创建后默认展开
+- 修复房间列表“重置默认”按钮无效且不触发后端请求：重建默认 sidebarTree（包含 doc metas）并写入 `/space/sidebarTree`
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）

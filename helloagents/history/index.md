@@ -20,6 +20,9 @@
 | 202601110741 | blocksuite_ssr_safe_imports | 修复 | 已完成 | [2026-01/202601110741_blocksuite_ssr_safe_imports/](2026-01/202601110741_blocksuite_ssr_safe_imports/) |
 | 202601111227 | webgal_realtime_create_game_no_template | 修复 | 已完成 | [2026-01/202601111227_webgal_realtime_create_game_no_template/](2026-01/202601111227_webgal_realtime_create_game_no_template/) |
 | 202601111240 | webgal_settings_terre_port_indexeddb | 功能 | 已完成 | [2026-01/202601111240_webgal_settings_terre_port_indexeddb/](2026-01/202601111240_webgal_settings_terre_port_indexeddb/) |
+| 202601131356 | ai_image | 功能 | 已完成 | [2026-01/202601131356_ai_image/](2026-01/202601131356_ai_image/) |
+| 202601131515 | sidebar_tree_restore | 修复 | 已完成 | [2026-01/202601131515_sidebar_tree_restore/](2026-01/202601131515_sidebar_tree_restore/) |
+| 202601131558 | create_tabs | 优化 | 已完成 | [2026-01/202601131558_create_tabs/](2026-01/202601131558_create_tabs/) |
 
 ---
 
@@ -38,3 +41,6 @@
 - [202601110741_blocksuite_ssr_safe_imports](2026-01/202601110741_blocksuite_ssr_safe_imports/) - 修复 SSR 评估阶段静态引入 blocksuite runtime（deleteSpaceDoc 动态 import）
 - [202601111227_webgal_realtime_create_game_no_template](2026-01/202601111227_webgal_realtime_create_game_no_template/) - WebGAL 实时渲染创建游戏不使用模板，创建失败直接返回失败
 - [202601111240_webgal_settings_terre_port_indexeddb](2026-01/202601111240_webgal_settings_terre_port_indexeddb/) - WebGAL 实时预览支持配置 Terre 端口，设置改为 IndexedDB 持久化
+- [202601131356_ai_image](2026-01/202601131356_ai_image/) - 新增 AI 生图测试页（Electron 代理 NovelAI）
+- [202601131515_sidebar_tree_restore](2026-01/202601131515_sidebar_tree_restore/) - Chat sidebarTree 分类/重置/创建与文档路由对齐
+- [202601131558_create_tabs](2026-01/202601131558_create_tabs/) - 分类“+”创建入口改为标签页式单弹窗

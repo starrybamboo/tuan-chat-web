@@ -530,7 +530,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
             return;
           }
 
-          go(`/doc/${spaceId}/${encodeURIComponent(docId)}`);
+          go(`/chat/${spaceId}/doc/${encodeURIComponent(docId)}`);
         },
       });
       createdEditor = editor;

@@ -1,4 +1,5 @@
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 import {
   useAddRoomMemberMutation,
   useAddSpaceMemberMutation,
@@ -8,12 +9,16 @@ import {
   useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
+import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import RoomWindow from "@/components/chat/room/roomWindow";
+import { buildDefaultSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import SpaceDetailPanel from "@/components/chat/space/drawers/spaceDetailPanel";
@@ -39,15 +44,19 @@ import RightChatView from "@/components/privateChat/RightChatView";
  */
 export default function ChatPage() {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
-  const activeRoomId = Number(urlRoomId) || null;
   const activeSpaceId = Number(urlSpaceId) || null;
-  const targetMessageId = Number(urlMessageId) || null;
   const [searchParam, _] = useSearchParams();
   const navigate = useNavigate();
 
-  const isRoomSettingRoute = urlMessageId === "setting";
-
   const isPrivateChatMode = urlSpaceId === "private";
+
+  const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
+  const activeDocId = isDocRoute ? decodeURIComponent(urlMessageId as string) : null;
+
+  const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
+  const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
+
+  const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
   const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting"))
     ? urlRoomId
     : null;
@@ -109,6 +118,23 @@ export default function ChatPage() {
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   const activeSpaceIsArchived = activeSpace?.status === 2;
 
+  const spaceSidebarTreeQuery = useGetSpaceSidebarTreeQuery(activeSpaceId ?? -1);
+  const setSpaceSidebarTreeMutation = useSetSpaceSidebarTreeMutation();
+  const sidebarTreeVersion = spaceSidebarTreeQuery.data?.data?.version ?? 0;
+  const sidebarTree = useMemo(() => {
+    return parseSidebarTree(spaceSidebarTreeQuery.data?.data?.treeJson);
+  }, [spaceSidebarTreeQuery.data?.data?.treeJson]);
+
+  const handleSaveSidebarTree = useCallback((tree: SidebarTree) => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+    setSpaceSidebarTreeMutation.mutate({
+      spaceId: activeSpaceId,
+      expectedVersion: sidebarTreeVersion,
+      treeJson: JSON.stringify(tree),
+    });
+  }, [activeSpaceId, setSpaceSidebarTreeMutation, sidebarTreeVersion]);
+
   const setActiveSpaceId = useCallback((spaceId: number | null) => {
     setStoredChatIds({ spaceId, roomId: null });
     const newSearchParams = new URLSearchParams(searchParam);
@@ -128,6 +154,138 @@ export default function ChatPage() {
   const [mainView, setMainView] = useState<"chat" | "spaceDetail" | "roomSetting">("chat");
   const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
   const [roomSettingState, setRoomSettingState] = useState<{ roomId: number; tab: RoomSettingTab } | null>(null);
+
+  const isKPInSpace = useMemo(() => {
+    return Boolean(spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1));
+  }, [globalContext.userId, spaceMembersQuery.data?.data]);
+
+  const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
+
+  const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
+    if (typeof window === "undefined")
+      return [];
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return [];
+
+    try {
+      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+      const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
+      const metas = (ws?.meta?.docMetas ?? []) as any[];
+      const list = metas
+        .filter(m => typeof m?.id === "string" && m.id.length > 0)
+        .map((m) => {
+          return { id: String(m.id), title: typeof m?.title === "string" ? m.title : undefined } satisfies MinimalDocMeta;
+        });
+      setSpaceDocMetas(list);
+      return list;
+    }
+    catch {
+      setSpaceDocMetas([]);
+      return [];
+    }
+  }, [activeSpaceId]);
+
+  useEffect(() => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      setSpaceDocMetas(null);
+      return;
+    }
+    if (!isKPInSpace) {
+      setSpaceDocMetas([]);
+      return;
+    }
+    void loadSpaceDocMetas();
+  }, [activeSpaceId, isKPInSpace, loadSpaceDocMetas]);
+
+  const buildTreeBaseForWrite = useCallback((docMetas: MinimalDocMeta[]): SidebarTree => {
+    return sidebarTree ?? buildDefaultSidebarTree({
+      roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
+      docMetas,
+      includeDocs: true,
+    });
+  }, [activeSpaceId, rooms, sidebarTree]);
+
+  const resetSidebarTreeToDefault = useCallback(async () => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+
+    const docMetas = isKPInSpace
+      ? (spaceDocMetas ?? await loadSpaceDocMetas())
+      : [];
+
+    if (isKPInSpace) {
+      setSpaceDocMetas(docMetas);
+    }
+
+    const defaultTree = buildDefaultSidebarTree({
+      roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
+      docMetas,
+      includeDocs: isKPInSpace,
+    });
+
+    setSpaceSidebarTreeMutation.mutate({
+      spaceId: activeSpaceId,
+      expectedVersion: sidebarTreeVersion,
+      treeJson: JSON.stringify(defaultTree),
+    });
+  }, [activeSpaceId, isKPInSpace, loadSpaceDocMetas, rooms, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+
+  const appendNodeToCategory = useCallback((params: {
+    tree: SidebarTree;
+    categoryId: string;
+    node: SidebarLeafNode;
+  }): SidebarTree => {
+    const next = JSON.parse(JSON.stringify(params.tree)) as SidebarTree;
+    const categories = Array.isArray(next.categories) ? next.categories : [];
+    const target = categories.find(c => c?.categoryId === params.categoryId) ?? categories[0];
+    if (!target)
+      return next;
+    target.items = Array.isArray(target.items) ? target.items : [];
+    if (target.items.some(i => i?.nodeId === params.node.nodeId))
+      return next;
+    target.items.push(params.node);
+    return next;
+  }, []);
+
+  const requestCreateDocInCategory = useCallback(async (categoryId: string, titleOverride?: string) => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+    if (!isKPInSpace)
+      return;
+
+    const title = (titleOverride ?? "新文档").trim() || "新文档";
+    const docKey = `${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
+    const docId = buildSpaceDocId({ kind: "independent", docId: docKey });
+
+    const baseDocMetas = spaceDocMetas ?? await loadSpaceDocMetas();
+    const nextDocMetas = baseDocMetas.some(m => m.id === docId)
+      ? baseDocMetas
+      : [...baseDocMetas, { id: docId, title }];
+
+    try {
+      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+      registry.ensureSpaceDocMeta({ spaceId: activeSpaceId, docId, title });
+      setSpaceDocMetas(nextDocMetas);
+    }
+    catch {
+      // ignore
+    }
+
+    const base = buildTreeBaseForWrite(nextDocMetas);
+    const next = appendNodeToCategory({
+      tree: base,
+      categoryId,
+      node: { nodeId: `doc:${docId}`, type: "doc", targetId: docId, fallbackTitle: title },
+    });
+    setSpaceSidebarTreeMutation.mutate({
+      spaceId: activeSpaceId,
+      expectedVersion: sidebarTreeVersion,
+      treeJson: JSON.stringify(next),
+    });
+
+    setMainView("chat");
+    navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, isKPInSpace, loadSpaceDocMetas, navigate, setMainView, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
 
   const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
     if (roomId == null)
@@ -260,8 +418,61 @@ export default function ChatPage() {
 
   // 创建空间弹窗是否打开
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
-  // 创建房间弹窗是否打开
-  const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
+  const [isCreateInCategoryOpen, setIsCreateInCategoryOpen] = useSearchParamsState<boolean>("createInCategoryPop", false);
+
+  const [pendingCreateInCategoryId, setPendingCreateInCategoryId] = useState<string | null>(null);
+  const [createInCategoryMode, setCreateInCategoryMode] = useState<"room" | "doc">("room");
+  const [createDocTitle, setCreateDocTitle] = useState("新文档");
+
+  const openCreateInCategory = useCallback((categoryId: string) => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+    setPendingCreateInCategoryId(categoryId);
+    setCreateInCategoryMode("room");
+    setCreateDocTitle("新文档");
+    setIsCreateInCategoryOpen(true);
+  }, [activeSpaceId, setIsCreateInCategoryOpen]);
+
+  const closeCreateInCategory = useCallback(() => {
+    setIsCreateInCategoryOpen(false);
+    setPendingCreateInCategoryId(null);
+  }, [setIsCreateInCategoryOpen]);
+
+  const createDocInSelectedCategory = useCallback(async () => {
+    const categoryId = pendingCreateInCategoryId;
+    if (!categoryId)
+      return;
+    if (!isKPInSpace)
+      return;
+    await requestCreateDocInCategory(categoryId, createDocTitle);
+    closeCreateInCategory();
+  }, [closeCreateInCategory, createDocTitle, isKPInSpace, pendingCreateInCategoryId, requestCreateDocInCategory]);
+
+  const handleRoomCreated = useCallback((roomId?: number) => {
+    const categoryId = pendingCreateInCategoryId;
+    setPendingCreateInCategoryId(null);
+
+    if (roomId) {
+      setMainView("chat");
+      setActiveRoomId(roomId);
+    }
+
+    if (roomId && categoryId && activeSpaceId && activeSpaceId > 0) {
+      const base = buildTreeBaseForWrite(spaceDocMetas ?? []);
+      const next = appendNodeToCategory({
+        tree: base,
+        categoryId,
+        node: { nodeId: `room:${roomId}`, type: "room", targetId: roomId },
+      });
+      setSpaceSidebarTreeMutation.mutate({
+        spaceId: activeSpaceId,
+        expectedVersion: sidebarTreeVersion,
+        treeJson: JSON.stringify(next),
+      });
+    }
+
+    setIsCreateInCategoryOpen(false);
+  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, pendingCreateInCategoryId, setActiveRoomId, setIsCreateInCategoryOpen, setMainView, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
 
   const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab) => {
     if (activeSpaceId == null || isPrivateChatMode)
@@ -635,13 +846,38 @@ export default function ChatPage() {
                               </div>
                             </div>
                           )
-                        : (
-                            <RoomWindow
-                              roomId={activeRoomId ?? -1}
-                              spaceId={activeSpaceId ?? -1}
-                              targetMessageId={targetMessageId}
-                            />
-                          )
+                        : activeDocId
+                          ? (
+                              <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                <div className="w-full h-full overflow-hidden flex justify-center p-2">
+                                  {isKPInSpace
+                                    ? (
+                                        <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+                                          <BlocksuiteDescriptionEditor
+                                            workspaceId={`space:${activeSpaceId ?? -1}`}
+                                            spaceId={activeSpaceId ?? -1}
+                                            docId={activeDocId}
+                                            variant="full"
+                                            allowModeSwitch
+                                            fullscreenEdgeless
+                                          />
+                                        </div>
+                                      )
+                                    : (
+                                        <div className="flex items-center justify-center w-full h-full font-bold">
+                                          <span className="text-center">仅KP可查看文档</span>
+                                        </div>
+                                      )}
+                                </div>
+                              </div>
+                            )
+                          : (
+                              <RoomWindow
+                                roomId={activeRoomId ?? -1}
+                                spaceId={activeSpaceId ?? -1}
+                                targetMessageId={targetMessageId}
+                              />
+                            )
                 )
               : (
                   <div className="flex items-center justify-center w-full h-full font-bold">
@@ -696,6 +932,7 @@ export default function ChatPage() {
                       {/* 房间列表 */}
                       <ChatRoomListPanel
                         isPrivateChatMode={isPrivateChatMode}
+                        currentUserId={userId}
                         activeSpaceId={activeSpaceId}
                         activeSpaceName={activeSpace?.name}
                         activeSpaceIsArchived={activeSpaceIsArchived}
@@ -703,12 +940,24 @@ export default function ChatPage() {
                         rooms={orderedRooms}
                         roomOrderIds={orderedRoomIds}
                         onReorderRoomIds={setUserRoomOrder}
+                        sidebarTree={sidebarTree}
+                        onSaveSidebarTree={handleSaveSidebarTree}
+                        onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                        docMetas={spaceDocMetas ?? []}
+                        onSelectDoc={(docId) => {
+                          if (!activeSpaceId || activeSpaceId <= 0)
+                            return;
+                          setMainView("chat");
+                          navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                        }}
                         activeRoomId={activeRoomId}
+                        activeDocId={activeDocId}
                         unreadMessagesNumber={unreadMessagesNumber}
                         onContextMenu={handleContextMenu}
                         onInviteMember={() => setIsMemberHandleOpen(true)}
                         onOpenSpaceDetailPanel={openSpaceDetailPanel}
                         onSelectRoom={(roomId) => {
+                          setMainView("chat");
                           setActiveRoomId(roomId);
                         }}
                         onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
@@ -716,11 +965,7 @@ export default function ChatPage() {
                           openRoomSettingPage(roomId, tab);
                         }}
                         setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                        onCreateRoom={() => {
-                          if (activeSpaceId) {
-                            setIsRoomHandleOpen(true);
-                          }
-                        }}
+                        onOpenCreateInCategory={openCreateInCategory}
                       />
                     </div>
                     <div
@@ -782,6 +1027,7 @@ export default function ChatPage() {
                           {/* 房间列表 */}
                           <ChatRoomListPanel
                             isPrivateChatMode={isPrivateChatMode}
+                            currentUserId={userId}
                             activeSpaceId={activeSpaceId}
                             activeSpaceName={activeSpace?.name}
                             activeSpaceIsArchived={activeSpaceIsArchived}
@@ -789,12 +1035,24 @@ export default function ChatPage() {
                             rooms={orderedRooms}
                             roomOrderIds={orderedRoomIds}
                             onReorderRoomIds={setUserRoomOrder}
+                            sidebarTree={sidebarTree}
+                            onSaveSidebarTree={handleSaveSidebarTree}
+                            onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                            docMetas={spaceDocMetas ?? []}
+                            onSelectDoc={(docId) => {
+                              if (!activeSpaceId || activeSpaceId <= 0)
+                                return;
+                              setMainView("chat");
+                              navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                            }}
                             activeRoomId={activeRoomId}
+                            activeDocId={activeDocId}
                             unreadMessagesNumber={unreadMessagesNumber}
                             onContextMenu={handleContextMenu}
                             onInviteMember={() => setIsMemberHandleOpen(true)}
                             onOpenSpaceDetailPanel={openSpaceDetailPanel}
                             onSelectRoom={(roomId) => {
+                              setMainView("chat");
                               setActiveRoomId(roomId);
                             }}
                             onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
@@ -802,11 +1060,7 @@ export default function ChatPage() {
                               openRoomSettingPage(roomId, tab);
                             }}
                             setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                            onCreateRoom={() => {
-                              if (activeSpaceId) {
-                                setIsRoomHandleOpen(true);
-                              }
-                            }}
+                            onOpenCreateInCategory={openCreateInCategory}
                           />
                         </div>
                       </OpenAbleDrawer>
@@ -828,17 +1082,83 @@ export default function ChatPage() {
           />
         </PopWindow>
         {/* 创建房间弹出窗口 */}
-        <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-          <CreateRoomWindow
-            spaceId={activeSpaceId || -1}
-            spaceAvatar={spaces.find(space => (space.spaceId === activeSpaceId))?.avatar}
-            onSuccess={(roomId) => {
-              if (roomId) {
-                setActiveRoomId(roomId);
-              }
-              setIsRoomHandleOpen(false);
-            }}
-          />
+        <PopWindow
+          isOpen={isCreateInCategoryOpen}
+          onClose={closeCreateInCategory}
+        >
+          <div className="w-[min(720px,92vw)] p-6">
+            <div className="mb-3">
+              <div className="text-sm font-medium opacity-80 mb-2">创建类型</div>
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${createInCategoryMode === "room" ? "bg-base-200" : "bg-base-100"}`}
+                >
+                  <input
+                    type="radio"
+                    name="create_in_category_mode"
+                    className="radio radio-sm mt-1"
+                    checked={createInCategoryMode === "room"}
+                    onChange={() => setCreateInCategoryMode("room")}
+                    aria-label="创建房间"
+                  />
+                  <div className="min-w-0">
+                    <div className="font-medium">创建房间</div>
+                    <div className="text-xs opacity-70">创建后会自动加入当前分类</div>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 ${isKPInSpace ? "cursor-pointer" : "cursor-not-allowed opacity-50"} ${createInCategoryMode === "doc" ? "bg-base-200" : "bg-base-100"}`}
+                >
+                  <input
+                    type="radio"
+                    name="create_in_category_mode"
+                    className="radio radio-sm mt-1"
+                    checked={createInCategoryMode === "doc"}
+                    disabled={!isKPInSpace}
+                    onChange={() => setCreateInCategoryMode("doc")}
+                    aria-label="创建文档"
+                  />
+                  <div className="min-w-0">
+                    <div className="font-medium">创建文档</div>
+                    <div className="text-xs opacity-70">仅 KP 可创建/编辑文档</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {createInCategoryMode === "doc"
+              ? (
+                  <div className="bg-base-200 p-4 rounded-lg">
+                    <div className="text-sm font-medium opacity-80 mb-2">文档标题</div>
+                    <input
+                      className="input input-bordered w-full mb-3"
+                      value={createDocTitle}
+                      onChange={(e) => {
+                        setCreateDocTitle(e.target.value);
+                      }}
+                      placeholder="新文档"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary w-full"
+                      disabled={!isKPInSpace || !pendingCreateInCategoryId}
+                      onClick={() => {
+                        void createDocInSelectedCategory();
+                      }}
+                    >
+                      创建文档
+                    </button>
+                  </div>
+                )
+              : (
+                  <CreateRoomWindow
+                    spaceId={activeSpaceId || -1}
+                    spaceAvatar={spaces.find(space => (space.spaceId === activeSpaceId))?.avatar}
+                    onSuccess={handleRoomCreated}
+                  />
+                )}
+          </div>
         </PopWindow>
         {/* 房间邀请玩家窗口 */}
         <PopWindow
