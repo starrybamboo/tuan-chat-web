@@ -22,6 +22,7 @@
 - sidebarTree 文档节点样式对齐房间：字号一致，并在标题前插入文档 icon
 - 线索（space_clue）正文改为使用 BlockSuite 文档入口，线索创建/详情不再编辑 `description/note`（`note` 保留为兼容字段）
 - 线索详情弹窗 UI 重构：默认全屏、更大文档视口，顶部固定基础信息/操作区，旧笔记默认折叠
+- NovelAI OpenAPI 客户端目录去重：移除重复的 `novelai-api/`，规范文件迁移到 `api/novelai/api.json`
 
 ### 修复
 - 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）
