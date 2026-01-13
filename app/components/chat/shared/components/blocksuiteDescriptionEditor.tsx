@@ -1,15 +1,20 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
+import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 
 import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
+import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 
 async function loadBlocksuiteRuntime() {
   const [{ createEmbeddedAffineEditor }, { ensureBlocksuiteCoreElementsDefined }, spaceRegistry] = await Promise.all([
@@ -33,6 +38,8 @@ interface BlocksuiteDescriptionEditorProps {
   /** 仅 space 场景使用：用于路由跳转 & mentions */
   spaceId?: number;
   docId: string;
+  /** iframe 宿主实例 id（用于 postMessage 去重）；仅 /blocksuite-frame 路由传入 */
+  instanceId?: string;
   /** 默认嵌入式；`full` 用于全屏/DocRoute 场景 */
   variant?: "embedded" | "full";
   /** 只读模式：允许滚动/选择，但不允许编辑 */
@@ -45,6 +52,19 @@ interface BlocksuiteDescriptionEditorProps {
   fullscreenEdgeless?: boolean;
   /** 隐藏内置的“切换到画布/退出画布”按钮（用于把按钮放到外层 topbar） */
   hideModeSwitchButton?: boolean;
+  /** 启用“图片+标题”的自定义头部，并禁用 blocksuite 内置 doc-title */
+  tcHeader?: {
+    enabled?: boolean;
+    fallbackTitle?: string;
+    fallbackImageUrl?: string;
+  };
+  /** tcHeader 变化（包含初始化/远端同步/本地编辑）；iframe host 场景会通过 postMessage 转发 */
+  onTcHeaderChange?: (payload: {
+    docId: string;
+    entityType?: DescriptionEntityType;
+    entityId?: number;
+    header: BlocksuiteDocHeader;
+  }) => void;
   /** 对外暴露 editor mode 的控制能力；卸载时会回传 null */
   onActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
   /** editor mode 变化回调（page/edgeless） */
@@ -134,6 +154,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     workspaceId,
     spaceId,
     docId,
+    instanceId,
     className,
     variant = "embedded",
     readOnly = false,
@@ -141,6 +162,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     fullscreenEdgeless = false,
     mode: forcedMode = "page",
     hideModeSwitchButton = false,
+    tcHeader,
+    onTcHeaderChange,
     onActionsChange,
     onModeChange,
   } = props;
@@ -169,6 +192,67 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const editorRef = useRef<HTMLElement | null>(null);
   const storeRef = useRef<any>(null);
   const prevModeRef = useRef<DocMode>(forcedMode);
+  const runtimeRef = useRef<Awaited<ReturnType<typeof loadBlocksuiteRuntime>> | null>(null);
+
+  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
+  const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteDocHeader | null>(null);
+
+  const tcHeaderEntity = useMemo(() => {
+    const parsed = parseDescriptionDocId(docId);
+    return parsed
+      ? { entityType: parsed.entityType, entityId: parsed.entityId }
+      : null;
+  }, [docId]);
+
+  const postToParent = (payload: any) => {
+    try {
+      window.parent.postMessage(payload, getPostMessageTargetOrigin());
+    }
+    catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (!tcHeaderEnabled || !tcHeaderState)
+      return;
+
+    // Keep blocksuite workspace meta in sync (linked-doc/@ search uses meta.title).
+    try {
+      const runtime = runtimeRef.current;
+      runtime?.ensureDocMeta?.({ workspaceId, docId, title: tcHeaderState.title });
+    }
+    catch {
+      // ignore
+    }
+
+    // Notify host (iframe parent or same-window callers).
+    try {
+      const payload = {
+        tc: "tc-blocksuite-frame",
+        instanceId,
+        type: "tc-header",
+        docId,
+        entityType: tcHeaderEntity?.entityType,
+        entityId: tcHeaderEntity?.entityId,
+        header: tcHeaderState,
+      };
+
+      if (isProbablyInIframe()) {
+        postToParent(payload);
+      }
+
+      onTcHeaderChange?.({
+        docId,
+        entityType: tcHeaderEntity?.entityType,
+        entityId: tcHeaderEntity?.entityId,
+        header: tcHeaderState,
+      });
+    }
+    catch {
+      // ignore
+    }
+  }, [docId, instanceId, onTcHeaderChange, tcHeaderEnabled, tcHeaderEntity?.entityId, tcHeaderEntity?.entityType, tcHeaderState, workspaceId]);
 
   const docModeProvider: DocModeProvider = useMemo(() => {
     // DocModeProvider 是一个“跨 doc/跨 widget”的服务，这里做最小实现：
@@ -384,6 +468,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     const abort = new AbortController();
     let createdEditor: any = null;
     let createdStore: any = null;
+    let unsubscribeHeader: (() => void) | null = null;
 
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
@@ -397,6 +482,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       }
 
       const runtime = await loadBlocksuiteRuntime();
+      runtimeRef.current = runtime;
       if (abort.signal.aborted)
         return;
 
@@ -458,6 +544,27 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       const store = runtime.getOrCreateDoc({ workspaceId, docId });
       createdStore = store;
 
+      if (tcHeaderEnabled) {
+        try {
+          const ensured = ensureBlocksuiteDocHeader(store, {
+            title: tcHeader?.fallbackTitle,
+            imageUrl: tcHeader?.fallbackImageUrl,
+          });
+          if (ensured) {
+            setTcHeaderState(ensured);
+          }
+
+          unsubscribeHeader = subscribeBlocksuiteDocHeader(store, (h) => {
+            if (h) {
+              setTcHeaderState(h);
+            }
+          });
+        }
+        catch {
+          // ignore
+        }
+      }
+
       // Align with blocksuite playground behavior:
       // ensure doc is loaded and history is reset after hydration/restore.
       try {
@@ -497,6 +604,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         docModeProvider,
         spaceId,
         autofocus: !readOnlyRef.current,
+        disableDocTitle: tcHeaderEnabled,
         onNavigateToDoc: ({ spaceId, docId }) => {
           const parsed = parseSpaceDocId(docId);
 
@@ -633,6 +741,13 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       abort.abort();
       mo.disconnect();
       portalMo.disconnect();
+      try {
+        unsubscribeHeader?.();
+      }
+      catch {
+        // ignore
+      }
+      runtimeRef.current = null;
 
       try {
         const editorAny = createdEditor as any;
@@ -801,12 +916,102 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     .filter(Boolean)
     .join(" ");
 
+  const canEditTcHeader = tcHeaderEnabled && !readOnly;
+  const tcHeaderImageUrl = tcHeaderState?.imageUrl ?? tcHeader?.fallbackImageUrl ?? "";
+  const tcHeaderTitle = tcHeaderState?.title ?? tcHeader?.fallbackTitle ?? "";
+
   return (
     <div className={rootClassName}>
       <div
         className={`relative bg-base-100 border border-base-300 ${viewportOverflowClass}${isEdgelessFullscreen ? " h-full" : " rounded-box"}${isFull || isEdgelessFullscreen ? " flex flex-col" : ""}`}
       >
-        {allowModeSwitch
+        {tcHeaderEnabled
+          ? (
+              <div className="flex items-center gap-3 p-2 border-b border-base-300">
+                {canEditTcHeader
+                  ? (
+                      <ImgUploaderWithCopper
+                        key={`tcHeader:${docId}`}
+                        setCopperedDownloadUrl={(url) => {
+                          const store = storeRef.current;
+                          if (!store)
+                            return;
+                          setBlocksuiteDocHeader(store, { imageUrl: url });
+                        }}
+                        fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
+                        aspect={1}
+                      >
+                        <div className="relative group overflow-hidden rounded-lg shrink-0">
+                          {tcHeaderImageUrl
+                            ? (
+                                <img
+                                  src={tcHeaderImageUrl}
+                                  alt={tcHeaderTitle || "header"}
+                                  className="w-10 h-10 rounded transition-all duration-200 group-hover:brightness-75"
+                                />
+                              )
+                            : (
+                                <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
+                              )}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black/20">
+                            <span className="text-xs text-white font-semibold">更换</span>
+                          </div>
+                        </div>
+                      </ImgUploaderWithCopper>
+                    )
+                  : (
+                      <div className="relative overflow-hidden rounded-lg shrink-0">
+                        {tcHeaderImageUrl
+                          ? (
+                              <img
+                                src={tcHeaderImageUrl}
+                                alt={tcHeaderTitle || "header"}
+                                className="w-10 h-10 rounded"
+                              />
+                            )
+                          : (
+                              <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
+                            )}
+                      </div>
+                    )}
+
+                <input
+                  className="input input-bordered input-sm w-full min-w-0"
+                  value={tcHeaderTitle}
+                  disabled={!canEditTcHeader}
+                  placeholder="请输入标题..."
+                  onChange={(e) => {
+                    const store = storeRef.current;
+                    if (!store)
+                      return;
+                    setBlocksuiteDocHeader(store, { title: e.target.value });
+                  }}
+                  onBlur={(e) => {
+                    const store = storeRef.current;
+                    if (!store)
+                      return;
+                    setBlocksuiteDocHeader(store, { title: e.target.value.trim() });
+                  }}
+                />
+
+                {allowModeSwitch && !hideModeSwitchButton
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm shrink-0"
+                        onClick={() => {
+                          docModeProvider.togglePrimaryMode(docId);
+                        }}
+                      >
+                        {currentMode === "page" ? "切换到画布" : "退出画布"}
+                      </button>
+                    )
+                  : null}
+              </div>
+            )
+          : null}
+
+        {allowModeSwitch && !tcHeaderEnabled
           ? (
               hideModeSwitchButton
                 ? null
@@ -861,6 +1066,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     allowModeSwitch = false,
     fullscreenEdgeless = false,
     hideModeSwitchButton = false,
+    tcHeader,
+    onTcHeaderChange,
     className,
     onActionsChange,
     onModeChange,
@@ -1026,6 +1233,31 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         catch {
           // ignore
         }
+        return;
+      }
+
+      if (data.type === "tc-header" && data.header && typeof data.docId === "string") {
+        try {
+          const header = data.header as BlocksuiteDocHeader;
+          if (!header || typeof header.title !== "string" || typeof header.imageUrl !== "string")
+            return;
+
+          const entityType = (typeof data.entityType === "string" ? data.entityType : undefined) as DescriptionEntityType | undefined;
+          const entityId = typeof data.entityId === "number" ? data.entityId : undefined;
+          if (entityType && typeof entityId === "number" && entityId > 0) {
+            useEntityHeaderOverrideStore.getState().setHeader({ entityType, entityId, header });
+          }
+
+          onTcHeaderChange?.({
+            docId: data.docId,
+            entityType,
+            entityId,
+            header,
+          });
+        }
+        catch {
+          // ignore
+        }
       }
     };
 
@@ -1033,7 +1265,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     return () => {
       window.removeEventListener("message", onMessage);
     };
-  }, [forcedMode, instanceId, navigate, onModeChange]);
+  }, [forcedMode, instanceId, navigate, onModeChange, onTcHeaderChange]);
 
   // 画布全屏：需要由宿主处理（iframe 内的 fixed 只能覆盖 iframe 自己）。
   useEffect(() => {
@@ -1109,6 +1341,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       fullscreenEdgeless: fullscreenEdgeless ? "1" : "0",
       hideModeSwitchButton: hideModeSwitchButton ? "1" : "0",
       mode: forcedMode,
+      tcHeader: tcHeader?.enabled ? "1" : "0",
+      tcHeaderTitle: tcHeader?.fallbackTitle,
+      tcHeaderImageUrl: tcHeader?.fallbackImageUrl,
     };
   }, [
     allowModeSwitch,
@@ -1119,6 +1354,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     instanceId,
     readOnly,
     spaceId,
+    tcHeader?.enabled,
+    tcHeader?.fallbackImageUrl,
+    tcHeader?.fallbackTitle,
     variant,
     workspaceId,
   ]);

@@ -6,6 +6,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { SpaceWebgalVarsRecord } from "@/types/webgalVar";
 import { IdentificationCardIcon } from "@phosphor-icons/react";
 // *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -30,6 +31,7 @@ import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
+import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
@@ -41,6 +43,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { NarratorIcon, UserSwitchIcon } from "@/icons";
+import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -51,6 +54,7 @@ import {
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
   useSendMessageMutation,
+  useSetSpaceExtraMutation,
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
@@ -70,6 +74,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
   const room = useGetRoomInfoQuery(roomId).data?.data;
+  const roomHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${roomId}`]);
 
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
@@ -81,6 +86,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // 用于插入消息功能的 mutations
   const sendMessageMutation = useSendMessageMutation(roomId);
   const updateMessageMutation = useUpdateMessageMutation();
+  const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 设置空间 extra 字段 (key/value)
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
@@ -708,7 +714,80 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       };
 
       let textContent = inputText.trim();
-      if (textContent && isCommand(textContent)) {
+
+      // WebGAL 空间变量指令：/var set a=1
+      const trimmedWithoutMentions = inputTextWithoutMentions.trim();
+      const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
+      const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
+
+      // 如果用户输入了 /var 前缀但格式不正确：不交给骰娘命令系统处理，直接提示
+      if (isWebgalVarCommandPrefix && !webgalVarPayload) {
+        toast.error("变量指令格式：/var set a=1");
+        return;
+      }
+
+      if (webgalVarPayload) {
+        const varMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: "",
+          messageType: MessageType.WEBGAL_VAR,
+          extra: {
+            webgalVar: webgalVarPayload,
+          },
+        };
+
+        await sendMessageWithInsert(varMsg);
+
+        // 空间级持久化：写入 space.extra 的 webgalVars（后端以 key/value 存储）
+        try {
+          const rawExtra = space?.extra || "{}";
+          let parsedExtra: Record<string, any> = {};
+          try {
+            parsedExtra = JSON.parse(rawExtra) as Record<string, any>;
+          }
+          catch {
+            parsedExtra = {};
+          }
+
+          let currentVars: SpaceWebgalVarsRecord = {};
+          const stored = parsedExtra.webgalVars;
+          if (typeof stored === "string") {
+            try {
+              currentVars = JSON.parse(stored) as SpaceWebgalVarsRecord;
+            }
+            catch {
+              currentVars = {};
+            }
+          }
+          else if (stored && typeof stored === "object") {
+            currentVars = stored as SpaceWebgalVarsRecord;
+          }
+
+          const now = Date.now();
+          const nextVars: SpaceWebgalVarsRecord = {
+            ...currentVars,
+            [webgalVarPayload.key]: {
+              expr: webgalVarPayload.expr,
+              updatedAt: now,
+            },
+          };
+
+          await setSpaceExtraMutation.mutateAsync({
+            spaceId,
+            key: "webgalVars",
+            value: JSON.stringify(nextVars),
+          });
+        }
+        catch (error) {
+          console.error("写入 space.extra.webgalVars 失败:", error);
+          toast.error("变量已发送，但写入空间持久化失败");
+        }
+
+        // 消耗掉 firstMessage 状态，并防止后续再次作为文本发送
+        isFirstMessage = false;
+        textContent = "";
+      }
+      else if (textContent && isCommand(textContent)) {
         commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
         // 指令执行也被视为一次"发送"，消耗掉 firstMessage 状态
         isFirstMessage = false;
@@ -1157,7 +1236,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
         <div className="relative z-10 flex flex-col h-full min-h-0">
           <RoomHeaderBar
-            roomName={room?.name}
+            roomName={roomHeaderOverride?.title ?? room?.name}
             toggleLeftDrawer={spaceContext.toggleLeftDrawer}
           />
           <div className="flex-1 w-full flex flex-col bg-transparent relative min-h-0">

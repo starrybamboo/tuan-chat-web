@@ -2,6 +2,7 @@ import type { LinkedMenuGroup } from "@blocksuite/affine-widget-linked-doc";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 
 import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine-block-embed-doc";
+import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier } from "@blocksuite/affine-shared/services";
 import {
@@ -230,9 +231,10 @@ export function createEmbeddedAffineEditor(params: {
   docModeProvider: DocModeProvider;
   spaceId?: number;
   autofocus?: boolean;
+  disableDocTitle?: boolean;
   onNavigateToDoc?: (params: { spaceId: number; docId: string }) => void;
 }): HTMLElement {
-  const { store, workspace, docModeProvider, autofocus = true, onNavigateToDoc } = params;
+  const { store, workspace, docModeProvider, autofocus = true, disableDocTitle = false, onNavigateToDoc } = params;
 
   const disposers: Array<() => void> = [];
   disposers.push(installGlobalDomStyleGuard());
@@ -525,8 +527,13 @@ export function createEmbeddedAffineEditor(params: {
     },
   });
 
+  const pageSpecsBase = viewManager.get("page");
+  const pageSpecs = disableDocTitle
+    ? pageSpecsBase.filter(ext => ext !== DocTitleViewExtension)
+    : pageSpecsBase;
+
   (editor as any).pageSpecs = [
-    ...viewManager.get("page"),
+    ...pageSpecs,
     ...defaultExtensions,
   ];
   (editor as any).edgelessSpecs = [

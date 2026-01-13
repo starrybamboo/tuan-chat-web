@@ -23,6 +23,13 @@
 | 202601131356 | ai_image | 功能 | 已完成 | [2026-01/202601131356_ai_image/](2026-01/202601131356_ai_image/) |
 | 202601131515 | sidebar_tree_restore | 修复 | 已完成 | [2026-01/202601131515_sidebar_tree_restore/](2026-01/202601131515_sidebar_tree_restore/) |
 | 202601131558 | create_tabs | 优化 | 已完成 | [2026-01/202601131558_create_tabs/](2026-01/202601131558_create_tabs/) |
+| 202601131930 | blocksuite_doc_header_bar | 功能 | 已完成 | [2026-01/202601131930_blocksuite_doc_header_bar/](2026-01/202601131930_blocksuite_doc_header_bar/) |
+| 202601140100 | sidebar_doc_style | 优化 | 已完成 | [2026-01/202601140100_sidebar_doc_style/](2026-01/202601140100_sidebar_doc_style/) |
+| 202601140107 | quill_reference_audit | 文档 | 已完成 | [2026-01/202601140107_quill_reference_audit/](2026-01/202601140107_quill_reference_audit/) |
+| 202601140226 | clue_doc_planA | 优化 | 已完成 | [2026-01/202601140226_clue_doc_planA/](2026-01/202601140226_clue_doc_planA/) |
+| 202601140238 | webgal_space_vars | 功能 | 已完成 | [2026-01/202601140238_webgal_space_vars/](2026-01/202601140238_webgal_space_vars/) |
+| 202601140247 | doc_meta_restore | 修复 | 已完成 | [2026-01/202601140247_doc_meta_restore/](2026-01/202601140247_doc_meta_restore/) |
+| 202601140302 | clue_detail_ui_refactor | 优化 | 已完成 | [2026-01/202601140302_clue_detail_ui_refactor/](2026-01/202601140302_clue_detail_ui_refactor/) |
 
 ---
 
@@ -44,3 +51,10 @@
 - [202601131356_ai_image](2026-01/202601131356_ai_image/) - 新增 AI 生图测试页（Electron 代理 NovelAI）
 - [202601131515_sidebar_tree_restore](2026-01/202601131515_sidebar_tree_restore/) - Chat sidebarTree 分类/重置/创建与文档路由对齐
 - [202601131558_create_tabs](2026-01/202601131558_create_tabs/) - 分类“+”创建入口改为标签页式单弹窗
+- [202601131930_blocksuite_doc_header_bar](2026-01/202601131930_blocksuite_doc_header_bar/) - Blocksuite 描述文档自定义“图片+标题”头部（tc_header）+ room/space 乐观显示
+- [202601140100_sidebar_doc_style](2026-01/202601140100_sidebar_doc_style/) - sidebarTree 文档节点字号/图标对齐房间
+- [202601140107_quill_reference_audit](2026-01/202601140107_quill_reference_audit/) - Quill 引用统计审计报告（待后续去 Quill 化）
+- [202601140226_clue_doc_planA](2026-01/202601140226_clue_doc_planA/) - 线索（space_clue）文档化入口：正文改为 Blocksuite，移除 description/note 编辑入口
+- [202601140238_webgal_space_vars](2026-01/202601140238_webgal_space_vars/) - WebGAL 空间变量系统：/var 指令 + WEBGAL_VAR 消息类型
+- [202601140247_doc_meta_restore](2026-01/202601140247_doc_meta_restore/) - 修复文档刷新后侧边栏丢失/重置默认无效（基于 sidebarTree 回补 doc metas）
+- [202601140302_clue_detail_ui_refactor](2026-01/202601140302_clue_detail_ui_refactor/) - 线索详情弹窗 UI 重构（全屏 + 顶部固定 + 大视口文档）

@@ -17,13 +17,14 @@ import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import RoomWindow from "@/components/chat/room/roomWindow";
-import { buildDefaultSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
+import { buildDefaultSidebarTree, extractDocMetasFromSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import SpaceDetailPanel from "@/components/chat/space/drawers/spaceDetailPanel";
 import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
@@ -63,6 +64,10 @@ export default function ChatPage() {
   const isSpaceDetailRoute = spaceDetailRouteTab != null;
 
   const screenSize = useScreenSize();
+
+  useEffect(() => {
+    useEntityHeaderOverrideStore.getState().hydrateFromLocalStorage();
+  }, []);
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
     !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (screenSize === "sm" && !isPrivateChatMode),
@@ -117,6 +122,8 @@ export default function ChatPage() {
   );
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   const activeSpaceIsArchived = activeSpace?.status === 2;
+  const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
+  const activeSpaceNameForUi = activeSpaceHeaderOverride?.title ?? activeSpace?.name;
 
   const spaceSidebarTreeQuery = useGetSpaceSidebarTreeQuery(activeSpaceId ?? -1);
   const setSpaceSidebarTreeMutation = useSetSpaceSidebarTreeMutation();
@@ -159,6 +166,34 @@ export default function ChatPage() {
     return Boolean(spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1));
   }, [globalContext.userId, spaceMembersQuery.data?.data]);
 
+  const docMetasFromSidebarTree = useMemo(() => {
+    return extractDocMetasFromSidebarTree(sidebarTree);
+  }, [sidebarTree]);
+
+  const mergeDocMetas = useCallback((...sources: Array<MinimalDocMeta[] | null | undefined>): MinimalDocMeta[] => {
+    const map = new Map<string, MinimalDocMeta>();
+
+    for (const list of sources) {
+      for (const meta of list ?? []) {
+        const id = typeof meta?.id === "string" ? meta.id : "";
+        if (!id)
+          continue;
+        const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
+
+        const existing = map.get(id);
+        if (!existing) {
+          map.set(id, { id, title });
+          continue;
+        }
+        if (!existing.title && title) {
+          existing.title = title;
+        }
+      }
+    }
+
+    return [...map.values()];
+  }, []);
+
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
@@ -176,11 +211,9 @@ export default function ChatPage() {
         .map((m) => {
           return { id: String(m.id), title: typeof m?.title === "string" ? m.title : undefined } satisfies MinimalDocMeta;
         });
-      setSpaceDocMetas(list);
       return list;
     }
     catch {
-      setSpaceDocMetas([]);
       return [];
     }
   }, [activeSpaceId]);
@@ -194,8 +227,33 @@ export default function ChatPage() {
       setSpaceDocMetas([]);
       return;
     }
-    void loadSpaceDocMetas();
-  }, [activeSpaceId, isKPInSpace, loadSpaceDocMetas]);
+
+    let cancelled = false;
+    (async () => {
+      const fromWorkspace = await loadSpaceDocMetas();
+      const merged = mergeDocMetas(fromWorkspace, docMetasFromSidebarTree);
+      if (cancelled)
+        return;
+      setSpaceDocMetas(merged);
+
+      // workspace meta 可能在刷新后为空：用 sidebarTree 中的 doc 节点回补，确保可见/可打开。
+      try {
+        const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+        for (const m of docMetasFromSidebarTree) {
+          if (typeof m?.id !== "string" || !m.id)
+            continue;
+          registry.ensureSpaceDocMeta({ spaceId: activeSpaceId, docId: m.id, title: m.title });
+        }
+      }
+      catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSpaceId, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas]);
 
   const buildTreeBaseForWrite = useCallback((docMetas: MinimalDocMeta[]): SidebarTree => {
     return sidebarTree ?? buildDefaultSidebarTree({
@@ -210,7 +268,11 @@ export default function ChatPage() {
       return;
 
     const docMetas = isKPInSpace
-      ? (spaceDocMetas ?? await loadSpaceDocMetas())
+      ? mergeDocMetas(
+          spaceDocMetas ?? [],
+          docMetasFromSidebarTree,
+          await loadSpaceDocMetas(),
+        )
       : [];
 
     if (isKPInSpace) {
@@ -228,7 +290,7 @@ export default function ChatPage() {
       expectedVersion: sidebarTreeVersion,
       treeJson: JSON.stringify(defaultTree),
     });
-  }, [activeSpaceId, isKPInSpace, loadSpaceDocMetas, rooms, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+  }, [activeSpaceId, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, rooms, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
 
   const appendNodeToCategory = useCallback((params: {
     tree: SidebarTree;
@@ -257,7 +319,11 @@ export default function ChatPage() {
     const docKey = `${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
     const docId = buildSpaceDocId({ kind: "independent", docId: docKey });
 
-    const baseDocMetas = spaceDocMetas ?? await loadSpaceDocMetas();
+    const baseDocMetas = mergeDocMetas(
+      spaceDocMetas ?? [],
+      docMetasFromSidebarTree,
+      await loadSpaceDocMetas(),
+    );
     const nextDocMetas = baseDocMetas.some(m => m.id === docId)
       ? baseDocMetas
       : [...baseDocMetas, { id: docId, title }];
@@ -285,7 +351,7 @@ export default function ChatPage() {
 
     setMainView("chat");
     navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
-  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, isKPInSpace, loadSpaceDocMetas, navigate, setMainView, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, navigate, setMainView, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
 
   const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
     if (roomId == null)
@@ -934,7 +1000,7 @@ export default function ChatPage() {
                         isPrivateChatMode={isPrivateChatMode}
                         currentUserId={userId}
                         activeSpaceId={activeSpaceId}
-                        activeSpaceName={activeSpace?.name}
+                        activeSpaceName={activeSpaceNameForUi}
                         activeSpaceIsArchived={activeSpaceIsArchived}
                         isSpaceOwner={!!spaceContext.isSpaceOwner}
                         rooms={orderedRooms}
@@ -1029,7 +1095,7 @@ export default function ChatPage() {
                             isPrivateChatMode={isPrivateChatMode}
                             currentUserId={userId}
                             activeSpaceId={activeSpaceId}
-                            activeSpaceName={activeSpace?.name}
+                            activeSpaceName={activeSpaceNameForUi}
                             activeSpaceIsArchived={activeSpaceIsArchived}
                             isSpaceOwner={!!spaceContext.isSpaceOwner}
                             rooms={orderedRooms}

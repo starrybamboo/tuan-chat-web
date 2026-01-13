@@ -7,15 +7,21 @@
 ## [Unreleased]
 
 ### 新增
+- Blocksuite 描述文档支持自定义“图片 + 标题”头部（`tc_header`），并禁用 blocksuite 内置 `doc-title`；宿主侧支持乐观显示 room/space 标题与头像覆盖值
 - 新增 BlockSuite 学习路线文档：`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
 - 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
+- 新增 Quill 引用统计审计报告：`helloagents/wiki/reports/2026-01-14_quill_reference_audit.md`
 - WebGAL 实时预览设置支持配置 Terre 端口，并将 TTS/WebGAL 设置改为 IndexedDB 持久化
+- WebGAL 空间变量系统：新增 `/var set a=1` 指令与 `WEBGAL_VAR(11)` 消息类型，变量持久化到 `space.extra.webgalVars` 并在实时渲染中转换为 `setVar:* -global;`
 - Chat 房间列表：分类标题右侧新增“+”创建入口，可创建房间/文档并自动加入分类（持久化到 `/space/sidebarTree`）
 - 新增 AI 生图测试页：`/ai-image`（Electron 主进程代理请求 NovelAI，便于本地调试）
 
 ### 变更
 - 房间列表分类右侧“+”改为“标签页式”创建面板（参考邀请好友），同一弹窗内完成创建房间/文档
 - 文档查看统一使用 Chat 内主视图（`/chat/:spaceId/doc/:docId`），兼容入口 `/doc/:spaceId/:docId` 改为跳转到 Chat 布局（保留侧边栏并支持当前文档高亮）
+- sidebarTree 文档节点样式对齐房间：字号一致，并在标题前插入文档 icon
+- 线索（space_clue）正文改为使用 BlockSuite 文档入口，线索创建/详情不再编辑 `description/note`（`note` 保留为兼容字段）
+- 线索详情弹窗 UI 重构：默认全屏、更大文档视口，顶部固定基础信息/操作区，旧笔记默认折叠
 
 ### 修复
 - 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）
@@ -35,8 +41,8 @@
 - 统一包管理器为 pnpm：移除 `package-lock.json`，在 `package.json` 标注 `packageManager`，并在知识库中移除 npm/Docker 相关说明
 - WebGAL 实时渲染创建游戏不再使用 `WebGAL Black` 模板（不传 `templateDir`），创建失败直接返回失败
 - 修复房间列表右键菜单“房间资料”无法打开：为 `ChatPageContextMenu` 传入 `onOpenRoomSetting` 回调并跳转到房间资料页
-- 修复房间列表“新增分类”后新分类闪开闪关/无法展开：新增分类写入 `/space/sidebarTree`，并在创建后默认展开
-- 修复房间列表“重置默认”按钮无效且不触发后端请求：重建默认 sidebarTree（包含 doc metas）并写入 `/space/sidebarTree`
+- 修复房间列表分类展开“闪开闪关”：IndexedDB 异步读取展开状态时不再覆盖用户在读取完成前的手动展开操作
+- 修复文档刷新后侧边栏文档节点丢失/重置默认无效：从 `/space/sidebarTree` 回补 doc metas，并回写 Blocksuite workspace meta 以保证可见/可打开
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）

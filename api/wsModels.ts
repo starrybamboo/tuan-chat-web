@@ -16,6 +16,8 @@ export enum MessageType {
     SOUND = 7,
     EFFECT = 8,
     WEBGAL_COMMAND = 10,
+    /** WebGAL 变量变更消息（结构化） */
+    WEBGAL_VAR = 11,
     CLUE_CARD = 1000,
     THREAD_ROOT = 10001,
 }

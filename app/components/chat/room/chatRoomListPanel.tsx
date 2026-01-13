@@ -3,13 +3,13 @@ import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "./sidebarTree
 import type { CategoryEditorState, DeleteConfirmDocState, SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
+import { FileTextIcon } from "@phosphor-icons/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
-import { PopWindow } from "@/components/common/popWindow";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
@@ -204,7 +204,8 @@ export default function ChatRoomListPanel({
       setExpandedByCategoryId(null);
       getSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId })
         .then((val) => {
-          setExpandedByCategoryId(val ?? {});
+          // 避免覆盖用户在读取完成前的手动展开操作（会导致“展开后立刻收回”的抖动）。
+          setExpandedByCategoryId(prev => prev ?? (val ?? {}));
         })
         .catch(() => {
           setExpandedByCategoryId({});
@@ -255,11 +256,6 @@ export default function ChatRoomListPanel({
   const [addPanelCategoryId, setAddPanelCategoryId] = useState<string | null>(null);
   const [pendingAddRoomId, setPendingAddRoomId] = useState<number | null>(null);
   const [pendingAddDocId, setPendingAddDocId] = useState<string>("");
-
-  const [createPickerCategoryId, setCreatePickerCategoryId] = useState<string | null>(null);
-  const onCreateRoom = useCallback((_categoryId: string) => {
-  }, []);
-  const onCreateDoc = undefined as ((categoryId: string) => void) | undefined;
 
   const [categoryEditor, setCategoryEditor] = useState<CategoryEditorState | null>(null);
   const [categoryEditorError, setCategoryEditorError] = useState<string>("");
@@ -745,13 +741,29 @@ export default function ChatRoomListPanel({
                                       })()
                                     : (
                                         <div
-                                          className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-base-300/60 ${activeDocId === String((node as any).targetId) ? "bg-base-300/60" : ""}`}
+                                          className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 ${activeDocId === String((node as any).targetId) ? "bg-info-content/10" : "hover:bg-base-300"}`}
+                                          role="button"
+                                          tabIndex={0}
+                                          aria-pressed={activeDocId === String((node as any).targetId)}
                                           onContextMenu={(e) => {
                                             if (!canEdit)
                                               return;
                                             e.preventDefault();
                                             e.stopPropagation();
                                             setContextMenu({ kind: "doc", x: e.clientX, y: e.clientY, categoryId: cat.categoryId, index, docId: String(node.targetId) });
+                                          }}
+                                          onClick={() => {
+                                            const docId = String(node.targetId);
+                                            onSelectDoc?.(docId);
+                                            onCloseLeftDrawer();
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                              e.preventDefault();
+                                              const docId = String(node.targetId);
+                                              onSelectDoc?.(docId);
+                                              onCloseLeftDrawer();
+                                            }
                                           }}
                                           onDragOver={(e) => {
                                             if (!canEdit)
@@ -797,21 +809,10 @@ export default function ChatRoomListPanel({
                                             setDropTarget(null);
                                           }}
                                         >
-                                          <button
-                                            type="button"
-                                            className="truncate flex-1 text-left"
-                                            onClick={() => {
-                                              const docId = String(node.targetId);
-                                              onSelectDoc?.(docId);
-                                              onCloseLeftDrawer();
-                                            }}
-                                          >
-                                            {title}
-                                          </button>
-
-                                          {canEdit && (
-                                            <span className="opacity-40 text-xs">右键操作</span>
-                                          )}
+                                          <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center">
+                                            <FileTextIcon className="size-4 opacity-70" />
+                                          </div>
+                                          <span className="flex-1 min-w-0 truncate text-left">{title}</span>
                                         </div>
                                       )}
                                 </div>
@@ -978,54 +979,6 @@ export default function ChatRoomListPanel({
                   return docMetaMap.get(docId)?.title ?? docId;
                 }}
               />
-
-              <PopWindow
-                isOpen={!!createPickerCategoryId}
-                onClose={() => setCreatePickerCategoryId(null)}
-              >
-                <div className="p-6 min-w-[min(420px,90vw)]">
-                  <div className="text-lg font-semibold mb-4">创建</div>
-
-                  {/* 样式参考：添加成员窗口中的“生成邀请链接”区域 */}
-                  <div className="bg-base-200 p-4 rounded-lg">
-                    <div className="text-sm opacity-80 mb-3">
-                      选择要创建的内容，将自动加入当前分类。
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <button
-                        type="button"
-                        className="btn btn-info w-full"
-                        onClick={() => {
-                          const cid = createPickerCategoryId;
-                          if (!cid)
-                            return;
-                          setCreatePickerCategoryId(null);
-                          onCreateRoom(cid);
-                        }}
-                      >
-                        创建房间
-                      </button>
-
-                      {isSpaceOwner && (
-                        <button
-                          type="button"
-                          className="btn btn-info btn-outline w-full"
-                          onClick={() => {
-                            const cid = createPickerCategoryId;
-                            if (!cid)
-                              return;
-                            setCreatePickerCategoryId(null);
-                            onCreateDoc?.(cid);
-                          }}
-                        >
-                          创建文档
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </PopWindow>
             </>
           )}
     </div>

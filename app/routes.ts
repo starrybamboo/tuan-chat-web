@@ -41,6 +41,7 @@ export default [
     route("resource", "routes/resource.tsx"),
     route("doc/:spaceId/:docId", "routes/doc.tsx"),
     route("doc-test", "routes/docTest.tsx"),
+    route("ai-image", "routes/aiImage.tsx"),
     route("blocksuite-playground", "routes/blocksuitePlayground.tsx"),
     route("invite/:code", "routes/invite.tsx"),
   ]),

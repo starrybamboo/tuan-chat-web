@@ -631,7 +631,8 @@ export interface ChatInputAreaHandle {
 5. **骰子和命令面板**：
    - 点击骰子图标：打开骰子命令面板
    - 点击命令图标：打开 WebGAL 命令面板
-   - 支持快捷输入：`/` 触发骰子命令，`.` 触发 WebGAL 命令
+   - 支持快捷输入：`/` 或 `.` 触发骰子/指令系统，`%` 发送 WebGAL 脚本指令（`WEBGAL_COMMAND`）
+   - WebGAL 变量（空间级）：`/var set a=1` 会发送结构化变量消息（`WEBGAL_VAR`），并写入 `space.extra` 的 `webgalVars`
 
 **关键组件结构**：
 

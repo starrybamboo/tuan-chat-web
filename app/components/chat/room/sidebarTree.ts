@@ -21,6 +21,27 @@ export type SidebarTree = {
 
 export type MinimalDocMeta = { id: string; title?: string };
 
+export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefined): MinimalDocMeta[] {
+  const list: MinimalDocMeta[] = [];
+  const seen = new Set<string>();
+
+  for (const cat of tree?.categories ?? []) {
+    for (const node of cat?.items ?? []) {
+      if (node?.type !== "doc")
+        continue;
+      const id = typeof node.targetId === "string" ? node.targetId : "";
+      if (!id)
+        continue;
+      if (seen.has(id))
+        continue;
+      seen.add(id);
+      list.push({ id, title: node.fallbackTitle });
+    }
+  }
+
+  return list;
+}
+
 type SidebarTreeV1 = {
   schemaVersion: 1;
   categories: Array<{
