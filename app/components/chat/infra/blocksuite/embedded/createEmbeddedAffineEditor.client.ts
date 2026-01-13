@@ -528,8 +528,13 @@ export function createEmbeddedAffineEditor(params: {
   });
 
   const pageSpecsBase = viewManager.get("page");
+  const isDocTitleExtension = (ext: any) => {
+    return ext === DocTitleViewExtension
+      || ext?.name === "affine-doc-title-fragment"
+      || ext?.constructor === DocTitleViewExtension;
+  };
   const pageSpecs = disableDocTitle
-    ? pageSpecsBase.filter(ext => ext !== DocTitleViewExtension)
+    ? pageSpecsBase.filter(ext => !isDocTitleExtension(ext))
     : pageSpecsBase;
 
   (editor as any).pageSpecs = [

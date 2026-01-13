@@ -50,6 +50,20 @@
 
 ---
 
+## 2.6 标题（doc-title）快速定位
+
+在 Blocksuite/AFFiNE 体系中，页面模式的“标题”通常由 fragment 渲染（而不是一个普通 block）。本项目若需要对齐标题样式/排查“为什么没有标题”，可按以下路径定位：
+
+- extension：`DocTitleViewExtension`
+  - 导入：`@blocksuite/affine-fragment-doc-title/view`
+  - name：`affine-doc-title-fragment`
+- custom element：`<doc-title>`
+  - 源码：`node_modules/@blocksuite/affine-fragment-doc-title/src/doc-title.ts`
+  - 关键样式：`font-size: 40px; line-height: 50px; font-weight: 700; max-width: var(--affine-editor-width); padding: 38px 0; padding-left/right: var(--affine-editor-side-padding, 24px)`
+- 本项目替代策略：`BlocksuiteDescriptionEditor` 在启用 `tcHeader` 时，会在 specs 层过滤 `DocTitleViewExtension` 来禁用内置标题，并让自定义 header 的标题排版对齐上述样式基准。
+
+---
+
 ## 3. 包导航
 
 - [`@blocksuite/affine`](affine.md)
