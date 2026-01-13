@@ -927,86 +927,92 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       >
         {tcHeaderEnabled
           ? (
-              <div className="flex items-center gap-3 p-2 border-b border-base-300">
-                {canEditTcHeader
-                  ? (
-                      <ImgUploaderWithCopper
-                        key={`tcHeader:${docId}`}
-                        setCopperedDownloadUrl={(url) => {
-                          const store = storeRef.current;
-                          if (!store)
-                            return;
-                          setBlocksuiteDocHeader(store, { imageUrl: url });
-                        }}
-                        fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
-                        aspect={1}
-                      >
-                        <div className="relative group overflow-hidden rounded-lg shrink-0">
-                          {tcHeaderImageUrl
-                            ? (
-                                <img
-                                  src={tcHeaderImageUrl}
-                                  alt={tcHeaderTitle || "header"}
-                                  className="w-10 h-10 rounded transition-all duration-200 group-hover:brightness-75"
-                                />
-                              )
-                            : (
-                                <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
-                              )}
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black/20">
-                            <span className="text-xs text-white font-semibold">更换</span>
+              <div className="tc-blocksuite-tc-header">
+                <div className="tc-blocksuite-tc-header-inner">
+                  <div className="tc-blocksuite-tc-header-top">
+                    {canEditTcHeader
+                      ? (
+                          <ImgUploaderWithCopper
+                            key={`tcHeader:${docId}`}
+                            setCopperedDownloadUrl={(url) => {
+                              const store = storeRef.current;
+                              if (!store)
+                                return;
+                              setBlocksuiteDocHeader(store, { imageUrl: url });
+                            }}
+                            fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
+                            aspect={1}
+                          >
+                            <div className="relative group overflow-hidden rounded-lg shrink-0">
+                              {tcHeaderImageUrl
+                                ? (
+                                    <img
+                                      src={tcHeaderImageUrl}
+                                      alt={tcHeaderTitle || "header"}
+                                      className="w-10 h-10 rounded transition-all duration-200 group-hover:brightness-75"
+                                    />
+                                  )
+                                : (
+                                    <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
+                                  )}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black/20">
+                                <span className="text-xs text-white font-semibold">更换</span>
+                              </div>
+                            </div>
+                          </ImgUploaderWithCopper>
+                        )
+                      : (
+                          <div className="relative overflow-hidden rounded-lg shrink-0">
+                            {tcHeaderImageUrl
+                              ? (
+                                  <img
+                                    src={tcHeaderImageUrl}
+                                    alt={tcHeaderTitle || "header"}
+                                    className="w-10 h-10 rounded"
+                                  />
+                                )
+                              : (
+                                  <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
+                                )}
                           </div>
-                        </div>
-                      </ImgUploaderWithCopper>
-                    )
-                  : (
-                      <div className="relative overflow-hidden rounded-lg shrink-0">
-                        {tcHeaderImageUrl
-                          ? (
-                              <img
-                                src={tcHeaderImageUrl}
-                                alt={tcHeaderTitle || "header"}
-                                className="w-10 h-10 rounded"
-                              />
-                            )
-                          : (
-                              <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
-                            )}
-                      </div>
-                    )}
+                        )}
 
-                <input
-                  className="input input-bordered input-sm w-full min-w-0"
-                  value={tcHeaderTitle}
-                  disabled={!canEditTcHeader}
-                  placeholder="请输入标题..."
-                  onChange={(e) => {
-                    const store = storeRef.current;
-                    if (!store)
-                      return;
-                    setBlocksuiteDocHeader(store, { title: e.target.value });
-                  }}
-                  onBlur={(e) => {
-                    const store = storeRef.current;
-                    if (!store)
-                      return;
-                    setBlocksuiteDocHeader(store, { title: e.target.value.trim() });
-                  }}
-                />
+                    <div className="tc-blocksuite-tc-header-actions">
+                      {allowModeSwitch && !hideModeSwitchButton
+                        ? (
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => {
+                                docModeProvider.togglePrimaryMode(docId);
+                              }}
+                            >
+                              {currentMode === "page" ? "切换到画布" : "退出画布"}
+                            </button>
+                          )
+                        : null}
+                    </div>
+                  </div>
 
-                {allowModeSwitch && !hideModeSwitchButton
-                  ? (
-                      <button
-                        type="button"
-                        className="btn btn-sm shrink-0"
-                        onClick={() => {
-                          docModeProvider.togglePrimaryMode(docId);
-                        }}
-                      >
-                        {currentMode === "page" ? "切换到画布" : "退出画布"}
-                      </button>
-                    )
-                  : null}
+                  <input
+                    className="tc-blocksuite-tc-header-title"
+                    value={tcHeaderTitle}
+                    disabled={!canEditTcHeader}
+                    placeholder="Title"
+                    onChange={(e) => {
+                      const store = storeRef.current;
+                      if (!store)
+                        return;
+                      setBlocksuiteDocHeader(store, { title: e.target.value });
+                    }}
+                    onBlur={(e) => {
+                      const store = storeRef.current;
+                      if (!store)
+                        return;
+                      setBlocksuiteDocHeader(store, { title: e.target.value.trim() });
+                    }}
+                  />
+                </div>
               </div>
             )
           : null}

@@ -42,7 +42,7 @@
 - SSR/开发态模块评估：避免在 SSR 可达模块的顶层静态引入 `@blocksuite/*` / `lit*`，改为在浏览器事件/Effect 内使用 `import()` 动态加载（例如 `app/components/chat/infra/blocksuite/deleteSpaceDoc.ts`），以规避 `document is not defined`
 - 相关文档：`app/components/chat/infra/blocksuite/doc/`（含 `LEARNING-PATH.md` 学习路线）
 - 依赖文档：`helloagents/wiki/vendors/blocksuite/index.md`
-- 描述文档自定义标题条：`BlocksuiteDescriptionEditor` 支持 `tcHeader`（`tc_header` 存入 doc 的 Yjs spaceDoc），渲染“图片+标题”头部并同步 workspace meta；同时通过过滤 `DocTitleViewExtension` 禁用 blocksuite 内置 `doc-title`
+- 描述文档自定义标题条：`BlocksuiteDescriptionEditor` 支持 `tcHeader`（`tc_header` 存入 doc 的 Yjs spaceDoc），渲染“图片+标题”头部并同步 workspace meta；启用时通过过滤 `DocTitleViewExtension`（兜底按 `name=affine-doc-title-fragment`）禁用 blocksuite 内置 `doc-title`，标题排版对齐 blocksuite 原生 `doc-title` 风格（大字号 + 居中限宽）
 - 乐观显示（room/space）：iframe 侧 header 变化通过 `postMessage` 上报，宿主写入 `entityHeaderOverrideStore`（localStorage），房间/空间列表与房间顶部标题栏优先显示覆盖值
 - 线索文档化（方案A试运行）：线索正文统一使用 `BlocksuiteClueDescriptionEditor`（`doc_type=description`），创建线索仅填基础信息（name/image/folder）；`space_clue.note` 保留为兼容字段，不再作为主要编辑入口
 - 线索详情弹窗（PL 抽屉）：默认使用全屏弹窗并在顶部固定基础信息/操作区，下方提供大视口的线索文档编辑区；旧 `note` 以折叠区形式展示（默认折叠）

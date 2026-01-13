@@ -5,8 +5,8 @@
 
 @layer blocksuite {
   /*
-   * KaTeX 默认会在 `body` 上做 counter-reset（用于 equation numbering）。
-   * 在本项目中 KaTeX 目前仅服务于 BlockSuite，因此将其从全局 `body` 移到 blocksuite scope，避免影响站点其他区域。
+   * KaTeX 榛樿浼氬湪 `body` 涓婂仛 counter-reset锛堢敤浜?equation numbering锛夈€?
+   * 鍦ㄦ湰椤圭洰涓?KaTeX 鐩墠浠呮湇鍔′簬 BlockSuite锛屽洜姝ゅ皢鍏朵粠鍏ㄥ眬 `body` 绉诲埌 blocksuite scope锛岄伩鍏嶅奖鍝嶇珯鐐瑰叾浠栧尯鍩熴€?
    */
   body {
     counter-reset: none;
@@ -17,10 +17,65 @@
   }
 
   /*
-   * dat.gui 的默认样式里会使用 `.dg`；BlockSuite playground 会带这套 DOM。
-   * 这里把 overflow 修复限制在 blocksuite scope，避免误伤站点其它 `.dg`。
+   * dat.gui 鐨勯粯璁ゆ牱寮忛噷浼氫娇鐢?`.dg`锛汢lockSuite playground 浼氬甫杩欏 DOM銆?
+   * 杩欓噷鎶?overflow 淇闄愬埗鍦?blocksuite scope锛岄伩鍏嶈浼ょ珯鐐瑰叾瀹?`.dg`銆?
    */
   .tc-blocksuite-scope .dg > ul {
     overflow: auto;
+  }
+
+  .tc-blocksuite-scope .tc-blocksuite-tc-header {
+    box-sizing: border-box;
+  }
+
+  .tc-blocksuite-scope .tc-blocksuite-tc-header-inner {
+    box-sizing: border-box;
+    max-width: var(--affine-editor-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding: 38px 0;
+    padding-left: var(--affine-editor-side-padding, 24px);
+    padding-right: var(--affine-editor-side-padding, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tc-blocksuite-scope .tc-blocksuite-tc-header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .tc-blocksuite-scope .tc-blocksuite-tc-header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tc-blocksuite-scope .tc-blocksuite-tc-header-title {
+    box-sizing: border-box;
+    font-family: var(--affine-font-family);
+    font-size: 40px;
+    line-height: 50px;
+    font-weight: 700;
+    color: var(--affine-text-primary-color);
+    outline: none;
+    resize: none;
+    border: 0;
+    width: 100%;
+    max-width: var(--affine-editor-width);
+    padding: 0;
+    background: transparent;
+  }
+
+  .tc-blocksuite-scope .tc-blocksuite-tc-header-title::placeholder {
+    color: var(--affine-placeholder-color);
+    opacity: 0.5;
+  }
+
+  .tc-blocksuite-scope .tc-blocksuite-tc-header-title:disabled {
+    background-color: transparent;
   }
 }
