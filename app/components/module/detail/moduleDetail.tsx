@@ -97,7 +97,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
       maxPeople: module.maxPeople,
       minTime: module.minTime,
       maxTime: module.maxTime,
-      parent: module.parent,
+      parent: module.parent === undefined || module.parent === null ? null : String(module.parent),
       readMe: module.readMe,
     } as ModuleData;
   }, [propModuleData, fetchedModuleData, RuleList.data]);

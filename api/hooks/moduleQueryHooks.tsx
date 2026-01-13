@@ -6,7 +6,7 @@ import type { ItemPageRequest } from "../models/ItemPageRequest";
 import type { ItemsGetRequest } from "../models/ItemsGetRequest";
 import type { ModulePageRequest } from "../models/ModulePageRequest";
 import type { ModuleUpdateRequest } from "../models/ModuleUpdateRequest";
-import type { StageEntityResponse } from "../models/StageEntityResponse";
+import type { StageEntityResponse } from "../deprecated/StageEntityResponse";
 
 //========================item (物品相关) ==================================
 /**
@@ -135,13 +135,36 @@ export function useModuleListQuery(requestBody: ModulePageRequest) {
 
 //========================commit (提交相关) ==================================
 
+type DeprecatedApiResult<T> = {
+    success: boolean;
+    data?: T;
+    message?: string;
+    code?: number;
+};
+
+type DeprecatedModuleInfoResponse = {
+    responses?: StageEntityResponse[];
+    moduleMap?: {
+        sceneMap?: Record<string, number[]>;
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+};
+
 /**
  * 获取模组信息
  */
 export function useModuleInfoQuery(moduleId: number, branchId?: number) {
-    return useQuery({
+    return useQuery<DeprecatedApiResult<DeprecatedModuleInfoResponse>>({
         queryKey: ['moduleInfo', moduleId, branchId],
-        queryFn: () => tuanchat.commitController.getModuleInfo(moduleId, branchId),
+        // 后端已下线 Commit/ModuleInfo；返回占位数据，避免旧页面报错。
+        queryFn: async () => ({
+            success: true,
+            data: {
+                responses: [],
+                moduleMap: { sceneMap: {} },
+            },
+        }),
         enabled: !!moduleId,
         staleTime: 300000 // 5分钟缓存
     });
@@ -151,9 +174,16 @@ export function useModuleInfoQuery(moduleId: number, branchId?: number) {
  * 根据提交ID获取模组信息
  */
 export function useModuleInfoByCommitIdQuery(commitId: number) {
-    return useQuery({
+    return useQuery<DeprecatedApiResult<DeprecatedModuleInfoResponse>>({
         queryKey: ['moduleInfoByCommitId', commitId],
-        queryFn: () => tuanchat.commitController.getModuleInfoByCommitId(commitId),
+        // 后端已下线 Commit/ModuleInfo；返回占位数据，避免旧页面报错。
+        queryFn: async () => ({
+            success: true,
+            data: {
+                responses: [],
+                moduleMap: { sceneMap: {} },
+            },
+        }),
         enabled: !!commitId,
         staleTime: 300000 // 5分钟缓存
     });

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
-import type { StageEntityResponse } from "api";
+import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 import type quill from "quill";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
@@ -334,7 +334,7 @@ export default function QuillEditor({
         return found?.entityInfo?.tips;
       }
       else {
-        return found?.entityInfo?.act?.kp;
+        return found?.entityInfo?.act?.kp ? "KP" : undefined;
       }
     };
     const onOver = (e: MouseEvent) => {

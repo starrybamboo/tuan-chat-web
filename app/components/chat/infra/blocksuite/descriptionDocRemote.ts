@@ -37,6 +37,8 @@ const SNAPSHOT_SET_DEDUPE_MS = 2500;
 const snapshotSetInflight = new Map<string, Promise<void>>();
 const snapshotLastSet = new Map<string, { at: number; updateB64: string }>();
 
+const snapshotDeleteInflight = new Map<string, Promise<void>>();
+
 function isStoredSnapshot(v: any): v is StoredSnapshot {
   return !!v
     && v.v === 1
@@ -189,6 +191,44 @@ export async function setRemoteSnapshot(params: {
     // Only clear if it is still the same task.
     if (snapshotSetInflight.get(cacheKey) === task) {
       snapshotSetInflight.delete(cacheKey);
+    }
+  }
+}
+
+export async function deleteRemoteSnapshot(params: {
+  entityType: DescriptionEntityType;
+  entityId: number;
+  docType: DescriptionDocType;
+}): Promise<void> {
+  const cacheKey = buildRemoteCacheKey(params);
+
+  const inflight = snapshotDeleteInflight.get(cacheKey);
+  if (inflight) {
+    return inflight;
+  }
+
+  const task = tuanchat.request.request<any>({
+    method: "DELETE",
+    url: "/blocksuite/doc",
+    query: {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+    },
+  }).then(() => {
+    snapshotCache.set(cacheKey, { at: Date.now(), value: null });
+    snapshotInflight.delete(cacheKey);
+    snapshotSetInflight.delete(cacheKey);
+    snapshotLastSet.delete(cacheKey);
+  });
+
+  snapshotDeleteInflight.set(cacheKey, task);
+  try {
+    await task;
+  }
+  finally {
+    if (snapshotDeleteInflight.get(cacheKey) === task) {
+      snapshotDeleteInflight.delete(cacheKey);
     }
   }
 }

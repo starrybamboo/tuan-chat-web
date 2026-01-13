@@ -18,6 +18,8 @@
 - `app/components/`：页面组件，按业务大模块分类；`common/` 放通用组件
 - `app/utils/`：工具函数与通用逻辑
 - `app/webGAL/`：WebGAL 相关
+  - 实时渲染创建游戏：不使用模板（不传 `templateDir`），创建失败直接返回失败
+  - 实时渲染设置：Terre 端口可配置（IndexedDB 持久化）
 
 ### 样式与组件
 
@@ -32,6 +34,7 @@
 ### Blocksuite 集成
 
 - 集成代码：`app/components/chat/infra/blocksuite/`
+- SSR/开发态模块评估：避免在 SSR 可达模块的顶层静态引入 `@blocksuite/*` / `lit*`，改为在浏览器事件/Effect 内使用 `import()` 动态加载（例如 `app/components/chat/infra/blocksuite/deleteSpaceDoc.ts`），以规避 `document is not defined`
 - 相关文档：`app/components/chat/infra/blocksuite/doc/`（含 `LEARNING-PATH.md` 学习路线）
 - 依赖文档：`helloagents/wiki/vendors/blocksuite/index.md`
 - 嵌入式隔离（官方兼容）：在 blocksuite 初始化前调用 `startBlocksuiteStyleIsolation` + `ensureBlocksuiteRuntimeStyles`，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的 `body{counter-reset}` 作用域化到 `.tc-blocksuite-scope`/`.blocksuite-portal`，避免污染同页其它 UI

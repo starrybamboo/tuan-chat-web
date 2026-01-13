@@ -230,7 +230,7 @@ export default function BlocksuiteUserReadme(props: {
       const { createEmbeddedAffineEditor } = embeddedModule;
       const { Text } = storeModule;
 
-      ensureBlocksuiteCoreElementsDefined();
+      await ensureBlocksuiteCoreElementsDefined();
 
       const getOrCreateSpaceWorkspaceRuntime = (spaceWorkspaceModule as any).getOrCreateSpaceWorkspaceRuntime as any;
       const ws = getOrCreateSpaceWorkspaceRuntime(workspaceId) as any;
@@ -271,7 +271,7 @@ export default function BlocksuiteUserReadme(props: {
         }
       }
 
-      const editor = createEmbeddedAffineEditor({
+      const editor = await createEmbeddedAffineEditor({
         store,
         workspace: ws,
         docModeProvider,

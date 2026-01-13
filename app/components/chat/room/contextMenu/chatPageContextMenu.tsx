@@ -11,6 +11,7 @@ interface ChatPageContextMenuProps {
   activeRoomId: number | null;
   onClose: () => void;
   onInvitePlayer?: (roomId: number) => void;
+  onOpenRoomSetting?: (roomId: number) => void;
 }
 
 export default function ChatPageContextMenu({
@@ -19,6 +20,7 @@ export default function ChatPageContextMenu({
   activeRoomId,
   onClose,
   onInvitePlayer,
+  onOpenRoomSetting,
 }: ChatPageContextMenuProps) {
   const navigate = useNavigate();
   const spaceContext = use(SpaceContext);
@@ -42,11 +44,23 @@ export default function ChatPageContextMenu({
     <>
       {contextMenu && (
         <div
-          className="fixed bg-base-100 shadow-lg rounded-md z-40"
+          className="fixed bg-base-100 shadow-lg rounded-md z-[9999]"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={e => e.stopPropagation()}
         >
           <ul className="menu p-2 w-50">
+            <li
+              className="relative group"
+              onClick={() => {
+                onOpenRoomSetting?.(contextMenu.roomId);
+                onClose();
+              }}
+            >
+              <div className="flex justify-between items-center w-full">
+                <span>房间资料</span>
+              </div>
+            </li>
+
             {/* --- Invite Player Menu --- */}
             <li
               className="relative group"

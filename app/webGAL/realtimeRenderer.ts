@@ -2,7 +2,8 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
-import { checkGameExist, terreApis } from "@/webGAL/index";
+import { checkGameExist, getTerreApis } from "@/webGAL/index";
+import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
 /**
  * WebGAL 实时渲染管理器
@@ -334,30 +335,11 @@ export class RealtimeRenderer {
       // 创建游戏实例（如果不存在）
       if (!gameExists) {
         console.warn(`[RealtimeRenderer] 正在创建游戏: ${this.gameName}`);
-        try {
-          await terreApis.manageGameControllerCreateGame({
-            gameDir: this.gameName,
-            gameName: this.gameName,
-            templateDir: "WebGAL Black",
-          });
-          console.warn(`[RealtimeRenderer] 游戏创建成功`);
-        }
-        catch (createError) {
-          console.error(`[RealtimeRenderer] 使用模板创建游戏失败:`, createError);
-          // 如果创建失败，尝试不使用模板创建
-          console.warn(`[RealtimeRenderer] 尝试不使用模板创建游戏`);
-          try {
-            await terreApis.manageGameControllerCreateGame({
-              gameDir: this.gameName,
-              gameName: this.gameName,
-            });
-          }
-          catch {
-            console.warn(`[RealtimeRenderer] 无法通过 API 创建游戏，将手动创建目录结构`);
-            // 手动创建必要的目录结构
-            await this.createGameDirectories();
-          }
-        }
+        await getTerreApis().manageGameControllerCreateGame({
+          gameDir: this.gameName,
+          gameName: this.gameName,
+        });
+        console.warn(`[RealtimeRenderer] 游戏创建成功`);
       }
 
       // 初始化场景
@@ -431,56 +413,6 @@ export class RealtimeRenderer {
   }
 
   /**
-   * 手动创建游戏目录结构
-   */
-  private async createGameDirectories(): Promise<void> {
-    try {
-      // 创建 games/<gameName> 目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games`,
-        name: this.gameName,
-      });
-      console.warn(`[RealtimeRenderer] 创建游戏目录: ${this.gameName}`);
-
-      // 创建 game 子目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}`,
-        name: "game",
-      });
-
-      // 创建 scene 子目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}/game`,
-        name: "scene",
-      });
-
-      // 创建 figure 子目录（用于存放立绘）
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}/game`,
-        name: "figure",
-      });
-
-      // 创建 background 子目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}/game`,
-        name: "background",
-      });
-
-      // 创建基础的 config.txt
-      await terreApis.manageGameControllerEditTextFile({
-        path: `games/${this.gameName}/game/config.txt`,
-        textFile: `Game_name:${this.gameName};\nDescription:实时渲染预览;\nGame_key:;\nPackage_name:;\nTitle_img:;`,
-      });
-
-      console.warn(`[RealtimeRenderer] 游戏目录结构创建完成`);
-    }
-    catch (error) {
-      console.error(`[RealtimeRenderer] 创建目录结构失败:`, error);
-      throw error;
-    }
-  }
-
-  /**
    * 设置房间信息并创建对应的场景
    */
   public setRooms(rooms: Room[]): void {
@@ -496,7 +428,7 @@ export class RealtimeRenderer {
     const initialContent = "changeBg:none -next;\nchangeFigure:none -next;";
 
     try {
-      await terreApis.manageGameControllerEditTextFile({ path, textFile: initialContent });
+      await getTerreApis().manageGameControllerEditTextFile({ path, textFile: initialContent });
       this.sceneContextMap.set(roomId, { lineNumber: 2, text: initialContent });
       this.currentSpriteStateMap.set(roomId, new Set());
       console.warn(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
@@ -517,7 +449,7 @@ export class RealtimeRenderer {
       // 如果没有房间，创建一个默认场景
       console.warn(`[RealtimeRenderer] 没有房间信息，创建默认场景`);
       const path = `games/${this.gameName}/game/scene/start.txt`;
-      await terreApis.manageGameControllerEditTextFile({
+      await getTerreApis().manageGameControllerEditTextFile({
         path,
         textFile: "changeBg:none -next;\nchangeFigure:none -next;",
       });
@@ -555,7 +487,7 @@ export class RealtimeRenderer {
       ? `choose:${branchOptions};`
       : "changeBg:none;";
 
-    await terreApis.manageGameControllerEditTextFile({
+    await getTerreApis().manageGameControllerEditTextFile({
       path: `games/${this.gameName}/game/scene/start.txt`,
       textFile: startContent,
     });
@@ -584,9 +516,9 @@ export class RealtimeRenderer {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_TERRE_WS;
+    const wsUrl = getTerreWsUrl();
     if (!wsUrl) {
-      console.error("VITE_TERRE_WS 未配置");
+      console.error("WebGAL WebSocket 地址未配置");
       this.onStatusChange?.("error");
       return;
     }
@@ -746,7 +678,7 @@ export class RealtimeRenderer {
 
     const sceneName = this.getSceneName(roomId);
     const path = `games/${this.gameName}/game/scene/${sceneName}.txt`;
-    await terreApis.manageGameControllerEditTextFile({
+    await getTerreApis().manageGameControllerEditTextFile({
       path,
       textFile: context.text,
     });
@@ -1593,7 +1525,7 @@ export class RealtimeRenderer {
    * 获取指定房间的预览 URL
    */
   public getPreviewUrl(roomId?: number): string {
-    const terreUrl = import.meta.env.VITE_TERRE_URL || "http://localhost:3001";
+    const terreUrl = getTerreBaseUrl();
     if (roomId) {
       const sceneName = this.getSceneName(roomId);
       return `${terreUrl}/games/${this.gameName}/index.html?scene=${sceneName}.txt`;

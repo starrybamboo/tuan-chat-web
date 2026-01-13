@@ -17,6 +17,21 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
 
 ---
 
+## 路由约定（ChatPage）
+
+路由定义位于 `app/routes.ts`：
+
+- `/chat/:spaceId?/:roomId?/:messageId?`
+
+约定与默认行为：
+
+- `spaceId=private` 表示私聊模式
+- 进入空间模式时，如果 `roomId` 缺失（例如 `/chat/10387`），前端会在房间列表加载完成后 **自动选择第一个房间**，并使用 `replace` 重定向到 `/chat/10387/<firstRoomId>`
+- 兼容历史/错误 URL：如果出现 `/chat/<spaceId>/null`，会先 `replace` 回 `/chat/<spaceId>`，随后按上面的逻辑尝试选中第一个房间
+- 若空间下没有任何房间，则停留在 `/chat/<spaceId>`（不拼接 `null`），由左侧列表引导用户创建/选择房间
+
+---
+
 ## 架构设计
 
 ### 分层架构
@@ -114,7 +129,9 @@ RealtimeRenderer 转换为 WebGAL 场景
 - ttsEnabled：实时渲染 TTS 开关
 - miniAvatarEnabled：实时渲染小头像开关
 - autoFigureEnabled：实时渲染自动填充立绘开关
-- ttsApiUrl：TTS API URL（localStorage: tts_api_url）
+- ttsApiUrl：TTS API URL（IndexedDB：realtimeRenderSettings）
+- terrePortOverride：WebGAL(Terre) 端口覆盖值（IndexedDB：realtimeRenderSettings）
+- terrePort：WebGAL(Terre) 实际端口（用于启动探测/连接）
 
 运行态（不持久化，镜像自 `useRealtimeRender`）：
 
