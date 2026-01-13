@@ -1,5 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 import { useEdgesState, useNodesState } from "@xyflow/react";
 // import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";

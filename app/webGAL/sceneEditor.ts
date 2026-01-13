@@ -2,7 +2,8 @@
 /* eslint-disable perfectionist/sort-imports */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 import { ttsApi } from "@/tts/engines/index/apiClient";
-import { checkGameExist, terreApis } from "@/webGAL/index";
+import { checkGameExist, getTerreApis } from "@/webGAL/index";
+import { getTerreWsUrl } from "@/webGAL/terreConfig";
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
 import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import type { UnifiedEngineOptions } from "@/tts/strategy/ttsEngines";
@@ -34,7 +35,7 @@ export class SceneEditor {
       name: ` preview_${spaceId}`,
       description: `This is game preview of ${spaceId}`,
     };
-    this.syncSocket = new WebSocket(import.meta.env.VITE_TERRE_WS);
+    this.syncSocket = new WebSocket(getTerreWsUrl());
   }
 
   // 创建webgal实例
@@ -42,7 +43,7 @@ export class SceneEditor {
     if (await checkGameExist(this.game.name)) {
       return;
     }
-    await terreApis.manageGameControllerCreateGame({
+    await getTerreApis().manageGameControllerCreateGame({
       gameDir: this.game.name,
       gameName: this.game.name,
       templateDir: "WebGAL Black",
@@ -432,7 +433,7 @@ export class SceneEditor {
 
 export async function editScene(game: string, scene: string, content: string) {
   const path = `games/${game}/game/scene/${scene}.txt`;
-  await terreApis.manageGameControllerEditTextFile({ path, textFile: content });
+  await getTerreApis().manageGameControllerEditTextFile({ path, textFile: content });
 }
 
 /**

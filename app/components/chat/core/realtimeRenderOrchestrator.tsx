@@ -39,6 +39,12 @@ export default function RealtimeRenderOrchestrator({
   chatHistoryLoading,
   onApiChange,
 }: Props) {
+  const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
+  const terrePort = useRealtimeRenderStore(state => state.terrePort);
+  useEffect(() => {
+    void ensureHydrated();
+  }, [ensureHydrated]);
+
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
 
@@ -243,12 +249,13 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
 
+    await ensureHydrated();
     launchWebGal();
 
     toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
     try {
       await pollPort(
-        Number((import.meta.env.VITE_TERRE_URL as string).split(":").pop()),
+        terrePort,
         isElectronEnv() ? 15000 : 500,
         100,
       );
@@ -270,7 +277,7 @@ export default function RealtimeRenderOrchestrator({
       toast.error("WebGAL 启动超时", { id: "webgal-init" });
       setIsRealtimeRenderEnabled(false);
     }
-  }, [realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, renderHistoryMessages]);
+  }, [ensureHydrated, realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, renderHistoryMessages, terrePort]);
 
   useEffect(() => {
     if (realtimeRender.initProgress && realtimeRender.status === "initializing") {

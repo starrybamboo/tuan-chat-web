@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
-import type { ApiResultListRoom } from '../models/ApiResultListRoom';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
+import type { ApiResultRoomListResponse } from '../models/ApiResultRoomListResponse';
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoomArchiveCloneRequest } from '../models/RoomArchiveCloneRequest';
@@ -225,12 +225,12 @@ export class RoomControllerService {
     /**
      * 获取空间下当前用户加入的所有房间
      * @param spaceId
-     * @returns ApiResultListRoom OK
+     * @returns ApiResultRoomListResponse OK
      * @throws ApiError
      */
     public getUserRooms(
         spaceId: number,
-    ): CancelablePromise<ApiResultListRoom> {
+    ): CancelablePromise<ApiResultRoomListResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/room/list',

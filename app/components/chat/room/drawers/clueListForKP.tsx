@@ -1,4 +1,4 @@
-import type { StageEntityResponse } from "api";
+import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 import type { Room } from "api/models/Room";
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
 import { use, useMemo, useState } from "react";

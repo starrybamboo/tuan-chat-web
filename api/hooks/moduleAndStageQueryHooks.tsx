@@ -3,7 +3,7 @@ import { tuanchat } from "../instance";
 import type {ModulePageRequest} from "../models/ModulePageRequest";
 import type {ModuleUpdateRequest} from "../models/ModuleUpdateRequest";
 import type {ModulePageByUserRequest} from "../models/ModulePageByUserRequest";
-import type { StageEntityResponse } from "../models/StageEntityResponse";
+import type { StageEntityResponse } from "../deprecated/StageEntityResponse";
 // import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
 //========================module==================================
 

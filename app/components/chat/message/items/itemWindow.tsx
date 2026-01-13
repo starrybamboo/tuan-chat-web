@@ -1,4 +1,4 @@
-import type { StageEntityResponse } from "api";
+import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 import React, { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useGetRoomItemsQuery } from "../../../../../api/hooks/spaceModuleHooks";

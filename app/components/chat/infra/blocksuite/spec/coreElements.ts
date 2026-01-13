@@ -1,43 +1,9 @@
-import { AttachmentViewExtension } from "@blocksuite/affine-block-attachment/view";
-import { BookmarkViewExtension } from "@blocksuite/affine-block-bookmark/view";
-import { EmbedViewExtension } from "@blocksuite/affine-block-embed/view";
-import { effects as blockRootEffects } from "@blocksuite/affine-block-root/effects";
-import { effects as captionEffects } from "@blocksuite/affine-components/caption";
-import { effects as colorPickerEffects } from "@blocksuite/affine-components/color-picker";
-import { effects as contextMenuEffects } from "@blocksuite/affine-components/context-menu";
-import { effects as datePickerEffects } from "@blocksuite/affine-components/date-picker";
-import { effects as dropIndicatorEffects } from "@blocksuite/affine-components/drop-indicator";
-import { effects as embedCardModalEffects } from "@blocksuite/affine-components/embed-card-modal";
-import { effects as highlightDropdownMenuEffects } from "@blocksuite/affine-components/highlight-dropdown-menu";
-import { IconButton } from "@blocksuite/affine-components/icon-button";
-import { effects as linkPreviewEffects } from "@blocksuite/affine-components/link-preview";
-import { effects as linkedDocTitleEffects } from "@blocksuite/affine-components/linked-doc-title";
-import { effects as portalEffects } from "@blocksuite/affine-components/portal";
-import { effects as toggleButtonEffects } from "@blocksuite/affine-components/toggle-button";
-import { effects as toolbarEffects } from "@blocksuite/affine-components/toolbar";
-import { effects as viewDropdownMenuEffects } from "@blocksuite/affine-components/view-dropdown-menu";
-import { effects as richTextEffects } from "@blocksuite/affine-rich-text/effects";
-import * as attachmentBlocks from "@blocksuite/affine/blocks/attachment";
-import * as bookmarkBlocks from "@blocksuite/affine/blocks/bookmark";
-import * as dataViewBlocks from "@blocksuite/affine/blocks/data-view";
-import * as databaseBlocks from "@blocksuite/affine/blocks/database";
-import * as embedBlocks from "@blocksuite/affine/blocks/embed";
-// Ensure AFFiNE block modules are loaded so their schemas/specs (e.g. database/table/kanban) are registered.
-// Playground imports these explicitly; without them, slash menu may miss Table/Kanban and views won't work.
-import * as noteBlocks from "@blocksuite/affine/blocks/note";
-import * as tableBlocks from "@blocksuite/affine/blocks/table";
-import { effects as dataViewEffects } from "@blocksuite/data-view/effects";
-import { effects as integrationTestEffects } from "@blocksuite/integration-test/effects";
-import { effects as stdEffects } from "@blocksuite/std/effects";
-
-// Prevent bundlers from tree-shaking these imports in production.
-void noteBlocks;
-void tableBlocks;
-void databaseBlocks;
-void dataViewBlocks;
-void attachmentBlocks;
-void bookmarkBlocks;
-void embedBlocks;
+// IMPORTANT:
+// React Router dev (and some Vite flows) may evaluate route modules in a Node/SSR context.
+// Many BlockSuite/AFFiNE packages touch DOM globals (e.g. `document`) during module evaluation.
+// Therefore, this file must NOT have any static imports from `@blocksuite/*`.
+// We only dynamically import them inside `ensureBlocksuiteCoreElementsDefined()` after confirming
+// we are running in a browser.
 
 function defineOnce(tagName: string, ctor: any) {
   if (!customElements.get(tagName)) {
@@ -56,7 +22,7 @@ function runEffectsIfMissing(probeTagName: string, run: () => void) {
 
 const EFFECTS_ONCE_KEY = "__TC_BLOCKSUITE_EFFECTS_DONE__";
 
-export function ensureBlocksuiteCoreElementsDefined() {
+export async function ensureBlocksuiteCoreElementsDefined(): Promise<void> {
   if (typeof window === "undefined")
     return;
   if (!globalThis.customElements)
@@ -67,6 +33,102 @@ export function ensureBlocksuiteCoreElementsDefined() {
     return;
   }
   g[EFFECTS_ONCE_KEY] = true;
+
+  const [
+    attachmentViewMod,
+    bookmarkViewMod,
+    embedViewMod,
+    blockRootEffectsMod,
+    captionEffectsMod,
+    colorPickerEffectsMod,
+    contextMenuEffectsMod,
+    datePickerEffectsMod,
+    dropIndicatorEffectsMod,
+    embedCardModalEffectsMod,
+    highlightDropdownMenuEffectsMod,
+    iconButtonMod,
+    linkPreviewEffectsMod,
+    linkedDocTitleEffectsMod,
+    portalEffectsMod,
+    toggleButtonEffectsMod,
+    toolbarEffectsMod,
+    viewDropdownMenuEffectsMod,
+    richTextEffectsMod,
+    dataViewEffectsMod,
+    integrationTestEffectsMod,
+    stdEffectsMod,
+    noteBlocksMod,
+    tableBlocksMod,
+    databaseBlocksMod,
+    dataViewBlocksMod,
+    attachmentBlocksMod,
+    bookmarkBlocksMod,
+    embedBlocksMod,
+  ] = await Promise.all([
+    import("@blocksuite/affine-block-attachment/view"),
+    import("@blocksuite/affine-block-bookmark/view"),
+    import("@blocksuite/affine-block-embed/view"),
+    import("@blocksuite/affine-block-root/effects"),
+    import("@blocksuite/affine-components/caption"),
+    import("@blocksuite/affine-components/color-picker"),
+    import("@blocksuite/affine-components/context-menu"),
+    import("@blocksuite/affine-components/date-picker"),
+    import("@blocksuite/affine-components/drop-indicator"),
+    import("@blocksuite/affine-components/embed-card-modal"),
+    import("@blocksuite/affine-components/highlight-dropdown-menu"),
+    import("@blocksuite/affine-components/icon-button"),
+    import("@blocksuite/affine-components/link-preview"),
+    import("@blocksuite/affine-components/linked-doc-title"),
+    import("@blocksuite/affine-components/portal"),
+    import("@blocksuite/affine-components/toggle-button"),
+    import("@blocksuite/affine-components/toolbar"),
+    import("@blocksuite/affine-components/view-dropdown-menu"),
+    import("@blocksuite/affine-rich-text/effects"),
+    import("@blocksuite/data-view/effects"),
+    import("@blocksuite/integration-test/effects"),
+    import("@blocksuite/std/effects"),
+    // Ensure AFFiNE block modules are loaded so their schemas/specs are registered.
+    import("@blocksuite/affine/blocks/note"),
+    import("@blocksuite/affine/blocks/table"),
+    import("@blocksuite/affine/blocks/database"),
+    import("@blocksuite/affine/blocks/data-view"),
+    import("@blocksuite/affine/blocks/attachment"),
+    import("@blocksuite/affine/blocks/bookmark"),
+    import("@blocksuite/affine/blocks/embed"),
+  ]);
+
+  // Prevent bundlers from tree-shaking these imports in production.
+  void noteBlocksMod;
+  void tableBlocksMod;
+  void databaseBlocksMod;
+  void dataViewBlocksMod;
+  void attachmentBlocksMod;
+  void bookmarkBlocksMod;
+  void embedBlocksMod;
+
+  const AttachmentViewExtension = (attachmentViewMod as any).AttachmentViewExtension as any;
+  const BookmarkViewExtension = (bookmarkViewMod as any).BookmarkViewExtension as any;
+  const EmbedViewExtension = (embedViewMod as any).EmbedViewExtension as any;
+
+  const blockRootEffects = (blockRootEffectsMod as any).effects as (() => void);
+  const captionEffects = (captionEffectsMod as any).effects as (() => void);
+  const colorPickerEffects = (colorPickerEffectsMod as any).effects as (() => void);
+  const contextMenuEffects = (contextMenuEffectsMod as any).effects as (() => void);
+  const datePickerEffects = (datePickerEffectsMod as any).effects as (() => void);
+  const dropIndicatorEffects = (dropIndicatorEffectsMod as any).effects as (() => void);
+  const embedCardModalEffects = (embedCardModalEffectsMod as any).effects as (() => void);
+  const highlightDropdownMenuEffects = (highlightDropdownMenuEffectsMod as any).effects as (() => void);
+  const IconButton = (iconButtonMod as any).IconButton as any;
+  const linkPreviewEffects = (linkPreviewEffectsMod as any).effects as (() => void);
+  const linkedDocTitleEffects = (linkedDocTitleEffectsMod as any).effects as (() => void);
+  const portalEffects = (portalEffectsMod as any).effects as (() => void);
+  const toggleButtonEffects = (toggleButtonEffectsMod as any).effects as (() => void);
+  const toolbarEffects = (toolbarEffectsMod as any).effects as (() => void);
+  const viewDropdownMenuEffects = (viewDropdownMenuEffectsMod as any).effects as (() => void);
+  const richTextEffects = (richTextEffectsMod as any).effects as (() => void);
+  const dataViewEffects = (dataViewEffectsMod as any).effects as (() => void);
+  const integrationTestEffects = (integrationTestEffectsMod as any).effects as (() => void);
+  const stdEffects = (stdEffectsMod as any).effects as (() => void);
 
   // Starter playground uses integration-test to register `affine-editor-container` and friends.
   // Keep it aligned so business-embedded editors can reuse the same assembly.

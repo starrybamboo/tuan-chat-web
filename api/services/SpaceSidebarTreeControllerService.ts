@@ -2,27 +2,26 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultModuleInfo } from '../models/ApiResultModuleInfo';
+import type { ApiResultSpaceSidebarTreeResponse } from '../models/ApiResultSpaceSidebarTreeResponse';
+import type { SpaceSidebarTreeSetRequest } from '../models/SpaceSidebarTreeSetRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class CommitControllerService {
+export class SpaceSidebarTreeControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * @param moduleId
-     * @param branchId
-     * @returns ApiResultModuleInfo OK
+     * 获取空间侧边栏频道树
+     * @param spaceId
+     * @returns ApiResultSpaceSidebarTreeResponse OK
      * @throws ApiError
      */
-    public getModuleInfo(
-        moduleId: number,
-        branchId?: number,
-    ): CancelablePromise<ApiResultModuleInfo> {
+    public getSidebarTree(
+        spaceId: number,
+    ): CancelablePromise<ApiResultSpaceSidebarTreeResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/module/commit',
+            url: '/space/sidebarTree',
             query: {
-                'moduleId': moduleId,
-                'branchId': branchId,
+                'spaceId': spaceId,
             },
             errors: {
                 400: `Bad Request`,
@@ -33,19 +32,19 @@ export class CommitControllerService {
         });
     }
     /**
-     * @param commitId
-     * @returns ApiResultModuleInfo OK
+     * 设置空间侧边栏频道树
+     * @param requestBody
+     * @returns ApiResultSpaceSidebarTreeResponse OK
      * @throws ApiError
      */
-    public getModuleInfoByCommitId(
-        commitId: number,
-    ): CancelablePromise<ApiResultModuleInfo> {
+    public setSidebarTree(
+        requestBody: SpaceSidebarTreeSetRequest,
+    ): CancelablePromise<ApiResultSpaceSidebarTreeResponse> {
         return this.httpRequest.request({
-            method: 'GET',
-            url: '/module/commit/info',
-            query: {
-                'commitId': commitId,
-            },
+            method: 'PUT',
+            url: '/space/sidebarTree',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

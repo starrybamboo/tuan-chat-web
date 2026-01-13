@@ -49,6 +49,8 @@ interface BlocksuiteDescriptionEditorProps {
   onActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
   /** editor mode 变化回调（page/edgeless） */
   onModeChange?: (mode: DocMode) => void;
+  /** iframe 内部请求导航时，允许宿主拦截并自行处理；返回 true 表示已处理，阻止默认 navigate */
+  onNavigate?: (to: string) => boolean | void;
   className?: string;
 }
 
@@ -398,7 +400,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       if (abort.signal.aborted)
         return;
 
-      runtime.ensureBlocksuiteCoreElementsDefined();
+      await runtime.ensureBlocksuiteCoreElementsDefined();
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
 
@@ -489,7 +491,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         }
       }
 
-      const editor = runtime.createEmbeddedAffineEditor({
+      const editor = await runtime.createEmbeddedAffineEditor({
         store,
         workspace: workspace as any,
         docModeProvider,
@@ -862,6 +864,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     className,
     onActionsChange,
     onModeChange,
+    onNavigate,
   } = props;
 
   const navigate = useNavigate();
@@ -873,6 +876,11 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
   const currentModeRef = useRef<DocMode>(forcedMode);
+
+  const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
+  useEffect(() => {
+    onNavigateRef.current = onNavigate;
+  }, [onNavigate]);
 
   // 当外部强制 mode 变化时，同步本地 ref（以及 iframe 侧）。
   useEffect(() => {
@@ -1010,6 +1018,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
       if (data.type === "navigate" && typeof data.to === "string" && data.to) {
         try {
+          const handled = onNavigateRef.current?.(data.to);
+          if (handled === true)
+            return;
           navigate(data.to);
         }
         catch {

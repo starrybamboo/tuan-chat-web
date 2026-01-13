@@ -1,4 +1,5 @@
-import type { StageEntityResponse, UserRole } from "../../api";
+import type { UserRole } from "../../api";
+import type { StageEntityResponse } from "../../api/deprecated/StageEntityResponse";
 
 /**
  * 转换角色数据格式

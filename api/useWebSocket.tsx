@@ -16,6 +16,7 @@ import type {
   MemberChangePush, RoleChangePush, RoomExtraChangeEvent,
 } from "./wsModels";
 import type { NewFriendRequestPush } from "./wsModels";
+import type { SpaceSidebarTreeUpdatedPush } from "./wsModels";
 import {tuanchat} from "./instance";
 import {
   useGetUserSessionsQuery,
@@ -284,7 +285,7 @@ export function useWebSocket() {
 
   // 这里代表“前端已显式实现处理逻辑”的 WS type（对应 onMessage 的 switch cases）。
   // 未在该列表中的 type，会在运行时第一次收到时通过 default 分支提示。
-  const implementedWsTypes = useRef<Set<number>>(new Set([1, 4, 11, 12, 14, 15, 16, 17, 21, 100]));
+  const implementedWsTypes = useRef<Set<number>>(new Set([1, 4, 11, 12, 14, 15, 16, 17, 21, 22, 100]));
   const unhandledWsTypes = useRef<Set<number>>(new Set());
   const countByTypeRef = useRef<Record<number, number>>({});
 
@@ -499,6 +500,14 @@ export function useWebSocket() {
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
         notifyNewFriendRequest(event);
+        break;
+      }
+      case 22: { // 空间频道树变更
+        const event = message as SpaceSidebarTreeUpdatedPush;
+        const spaceId = event?.data?.spaceId;
+        if (typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0) {
+          queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", spaceId] });
+        }
         break;
       }
       case 100: { // Token invalidated

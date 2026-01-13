@@ -42,7 +42,7 @@
     *   **进度反馈**: 状态更新为 `fetching_avatars`。
 3.  **渲染器初始化 (`RealtimeRenderer.init`)**:
     *   **创建游戏**: 检查本地是否存在对应 Space ID 的游戏目录。
-        *   *策略*: 尝试使用 "WebGAL Black" 模板创建 -> 失败则尝试空项目 -> 再次失败则手动创建目录结构 (`manageGameControllerMkDir`)。
+        *   *策略*: 通过 `manageGameControllerCreateGame` 创建空项目（不传 `templateDir`）；创建失败则直接返回失败，由上层提示用户检查 WebGAL(Terre) 状态。
     *   **创建房间场景**: 为每个房间创建独立的场景文件 (`{roomName}_{roomId}.txt`)。
         *   **进度反馈**: 状态更新为 `creating_scenes`，实时报告 (current/total)。
     *   **生成入口场景**: 创建 `start.txt`，包含跳转到各房间的选项 (`choose` 指令)。
@@ -148,7 +148,7 @@
 
 ## 5. 错误处理与降级
 
-*   **创建失败**: 自动降级策略（模板 -> 空项目 -> 手动 mkdir）。
+*   **创建失败**: 不再做本地目录结构兜底；初始化直接失败，并由上层提示用户检查 WebGAL(Terre) 是否可用。
 *   **资源缺失**: 如果立绘上传失败，仅在控制台报错，不中断流程，WebGAL 将使用默认或空白立绘显示文本。
 *   **服务超时**: 启动时若 WebGAL 未响应，自动关闭开关并提示错误。
 

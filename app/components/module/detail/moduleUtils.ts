@@ -1,4 +1,4 @@
-import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 
 // import { useAddEntityWithoutTypeMutation, useAddModuleMutation, useStagingQuery } from "api/hooks/moduleQueryHooks";
 

@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ModuleInfo } from './ModuleInfo';
+import type { RoomListResponse } from './RoomListResponse';
 /**
  * 基础返回体
  */
-export type ApiResultModuleInfo = {
+export type ApiResultRoomListResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultModuleInfo = {
      * 错误消息
      */
     errMsg?: string;
-    data?: ModuleInfo;
+    data?: RoomListResponse;
 };
 
