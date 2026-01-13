@@ -45,6 +45,7 @@
 - 修复房间列表右键菜单“房间资料”无法打开：为 `ChatPageContextMenu` 传入 `onOpenRoomSetting` 回调并跳转到房间资料页
 - 修复房间列表分类展开“闪开闪关”：IndexedDB 异步读取展开状态时不再覆盖用户在读取完成前的手动展开操作
 - 修复文档刷新后侧边栏文档节点丢失/重置默认无效：从 `/space/sidebarTree` 回补 doc metas，并回写 Blocksuite workspace meta 以保证可见/可打开
+- 修复空间模式首次进入可能落到 `/chat/<spaceId>/null`：房间列表就绪后按自定义排序自动进入首个房间（并使用 `replace` 回填路由）
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）

@@ -148,11 +148,12 @@ export default function ChatPage() {
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
   }, [isOpenLeftDrawer, navigate, searchParam, setStoredChatIds, screenSize]);
-  const setActiveRoomId = useCallback((roomId: number | null) => {
+  const setActiveRoomId = useCallback((roomId: number | null, options?: { replace?: boolean }) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
-    navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${newSearchParams.toString()}`);
+    const nextRoomId = roomId ?? "";
+    navigate(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}?${newSearchParams.toString()}`, { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   // 主区域视图：不再用 URL 管理（避免 URL 变得过长/冲突）
@@ -450,11 +451,6 @@ export default function ChatPage() {
     }
   }, [isPrivateChatMode, rooms, setActiveRoomId, setActiveSpaceId, storedIds.roomId, storedIds.spaceId]);
 
-  useLayoutEffect(() => {
-    // 在空间模式下，切换空间后默认选中第一个房间
-    (!isPrivateChatMode && rooms && !urlRoomId) && setActiveRoomId(rooms[0]?.roomId ?? null);
-  }, [isPrivateChatMode, rooms, setActiveRoomId, urlRoomId]);
-
   // 当前 space 的 rooms 拉取后，更新本地 space->roomIds 映射，避免为了 space 未读数等需求进行批量请求。
   useEffect(() => {
     if (isPrivateChatMode)
@@ -649,6 +645,24 @@ export default function ChatPage() {
       })
       .map(x => x.room);
   }, [rooms, roomOrder]);
+
+  useLayoutEffect(() => {
+    if (isPrivateChatMode)
+      return;
+    if (activeSpaceId == null)
+      return;
+
+    const isRoomIdMissingInUrl = !urlRoomId || urlRoomId === "null";
+    if (!isRoomIdMissingInUrl)
+      return;
+
+    const firstRoomId = orderedRooms[0]?.roomId;
+    if (typeof firstRoomId !== "number" || !Number.isFinite(firstRoomId))
+      return;
+
+    // 在空间模式下，URL roomId 缺失时，房间列表加载完成后默认选中自定义排序的第一个房间
+    setActiveRoomId(firstRoomId, { replace: true });
+  }, [activeSpaceId, isPrivateChatMode, orderedRooms, setActiveRoomId, urlRoomId]);
 
   const orderedRoomIds = useMemo(() => {
     return orderedRooms

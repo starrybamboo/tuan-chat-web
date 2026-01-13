@@ -54,7 +54,7 @@
 ### Chat 页面导航
 
 - 房间列表右键菜单“房间资料”入口由 `ChatPageContextMenu` 触发，并通过 `onOpenRoomSetting` 回调跳转到 `/chat/:spaceId/:roomId/setting`
-- 进入空间模式时，仅在房间列表已加载且存在房间时才会自动选中第一个房间；同时兼容 `/chat/<spaceId>/null`，避免首次进入出现 `null` 房间路由
+- 进入空间模式时，仅在房间列表已加载且存在房间时才会自动选中按自定义排序的第一个房间；同时兼容 `/chat/<spaceId>/null`，避免首次进入出现 `null` 房间路由
 
 ### Chat 侧边栏分类（sidebarTree）
 
