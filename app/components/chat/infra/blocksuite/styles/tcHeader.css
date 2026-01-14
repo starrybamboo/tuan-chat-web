@@ -1,0 +1,195 @@
+/* tcHeader (space/room description) host header styles.
+ * Kept in runtime-injected CSS so it also works inside blocksuite iframe route. */
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled doc-title {
+  display: none !important;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header {
+  box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: oklch(var(--b1) / 1);
+  border-bottom: 1px solid oklch(var(--bc) / 0.12);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
+  box-sizing: border-box;
+  max-width: var(--affine-editor-width, 780px);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 10px 0;
+  padding-left: var(--affine-editor-side-padding, 24px);
+  padding-right: var(--affine-editor-side-padding, 24px);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header input[type="file"] {
+  display: none !important;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: oklch(var(--b2) / 1);
+  border: 1px solid oklch(var(--bc) / 0.12);
+  cursor: pointer;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly {
+  cursor: default;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 180ms ease, background-color 180ms ease;
+  background-color: rgb(0 0 0 / 0);
+  pointer-events: none;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar:hover .tc-blocksuite-tc-header-avatar-overlay {
+  opacity: 1;
+  background-color: rgb(0 0 0 / 0.2);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly:hover
+  .tc-blocksuite-tc-header-avatar-overlay {
+  opacity: 0;
+  background-color: rgb(0 0 0 / 0);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar-overlay-text {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(
+    --affine-font-family,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans",
+    "Apple Color Emoji",
+    "Segoe UI Emoji"
+  );
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--affine-text-primary-color, #111827);
+  height: 40px;
+  padding: 0 10px;
+  background-color: transparent;
+  border-radius: 8px;
+  border: 1px solid oklch(var(--bc) / 0.12);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {
+  color: var(--affine-placeholder-color, #9ca3af);
+  opacity: 0.6;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled) {
+  cursor: text;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled):hover {
+  background-color: oklch(var(--b2) / 0.6);
+  border-color: oklch(var(--bc) / 0.18);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:focus-visible {
+  outline: 2px solid oklch(var(--p) / 0.35);
+  outline-offset: 2px;
+  background-color: oklch(var(--b2) / 0.8);
+  border-color: oklch(var(--p) / 0.35);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:disabled {
+  background-color: transparent;
+  opacity: 1;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid oklch(var(--bc) / 0.12);
+  background-color: oklch(var(--b1) / 1);
+  color: oklch(var(--bc) / 0.9);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:hover {
+  background-color: oklch(var(--b2) / 0.8);
+  border-color: oklch(var(--bc) / 0.18);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:active {
+  transform: translateY(0.5px);
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:focus-visible {
+  outline: 2px solid oklch(var(--p) / 0.35);
+  outline-offset: 2px;
+}
+
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn.tc-blocksuite-tc-header-btn-ghost {
+  background-color: transparent;
+}
+
