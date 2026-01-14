@@ -1,5 +1,7 @@
 import type { Message } from "../../../../../api";
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
 /**
@@ -21,14 +23,28 @@ export function PreviewMessage({ message, className }: {
   const useRoleRequest = useGetRoleQuery(messageBody?.roleId ?? -1);
   const role = useRoleRequest.data?.data;
   const isTextMessage = messageBody?.messageType === 1;
+  const isWebgalVarMessage = messageBody?.messageType === MESSAGE_TYPE.WEBGAL_VAR;
   const isDeleted = messageBody?.status === 1;
+
+  const webgalVarSummary = isWebgalVarMessage
+    ? (() => {
+        const payload = extractWebgalVarPayload(messageBody?.extra);
+        return payload ? formatWebgalVarSummary(payload) : null;
+      })()
+    : null;
 
   return (
     <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words ${className}`}>
       {
         isDeleted
           ? "[原消息已被删除]"
-          : `【${role?.roleName || "未命名角色"}】: ${isTextMessage ? messageBody.content : "非文本消息"}`
+          : `【${role?.roleName || "未命名角色"}】: ${
+            isTextMessage
+              ? (messageBody.content || "")
+              : isWebgalVarMessage
+                ? `[变量] ${webgalVarSummary ?? ""}`.trim()
+                : "非文本消息"
+          }`
       }
     </span>
   );

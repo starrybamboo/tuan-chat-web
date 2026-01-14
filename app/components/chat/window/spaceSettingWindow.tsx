@@ -11,8 +11,6 @@ import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
-import checkBack from "@/components/common/autoContrastText";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { tuanchat } from "../../../../api/instance";
 
@@ -47,9 +45,6 @@ function SpaceSettingWindow({
   // 获取规则列表
   const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
   const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
-
-  // 用于强制重置上传组件
-  const [uploaderKey, setUploaderKey] = useState(0);
 
   // 表单数据
   const [formData, setFormData] = useState({
@@ -169,23 +164,16 @@ function SpaceSettingWindow({
     return null;
   }, [currentDicerId, linkedDicerData]);
 
-  // 头像文字颜色
-  const [avatarTextColor, setAvatarTextColor] = useState("text-black");
-  useEffect(() => {
-    if (!formData.avatar)
-      return;
-    checkBack(formData.avatar).then(() => {
-      const computedColor = getComputedStyle(document.documentElement)
-        .getPropertyValue("--text-color")
-        .trim();
-      setAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
+  const handleBlocksuiteHeaderChange = useCallback((header: { title: string; imageUrl: string }) => {
+    setFormData((prev) => {
+      const nextName = header.title;
+      const nextAvatar = header.imageUrl;
+      if (prev.name === nextName && prev.avatar === nextAvatar) {
+        return prev;
+      }
+      return { ...prev, name: nextName, avatar: nextAvatar };
     });
-  }, [formData.avatar]);
-
-  const handleAvatarUpdate = (url: string) => {
-    setFormData(prev => ({ ...prev, avatar: url }));
-    setUploaderKey(prev => prev + 1);
-  };
+  }, []);
 
   const updateSpaceMutation = useUpdateSpaceMutation();
 
@@ -344,47 +332,6 @@ function SpaceSettingWindow({
             <div className="h-full flex flex-col md:flex-row gap-4">
               {/* 左侧：空间信息 */}
               <div className="md:w-96 shrink-0 space-y-4 overflow-y-auto">
-                <div className="card bg-base-100 border border-base-300">
-                  <div className="card-body p-4">
-                    <div className="flex justify-center">
-                      <ImgUploaderWithCopper
-                        key={uploaderKey}
-                        setCopperedDownloadUrl={handleAvatarUpdate}
-                        fileName={`spaceId-${space.spaceId}`}
-                        aspect={1}
-                      >
-                        <div className="relative group overflow-hidden rounded-lg">
-                          <img
-                            src={formData.avatar || space.avatar}
-                            alt={formData.name}
-                            className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                            <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
-                              更新头像
-                            </span>
-                          </div>
-                        </div>
-                      </ImgUploaderWithCopper>
-                    </div>
-
-                    <div className="mt-4">
-                      <label className="label mb-2">
-                        <span className="label-text">空间名称</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        className="input input-bordered w-full"
-                        onChange={(e) => {
-                          setFormData(prev => ({ ...prev, name: e.target.value }));
-                        }}
-                        placeholder="请输入空间名称..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {cloneSourceId
                   ? (
                       <div className="mb-4">
@@ -531,6 +478,10 @@ function SpaceSettingWindow({
                   hideModeSwitchButton={hideEditorModeSwitchButton}
                   onActionsChange={onEditorActionsChange}
                   onModeChange={onEditorModeChange}
+                  tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: space?.avatar ?? "" }}
+                  onTcHeaderChange={({ header }) => {
+                    handleBlocksuiteHeaderChange({ title: header.title, imageUrl: header.imageUrl });
+                  }}
                 />
               </div>
             </div>

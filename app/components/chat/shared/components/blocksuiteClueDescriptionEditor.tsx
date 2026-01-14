@@ -13,6 +13,7 @@ export default function BlocksuiteClueDescriptionEditor(props: {
       spaceId={spaceId}
       docId={buildSpaceDocId({ kind: "clue_description", clueId })}
       className={className}
+      tcHeader={{ enabled: true }}
     />
   );
 }

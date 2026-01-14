@@ -8,7 +8,7 @@
 
 - **职责:** 脚本命令、Lint/类型检查、提交流程、构建与发布说明
 - **状态:** ?开发中
-- **最后更新:** 2026-01-06
+- **最后更新:** 2026-01-14
 
 ## 规范
 
@@ -35,6 +35,16 @@
 
 仓库包含 `.vscode/` 设置，保存时以 ESLint 进行格式化；首次安装依赖后可能需要执行一次 `pnpm lint` 完成 ESLint 相关初始化（以仓库 README 为准）。
 
+### ESLint 规则提示
+
+- `react-hooks/exhaustive-deps`：effect 内读取到的变量需要写入依赖数组；如只关心对象的部分字段，建议先提取为局部常量再写入 deps。
+- `node/prefer-global/process`：脚本中避免使用全局 `process`，改为显式 `import process from "node:process"`。
+- `regexp/no-super-linear-backtracking`：避免在同一正则中混用可互换的量词（如 `\\s+` + `.+` + `\\s*`），优先改为显式字符串解析或更具体的字符类。
+
 ### 提交流程
 
 项目已配置 `husky` 与 `lint-staged`，提交前将自动执行 ESLint 检查。
+
+## 变更历史
+
+- [202601141740_lint_fix](../../history/2026-01/202601141740_lint_fix/) - 修复 lint 报错并补充 ESLint 规则提示

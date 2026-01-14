@@ -20,6 +20,23 @@
 | 202601110741 | blocksuite_ssr_safe_imports | 修复 | 已完成 | [2026-01/202601110741_blocksuite_ssr_safe_imports/](2026-01/202601110741_blocksuite_ssr_safe_imports/) |
 | 202601111227 | webgal_realtime_create_game_no_template | 修复 | 已完成 | [2026-01/202601111227_webgal_realtime_create_game_no_template/](2026-01/202601111227_webgal_realtime_create_game_no_template/) |
 | 202601111240 | webgal_settings_terre_port_indexeddb | 功能 | 已完成 | [2026-01/202601111240_webgal_settings_terre_port_indexeddb/](2026-01/202601111240_webgal_settings_terre_port_indexeddb/) |
+| 202601131356 | ai_image | 功能 | 已完成 | [2026-01/202601131356_ai_image/](2026-01/202601131356_ai_image/) |
+| 202601131515 | sidebar_tree_restore | 修复 | 已完成 | [2026-01/202601131515_sidebar_tree_restore/](2026-01/202601131515_sidebar_tree_restore/) |
+| 202601131558 | create_tabs | 优化 | 已完成 | [2026-01/202601131558_create_tabs/](2026-01/202601131558_create_tabs/) |
+| 202601131930 | blocksuite_doc_header_bar | 功能 | 已完成 | [2026-01/202601131930_blocksuite_doc_header_bar/](2026-01/202601131930_blocksuite_doc_header_bar/) |
+| 202601140100 | sidebar_doc_style | 优化 | 已完成 | [2026-01/202601140100_sidebar_doc_style/](2026-01/202601140100_sidebar_doc_style/) |
+| 202601140107 | quill_reference_audit | 文档 | 已完成 | [2026-01/202601140107_quill_reference_audit/](2026-01/202601140107_quill_reference_audit/) |
+| 202601140226 | clue_doc_planA | 优化 | 已完成 | [2026-01/202601140226_clue_doc_planA/](2026-01/202601140226_clue_doc_planA/) |
+| 202601140238 | webgal_space_vars | 功能 | 已完成 | [2026-01/202601140238_webgal_space_vars/](2026-01/202601140238_webgal_space_vars/) |
+| 202601140247 | doc_meta_restore | 修复 | 已完成 | [2026-01/202601140247_doc_meta_restore/](2026-01/202601140247_doc_meta_restore/) |
+| 202601140302 | clue_detail_ui_refactor | 优化 | 已完成 | [2026-01/202601140302_clue_detail_ui_refactor/](2026-01/202601140302_clue_detail_ui_refactor/) |
+| 202601140410 | ai_image_novelapi_proxy | 功能 | 已完成 | [2026-01/202601140410_ai_image_novelapi_proxy/](2026-01/202601140410_ai_image_novelapi_proxy/) |
+| 202601140425 | blocksuite_header_title_style | 优化 | 已完成 | [2026-01/202601140425_blocksuite_header_title_style/](2026-01/202601140425_blocksuite_header_title_style/) |
+| 202601140543 | open-first-room | 修复 | 已完成 | [2026-01/202601140543_open-first-room/](2026-01/202601140543_open-first-room/) |
+| 202601140558 | ai_image_ui_novelai | 优化 | 已完成 | [2026-01/202601140558_ai_image_ui_novelai/](2026-01/202601140558_ai_image_ui_novelai/) |
+| 202601140604 | director_set_var | 优化 | 已完成 | [2026-01/202601140604_director_set_var/](2026-01/202601140604_director_set_var/) |
+| 202601141319 | blocksuite_title_conflict_fix | 修复 | 已完成 | [2026-01/202601141319_blocksuite_title_conflict_fix/](2026-01/202601141319_blocksuite_title_conflict_fix/) |
+| 202601141740 | lint_fix | 修复 | 已完成 | [2026-01/202601141740_lint_fix/](2026-01/202601141740_lint_fix/) |
 
 ---
 
@@ -38,3 +55,20 @@
 - [202601110741_blocksuite_ssr_safe_imports](2026-01/202601110741_blocksuite_ssr_safe_imports/) - 修复 SSR 评估阶段静态引入 blocksuite runtime（deleteSpaceDoc 动态 import）
 - [202601111227_webgal_realtime_create_game_no_template](2026-01/202601111227_webgal_realtime_create_game_no_template/) - WebGAL 实时渲染创建游戏不使用模板，创建失败直接返回失败
 - [202601111240_webgal_settings_terre_port_indexeddb](2026-01/202601111240_webgal_settings_terre_port_indexeddb/) - WebGAL 实时预览支持配置 Terre 端口，设置改为 IndexedDB 持久化
+- [202601131356_ai_image](2026-01/202601131356_ai_image/) - 新增 AI 生图测试页（Electron 代理 NovelAI）
+- [202601131515_sidebar_tree_restore](2026-01/202601131515_sidebar_tree_restore/) - Chat sidebarTree 分类/重置/创建与文档路由对齐
+- [202601131558_create_tabs](2026-01/202601131558_create_tabs/) - 分类“+”创建入口改为标签页式单弹窗
+- [202601131930_blocksuite_doc_header_bar](2026-01/202601131930_blocksuite_doc_header_bar/) - Blocksuite 描述文档自定义“图片+标题”头部（tc_header）+ room/space 乐观显示
+- [202601140100_sidebar_doc_style](2026-01/202601140100_sidebar_doc_style/) - sidebarTree 文档节点字号/图标对齐房间
+- [202601140107_quill_reference_audit](2026-01/202601140107_quill_reference_audit/) - Quill 引用统计审计报告（待后续去 Quill 化）
+- [202601140226_clue_doc_planA](2026-01/202601140226_clue_doc_planA/) - 线索（space_clue）文档化入口：正文改为 Blocksuite，移除 description/note 编辑入口
+- [202601140238_webgal_space_vars](2026-01/202601140238_webgal_space_vars/) - WebGAL 空间变量系统：导演控制台设置变量 + WEBGAL_VAR 消息类型
+- [202601140247_doc_meta_restore](2026-01/202601140247_doc_meta_restore/) - 修复文档刷新后侧边栏丢失/重置默认无效（基于 sidebarTree 回补 doc metas）
+- [202601140302_clue_detail_ui_refactor](2026-01/202601140302_clue_detail_ui_refactor/) - 线索详情弹窗 UI 重构（全屏 + 顶部固定 + 大视口文档）
+- [202601140410_ai_image_novelapi_proxy](2026-01/202601140410_ai_image_novelapi_proxy/) - AI 生图页接入 /api/novelapi 同源代理，新增 img2img 与本地历史/下载
+- [202601140425_blocksuite_header_title_style](2026-01/202601140425_blocksuite_header_title_style/) - Blocksuite 描述文档 tcHeader 标题样式对齐原生 doc-title，并加固禁用内置标题逻辑
+- [202601140543_open-first-room](2026-01/202601140543_open-first-room/) - 修复空间模式首次进入跳到 `/chat/<spaceId>/null`（按自定义排序进入首个房间）
+- [202601140558_ai_image_ui_novelai](2026-01/202601140558_ai_image_ui_novelai/) - AI 生图页 UI 重构，对齐 NovelAI Image Generation（novelai.net/image）
+- [202601140604_director_set_var](2026-01/202601140604_director_set_var/) - 导演控制台支持设置 WebGAL 空间变量（保留 `/var set ...` 快捷方式）
+- [202601141319_blocksuite_title_conflict_fix](2026-01/202601141319_blocksuite_title_conflict_fix/) - 修复 tcHeader 与内置 doc-title 并存，并重写 tcHeader 标题样式以抵御 iframe 注入/重置影响
+- [202601141740_lint_fix](2026-01/202601141740_lint_fix/) - 修复 ESLint 报错/告警（hooks deps / unused vars / 正则回溯 / node process）

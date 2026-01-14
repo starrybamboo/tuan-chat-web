@@ -3,6 +3,8 @@ import React, { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { XMarkICon } from "@/icons";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
 /**
@@ -19,8 +21,15 @@ export default function RepliedMessage({ replyMessage, className }: {
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const role = useGetRoleQuery(replyMessage.roleId ?? -1).data?.data;
   const isTextMessage = replyMessage.messageType === 1;
+  const isWebgalVarMessage = replyMessage.messageType === MESSAGE_TYPE.WEBGAL_VAR;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
   const imgMsg = replyMessage.extra?.imageMessage;
+  const webgalVarSummary = isWebgalVarMessage
+    ? (() => {
+        const payload = extractWebgalVarPayload(replyMessage.extra);
+        return payload ? formatWebgalVarSummary(payload) : null;
+      })()
+    : null;
   return (
     <div className={className} onClick={() => scrollToGivenMessage && scrollToGivenMessage(replyMessage.messageId)}>
       <button
@@ -44,27 +53,35 @@ export default function RepliedMessage({ replyMessage, className }: {
               {replyMessage.content}
             </span>
           )
-        : replyMessage.extra?.imageMessage?.url
+        : isWebgalVarMessage
           ? (
-              <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
-                {role?.roleName || "未命名角色"}
-                {": "}
-                <img
-                  src={replyMessage.extra?.imageMessage?.url}
-                  className="size-8 object-contain"
-                  alt="img"
-                  width={imgMsg?.width}
-                  height={imgMsg?.height}
-                />
-              </span>
-            )
-          : (
               <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
                 {role?.roleName || "未命名角色"}
                 {": "}
-                非文本内容
+                {[`[变量]`, webgalVarSummary ?? ""].filter(Boolean).join(" ")}
               </span>
-            )}
+            )
+          : replyMessage.extra?.imageMessage?.url
+            ? (
+                <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
+                  {role?.roleName || "未命名角色"}
+                  {": "}
+                  <img
+                    src={replyMessage.extra?.imageMessage?.url}
+                    className="size-8 object-contain"
+                    alt="img"
+                    width={imgMsg?.width}
+                    height={imgMsg?.height}
+                  />
+                </span>
+              )
+            : (
+                <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
+                  {role?.roleName || "未命名角色"}
+                  {": "}
+                  非文本内容
+                </span>
+              )}
     </div>
   );
 }

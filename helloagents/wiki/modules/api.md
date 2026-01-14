@@ -14,9 +14,16 @@
 
 ### OpenAPI 生成
 
+#### TuanChat
+
 - 源文件：`api/tuanchat_OpenAPI.json`
 - 命令：`pnpm openapi`
 - 生成目录：`api/core`、`api/models`、`api/services`
+
+#### NovelAI
+
+- 源文件：`api/novelai/api.json`
+- 生成目录：`api/novelai/`（Fetch 客户端）
 
 约定：生成目录内文件尽量不手工修改；如需定制，优先在 `api/custom`、`api/hooks`、`api/services` 外围封装中实现。
 
@@ -43,4 +50,3 @@
 ## 变更历史
 
 （从 `helloagents/history/` 自动补全）
-

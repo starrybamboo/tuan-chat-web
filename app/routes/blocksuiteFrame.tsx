@@ -117,6 +117,9 @@ export default function BlocksuiteFrameRoute() {
   const workspaceId = sp.get("workspaceId") ?? "";
   const docId = sp.get("docId") ?? "";
   const readOnly = parseBool01(sp.get("readOnly"));
+  const tcHeaderEnabled = parseBool01(sp.get("tcHeader"));
+  const tcHeaderTitle = sp.get("tcHeaderTitle") ?? undefined;
+  const tcHeaderImageUrl = sp.get("tcHeaderImageUrl") ?? undefined;
 
   const spaceId = useMemo(() => {
     const raw = sp.get("spaceId");
@@ -455,6 +458,7 @@ export default function BlocksuiteFrameRoute() {
   return (
     <div className={frameRootClassName}>
       <BlocksuiteDescriptionEditorRuntime
+        instanceId={instanceId}
         workspaceId={workspaceId}
         spaceId={spaceId}
         docId={docId}
@@ -464,6 +468,7 @@ export default function BlocksuiteFrameRoute() {
         fullscreenEdgeless={fullscreenEdgeless}
         hideModeSwitchButton={hideModeSwitchButton}
         mode={forcedMode}
+        tcHeader={tcHeaderEnabled ? { enabled: true, fallbackTitle: tcHeaderTitle, fallbackImageUrl: tcHeaderImageUrl } : undefined}
         onActionsChange={(actions) => {
           actionsRef.current = actions;
           if (actions && pendingModeRef.current) {

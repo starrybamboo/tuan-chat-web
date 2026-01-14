@@ -19,6 +19,7 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChatBubbleEllipsesOutline } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
@@ -471,6 +472,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     else if (message.messageType === 1000) {
       return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
+    }
+    else if (message.messageType === MESSAGE_TYPE.WEBGAL_VAR) {
+      const payload = extractWebgalVarPayload(message.extra);
+      return (
+        <div className="inline-flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/40 px-2 py-1">
+          <span className="badge badge-xs badge-info">变量</span>
+          <span className="font-mono text-xs sm:text-sm break-all">
+            {payload ? formatWebgalVarSummary(payload) : "（无效变量消息）"}
+          </span>
+        </div>
+      );
     }
 
     // 2. 组合消息内容 (文本 + 图片 + 语音)

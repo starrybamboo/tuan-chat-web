@@ -1,5 +1,6 @@
 import type { Space } from "../../../../../api";
 import React from "react";
+import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
   space: Space;
@@ -7,6 +8,10 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
   onclick: () => void;
   isActive: boolean;
 }) {
+  const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`space:${space.spaceId}`]);
+  const displayName = headerOverride?.title || space.name;
+  const displayAvatar = headerOverride?.imageUrl || space.avatar;
+
   return (
     <div
       className="group relative w-10 my-1 rounded"
@@ -35,8 +40,8 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
             : null}
           <div className="avatar mask mask-squircle size-10">
             <img
-              src={space.avatar}
-              alt={space.name}
+              src={displayAvatar}
+              alt={displayName}
             />
           </div>
         </div>

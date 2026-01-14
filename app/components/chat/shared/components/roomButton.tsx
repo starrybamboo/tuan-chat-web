@@ -1,5 +1,6 @@
 import type { Room } from "../../../../../api";
 import React from "react";
+import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
 export default function RoomButton({
   room,
@@ -14,6 +15,10 @@ export default function RoomButton({
   isActive: boolean;
   children?: React.ReactNode;
 }) {
+  const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${room.roomId}`]);
+  const displayName = headerOverride?.title || room.name;
+  const displayAvatar = headerOverride?.imageUrl || room.avatar;
+
   return (
     <div
       key={room.roomId}
@@ -42,12 +47,12 @@ export default function RoomButton({
           : null}
         <div className="mask mask-squircle size-8">
           <img
-            src={room.avatar}
-            alt={room.name}
+            src={displayAvatar}
+            alt={displayName}
           />
         </div>
       </div>
-      <span className="flex-1 min-w-0 truncate text-left">{room.name}</span>
+      <span className="flex-1 min-w-0 truncate text-left">{displayName}</span>
 
       {children
         ? (

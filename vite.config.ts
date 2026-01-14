@@ -4,9 +4,11 @@ import * as babelCore from "@babel/core";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
+import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
+import { Readable } from "node:stream";
+import { defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const _ReactCompilerConfig = {
@@ -76,8 +78,151 @@ function fixCjsDefaultExportPlugin(): Plugin {
   };
 }
 
-export default defineConfig(({ command }) => {
+function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint: boolean }): Plugin {
+  const defaultNovelAiEndpoint = config.defaultEndpoint.replace(/\/+$/, "");
+  const allowAnyNovelAiEndpoint = config.allowAnyEndpoint;
+
+  const isAllowedNovelAiEndpoint = (endpointUrl: URL) => {
+    if (allowAnyNovelAiEndpoint)
+      return true;
+
+    const host = String(endpointUrl.hostname || "").toLowerCase();
+    if (host === "image.novelai.net")
+      return true;
+    if (host.endsWith(".tenant-novelai.knative.chi.coreweave.com"))
+      return true;
+    if (/\.tenant-novelai\.knative\.[0-9a-z]+\.coreweave\.cloud$/i.test(host))
+      return true;
+
+    return false;
+  };
+
+  const readBody = async (req: any) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  };
+
+  return {
+    name: "tc-novelapi-proxy",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        try {
+          const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+          const pathname = decodeURIComponent(reqUrl.pathname);
+
+          if (!(pathname === "/api/novelapi" || pathname.startsWith("/api/novelapi/"))) {
+            next();
+            return;
+          }
+
+          if (req.method === "OPTIONS") {
+            res.statusCode = 204;
+            res.end();
+            return;
+          }
+
+          const endpointHeader = String(req.headers["x-novelapi-endpoint"] || "").trim();
+          const endpointBase = (endpointHeader || defaultNovelAiEndpoint).replace(/\/+$/, "");
+
+          let endpointUrl: URL;
+          try {
+            endpointUrl = new URL(endpointBase);
+          }
+          catch {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Invalid x-novelapi-endpoint");
+            return;
+          }
+
+          if (endpointUrl.protocol !== "https:") {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("NovelAPI endpoint must be https");
+            return;
+          }
+
+          if (!isAllowedNovelAiEndpoint(endpointUrl)) {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("NovelAPI endpoint is not allowed");
+            return;
+          }
+
+          const upstreamPath = pathname.replace(/^\/api\/novelapi/, "") || "/";
+          const upstreamUrl = new URL(upstreamPath + (reqUrl.search || ""), endpointUrl.toString());
+
+          const headers = new Headers();
+          const auth = String(req.headers.authorization || "").trim();
+          if (auth)
+            headers.set("authorization", auth);
+
+          const contentType = String(req.headers["content-type"] || "").trim();
+          if (contentType)
+            headers.set("content-type", contentType);
+
+          const accept = String(req.headers.accept || "").trim();
+          if (accept)
+            headers.set("accept", accept);
+
+          headers.set("referer", "https://novelai.net/");
+          headers.set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
+          let body: Buffer | undefined;
+          if (req.method && !["GET", "HEAD"].includes(req.method.toUpperCase())) {
+            body = await readBody(req);
+          }
+
+          const upstreamRes = await fetch(upstreamUrl.toString(), {
+            method: req.method || "GET",
+            headers,
+            body,
+          });
+
+          const upstreamContentType = upstreamRes.headers.get("content-type");
+          const upstreamDisposition = upstreamRes.headers.get("content-disposition");
+          if (upstreamContentType)
+            res.setHeader("Content-Type", upstreamContentType);
+          if (upstreamDisposition)
+            res.setHeader("Content-Disposition", upstreamDisposition);
+
+          res.statusCode = upstreamRes.status;
+
+          if (!upstreamRes.body) {
+            res.end();
+            return;
+          }
+
+          try {
+            Readable.fromWeb(upstreamRes.body as any).pipe(res);
+          }
+          catch {
+            const buf = Buffer.from(await upstreamRes.arrayBuffer());
+            res.end(buf);
+          }
+        }
+        catch (e) {
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end(`NovelAPI proxy failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      });
+    },
+  };
+}
+
+export default defineConfig(({ command, mode }) => {
   const _isDev = command === "serve";
+  const env = loadEnv(mode, process.cwd(), "");
+
+  const novelApiConfig = {
+    defaultEndpoint: String(env.NOVELAPI_DEFAULT_ENDPOINT || "https://image.novelai.net"),
+    allowAnyEndpoint: String(env.NOVELAPI_ALLOW_ANY_ENDPOINT || "") === "1",
+  };
 
   const nm = (p: string) => {
     const abs = resolve(__dirname, p);
@@ -93,6 +238,7 @@ export default defineConfig(({ command }) => {
     plugins: [
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
+      novelApiProxyPlugin(novelApiConfig),
 
       // Downlevel BlockSuite ES2023 auto-accessor syntax in dist outputs.
       // Example crashing syntax: `accessor color = ...` (brush.js), `accessor elements = ...` (v-line.js).

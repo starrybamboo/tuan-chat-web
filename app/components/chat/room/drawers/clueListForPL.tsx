@@ -15,7 +15,6 @@ import {
   useGetMyClueStarsBySpaceQuery,
   useUpdateClueStarsMutation,
 } from "../../../../../api/hooks/spaceClueHooks";
-import QuillEditor from "../../../common/quillEditor/quillEditor";
 import DisplayOfItemDetail from "../../message/items/displayOfItemsDetail";
 
 export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) => void }) {
@@ -68,9 +67,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
 
   const [newClue, setNewClue] = useState({
     name: "",
-    description: "",
     image: "",
-    note: "",
     clueStarsId: selectedFolderId,
   });
 
@@ -146,11 +143,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       return;
     }
 
-    if (!newClue.description.trim()) {
-      toast.error("请输入线索描述");
-      return;
-    }
-
     if (newClue.clueStarsId === -1) {
       toast.error("请选择线索夹");
       return;
@@ -161,9 +153,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
         {
           clueStarsId: newClue.clueStarsId,
           name: newClue.name,
-          description: newClue.description,
           image: newClue.image,
-          note: newClue.note,
         },
       ];
 
@@ -173,9 +163,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       setShowAddClue(false);
       setNewClue({
         name: "",
-        description: "",
         image: "",
-        note: "",
         clueStarsId: selectedFolderId,
       });
       getCluesByClueStarsQuery.refetch();
@@ -283,6 +271,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     return (
       <DisplayOfItemDetail
         manualData={selectedManualClue}
+        spaceId={spaceId ?? undefined}
         onSend={handleSend}
         onUpdate={handleClueUpdate}
       />
@@ -568,26 +557,11 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
 
             <div>
               <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-                描述 *
+                线索内容（富文本）
               </label>
-              <QuillEditor
-                id="add-clue-description"
-                placeholder={newClue.description || "请输入线索描述"}
-                onchange={val => handleInputChange("description", val)}
-                height="small"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-                笔记
-              </label>
-              <QuillEditor
-                id="add-clue-note"
-                placeholder={newClue.note || "请输入线索笔记"}
-                onchange={val => handleInputChange("note", val)}
-                height="small"
-              />
+              <div className="text-sm text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-700 rounded-md p-3 border border-neutral-200 dark:border-neutral-600">
+                线索正文已改为在详情页使用 BlockSuite 文档编辑。创建后打开线索详情即可编辑。
+              </div>
             </div>
           </div>
 
@@ -743,6 +717,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       <PopWindow
         isOpen={!!selectedManualClue}
         onClose={() => setSelectedManualClue(null)}
+        fullScreen={true}
         hiddenScrollbar={true}
       >
         {renderDetailComponent()}

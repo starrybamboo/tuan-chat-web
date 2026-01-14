@@ -7,13 +7,11 @@ import {
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import RoleList from "@/components/chat/shared/components/roleLists";
-import checkBack from "@/components/common/autoContrastText";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { BaselineArrowBackIosNew, RoleListIcon, Setting } from "@/icons";
 import { SpaceContext } from "../core/spaceContext";
@@ -67,39 +65,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   // 使用默认的聊天气泡样式设置
   const [useChatBubbleStyle] = useState(true);
 
-  // 使用状态管理表单数据
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    avatar: "",
-  });
-
-  // 当room数据加载时初始化formData
-  useEffect(() => {
-    if (room) {
-      const shouldUpdate
-        = formData.name === ""
-          && formData.description === ""
-          && formData.avatar === "";
-      if (shouldUpdate) {
-        setFormData({
-          name: room.name || "",
-          description: room.description || "",
-          avatar: room.avatar || "",
-        });
-      }
-    }
-  }, [room, formData.name, formData.description, formData.avatar]);
-
-  // 用于强制重置上传组件
-  const [uploaderKey, setUploaderKey] = useState(0);
-
-  const handleAvatarUpdate = (url: string) => {
-    setFormData(prev => ({ ...prev, avatar: url }));
-    // 上传完成后强制重置上传组件
-    setUploaderKey(prev => prev + 1);
-  };
-
   // roomContext
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
@@ -132,38 +97,61 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
     }
   }, [defaultTab]);
 
-  // 头像文字颜色
-  const [avatarTextColor, setAvatarTextColor] = useState("text-black");
+  const latestHeaderRef = useRef<{ title: string; imageUrl: string } | null>(null);
+  const syncTimerRef = useRef<number | null>(null);
 
-  // 监听头像变化，自动调整文字颜色
-  useEffect(() => {
-    if (formData.avatar) {
-      checkBack(formData.avatar).then(() => {
-        const computedColor = getComputedStyle(document.documentElement)
-          .getPropertyValue("--text-color")
-          .trim();
-        setAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
-      });
-    }
-  }, [formData.avatar]);
+  const flushRoomRedundant = useCallback((header?: { title: string; imageUrl: string }, opts?: { closeAfter?: boolean }) => {
+    if (!propRoomId || !Number.isFinite(propRoomId) || propRoomId <= 0)
+      return;
 
-  // 保存数据函数
-  const handleSave = () => {
+    const title = (header?.title ?? room?.name ?? "").trim();
+    const imageUrl = (header?.imageUrl ?? room?.avatar ?? "").trim();
+
     updateRoomMutation.mutate({
-      roomId: propRoomId ?? -1,
-      name: formData.name,
-      description: formData.description,
-      avatar: formData.avatar,
+      roomId: propRoomId,
+      name: title,
+      description: room?.description ?? "",
+      avatar: imageUrl,
     }, {
       onSuccess: () => {
-        onClose();
+        if (opts?.closeAfter) {
+          onClose();
+        }
       },
     });
-  };
+  }, [onClose, propRoomId, room?.avatar, room?.description, room?.name, updateRoomMutation]);
+
+  const scheduleRoomRedundantSync = useCallback((header: { title: string; imageUrl: string }) => {
+    if (typeof window === "undefined")
+      return;
+
+    latestHeaderRef.current = header;
+
+    if (syncTimerRef.current) {
+      window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    // 轻量防抖：输入时乐观更新 UI，但把冗余写回 room 延后一点
+    syncTimerRef.current = window.setTimeout(() => {
+      syncTimerRef.current = null;
+      flushRoomRedundant(latestHeaderRef.current ?? undefined);
+    }, 800);
+  }, [flushRoomRedundant]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window === "undefined")
+        return;
+      if (syncTimerRef.current) {
+        window.clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // 退出时自动保存
   const handleClose = () => {
-    handleSave();
+    flushRoomRedundant(latestHeaderRef.current ?? undefined, { closeAfter: true });
   };
 
   return (
@@ -206,72 +194,26 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
                 {defaultTab === "setting" && (
                   <div className="p-4 h-full min-h-0">
-                    <div className="flex flex-col md:flex-row gap-4 h-full min-h-0">
-                      {/* 左侧：房间信息 */}
-                      <div className="md:w-96 shrink-0 space-y-4 min-h-0 overflow-y-auto">
-                        <div className="card bg-base-100 border border-base-300">
-                          <div className="card-body p-4">
-                            <div className="flex justify-center">
-                              <ImgUploaderWithCopper
-                                key={uploaderKey}
-                                setCopperedDownloadUrl={handleAvatarUpdate}
-                                fileName={`roomId-${room.roomId}`}
-                                aspect={1}
-                              >
-                                <div className="relative group overflow-hidden rounded-lg">
-                                  <img
-                                    src={formData.avatar || room.avatar}
-                                    alt={formData.name}
-                                    className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                                  />
-                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                                    <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
-                                      更新头像
-                                    </span>
-                                  </div>
-                                </div>
-                              </ImgUploaderWithCopper>
-                            </div>
-
-                            <div className="mt-4">
-                              <label className="label mb-2">
-                                <span className="label-text">房间名称</span>
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.name}
-                                className="input input-bordered w-full"
-                                onChange={(e) => {
-                                  setFormData(prev => ({ ...prev, name: e.target.value }));
-                                }}
-                                placeholder="请输入房间名称..."
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                      </div>
-
-                      {/* 右侧：房间描述文档 */}
-                      <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
-                        {(propRoomId && (room?.spaceId ?? spaceId))
-                          ? (
-                              <BlocksuiteDescriptionEditor
-                                workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
-                                spaceId={(room?.spaceId ?? spaceId)!}
-                                docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
-                                mode="page"
-                                allowModeSwitch
-                                fullscreenEdgeless
-                                variant="full"
-                                className="h-full"
-                              />
-                            )
-                          : (
-                              <div className="text-sm opacity-70">未选择房间或无法获取spaceId</div>
-                            )}
-                      </div>
-                    </div>
+                    {(propRoomId && (room?.spaceId ?? spaceId))
+                      ? (
+                          <BlocksuiteDescriptionEditor
+                            workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
+                            spaceId={(room?.spaceId ?? spaceId)!}
+                            docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
+                            mode="page"
+                            allowModeSwitch
+                            fullscreenEdgeless
+                            variant="full"
+                            className="h-full"
+                            tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: room?.avatar ?? "" }}
+                            onTcHeaderChange={({ header }) => {
+                              scheduleRoomRedundantSync({ title: header.title, imageUrl: header.imageUrl });
+                            }}
+                          />
+                        )
+                      : (
+                          <div className="text-sm opacity-70">未选择房间或无法获取spaceId</div>
+                        )}
                   </div>
                 )}
 

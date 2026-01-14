@@ -39,6 +39,7 @@ export interface RoomComposerPanelProps {
   onSendEffect: (effectName: string) => void;
   onClearBackground: () => void;
   onClearFigure: () => void;
+  onSetWebgalVar: (key: string, expr: string) => Promise<void> | void;
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
   isKP?: boolean;
@@ -89,6 +90,7 @@ function RoomComposerPanelImpl({
   onSendEffect,
   onClearBackground,
   onClearFigure,
+  onSetWebgalVar,
   isKP,
   onStopBgmForAll,
   noRole,
@@ -338,6 +340,7 @@ function RoomComposerPanelImpl({
                       onSendEffect={onSendEffect}
                       onClearBackground={onClearBackground}
                       onClearFigure={onClearFigure}
+                      onSetWebgalVar={onSetWebgalVar}
                       isKP={isKP}
                       onStopBgmForAll={onStopBgmForAll}
                       noRole={noRole}
@@ -430,6 +433,7 @@ function RoomComposerPanelImpl({
                     onSendEffect={onSendEffect}
                     onClearBackground={onClearBackground}
                     onClearFigure={onClearFigure}
+                    onSetWebgalVar={onSetWebgalVar}
                     isKP={isKP}
                     onStopBgmForAll={onStopBgmForAll}
                     noRole={noRole}
