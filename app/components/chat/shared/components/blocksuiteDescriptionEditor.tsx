@@ -1093,7 +1093,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             <div className="tooltip tooltip-top" data-tip="清空 blocksuite 内置 doc-title（仅影响旧文档）">
                               <button
                                 type="button"
-                                className="btn btn-sm btn-ghost"
+                                className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
                                 onClick={() => void resetBuiltinDocTitle()}
                               >
                                 重置内置标题
@@ -1105,7 +1105,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                         ? (
                             <button
                               type="button"
-                              className="btn btn-sm"
+                              className="tc-blocksuite-tc-header-btn"
                               onClick={() => {
                                 docModeProvider.togglePrimaryMode(docId);
                               }}
