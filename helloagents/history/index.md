@@ -65,4 +65,4 @@
 - [202601140425_blocksuite_header_title_style](2026-01/202601140425_blocksuite_header_title_style/) - Blocksuite 描述文档 tcHeader 标题样式对齐原生 doc-title，并加固禁用内置标题逻辑
 - [202601141319_blocksuite_title_conflict_fix](2026-01/202601141319_blocksuite_title_conflict_fix/) - 修复 tcHeader 与内置 doc-title 并存，并重写 tcHeader 标题样式以抵御 iframe 注入/重置影响
 - [202601140543_open-first-room](2026-01/202601140543_open-first-room/) - 修复空间模式首次进入跳到 `/chat/<spaceId>/null`（按自定义排序进入首个房间）
-- [202601140604_director_set_var](2026-01/202601140604_director_set_var/) - 导演控制台支持设置 WebGAL 空间变量，并禁用输入框 `/var` 入口
+- [202601140604_director_set_var](2026-01/202601140604_director_set_var/) - 导演控制台支持设置 WebGAL 空间变量（保留 `/var set ...` 快捷方式）

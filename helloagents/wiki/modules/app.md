@@ -24,7 +24,7 @@
 - `app/webGAL/`：WebGAL 相关
   - 实时渲染创建游戏：不使用模板（不传 `templateDir`），创建失败直接返回失败
   - 实时渲染设置：Terre 端口可配置（IndexedDB 持久化）
-  - 空间变量系统：导演控制台“设置变量”发送 `WEBGAL_VAR(11)` 结构化消息；持久化写入 `space.extra` 的 `webgalVars`（key/value）；实时渲染侧转换为 `setVar:a=1 -global;`
+  - 空间变量系统：导演控制台“设置变量”发送 `WEBGAL_VAR(11)` 结构化消息（也支持 `/var set a=1` 快捷方式）；持久化写入 `space.extra` 的 `webgalVars`（key/value）；实时渲染侧转换为 `setVar:a=1 -global;`
 
 ### 样式与组件
 
