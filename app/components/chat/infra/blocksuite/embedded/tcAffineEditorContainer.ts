@@ -219,4 +219,3 @@ export function ensureTCAffineEditorContainerDefined() {
     customElements.define(TC_AFFINE_EDITOR_CONTAINER_TAG, TCAffineEditorContainer as any);
   }
 }
-
