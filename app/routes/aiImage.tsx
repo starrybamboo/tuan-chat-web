@@ -1,5 +1,12 @@
+import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 import { unzipSync } from "fflate";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  addAiImageHistory,
+  clearAiImageHistory,
+  deleteAiImageHistory,
+  listAiImageHistory,
+} from "@/utils/aiImageHistoryDb";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 
 interface ModelOption {
@@ -49,14 +56,17 @@ const NOISE_SCHEDULES = [
   "polyexponential",
 ] as const;
 
-function base64DataUrl(mime: string, bytes: Uint8Array) {
+function bytesToBase64(bytes: Uint8Array) {
   let binary = "";
   const chunkSize = 0x8000;
   for (let i = 0; i < bytes.length; i += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
-  const b64 = btoa(binary);
-  return `data:${mime};base64,${b64}`;
+  return btoa(binary);
+}
+
+function base64DataUrl(mime: string, bytes: Uint8Array) {
+  return `data:${mime};base64,${bytesToBase64(bytes)}`;
 }
 
 function mimeFromFilename(name: string) {
@@ -128,9 +138,32 @@ function detectBinaryDataUrl(bytes: Uint8Array) {
   return "";
 }
 
-async function generateNovelAiInBrowser(args: {
+function roundToMultipleOf64(value: number) {
+  return Math.max(64, Math.round(value / 64) * 64);
+}
+
+async function readFileAsBytes(file: File): Promise<Uint8Array> {
+  const buf = await file.arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+async function readImageSize(dataUrl: string): Promise<{ width: number; height: number }> {
+  return await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => reject(new Error("读取图片尺寸失败"));
+    img.src = dataUrl;
+  });
+}
+
+async function generateNovelAiViaProxy(args: {
   token: string;
   endpoint: string;
+  mode: AiImageHistoryMode;
+  sourceImageBase64?: string;
+  sourceImageDataUrl?: string;
+  strength: number;
+  noise: number;
   prompt: string;
   negativePrompt: string;
   model: string;
@@ -141,10 +174,12 @@ async function generateNovelAiInBrowser(args: {
   sampler: string;
   noiseSchedule: string;
   cfgRescale: number;
+  smea: boolean;
+  smeaDyn: boolean;
+  qualityToggle: boolean;
   seed?: number;
 }) {
-  const endpointBase = args.endpoint.replace(/\/+$/, "");
-  const requestUrl = `${endpointBase}/ai/generate-image`;
+  const requestUrl = "/api/novelapi/ai/generate-image";
 
   const isNAI3 = args.model === "nai-diffusion-3";
   const isNAI4 = args.model === "nai-diffusion-4-curated-preview" || args.model === "nai-diffusion-4-full";
@@ -161,8 +196,17 @@ async function generateNovelAiInBrowser(args: {
     sampler: resolvedSampler,
     negative_prompt: args.negativePrompt,
     ucPreset: 2,
-    qualityToggle: false,
+    qualityToggle: args.qualityToggle,
   };
+
+  if (args.mode === "img2img") {
+    if (!args.sourceImageBase64) {
+      throw new Error("img2img 需要上传源图片");
+    }
+    parameters.image = args.sourceImageBase64;
+    parameters.noise = args.noise;
+    parameters.strength = args.strength;
+  }
 
   if (isNAI3 || isNAI4) {
     parameters.params_version = 3;
@@ -197,6 +241,26 @@ async function generateNovelAiInBrowser(args: {
         },
       };
     }
+    else if (isNAI3) {
+      parameters.sm_dyn = args.smeaDyn;
+      parameters.sm = args.smea || args.smeaDyn;
+
+      // Align with novelai-bot behavior for NAI v3.
+      if (
+        (resolvedSampler === "k_euler_ancestral" || resolvedSampler === "k_dpmpp_2s_ancestral")
+        && args.noiseSchedule === "karras"
+      ) {
+        parameters.noise_schedule = "native";
+      }
+      if (resolvedSampler === "ddim_v3") {
+        parameters.sm = false;
+        parameters.sm_dyn = false;
+        delete parameters.noise_schedule;
+      }
+      if (typeof parameters.scale === "number" && (parameters.scale as number) > 10) {
+        parameters.scale = (parameters.scale as number) / 2;
+      }
+    }
   }
 
   const payload = {
@@ -211,6 +275,7 @@ async function generateNovelAiInBrowser(args: {
     headers: {
       "Authorization": `Bearer ${args.token}`,
       "Content-Type": "application/json",
+      "x-novelapi-endpoint": args.endpoint,
     },
     body: JSON.stringify(payload),
   });
@@ -269,6 +334,12 @@ export default function AiImageRoute() {
   const [token, setToken] = useState("");
   const [endpoint, setEndpoint] = useState("https://image.novelai.net");
   const [model, setModel] = useState(MODEL_OPTIONS[0].value);
+  const [mode, setMode] = useState<AiImageHistoryMode>("txt2img");
+  const [sidebarTab, setSidebarTab] = useState<"prompt" | "undesired" | "image" | "connection" | "history">("prompt");
+
+  const [sourceImageFile, setSourceImageFile] = useState<File | null>(null);
+  const [sourceImageDataUrl, setSourceImageDataUrl] = useState<string>("");
+  const [sourceImageBase64, setSourceImageBase64] = useState<string>("");
 
   const [prompt, setPrompt] = useState("best quality, amazing quality, very aesthetic, absurdres, 1girl");
   const [negativePrompt, setNegativePrompt] = useState("nsfw, lowres, {bad}, error, fewer, extra, missing, worst quality, jpeg artifacts, bad quality, watermark");
@@ -280,12 +351,21 @@ export default function AiImageRoute() {
   const [sampler, setSampler] = useState<string>("k_euler_a");
   const [noiseSchedule, setNoiseSchedule] = useState<string>("karras");
   const [cfgRescale, setCfgRescale] = useState(0);
+  const [smea, setSmea] = useState(false);
+  const [smeaDyn, setSmeaDyn] = useState(false);
+  const [qualityToggle, setQualityToggle] = useState(false);
+
+  const [strength, setStrength] = useState(0.7);
+  const [noise, setNoise] = useState(0.2);
   const [seed, setSeed] = useState<string>("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [envHint, setEnvHint] = useState<string | null>(null);
   const [result, setResult] = useState<null | { dataUrl: string; seed: number; width: number; height: number; model: string }>(null);
+
+  const [autoSaveHistory, setAutoSaveHistory] = useState(true);
+  const [history, setHistory] = useState<AiImageHistoryRow[]>([]);
 
   const isNAI3 = model === "nai-diffusion-3";
   const isNAI4 = model === "nai-diffusion-4-curated-preview" || model === "nai-diffusion-4-full";
@@ -303,6 +383,41 @@ export default function AiImageRoute() {
       return "";
     return `seed=${result.seed} · ${result.width}×${result.height} · ${result.model}`;
   }, [result]);
+
+  async function refreshHistory() {
+    const rows = await listAiImageHistory({ limit: 30 });
+    setHistory(rows);
+  }
+
+  useEffect(() => {
+    void refreshHistory();
+  }, []);
+
+  useEffect(() => {
+    async function run() {
+      if (!sourceImageFile) {
+        setSourceImageDataUrl("");
+        setSourceImageBase64("");
+        return;
+      }
+
+      const bytes = await readFileAsBytes(sourceImageFile);
+      const preview = base64DataUrl(sourceImageFile.type || "image/png", bytes);
+      setSourceImageDataUrl(preview);
+      setSourceImageBase64(bytesToBase64(bytes));
+
+      try {
+        const size = await readImageSize(preview);
+        setWidth(roundToMultipleOf64(size.width));
+        setHeight(roundToMultipleOf64(size.height));
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    void run();
+  }, [sourceImageFile]);
 
   async function onGenerate() {
     setError(null);
@@ -324,6 +439,8 @@ export default function AiImageRoute() {
         res = await window.electronAPI.novelaiGenerateImage({
           token,
           endpoint,
+          mode,
+          sourceImageBase64: mode === "img2img" ? sourceImageBase64 : undefined,
           prompt,
           negativePrompt,
           model,
@@ -334,13 +451,23 @@ export default function AiImageRoute() {
           sampler,
           noiseSchedule,
           cfgRescale,
+          smea,
+          smeaDyn,
+          qualityToggle,
+          strength,
+          noise,
           seed: seedValue,
         });
       }
       else {
-        res = await generateNovelAiInBrowser({
+        res = await generateNovelAiViaProxy({
           token,
           endpoint,
+          mode,
+          sourceImageBase64: mode === "img2img" ? sourceImageBase64 : undefined,
+          sourceImageDataUrl,
+          strength,
+          noise,
           prompt,
           negativePrompt,
           model,
@@ -351,11 +478,35 @@ export default function AiImageRoute() {
           sampler,
           noiseSchedule,
           cfgRescale,
+          smea,
+          smeaDyn,
+          qualityToggle,
           seed: seedValue,
         });
       }
 
       setResult(res);
+
+      if (autoSaveHistory) {
+        try {
+          await addAiImageHistory({
+            createdAt: Date.now(),
+            mode,
+            model: res.model,
+            seed: res.seed,
+            width: res.width,
+            height: res.height,
+            prompt,
+            negativePrompt,
+            dataUrl: res.dataUrl,
+            sourceDataUrl: mode === "img2img" ? (sourceImageDataUrl || undefined) : undefined,
+          });
+          await refreshHistory();
+        }
+        catch {
+          // ignore
+        }
+      }
     }
     catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -363,8 +514,8 @@ export default function AiImageRoute() {
       if (!isElectronEnv()) {
         setEnvHint(
           [
-            "当前为 Web 环境：由于 CORS/Referer 限制，建议用 `pnpm electron:dev` 打开本页进行测试。",
-            "当前为 Web 环境：NovelAI 生图需要在 Electron 环境通过 IPC 代理请求（以规避 CORS/Referer 限制）。",
+            "当前为 Web 环境：本页会通过同源代理 `/api/novelapi/*` 请求 NovelAI（以规避 CORS/Referer 限制）。",
+            "请使用 `pnpm dev` 或 `pnpm start` 启动站点；若你将前端部署为纯静态站点，需要额外部署同等代理能力。",
           ].join("\n"),
         );
       }
@@ -375,24 +526,73 @@ export default function AiImageRoute() {
     }
   }
 
+  function setResolutionPreset(preset: "normal" | "portrait" | "landscape" | "wide") {
+    if (preset === "normal") {
+      setWidth(1024);
+      setHeight(1024);
+      return;
+    }
+
+    if (preset === "portrait") {
+      setWidth(832);
+      setHeight(1216);
+      return;
+    }
+
+    if (preset === "landscape") {
+      setWidth(1216);
+      setHeight(832);
+      return;
+    }
+
+    setWidth(1472);
+    setHeight(704);
+  }
+
+  function onKeyDownGenerate(e: React.KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      void onGenerate();
+    }
+  }
+
+  const isWeb = !isElectronEnv();
+
+  const resultMetaTextShort = useMemo(() => {
+    if (!result)
+      return "";
+    return `${result.width}×${result.height} · ${result.model}`;
+  }, [result]);
+
   return (
     <div className="h-full w-full p-4">
-      <div className="max-w-6xl mx-auto flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold">AI生图（NovelAI）</h1>
-            <div className="text-sm opacity-70 mt-1">
-              说明：该页面用于本地测试 NovelAI 接口，默认通过 Electron 主进程代理请求（不会在前端持久化 token）。
+      <div className="max-w-7xl mx-auto flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="text-xl font-bold leading-tight">Image Generation</div>
+              <div className="text-xs opacity-70 mt-1">
+                {isWeb ? "Web 环境通过同源代理 /api/novelapi/* 请求 NovelAI（不持久化 token）" : "Electron 环境通过主进程 IPC 代理请求 NovelAI（不持久化 token）"}
+              </div>
+            </div>
+            <div className={`badge ${isWeb ? "badge-outline" : "badge-secondary"}`}>
+              {isWeb ? "WEB" : "ELECTRON"}
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => void onGenerate()}
-            disabled={loading}
-          >
-            {loading ? "生成中..." : "生成"}
-          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="text-xs opacity-70 hidden md:block">
+              {result ? resultMetaTextShort : ""}
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => void onGenerate()}
+              disabled={loading}
+            >
+              {loading ? "生成中..." : "Generate"}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -404,203 +604,447 @@ export default function AiImageRoute() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="card bg-base-100 shadow-sm border border-base-200">
             <div className="card-body gap-3">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Token（Bearer）</span>
-                </label>
-                <input
-                  className="input input-bordered"
-                  type="password"
-                  value={token}
-                  onChange={e => setToken(e.target.value)}
-                  placeholder="粘贴 NovelAI token"
-                />
+              <div role="tablist" className="tabs tabs-bordered">
+                <button
+                  type="button"
+                  role="tab"
+                  className={`tab ${sidebarTab === "prompt" ? "tab-active" : ""}`}
+                  onClick={() => setSidebarTab("prompt")}
+                >
+                  Prompt
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  className={`tab ${sidebarTab === "undesired" ? "tab-active" : ""}`}
+                  onClick={() => setSidebarTab("undesired")}
+                >
+                  Undesired
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  className={`tab ${sidebarTab === "image" ? "tab-active" : ""}`}
+                  onClick={() => setSidebarTab("image")}
+                >
+                  Image
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  className={`tab ${sidebarTab === "history" ? "tab-active" : ""}`}
+                  onClick={() => setSidebarTab("history")}
+                >
+                  History
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  className={`tab ${sidebarTab === "connection" ? "tab-active" : ""}`}
+                  onClick={() => setSidebarTab("connection")}
+                >
+                  Connection
+                </button>
               </div>
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Endpoint</span>
-                </label>
-                <input
-                  className="input input-bordered"
-                  value={endpoint}
-                  onChange={e => setEndpoint(e.target.value)}
-                />
-              </div>
+              {sidebarTab === "connection" && (
+                <>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Token（Bearer）</span>
+                    </label>
+                    <input
+                      className="input input-bordered"
+                      type="password"
+                      value={token}
+                      onChange={e => setToken(e.target.value)}
+                      placeholder="粘贴 NovelAI token"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Model</span>
-                  </label>
-                  <select
-                    className="select select-bordered"
-                    value={model}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setModel(next);
-                      if (next.includes("nai-diffusion-4")) {
-                        setSampler("k_euler_a");
-                        setNoiseSchedule("karras");
-                      }
-                      else if (next === "nai-diffusion-3") {
-                        setSampler("k_euler_a");
-                        setNoiseSchedule("karras");
-                      }
-                    }}
-                  >
-                    {MODEL_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Endpoint</span>
+                    </label>
+                    <input
+                      className="input input-bordered"
+                      value={endpoint}
+                      onChange={e => setEndpoint(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="text-xs opacity-70 whitespace-pre-line">
+                    {isWeb
+                      ? "Web：请求将通过同源代理 `/api/novelapi/*` 转发到 endpoint，并自动注入 referer/user-agent。"
+                      : "Electron：请求由主进程发起（更接近真实环境），并自动注入 referer/user-agent。"}
+                  </div>
+                </>
+              )}
+
+              {sidebarTab === "prompt" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold">Prompt</div>
+                    <div className="text-xs opacity-60">Ctrl/⌘ + Enter 生成</div>
+                  </div>
+                  <textarea
+                    className="textarea textarea-bordered min-h-40"
+                    value={prompt}
+                    onChange={e => setPrompt(e.target.value)}
+                    onKeyDown={onKeyDownGenerate}
+                    placeholder="best quality, ..."
+                  />
+                  <div className="text-xs opacity-70">or Randomize（此处仅提供随机 Seed）</div>
                 </div>
+              )}
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Sampler</span>
-                  </label>
-                  <select
-                    className="select select-bordered"
-                    value={sampler}
-                    onChange={e => setSampler(e.target.value)}
-                  >
-                    {samplerOptions.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Width</span>
-                  </label>
-                  <input
-                    className="input input-bordered"
-                    type="number"
-                    value={width}
-                    onChange={e => setWidth(Number(e.target.value))}
-                    min={64}
-                    step={64}
+              {sidebarTab === "undesired" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold">Undesired Content</div>
+                    <div className="text-xs opacity-70">UC Preset: Enabled</div>
+                  </div>
+                  <textarea
+                    className="textarea textarea-bordered min-h-40"
+                    value={negativePrompt}
+                    onChange={e => setNegativePrompt(e.target.value)}
+                    onKeyDown={onKeyDownGenerate}
+                    placeholder="nsfw, lowres, ..."
                   />
                 </div>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Height</span>
-                  </label>
-                  <input
-                    className="input input-bordered"
-                    type="number"
-                    value={height}
-                    onChange={e => setHeight(Number(e.target.value))}
-                    min={64}
-                    step={64}
-                  />
-                </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Steps</span>
-                  </label>
-                  <input
-                    className="input input-bordered"
-                    type="number"
-                    value={steps}
-                    onChange={e => setSteps(Number(e.target.value))}
-                    min={1}
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Scale</span>
-                  </label>
-                  <input
-                    className="input input-bordered"
-                    type="number"
-                    value={scale}
-                    onChange={e => setScale(Number(e.target.value))}
-                    step={0.5}
-                  />
-                </div>
-              </div>
+              {sidebarTab === "image" && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">模式</span>
+                      </label>
+                      <select
+                        className="select select-bordered"
+                        value={mode}
+                        onChange={(e) => {
+                          const next = e.target.value as AiImageHistoryMode;
+                          setMode(next);
+                          if (next !== "img2img") {
+                            setSourceImageFile(null);
+                          }
+                        }}
+                      >
+                        <option value="txt2img">文生图（txt2img）</option>
+                        <option value="img2img">图生图（img2img）</option>
+                      </select>
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Noise Schedule</span>
-                  </label>
-                  <select
-                    className="select select-bordered"
-                    value={noiseSchedule}
-                    onChange={e => setNoiseSchedule(e.target.value)}
-                    disabled={!isNAI3 && !isNAI4}
-                  >
-                    {NOISE_SCHEDULES.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
+                    <div className="form-control">
+                      <label className="label cursor-pointer justify-between">
+                        <span className="label-text">自动保存历史</span>
+                        <input
+                          type="checkbox"
+                          className="toggle"
+                          checked={autoSaveHistory}
+                          onChange={e => setAutoSaveHistory(e.target.checked)}
+                        />
+                      </label>
+                    </div>
+                  </div>
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">CFG Rescale（NAI v4）</span>
-                  </label>
-                  <input
-                    className="input input-bordered"
-                    type="number"
-                    value={cfgRescale}
-                    onChange={e => setCfgRescale(Number(e.target.value))}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    disabled={!isNAI4}
-                  />
-                </div>
-              </div>
+                  {mode === "img2img" && (
+                    <div className="card bg-base-200/40 border border-base-200">
+                      <div className="card-body p-3 gap-3">
+                        <div className="form-control">
+                          <label className="label">
+                            <span className="label-text">源图片</span>
+                          </label>
+                          <input
+                            className="file-input file-input-bordered w-full"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setSourceImageFile(file);
+                            }}
+                          />
+                        </div>
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Seed（可选）</span>
-                </label>
-                <input
-                  className="input input-bordered"
-                  value={seed}
-                  onChange={e => setSeed(e.target.value)}
-                  placeholder="留空自动随机"
-                />
-              </div>
+                        {sourceImageDataUrl && (
+                          <div className="w-full overflow-hidden rounded-lg border border-base-200 bg-base-200">
+                            <img
+                              src={sourceImageDataUrl}
+                              alt="source"
+                              className="w-full h-auto block max-h-48 object-contain bg-base-200"
+                              draggable={false}
+                            />
+                          </div>
+                        )}
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Prompt</span>
-                </label>
-                <textarea
-                  className="textarea textarea-bordered min-h-28"
-                  value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                />
-              </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="form-control">
+                            <label className="label">
+                              <span className="label-text">Strength</span>
+                              <span className="label-text-alt">{strength.toFixed(2)}</span>
+                            </label>
+                            <input
+                              className="range range-sm"
+                              type="range"
+                              value={strength}
+                              onChange={e => setStrength(Number(e.target.value))}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                            />
+                          </div>
+                          <div className="form-control">
+                            <label className="label">
+                              <span className="label-text">Noise</span>
+                              <span className="label-text-alt">{noise.toFixed(2)}</span>
+                            </label>
+                            <input
+                              className="range range-sm"
+                              type="range"
+                              value={noise}
+                              onChange={e => setNoise(Number(e.target.value))}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Negative Prompt</span>
-                </label>
-                <textarea
-                  className="textarea textarea-bordered min-h-20"
-                  value={negativePrompt}
-                  onChange={e => setNegativePrompt(e.target.value)}
-                />
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Model</span>
+                      </label>
+                      <select
+                        className="select select-bordered"
+                        value={model}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setModel(next);
+                          if (next.includes("nai-diffusion-4")) {
+                            setSampler("k_euler_a");
+                            setNoiseSchedule("karras");
+                          }
+                          else if (next === "nai-diffusion-3") {
+                            setSampler("k_euler_a");
+                            setNoiseSchedule("karras");
+                          }
+                        }}
+                      >
+                        {MODEL_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Sampler</span>
+                      </label>
+                      <select
+                        className="select select-bordered"
+                        value={sampler}
+                        onChange={e => setSampler(e.target.value)}
+                      >
+                        {samplerOptions.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Image Settings</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" className="btn btn-sm btn-outline" onClick={() => setResolutionPreset("normal")}>Normal</button>
+                      <button type="button" className="btn btn-sm btn-outline" onClick={() => setResolutionPreset("portrait")}>Portrait</button>
+                      <button type="button" className="btn btn-sm btn-outline" onClick={() => setResolutionPreset("landscape")}>Landscape</button>
+                      <button type="button" className="btn btn-sm btn-outline" onClick={() => setResolutionPreset("wide")}>Wide</button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Width</span>
+                      </label>
+                      <input
+                        className="input input-bordered"
+                        type="number"
+                        value={width}
+                        onChange={e => setWidth(Number(e.target.value))}
+                        min={64}
+                        step={64}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Height</span>
+                      </label>
+                      <input
+                        className="input input-bordered"
+                        type="number"
+                        value={height}
+                        onChange={e => setHeight(Number(e.target.value))}
+                        min={64}
+                        step={64}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Steps</span>
+                        <span className="label-text-alt">{steps}</span>
+                      </label>
+                      <input
+                        className="range range-sm"
+                        type="range"
+                        value={steps}
+                        onChange={e => setSteps(Number(e.target.value))}
+                        min={1}
+                        max={80}
+                        step={1}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Guidance</span>
+                        <span className="label-text-alt">{scale.toFixed(1)}</span>
+                      </label>
+                      <input
+                        className="range range-sm"
+                        type="range"
+                        value={scale}
+                        onChange={e => setScale(Number(e.target.value))}
+                        min={1}
+                        max={20}
+                        step={0.1}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Noise Schedule</span>
+                      </label>
+                      <select
+                        className="select select-bordered"
+                        value={noiseSchedule}
+                        onChange={e => setNoiseSchedule(e.target.value)}
+                        disabled={!isNAI3 && !isNAI4}
+                      >
+                        {NOISE_SCHEDULES.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">CFG Rescale（NAI v4）</span>
+                      </label>
+                      <input
+                        className="input input-bordered"
+                        type="number"
+                        value={cfgRescale}
+                        onChange={e => setCfgRescale(Number(e.target.value))}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        disabled={!isNAI4}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="form-control">
+                      <label className="label cursor-pointer justify-between">
+                        <span className="label-text">Quality Toggle</span>
+                        <input
+                          type="checkbox"
+                          className="toggle"
+                          checked={qualityToggle}
+                          onChange={e => setQualityToggle(e.target.checked)}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label cursor-pointer justify-between">
+                        <span className="label-text">SMEA（NAI v3）</span>
+                        <input
+                          type="checkbox"
+                          className="toggle"
+                          checked={smea}
+                          onChange={e => setSmea(e.target.checked)}
+                          disabled={!isNAI3}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label cursor-pointer justify-between">
+                      <span className="label-text">SMEA Dyn（NAI v3）</span>
+                      <input
+                        type="checkbox"
+                        className="toggle"
+                        checked={smeaDyn}
+                        onChange={e => setSmeaDyn(e.target.checked)}
+                        disabled={!isNAI3}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">
+                        Seed
+                        {seed.trim() ? "" : "N/A"}
+                      </span>
+                    </label>
+                    <div className="join w-full">
+                      <input
+                        className="input input-bordered join-item w-full"
+                        value={seed}
+                        onChange={e => setSeed(e.target.value)}
+                        placeholder="留空自动随机"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline join-item"
+                        onClick={() => setSeed(String(Math.floor(Math.random() * 2 ** 32)))}
+                      >
+                        随机
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline join-item"
+                        onClick={() => setSeed("")}
+                      >
+                        清空
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           <div className="card bg-base-100 shadow-sm border border-base-200">
             <div className="card-body gap-3">
               <div className="flex items-center justify-between">
-                <div className="font-semibold">输出预览</div>
+                <div className="font-semibold">Output</div>
                 {result && (
                   <div className="text-xs opacity-70">
                     {resultMetaText}
@@ -609,7 +1053,7 @@ export default function AiImageRoute() {
               </div>
 
               {!result && (
-                <div className="flex-1 flex items-center justify-center text-sm opacity-60 min-h-64">
+                <div className="flex-1 flex items-center justify-center text-sm opacity-60 min-h-64 border border-dashed border-base-300 rounded-lg">
                   还没有生成图片
                 </div>
               )}
@@ -627,15 +1071,131 @@ export default function AiImageRoute() {
                   <a
                     className="btn btn-sm btn-outline"
                     href={result.dataUrl}
-                    download={`nai_${result.seed}_${result.width}x${result.height}.png`}
+                    download={`nai_${mode}_${result.seed}_${result.width}x${result.height}.png`}
                   >
                     下载
                   </a>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    onClick={() => {
+                      void (async () => {
+                        await addAiImageHistory({
+                          createdAt: Date.now(),
+                          mode,
+                          model: result.model,
+                          seed: result.seed,
+                          width: result.width,
+                          height: result.height,
+                          prompt,
+                          negativePrompt,
+                          dataUrl: result.dataUrl,
+                          sourceDataUrl: mode === "img2img" ? (sourceImageDataUrl || undefined) : undefined,
+                        });
+                        await refreshHistory();
+                        setSidebarTab("history");
+                      })();
+                    }}
+                  >
+                    保存到历史
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
+
+        {sidebarTab === "history" && (
+          <div className="card bg-base-100 shadow-sm border border-base-200">
+            <div className="card-body gap-3">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold">历史（本地）</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-outline"
+                    onClick={() => void refreshHistory()}
+                    disabled={loading}
+                  >
+                    刷新
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-outline btn-error"
+                    onClick={() => {
+                      void (async () => {
+                        await clearAiImageHistory();
+                        await refreshHistory();
+                      })();
+                    }}
+                    disabled={loading || history.length === 0}
+                  >
+                    清空
+                  </button>
+                </div>
+              </div>
+
+              {history.length === 0 && (
+                <div className="text-sm opacity-60">
+                  暂无历史记录
+                </div>
+              )}
+
+              {history.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {history.map((item) => {
+                    const meta = `seed=${item.seed} · ${item.width}×${item.height} · ${item.model} · ${item.mode}`;
+                    return (
+                      <div key={item.id} className="card bg-base-200/40 border border-base-200">
+                        <div className="card-body p-3 gap-2">
+                          <div className="w-full overflow-hidden rounded-md border border-base-200 bg-base-200">
+                            <img
+                              src={item.dataUrl}
+                              alt="history"
+                              className="w-full h-auto block max-h-40 object-contain bg-base-200"
+                              draggable={false}
+                            />
+                          </div>
+                          <div className="text-xs opacity-70 break-all">{meta}</div>
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-outline"
+                              onClick={() => setResult({ dataUrl: item.dataUrl, seed: item.seed, width: item.width, height: item.height, model: item.model })}
+                            >
+                              查看
+                            </button>
+                            <a
+                              className="btn btn-xs btn-outline"
+                              href={item.dataUrl}
+                              download={`nai_${item.mode}_${item.seed}_${item.width}x${item.height}.png`}
+                            >
+                              下载
+                            </a>
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-outline btn-error"
+                              onClick={() => {
+                                void (async () => {
+                                  if (typeof item.id === "number") {
+                                    await deleteAiImageHistory(item.id);
+                                    await refreshHistory();
+                                  }
+                                })();
+                              }}
+                            >
+                              删除
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

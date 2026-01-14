@@ -12,7 +12,7 @@ import { UserService } from './services/UserService';
 import { UserSubscriptionService } from './services/UserSubscriptionService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class NovelAI {
-    public readonly : Service;
+    public readonly service: Service;
     public readonly ai: AiService;
     public readonly aiModule: AiModuleService;
     public readonly user: UserService;
@@ -30,7 +30,7 @@ export class NovelAI {
             HEADERS: config?.HEADERS,
             ENCODE_PATH: config?.ENCODE_PATH,
         });
-        this. = new Service(this.request);
+        this.service = new Service(this.request);
         this.ai = new AiService(this.request);
         this.aiModule = new AiModuleService(this.request);
         this.user = new UserService(this.request);
