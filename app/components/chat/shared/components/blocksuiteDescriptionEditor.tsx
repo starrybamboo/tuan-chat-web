@@ -781,7 +781,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           delete g.blocksuiteStore;
       }
     };
-  }, [docId, docModeProvider, isFull, spaceId, workspaceId]);
+  }, [docId, docModeProvider, isFull, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
 
   useEffect(() => {
     const editor = editorRef.current as any;

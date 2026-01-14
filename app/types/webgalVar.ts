@@ -18,11 +18,23 @@ export function parseWebgalVarCommand(raw: string): WebgalVarMessagePayload | nu
   if (!text)
     return null;
 
-  const match = /^\/var\s+set\s+(.+)\s*$/i.exec(text);
-  if (!match)
+  const lower = text.toLowerCase();
+  if (!lower.startsWith("/var"))
     return null;
 
-  const body = match[1] ?? "";
+  const afterVar = text.slice(4);
+  if (afterVar.length > 0 && !/\s/.test(afterVar[0] ?? ""))
+    return null;
+
+  const rest = afterVar.trimStart();
+  if (!rest.toLowerCase().startsWith("set"))
+    return null;
+
+  const afterSet = rest.slice(3);
+  if (afterSet.length === 0 || !/\s/.test(afterSet[0] ?? ""))
+    return null;
+
+  const body = afterSet.trim();
   const eqIndex = body.indexOf("=");
   if (eqIndex <= 0)
     return null;

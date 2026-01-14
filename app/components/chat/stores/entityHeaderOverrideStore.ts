@@ -77,7 +77,7 @@ function prune(headers: Record<string, EntityHeaderOverride>): Record<string, En
 
 let hasHydrated = false;
 
-export const useEntityHeaderOverrideStore = create<EntityHeaderOverrideState>((set, get) => ({
+export const useEntityHeaderOverrideStore = create<EntityHeaderOverrideState>(set => ({
   headers: {},
 
   hydrateFromLocalStorage: () => {

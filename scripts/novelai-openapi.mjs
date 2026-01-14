@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import dns from "node:dns";
 import { mkdir, writeFile } from "node:fs/promises";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const SWAGGER_UI_INIT_URL = "https://api.novelai.net/docs/swagger-ui-init.js";
@@ -55,7 +56,7 @@ async function downloadText(url) {
     }
     return await response.text();
   }
-  catch (error) {
+  catch {
     if (process.platform === "win32") {
       return downloadWithPowershell(url);
     }

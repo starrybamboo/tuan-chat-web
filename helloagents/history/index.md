@@ -36,6 +36,7 @@
 | 202601140558 | ai_image_ui_novelai | 优化 | 已完成 | [2026-01/202601140558_ai_image_ui_novelai/](2026-01/202601140558_ai_image_ui_novelai/) |
 | 202601140604 | director_set_var | 优化 | 已完成 | [2026-01/202601140604_director_set_var/](2026-01/202601140604_director_set_var/) |
 | 202601141319 | blocksuite_title_conflict_fix | 修复 | 已完成 | [2026-01/202601141319_blocksuite_title_conflict_fix/](2026-01/202601141319_blocksuite_title_conflict_fix/) |
+| 202601141740 | lint_fix | 修复 | 已完成 | [2026-01/202601141740_lint_fix/](2026-01/202601141740_lint_fix/) |
 
 ---
 
@@ -70,3 +71,4 @@
 - [202601140558_ai_image_ui_novelai](2026-01/202601140558_ai_image_ui_novelai/) - AI 生图页 UI 重构，对齐 NovelAI Image Generation（novelai.net/image）
 - [202601140604_director_set_var](2026-01/202601140604_director_set_var/) - 导演控制台支持设置 WebGAL 空间变量（保留 `/var set ...` 快捷方式）
 - [202601141319_blocksuite_title_conflict_fix](2026-01/202601141319_blocksuite_title_conflict_fix/) - 修复 tcHeader 与内置 doc-title 并存，并重写 tcHeader 标题样式以抵御 iframe 注入/重置影响
+- [202601141740_lint_fix](2026-01/202601141740_lint_fix/) - 修复 ESLint 报错/告警（hooks deps / unused vars / 正则回溯 / node process）
