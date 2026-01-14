@@ -56,6 +56,12 @@
 - 房间列表右键菜单“房间资料”入口由 `ChatPageContextMenu` 触发，并通过 `onOpenRoomSetting` 回调跳转到 `/chat/:spaceId/:roomId/setting`
 - 进入空间模式时，仅在房间列表已加载且存在房间时才会自动选中按自定义排序的第一个房间；同时兼容 `/chat/<spaceId>/null`，避免首次进入出现 `null` 房间路由
 
+### 跑团指令：检定请求按钮消息
+
+- KP 发送包含 `@All` 的跑团指令（如 `.rc 侦查 @All` / `.r3d6*5 @All`）会生成“检定请求”按钮消息：**不执行**，仅作为点击入口
+- 其他成员点击“一键发送”后，会以自己当前选择角色发送并执行该指令，并落在原消息所在 thread（执行链路复用 `useCommandExecutor`，并补齐 `threadId`/`replayMessageId`）
+- 观战成员禁止执行；旁白（未选角色）仅 KP 可用
+
 ### Chat 侧边栏分类（sidebarTree）
 
 - 后端持久化：`/space/sidebarTree`（带 `version` 的乐观锁写入），hooks 见 `api/hooks/spaceSidebarTreeHooks.ts`

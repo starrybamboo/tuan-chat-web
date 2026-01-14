@@ -26,13 +26,21 @@ import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta }: {
+type CommandRequestPayload = {
+  command: string;
+  allowAll?: boolean;
+  allowedRoleIds?: number[];
+};
+
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
   useChatBubbleStyle?: boolean;
   /** 当该消息被创建子区后，在其下方展示 Thread 提示条（主消息流“看起来只有一条”） */
   threadHintMeta?: { rootId: number; title: string; replyCount: number };
+  /** 点击“检定请求”按钮后，触发外层执行（以点击者身份发送并执行指令） */
+  onExecuteCommandRequest?: (payload: { command: string; threadId?: number; requestMessageId: number }) => void;
 }) {
   const message = chatMessageResponse.message;
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
@@ -466,6 +474,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
   const renderedContent = useMemo(() => {
+    const commandRequest = ((message.extra as any)?.commandRequest || null) as CommandRequestPayload | null;
+    const requestCommand = (commandRequest?.command || "").trim();
+    const requestAllowAll = Boolean(commandRequest?.allowAll);
+    const requestAllowedRoleIds = Array.isArray(commandRequest?.allowedRoleIds) ? commandRequest?.allowedRoleIds : null;
+
     // 1. 特殊类型消息（独占显示）
     if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
@@ -508,17 +521,62 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     // (B) 文本内容
     // 只要有内容或者类型为文本(1)或黑屏文字(9)就渲染文本编辑框
     if (message.content || message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT) {
-      contentElements.push(
-        <EditableField
-          key="text"
-          content={message.content}
-          handleContentUpdate={handleContentUpdate}
-          className="whitespace-pre-wrap editable-field overflow-auto"
-          canEdit={canEdit}
-          fieldId={`msg${message.messageId}`}
-        >
-        </EditableField>,
-      );
+      if (commandRequest && requestCommand) {
+        const curRoleId = roomContext.curRoleId ?? -1;
+        const isSpectator = (roomContext.curMember?.memberType ?? 3) >= 3;
+        const isKP = spaceContext.isSpaceOwner;
+        const canUseNarrator = curRoleId > 0 || isKP;
+        const isAllowedByRoles = requestAllowAll || !requestAllowedRoleIds?.length || requestAllowedRoleIds.includes(curRoleId);
+        const isDisabled = isSpectator || !canUseNarrator || !isAllowedByRoles;
+
+        const disabledReason = isSpectator
+          ? "观战成员不能发送消息"
+          : (!canUseNarrator ? "请先选择/拉入你的角色" : (!isAllowedByRoles ? "当前角色不在可执行范围" : ""));
+
+        contentElements.push(
+          <div key="command-request" className="flex flex-col gap-2">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/40 px-2 py-1">
+              <span className="badge badge-xs badge-warning">检定请求</span>
+              <span className="font-mono text-xs sm:text-sm break-all">{requestCommand}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={`btn btn-xs ${isDisabled ? "btn-disabled" : "btn-primary"}`}
+                disabled={isDisabled}
+                title={isDisabled ? disabledReason : "以你的当前角色一键发送并执行"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isDisabled) {
+                    return;
+                  }
+                  onExecuteCommandRequest?.({
+                    command: requestCommand,
+                    threadId: message.threadId,
+                    requestMessageId: message.messageId,
+                  });
+                }}
+              >
+                一键发送
+              </button>
+              {isDisabled && <span className="text-xs opacity-60">{disabledReason}</span>}
+            </div>
+          </div>,
+        );
+      }
+      else {
+        contentElements.push(
+          <EditableField
+            key="text"
+            content={message.content}
+            handleContentUpdate={handleContentUpdate}
+            className="whitespace-pre-wrap editable-field overflow-auto"
+            canEdit={canEdit}
+            fieldId={`msg${message.messageId}`}
+          >
+          </EditableField>,
+        );
+      }
     }
 
     // (C) 图片内容
@@ -614,8 +672,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
 
     return <div className="flex flex-col">{contentElements}</div>;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [message.content, message.extra, message.messageType, message.messageId, message.replyMessageId]);
+  }, [
+    message.content,
+    message.extra,
+    message.messageType,
+    message.messageId,
+    message.replyMessageId,
+    roomContext.curRoleId,
+    roomContext.curMember?.memberType,
+    spaceContext.isSpaceOwner,
+    onExecuteCommandRequest,
+  ]);
 
   const formattedTime = useMemo(() => {
     return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
@@ -1038,6 +1105,10 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     }
 
     if (JSON.stringify(prevExtra.diceResult) !== JSON.stringify(nextExtra.diceResult)) {
+      return false;
+    }
+
+    if (JSON.stringify((prevExtra as any).commandRequest) !== JSON.stringify((nextExtra as any).commandRequest)) {
       return false;
     }
   }
