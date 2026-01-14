@@ -99,6 +99,47 @@ function firstImageFromZip(zipBytes) {
   return base64DataUrl(mime, files[preferred]);
 }
 
+function startsWithBytes(bytes, prefix) {
+  if (!bytes || bytes.length < prefix.length)
+    return false;
+  return prefix.every((b, i) => bytes[i] === b);
+}
+
+function looksLikeZip(bytes) {
+  if (!bytes || bytes.length < 4)
+    return false;
+  return (
+    bytes[0] === 0x50
+    && bytes[1] === 0x4B
+    && (
+      (bytes[2] === 0x03 && bytes[3] === 0x04)
+      || (bytes[2] === 0x05 && bytes[3] === 0x06)
+      || (bytes[2] === 0x07 && bytes[3] === 0x08)
+    )
+  );
+}
+
+function detectBinaryDataUrl(bytes) {
+  if (startsWithBytes(bytes, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
+    return base64DataUrl("image/png", bytes);
+  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)
+    return base64DataUrl("image/jpeg", bytes);
+  if (
+    bytes.length >= 12
+    && bytes[0] === 0x52
+    && bytes[1] === 0x49
+    && bytes[2] === 0x46
+    && bytes[3] === 0x46
+    && bytes[8] === 0x57
+    && bytes[9] === 0x45
+    && bytes[10] === 0x42
+    && bytes[11] === 0x50
+  ) {
+    return base64DataUrl("image/webp", bytes);
+  }
+  return "";
+}
+
 // 区分开发环境和生产（打包后）环境
 function getWebGALPath() {
   // 在生产环境中，extraResources 被放在应用根目录的 resources 文件夹下
@@ -188,6 +229,7 @@ app.whenReady().then(() => {
     }
 
     const endpoint = String(req?.endpoint || "https://image.novelai.net").replace(/\/+$/, "");
+    const mode = String(req?.mode || "txt2img");
     const prompt = String(req?.prompt || "").trim();
     if (!prompt) {
       throw new Error("缺少 prompt");
@@ -200,6 +242,7 @@ app.whenReady().then(() => {
     const scale = Number.isFinite(req?.scale) ? Number(req.scale) : 5;
     const sampler = String(req?.sampler || "k_euler_ancestral");
     const noiseSchedule = String(req?.noiseSchedule || "karras");
+    const qualityToggle = Boolean(req?.qualityToggle);
 
     const width = clampToMultipleOf64(req?.width, 1024);
     const height = clampToMultipleOf64(req?.height, 1024);
@@ -219,8 +262,20 @@ app.whenReady().then(() => {
       negative_prompt: negativePrompt,
       // align with novelai-bot defaults
       ucPreset: 2,
-      qualityToggle: false,
+      qualityToggle,
     };
+
+    if (mode === "img2img") {
+      const imageBase64 = String(req?.sourceImageBase64 || "").trim();
+      if (!imageBase64) {
+        throw new Error("img2img 缺少源图片（sourceImageBase64）");
+      }
+      const strength = Number.isFinite(req?.strength) ? Number(req.strength) : 0.7;
+      const noise = Number.isFinite(req?.noise) ? Number(req.noise) : 0.2;
+      parameters.image = imageBase64;
+      parameters.strength = strength;
+      parameters.noise = noise;
+    }
 
     if (isNAI3 || isNAI4) {
       parameters.params_version = 3;
@@ -257,6 +312,27 @@ app.whenReady().then(() => {
           },
         };
       }
+      else if (isNAI3) {
+        const smea = Boolean(req?.smea);
+        const smeaDyn = Boolean(req?.smeaDyn);
+        parameters.sm_dyn = smeaDyn;
+        parameters.sm = smea || smeaDyn;
+
+        if (
+          (resolvedSampler === "k_euler_ancestral" || resolvedSampler === "k_dpmpp_2s_ancestral")
+          && noiseSchedule === "karras"
+        ) {
+          parameters.noise_schedule = "native";
+        }
+        if (resolvedSampler === "ddim_v3") {
+          parameters.sm = false;
+          parameters.sm_dyn = false;
+          delete parameters.noise_schedule;
+        }
+        if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
+          parameters.scale = parameters.scale / 2;
+        }
+      }
     }
 
     const payload = {
@@ -292,28 +368,45 @@ app.whenReady().then(() => {
     const disposition = (res.headers.get("content-disposition") || "").toLowerCase();
     const buffer = new Uint8Array(await res.arrayBuffer());
 
-    const isZip = contentType.includes("zip") || disposition.includes(".zip");
+    const isZip = contentType.includes("zip") || disposition.includes(".zip") || looksLikeZip(buffer);
+
+    let dataUrl = detectBinaryDataUrl(buffer);
     if (isZip) {
-      return {
-        dataUrl: firstImageFromZip(buffer),
-        seed,
-        width,
-        height,
-        model,
-      };
+      dataUrl = firstImageFromZip(buffer);
+    }
+    else if (contentType.startsWith("image/")) {
+      dataUrl = base64DataUrl(contentType.split(";")[0] || "image/png", buffer);
+    }
+    else if (!dataUrl) {
+      try {
+        const text = new TextDecoder().decode(buffer);
+        const maybeDataUrl = /data:\s*(data:\S+;base64,[A-Za-z0-9+/=]+)/.exec(text)?.[1];
+        if (maybeDataUrl) {
+          dataUrl = maybeDataUrl;
+        }
+        else {
+          const maybeBase64 = /data:\s*([A-Za-z0-9+/=]+)\s*$/m.exec(text)?.[1];
+          if (maybeBase64) {
+            dataUrl = `data:image/png;base64,${maybeBase64}`;
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
     }
 
-    if (contentType.startsWith("image/")) {
-      return {
-        dataUrl: base64DataUrl(contentType.split(";")[0] || "image/png", buffer),
-        seed,
-        width,
-        height,
-        model,
-      };
+    if (!dataUrl) {
+      throw new Error(`NovelAI 返回了未知格式：content-type=${contentType || "unknown"}`);
     }
 
-    throw new Error(`NovelAI 返回了未知格式：content-type=${contentType || "unknown"}`);
+    return {
+      dataUrl,
+      seed,
+      width,
+      height,
+      model,
+    };
   });
 
   app.on("activate", () => {

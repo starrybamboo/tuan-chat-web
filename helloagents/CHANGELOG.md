@@ -25,6 +25,8 @@
 - 线索详情弹窗 UI 重构：默认全屏、更大文档视口，顶部固定基础信息/操作区，旧笔记默认折叠
 - NovelAI OpenAPI 客户端目录去重：移除重复的 `novelai-api/`，规范文件迁移到 `api/novelai/api.json`
 - Blocksuite 描述文档 `tcHeader` 标题样式重写（变量 fallback + `all: unset`），并在 tcHeader 模式下兜底隐藏 `<doc-title>`，避免与内置标题并存；同时加固 `disableDocTitle` 过滤逻辑（兜底按 extension name 匹配）
+- AI 生图测试页 `/ai-image`：Web 环境改为通过 `/api/novelapi/*` 同源代理请求 NovelAI，并新增 img2img、本地历史与下载、更多生图参数（SMEA/qualityToggle 等）
+- AI 生图页 `/ai-image` UI 重构：整体交互与样式分区对齐 `https://novelai.net/image`（Prompt/Undesired/Image/History/Connection）
 
 ### 修复
 - 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）

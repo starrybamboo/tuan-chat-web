@@ -5,6 +5,8 @@ export type IElectronAPI = {
   novelaiGenerateImage: (payload: {
     token: string;
     endpoint?: string;
+    mode?: "txt2img" | "img2img";
+    sourceImageBase64?: string;
     prompt: string;
     negativePrompt?: string;
     model?: string;
@@ -15,6 +17,11 @@ export type IElectronAPI = {
     sampler?: string;
     noiseSchedule?: string;
     cfgRescale?: number;
+    smea?: boolean;
+    smeaDyn?: boolean;
+    qualityToggle?: boolean;
+    strength?: number;
+    noise?: number;
     seed?: number;
   }) => Promise<{
     dataUrl: string;

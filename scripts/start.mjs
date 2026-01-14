@@ -1,8 +1,10 @@
+import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
 import { existsSync, promises as fs } from "node:fs";
 import { createServer } from "node:http";
 import path from "node:path";
 import process from "node:process";
+import { Readable } from "node:stream";
 import url from "node:url";
 
 const projectRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), "..");
@@ -69,10 +71,141 @@ else {
     res.end(buf);
   };
 
+  const defaultNovelAiEndpoint = String(process.env.NOVELAPI_DEFAULT_ENDPOINT || "https://image.novelai.net").replace(/\/+$/, "");
+  const allowAnyNovelAiEndpoint = String(process.env.NOVELAPI_ALLOW_ANY_ENDPOINT || "") === "1";
+
+  const isAllowedNovelAiEndpoint = (endpointUrl) => {
+    if (allowAnyNovelAiEndpoint)
+      return true;
+
+    const host = String(endpointUrl.hostname || "").toLowerCase();
+    if (host === "image.novelai.net")
+      return true;
+
+    // allow NovelAI tenant endpoints (pattern aligned with OpenAPI spec in api/novelai/api.json)
+    if (host.endsWith(".tenant-novelai.knative.chi.coreweave.com"))
+      return true;
+    if (/\.tenant-novelai\.knative\.[0-9a-z]+\.coreweave\.cloud$/i.test(host))
+      return true;
+
+    return false;
+  };
+
+  const readBody = async (req) => {
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  };
+
+  const proxyNovelApi = async (req, res, reqUrl) => {
+    const pathname = decodeURIComponent(reqUrl.pathname || "/");
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const endpointHeader = String(req.headers["x-novelapi-endpoint"] || "").trim();
+    const endpointBase = (endpointHeader || defaultNovelAiEndpoint).replace(/\/+$/, "");
+
+    let endpointUrl;
+    try {
+      endpointUrl = new URL(endpointBase);
+    }
+    catch {
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Invalid x-novelapi-endpoint");
+      return;
+    }
+
+    if (endpointUrl.protocol !== "https:") {
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("NovelAPI endpoint must be https");
+      return;
+    }
+
+    if (!isAllowedNovelAiEndpoint(endpointUrl)) {
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("NovelAPI endpoint is not allowed");
+      return;
+    }
+
+    const upstreamPath = pathname.replace(/^\/api\/novelapi/, "") || "/";
+    const upstreamUrl = new URL(upstreamPath + (reqUrl.search || ""), endpointUrl.toString());
+
+    const headers = new Headers();
+    const auth = String(req.headers.authorization || "").trim();
+    if (auth)
+      headers.set("authorization", auth);
+
+    const contentType = String(req.headers["content-type"] || "").trim();
+    if (contentType)
+      headers.set("content-type", contentType);
+
+    const accept = String(req.headers.accept || "").trim();
+    if (accept)
+      headers.set("accept", accept);
+
+    // NovelAI may require these headers for some environments.
+    headers.set("referer", "https://novelai.net/");
+    headers.set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
+    let body;
+    if (req.method && !["GET", "HEAD"].includes(req.method.toUpperCase())) {
+      body = await readBody(req);
+    }
+
+    let upstreamRes;
+    try {
+      upstreamRes = await fetch(upstreamUrl.toString(), {
+        method: req.method || "GET",
+        headers,
+        body,
+      });
+    }
+    catch (e) {
+      res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(`NovelAPI proxy failed: ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
+
+    const outHeaders = {};
+    const upstreamContentType = upstreamRes.headers.get("content-type");
+    const upstreamDisposition = upstreamRes.headers.get("content-disposition");
+    if (upstreamContentType)
+      outHeaders["Content-Type"] = upstreamContentType;
+    if (upstreamDisposition)
+      outHeaders["Content-Disposition"] = upstreamDisposition;
+
+    res.writeHead(upstreamRes.status, outHeaders);
+
+    if (!upstreamRes.body) {
+      res.end();
+      return;
+    }
+
+    // Stream response body to the client (avoids buffering large ZIP/images).
+    try {
+      Readable.fromWeb(upstreamRes.body).pipe(res);
+    }
+    catch {
+      const buf = Buffer.from(await upstreamRes.arrayBuffer());
+      res.end(buf);
+    }
+  };
+
   const server = createServer(async (req, res) => {
     try {
       const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
       const pathname = decodeURIComponent(reqUrl.pathname);
+
+      if (pathname === "/api/novelapi" || pathname.startsWith("/api/novelapi/")) {
+        await proxyNovelApi(req, res, reqUrl);
+        return;
+      }
 
       // Normalize and prevent path traversal.
       const rel = pathname.replace(/^\/+/, "");
