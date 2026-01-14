@@ -59,6 +59,7 @@
 - 修复 ESLint 报错/告警：补全 Blocksuite 描述文档相关 `useEffect` 依赖；移除未使用的 Zustand `get` 参数；`/var set` 解析改为非正则解析避免回溯；`novelai-openapi.mjs` 显式引入 `node:process`
 - 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page 模式 `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
 - 修复 AI 生图页运行时拉取模型列表的 502：`/user/*` 元数据接口固定走 `https://api.novelai.net`，避免误发到 `image.novelai.net`
+- 修复 Web/Start 同源代理直连超时导致的 502：`/api/novelapi/*` 支持读取 `NOVELAPI_PROXY`/`HTTPS_PROXY`/`ALL_PROXY` 走本机代理访问上游
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
