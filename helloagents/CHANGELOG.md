@@ -27,7 +27,7 @@
 - 线索详情弹窗 UI 重构：默认全屏、更大文档视口，顶部固定基础信息/操作区，旧笔记默认折叠
 - NovelAI OpenAPI 客户端目录去重：移除重复的 `novelai-api/`，规范文件迁移到 `api/novelai/api.json`
 - Blocksuite 描述文档 `tcHeader` 标题样式重写（变量 fallback + `all: unset`），并在 tcHeader 模式下兜底隐藏 `<doc-title>`，避免与内置标题并存；同时加固 `disableDocTitle` 过滤逻辑（兜底按 extension name 匹配）
-- Blocksuite 描述文档 `tcHeader` 头部样式重写：单行布局（图片 + 标题 + 操作按钮）、顶部 sticky 吸附、标题输入 hover/focus 状态
+- Blocksuite 描述文档 `tcHeader` 头部样式重写：单行布局（图片 + 标题 + 操作按钮）、顶部 sticky 吸附、标题/按钮字号与按钮视觉持续调优
 - Blocksuite 描述文档 `tcHeader` 操作按钮去除 DaisyUI `btn` 依赖：使用 `tc-blocksuite-tc-header-btn` 自定义按钮样式，避免 blocksuite 运行时样式注入影响 DaisyUI 视觉
 - Blocksuite 描述文档 `tcHeader` 样式改为运行时注入（`ensureBlocksuiteRuntimeStyles`）：避免 iframe 的 `blocksuiteFrame` 路由缺失 Tailwind/DaisyUI 样式导致布局退化
 - AI 生图测试页 `/ai-image`：Web 环境改为通过 `/api/novelapi/*` 同源代理请求 NovelAI，并新增 img2img、本地历史与下载、更多生图参数（SMEA/qualityToggle 等）
