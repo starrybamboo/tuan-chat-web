@@ -763,8 +763,66 @@ export function createEmbeddedAffineEditor(params: {
       line-height: 24px;
       margin: 0 2px;
     }
+    ${disableDocTitle
+      ? `
+      /* NOTE: \`affine-editor-container\` (integration-test) renders <doc-title> in its template.
+       * In tcHeader mode we always suppress it to avoid double titles. */
+      [data-tc-blocksuite-root] doc-title { display: none !important; }
+      `
+      : ""}
   `;
   editor.appendChild(style);
+
+  // Keep removing <doc-title> in case the container re-renders and reinserts it.
+  // IMPORTANT: MutationObserver must be strongly referenced, otherwise it may be GC'ed and stop working.
+  if (disableDocTitle) {
+    const editorAny = editor as any;
+    if (!editorAny.__tcDocTitleSuppressorInstalled) {
+      editorAny.__tcDocTitleSuppressorInstalled = true;
+
+      const removeDocTitleNodes = () => {
+        try {
+          const nodes = editor.querySelectorAll("doc-title");
+          for (const n of Array.from(nodes)) {
+            try {
+              n.remove();
+            }
+            catch {
+              // ignore
+            }
+          }
+        }
+        catch {
+          // ignore
+        }
+      };
+
+      // One-shot cleanup after first paint.
+      try {
+        queueMicrotask(removeDocTitleNodes);
+      }
+      catch {
+        // ignore
+      }
+      try {
+        window.setTimeout(removeDocTitleNodes, 0);
+      }
+      catch {
+        // ignore
+      }
+
+      try {
+        const obs = new MutationObserver(() => {
+          removeDocTitleNodes();
+        });
+        obs.observe(editor, { childList: true, subtree: true });
+        editorAny.__tcDocTitleSuppressorObserver = obs;
+      }
+      catch {
+        // ignore
+      }
+    }
+  }
 
   return editor;
 }
