@@ -89,6 +89,8 @@ function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint
     const host = String(endpointUrl.hostname || "").toLowerCase();
     if (host === "image.novelai.net")
       return true;
+    if (host === "api.novelai.net")
+      return true;
     if (host.endsWith(".tenant-novelai.knative.chi.coreweave.com"))
       return true;
     if (/\.tenant-novelai\.knative\.[0-9a-z]+\.coreweave\.cloud$/i.test(host))
