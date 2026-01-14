@@ -14,7 +14,6 @@
 - **模块:** `app`、`electron`
 - **文件:**
   - `app/routes/aiImage.tsx`
-  - `electron/main.cjs`
 - **API:** 无（仅修正内部请求路由与端点选择）
 - **数据:** 无
 
