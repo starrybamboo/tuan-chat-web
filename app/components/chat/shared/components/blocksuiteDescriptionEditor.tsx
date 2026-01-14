@@ -3,9 +3,9 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
-import toast from "react-hot-toast";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
@@ -931,7 +931,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
       const normalizeTitleText = (raw: string) => {
         // Keep behavior stable for "empty but has zero-width placeholders".
-        return String(raw ?? "").replace(/[\s\u200B\uFEFF]+/g, "").trim();
+        return String(raw ?? "").replace(/[\s\u200B]+/g, "").trim();
       };
 
       const candidates: any[] = [];
@@ -990,7 +990,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
       // Best-effort: immediately remove any `<doc-title>` nodes if they exist.
       try {
-        const nodes = document.querySelectorAll('[data-tc-blocksuite-root] doc-title');
+        const nodes = document.querySelectorAll("[data-tc-blocksuite-root] doc-title");
         for (const n of Array.from(nodes)) {
           try {
             n.remove();

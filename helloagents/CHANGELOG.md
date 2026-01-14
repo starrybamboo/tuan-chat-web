@@ -29,6 +29,7 @@
 - AI 生图测试页 `/ai-image`：Web 环境改为通过 `/api/novelapi/*` 同源代理请求 NovelAI，并新增 img2img、本地历史与下载、更多生图参数（SMEA/qualityToggle 等）
 - AI 生图页 `/ai-image` UI 重构：整体交互与样式分区对齐 `https://novelai.net/image`（Prompt/Undesired/Image/History/Connection）
 - AI 生图页 `/ai-image` 再次重写：模型改为运行时拉取（失败自动降级），历史仅保留 IndexedDB；Electron 增加 `novelai:get-clientsettings` IPC；NovelAPI proxy 允许 `api.novelai.net`
+- AI 生图页 `/ai-image`：token 为调试方便本地持久化；路由改为仅开发环境注册（生产不可访问）
 
 ### 修复
 - 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）

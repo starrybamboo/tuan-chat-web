@@ -39,6 +39,7 @@
 | 202601141740 | lint_fix | 修复 | 已完成 | [2026-01/202601141740_lint_fix/](2026-01/202601141740_lint_fix/) |
 | 202601141830 | blocksuite_doc_title_reset | 修复 | 已完成 | [2026-01/202601141830_blocksuite_doc_title_reset/](2026-01/202601141830_blocksuite_doc_title_reset/) |
 | 202601141920 | ai_image_novelai | 功能 | 已完成（待确认） | [2026-01/202601141920_ai_image_novelai/](2026-01/202601141920_ai_image_novelai/) |
+| 202601142115 | ai_image_dev_only | 优化 | 已完成 | [2026-01/202601142115_ai_image_dev_only/](2026-01/202601142115_ai_image_dev_only/) |
 
 ---
 
@@ -76,3 +77,4 @@
 - [202601141740_lint_fix](2026-01/202601141740_lint_fix/) - 修复 ESLint 报错/告警（hooks deps / unused vars / 正则回溯 / node process）
 - [202601141830_blocksuite_doc_title_reset](2026-01/202601141830_blocksuite_doc_title_reset/) - 修复 Blocksuite 双标题：加固禁用 doc-title（fragment）并提供内置标题重置按钮
 - [202601141920_ai_image_novelai](2026-01/202601141920_ai_image_novelai/) - AI 生图页重写：运行时模型拉取（失败降级）+ 仅保留 IndexedDB 历史 + Electron clientsettings IPC
+- [202601142115_ai_image_dev_only](2026-01/202601142115_ai_image_dev_only/) - AI 生图调试增强：token 本地持久化 + 路由仅开发环境可用

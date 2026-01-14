@@ -2,6 +2,8 @@ import type { RouteConfig } from "@react-router/dev/routes";
 
 import { index, layout, prefix, route } from "@react-router/dev/routes";
 
+const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV;
+
 export default [
   // Blocksuite iframe: used for strong style isolation.
   route("blocksuite-frame", "routes/blocksuiteFrame.tsx"),
@@ -41,7 +43,7 @@ export default [
     route("resource", "routes/resource.tsx"),
     route("doc/:spaceId/:docId", "routes/doc.tsx"),
     route("doc-test", "routes/docTest.tsx"),
-    route("ai-image", "routes/aiImage.tsx"),
+    ...(ENABLE_AI_IMAGE_ROUTE ? [route("ai-image", "routes/aiImage.tsx")] : []),
     route("blocksuite-playground", "routes/blocksuitePlayground.tsx"),
     route("invite/:code", "routes/invite.tsx"),
   ]),
