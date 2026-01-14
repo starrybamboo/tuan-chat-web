@@ -24,13 +24,17 @@
     overflow: auto;
   }
 
-  .tc-blocksuite-scope .tc-blocksuite-tc-header {
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled doc-title {
+    display: none !important;
+  }
+
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header {
     box-sizing: border-box;
   }
 
-  .tc-blocksuite-scope .tc-blocksuite-tc-header-inner {
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-inner {
     box-sizing: border-box;
-    max-width: var(--affine-editor-width);
+    max-width: var(--affine-editor-width, 780px);
     margin-left: auto;
     margin-right: auto;
     padding: 38px 0;
@@ -41,41 +45,53 @@
     gap: 12px;
   }
 
-  .tc-blocksuite-scope .tc-blocksuite-tc-header-top {
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-  .tc-blocksuite-scope .tc-blocksuite-tc-header-actions {
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
     margin-left: auto;
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  .tc-blocksuite-scope .tc-blocksuite-tc-header-title {
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title {
+    all: unset;
     box-sizing: border-box;
-    font-family: var(--affine-font-family);
+    display: block;
+    font-family: var(
+      --affine-font-family,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      "Noto Sans",
+      "Apple Color Emoji",
+      "Segoe UI Emoji"
+    );
     font-size: 40px;
     line-height: 50px;
     font-weight: 700;
-    color: var(--affine-text-primary-color);
-    outline: none;
-    resize: none;
-    border: 0;
+    color: var(--affine-text-primary-color, #111827);
     width: 100%;
-    max-width: var(--affine-editor-width);
+    max-width: var(--affine-editor-width, 780px);
     padding: 0;
     background: transparent;
   }
 
-  .tc-blocksuite-scope .tc-blocksuite-tc-header-title::placeholder {
-    color: var(--affine-placeholder-color);
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {
+    color: var(--affine-placeholder-color, #9ca3af);
     opacity: 0.5;
   }
 
-  .tc-blocksuite-scope .tc-blocksuite-tc-header-title:disabled {
+  .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:disabled {
     background-color: transparent;
+    opacity: 1;
   }
 }
