@@ -1034,37 +1034,33 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
                             aspect={1}
                           >
-                            <div className="relative group overflow-hidden rounded-lg shrink-0">
+                            <div className="tc-blocksuite-tc-header-avatar" aria-label="更换头像">
                               {tcHeaderImageUrl
                                 ? (
                                     <img
                                       src={tcHeaderImageUrl}
                                       alt={tcHeaderTitle || "header"}
-                                      className="w-10 h-10 rounded transition-all duration-200 group-hover:brightness-75"
+                                      className="tc-blocksuite-tc-header-avatar-img"
                                     />
                                   )
-                                : (
-                                    <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
-                                  )}
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black/20">
-                                <span className="text-xs text-white font-semibold">更换</span>
+                                : null}
+                              <div className="tc-blocksuite-tc-header-avatar-overlay">
+                                <span className="tc-blocksuite-tc-header-avatar-overlay-text">更换</span>
                               </div>
                             </div>
                           </ImgUploaderWithCopper>
                         )
                       : (
-                          <div className="relative overflow-hidden rounded-lg shrink-0">
+                          <div className="tc-blocksuite-tc-header-avatar tc-blocksuite-tc-header-avatar-readonly">
                             {tcHeaderImageUrl
                               ? (
                                   <img
                                     src={tcHeaderImageUrl}
                                     alt={tcHeaderTitle || "header"}
-                                    className="w-10 h-10 rounded"
+                                    className="tc-blocksuite-tc-header-avatar-img"
                                   />
                                 )
-                              : (
-                                  <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
-                                )}
+                              : null}
                           </div>
                         )}
 
@@ -1090,15 +1086,14 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                     <div className="tc-blocksuite-tc-header-actions">
                       {canEditTcHeader
                         ? (
-                            <div className="tooltip tooltip-top" data-tip="清空 blocksuite 内置 doc-title（仅影响旧文档）">
-                              <button
-                                type="button"
-                                className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
-                                onClick={() => void resetBuiltinDocTitle()}
-                              >
-                                重置内置标题
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
+                              title="清空 blocksuite 内置 doc-title（仅影响旧文档）"
+                              onClick={() => void resetBuiltinDocTitle()}
+                            >
+                              重置内置标题
+                            </button>
                           )
                         : null}
                       {allowModeSwitch && !hideModeSwitchButton
