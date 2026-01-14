@@ -1146,7 +1146,8 @@ export default function AiImagePage() {
                 </label>
 
                 <div className="text-xs opacity-60 leading-relaxed">
-                  Web 环境默认通过同源代理 `/api/novelapi/*` 请求 NovelAI；Electron 环境默认通过 IPC 代理请求。
+                  Web 环境默认通过同源代理 `/api/novelapi/*` 请求 NovelAI；如出现 502（上游连接超时），通常是运行 `pnpm dev/start` 的 Node 进程无法直连 NovelAI，可设置 `NOVELAPI_PROXY`/`HTTPS_PROXY`/`ALL_PROXY` 后重启。
+                  Electron 环境默认通过 IPC 代理请求。
                 </div>
               </div>
             )}

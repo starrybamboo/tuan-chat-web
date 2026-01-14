@@ -50,7 +50,8 @@
   cursor: pointer;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly {
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+  .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly {
   cursor: default;
 }
 
@@ -68,17 +69,22 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 180ms ease, background-color 180ms ease;
+  transition:
+    opacity 180ms ease,
+    background-color 180ms ease;
   background-color: rgb(0 0 0 / 0);
   pointer-events: none;
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar:hover .tc-blocksuite-tc-header-avatar-overlay {
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+  .tc-blocksuite-tc-header-avatar:hover
+  .tc-blocksuite-tc-header-avatar-overlay {
   opacity: 1;
   background-color: rgb(0 0 0 / 0.2);
 }
 
-.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly:hover
+.tc-blocksuite-scope.tc-blocksuite-tc-header-enabled
+  .tc-blocksuite-tc-header-avatar.tc-blocksuite-tc-header-avatar-readonly:hover
   .tc-blocksuite-tc-header-avatar-overlay {
   opacity: 0;
   background-color: rgb(0 0 0 / 0);
@@ -192,4 +198,3 @@
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn.tc-blocksuite-tc-header-btn-ghost {
   background-color: oklch(var(--b1) / 1);
 }
-

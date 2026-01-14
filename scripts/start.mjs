@@ -1,14 +1,47 @@
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
-import { existsSync, promises as fs } from "node:fs";
+import { existsSync, promises as fs, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import path from "node:path";
 import process from "node:process";
 import { Readable } from "node:stream";
 import url from "node:url";
+import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 
 const projectRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), "..");
 const ssrEntry = path.join(projectRoot, "build", "server", "index.js");
+
+function applyEnvFile(filePath) {
+  if (!existsSync(filePath))
+    return;
+
+  const text = readFileSync(filePath, "utf8");
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#"))
+      continue;
+
+    const idx = line.indexOf("=");
+    if (idx <= 0)
+      continue;
+
+    const key = line.slice(0, idx).trim();
+    if (!key)
+      continue;
+
+    let value = line.slice(idx + 1).trim();
+    if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'")))
+      value = value.slice(1, -1);
+
+    if (process.env[key] === undefined)
+      process.env[key] = value;
+  }
+}
+
+// Allow local override via .env files (useful when Node cannot reach NovelAI without a proxy).
+for (const envFile of [".env", ".env.local", ".env.production", ".env.production.local"]) {
+  applyEnvFile(path.join(projectRoot, envFile));
+}
 
 const port = Number(process.env.PORT || process.env.VITE_PORT || 5177);
 const host = process.env.HOST || "0.0.0.0";
@@ -73,6 +106,15 @@ else {
 
   const defaultNovelAiEndpoint = String(process.env.NOVELAPI_DEFAULT_ENDPOINT || "https://image.novelai.net").replace(/\/+$/, "");
   const allowAnyNovelAiEndpoint = String(process.env.NOVELAPI_ALLOW_ANY_ENDPOINT || "") === "1";
+
+  const connectTimeoutMsRaw = Number(process.env.NOVELAPI_CONNECT_TIMEOUT_MS || "");
+  const connectTimeoutMs = Number.isFinite(connectTimeoutMsRaw) && connectTimeoutMsRaw > 0 ? connectTimeoutMsRaw : 10_000;
+
+  const proxyUrl = String(process.env.NOVELAPI_PROXY || process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy || process.env.ALL_PROXY || process.env.all_proxy || "").trim();
+
+  const upstreamDispatcher = proxyUrl
+    ? new ProxyAgent({ uri: proxyUrl, connect: { timeout: connectTimeoutMs } })
+    : new Agent({ connect: { timeout: connectTimeoutMs } });
 
   const isAllowedNovelAiEndpoint = (endpointUrl) => {
     if (allowAnyNovelAiEndpoint)
@@ -162,10 +204,11 @@ else {
 
     let upstreamRes;
     try {
-      upstreamRes = await fetch(upstreamUrl.toString(), {
+      upstreamRes = await undiciFetch(upstreamUrl.toString(), {
         method: req.method || "GET",
         headers,
         body,
+        dispatcher: upstreamDispatcher,
       });
     }
     catch (e) {

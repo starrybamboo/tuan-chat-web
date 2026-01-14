@@ -26,11 +26,11 @@ import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
 
-type CommandRequestPayload = {
+interface CommandRequestPayload {
   command: string;
   allowAll?: boolean;
   allowedRoleIds?: number[];
-};
+}
 
 function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */

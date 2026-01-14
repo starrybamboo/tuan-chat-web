@@ -8,6 +8,7 @@ import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { Readable } from "node:stream";
+import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 import { defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -78,9 +79,15 @@ function fixCjsDefaultExportPlugin(): Plugin {
   };
 }
 
-function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint: boolean }): Plugin {
+function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint: boolean; proxyUrl: string; connectTimeoutMs: number }): Plugin {
   const defaultNovelAiEndpoint = config.defaultEndpoint.replace(/\/+$/, "");
   const allowAnyNovelAiEndpoint = config.allowAnyEndpoint;
+  const connectTimeoutMs = config.connectTimeoutMs > 0 ? config.connectTimeoutMs : 10_000;
+  const proxyUrl = String(config.proxyUrl || "").trim();
+
+  const upstreamDispatcher = proxyUrl
+    ? new ProxyAgent({ uri: proxyUrl, connect: { timeout: connectTimeoutMs } })
+    : new Agent({ connect: { timeout: connectTimeoutMs } });
 
   const isAllowedNovelAiEndpoint = (endpointUrl: URL) => {
     if (allowAnyNovelAiEndpoint)
@@ -179,10 +186,11 @@ function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint
             body = await readBody(req);
           }
 
-          const upstreamRes = await fetch(upstreamUrl.toString(), {
+          const upstreamRes = await undiciFetch(upstreamUrl.toString(), {
             method: req.method || "GET",
             headers,
             body,
+            dispatcher: upstreamDispatcher,
           });
 
           const upstreamContentType = upstreamRes.headers.get("content-type");
@@ -221,9 +229,16 @@ export default defineConfig(({ command, mode }) => {
   const _isDev = command === "serve";
   const env = loadEnv(mode, process.cwd(), "");
 
+  const novelApiConnectTimeoutMsRaw = Number(env.NOVELAPI_CONNECT_TIMEOUT_MS || "");
+  const novelApiConnectTimeoutMs = Number.isFinite(novelApiConnectTimeoutMsRaw) && novelApiConnectTimeoutMsRaw > 0
+    ? novelApiConnectTimeoutMsRaw
+    : 10_000;
+
   const novelApiConfig = {
     defaultEndpoint: String(env.NOVELAPI_DEFAULT_ENDPOINT || "https://image.novelai.net"),
     allowAnyEndpoint: String(env.NOVELAPI_ALLOW_ANY_ENDPOINT || "") === "1",
+    proxyUrl: String(env.NOVELAPI_PROXY || env.HTTPS_PROXY || env.https_proxy || env.HTTP_PROXY || env.http_proxy || env.ALL_PROXY || env.all_proxy || ""),
+    connectTimeoutMs: novelApiConnectTimeoutMs,
   };
 
   const nm = (p: string) => {
