@@ -110,15 +110,15 @@
     "Apple Color Emoji",
     "Segoe UI Emoji"
   );
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 24px;
+  line-height: 32px;
   font-weight: 700;
   color: var(--affine-text-primary-color, #111827);
-  height: 40px;
-  padding: 0 10px;
+  height: 44px;
+  padding: 0 12px;
   background-color: transparent;
-  border-radius: 8px;
-  border: 1px solid oklch(var(--bc) / 0.12);
+  border-radius: 10px;
+  border: 1px solid oklch(var(--bc) / 0.16);
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {
@@ -132,7 +132,7 @@
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled):hover {
   background-color: oklch(var(--b2) / 0.6);
-  border-color: oklch(var(--bc) / 0.18);
+  border-color: oklch(var(--bc) / 0.22);
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:focus-visible {
@@ -163,12 +163,12 @@
   align-items: center;
   justify-content: center;
   height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid oklch(var(--bc) / 0.12);
-  background-color: oklch(var(--b1) / 1);
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid oklch(var(--bc) / 0.16);
+  background-color: oklch(var(--b2) / 0.75);
   color: oklch(var(--bc) / 0.9);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -176,8 +176,8 @@
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:hover {
-  background-color: oklch(var(--b2) / 0.8);
-  border-color: oklch(var(--bc) / 0.18);
+  background-color: oklch(var(--b2) / 1);
+  border-color: oklch(var(--bc) / 0.22);
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn:active {
@@ -190,6 +190,6 @@
 }
 
 .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-btn.tc-blocksuite-tc-header-btn-ghost {
-  background-color: transparent;
+  background-color: oklch(var(--b1) / 1);
 }
 
