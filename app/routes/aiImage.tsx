@@ -268,8 +268,8 @@ async function loadModelsRuntime(args: { token: string; imageEndpoint: string })
 
   const isElectron = isElectronEnv() && typeof window.electronAPI?.novelaiGetClientSettings === "function";
   if (isElectron) {
-    const imageEndpoint = normalizeEndpoint(args.imageEndpoint) || DEFAULT_IMAGE_ENDPOINT;
-    const payload = { token, endpoint: imageEndpoint };
+    const metaEndpoint = normalizeEndpoint(FALLBACK_META_ENDPOINT) || FALLBACK_META_ENDPOINT;
+    const payload = { token, endpoint: metaEndpoint };
     const settings = await window.electronAPI.novelaiGetClientSettings(payload);
     const models = extractModelStrings(settings);
     if (models.length > 0) {
@@ -282,31 +282,26 @@ async function loadModelsRuntime(args: { token: string; imageEndpoint: string })
     };
   }
 
-  const endpoints = [
-    normalizeEndpoint(args.imageEndpoint) || DEFAULT_IMAGE_ENDPOINT,
-    FALLBACK_META_ENDPOINT,
-  ];
+  const metaEndpoint = normalizeEndpoint(FALLBACK_META_ENDPOINT) || FALLBACK_META_ENDPOINT;
 
-  for (const endpoint of endpoints) {
-    try {
-      const settings = await novelApiFetchJson({ token, endpoint, path: "/user/clientsettings" });
-      const models = extractModelStrings(settings);
-      if (models.length > 0)
-        return { models, source: "runtime" as const, hint: "" };
-    }
-    catch {
-      // ignore and fallback
-    }
+  try {
+    const settings = await novelApiFetchJson({ token, endpoint: metaEndpoint, path: "/user/clientsettings" });
+    const models = extractModelStrings(settings);
+    if (models.length > 0)
+      return { models, source: "runtime" as const, hint: "" };
+  }
+  catch {
+    // ignore and fallback
+  }
 
-    try {
-      const userData = await novelApiFetchJson({ token, endpoint, path: "/user/data" });
-      const models = extractModelStrings(userData);
-      if (models.length > 0)
-        return { models, source: "runtime" as const, hint: "" };
-    }
-    catch {
-      // ignore and fallback
-    }
+  try {
+    const userData = await novelApiFetchJson({ token, endpoint: metaEndpoint, path: "/user/data" });
+    const models = extractModelStrings(userData);
+    if (models.length > 0)
+      return { models, source: "runtime" as const, hint: "" };
+  }
+  catch {
+    // ignore and fallback
   }
 
   return {
