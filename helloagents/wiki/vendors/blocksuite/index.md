@@ -65,6 +65,7 @@
     - 定义：`app/components/chat/infra/blocksuite/embedded/tcAffineEditorContainer.ts`
     - 使用：`app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts`（`disableDocTitle` → `disableDocTitle` 属性）
   - specs 层仍会过滤 `DocTitleViewExtension`，减少 fragment side-effect（例如 meta 同步）带来的歧义。
+  - `tcHeader` 头部样式由运行时样式表控制：`app/components/chat/infra/blocksuite/styles/blocksuiteRuntime.css`（包含 sticky 顶部吸附、间距与标题输入状态等）。
 - 旧数据处理：如果历史文档曾经编辑过内置标题（写入 `doc.root.props.title`/`affine:page.title`），仍可能在某些入口出现“双标题/标题不一致”。`BlocksuiteDescriptionEditor` 的 `tcHeader` 区域提供“重置内置标题”按钮，可一键清空内置标题数据。
 
 ---
