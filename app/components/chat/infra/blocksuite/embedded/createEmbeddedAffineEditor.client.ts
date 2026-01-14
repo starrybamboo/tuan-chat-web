@@ -566,6 +566,27 @@ export function createEmbeddedAffineEditor(params: {
   // make sure tcHeader mode never shows the built-in `<doc-title>` fragment.
   if (disableDocTitle) {
     const rootsVisited = new WeakSet<object>();
+    const observedRoots = new WeakSet<object>();
+    const HIDE_STYLE_MARK = "data-tc-hide-doc-title";
+
+    const ensureDocTitleHiddenInShadow = (shadowRoot: ShadowRoot) => {
+      try {
+        const anyRoot = shadowRoot as any;
+        const existing = anyRoot.querySelector?.(`style[${HIDE_STYLE_MARK}="1"]`) as HTMLStyleElement | null | undefined;
+        if (existing)
+          return;
+
+        const style = document.createElement("style");
+        style.setAttribute(HIDE_STYLE_MARK, "1");
+        style.textContent = `
+          doc-title { display: none !important; }
+        `;
+        shadowRoot.appendChild(style);
+      }
+      catch {
+        // ignore
+      }
+    };
 
     const forEachRoot = (root: ParentNode | null, onRoot: (r: ParentNode) => void) => {
       if (!root)
@@ -605,11 +626,61 @@ export function createEmbeddedAffineEditor(params: {
               // ignore
             }
           }
+
+          // If this root is a ShadowRoot, also inject a style rule so future inserts stay hidden.
+          if ((root as any) instanceof ShadowRoot) {
+            ensureDocTitleHiddenInShadow(root as unknown as ShadowRoot);
+          }
         };
 
         const shadowRoot = (editor as any).shadowRoot as ShadowRoot | null | undefined;
         forEachRoot(editor, runInRoot);
         forEachRoot(shadowRoot ?? null, runInRoot);
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const observeRootForReinserts = (root: ParentNode) => {
+      if (typeof MutationObserver === "undefined")
+        return;
+      if (typeof root !== "object" || root === null)
+        return;
+      if (observedRoots.has(root as any))
+        return;
+      observedRoots.add(root as any);
+
+      if ((root as any) instanceof ShadowRoot) {
+        ensureDocTitleHiddenInShadow(root as unknown as ShadowRoot);
+      }
+
+      try {
+        const observer = new MutationObserver((mutations) => {
+          // On any mutation, rescan once; also start observing newly-attached shadow roots.
+          for (const m of mutations) {
+            for (const node of Array.from(m.addedNodes ?? [])) {
+              if (!(node instanceof Element))
+                continue;
+              const sr = (node as any).shadowRoot as ShadowRoot | null | undefined;
+              if (sr) {
+                observeRootForReinserts(sr);
+              }
+              // Also scan descendants for shadow roots (some components create nested hosts).
+              const all = node.querySelectorAll?.("*");
+              if (all?.length) {
+                for (const el of Array.from(all)) {
+                  const nested = (el as any).shadowRoot as ShadowRoot | null | undefined;
+                  if (nested) {
+                    observeRootForReinserts(nested);
+                  }
+                }
+              }
+            }
+          }
+          suppressDocTitleOnce();
+        });
+        observer.observe(root, { childList: true, subtree: true });
       }
       catch {
         // ignore
@@ -633,16 +704,24 @@ export function createEmbeddedAffineEditor(params: {
       // ignore
     }
 
-    // Best-effort observer for future re-insertions (mode switches / re-render).
+    // Best-effort observers for future re-insertions (mode switches / re-render).
     try {
       const shadowRoot = (editor as any).shadowRoot as ShadowRoot | null | undefined;
-      const targets: Array<ParentNode> = [editor];
+      observeRootForReinserts(editor);
       if (shadowRoot)
-        targets.push(shadowRoot);
+        observeRootForReinserts(shadowRoot);
 
-      for (const target of targets) {
-        const observer = new MutationObserver(() => suppressDocTitleOnce());
-        observer.observe(target, { childList: true, subtree: true });
+      // Also proactively observe all currently-open nested shadow roots inside editor's shadow tree.
+      if (shadowRoot) {
+        const queryAll = (shadowRoot as any).querySelectorAll as ((selector: string) => NodeListOf<Element>) | undefined;
+        if (queryAll) {
+          for (const el of Array.from(queryAll.call(shadowRoot as any, "*"))) {
+            const sr = (el as any).shadowRoot as ShadowRoot | null | undefined;
+            if (sr) {
+              observeRootForReinserts(sr);
+            }
+          }
+        }
       }
     }
     catch {

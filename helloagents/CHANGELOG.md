@@ -52,6 +52,7 @@
 - 修复空间模式首次进入可能落到 `/chat/<spaceId>/null`：房间列表就绪后按自定义排序自动进入首个房间（并使用 `replace` 回填路由）
 - 修复 ESLint 报错/告警：补全 Blocksuite 描述文档相关 `useEffect` 依赖；移除未使用的 Zustand `get` 参数；`/var set` 解析改为非正则解析避免回溯；`novelai-openapi.mjs` 显式引入 `node:process`
 - 修复 Blocksuite `tcHeader` 模式仍可能显示内置 `doc-title`：在 specs 过滤外增加运行时兜底（移除 `<doc-title>` 节点），并强化“重置内置标题”对 root/page title 的清空逻辑
+- 修复 Blocksuite `<doc-title>` 出现在 ShadowRoot 内导致 CSS 兜底失效：在 open ShadowRoot 内注入隐藏样式并递归观察 nested ShadowRoot，确保 tcHeader 模式不出现双标题
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
