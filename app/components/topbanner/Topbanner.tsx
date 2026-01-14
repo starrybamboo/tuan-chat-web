@@ -1,4 +1,4 @@
-import { ArchiveBoxIcon, ChatsIcon, GearSixIcon, IdentificationCardIcon, SignOutIcon, TreasureChestIcon, UserIcon } from "@phosphor-icons/react";
+import { ArchiveBoxIcon, ChatsIcon, GearSixIcon, IdentificationCardIcon, ImageIcon, SignOutIcon, TreasureChestIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -119,6 +119,7 @@ export default function Topbar() {
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     { to: "/module", label: "模组", icon: TreasureChestIcon },
     { to: "/doc-test", label: "文档测试", icon: ArchiveBoxIcon },
+    { to: "/ai-image", label: "AI生图", icon: ImageIcon },
   ];
 
   return (

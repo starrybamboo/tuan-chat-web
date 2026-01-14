@@ -14,6 +14,7 @@ export async function createEmbeddedAffineEditor(params: {
   docModeProvider: DocModeProvider;
   spaceId?: number;
   autofocus?: boolean;
+  disableDocTitle?: boolean;
   onNavigateToDoc?: (params: { spaceId: number; docId: string }) => void;
 }): Promise<HTMLElement> {
   if (typeof document === "undefined") {

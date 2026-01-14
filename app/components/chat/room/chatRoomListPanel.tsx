@@ -3,6 +3,7 @@ import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "./sidebarTree
 import type { CategoryEditorState, DeleteConfirmDocState, SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
+import { FileTextIcon } from "@phosphor-icons/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -10,7 +11,7 @@ import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId 
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import LeftChatList from "@/components/privateChat/LeftChatList";
-import { ChevronDown } from "@/icons";
+import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
@@ -28,12 +29,15 @@ export interface ChatRoomListPanelProps {
   roomOrderIds?: number[];
   onReorderRoomIds?: (nextRoomIds: number[]) => void;
 
+  onOpenRoomSetting?: (roomId: number, tab?: "role" | "setting") => void;
+
   sidebarTree?: SidebarTree | null;
   docMetas?: MinimalDocMeta[];
   onSelectDoc?: (docId: string) => void;
   onSaveSidebarTree?: (tree: SidebarTree) => void;
   onResetSidebarTreeToDefault?: () => void;
   activeRoomId: number | null;
+  activeDocId?: string | null;
   unreadMessagesNumber: Record<number, number>;
 
   onContextMenu: (e: React.MouseEvent) => void;
@@ -45,7 +49,7 @@ export interface ChatRoomListPanelProps {
 
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 
-  onCreateRoom: () => void;
+  onOpenCreateInCategory: (categoryId: string) => void;
 }
 
 export default function ChatRoomListPanel({
@@ -63,6 +67,7 @@ export default function ChatRoomListPanel({
   onSaveSidebarTree,
   onResetSidebarTreeToDefault,
   activeRoomId,
+  activeDocId,
   unreadMessagesNumber,
   onContextMenu,
   onInviteMember,
@@ -70,7 +75,7 @@ export default function ChatRoomListPanel({
   onSelectRoom,
   onCloseLeftDrawer,
   setIsOpenLeftDrawer,
-  onCreateRoom,
+  onOpenCreateInCategory,
 }: ChatRoomListPanelProps) {
   type DraggingItem = {
     kind: "node";
@@ -199,7 +204,8 @@ export default function ChatRoomListPanel({
       setExpandedByCategoryId(null);
       getSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId })
         .then((val) => {
-          setExpandedByCategoryId(val ?? {});
+          // 避免覆盖用户在读取完成前的手动展开操作（会导致“展开后立刻收回”的抖动）。
+          setExpandedByCategoryId(prev => prev ?? (val ?? {}));
         })
         .catch(() => {
           setExpandedByCategoryId({});
@@ -214,7 +220,8 @@ export default function ChatRoomListPanel({
       return;
     // categories 变化时：去掉不存在的 key，避免无限增长
     const next: Record<string, boolean> = {};
-    for (const c of displayTree.categories) {
+    const categoriesInView = (canEdit ? (localTree ?? displayTree) : displayTree).categories;
+    for (const c of categoriesInView) {
       if (expandedByCategoryId[c.categoryId]) {
         next[c.categoryId] = true;
       }
@@ -227,7 +234,7 @@ export default function ChatRoomListPanel({
         // ignore
       });
     }
-  }, [activeSpaceId, currentUserId, displayTree.categories, expandedByCategoryId]);
+  }, [activeSpaceId, canEdit, currentUserId, displayTree, expandedByCategoryId, localTree]);
 
   const toggleCategoryExpanded = useCallback((categoryId: string) => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0)
@@ -359,9 +366,10 @@ export default function ChatRoomListPanel({
     }
     const base = treeToRender;
     const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
+    let newCategoryId: string | null = null;
     if (categoryEditor.mode === "add") {
       next.categories.push({
-        categoryId: `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`,
+        categoryId: (newCategoryId = `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`),
         name,
         items: [],
       });
@@ -375,7 +383,12 @@ export default function ChatRoomListPanel({
     normalizeAndSet(next, true);
     setCategoryEditor(null);
     setCategoryEditorError("");
-  }, [categoryEditor, normalizeAndSet, treeToRender]);
+
+    // 新增分类默认展开，避免“点一下展开又收回”的体验。
+    if (newCategoryId) {
+      toggleCategoryExpanded(newCategoryId);
+    }
+  }, [categoryEditor, normalizeAndSet, toggleCategoryExpanded, treeToRender]);
 
   const deleteCategoryCore = useCallback((categoryId: string) => {
     const base = treeToRender;
@@ -515,7 +528,7 @@ export default function ChatRoomListPanel({
                             return;
                           // 避免从输入控件触发拖拽
                           const el = e.target as HTMLElement | null;
-                          if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
+                          if (el && (el.closest("input") || el.closest("select") || el.closest("textarea") || el.closest("button"))) {
                             e.preventDefault();
                             return;
                           }
@@ -581,6 +594,21 @@ export default function ChatRoomListPanel({
                         </button>
 
                         <span className="flex-1 truncate">{cat.name}</span>
+
+                        {canEdit && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs"
+                            title="创建…"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onOpenCreateInCategory(cat.categoryId);
+                            }}
+                          >
+                            <AddIcon />
+                          </button>
+                        )}
 
                         {/* 分类的弹出操作菜单已改为右键触发 */}
                       </div>
@@ -713,13 +741,29 @@ export default function ChatRoomListPanel({
                                       })()
                                     : (
                                         <div
-                                          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-base-300/60"
+                                          className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 ${activeDocId === String((node as any).targetId) ? "bg-info-content/10" : "hover:bg-base-300"}`}
+                                          role="button"
+                                          tabIndex={0}
+                                          aria-pressed={activeDocId === String((node as any).targetId)}
                                           onContextMenu={(e) => {
                                             if (!canEdit)
                                               return;
                                             e.preventDefault();
                                             e.stopPropagation();
                                             setContextMenu({ kind: "doc", x: e.clientX, y: e.clientY, categoryId: cat.categoryId, index, docId: String(node.targetId) });
+                                          }}
+                                          onClick={() => {
+                                            const docId = String(node.targetId);
+                                            onSelectDoc?.(docId);
+                                            onCloseLeftDrawer();
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                              e.preventDefault();
+                                              const docId = String(node.targetId);
+                                              onSelectDoc?.(docId);
+                                              onCloseLeftDrawer();
+                                            }
                                           }}
                                           onDragOver={(e) => {
                                             if (!canEdit)
@@ -765,21 +809,10 @@ export default function ChatRoomListPanel({
                                             setDropTarget(null);
                                           }}
                                         >
-                                          <button
-                                            type="button"
-                                            className="truncate flex-1 text-left"
-                                            onClick={() => {
-                                              const docId = String(node.targetId);
-                                              onSelectDoc?.(docId);
-                                              onCloseLeftDrawer();
-                                            }}
-                                          >
-                                            {title}
-                                          </button>
-
-                                          {canEdit && (
-                                            <span className="opacity-40 text-xs">右键操作</span>
-                                          )}
+                                          <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center">
+                                            <FileTextIcon className="size-4 opacity-70" />
+                                          </div>
+                                          <span className="flex-1 min-w-0 truncate text-left">{title}</span>
                                         </div>
                                       )}
                                 </div>
@@ -884,16 +917,6 @@ export default function ChatRoomListPanel({
                   );
                 })}
               </div>
-
-              {activeSpaceId !== null && isSpaceOwner && (
-                <button
-                  className="btn btn-dash btn-info flex mx-2"
-                  type="button"
-                  onClick={onCreateRoom}
-                >
-                  创建房间
-                </button>
-              )}
 
               <SidebarTreeOverlays
                 canEdit={canEdit}

@@ -1,3 +1,5 @@
+import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
+
 import type { ChatMessageResponse, Message } from "../../api";
 
 import { MessageType } from "../../api/wsModels";
@@ -122,6 +124,11 @@ function formatMessageContent(
       const effect = (extra as any)?.effectMessage;
       const name = effect?.effectName || content;
       return `[演出效果]${name ? ` ${name}` : ""}`;
+    }
+    case MessageType.WEBGAL_VAR: {
+      const payload = extractWebgalVarPayload(extra);
+      const summary = payload ? formatWebgalVarSummary(payload) : "";
+      return `[变量]${summary ? ` ${summary}` : ""}`;
     }
     case MessageType.CLUE_CARD: {
       const clue = extra?.clueMessage as { name?: string; description?: string } | undefined;

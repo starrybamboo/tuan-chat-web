@@ -2,6 +2,7 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
+import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
@@ -1242,6 +1243,17 @@ export class RealtimeRenderer {
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
       }
+      return;
+    }
+
+    // WebGAL 变量变更消息：转换为 setVar 并写入场景脚本（强制 -global 语义）
+    if ((msg.messageType as number) === 11) {
+      const payload = extractWebgalVarPayload(msg.extra);
+      if (!payload)
+        return;
+      await this.appendLine(targetRoomId, buildWebgalSetVarLine(payload), syncToFile);
+      if (syncToFile)
+        this.sendSyncMessage(targetRoomId);
       return;
     }
 

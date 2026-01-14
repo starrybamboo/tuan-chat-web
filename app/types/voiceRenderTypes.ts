@@ -42,6 +42,8 @@ export const MESSAGE_TYPE = {
   INTRO_TEXT: 9,
   /** WebGAL 指令消息（显式类型，不再使用 % 前缀协议） */
   WEBGAL_COMMAND: 10,
+  /** WebGAL 变量变更消息（结构化，用于和 space 级持久化同步） */
+  WEBGAL_VAR: 11,
   CLUE_CARD: 1000,
   READ_LINE: 10000,
   /** Thread 根消息（在主消息流里展示 thread 标题） */
