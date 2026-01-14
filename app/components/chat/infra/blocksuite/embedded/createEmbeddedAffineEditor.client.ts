@@ -528,10 +528,25 @@ export function createEmbeddedAffineEditor(params: {
   });
 
   const pageSpecsBase = viewManager.get("page");
+  const normalizeExtHint = (v: unknown) => String(v ?? "").trim().toLowerCase();
   const isDocTitleExtension = (ext: any) => {
-    return ext === DocTitleViewExtension
-      || ext?.name === "affine-doc-title-fragment"
-      || ext?.constructor === DocTitleViewExtension;
+    if (!ext)
+      return false;
+
+    // Prefer identity checks when possible.
+    if (ext === DocTitleViewExtension || ext?.constructor === DocTitleViewExtension)
+      return true;
+
+    // Some builds may duplicate module instances (e.g. workspace + iframe bundles),
+    // so fall back to semantic matching by name/id.
+    const name = normalizeExtHint(ext?.name ?? (typeof ext === "function" ? ext.name : ""));
+    const id = normalizeExtHint(ext?.id ?? ext?.key ?? ext?.type ?? ext?.displayName);
+
+    if (name === "affine-doc-title-fragment" || id === "affine-doc-title-fragment")
+      return true;
+
+    // Final heuristic: match "doc"+"title" but avoid over-broad matches.
+    return (name.includes("doc") && name.includes("title")) || (id.includes("doc") && id.includes("title"));
   };
   const pageSpecs = disableDocTitle
     ? pageSpecsBase.filter(ext => !isDocTitleExtension(ext))

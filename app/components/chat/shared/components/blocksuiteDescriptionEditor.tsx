@@ -920,6 +920,39 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const tcHeaderImageUrl = tcHeaderState?.imageUrl ?? tcHeader?.fallbackImageUrl ?? "";
   const tcHeaderTitle = tcHeaderState?.title ?? tcHeader?.fallbackTitle ?? "";
 
+  const resetBuiltinDocTitle = async () => {
+    const store = storeRef.current;
+    if (!store)
+      return;
+
+    try {
+      const pages = (store as any).getModelsByFlavour?.("affine:page") as any[] | undefined;
+      const page = pages?.[0];
+      if (!page)
+        return;
+
+      const titleObj = page?.props?.title;
+      const currentTitle = typeof titleObj?.toString === "function" ? titleObj.toString() : String(titleObj ?? "");
+      if (!String(currentTitle ?? "").trim())
+        return;
+
+      const { Text } = await import("@blocksuite/store");
+      const doUpdate = () => {
+        (store as any).updateBlock?.(page, { title: new Text("") });
+      };
+
+      if (typeof (store as any).transact === "function") {
+        (store as any).transact(doUpdate);
+      }
+      else {
+        doUpdate();
+      }
+    }
+    catch {
+      // ignore
+    }
+  };
+
   return (
     <div className={rootClassName}>
       <div
@@ -978,6 +1011,19 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                         )}
 
                     <div className="tc-blocksuite-tc-header-actions">
+                      {canEditTcHeader
+                        ? (
+                            <div className="tooltip tooltip-top" data-tip="清空 blocksuite 内置 doc-title（仅影响旧文档）">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost"
+                                onClick={() => void resetBuiltinDocTitle()}
+                              >
+                                重置内置标题
+                              </button>
+                            </div>
+                          )
+                        : null}
                       {allowModeSwitch && !hideModeSwitchButton
                         ? (
                             <button
