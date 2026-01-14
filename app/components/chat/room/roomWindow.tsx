@@ -6,7 +6,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import type { SpaceWebgalVarsRecord } from "@/types/webgalVar";
+import type { SpaceWebgalVarsRecord, WebgalVarMessagePayload } from "@/types/webgalVar";
 import { IdentificationCardIcon } from "@phosphor-icons/react";
 // *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -43,7 +43,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { NarratorIcon, UserSwitchIcon } from "@/icons";
-import { parseWebgalVarCommand } from "@/types/webgalVar";
+
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -576,6 +576,119 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
   }, [mainHistoryMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
 
+  const webgalVarSendingRef = useRef(false);
+
+  const handleSetWebgalVar = useCallback(async (key: string, expr: string) => {
+    const rawKey = String(key ?? "").trim();
+    const rawExpr = String(expr ?? "").trim();
+
+    const isKP = spaceContext.isSpaceOwner;
+    const isNarrator = curRoleId <= 0;
+
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isNarrator && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      return;
+    }
+    if (isSubmitting || webgalVarSendingRef.current) {
+      toast.error("正在设置变量，请稍等");
+      return;
+    }
+
+    if (!rawKey || !rawExpr) {
+      toast.error("变量名/表达式不能为空");
+      return;
+    }
+    if (!/^[A-Z_]\w*$/i.test(rawKey)) {
+      toast.error("变量名格式不正确");
+      return;
+    }
+
+    const payload: WebgalVarMessagePayload = {
+      scope: "space",
+      op: "set",
+      key: rawKey,
+      expr: rawExpr,
+      global: true,
+    };
+
+    webgalVarSendingRef.current = true;
+    try {
+      const varMsg: ChatMessageRequest = {
+        roomId,
+        roleId: curRoleId,
+        avatarId: curAvatarId,
+        content: "",
+        messageType: MessageType.WEBGAL_VAR,
+        extra: {
+          webgalVar: payload,
+        },
+      };
+
+      // 发送区自定义角色名（与联动模式无关）
+      const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
+      if (draftCustomRoleName?.trim()) {
+        varMsg.webgal = {
+          ...(varMsg.webgal as any),
+          customRoleName: draftCustomRoleName.trim(),
+        } as any;
+      }
+
+      await sendMessageWithInsert(varMsg);
+
+      // 空间级持久化：写入 space.extra 的 webgalVars（后端以 key/value 存储）
+      try {
+        const rawExtra = space?.extra || "{}";
+        let parsedExtra: Record<string, any> = {};
+        try {
+          parsedExtra = JSON.parse(rawExtra) as Record<string, any>;
+        }
+        catch {
+          parsedExtra = {};
+        }
+
+        let currentVars: SpaceWebgalVarsRecord = {};
+        const stored = parsedExtra.webgalVars;
+        if (typeof stored === "string") {
+          try {
+            currentVars = JSON.parse(stored) as SpaceWebgalVarsRecord;
+          }
+          catch {
+            currentVars = {};
+          }
+        }
+        else if (stored && typeof stored === "object") {
+          currentVars = stored as SpaceWebgalVarsRecord;
+        }
+
+        const now = Date.now();
+        const nextVars: SpaceWebgalVarsRecord = {
+          ...currentVars,
+          [payload.key]: {
+            expr: payload.expr,
+            updatedAt: now,
+          },
+        };
+
+        await setSpaceExtraMutation.mutateAsync({
+          spaceId,
+          key: "webgalVars",
+          value: JSON.stringify(nextVars),
+        });
+      }
+      catch (error) {
+        console.error("写入 space.extra.webgalVars 失败:", error);
+        toast.error("变量已发送，但写入空间持久化失败");
+      }
+    }
+    finally {
+      webgalVarSendingRef.current = false;
+    }
+  }, [curAvatarId, curRoleId, isSubmitting, notMember, roomId, sendMessageWithInsert, setSpaceExtraMutation, space?.extra, spaceContext.isSpaceOwner, spaceId]);
+
   const handleMessageSubmit = async () => {
     const {
       plainText: inputText,
@@ -629,6 +742,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       toast.error("输入内容过长, 最长未1024个字符");
       return;
     }
+
+    // 禁用输入框 /var 指令入口：改为导演控制台设置变量
+    const trimmedWithoutMentions = inputTextWithoutMentions.trim();
+    if (/^\/var\b/i.test(trimmedWithoutMentions)) {
+      toast.error("请使用导演控制台设置变量");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const uploadedImages: any[] = [];
@@ -715,79 +836,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
       let textContent = inputText.trim();
 
-      // WebGAL 空间变量指令：/var set a=1
-      const trimmedWithoutMentions = inputTextWithoutMentions.trim();
-      const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
-      const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
-
-      // 如果用户输入了 /var 前缀但格式不正确：不交给骰娘命令系统处理，直接提示
-      if (isWebgalVarCommandPrefix && !webgalVarPayload) {
-        toast.error("变量指令格式：/var set a=1");
-        return;
-      }
-
-      if (webgalVarPayload) {
-        const varMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: "",
-          messageType: MessageType.WEBGAL_VAR,
-          extra: {
-            webgalVar: webgalVarPayload,
-          },
-        };
-
-        await sendMessageWithInsert(varMsg);
-
-        // 空间级持久化：写入 space.extra 的 webgalVars（后端以 key/value 存储）
-        try {
-          const rawExtra = space?.extra || "{}";
-          let parsedExtra: Record<string, any> = {};
-          try {
-            parsedExtra = JSON.parse(rawExtra) as Record<string, any>;
-          }
-          catch {
-            parsedExtra = {};
-          }
-
-          let currentVars: SpaceWebgalVarsRecord = {};
-          const stored = parsedExtra.webgalVars;
-          if (typeof stored === "string") {
-            try {
-              currentVars = JSON.parse(stored) as SpaceWebgalVarsRecord;
-            }
-            catch {
-              currentVars = {};
-            }
-          }
-          else if (stored && typeof stored === "object") {
-            currentVars = stored as SpaceWebgalVarsRecord;
-          }
-
-          const now = Date.now();
-          const nextVars: SpaceWebgalVarsRecord = {
-            ...currentVars,
-            [webgalVarPayload.key]: {
-              expr: webgalVarPayload.expr,
-              updatedAt: now,
-            },
-          };
-
-          await setSpaceExtraMutation.mutateAsync({
-            spaceId,
-            key: "webgalVars",
-            value: JSON.stringify(nextVars),
-          });
-        }
-        catch (error) {
-          console.error("写入 space.extra.webgalVars 失败:", error);
-          toast.error("变量已发送，但写入空间持久化失败");
-        }
-
-        // 消耗掉 firstMessage 状态，并防止后续再次作为文本发送
-        isFirstMessage = false;
-        textContent = "";
-      }
-      else if (textContent && isCommand(textContent)) {
+      if (textContent && isCommand(textContent)) {
         commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
         // 指令执行也被视为一次"发送"，消耗掉 firstMessage 状态
         isFirstMessage = false;
@@ -1278,6 +1327,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onSendEffect={handleSendEffect}
               onClearBackground={handleClearBackground}
               onClearFigure={handleClearFigure}
+              onSetWebgalVar={handleSetWebgalVar}
               isKP={spaceContext.isSpaceOwner}
               onStopBgmForAll={handleStopBgmForAll}
               noRole={noRole}
