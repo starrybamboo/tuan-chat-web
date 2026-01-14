@@ -40,6 +40,7 @@
 | 202601141830 | blocksuite_doc_title_reset | 修复 | 已完成 | [2026-01/202601141830_blocksuite_doc_title_reset/](2026-01/202601141830_blocksuite_doc_title_reset/) |
 | 202601141921 | blocksuite_doc_title_double_fix | 修复 | 已完成 | [2026-01/202601141921_blocksuite_doc_title_double_fix/](2026-01/202601141921_blocksuite_doc_title_double_fix/) |
 | 202601141944 | blocksuite_doc_title_shadow_fix | 修复 | 已完成 | [2026-01/202601141944_blocksuite_doc_title_shadow_fix/](2026-01/202601141944_blocksuite_doc_title_shadow_fix/) |
+| 202601141957 | blocksuite_doc_title_persist_fix | 修复 | 已完成 | [2026-01/202601141957_blocksuite_doc_title_persist_fix/](2026-01/202601141957_blocksuite_doc_title_persist_fix/) |
 
 ---
 
@@ -78,3 +79,4 @@
 - [202601141830_blocksuite_doc_title_reset](2026-01/202601141830_blocksuite_doc_title_reset/) - 修复 Blocksuite 双标题：加固禁用 doc-title（fragment）并提供内置标题重置按钮
 - [202601141921_blocksuite_doc_title_double_fix](2026-01/202601141921_blocksuite_doc_title_double_fix/) - 修复 Blocksuite 双标题残留：运行时移除 `<doc-title>` 兜底 + 强化重置内置标题逻辑
 - [202601141944_blocksuite_doc_title_shadow_fix](2026-01/202601141944_blocksuite_doc_title_shadow_fix/) - 修复 tcHeader 新建文档仍显示 `<doc-title>`：ShadowRoot 内注入隐藏样式 + 递归观察 nested ShadowRoot
+- [202601141957_blocksuite_doc_title_persist_fix](2026-01/202601141957_blocksuite_doc_title_persist_fix/) - 修复 `<doc-title>` 持续重插入：容器内注入隐藏 CSS + 强引用 MutationObserver；重置内置标题增加结果提示

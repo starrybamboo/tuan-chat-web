@@ -5,6 +5,7 @@ import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/doc
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
+import toast from "react-hot-toast";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
@@ -928,6 +929,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     try {
       const { Text } = await import("@blocksuite/store");
 
+      const normalizeTitleText = (raw: string) => {
+        // Keep behavior stable for "empty but has zero-width placeholders".
+        return String(raw ?? "").replace(/[\s\u200B\uFEFF]+/g, "").trim();
+      };
+
       const candidates: any[] = [];
 
       // Prefer root when available (DocTitle reads from `doc.root.props.title`).
@@ -956,11 +962,13 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       const shouldReset = uniqueCandidates.some((m) => {
         const titleObj = m?.props?.title;
         const currentTitle = typeof titleObj?.toString === "function" ? titleObj.toString() : String(titleObj ?? "");
-        return Boolean(String(currentTitle ?? "").trim());
+        return Boolean(normalizeTitleText(currentTitle));
       });
 
-      if (!shouldReset)
+      if (!shouldReset) {
+        toast("内置标题已为空");
         return;
+      }
 
       const doUpdate = () => {
         for (const m of uniqueCandidates) {
@@ -979,6 +987,24 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       else {
         doUpdate();
       }
+
+      // Best-effort: immediately remove any `<doc-title>` nodes if they exist.
+      try {
+        const nodes = document.querySelectorAll('[data-tc-blocksuite-root] doc-title');
+        for (const n of Array.from(nodes)) {
+          try {
+            n.remove();
+          }
+          catch {
+            // ignore
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+
+      toast.success("已清空内置标题");
     }
     catch {
       // ignore
