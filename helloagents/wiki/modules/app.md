@@ -68,13 +68,14 @@
 
 ### AI 生图测试（NovelAI）
 
-- 测试页路由：`/ai-image`（对应 `app/routes/aiImage.tsx`）
+- 测试页路由：`/ai-image`（对应 `app/routes/aiImage.tsx`；仅开发环境注册）
 - Web 环境默认通过同源代理请求 NovelAI：`/api/novelapi/*`（`pnpm dev` / `pnpm start` 已内置代理能力，用于规避 CORS/Referer 限制；并允许 `api.novelai.net` 以支持模型/设置拉取）
 - Electron 环境默认通过 IPC 代理请求 NovelAI：`window.electronAPI.novelaiGenerateImage(...)` + `window.electronAPI.novelaiGetClientSettings(...)`
 - 支持文生图（txt2img）与图生图（img2img：上传图片 + `strength/noise` 等参数）
 - UI 结构与操作逻辑对齐 `https://novelai.net/image`：Prompt/Undesired/Image/History/Connection 分区（tabs）
 - 模型列表尝试运行时拉取（失败自动降级并提示）
 - 生成历史默认保存到本地 IndexedDB，支持查看/删除/清空
+- token 为方便调试会本地持久化（localStorage），可手动清除
 
 ## 变更历史
 

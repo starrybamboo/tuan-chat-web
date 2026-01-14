@@ -15,6 +15,7 @@ type TabKey = "prompt" | "undesired" | "image" | "history" | "connection";
 
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
 const FALLBACK_META_ENDPOINT = "https://api.novelai.net";
+const STORAGE_TOKEN_KEY = "tc:ai-image:novelai-token";
 
 const SAMPLERS_NAI3 = [
   "k_euler",
@@ -494,7 +495,16 @@ export default function AiImagePage() {
 
   const [activeTab, setActiveTab] = useState<TabKey>("prompt");
 
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(() => {
+    if (typeof window === "undefined")
+      return "";
+    try {
+      return String(window.localStorage.getItem(STORAGE_TOKEN_KEY) || "");
+    }
+    catch {
+      return "";
+    }
+  });
   const [endpoint, setEndpoint] = useState(DEFAULT_IMAGE_ENDPOINT);
 
   const [mode, setMode] = useState<AiImageHistoryMode>("txt2img");
@@ -723,9 +733,32 @@ export default function AiImagePage() {
     }
   }, [endpoint, model, token]);
 
+  const clearSavedToken = useCallback(() => {
+    setToken("");
+    if (typeof window === "undefined")
+      return;
+    try {
+      window.localStorage.removeItem(STORAGE_TOKEN_KEY);
+    }
+    catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     void refreshHistory();
   }, [refreshHistory]);
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+    try {
+      window.localStorage.setItem(STORAGE_TOKEN_KEY, token);
+    }
+    catch {
+      // ignore
+    }
+  }, [token]);
 
   useEffect(() => {
     void refreshModels();
@@ -1109,7 +1142,12 @@ export default function AiImagePage() {
                     onChange={e => setToken(e.target.value)}
                     placeholder="Persistent API token..."
                   />
-                  <span className="label-text-alt opacity-60 mt-1">token 仅保存在内存，不会写入本地存储</span>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="label-text-alt opacity-60">token 已本地持久化（仅用于调试）</span>
+                    <button type="button" className="btn btn-xs btn-outline" onClick={clearSavedToken} disabled={!token.trim()}>
+                      清除 token
+                    </button>
+                  </div>
                 </label>
 
                 <div className="text-xs opacity-60 leading-relaxed">
