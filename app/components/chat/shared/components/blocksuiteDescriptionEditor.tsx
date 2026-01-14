@@ -926,19 +926,51 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       return;
 
     try {
-      const pages = (store as any).getModelsByFlavour?.("affine:page") as any[] | undefined;
-      const page = pages?.[0];
-      if (!page)
-        return;
-
-      const titleObj = page?.props?.title;
-      const currentTitle = typeof titleObj?.toString === "function" ? titleObj.toString() : String(titleObj ?? "");
-      if (!String(currentTitle ?? "").trim())
-        return;
-
       const { Text } = await import("@blocksuite/store");
+
+      const candidates: any[] = [];
+
+      // Prefer root when available (DocTitle reads from `doc.root.props.title`).
+      const rootModel = (store as any).root;
+      if (rootModel?.props?.title) {
+        candidates.push(rootModel);
+      }
+
+      // Fallback: explicit page models.
+      const pages = (store as any).getModelsByFlavour?.("affine:page") as any[] | undefined;
+      if (Array.isArray(pages)) {
+        candidates.push(...pages);
+      }
+
+      const seen = new Set<string>();
+      const uniqueCandidates = candidates.filter((m) => {
+        const key = String(m?.id ?? "");
+        if (!key)
+          return true;
+        if (seen.has(key))
+          return false;
+        seen.add(key);
+        return true;
+      });
+
+      const shouldReset = uniqueCandidates.some((m) => {
+        const titleObj = m?.props?.title;
+        const currentTitle = typeof titleObj?.toString === "function" ? titleObj.toString() : String(titleObj ?? "");
+        return Boolean(String(currentTitle ?? "").trim());
+      });
+
+      if (!shouldReset)
+        return;
+
       const doUpdate = () => {
-        (store as any).updateBlock?.(page, { title: new Text("") });
+        for (const m of uniqueCandidates) {
+          try {
+            (store as any).updateBlock?.(m, { title: new Text("") });
+          }
+          catch {
+            // ignore
+          }
+        }
       };
 
       if (typeof (store as any).transact === "function") {

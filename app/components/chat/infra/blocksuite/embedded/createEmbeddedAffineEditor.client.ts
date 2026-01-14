@@ -562,6 +562,94 @@ export function createEmbeddedAffineEditor(params: {
     ...defaultExtensions,
   ];
 
+  // Defensive: even if the specs filter misses (upstream shape changes / duplicated module instances),
+  // make sure tcHeader mode never shows the built-in `<doc-title>` fragment.
+  if (disableDocTitle) {
+    const rootsVisited = new WeakSet<object>();
+
+    const forEachRoot = (root: ParentNode | null, onRoot: (r: ParentNode) => void) => {
+      if (!root)
+        return;
+      if (typeof root !== "object" || root === null)
+        return;
+
+      if (rootsVisited.has(root as any))
+        return;
+      rootsVisited.add(root as any);
+
+      onRoot(root);
+
+      const queryAll = (root as any).querySelectorAll as ((selector: string) => NodeListOf<Element>) | undefined;
+      if (!queryAll)
+        return;
+
+      for (const el of Array.from(queryAll.call(root as any, "*"))) {
+        const shadowRoot = (el as any).shadowRoot as ShadowRoot | null | undefined;
+        if (shadowRoot) {
+          forEachRoot(shadowRoot, onRoot);
+        }
+      }
+    };
+
+    const suppressDocTitleOnce = () => {
+      try {
+        const runInRoot = (root: ParentNode) => {
+          const query = (root as any).querySelectorAll as ((selector: string) => NodeListOf<Element>) | undefined;
+          if (!query)
+            return;
+          for (const node of Array.from(query.call(root as any, "doc-title"))) {
+            try {
+              node.remove();
+            }
+            catch {
+              // ignore
+            }
+          }
+        };
+
+        const shadowRoot = (editor as any).shadowRoot as ShadowRoot | null | undefined;
+        forEachRoot(editor, runInRoot);
+        forEachRoot(shadowRoot ?? null, runInRoot);
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    // Run a few times to cover async render / late-defined elements.
+    suppressDocTitleOnce();
+    try {
+      queueMicrotask(suppressDocTitleOnce);
+    }
+    catch {
+      // ignore
+    }
+    try {
+      window.setTimeout(suppressDocTitleOnce, 0);
+      window.setTimeout(suppressDocTitleOnce, 50);
+      window.setTimeout(suppressDocTitleOnce, 150);
+    }
+    catch {
+      // ignore
+    }
+
+    // Best-effort observer for future re-insertions (mode switches / re-render).
+    try {
+      const shadowRoot = (editor as any).shadowRoot as ShadowRoot | null | undefined;
+      const targets: Array<ParentNode> = [editor];
+      if (shadowRoot)
+        targets.push(shadowRoot);
+
+      for (const target of targets) {
+        const observer = new MutationObserver(() => suppressDocTitleOnce());
+        observer.observe(target, { childList: true, subtree: true });
+      }
+    }
+    catch {
+      // ignore
+    }
+  }
+
   try {
     const std = (editor as any).std;
     const refProvider = std?.get?.(RefNodeSlotsProvider);
