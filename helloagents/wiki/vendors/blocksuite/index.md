@@ -60,12 +60,12 @@
 - custom element：`<doc-title>`
   - 源码：`node_modules/@blocksuite/affine-fragment-doc-title/src/doc-title.ts`
   - 关键样式：`font-size: 40px; line-height: 50px; font-weight: 700; max-width: var(--affine-editor-width); padding: 38px 0; padding-left/right: var(--affine-editor-side-padding, 24px)`
-- 本项目替代策略：`BlocksuiteDescriptionEditor` 在启用 `tcHeader` 时，会在 specs 层过滤 `DocTitleViewExtension` 来禁用内置标题，并让自定义 header 的标题排版对齐上述样式基准。
-- 兜底策略：考虑到 blocksuite 在 iframe 内可能注入/调整 CSS，且上游 specs 过滤可能因引用形态差异漏删，本项目在 tcHeader 模式下额外通过 CSS 强制隐藏 `<doc-title>`，确保不会与业务 header 并存。
-- 旧数据处理：如果历史文档曾经编辑过内置标题（写入 `affine:page.title`），仍可能在某些入口/调试页出现“双标题/标题不一致”。`BlocksuiteDescriptionEditor` 的 `tcHeader` 区域提供“重置内置标题”按钮，可一键清空内置标题数据，消除后续隐患。
-- 实践注意：`<doc-title>` 是一个 shadowless custom element（`ShadowlessElement`），在某些渲染链路里外部 CSS 不一定能稳定命中（尤其是多层 web component/Shadow DOM 场景）。因此本项目在 `tcHeader` 模式下除了 specs 过滤外，还会在 editor 创建后运行一次“删除 `<doc-title>` 节点”的兜底逻辑，确保不会出现双标题。
-- 若 `<doc-title>` 仍出现：优先怀疑它被渲染在 `affine-editor-container` 的 ShadowRoot 内部，导致“宿主页面的 CSS 无法命中”。本项目的兜底策略会在该 ShadowRoot（及其后续出现的 nested ShadowRoot）内注入 `doc-title{display:none!important}`，并配合 MutationObserver 处理重插入。
-- 另一个常见根因：本项目使用的 `@blocksuite/integration-test` 里的 `affine-editor-container`（`TestAffineEditorContainer`）会在其 `render()` 里固定插入 `<doc-title>`（page 模式）。因此除了 specs 过滤外，还需要在容器内部追加 CSS/Observer 来强制隐藏/移除。
+- 本项目替代策略（tcHeader 场景不渲染内置标题）：
+  - 使用自定义容器 `tc-affine-editor-container`（fork 自 `@blocksuite/integration-test`），把 `<doc-title>` 变成“可选渲染”，避免 page 模式固定插入导致双标题。
+    - 定义：`app/components/chat/infra/blocksuite/embedded/tcAffineEditorContainer.ts`
+    - 使用：`app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts`（`disableDocTitle` → `disableDocTitle` 属性）
+  - specs 层仍会过滤 `DocTitleViewExtension`，减少 fragment side-effect（例如 meta 同步）带来的歧义。
+- 旧数据处理：如果历史文档曾经编辑过内置标题（写入 `doc.root.props.title`/`affine:page.title`），仍可能在某些入口出现“双标题/标题不一致”。`BlocksuiteDescriptionEditor` 的 `tcHeader` 区域提供“重置内置标题”按钮，可一键清空内置标题数据。
 
 ---
 

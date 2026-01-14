@@ -28,6 +28,7 @@ import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { insertMentionAtCurrentSelection } from "../services/mentionPicker";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
+import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
 type ElementSnapshot = { attrs: Map<string, string | null>; className: string; styleText: string };
 
@@ -286,8 +287,9 @@ export function createEmbeddedAffineEditor(params: {
     // ignore
   }
 
+  ensureTCAffineEditorContainerDefined();
   const editor = document.createElement(
-    "affine-editor-container",
+    TC_AFFINE_EDITOR_CONTAINER_TAG,
   ) as unknown as HTMLElement;
 
   // Used to scope any injected CSS to this editor only.
@@ -306,6 +308,7 @@ export function createEmbeddedAffineEditor(params: {
   };
 
   (editor as any).autofocus = autofocus;
+  (editor as any).disableDocTitle = disableDocTitle;
   (editor as any).doc = storeAny;
 
   const userService = createTuanChatUserService();
@@ -562,173 +565,6 @@ export function createEmbeddedAffineEditor(params: {
     ...defaultExtensions,
   ];
 
-  // Defensive: even if the specs filter misses (upstream shape changes / duplicated module instances),
-  // make sure tcHeader mode never shows the built-in `<doc-title>` fragment.
-  if (disableDocTitle) {
-    const rootsVisited = new WeakSet<object>();
-    const observedRoots = new WeakSet<object>();
-    const HIDE_STYLE_MARK = "data-tc-hide-doc-title";
-
-    const ensureDocTitleHiddenInShadow = (shadowRoot: ShadowRoot) => {
-      try {
-        const anyRoot = shadowRoot as any;
-        const existing = anyRoot.querySelector?.(`style[${HIDE_STYLE_MARK}="1"]`) as HTMLStyleElement | null | undefined;
-        if (existing)
-          return;
-
-        const style = document.createElement("style");
-        style.setAttribute(HIDE_STYLE_MARK, "1");
-        style.textContent = `
-          doc-title { display: none !important; }
-        `;
-        shadowRoot.appendChild(style);
-      }
-      catch {
-        // ignore
-      }
-    };
-
-    const forEachRoot = (root: ParentNode | null, onRoot: (r: ParentNode) => void) => {
-      if (!root)
-        return;
-      if (typeof root !== "object" || root === null)
-        return;
-
-      if (rootsVisited.has(root as any))
-        return;
-      rootsVisited.add(root as any);
-
-      onRoot(root);
-
-      const queryAll = (root as any).querySelectorAll as ((selector: string) => NodeListOf<Element>) | undefined;
-      if (!queryAll)
-        return;
-
-      for (const el of Array.from(queryAll.call(root as any, "*"))) {
-        const shadowRoot = (el as any).shadowRoot as ShadowRoot | null | undefined;
-        if (shadowRoot) {
-          forEachRoot(shadowRoot, onRoot);
-        }
-      }
-    };
-
-    const suppressDocTitleOnce = () => {
-      try {
-        const runInRoot = (root: ParentNode) => {
-          const query = (root as any).querySelectorAll as ((selector: string) => NodeListOf<Element>) | undefined;
-          if (!query)
-            return;
-          for (const node of Array.from(query.call(root as any, "doc-title"))) {
-            try {
-              node.remove();
-            }
-            catch {
-              // ignore
-            }
-          }
-
-          // If this root is a ShadowRoot, also inject a style rule so future inserts stay hidden.
-          if ((root as any) instanceof ShadowRoot) {
-            ensureDocTitleHiddenInShadow(root as unknown as ShadowRoot);
-          }
-        };
-
-        const shadowRoot = (editor as any).shadowRoot as ShadowRoot | null | undefined;
-        forEachRoot(editor, runInRoot);
-        forEachRoot(shadowRoot ?? null, runInRoot);
-      }
-      catch {
-        // ignore
-      }
-    };
-
-    const observeRootForReinserts = (root: ParentNode) => {
-      if (typeof MutationObserver === "undefined")
-        return;
-      if (typeof root !== "object" || root === null)
-        return;
-      if (observedRoots.has(root as any))
-        return;
-      observedRoots.add(root as any);
-
-      if ((root as any) instanceof ShadowRoot) {
-        ensureDocTitleHiddenInShadow(root as unknown as ShadowRoot);
-      }
-
-      try {
-        const observer = new MutationObserver((mutations) => {
-          // On any mutation, rescan once; also start observing newly-attached shadow roots.
-          for (const m of mutations) {
-            for (const node of Array.from(m.addedNodes ?? [])) {
-              if (!(node instanceof Element))
-                continue;
-              const sr = (node as any).shadowRoot as ShadowRoot | null | undefined;
-              if (sr) {
-                observeRootForReinserts(sr);
-              }
-              // Also scan descendants for shadow roots (some components create nested hosts).
-              const all = node.querySelectorAll?.("*");
-              if (all?.length) {
-                for (const el of Array.from(all)) {
-                  const nested = (el as any).shadowRoot as ShadowRoot | null | undefined;
-                  if (nested) {
-                    observeRootForReinserts(nested);
-                  }
-                }
-              }
-            }
-          }
-          suppressDocTitleOnce();
-        });
-        observer.observe(root, { childList: true, subtree: true });
-      }
-      catch {
-        // ignore
-      }
-    };
-
-    // Run a few times to cover async render / late-defined elements.
-    suppressDocTitleOnce();
-    try {
-      queueMicrotask(suppressDocTitleOnce);
-    }
-    catch {
-      // ignore
-    }
-    try {
-      window.setTimeout(suppressDocTitleOnce, 0);
-      window.setTimeout(suppressDocTitleOnce, 50);
-      window.setTimeout(suppressDocTitleOnce, 150);
-    }
-    catch {
-      // ignore
-    }
-
-    // Best-effort observers for future re-insertions (mode switches / re-render).
-    try {
-      const shadowRoot = (editor as any).shadowRoot as ShadowRoot | null | undefined;
-      observeRootForReinserts(editor);
-      if (shadowRoot)
-        observeRootForReinserts(shadowRoot);
-
-      // Also proactively observe all currently-open nested shadow roots inside editor's shadow tree.
-      if (shadowRoot) {
-        const queryAll = (shadowRoot as any).querySelectorAll as ((selector: string) => NodeListOf<Element>) | undefined;
-        if (queryAll) {
-          for (const el of Array.from(queryAll.call(shadowRoot as any, "*"))) {
-            const sr = (el as any).shadowRoot as ShadowRoot | null | undefined;
-            if (sr) {
-              observeRootForReinserts(sr);
-            }
-          }
-        }
-      }
-    }
-    catch {
-      // ignore
-    }
-  }
-
   try {
     const std = (editor as any).std;
     const refProvider = std?.get?.(RefNodeSlotsProvider);
@@ -763,66 +599,8 @@ export function createEmbeddedAffineEditor(params: {
       line-height: 24px;
       margin: 0 2px;
     }
-    ${disableDocTitle
-      ? `
-      /* NOTE: \`affine-editor-container\` (integration-test) renders <doc-title> in its template.
-       * In tcHeader mode we always suppress it to avoid double titles. */
-      [data-tc-blocksuite-root] doc-title { display: none !important; }
-      `
-      : ""}
   `;
   editor.appendChild(style);
-
-  // Keep removing <doc-title> in case the container re-renders and reinserts it.
-  // IMPORTANT: MutationObserver must be strongly referenced, otherwise it may be GC'ed and stop working.
-  if (disableDocTitle) {
-    const editorAny = editor as any;
-    if (!editorAny.__tcDocTitleSuppressorInstalled) {
-      editorAny.__tcDocTitleSuppressorInstalled = true;
-
-      const removeDocTitleNodes = () => {
-        try {
-          const nodes = editor.querySelectorAll("doc-title");
-          for (const n of Array.from(nodes)) {
-            try {
-              n.remove();
-            }
-            catch {
-              // ignore
-            }
-          }
-        }
-        catch {
-          // ignore
-        }
-      };
-
-      // One-shot cleanup after first paint.
-      try {
-        queueMicrotask(removeDocTitleNodes);
-      }
-      catch {
-        // ignore
-      }
-      try {
-        window.setTimeout(removeDocTitleNodes, 0);
-      }
-      catch {
-        // ignore
-      }
-
-      try {
-        const obs = new MutationObserver(() => {
-          removeDocTitleNodes();
-        });
-        obs.observe(editor, { childList: true, subtree: true });
-        editorAny.__tcDocTitleSuppressorObserver = obs;
-      }
-      catch {
-        // ignore
-      }
-    }
-  }
 
   return editor;
 }
