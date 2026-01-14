@@ -32,6 +32,7 @@
 | 202601140302 | clue_detail_ui_refactor | 优化 | 已完成 | [2026-01/202601140302_clue_detail_ui_refactor/](2026-01/202601140302_clue_detail_ui_refactor/) |
 | 202601140425 | blocksuite_header_title_style | 优化 | 已完成 | [2026-01/202601140425_blocksuite_header_title_style/](2026-01/202601140425_blocksuite_header_title_style/) |
 | 202601140543 | open-first-room | 修复 | 已完成 | [2026-01/202601140543_open-first-room/](2026-01/202601140543_open-first-room/) |
+| 202601140604 | director_set_var | 优化 | 已完成 | [2026-01/202601140604_director_set_var/](2026-01/202601140604_director_set_var/) |
 
 ---
 
@@ -57,8 +58,9 @@
 - [202601140100_sidebar_doc_style](2026-01/202601140100_sidebar_doc_style/) - sidebarTree 文档节点字号/图标对齐房间
 - [202601140107_quill_reference_audit](2026-01/202601140107_quill_reference_audit/) - Quill 引用统计审计报告（待后续去 Quill 化）
 - [202601140226_clue_doc_planA](2026-01/202601140226_clue_doc_planA/) - 线索（space_clue）文档化入口：正文改为 Blocksuite，移除 description/note 编辑入口
-- [202601140238_webgal_space_vars](2026-01/202601140238_webgal_space_vars/) - WebGAL 空间变量系统：/var 指令 + WEBGAL_VAR 消息类型
+- [202601140238_webgal_space_vars](2026-01/202601140238_webgal_space_vars/) - WebGAL 空间变量系统：导演控制台设置变量 + WEBGAL_VAR 消息类型
 - [202601140247_doc_meta_restore](2026-01/202601140247_doc_meta_restore/) - 修复文档刷新后侧边栏丢失/重置默认无效（基于 sidebarTree 回补 doc metas）
 - [202601140302_clue_detail_ui_refactor](2026-01/202601140302_clue_detail_ui_refactor/) - 线索详情弹窗 UI 重构（全屏 + 顶部固定 + 大视口文档）
 - [202601140425_blocksuite_header_title_style](2026-01/202601140425_blocksuite_header_title_style/) - Blocksuite 描述文档 tcHeader 标题样式对齐原生 doc-title，并加固禁用内置标题逻辑
 - [202601140543_open-first-room](2026-01/202601140543_open-first-room/) - 修复空间模式首次进入跳到 `/chat/<spaceId>/null`（按自定义排序进入首个房间）
+- [202601140604_director_set_var](2026-01/202601140604_director_set_var/) - 导演控制台支持设置 WebGAL 空间变量，并禁用输入框 `/var` 入口

@@ -8,7 +8,7 @@
 
 - **职责:** 页面路由、页面组件、通用组件与工具库组织
 - **状态:** ?开发中
-- **最后更新:** 2026-01-13
+- **最后更新:** 2026-01-14
 
 ## 规范
 
@@ -24,7 +24,7 @@
 - `app/webGAL/`：WebGAL 相关
   - 实时渲染创建游戏：不使用模板（不传 `templateDir`），创建失败直接返回失败
   - 实时渲染设置：Terre 端口可配置（IndexedDB 持久化）
-  - 空间变量系统：聊天侧 `/var set a=1` 发送 `WEBGAL_VAR(11)` 结构化消息；持久化写入 `space.extra` 的 `webgalVars`（key/value）；实时渲染侧转换为 `setVar:a=1 -global;`
+  - 空间变量系统：导演控制台“设置变量”发送 `WEBGAL_VAR(11)` 结构化消息；持久化写入 `space.extra` 的 `webgalVars`（key/value）；实时渲染侧转换为 `setVar:a=1 -global;`
 
 ### 样式与组件
 
