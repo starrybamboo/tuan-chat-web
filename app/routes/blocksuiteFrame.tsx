@@ -51,7 +51,7 @@ function getBlocksuiteMeasuredScrollHeight(): number {
   // 如果把 viewport.scrollHeight 当 max，iframe 高度会“只增不减”。
   // 因此这里优先测量“真实内容容器”的高度（会随内容增减），viewport 只做兜底。
 
-  const editorContainer = document.querySelector("affine-editor-container") as Element | null;
+  const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
   const rootForQuery: ParentNode = ((editorContainer as any)?.shadowRoot as ShadowRoot | null) ?? editorContainer ?? document;
 
   const measureElement = (el: HTMLElement | null): number => {
@@ -291,7 +291,7 @@ export default function BlocksuiteFrameRoute() {
 
     // 兜底：blocksuite 的 DOM（含 shadow DOM）变化不一定触发 input/keydown。
     // 这里对编辑器根做 MutationObserver，保证“删除导致高度回缩”也能被捕捉。
-    const editorContainer = document.querySelector("affine-editor-container") as Element | null;
+    const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
     const moTargets: Array<ParentNode> = [];
     if (editorContainer)
       moTargets.push(editorContainer);
