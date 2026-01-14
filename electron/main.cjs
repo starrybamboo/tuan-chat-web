@@ -222,6 +222,44 @@ app.whenReady().then(() => {
 
   createWindow();
 
+  ipcMain.handle("novelai:get-clientsettings", async (_event, req) => {
+    const token = String(req?.token || "").trim();
+    if (!token) {
+      throw new Error("缺少 NovelAI token（Bearer）");
+    }
+
+    const endpoint = String(req?.endpoint || "https://api.novelai.net").replace(/\/+$/, "");
+    const url = `${endpoint}/user/clientsettings`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "authorization": `Bearer ${token}`,
+        "accept": "application/json",
+        "referer": "https://novelai.net/",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
+    }
+
+    const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+    if (contentType.includes("application/json")) {
+      return await res.json();
+    }
+
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    }
+    catch {
+      return text;
+    }
+  });
+
   ipcMain.handle("novelai:generate-image", async (_event, req) => {
     const token = String(req?.token || "").trim();
     if (!token) {

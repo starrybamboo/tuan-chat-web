@@ -2,6 +2,10 @@
 // This declares a global interface for the electronAPI
 export type IElectronAPI = {
   launchWebGAL: () => void;
+  novelaiGetClientSettings: (payload: {
+    token: string;
+    endpoint?: string;
+  }) => Promise<any>;
   novelaiGenerateImage: (payload: {
     token: string;
     endpoint?: string;

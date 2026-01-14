@@ -81,6 +81,8 @@ else {
     const host = String(endpointUrl.hostname || "").toLowerCase();
     if (host === "image.novelai.net")
       return true;
+    if (host === "api.novelai.net")
+      return true;
 
     // allow NovelAI tenant endpoints (pattern aligned with OpenAPI spec in api/novelai/api.json)
     if (host.endsWith(".tenant-novelai.knative.chi.coreweave.com"))
