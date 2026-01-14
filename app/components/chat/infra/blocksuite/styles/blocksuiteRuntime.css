@@ -42,23 +42,19 @@
     max-width: var(--affine-editor-width, 780px);
     margin-left: auto;
     margin-right: auto;
-    padding: 14px 0 12px;
+    padding: 10px 0;
     padding-left: var(--affine-editor-side-padding, 24px);
     padding-right: var(--affine-editor-side-padding, 24px);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-top {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 44px;
+    min-height: 48px;
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-actions {
-    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -68,6 +64,8 @@
     all: unset;
     box-sizing: border-box;
     display: block;
+    flex: 1 1 auto;
+    min-width: 0;
     font-family: var(
       --affine-font-family,
       ui-sans-serif,
@@ -81,15 +79,15 @@
       "Apple Color Emoji",
       "Segoe UI Emoji"
     );
-    font-size: 28px;
-    line-height: 36px;
+    font-size: 20px;
+    line-height: 28px;
     font-weight: 700;
     color: var(--affine-text-primary-color, #111827);
-    width: 100%;
-    max-width: var(--affine-editor-width, 780px);
-    padding: 4px 0;
-    background: transparent;
+    height: 40px;
+    padding: 0 10px;
+    background-color: transparent;
     border-radius: 8px;
+    border: 1px solid oklch(var(--bc) / 0.12);
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled) {
@@ -98,12 +96,14 @@
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:not(:disabled):hover {
     background-color: oklch(var(--b2) / 0.6);
+    border-color: oklch(var(--bc) / 0.18);
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title:focus-visible {
     outline: 2px solid oklch(var(--p) / 0.35);
     outline-offset: 2px;
     background-color: oklch(var(--b2) / 0.8);
+    border-color: oklch(var(--p) / 0.35);
   }
 
   .tc-blocksuite-scope.tc-blocksuite-tc-header-enabled .tc-blocksuite-tc-header-title::placeholder {

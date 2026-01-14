@@ -1068,6 +1068,25 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                           </div>
                         )}
 
+                    <input
+                      className="tc-blocksuite-tc-header-title"
+                      value={tcHeaderTitle}
+                      disabled={!canEditTcHeader}
+                      placeholder="Title"
+                      onChange={(e) => {
+                        const store = storeRef.current;
+                        if (!store)
+                          return;
+                        setBlocksuiteDocHeader(store, { title: e.target.value });
+                      }}
+                      onBlur={(e) => {
+                        const store = storeRef.current;
+                        if (!store)
+                          return;
+                        setBlocksuiteDocHeader(store, { title: e.target.value.trim() });
+                      }}
+                    />
+
                     <div className="tc-blocksuite-tc-header-actions">
                       {canEditTcHeader
                         ? (
@@ -1097,25 +1116,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                         : null}
                     </div>
                   </div>
-
-                  <input
-                    className="tc-blocksuite-tc-header-title"
-                    value={tcHeaderTitle}
-                    disabled={!canEditTcHeader}
-                    placeholder="Title"
-                    onChange={(e) => {
-                      const store = storeRef.current;
-                      if (!store)
-                        return;
-                      setBlocksuiteDocHeader(store, { title: e.target.value });
-                    }}
-                    onBlur={(e) => {
-                      const store = storeRef.current;
-                      if (!store)
-                        return;
-                      setBlocksuiteDocHeader(store, { title: e.target.value.trim() });
-                    }}
-                  />
                 </div>
               </div>
             )
