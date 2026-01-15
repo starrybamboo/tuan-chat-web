@@ -12,6 +12,7 @@ import { isElectronEnv } from "@/utils/isElectronEnv";
 import { AiGenerateImageRequest } from "../../api/novelai/models/AiGenerateImageRequest";
 
 type TabKey = "prompt" | "undesired" | "image" | "history" | "connection";
+type RequestMode = "direct" | "proxy";
 
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
 const FALLBACK_META_ENDPOINT = "https://api.novelai.net";
@@ -55,6 +56,13 @@ function normalizeEndpoint(input: string) {
   if (!value)
     return "";
   return value.replace(/\/+$/, "");
+}
+
+function maybeCorsHintFromError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/failed to fetch/i.test(message) || /networkerror/i.test(message) || /fetch failed/i.test(message))
+    return "（可能是浏览器跨域/CORS 拦截或网络被阻断）";
+  return "";
 }
 
 function clampToMultipleOf64(value: number, fallback: number) {
@@ -228,7 +236,7 @@ function modelLabel(value: string) {
   return value;
 }
 
-async function novelApiFetchJson(args: { token: string; endpoint: string; path: string }) {
+async function novelApiFetchJsonViaProxy(args: { token: string; endpoint: string; path: string }) {
   const endpointHeader = normalizeEndpoint(args.endpoint);
   const res = await fetch(`/api/novelapi${args.path}`, {
     method: "GET",
@@ -256,7 +264,24 @@ async function novelApiFetchJson(args: { token: string; endpoint: string; path: 
   }
 }
 
-async function loadModelsRuntime(args: { token: string; imageEndpoint: string }) {
+async function novelApiFetchJsonDirect(args: { token: string; endpoint: string; path: string }) {
+  const endpoint = normalizeEndpoint(args.endpoint);
+  const url = `${endpoint}${args.path}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${args.token}`,
+      Accept: "application/json",
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
+  }
+  return await res.json();
+}
+
+async function loadModelsRuntime(args: { token: string; imageEndpoint: string; requestMode: RequestMode }) {
   const token = String(args.token || "").trim();
   if (!token) {
     return {
@@ -283,25 +308,40 @@ async function loadModelsRuntime(args: { token: string; imageEndpoint: string })
   }
 
   const metaEndpoint = normalizeEndpoint(FALLBACK_META_ENDPOINT) || FALLBACK_META_ENDPOINT;
+  const fetchJson = args.requestMode === "direct" ? novelApiFetchJsonDirect : novelApiFetchJsonViaProxy;
 
   try {
-    const settings = await novelApiFetchJson({ token, endpoint: metaEndpoint, path: "/user/clientsettings" });
+    const settings = await fetchJson({ token, endpoint: metaEndpoint, path: "/user/clientsettings" });
     const models = extractModelStrings(settings);
     if (models.length > 0)
       return { models, source: "runtime" as const, hint: "" };
   }
-  catch {
-    // ignore and fallback
+  catch (e) {
+    const hint = args.requestMode === "direct"
+      ? `未能直连拉取模型列表${maybeCorsHintFromError(e)}，已使用降级模型列表`
+      : "未能从上游提取模型列表，已使用降级模型列表";
+    return {
+      models: buildFallbackModelList(),
+      source: "fallback" as const,
+      hint,
+    };
   }
 
   try {
-    const userData = await novelApiFetchJson({ token, endpoint: metaEndpoint, path: "/user/data" });
+    const userData = await fetchJson({ token, endpoint: metaEndpoint, path: "/user/data" });
     const models = extractModelStrings(userData);
     if (models.length > 0)
       return { models, source: "runtime" as const, hint: "" };
   }
-  catch {
-    // ignore and fallback
+  catch (e) {
+    const hint = args.requestMode === "direct"
+      ? `未能直连拉取模型列表${maybeCorsHintFromError(e)}，已使用降级模型列表`
+      : "未能从上游提取模型列表，已使用降级模型列表";
+    return {
+      models: buildFallbackModelList(),
+      source: "fallback" as const,
+      hint,
+    };
   }
 
   return {
@@ -473,6 +513,131 @@ async function generateNovelImageViaProxy(args: {
   return { dataUrl, seed, width, height, model };
 }
 
+async function generateNovelImageDirect(args: {
+  token: string;
+  endpoint: string;
+  mode: AiImageHistoryMode;
+  sourceImageBase64?: string;
+  strength: number;
+  noise: number;
+  prompt: string;
+  negativePrompt: string;
+  model: string;
+  width: number;
+  height: number;
+  steps: number;
+  scale: number;
+  sampler: string;
+  noiseSchedule: string;
+  cfgRescale: number;
+  smea: boolean;
+  smeaDyn: boolean;
+  qualityToggle: boolean;
+  seed?: number;
+}) {
+  const token = String(args.token || "").trim();
+  if (!token)
+    throw new Error("缺少 NovelAI token（Bearer）");
+
+  const endpoint = normalizeEndpoint(args.endpoint) || DEFAULT_IMAGE_ENDPOINT;
+  const prompt = String(args.prompt || "").trim();
+  if (!prompt)
+    throw new Error("缺少 prompt");
+
+  const negativePrompt = String(args.negativePrompt || "");
+  const model = String(args.model || "nai-diffusion-3");
+
+  const isNAI3 = model === "nai-diffusion-3";
+  const isNAI4 = model === "nai-diffusion-4-curated-preview" || model === "nai-diffusion-4-full";
+
+  const seed = typeof args.seed === "number" ? args.seed : Math.floor(Math.random() * 2 ** 32);
+  const width = clampToMultipleOf64(args.width, 1024);
+  const height = clampToMultipleOf64(args.height, 1024);
+
+  const resolvedSampler = args.sampler === "k_euler_a" ? "k_euler_ancestral" : args.sampler;
+
+  const parameters: Record<string, any> = {
+    seed,
+    width,
+    height,
+    n_samples: 1,
+    steps: Math.max(1, Math.floor(args.steps)),
+    scale: Number(args.scale),
+    sampler: resolvedSampler,
+    negative_prompt: negativePrompt,
+    // align with novelai-bot defaults
+    ucPreset: 2,
+    qualityToggle: Boolean(args.qualityToggle),
+  };
+
+  if (args.mode === "img2img") {
+    const img = String(args.sourceImageBase64 || "").trim();
+    if (!img)
+      throw new Error("img2img 缺少源图片");
+    parameters.image = img;
+    parameters.strength = Math.min(0.999, Math.max(0.01, Number(args.strength)));
+    parameters.noise = Math.min(1, Math.max(0, Number(args.noise)));
+  }
+
+  if (isNAI3 || isNAI4) {
+    parameters.sampler = resolvedSampler;
+    parameters.noise_schedule = args.noiseSchedule;
+    parameters.cfg_rescale = Number(args.cfgRescale);
+    parameters.sm = Boolean(args.smea);
+    parameters.sm_dyn = Boolean(args.smeaDyn);
+
+    if (isNAI3) {
+      if (parameters.sm) {
+        parameters.noise_schedule = "native";
+      }
+      if (resolvedSampler === "ddim_v3") {
+        parameters.sm = false;
+        parameters.sm_dyn = false;
+        delete parameters.noise_schedule;
+      }
+      if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
+        parameters.scale = parameters.scale / 2;
+      }
+    }
+  }
+
+  const payload: AiGenerateImageRequest = {
+    model: model as unknown as AiGenerateImageRequest.model,
+    input: prompt,
+    action: (args.mode === "img2img" ? "img2img" : "generate") as AiGenerateImageRequest.action,
+    parameters,
+  };
+
+  const url = `${endpoint}/ai/generate-image`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "Accept": "application/octet-stream",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const hint = maybeCorsHintFromError(text);
+    throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}${hint ? ` ${hint}` : ""}`);
+  }
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  let dataUrl = detectBinaryDataUrl(bytes);
+  if (!dataUrl && looksLikeZip(bytes))
+    dataUrl = firstImageFromZip(bytes);
+
+  if (!dataUrl) {
+    const text = await new Response(bytes).text().catch(() => "");
+    throw new Error(`响应不是可识别的图片/ZIP${text ? `: ${text.slice(0, 200)}` : ""}`);
+  }
+
+  return { dataUrl, seed, width, height, model };
+}
+
 function LeftTabButton(props: { tab: TabKey; active: TabKey; onChange: (tab: TabKey) => void; children: string }) {
   return (
     <button
@@ -501,6 +666,7 @@ export default function AiImagePage() {
     }
   });
   const [endpoint, setEndpoint] = useState(DEFAULT_IMAGE_ENDPOINT);
+  const [requestMode, setRequestMode] = useState<RequestMode>("direct");
 
   const [mode, setMode] = useState<AiImageHistoryMode>("txt2img");
   const [sourceImageDataUrl, setSourceImageDataUrl] = useState("");
@@ -632,6 +798,30 @@ export default function AiImagePage() {
           seed: seedValue,
         });
       }
+      else if (requestMode === "direct") {
+        res = await generateNovelImageDirect({
+          token: tokenValue,
+          endpoint: endpointValue,
+          mode,
+          sourceImageBase64: mode === "img2img" ? sourceImageBase64 : undefined,
+          strength,
+          noise,
+          prompt: promptValue,
+          negativePrompt,
+          model,
+          width,
+          height,
+          steps,
+          scale,
+          sampler,
+          noiseSchedule,
+          cfgRescale,
+          smea,
+          smeaDyn,
+          qualityToggle,
+          seed: seedValue,
+        });
+      }
       else {
         res = await generateNovelImageViaProxy({
           token: tokenValue,
@@ -703,6 +893,7 @@ export default function AiImagePage() {
     steps,
     strength,
     token,
+    requestMode,
     width,
   ]);
 
@@ -711,7 +902,7 @@ export default function AiImagePage() {
       setModelsLoading(true);
       setModelsHint("");
 
-      const res = await loadModelsRuntime({ token, imageEndpoint: endpoint });
+      const res = await loadModelsRuntime({ token, imageEndpoint: endpoint, requestMode });
       const next = [...new Set(res.models)].filter(Boolean);
       next.sort((a, b) => a.localeCompare(b));
 
@@ -726,7 +917,7 @@ export default function AiImagePage() {
     finally {
       setModelsLoading(false);
     }
-  }, [endpoint, model, token]);
+  }, [endpoint, model, requestMode, token]);
 
   const clearSavedToken = useCallback(() => {
     setToken("");
@@ -1119,6 +1310,31 @@ export default function AiImagePage() {
               <div className="flex flex-col gap-3">
                 <div className="text-sm font-semibold">Connection</div>
 
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm opacity-70">请求方式（Web）</div>
+                  <div className="join">
+                    <button
+                      type="button"
+                      className={`btn btn-sm join-item ${requestMode === "direct" ? "btn-primary" : "btn-ghost"}`}
+                      onClick={() => setRequestMode("direct")}
+                      disabled={isElectronEnv()}
+                    >
+                      直连
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm join-item ${requestMode === "proxy" ? "btn-primary" : "btn-ghost"}`}
+                      onClick={() => setRequestMode("proxy")}
+                      disabled={isElectronEnv()}
+                    >
+                      同源代理
+                    </button>
+                  </div>
+                  {isElectronEnv() && (
+                    <div className="text-xs opacity-60">Electron 环境固定走 IPC（直连），该选项仅对 Web 生效</div>
+                  )}
+                </div>
+
                 <label className="form-control">
                   <span className="label-text text-sm">Endpoint</span>
                   <input
@@ -1146,8 +1362,8 @@ export default function AiImagePage() {
                 </label>
 
                 <div className="text-xs opacity-60 leading-relaxed">
-                  Web 环境默认通过同源代理 `/api/novelapi/*` 请求 NovelAI；如出现 502（上游连接超时），通常是运行 `pnpm dev/start` 的 Node 进程无法直连 NovelAI，可设置 `NOVELAPI_PROXY`/`HTTPS_PROXY`/`ALL_PROXY` 后重启。
-                  Electron 环境默认通过 IPC 代理请求。
+                  Web 环境默认“直连”请求 NovelAI（浏览器可能因跨域/CORS 或 Referer 限制而失败；失败时可切到“同源代理”模式）。
+                  Electron 环境默认通过 IPC 代理请求（不受浏览器跨域限制）。
                 </div>
               </div>
             )}
