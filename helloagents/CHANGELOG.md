@@ -30,6 +30,7 @@
 - Blocksuite 描述文档 `tcHeader` 头部样式重写：单行布局（图片 + 标题 + 操作按钮）、顶部 sticky 吸附、标题/按钮字号与按钮视觉持续调优
 - Blocksuite 描述文档 `tcHeader` 操作按钮去除 DaisyUI `btn` 依赖：使用 `tc-blocksuite-tc-header-btn` 自定义按钮样式，避免 blocksuite 运行时样式注入影响 DaisyUI 视觉
 - Blocksuite 描述文档 `tcHeader` 样式改为运行时注入（`ensureBlocksuiteRuntimeStyles`）：避免 iframe 的 `blocksuiteFrame` 路由缺失 Tailwind/DaisyUI 样式导致布局退化
+- Blocksuite 描述文档画布切换按钮收口到 `tcHeader` actions；移除外部 mode 控制入口（`hideModeSwitchButton`/`onActionsChange`），`blocksuite-frame` 不再支持 `set-mode`
 - AI 生图测试页 `/ai-image`：Web 环境默认直连请求 NovelAI（Connection 可切换同源代理模式），并支持 img2img、本地历史与下载、更多生图参数（SMEA/qualityToggle 等）
 - AI 生图页 `/ai-image` UI 重构：整体交互与样式分区对齐 `https://novelai.net/image`（Prompt/Undesired/Image/History/Connection）
 - AI 生图页 `/ai-image` 再次重写：模型改为运行时拉取（失败自动降级），历史仅保留 IndexedDB；Electron 增加 `novelai:get-clientsettings` IPC；NovelAPI proxy 允许 `api.novelai.net`

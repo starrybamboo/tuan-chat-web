@@ -46,6 +46,7 @@
 | 202601151614 | command_request_message_type | 功能 | 已完成 | [2026-01/202601151614_command_request_message_type/](2026-01/202601151614_command_request_message_type/) |
 | 202601142337 | ai_image_proxy_env | 修复 | 已完成 | [2026-01/202601142337_ai_image_proxy_env/](2026-01/202601142337_ai_image_proxy_env/) |
 | 202601151630 | ai_image_direct_fetch | 变更 | 已完成 | [2026-01/202601151630_ai_image_direct_fetch/](2026-01/202601151630_ai_image_direct_fetch/) |
+| 202601151716 | blocksuite_tc_header_mode_switch | 变更 | 已完成 | [2026-01/202601151716_blocksuite-tc-header-mode-switch/](2026-01/202601151716_blocksuite-tc-header-mode-switch/) |
 
 ---
 
@@ -90,3 +91,4 @@
 - [202601151614_command_request_message_type](2026-01/202601151614_command_request_message_type/) - 检定请求升级为独立消息类型 `COMMAND_REQUEST(12)`（前后端一致）
 - [202601142337_ai_image_proxy_env](2026-01/202601142337_ai_image_proxy_env/) - 修复 NovelAPI 同源代理连接超时 502：支持读取本机代理环境变量
 - [202601151630_ai_image_direct_fetch](2026-01/202601151630_ai_image_direct_fetch/) - AI 生图 Web 端默认直连 NovelAI（Connection 可切换同源代理）
+- [202601151716_blocksuite-tc-header-mode-switch](2026-01/202601151716_blocksuite-tc-header-mode-switch/) - 空间资料 Blocksuite 画布切换入口收口到 tcHeader，并移除外部 mode 控制通道

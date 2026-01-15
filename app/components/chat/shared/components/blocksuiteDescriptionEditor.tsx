@@ -51,8 +51,6 @@ interface BlocksuiteDescriptionEditorProps {
   allowModeSwitch?: boolean;
   /** 画布模式下是否支持全屏 */
   fullscreenEdgeless?: boolean;
-  /** 隐藏内置的“切换到画布/退出画布”按钮（用于把按钮放到外层 topbar） */
-  hideModeSwitchButton?: boolean;
   /** 启用“图片+标题”的自定义头部，并禁用 blocksuite 内置 doc-title */
   tcHeader?: {
     enabled?: boolean;
@@ -67,18 +65,11 @@ interface BlocksuiteDescriptionEditorProps {
     header: BlocksuiteDocHeader;
   }) => void;
   /** 对外暴露 editor mode 的控制能力；卸载时会回传 null */
-  onActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
   /** editor mode 变化回调（page/edgeless） */
   onModeChange?: (mode: DocMode) => void;
   /** iframe 内部请求导航时，允许宿主拦截并自行处理；返回 true 表示已处理，阻止默认 navigate */
   onNavigate?: (to: string) => boolean | void;
   className?: string;
-}
-
-export interface BlocksuiteDescriptionEditorActions {
-  toggleMode: () => DocMode;
-  setMode: (mode: DocMode) => void;
-  getMode: () => DocMode;
 }
 
 function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
@@ -162,10 +153,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     allowModeSwitch = false,
     fullscreenEdgeless = false,
     mode: forcedMode = "page",
-    hideModeSwitchButton = false,
     tcHeader,
     onTcHeaderChange,
-    onActionsChange,
     onModeChange,
   } = props;
 
@@ -338,7 +327,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         primaryModeByDocId.set(id, next);
         flushToStorage();
         emit(id, next);
-        currentModeRef.current = next;
         setCurrentMode(next);
         return next;
       },
@@ -359,27 +347,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       },
     };
   }, [allowModeSwitch, forcedMode, workspaceId]);
-
-  const externalActions: BlocksuiteDescriptionEditorActions = useMemo(() => {
-    return {
-      toggleMode: () => {
-        return docModeProvider.togglePrimaryMode(docId);
-      },
-      setMode: (mode: DocMode) => {
-        docModeProvider.setPrimaryMode(mode, docId);
-      },
-      getMode: () => {
-        return docModeProvider.getEditorMode() ?? forcedMode;
-      },
-    };
-  }, [docId, docModeProvider, forcedMode]);
-
-  useEffect(() => {
-    onActionsChange?.(externalActions);
-    return () => {
-      onActionsChange?.(null);
-    };
-  }, [externalActions, onActionsChange]);
 
   useEffect(() => {
     if (allowModeSwitch) {
@@ -1096,7 +1063,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             </button>
                           )
                         : null}
-                      {allowModeSwitch && !hideModeSwitchButton
+                      {allowModeSwitch
                         ? (
                             <button
                               type="button"
@@ -1118,39 +1085,20 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
         {allowModeSwitch && !tcHeaderEnabled
           ? (
-              hideModeSwitchButton
-                ? null
-                : (
-                    <div className="flex items-center justify-end p-2 border-b border-base-300">
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        onClick={() => {
-                          docModeProvider.togglePrimaryMode(docId);
-                        }}
-                      >
-                        {currentMode === "page" ? "切换到画布" : "退出画布"}
-                      </button>
-                    </div>
-                  )
-            )
-          : null}
-
-        {allowModeSwitch && hideModeSwitchButton && currentMode === "edgeless"
-          ? (
-              <div className="absolute top-2 right-2 z-10">
+              <div className="flex items-center justify-end p-2 border-b border-base-300">
                 <button
                   type="button"
                   className="btn btn-sm"
                   onClick={() => {
-                    docModeProvider.setPrimaryMode("page", docId);
+                    docModeProvider.togglePrimaryMode(docId);
                   }}
                 >
-                  返回页面
+                  {currentMode === "page" ? "切换到画布" : "退出画布"}
                 </button>
               </div>
             )
           : null}
+
         <div
           ref={hostContainerRef}
           className={`${isFull || isEdgelessFullscreen ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
@@ -1170,11 +1118,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     readOnly = false,
     allowModeSwitch = false,
     fullscreenEdgeless = false,
-    hideModeSwitchButton = false,
     tcHeader,
     onTcHeaderChange,
     className,
-    onActionsChange,
     onModeChange,
     onNavigate,
   } = props;
@@ -1187,75 +1133,14 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
-  const currentModeRef = useRef<DocMode>(forcedMode);
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
 
-  // 当外部强制 mode 变化时，同步本地 ref（以及 iframe 侧）。
-  useEffect(() => {
-    if (allowModeSwitch)
-      return;
-    currentModeRef.current = forcedMode;
-    setFrameMode(forcedMode);
-    try {
-      iframeRef.current?.contentWindow?.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "set-mode",
-          mode: forcedMode,
-        },
-        getPostMessageTargetOrigin(),
-      );
-    }
-    catch {
-      // ignore
-    }
-  }, [allowModeSwitch, forcedMode, instanceId]);
-
+  // 画布全屏状态由 frame 回传的 mode 驱动（宿主不再下发 set-mode）。
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
-
-  const actions: BlocksuiteDescriptionEditorActions = useMemo(() => {
-    const post = (payload: any) => {
-      try {
-        iframeRef.current?.contentWindow?.postMessage(payload, getPostMessageTargetOrigin());
-      }
-      catch {
-        // ignore
-      }
-    };
-
-    return {
-      toggleMode: () => {
-        const prev = currentModeRef.current ?? forcedMode;
-        const next = prev === "page" ? "edgeless" : "page";
-        currentModeRef.current = next;
-        setFrameMode(next);
-        onModeChange?.(next);
-        post({ tc: "tc-blocksuite-frame", instanceId, type: "set-mode", mode: next });
-        return next;
-      },
-      setMode: (m: DocMode) => {
-        currentModeRef.current = m;
-        setFrameMode(m);
-        onModeChange?.(m);
-        post({ tc: "tc-blocksuite-frame", instanceId, type: "set-mode", mode: m });
-      },
-      getMode: () => {
-        return currentModeRef.current ?? forcedMode;
-      },
-    };
-  }, [forcedMode, instanceId, onModeChange]);
-
-  useEffect(() => {
-    onActionsChange?.(actions);
-    return () => {
-      onActionsChange?.(null);
-    };
-  }, [actions, onActionsChange]);
 
   // 父子窗口通信：mode 同步、导航委托、主题同步。
   useEffect(() => {
@@ -1282,7 +1167,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
       if (data.type === "mode" && (data.mode === "page" || data.mode === "edgeless")) {
         const next = data.mode as DocMode;
-        currentModeRef.current = next;
         setFrameMode(next);
         onModeChange?.(next);
         return;
@@ -1299,15 +1183,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           const win = iframeRef.current?.contentWindow;
           if (!win)
             return;
-          win.postMessage(
-            {
-              tc: "tc-blocksuite-frame",
-              instanceId,
-              type: "set-mode",
-              mode: (currentModeRef.current ?? forcedMode),
-            },
-            getPostMessageTargetOrigin(),
-          );
           win.postMessage(
             {
               tc: "tc-blocksuite-frame",
@@ -1444,7 +1319,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       readOnly: readOnly ? "1" : "0",
       allowModeSwitch: allowModeSwitch ? "1" : "0",
       fullscreenEdgeless: fullscreenEdgeless ? "1" : "0",
-      hideModeSwitchButton: hideModeSwitchButton ? "1" : "0",
       mode: forcedMode,
       tcHeader: tcHeader?.enabled ? "1" : "0",
       tcHeaderTitle: tcHeader?.fallbackTitle,
@@ -1455,7 +1329,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     docId,
     forcedMode,
     fullscreenEdgeless,
-    hideModeSwitchButton,
     instanceId,
     readOnly,
     spaceId,
@@ -1515,17 +1388,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       const win = iframeRef.current?.contentWindow;
       if (!win)
         return;
-      // 同步当前 mode（allowModeSwitch 场景也需要，防止 iframe 侧按默认值启动）。
-      win.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "set-mode",
-          mode: (currentModeRef.current ?? forcedMode),
-        },
-        getPostMessageTargetOrigin(),
-      );
-
       // 同步主题
       win.postMessage(
         {
