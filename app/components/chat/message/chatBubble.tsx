@@ -543,8 +543,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <div key="command-request" className="flex flex-col gap-1.5">
             <button
               type="button"
-              className={`inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left ${
-                isDisabled ? "opacity-60 cursor-not-allowed bg-base-200/20" : "bg-base-200/40 hover:bg-base-200/70"
+              aria-disabled={isDisabled}
+              className={`group inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left shadow-sm transition-colors transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/30 ${
+                isDisabled
+                  ? "opacity-60 cursor-not-allowed bg-base-200/20 shadow-none"
+                  : "bg-base-200/40 hover:bg-base-200/70 hover:border-warning/50 hover:shadow-md"
               }`}
               title={isDisabled ? disabledReason : "点击后以你的当前角色发送并执行"}
               onClick={(e) => {
@@ -562,6 +565,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             >
               <span className="badge badge-xs badge-warning flex-shrink-0">检定请求</span>
               <span className="font-mono text-xs sm:text-sm break-all">{requestCommand}</span>
+              {!isDisabled && <span className="ml-auto text-xs opacity-60 group-hover:opacity-80">点击此进行检定</span>}
             </button>
             {isDisabled && <span className="text-xs opacity-60">{disabledReason}</span>}
           </div>,
