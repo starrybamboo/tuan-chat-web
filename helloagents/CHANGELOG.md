@@ -32,7 +32,7 @@
 - Blocksuite 描述文档 `tcHeader` 操作按钮去除 DaisyUI `btn` 依赖：使用 `tc-blocksuite-tc-header-btn` 自定义按钮样式，避免 blocksuite 运行时样式注入影响 DaisyUI 视觉
 - Blocksuite 描述文档 `tcHeader` 样式改为运行时注入（`ensureBlocksuiteRuntimeStyles`）：避免 iframe 的 `blocksuiteFrame` 路由缺失 Tailwind/DaisyUI 样式导致布局退化
 - Blocksuite 描述文档画布切换按钮收口到 `tcHeader` actions；移除外部 mode 控制入口（`hideModeSwitchButton`/`onActionsChange`），`blocksuite-frame` 不再支持 `set-mode`
-- AI 生图测试页 `/ai-image`：Web 环境默认直连请求 NovelAI（Connection 可切换同源代理模式），并支持 img2img、本地历史与下载、更多生图参数（SMEA/qualityToggle 等）
+- AI 生图测试页 `/ai-image`：Web 环境默认使用同源代理模式请求 NovelAI（Connection 可切换直连模式），并支持 img2img、本地历史与下载、更多生图参数（SMEA/qualityToggle 等）
 - AI 生图页 `/ai-image` UI 重构：整体交互与样式分区对齐 `https://novelai.net/image`（Prompt/Undesired/Image/History/Connection）
 - AI 生图页 `/ai-image` 再次重写：模型改为运行时拉取（失败自动降级），历史仅保留 IndexedDB；Electron 增加 `novelai:get-clientsettings` IPC；NovelAPI proxy 允许 `api.novelai.net`
 - AI 生图页 `/ai-image`：token 为调试方便本地持久化；路由改为仅开发环境注册（生产不可访问）
@@ -61,7 +61,7 @@
 - 修复 ESLint 报错/告警：补全 Blocksuite 描述文档相关 `useEffect` 依赖；移除未使用的 Zustand `get` 参数；`/var set` 解析改为非正则解析避免回溯；`novelai-openapi.mjs` 显式引入 `node:process`
 - 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page 模式 `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
 - 修复 AI 生图页运行时拉取模型列表的 502：`/user/*` 元数据接口固定走 `https://api.novelai.net`，避免误发到 `image.novelai.net`
-- 修复 Web 环境同源代理连接超时导致的 502：AI 生图提供“直连”模式（避免依赖 Node 转发），并保留同源代理作为备选
+- 修复 Web 环境同源代理连接超时导致的 502：AI 生图提供“直连”模式作为备选（可能被跨域/CORS 拦截）
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
