@@ -8,14 +8,14 @@
 - **主集成分支（默认）**: `dev-jxc`
 - **session worktree 根目录**: `D:\A_collection\tuan-chat-web.worktrees\`
 - **session 分支命名**: `session/YYYYMMDD-HHMM_<slug>`
-  - `<slug>` 为本次 session 的短标识（如 `items-detail` / `novelai-http`）
+  - `<slug>` 默认自动生成（优先从任务/文件路径提取并清洗为 `a-z0-9-`；否则 `auto-YYYYMMDD-HHMMSS`）；你也可以手动指定（如 `items-detail` / `novelai-http`）
 
 ## 对 Codex 的执行要求
 
 当用户请求涉及“修改/新增/删除仓库文件、运行会产出改动的脚本、批量格式化/重构”等操作时：
 
 1. **不得**直接在主 worktree 上进行开发改动（除非用户明确要求或确认这么做）。
-2. 必须先创建（或复用）一个 **session worktree**，并在该目录下完成所有开发操作。
+2. 必须先创建（或复用）一个 **session worktree**，并在该目录下完成所有开发操作（`<slug>` 默认自动生成，不需要追问用户）。
 3. **任何改动默认都要合入主分支**：阶段性成果/任务完成后，回到主 worktree 将 session 分支合入 `dev-jxc`（或用户指定的主分支）。
 4. **默认不清理 worktree**：合并后保留 session worktree 目录，便于继续迭代；仅当用户明确要求清理时才执行 `git worktree remove`。
 
