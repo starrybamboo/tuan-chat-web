@@ -1,6 +1,5 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { Route } from "./+types/blocksuiteFrame";
-import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -134,11 +133,8 @@ export default function BlocksuiteFrameRoute() {
   const variant = (sp.get("variant") === "full" ? "full" : "embedded") as "embedded" | "full";
   const allowModeSwitch = parseBool01(sp.get("allowModeSwitch"));
   const fullscreenEdgeless = parseBool01(sp.get("fullscreenEdgeless"));
-  const hideModeSwitchButton = parseBool01(sp.get("hideModeSwitchButton"));
   const forcedMode = (sp.get("mode") === "edgeless" ? "edgeless" : "page") as DocMode;
 
-  const actionsRef = useRef<BlocksuiteDescriptionEditorActions | null>(null);
-  const pendingModeRef = useRef<DocMode | null>(null);
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
 
   const postToParent = (payload: any) => {
@@ -390,24 +386,6 @@ export default function BlocksuiteFrameRoute() {
       if (data.instanceId && data.instanceId !== instanceId)
         return;
 
-      if (data.type === "set-mode" && (data.mode === "page" || data.mode === "edgeless")) {
-        const next = data.mode as DocMode;
-        setCurrentMode(next);
-        const actions = actionsRef.current;
-        if (actions) {
-          try {
-            actions.setMode(next);
-          }
-          catch {
-            // ignore
-          }
-        }
-        else {
-          pendingModeRef.current = next;
-        }
-        return;
-      }
-
       if (data.type === "request-height") {
         try {
           measureAndPostHeight.current?.();
@@ -466,22 +444,8 @@ export default function BlocksuiteFrameRoute() {
         readOnly={readOnly}
         allowModeSwitch={allowModeSwitch}
         fullscreenEdgeless={fullscreenEdgeless}
-        hideModeSwitchButton={hideModeSwitchButton}
         mode={forcedMode}
         tcHeader={tcHeaderEnabled ? { enabled: true, fallbackTitle: tcHeaderTitle, fallbackImageUrl: tcHeaderImageUrl } : undefined}
-        onActionsChange={(actions) => {
-          actionsRef.current = actions;
-          if (actions && pendingModeRef.current) {
-            const pending = pendingModeRef.current;
-            pendingModeRef.current = null;
-            try {
-              actions.setMode(pending);
-            }
-            catch {
-              // ignore
-            }
-          }
-        }}
         onModeChange={(mode) => {
           setCurrentMode(mode);
           postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "mode", mode });
