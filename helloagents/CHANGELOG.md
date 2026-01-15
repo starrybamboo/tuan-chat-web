@@ -23,6 +23,7 @@
 - 文档查看统一使用 Chat 内主视图（`/chat/:spaceId/doc/:docId`），兼容入口 `/doc/:spaceId/:docId` 改为跳转到 Chat 布局（保留侧边栏并支持当前文档高亮）
 - sidebarTree 文档节点样式对齐房间：字号一致，并在标题前插入文档 icon
 - WebGAL 空间变量设置入口支持“导演控制台 → 设置变量”，并保留 `/var set ...` 作为快捷方式
+- 跑团指令“检定请求按钮消息”：移除额外“一键发送”按钮，点击检定请求卡片本体即可发送执行（不可执行时提示原因）
 - 线索（space_clue）正文改为使用 BlockSuite 文档入口，线索创建/详情不再编辑 `description/note`（`note` 保留为兼容字段）
 - 线索详情弹窗 UI 重构：默认全屏、更大文档视口，顶部固定基础信息/操作区，旧笔记默认折叠
 - NovelAI OpenAPI 客户端目录去重：移除重复的 `novelai-api/`，规范文件迁移到 `api/novelai/api.json`
