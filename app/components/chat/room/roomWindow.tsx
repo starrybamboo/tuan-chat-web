@@ -908,8 +908,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       if (shouldSendCommandRequest) {
         const requestMsg: ChatMessageRequest = {
           ...getCommonFields() as any,
-          content: `【检定请求】${requestCommand}`,
-          messageType: MessageType.TEXT,
+          content: requestCommand,
+          messageType: MessageType.COMMAND_REQUEST,
           extra: {
             commandRequest: {
               command: requestCommand,
