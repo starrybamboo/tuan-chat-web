@@ -474,7 +474,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
   const renderedContent = useMemo(() => {
-    const commandRequest = ((message.extra as any)?.commandRequest || null) as CommandRequestPayload | null;
+    const commandRequestRaw = ((message.extra as any)?.commandRequest || null) as CommandRequestPayload | null;
+    // 兼容：如果后端返回的是“扁平 extra”，兜底从 extra 本体读取（仅在 COMMAND_REQUEST 类型下尝试）
+    const flatRaw = (message.messageType === MESSAGE_TYPE.COMMAND_REQUEST)
+      ? (message.extra as any)
+      : null;
+    const commandRequest = (commandRequestRaw || flatRaw || null) as CommandRequestPayload | null;
     const requestCommand = (commandRequest?.command || "").trim();
     const requestAllowAll = Boolean(commandRequest?.allowAll);
     const requestAllowedRoleIds = Array.isArray(commandRequest?.allowedRoleIds) ? commandRequest?.allowedRoleIds : null;

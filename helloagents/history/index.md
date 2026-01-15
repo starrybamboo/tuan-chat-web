@@ -43,6 +43,7 @@
 | 202601142140 | blocksuite_doc_title_optional_container | 修复 | 已完成 | [2026-01/202601142140_blocksuite_doc_title_optional_container/](2026-01/202601142140_blocksuite_doc_title_optional_container/) |
 | 202601142246 | ai_image_meta_endpoint_fix | 修复 | 已完成 | [2026-01/202601142246_ai_image_meta_endpoint_fix/](2026-01/202601142246_ai_image_meta_endpoint_fix/) |
 | 202601142250 | command_request_button | 功能 | 已完成 | [2026-01/202601142250_command_request_button/](2026-01/202601142250_command_request_button/) |
+| 202601151614 | command_request_message_type | 功能 | 已完成 | [2026-01/202601151614_command_request_message_type/](2026-01/202601151614_command_request_message_type/) |
 | 202601142337 | ai_image_proxy_env | 修复 | 已完成 | [2026-01/202601142337_ai_image_proxy_env/](2026-01/202601142337_ai_image_proxy_env/) |
 | 202601151630 | ai_image_direct_fetch | 变更 | 已完成 | [2026-01/202601151630_ai_image_direct_fetch/](2026-01/202601151630_ai_image_direct_fetch/) |
 
@@ -86,5 +87,6 @@
 - [202601142140_blocksuite_doc_title_optional_container](2026-01/202601142140_blocksuite_doc_title_optional_container/) - 让 `<doc-title>` 不再固定插入：使用 tc-affine-editor-container 按需渲染
 - [202601142246_ai_image_meta_endpoint_fix](2026-01/202601142246_ai_image_meta_endpoint_fix/) - 修复 AI 生图模型运行时拉取端点：`/user/*` 固定走 api.novelai.net
 - [202601142250_command_request_button](2026-01/202601142250_command_request_button/) - 跑团检定请求按钮消息：KP 发送 `@All` 指令生成按钮，成员点击后以自身角色在原 thread 执行
+- [202601151614_command_request_message_type](2026-01/202601151614_command_request_message_type/) - 检定请求升级为独立消息类型 `COMMAND_REQUEST(12)`（前后端一致）
 - [202601142337_ai_image_proxy_env](2026-01/202601142337_ai_image_proxy_env/) - 修复 NovelAPI 同源代理连接超时 502：支持读取本机代理环境变量
 - [202601151630_ai_image_direct_fetch](2026-01/202601151630_ai_image_direct_fetch/) - AI 生图 Web 端默认直连 NovelAI（Connection 可切换同源代理）
