@@ -61,7 +61,7 @@
 
 - KP 发送包含 `@All` 的跑团指令（如 `.rc 侦查 @All` / `.r3d6*5 @All`）会生成“检定请求”按钮消息：**不执行**，仅作为点击入口
 - 该按钮消息使用独立消息类型：`COMMAND_REQUEST(12)`（与后端 `MessageTypeEnum` 对齐）
-- 其他成员点击“一键发送”后，会以自己当前选择角色发送并执行该指令，并落在原消息所在 thread（执行链路复用 `useCommandExecutor`，并补齐 `threadId`/`replayMessageId`）
+- 其他成员点击“检定请求”按钮后，会以自己当前选择角色发送并执行该指令，并落在原消息所在 thread（执行链路复用 `useCommandExecutor`，并补齐 `threadId`/`replayMessageId`）
 - 观战成员禁止执行；旁白（未选角色）仅 KP 可用
 
 ### Chat 侧边栏分类（sidebarTree）

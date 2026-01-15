@@ -22,6 +22,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
+import toast from "react-hot-toast";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
@@ -539,33 +540,30 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           : (!canUseNarrator ? "请先选择/拉入你的角色" : (!isAllowedByRoles ? "当前角色不在可执行范围" : ""));
 
         contentElements.push(
-          <div key="command-request" className="flex flex-col gap-2">
-            <div className="inline-flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/40 px-2 py-1">
-              <span className="badge badge-xs badge-warning">检定请求</span>
+          <div key="command-request" className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              className={`inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left ${
+                isDisabled ? "opacity-60 cursor-not-allowed bg-base-200/20" : "bg-base-200/40 hover:bg-base-200/70"
+              }`}
+              title={isDisabled ? disabledReason : "点击后以你的当前角色发送并执行"}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isDisabled) {
+                  toast.error(disabledReason || "当前不可执行");
+                  return;
+                }
+                onExecuteCommandRequest?.({
+                  command: requestCommand,
+                  threadId: message.threadId,
+                  requestMessageId: message.messageId,
+                });
+              }}
+            >
+              <span className="badge badge-xs badge-warning flex-shrink-0">检定请求</span>
               <span className="font-mono text-xs sm:text-sm break-all">{requestCommand}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className={`btn btn-xs ${isDisabled ? "btn-disabled" : "btn-primary"}`}
-                disabled={isDisabled}
-                title={isDisabled ? disabledReason : "以你的当前角色一键发送并执行"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isDisabled) {
-                    return;
-                  }
-                  onExecuteCommandRequest?.({
-                    command: requestCommand,
-                    threadId: message.threadId,
-                    requestMessageId: message.messageId,
-                  });
-                }}
-              >
-                一键发送
-              </button>
-              {isDisabled && <span className="text-xs opacity-60">{disabledReason}</span>}
-            </div>
+            </button>
+            {isDisabled && <span className="text-xs opacity-60">{disabledReason}</span>}
           </div>,
         );
       }
