@@ -17,6 +17,7 @@ type RequestMode = "direct" | "proxy";
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
 const FALLBACK_META_ENDPOINT = "https://api.novelai.net";
 const STORAGE_TOKEN_KEY = "tc:ai-image:novelai-token";
+const STORAGE_REQUEST_MODE_KEY = "tc:ai-image:request-mode";
 
 const SAMPLERS_NAI3 = [
   "k_euler",
@@ -666,7 +667,19 @@ export default function AiImagePage() {
     }
   });
   const [endpoint, setEndpoint] = useState(DEFAULT_IMAGE_ENDPOINT);
-  const [requestMode, setRequestMode] = useState<RequestMode>("direct");
+  const [requestMode, setRequestMode] = useState<RequestMode>(() => {
+    if (typeof window === "undefined")
+      return "proxy";
+    try {
+      const stored = String(window.localStorage.getItem(STORAGE_REQUEST_MODE_KEY) || "").trim();
+      if (stored === "direct" || stored === "proxy")
+        return stored;
+    }
+    catch {
+      // ignore
+    }
+    return "proxy";
+  });
 
   const [mode, setMode] = useState<AiImageHistoryMode>("txt2img");
   const [sourceImageDataUrl, setSourceImageDataUrl] = useState("");
@@ -945,6 +958,17 @@ export default function AiImagePage() {
       // ignore
     }
   }, [token]);
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+    try {
+      window.localStorage.setItem(STORAGE_REQUEST_MODE_KEY, requestMode);
+    }
+    catch {
+      // ignore
+    }
+  }, [requestMode]);
 
   useEffect(() => {
     void refreshModels();
@@ -1362,7 +1386,7 @@ export default function AiImagePage() {
                 </label>
 
                 <div className="text-xs opacity-60 leading-relaxed">
-                  Web 环境默认“直连”请求 NovelAI（浏览器可能因跨域/CORS 或 Referer 限制而失败；失败时可切到“同源代理”模式）。
+                  Web 环境默认使用“同源代理”模式请求 NovelAI（不受浏览器跨域限制）；如需排查上游响应，可切到“直连”（可能被跨域/CORS 或 Referer 限制拦截）。
                   Electron 环境默认通过 IPC 代理请求（不受浏览器跨域限制）。
                 </div>
               </div>
