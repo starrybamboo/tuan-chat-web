@@ -29,6 +29,7 @@
 | 202601140226 | clue_doc_planA | 优化 | 已完成 | [2026-01/202601140226_clue_doc_planA/](2026-01/202601140226_clue_doc_planA/) |
 | 202601140238 | webgal_space_vars | 功能 | 已完成 | [2026-01/202601140238_webgal_space_vars/](2026-01/202601140238_webgal_space_vars/) |
 | 202601140247 | doc_meta_restore | 修复 | 已完成 | [2026-01/202601140247_doc_meta_restore/](2026-01/202601140247_doc_meta_restore/) |
+| 202601140300 | novelai_openapi_codegen | 功能 | 未执行归档 | [2026-01/202601140300_novelai_openapi_codegen/](2026-01/202601140300_novelai_openapi_codegen/) |
 | 202601140302 | clue_detail_ui_refactor | 优化 | 已完成 | [2026-01/202601140302_clue_detail_ui_refactor/](2026-01/202601140302_clue_detail_ui_refactor/) |
 | 202601140410 | ai_image_novelapi_proxy | 功能 | 已完成 | [2026-01/202601140410_ai_image_novelapi_proxy/](2026-01/202601140410_ai_image_novelapi_proxy/) |
 | 202601140425 | blocksuite_header_title_style | 优化 | 已完成 | [2026-01/202601140425_blocksuite_header_title_style/](2026-01/202601140425_blocksuite_header_title_style/) |
@@ -76,6 +77,7 @@
 - [202601140226_clue_doc_planA](2026-01/202601140226_clue_doc_planA/) - 线索（space_clue）文档化入口：正文改为 Blocksuite，移除 description/note 编辑入口
 - [202601140238_webgal_space_vars](2026-01/202601140238_webgal_space_vars/) - WebGAL 空间变量系统：导演控制台设置变量 + WEBGAL_VAR 消息类型
 - [202601140247_doc_meta_restore](2026-01/202601140247_doc_meta_restore/) - 修复文档刷新后侧边栏丢失/重置默认无效（基于 sidebarTree 回补 doc metas）
+- [202601140300_novelai_openapi_codegen](2026-01/202601140300_novelai_openapi_codegen/) - NovelAI OpenAPI 导出与 TS 客户端生成（未执行归档：用户确认迁移至历史记录）
 - [202601140302_clue_detail_ui_refactor](2026-01/202601140302_clue_detail_ui_refactor/) - 线索详情弹窗 UI 重构（全屏 + 顶部固定 + 大视口文档）
 - [202601140410_ai_image_novelapi_proxy](2026-01/202601140410_ai_image_novelapi_proxy/) - AI 生图页接入 /api/novelapi 同源代理，新增 img2img 与本地历史/下载
 - [202601140425_blocksuite_header_title_style](2026-01/202601140425_blocksuite_header_title_style/) - Blocksuite 描述文档 tcHeader 标题样式对齐原生 doc-title，并加固禁用内置标题逻辑
