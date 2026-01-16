@@ -8,7 +8,7 @@
 
 - **职责:** 页面路由、页面组件、通用组件与工具库组织
 - **状态:** ?开发中
-- **最后更新:** 2026-01-14
+- **最后更新:** 2026-01-16
 
 ## 规范
 
@@ -77,7 +77,11 @@
 ### AI 生图测试（NovelAI）
 
 - 测试页路由：`/ai-image`（对应 `app/routes/aiImage.tsx`；仅开发环境注册）
+- 提供两种形态：
+  - Simple（简单形态）：自然语言 →（后端 LLM 转换）→ NovelAI tags → 出图；支持回填到高级面板继续微调
+  - Advanced（复杂形态）：对齐 `https://novelai.net/image` 的参数面板（Prompt/Undesired/Image/History/Connection）
 - Web 环境默认使用同源代理模式请求 NovelAI：`/api/novelapi/*`（其中 `/user/*` 元数据接口固定走 `https://api.novelai.net`，用于模型/设置拉取；如需排查上游响应，可切换为“直连”模式，但可能被跨域/CORS 或 Referer 限制拦截）
+- 若本机网络无法直连 NovelAI（例如需要本地代理/加速），可配置 `NOVELAPI_PROXY=http://127.0.0.1:7897`；在 Windows 上若开启了系统代理（ProxyServer），dev server 会自动尝试读取并使用
 - Electron 环境默认通过 IPC 代理请求 NovelAI：`window.electronAPI.novelaiGenerateImage(...)` + `window.electronAPI.novelaiGetClientSettings(...)`
 - 支持文生图（txt2img）与图生图（img2img：上传图片 + `strength/noise` 等参数）
 - UI 结构与操作逻辑对齐 `https://novelai.net/image`：Prompt/Undesired/Image/History/Connection 分区（tabs）

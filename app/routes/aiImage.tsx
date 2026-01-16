@@ -1,5 +1,6 @@
 // AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互，并复用仓库内 `api/novelai` 的请求类型作为 SSOT。
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 import { unzipSync } from "fflate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -9,9 +10,10 @@ import {
   listAiImageHistory,
 } from "@/utils/aiImageHistoryDb";
 import { isElectronEnv } from "@/utils/isElectronEnv";
+import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 import { AiGenerateImageRequest } from "../../api/novelai/models/AiGenerateImageRequest";
 
-type TabKey = "prompt" | "undesired" | "image" | "history" | "connection";
+type TabKey = "simple" | "prompt" | "undesired" | "image" | "history" | "connection";
 type RequestMode = "direct" | "proxy";
 
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
@@ -687,6 +689,11 @@ export default function AiImagePage() {
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
+  const [simplePrompt, setSimplePrompt] = useState("");
+  const [simpleUndesired, setSimpleUndesired] = useState("");
+  const [simpleConverted, setSimpleConverted] = useState<NovelAiNl2TagsResult | null>(null);
+  const [simpleConverting, setSimpleConverting] = useState(false);
+  const [simpleError, setSimpleError] = useState("");
 
   const [models, setModels] = useState<string[]>(() => buildFallbackModelList());
   const [modelsHint, setModelsHint] = useState<string>("");
@@ -765,7 +772,35 @@ export default function AiImagePage() {
     setActiveTab("image");
   }, []);
 
-  const handleGenerate = useCallback(async () => {
+  const handleSimpleConvert = useCallback(async () => {
+    try {
+      setSimpleError("");
+      setSimpleConverting(true);
+
+      const res = await convertNaturalLanguageToNovelAiTags({
+        input: simplePrompt,
+        negativeHint: simpleUndesired,
+      });
+      setSimpleConverted(res);
+    }
+    catch (e) {
+      setSimpleError(e instanceof Error ? e.message : String(e));
+    }
+    finally {
+      setSimpleConverting(false);
+    }
+  }, [simplePrompt, simpleUndesired]);
+
+  const handleSimpleApplyToAdvanced = useCallback((res?: NovelAiNl2TagsResult | null) => {
+    const next = res || simpleConverted;
+    if (!next)
+      return;
+    setPrompt(next.prompt);
+    setNegativePrompt(next.negativePrompt);
+    setActiveTab("prompt");
+  }, [simpleConverted]);
+
+  const generateImage = useCallback(async (args: { prompt: string; negativePrompt: string }) => {
     try {
       setError("");
       setLoading(true);
@@ -774,9 +809,11 @@ export default function AiImagePage() {
       if (!tokenValue)
         throw new Error("请先填写 token");
 
-      const promptValue = prompt.trim();
+      const promptValue = String(args.prompt || "").trim();
       if (!promptValue)
         throw new Error("请先填写 prompt");
+
+      const negativePromptValue = String(args.negativePrompt || "");
 
       if (mode === "img2img" && !sourceImageBase64.trim())
         throw new Error("img2img 需要上传源图片（拖拽到右侧预览区也可以）");
@@ -794,7 +831,7 @@ export default function AiImagePage() {
           mode,
           sourceImageBase64: mode === "img2img" ? sourceImageBase64 : undefined,
           prompt: promptValue,
-          negativePrompt,
+          negativePrompt: negativePromptValue,
           model,
           width,
           height,
@@ -820,7 +857,7 @@ export default function AiImagePage() {
           strength,
           noise,
           prompt: promptValue,
-          negativePrompt,
+          negativePrompt: negativePromptValue,
           model,
           width,
           height,
@@ -844,7 +881,7 @@ export default function AiImagePage() {
           strength,
           noise,
           prompt: promptValue,
-          negativePrompt,
+          negativePrompt: negativePromptValue,
           model,
           width,
           height,
@@ -869,7 +906,7 @@ export default function AiImagePage() {
         width: res.width,
         height: res.height,
         prompt: promptValue,
-        negativePrompt,
+        negativePrompt: negativePromptValue,
         dataUrl: res.dataUrl,
         sourceDataUrl: mode === "img2img" ? (sourceImageDataUrl || undefined) : undefined,
       }, { maxItems: 30 });
@@ -889,10 +926,8 @@ export default function AiImagePage() {
     height,
     mode,
     model,
-    negativePrompt,
     noise,
     noiseSchedule,
-    prompt,
     qualityToggle,
     refreshHistory,
     sampler,
@@ -909,6 +944,33 @@ export default function AiImagePage() {
     requestMode,
     width,
   ]);
+
+  const handleGenerate = useCallback(async () => {
+    await generateImage({ prompt, negativePrompt });
+  }, [generateImage, negativePrompt, prompt]);
+
+  const handleSimpleGenerate = useCallback(async () => {
+    try {
+      setSimpleError("");
+      setSimpleConverting(true);
+
+      const res = await convertNaturalLanguageToNovelAiTags({
+        input: simplePrompt,
+        negativeHint: simpleUndesired,
+      });
+      setSimpleConverted(res);
+      setPrompt(res.prompt);
+      setNegativePrompt(res.negativePrompt);
+
+      await generateImage({ prompt: res.prompt, negativePrompt: res.negativePrompt });
+    }
+    catch (e) {
+      setSimpleError(e instanceof Error ? e.message : String(e));
+    }
+    finally {
+      setSimpleConverting(false);
+    }
+  }, [generateImage, simplePrompt, simpleUndesired]);
 
   const refreshModels = useCallback(async () => {
     try {
@@ -1004,12 +1066,81 @@ export default function AiImagePage() {
         <div className="card bg-base-100 shadow-sm border border-base-200 overflow-hidden">
           <div className="card-body p-3 gap-3">
             <div className="join w-full">
+              <LeftTabButton tab="simple" active={activeTab} onChange={setActiveTab}>Simple</LeftTabButton>
               <LeftTabButton tab="prompt" active={activeTab} onChange={setActiveTab}>Prompt</LeftTabButton>
               <LeftTabButton tab="undesired" active={activeTab} onChange={setActiveTab}>Undesired</LeftTabButton>
               <LeftTabButton tab="image" active={activeTab} onChange={setActiveTab}>Image</LeftTabButton>
               <LeftTabButton tab="history" active={activeTab} onChange={setActiveTab}>History</LeftTabButton>
               <LeftTabButton tab="connection" active={activeTab} onChange={setActiveTab}>Connection</LeftTabButton>
             </div>
+
+            {activeTab === "simple" && (
+              <div className="flex flex-col gap-3">
+                <div className="text-sm font-semibold">自然语言一键出图</div>
+                <textarea
+                  className="textarea textarea-bordered w-full min-h-36"
+                  value={simplePrompt}
+                  onChange={e => setSimplePrompt(e.target.value)}
+                  placeholder="用自然语言描述你想画的内容，例如：黄昏的海边，少女回头，风吹起头发，电影感，暖色调。"
+                />
+
+                <div className="text-sm font-semibold">不希望出现（可选）</div>
+                <textarea
+                  className="textarea textarea-bordered w-full min-h-24"
+                  value={simpleUndesired}
+                  onChange={e => setSimpleUndesired(e.target.value)}
+                  placeholder="例如：lowres, blurry, extra fingers... 或中文描述也可以"
+                />
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    onClick={() => void handleSimpleConvert()}
+                    disabled={simpleConverting || loading}
+                  >
+                    {simpleConverting ? "转换中..." : "仅转换为 tags"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => void handleSimpleGenerate()}
+                    disabled={simpleConverting || loading}
+                  >
+                    {simpleConverting ? "转换中..." : "转换并出图"}
+                  </button>
+                </div>
+
+                <div className="text-xs opacity-60">
+                  说明：此处会通过后端 LLM 将自然语言转换为 NovelAI tags；转换结果可回填到 Prompt/Undesired 继续微调。
+                </div>
+
+                {!!simpleError && (
+                  <div className="alert alert-error py-2">
+                    <span className="text-sm">{simpleError}</span>
+                  </div>
+                )}
+
+                {simpleConverted && (
+                  <div className="border border-base-200 rounded-xl p-3 bg-base-200/30 flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold">转换结果（tags）</div>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-outline"
+                        onClick={() => handleSimpleApplyToAdvanced(simpleConverted)}
+                      >
+                        回填到高级面板
+                      </button>
+                    </div>
+                    <div className="text-xs opacity-60">Prompt</div>
+                    <textarea className="textarea textarea-bordered w-full min-h-24" value={simpleConverted.prompt} readOnly />
+                    <div className="text-xs opacity-60">Undesired</div>
+                    <textarea className="textarea textarea-bordered w-full min-h-20" value={simpleConverted.negativePrompt} readOnly />
+                  </div>
+                )}
+              </div>
+            )}
 
             {activeTab === "prompt" && (
               <div className="flex flex-col gap-2">
