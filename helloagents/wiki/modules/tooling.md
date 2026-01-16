@@ -31,6 +31,18 @@
 - 典型现象：浏览器报错 `... does not provide an export named 'default'`
 - 示例依赖：`react-fast-compare`（被 `ahooks` 的 ESM 构建以默认导入方式引用）
 
+#### 缓存异常排查（chunk 缺失）
+
+如终端出现类似报错：
+
+- `The file does not exist at ".../node_modules/.vite/deps/chunk-XXXX.js" which is in the optimize deps directory`
+
+通常意味着依赖预打包缓存不一致/损坏（或浏览器复用旧缓存导致请求到已失效的 chunk）。
+
+- 优先方案：使用 `--force` 强制重建预打包缓存（本仓库 `pnpm dev` 默认已启用）
+- 备选：`pnpm dev -- --force`
+- 仍不稳定时：删除 `node_modules/.vite/` 后重启，并对 `localhost` 做一次强制刷新/清理站点缓存
+
 ### VS Code/IDE 约定
 
 仓库包含 `.vscode/` 设置，保存时以 ESLint 进行格式化；首次安装依赖后可能需要执行一次 `pnpm lint` 完成 ESLint 相关初始化（以仓库 README 为准）。

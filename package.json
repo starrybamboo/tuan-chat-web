@@ -9,7 +9,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev",
+    "dev": "react-router dev --open --force",
     "start": "node ./scripts/start.mjs",
     "typecheck": "react-router typegen && tsc -p tsconfig.typecheck.json",
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint/.eslintcache",
