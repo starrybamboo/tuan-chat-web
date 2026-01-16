@@ -39,6 +39,7 @@
 - AI 生图页 `/ai-image`：token 为调试方便本地持久化；路由改为仅开发环境注册（生产不可访问）
 
 ### 修复
+- 修复开发环境 React hooks 报错（invalid hook call / `useEffect` 为 null）：dev 启动清理遗留 `node_modules/.vite/`，并补充 `resolve.dedupe` 覆盖 `react/jsx-*`
 - 修复开发环境偶发 Vite optimize deps 缓存/浏览器缓存不一致导致的 deps chunk 缺失报错：使用独立 `cacheDir`（`node_modules/.vite-tuan-chat-web`）并提供 `pnpm dev:force` 作为兜底命令
 - 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）
 - BlockSuite 相关样式改为按需注入，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的全局 `body{counter-reset}` 重写为 `.tc-blocksuite-scope`/`.blocksuite-portal` 范围内生效

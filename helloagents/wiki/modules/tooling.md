@@ -14,7 +14,8 @@
 
 ### 常用命令
 
-- `pnpm dev`：启动开发服务
+- `pnpm dev`：启动开发服务（会清理遗留 `node_modules/.vite/` 缓存）
+- `pnpm dev:force`：清理缓存并强制重建预打包（用于 deps chunk 缺失/invalid hook call）
 - `pnpm build`：构建
 - `pnpm typecheck`：类型检查
 - `pnpm lint` / `pnpm lint:fix`：代码规范检查与自动修复
@@ -42,6 +43,18 @@
 - 优先方案：对 `localhost:5177` 做一次强制刷新/清理站点缓存（避免复用旧的 optimize deps 产物）
 - 备选：执行 `pnpm dev:force`（或 `pnpm dev -- --force`）强制重建预打包缓存
 - 仍不稳定时：删除 `node_modules/.vite-tuan-chat-web/`（以及旧的 `node_modules/.vite/`）后重启
+
+#### React invalid hook call（`useEffect` 为 null）
+
+若页面报错类似：
+
+- `TypeError: Cannot read properties of null (reading 'useEffect')`
+
+通常意味着 React 被加载了两份（不同的 optimize deps URL/缓存目录导致模块实例不一致）。
+
+- 先停止所有 `pnpm dev` 进程，确保端口已释放
+- 执行 `pnpm dev:force`（会清理缓存并强制重建 optimize deps）
+- 浏览器对 `localhost:5177` 做一次强制刷新/清理站点缓存，避免继续复用旧的 deps 模块
 
 ### VS Code/IDE 约定
 
