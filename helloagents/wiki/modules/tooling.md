@@ -39,9 +39,9 @@
 
 通常意味着依赖预打包缓存不一致/损坏（或浏览器复用旧缓存导致请求到已失效的 chunk）。
 
-- 优先方案：使用 `--force` 强制重建预打包缓存（本仓库 `pnpm dev` 默认已启用）
-- 备选：`pnpm dev -- --force`
-- 仍不稳定时：删除 `node_modules/.vite/` 后重启，并对 `localhost` 做一次强制刷新/清理站点缓存
+- 优先方案：对 `localhost:5177` 做一次强制刷新/清理站点缓存（避免复用旧的 optimize deps 产物）
+- 备选：执行 `pnpm dev:force`（或 `pnpm dev -- --force`）强制重建预打包缓存
+- 仍不稳定时：删除 `node_modules/.vite-tuan-chat-web/`（以及旧的 `node_modules/.vite/`）后重启
 
 ### VS Code/IDE 约定
 

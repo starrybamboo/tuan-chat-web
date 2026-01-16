@@ -50,6 +50,7 @@
 | 202601151809 | ai_image_default_proxy | 变更 | 已完成 | [2026-01/202601151809_ai_image_default_proxy/](2026-01/202601151809_ai_image_default_proxy/) |
 | 202601151716 | blocksuite_tc_header_mode_switch | 变更 | 已完成 | [2026-01/202601151716_blocksuite-tc-header-mode-switch/](2026-01/202601151716_blocksuite-tc-header-mode-switch/) |
 | 202601161044 | vite_deps_missing_chunk | 修复 | 已完成 | [2026-01/202601161044_vite_deps_missing_chunk/](2026-01/202601161044_vite_deps_missing_chunk/) |
+| 202601161104 | vite_deps_cache_dir | 修复 | 已完成 | [2026-01/202601161104_vite_deps_cache_dir/](2026-01/202601161104_vite_deps_cache_dir/) |
 
 ---
 
@@ -98,3 +99,4 @@
 - [202601151809_ai_image_default_proxy](2026-01/202601151809_ai_image_default_proxy/) - AI 生图 Web 默认切回同源代理（并持久化请求方式）
 - [202601151716_blocksuite-tc-header-mode-switch](2026-01/202601151716_blocksuite-tc-header-mode-switch/) - 空间资料 Blocksuite 画布切换入口收口到 tcHeader，并移除外部 mode 控制通道
 - [202601161044_vite_deps_missing_chunk](2026-01/202601161044_vite_deps_missing_chunk/) - 开发环境：强制重建 Vite 依赖预打包缓存，规避 deps chunk 缺失报错
+- [202601161104_vite_deps_cache_dir](2026-01/202601161104_vite_deps_cache_dir/) - 开发环境：使用独立 cacheDir 隔离 optimize deps 缓存，降低 chunk 缺失概率
