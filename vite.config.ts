@@ -492,6 +492,11 @@ export default defineConfig(({ command, mode }) => {
         },
       ],
     },
+
+    // 使用独立 cacheDir，避免浏览器/开发服务复用旧的 optimize deps 缓存（默认路径 node_modules/.vite），
+    // 导致请求到不存在的 `chunk-*.js` 文件。
+    cacheDir: "node_modules/.vite-tuan-chat-web",
+
     server: {
       port: 5177,
       strictPort: true,
