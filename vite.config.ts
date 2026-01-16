@@ -333,6 +333,8 @@ export default defineConfig(({ command, mode }) => {
       dedupe: [
         "react",
         "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
         "react-router",
         "zustand",
 
