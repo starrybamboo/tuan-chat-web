@@ -29,7 +29,6 @@
 | 202601140226 | clue_doc_planA | 优化 | 已完成 | [2026-01/202601140226_clue_doc_planA/](2026-01/202601140226_clue_doc_planA/) |
 | 202601140238 | webgal_space_vars | 功能 | 已完成 | [2026-01/202601140238_webgal_space_vars/](2026-01/202601140238_webgal_space_vars/) |
 | 202601140247 | doc_meta_restore | 修复 | 已完成 | [2026-01/202601140247_doc_meta_restore/](2026-01/202601140247_doc_meta_restore/) |
-| 202601140300 | novelai_openapi_codegen | 功能 | 未执行归档 | [2026-01/202601140300_novelai_openapi_codegen/](2026-01/202601140300_novelai_openapi_codegen/) |
 | 202601140302 | clue_detail_ui_refactor | 优化 | 已完成 | [2026-01/202601140302_clue_detail_ui_refactor/](2026-01/202601140302_clue_detail_ui_refactor/) |
 | 202601140410 | ai_image_novelapi_proxy | 功能 | 已完成 | [2026-01/202601140410_ai_image_novelapi_proxy/](2026-01/202601140410_ai_image_novelapi_proxy/) |
 | 202601140425 | blocksuite_header_title_style | 优化 | 已完成 | [2026-01/202601140425_blocksuite_header_title_style/](2026-01/202601140425_blocksuite_header_title_style/) |
@@ -49,9 +48,7 @@
 | 202601151630 | ai_image_direct_fetch | 变更 | 已完成 | [2026-01/202601151630_ai_image_direct_fetch/](2026-01/202601151630_ai_image_direct_fetch/) |
 | 202601151809 | ai_image_default_proxy | 变更 | 已完成 | [2026-01/202601151809_ai_image_default_proxy/](2026-01/202601151809_ai_image_default_proxy/) |
 | 202601151716 | blocksuite_tc_header_mode_switch | 变更 | 已完成 | [2026-01/202601151716_blocksuite-tc-header-mode-switch/](2026-01/202601151716_blocksuite-tc-header-mode-switch/) |
-| 202601161044 | vite_deps_missing_chunk | 修复 | 已完成 | [2026-01/202601161044_vite_deps_missing_chunk/](2026-01/202601161044_vite_deps_missing_chunk/) |
-| 202601161104 | vite_deps_cache_dir | 修复 | 已完成 | [2026-01/202601161104_vite_deps_cache_dir/](2026-01/202601161104_vite_deps_cache_dir/) |
-| 202601161133 | react_invalid_hook_cache | 修复 | 已完成 | [2026-01/202601161133_react_invalid_hook_cache/](2026-01/202601161133_react_invalid_hook_cache/) |
+| 202601161120 | novelai_nl_image_simple | 功能 | 已完成 | [2026-01/202601161120_novelai_nl_image_simple/](2026-01/202601161120_novelai_nl_image_simple/) |
 
 ---
 
@@ -79,7 +76,6 @@
 - [202601140226_clue_doc_planA](2026-01/202601140226_clue_doc_planA/) - 线索（space_clue）文档化入口：正文改为 Blocksuite，移除 description/note 编辑入口
 - [202601140238_webgal_space_vars](2026-01/202601140238_webgal_space_vars/) - WebGAL 空间变量系统：导演控制台设置变量 + WEBGAL_VAR 消息类型
 - [202601140247_doc_meta_restore](2026-01/202601140247_doc_meta_restore/) - 修复文档刷新后侧边栏丢失/重置默认无效（基于 sidebarTree 回补 doc metas）
-- [202601140300_novelai_openapi_codegen](2026-01/202601140300_novelai_openapi_codegen/) - NovelAI OpenAPI 导出与 TS 客户端生成（未执行归档：用户确认迁移至历史记录）
 - [202601140302_clue_detail_ui_refactor](2026-01/202601140302_clue_detail_ui_refactor/) - 线索详情弹窗 UI 重构（全屏 + 顶部固定 + 大视口文档）
 - [202601140410_ai_image_novelapi_proxy](2026-01/202601140410_ai_image_novelapi_proxy/) - AI 生图页接入 /api/novelapi 同源代理，新增 img2img 与本地历史/下载
 - [202601140425_blocksuite_header_title_style](2026-01/202601140425_blocksuite_header_title_style/) - Blocksuite 描述文档 tcHeader 标题样式对齐原生 doc-title，并加固禁用内置标题逻辑
@@ -99,6 +95,4 @@
 - [202601151630_ai_image_direct_fetch](2026-01/202601151630_ai_image_direct_fetch/) - AI 生图 Web 端默认直连 NovelAI（Connection 可切换同源代理）
 - [202601151809_ai_image_default_proxy](2026-01/202601151809_ai_image_default_proxy/) - AI 生图 Web 默认切回同源代理（并持久化请求方式）
 - [202601151716_blocksuite-tc-header-mode-switch](2026-01/202601151716_blocksuite-tc-header-mode-switch/) - 空间资料 Blocksuite 画布切换入口收口到 tcHeader，并移除外部 mode 控制通道
-- [202601161044_vite_deps_missing_chunk](2026-01/202601161044_vite_deps_missing_chunk/) - 开发环境：强制重建 Vite 依赖预打包缓存，规避 deps chunk 缺失报错
-- [202601161104_vite_deps_cache_dir](2026-01/202601161104_vite_deps_cache_dir/) - 开发环境：使用独立 cacheDir 隔离 optimize deps 缓存，降低 chunk 缺失概率
-- [202601161133_react_invalid_hook_cache](2026-01/202601161133_react_invalid_hook_cache/) - 开发环境：清理遗留 `.vite` 并增强 React 去重，规避 invalid hook call
+- [202601161120_novelai_nl_image_simple](2026-01/202601161120_novelai_nl_image_simple/) - AI 生图 Simple：自然语言 → tags → 出图（可回填到高级面板）

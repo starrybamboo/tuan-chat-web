@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { spawn } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import { existsSync, promises as fs, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import path from "node:path";
@@ -10,6 +10,92 @@ import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 
 const projectRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), "..");
 const ssrEntry = path.join(projectRoot, "build", "server", "index.js");
+
+function resolveWindowsSystemProxyUrl() {
+  if (process.platform !== "win32")
+    return "";
+
+  const queryValue = (value) => {
+    const out = execSync(`reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ${value}`, {
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+    });
+    return String(out || "");
+  };
+
+  const parseRegSz = (text) => {
+    const line = String(text || "")
+      .split(/\r?\n/)
+      .map(s => s.trimEnd())
+      .find(s => s.includes("REG_SZ"));
+    if (!line)
+      return "";
+    const idx = line.indexOf("REG_SZ");
+    if (idx < 0)
+      return "";
+    return line.slice(idx + "REG_SZ".length).trim();
+  };
+
+  const parseRegDwordEnabled = (text) => {
+    const line = String(text || "")
+      .split(/\r?\n/)
+      .map(s => s.trimEnd())
+      .find(s => s.includes("REG_DWORD"));
+    if (!line)
+      return false;
+    const idx = line.indexOf("0x");
+    if (idx < 0)
+      return false;
+    const hex = line.slice(idx + 2).trim();
+    if (!hex)
+      return false;
+    const value = Number.parseInt(hex, 16);
+    return Number.isFinite(value) && value !== 0;
+  };
+
+  const parseProxyServer = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw)
+      return "";
+
+    if (/^https?:\/\//i.test(raw))
+      return raw;
+
+    if (raw.includes("=")) {
+      const parts = raw.split(";").map(s => s.trim()).filter(Boolean);
+      const map = new Map();
+      for (const part of parts) {
+        const idx = part.indexOf("=");
+        if (idx <= 0)
+          continue;
+        map.set(part.slice(0, idx).trim().toLowerCase(), part.slice(idx + 1).trim());
+      }
+      const chosen = map.get("https") || map.get("http") || "";
+      if (!chosen)
+        return "";
+      if (/^https?:\/\//i.test(chosen))
+        return chosen;
+      return `http://${chosen}`;
+    }
+
+    if (/^(?:socks|socks5)=/i.test(raw))
+      return "";
+
+    return `http://${raw}`;
+  };
+
+  try {
+    const enabledText = queryValue("ProxyEnable");
+    if (!parseRegDwordEnabled(enabledText))
+      return "";
+
+    const serverText = queryValue("ProxyServer");
+    return parseProxyServer(parseRegSz(serverText));
+  }
+  catch {
+    return "";
+  }
+}
 
 function applyEnvFile(filePath) {
   if (!existsSync(filePath))
@@ -110,7 +196,17 @@ else {
   const connectTimeoutMsRaw = Number(process.env.NOVELAPI_CONNECT_TIMEOUT_MS || "");
   const connectTimeoutMs = Number.isFinite(connectTimeoutMsRaw) && connectTimeoutMsRaw > 0 ? connectTimeoutMsRaw : 10_000;
 
-  const proxyUrl = String(process.env.NOVELAPI_PROXY || process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy || process.env.ALL_PROXY || process.env.all_proxy || "").trim();
+  const proxyUrl = String(
+    process.env.NOVELAPI_PROXY
+    || process.env.HTTPS_PROXY
+    || process.env.https_proxy
+    || process.env.HTTP_PROXY
+    || process.env.http_proxy
+    || process.env.ALL_PROXY
+    || process.env.all_proxy
+    || resolveWindowsSystemProxyUrl()
+    || "",
+  ).trim();
 
   const upstreamDispatcher = proxyUrl
     ? new ProxyAgent({ uri: proxyUrl, connect: { timeout: connectTimeoutMs } })
@@ -213,7 +309,11 @@ else {
     }
     catch (e) {
       res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end(`NovelAPI proxy failed: ${e instanceof Error ? e.message : String(e)}`);
+      const err = e;
+      const message = err instanceof Error ? err.message : String(err);
+      const cause = err?.cause;
+      const causeMessage = cause instanceof Error ? cause.message : (cause ? String(cause) : "");
+      res.end(`NovelAPI proxy failed: ${message}${causeMessage ? ` (cause: ${causeMessage})` : ""}`);
       return;
     }
 
