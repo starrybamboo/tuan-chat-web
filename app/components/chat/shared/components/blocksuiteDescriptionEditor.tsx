@@ -187,6 +187,25 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
   const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteDocHeader | null>(null);
 
+  useEffect(() => {
+    if (!(import.meta as any)?.env?.DEV)
+      return;
+    try {
+      const inIframe = isProbablyInIframe();
+      const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
+      console.log("[BlocksuiteMentionHost] runtime mount", msg);
+      try {
+        (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
+      }
+      catch {
+        // ignore
+      }
+    }
+    catch {
+      // ignore
+    }
+  }, [docId, props.instanceId, spaceId, variant, workspaceId]);
+
   const tcHeaderEntity = useMemo(() => {
     const parsed = parseDescriptionDocId(docId);
     return parsed
@@ -1234,6 +1253,25 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
             entityId,
             header,
           });
+        }
+        catch {
+          // ignore
+        }
+        return;
+      }
+
+      if (data.type === "debug-log") {
+        try {
+          const entry = data.entry as any;
+          const source = String(entry?.source ?? "unknown");
+          const message = String(entry?.message ?? "");
+          const payload = (entry?.payload ?? null) as any;
+          if (payload && typeof payload === "object") {
+            console.log("[BlocksuiteFrameDebug]", source, message, payload);
+          }
+          else {
+            console.log("[BlocksuiteFrameDebug]", source, message);
+          }
         }
         catch {
           // ignore

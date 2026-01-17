@@ -149,6 +149,54 @@ export default function BlocksuiteFrameRoute() {
   const measureAndPostHeight = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    (globalThis as any).__tcBlocksuiteDebugLog = (entry: any) => {
+      postToParent({
+        tc: "tc-blocksuite-frame",
+        instanceId,
+        type: "debug-log",
+        entry,
+      });
+    };
+
+    return () => {
+      try {
+        delete (globalThis as any).__tcBlocksuiteDebugLog;
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "@")
+        return;
+      try {
+        (globalThis as any).__tcBlocksuiteDebugLog?.({
+          source: "BlocksuiteFrame",
+          message: "keydown @",
+          payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey },
+        });
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, []);
+
+  useEffect(() => {
     // Handshake: let host know iframe is alive.
     postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "ready" });
   }, [instanceId]);

@@ -51,6 +51,15 @@ const isMentionMenuLocked = () => Date.now() < mentionMenuLockUntil;
 const lockMentionMenu = () => {
   mentionMenuLockUntil = Date.now() + mentionMenuLockMs;
 };
+const forwardMentionMenu = (message: string, payload?: Record<string, unknown>) => {
+  try {
+    const fn = (globalThis as any).__tcBlocksuiteDebugLog as undefined | ((entry: any) => void);
+    fn?.({ source: "BlocksuiteMentionMenu", message, payload });
+  }
+  catch {
+    // ignore
+  }
+};
 const logMentionMenu = (message: string, payload?: Record<string, unknown>) => {
   if (!mentionMenuDebugEnabled)
     return;
@@ -60,6 +69,7 @@ const logMentionMenu = (message: string, payload?: Record<string, unknown>) => {
   else {
     console.log("[BlocksuiteMentionMenu]", message);
   }
+  forwardMentionMenu(message, payload);
 };
 
 function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
@@ -345,6 +355,7 @@ export function createEmbeddedAffineEditor(params: {
       return [];
 
     let mentionActionLocked = false;
+    logMentionMenu("getDocMenus", { query, locked: isMentionMenuLocked() });
 
     // 1. Official linked-doc menu
     const docGroup = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);

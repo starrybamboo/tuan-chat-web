@@ -7,6 +7,16 @@ const mentionInsertDedupWindowMs = 500;
 const recentMentionInsertions = new Map<string, number>();
 const mentionDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
 
+function forwardMentionDebug(message: string, payload?: Record<string, unknown>) {
+  try {
+    const fn = (globalThis as any).__tcBlocksuiteDebugLog as undefined | ((entry: any) => void);
+    fn?.({ source: "BlocksuiteMention", message, payload });
+  }
+  catch {
+    // ignore
+  }
+}
+
 function logMentionDebug(message: string, payload?: Record<string, unknown>) {
   if (!mentionDebugEnabled)
     return;
@@ -16,6 +26,7 @@ function logMentionDebug(message: string, payload?: Record<string, unknown>) {
   else {
     console.log("[BlocksuiteMention]", message);
   }
+  forwardMentionDebug(message, payload);
 }
 
 function isDuplicateMentionInsert(key: string): boolean {
