@@ -23,6 +23,7 @@ import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import SpaceDetailPanel from "@/components/chat/space/drawers/spaceDetailPanel";
 import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
+import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
@@ -67,6 +68,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     useEntityHeaderOverrideStore.getState().hydrateFromLocalStorage();
+    useDocHeaderOverrideStore.getState().hydrateFromLocalStorage();
   }, []);
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
@@ -124,6 +126,7 @@ export default function ChatPage() {
   const activeSpaceIsArchived = activeSpace?.status === 2;
   const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
   const activeSpaceNameForUi = activeSpaceHeaderOverride?.title ?? activeSpace?.name;
+  const activeDocHeaderOverride = useDocHeaderOverrideStore(state => (activeDocId ? state.headers[activeDocId] : undefined));
 
   const spaceSidebarTreeQuery = useGetSpaceSidebarTreeQuery(activeSpaceId ?? -1);
   const setSpaceSidebarTreeMutation = useSetSpaceSidebarTreeMutation();
@@ -196,6 +199,60 @@ export default function ChatPage() {
   }, []);
 
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
+
+  const activeDocTitleForTcHeader = useMemo(() => {
+    if (!activeDocId)
+      return "";
+
+    const overrideTitle = typeof activeDocHeaderOverride?.title === "string" ? activeDocHeaderOverride.title.trim() : "";
+    if (overrideTitle)
+      return overrideTitle;
+
+    const fromState = (spaceDocMetas ?? []).find(m => m.id === activeDocId)?.title;
+    if (typeof fromState === "string" && fromState.trim().length > 0)
+      return fromState.trim();
+
+    const fromTree = (docMetasFromSidebarTree ?? []).find(m => m.id === activeDocId)?.title;
+    if (typeof fromTree === "string" && fromTree.trim().length > 0)
+      return fromTree.trim();
+
+    return "文档";
+  }, [activeDocHeaderOverride?.title, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
+
+  const handleDocTcHeaderChange = useCallback((payload: {
+    docId: string;
+    entityType?: unknown;
+    entityId?: number;
+    header: { title: string; imageUrl: string };
+  }) => {
+    const docId = typeof payload?.docId === "string" ? payload.docId : "";
+    if (!docId)
+      return;
+
+    const title = String(payload?.header?.title ?? "").trim();
+    const imageUrl = String(payload?.header?.imageUrl ?? "").trim();
+    useDocHeaderOverrideStore.getState().setHeader({ docId, header: { title, imageUrl } });
+
+    if (!title)
+      return;
+
+    setSpaceDocMetas((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0)
+        return prev;
+
+      const idx = prev.findIndex(m => m?.id === docId);
+      if (idx < 0)
+        return prev;
+
+      const currentTitle = typeof prev[idx]?.title === "string" ? prev[idx]!.title!.trim() : "";
+      if (currentTitle === title)
+        return prev;
+
+      const next = [...prev];
+      next[idx] = { ...next[idx], title };
+      return next;
+    });
+  }, []);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
     if (typeof window === "undefined")
@@ -938,6 +995,8 @@ export default function ChatPage() {
                                             spaceId={activeSpaceId ?? -1}
                                             docId={activeDocId}
                                             variant="full"
+                                            tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
+                                            onTcHeaderChange={handleDocTcHeaderChange}
                                             allowModeSwitch
                                             fullscreenEdgeless
                                           />
