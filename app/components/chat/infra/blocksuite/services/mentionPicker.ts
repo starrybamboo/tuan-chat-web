@@ -5,6 +5,18 @@ import { getTextSelectionCommand } from "@blocksuite/affine/shared/commands";
 
 const mentionInsertDedupWindowMs = 500;
 const recentMentionInsertions = new Map<string, number>();
+const mentionDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
+
+function logMentionDebug(message: string, payload?: Record<string, unknown>) {
+  if (!mentionDebugEnabled)
+    return;
+  if (payload) {
+    console.log("[BlocksuiteMention]", message, payload);
+  }
+  else {
+    console.log("[BlocksuiteMention]", message);
+  }
+}
 
 function isDuplicateMentionInsert(key: string): boolean {
   const now = Date.now();
@@ -35,27 +47,42 @@ export function insertMentionAtCurrentSelection(params: {
   const { std, store, memberId, displayName } = params;
 
   const [ok, data] = std.command.exec(getTextSelectionCommand);
-  if (!ok || !data.currentTextSelection)
+  if (!ok || !data.currentTextSelection) {
+    logMentionDebug("selection missing", { ok, memberId, displayName });
     return false;
+  }
 
   const selection = data.currentTextSelection as TextSelection;
   if (selection.to) {
     // minimal: only support single-block selection for now
-    if (selection.to.blockId !== selection.from.blockId)
+    if (selection.to.blockId !== selection.from.blockId) {
+      logMentionDebug("multi-block selection", {
+        memberId,
+        displayName,
+        from: selection.from?.blockId,
+        to: selection.to?.blockId,
+      });
       return false;
+    }
   }
 
   const block = store.getBlock(selection.from.blockId);
   const model = block?.model as any;
   const text = model?.text;
-  if (!text)
+  if (!text) {
+    logMentionDebug("text model missing", { memberId, displayName, blockId: selection.from?.blockId });
     return false;
+  }
 
   const insertAt = selection.from.index;
   const deleteLen = selection.to ? 0 : selection.from.length;
   const dedupeKey = `${selection.from.blockId}:${insertAt}:${memberId}:${displayName}`;
-  if (isDuplicateMentionInsert(dedupeKey))
+  if (isDuplicateMentionInsert(dedupeKey)) {
+    logMentionDebug("duplicate insert blocked", { memberId, displayName, insertAt, blockId: selection.from?.blockId });
     return false;
+  }
+
+  logMentionDebug("insert start", { memberId, displayName, insertAt, deleteLen });
 
   store.transact(() => {
     if (deleteLen > 0) {
@@ -72,6 +99,8 @@ export function insertMentionAtCurrentSelection(params: {
     // add a trailing space for easier typing
     text.insert(" ", insertAt + insertText.length);
   });
+
+  logMentionDebug("insert done", { memberId, displayName, insertAt });
 
   return true;
 }

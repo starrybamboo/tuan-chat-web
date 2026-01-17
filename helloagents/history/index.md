@@ -53,6 +53,7 @@
 | 202601171400 | blocksuite_canvas_inline | 优化 | 已完成 | [2026-01/202601171400_blocksuite-canvas-inline/](2026-01/202601171400_blocksuite-canvas-inline/) |
 | 202601171414 | blocksuite_mention_fix2 | 修复 | 已完成 | [2026-01/202601171414_blocksuite-mention-fix2/](2026-01/202601171414_blocksuite-mention-fix2/) |
 | 202601171430 | room_setting_height | 修复 | 已完成 | [2026-01/202601171430_room-setting-height/](2026-01/202601171430_room-setting-height/) |
+| 202601171438 | blocksuite_mention_debug | 修复 | 已完成 | [2026-01/202601171438_blocksuite-mention-debug/](2026-01/202601171438_blocksuite-mention-debug/) |
 
 ---
 
@@ -104,3 +105,4 @@
 - [202601171400_blocksuite-canvas-inline](2026-01/202601171400_blocksuite-canvas-inline/) - 画布切换改为非全屏：仅占据原文档区域
 - [202601171414_blocksuite-mention-fix2](2026-01/202601171414_blocksuite-mention-fix2/) - 加固 Blocksuite 空间描述 @ 提及弹窗关闭与重复触发
 - [202601171430_room-setting-height](2026-01/202601171430_room-setting-height/) - 房间资料页移除 `max-h-[80vh]` 限制，修复底部留白
+- [202601171438_blocksuite-mention-debug](2026-01/202601171438_blocksuite-mention-debug/) - 增加 Blocksuite @ 提及调试日志
