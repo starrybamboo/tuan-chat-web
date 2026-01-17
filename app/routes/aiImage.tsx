@@ -878,6 +878,8 @@ export default function AiImagePage() {
       return;
     }
 
+    let resolvedPrompt = prompt;
+    let resolvedNegativePrompt = negativePrompt;
     if (simpleConvertedFromText !== trimmed || !simpleConverted) {
       setSimpleConverting(true);
       try {
@@ -886,6 +888,8 @@ export default function AiImagePage() {
         setSimpleConvertedFromText(trimmed);
         setPrompt(converted.prompt);
         setNegativePrompt(converted.negativePrompt);
+        resolvedPrompt = converted.prompt;
+        resolvedNegativePrompt = converted.negativePrompt;
       }
       catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -897,8 +901,13 @@ export default function AiImagePage() {
       }
     }
 
-    await runGenerate();
-  }, [prompt, runGenerate, simpleConverted, simpleConvertedFromText, simpleText]);
+    if (!String(resolvedPrompt || "").trim()) {
+      setSimpleError("prompt 为空：请先完成自然语言转换或手动编辑 tags");
+      return;
+    }
+
+    await runGenerate({ mode: "txt2img", prompt: resolvedPrompt, negativePrompt: resolvedNegativePrompt });
+  }, [negativePrompt, prompt, runGenerate, simpleConverted, simpleConvertedFromText, simpleText]);
 
   const handleLoadHistory = useCallback((row: AiImageHistoryRow) => {
     setMode(row.mode);
@@ -1288,24 +1297,36 @@ export default function AiImagePage() {
                   <span className="label-text text-xs">Height</span>
                   <input className="input input-bordered input-sm" type="number" value={height} onChange={e => setHeight(clampToMultipleOf64(Number(e.target.value), 1024))} />
                 </label>
-                <label className="form-control">
-                  <span className="label-text text-xs">Steps</span>
-                  <input className="input input-bordered input-sm" type="number" value={steps} onChange={e => setSteps(Number(e.target.value) || 1)} />
-                </label>
-                <label className="form-control">
-                  <span className="label-text text-xs">Scale</span>
-                  <input className="input input-bordered input-sm" type="number" value={scale} onChange={e => setScale(Number(e.target.value) || 0)} />
-                </label>
+                {uiMode !== "simple"
+                  ? (
+                      <label className="form-control">
+                        <span className="label-text text-xs">Steps</span>
+                        <input className="input input-bordered input-sm" type="number" value={steps} onChange={e => setSteps(Number(e.target.value) || 1)} />
+                      </label>
+                    )
+                  : null}
+                {uiMode !== "simple"
+                  ? (
+                      <label className="form-control">
+                        <span className="label-text text-xs">Scale</span>
+                        <input className="input input-bordered input-sm" type="number" value={scale} onChange={e => setScale(Number(e.target.value) || 0)} />
+                      </label>
+                    )
+                  : null}
               </div>
 
-              <label className="form-control">
-                <span className="label-text text-xs">Sampler</span>
-                <select className="select select-bordered select-sm" value={sampler} onChange={e => setSampler(e.target.value)}>
-                  {samplerOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </label>
+              {uiMode !== "simple"
+                ? (
+                    <label className="form-control">
+                      <span className="label-text text-xs">Sampler</span>
+                      <select className="select select-bordered select-sm" value={sampler} onChange={e => setSampler(e.target.value)}>
+                        {samplerOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </label>
+                  )
+                : null}
 
-              {isNAI4
+              {uiMode !== "simple" && isNAI4
                 ? (
                     <div className="grid grid-cols-2 gap-2">
                       <label className="form-control">
@@ -1322,7 +1343,7 @@ export default function AiImagePage() {
                   )
                 : null}
 
-              {mode === "img2img"
+              {uiMode !== "simple" && mode === "img2img"
                 ? (
                     <div className="grid grid-cols-2 gap-2">
                       <label className="form-control">
@@ -1359,10 +1380,14 @@ export default function AiImagePage() {
                   : <div className="text-xs opacity-70">将自动生成</div>}
               </div>
 
-              <label className="label cursor-pointer justify-start gap-3">
-                <input type="checkbox" className="toggle toggle-sm" checked={qualityToggle} onChange={e => setQualityToggle(e.target.checked)} />
-                <span className="label-text">Quality Toggle</span>
-              </label>
+              {uiMode !== "simple"
+                ? (
+                    <label className="label cursor-pointer justify-start gap-3">
+                      <input type="checkbox" className="toggle toggle-sm" checked={qualityToggle} onChange={e => setQualityToggle(e.target.checked)} />
+                      <span className="label-text">Quality Toggle</span>
+                    </label>
+                  )
+                : null}
             </div>
           </div>
         </div>
