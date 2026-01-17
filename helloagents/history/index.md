@@ -50,8 +50,10 @@
 | 202601151716 | blocksuite_tc_header_mode_switch | 变更 | 已完成 | [2026-01/202601151716_blocksuite-tc-header-mode-switch/](2026-01/202601151716_blocksuite-tc-header-mode-switch/) |
 | 202601161120 | novelai_nl_image_simple | 功能 | 已完成 | [2026-01/202601161120_novelai_nl_image_simple/](2026-01/202601161120_novelai_nl_image_simple/) |
 | 202601171345 | blocksuite_mention_fix | 修复 | 已完成 | [2026-01/202601171345_blocksuite-mention-fix/](2026-01/202601171345_blocksuite-mention-fix/) |
+| 202601171400 | blocksuite_canvas_inline | 优化 | 已完成 | [2026-01/202601171400_blocksuite-canvas-inline/](2026-01/202601171400_blocksuite-canvas-inline/) |
 | 202601171414 | blocksuite_mention_fix2 | 修复 | 已完成 | [2026-01/202601171414_blocksuite-mention-fix2/](2026-01/202601171414_blocksuite-mention-fix2/) |
-| 202601171421 | novelai_pst_meta_skip | 修复 | 已完成 | [2026-01/202601171421_novelai_pst_meta_skip/](2026-01/202601171421_novelai_pst_meta_skip/) |
+| 202601171430 | room_setting_height | 修复 | 已完成 | [2026-01/202601171430_room-setting-height/](2026-01/202601171430_room-setting-height/) |
+| 202601171438 | blocksuite_mention_debug | 修复 | 已完成 | [2026-01/202601171438_blocksuite-mention-debug/](2026-01/202601171438_blocksuite-mention-debug/) |
 
 ---
 
@@ -100,5 +102,7 @@
 - [202601151716_blocksuite-tc-header-mode-switch](2026-01/202601151716_blocksuite-tc-header-mode-switch/) - 空间资料 Blocksuite 画布切换入口收口到 tcHeader，并移除外部 mode 控制通道
 - [202601161120_novelai_nl_image_simple](2026-01/202601161120_novelai_nl_image_simple/) - AI 生图 Simple：自然语言 → tags → 出图（可回填到高级面板）
 - [202601171345_blocksuite-mention-fix](2026-01/202601171345_blocksuite-mention-fix/) - 修复 Blocksuite 空间描述 @ 提及重复插入与弹窗不关闭
+- [202601171400_blocksuite-canvas-inline](2026-01/202601171400_blocksuite-canvas-inline/) - 画布切换改为非全屏：仅占据原文档区域
 - [202601171414_blocksuite-mention-fix2](2026-01/202601171414_blocksuite-mention-fix2/) - 加固 Blocksuite 空间描述 @ 提及弹窗关闭与重复触发
-- [202601171421_novelai_pst_meta_skip](2026-01/202601171421_novelai_pst_meta_skip/) - 修复 AI 生图使用 `pst-*` token 拉取元数据 403：检测到 persistent token 时直接降级模型列表
+- [202601171430_room-setting-height](2026-01/202601171430_room-setting-height/) - 房间资料页移除 `max-h-[80vh]` 限制，修复底部留白
+- [202601171438_blocksuite-mention-debug](2026-01/202601171438_blocksuite-mention-debug/) - 增加 Blocksuite @ 提及调试日志

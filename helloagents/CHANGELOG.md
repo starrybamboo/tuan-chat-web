@@ -42,6 +42,7 @@
 - AI 生图页 `/ai-image`：token 为调试方便本地持久化；路由改为仅开发环境注册（生产不可访问）
 
 ### 修复
+- 增加 Blocksuite @ 提及调试日志（菜单/插入路径）
 - 加固空间描述 Blocksuite @ 提及弹窗关闭与重复触发
 - 修复空间描述 Blocksuite @ 提及重复插入且弹窗不关闭
 - 修复开发环境 React hooks 报错（invalid hook call / `useEffect` 为 null）：dev 启动清理遗留 `node_modules/.vite/`，并补充 `resolve.dedupe` 覆盖 `react/jsx-*`

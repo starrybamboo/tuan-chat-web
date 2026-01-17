@@ -45,10 +45,21 @@ let slashMenuSelectionGuardRefCount = 0;
 let slashMenuSelectionGuardHandler: ((e: Event) => void) | null = null;
 const mentionMenuLockMs = 400;
 let mentionMenuLockUntil = 0;
+const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
 
 const isMentionMenuLocked = () => Date.now() < mentionMenuLockUntil;
 const lockMentionMenu = () => {
   mentionMenuLockUntil = Date.now() + mentionMenuLockMs;
+};
+const logMentionMenu = (message: string, payload?: Record<string, unknown>) => {
+  if (!mentionMenuDebugEnabled)
+    return;
+  if (payload) {
+    console.log("[BlocksuiteMentionMenu]", message, payload);
+  }
+  else {
+    console.log("[BlocksuiteMentionMenu]", message);
+  }
 };
 
 function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
@@ -357,6 +368,12 @@ export function createEmbeddedAffineEditor(params: {
           return name.toLowerCase().includes(q) || id.includes(q);
         });
 
+        logMentionMenu("menu request", {
+          query,
+          locked: isMentionMenuLocked(),
+          memberCount: filtered.length,
+        });
+
         if (filtered.length > 0) {
           memberGroup = {
             name: "Members",
@@ -375,6 +392,8 @@ export function createEmbeddedAffineEditor(params: {
                   if (mentionActionLocked || isMentionMenuLocked())
                     return;
 
+                  logMentionMenu("action picked", { memberId: id, name });
+
                   const inserted = insertMentionAtCurrentSelection({
                     std: editorHost.std,
                     store: storeAny,
@@ -390,6 +409,10 @@ export function createEmbeddedAffineEditor(params: {
                     else {
                       setTimeout(abort, 0);
                     }
+                    logMentionMenu("action applied", { memberId: id, name, inserted });
+                  }
+                  else {
+                    logMentionMenu("action blocked", { memberId: id, name, inserted });
                   }
                 },
               };
