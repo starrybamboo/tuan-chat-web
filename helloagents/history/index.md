@@ -64,6 +64,7 @@
 | 202601171843 | blocksuite_kb_notes | 文档 | 已完成 | [2026-01/202601171843_blocksuite-kb-notes/](2026-01/202601171843_blocksuite-kb-notes/) |
 | 202601171854 | ai_image_settings_modal | 优化 | 已完成 | [2026-01/202601171854_ai_image_settings_modal/](2026-01/202601171854_ai_image_settings_modal/) |
 | 202601171905 | project_kb_expand | 文档 | 已完成 | [2026-01/202601171905_project_kb_expand/](2026-01/202601171905_project_kb_expand/) |
+| 202601171925 | cleanup_deleted_space_docs | 修复 | 已完成 | [2026-01/202601171925_cleanup_deleted_space_docs/](2026-01/202601171925_cleanup_deleted_space_docs/) |
 
 ---
 
@@ -126,3 +127,4 @@
 - [202601171843_blocksuite-kb-notes](2026-01/202601171843_blocksuite-kb-notes/) - Blocksuite 豆知识沉淀：mention=embed、linked-doc popover、StrictMode 多次 mount 等
 - [202601171854_ai_image_settings_modal](2026-01/202601171854_ai_image_settings_modal/) - AI 生图页连接设置弹窗化（右上角设置）
 - [202601171905_project_kb_expand](2026-01/202601171905_project_kb_expand/) - 完善现有项目知识库：补齐 Chat/Blocksuite/WebGAL/AI 生图模块文档与本地开发工作流
+- [202601171925_cleanup_deleted_space_docs](2026-01/202601171925_cleanup_deleted_space_docs/) - 解散房间/空间后清理 Blocksuite 文档，避免 `@` 弹窗仍展示已删除实体 doc
