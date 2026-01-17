@@ -1,3 +1,4 @@
+// 嵌入式 Blocksuite 编辑器创建与扩展配置。
 import type { LinkedMenuGroup } from "@blocksuite/affine-widget-linked-doc";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 
@@ -323,6 +324,8 @@ export function createEmbeddedAffineEditor(params: {
     if (signal.aborted)
       return [];
 
+    let mentionActionLocked = false;
+
     // 1. Official linked-doc menu
     const docGroup = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
 
@@ -360,12 +363,19 @@ export function createEmbeddedAffineEditor(params: {
                   ? html`<img src="${(m as any).avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
                   : html`<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:#eee;border-radius:50%;font-size:12px;">@</div>`,
                 action: () => {
-                  insertMentionAtCurrentSelection({
+                  if (mentionActionLocked)
+                    return;
+
+                  const inserted = insertMentionAtCurrentSelection({
                     std: editorHost.std,
                     store: storeAny,
                     memberId: id,
                     displayName: name,
                   });
+                  if (inserted) {
+                    mentionActionLocked = true;
+                    abort();
+                  }
                 },
               };
             }),
