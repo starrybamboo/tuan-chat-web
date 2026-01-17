@@ -193,7 +193,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     try {
       const inIframe = isProbablyInIframe();
       const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
-      console.log("[BlocksuiteMentionHost] runtime mount", msg);
+      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
       try {
         (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
       }
@@ -1267,10 +1267,10 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           const message = String(entry?.message ?? "");
           const payload = (entry?.payload ?? null) as any;
           if (payload && typeof payload === "object") {
-            console.log("[BlocksuiteFrameDebug]", source, message, payload);
+            console.warn("[BlocksuiteFrameDebug]", source, message, payload);
           }
           else {
-            console.log("[BlocksuiteFrameDebug]", source, message);
+            console.warn("[BlocksuiteFrameDebug]", source, message);
           }
         }
         catch {

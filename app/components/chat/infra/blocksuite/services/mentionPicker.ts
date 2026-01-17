@@ -21,10 +21,10 @@ function logMentionDebug(message: string, payload?: Record<string, unknown>) {
   if (!mentionDebugEnabled)
     return;
   if (payload) {
-    console.log("[BlocksuiteMention]", message, payload);
+    console.warn("[BlocksuiteMention]", message, payload);
   }
   else {
-    console.log("[BlocksuiteMention]", message);
+    console.warn("[BlocksuiteMention]", message);
   }
   forwardMentionDebug(message, payload);
 }
