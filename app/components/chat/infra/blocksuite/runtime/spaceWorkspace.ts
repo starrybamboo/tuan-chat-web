@@ -290,9 +290,11 @@ export class SpaceWorkspace implements Workspace {
         return;
 
       const metas = this.meta.docMetas;
-      // Only fill titles for docs we already know exist.
+      // linked-doc uses `workspace.meta.docMetas` as its data source.
+      // For business docIds, the title should prefer `tc_header.title` (instead of blocksuite native title).
+      const isBusinessDocId = (id: string) => /^(?:room|space|clue|user):/.test(id);
       const pendingIds = metas
-        .filter(m => !m.title)
+        .filter(m => !m.title || isBusinessDocId(m.id))
         .map(m => m.id);
 
       // Avoid blocking the UI if there are many docs.
@@ -515,12 +517,32 @@ function ensureAffineMinimumBlockData(store: Store) {
 }
 
 function tryDeriveDocTitle(store: Store): string | null {
+  const tcTitle = tryReadTcHeaderTitle(store);
+  if (tcTitle)
+    return tcTitle;
+
   try {
     const pages = store.getModelsByFlavour("affine:page") as Array<any>;
     const page = pages?.[0];
     const title = page?.props?.title;
     const str = typeof title?.toString === "function" ? title.toString() : "";
     const trimmed = String(str ?? "").trim();
+    return trimmed || null;
+  }
+  catch {
+    return null;
+  }
+}
+
+function tryReadTcHeaderTitle(store: Store): string | null {
+  try {
+    const ydoc = (store as any)?.spaceDoc as Y.Doc | undefined;
+    if (!ydoc || typeof (ydoc as any).getMap !== "function")
+      return null;
+
+    const map = ydoc.getMap("tc_header") as any;
+    const title = map?.get?.("title") as unknown;
+    const trimmed = typeof title === "string" ? title.trim() : "";
     return trimmed || null;
   }
   catch {

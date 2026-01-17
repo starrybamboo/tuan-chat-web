@@ -539,11 +539,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           });
           if (ensured) {
             setTcHeaderState(ensured);
+            if (ensured.title) {
+              runtime.ensureDocMeta({ workspaceId, docId, title: ensured.title });
+            }
           }
 
           unsubscribeHeader = subscribeBlocksuiteDocHeader(store, (h) => {
             if (h) {
               setTcHeaderState(h);
+              if (h.title) {
+                runtime.ensureDocMeta({ workspaceId, docId, title: h.title });
+              }
             }
           });
         }
