@@ -98,6 +98,7 @@
 - AI 生图：专业模式支持“背景/角色”分区编辑并写入 `v4_prompt`/`v4_negative_prompt` 的 `char_captions`；普通/专业统一三栏布局，并在历史记录中回填结构化 prompt
 - AI 生图：普通模式参数面板精简为宽/高/Seed，修复“自然语言转换后生成提示 prompt 为空”的问题
 - AI 生图：Seed 输入对齐 NovelAI（Seed < 0 表示随机）；普通模式补充可选负面 tags 输入
+- AI 生图：普通模式移除 img2img，并新增“画风”多选（从本地图片加载预设并追加对应 tags）
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
