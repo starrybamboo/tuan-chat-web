@@ -175,14 +175,72 @@ export default function BlocksuiteFrameRoute() {
     if (typeof window === "undefined")
       return;
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "@")
-        return;
+    const toLower = (v: unknown) => String(v ?? "").toLowerCase();
+    const mentionDebugWindowMs = 5000;
+    let mentionDebugUntil = 0;
+    let mentionDebugRemaining = 0;
+    const summarizeNode = (node: unknown) => {
+      if (!(node instanceof Element))
+        return null;
+      const tag = toLower(node.tagName);
+      const id = node.id ? toLower(node.id) : "";
+      const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+      return {
+        tag,
+        id: id || undefined,
+        className: cls || undefined,
+      };
+    };
+
+    const shouldLogMentionEvent = (path: unknown[]) => {
+      for (const n of path) {
+        if (!(n instanceof Element))
+          continue;
+        const tag = toLower(n.tagName);
+        const id = toLower(n.id);
+        const cls = typeof (n as any).className === "string" ? toLower((n as any).className) : "";
+        const anyText = `${tag} ${id} ${cls}`;
+        if (anyText.includes("mention"))
+          return true;
+        if (anyText.includes("affine-inline-mention"))
+          return true;
+        if (anyText.includes("affine-mention"))
+          return true;
+      }
+      return false;
+    };
+
+    const logEvent = (type: string, e: Event) => {
       try {
+        const path = (e as any).composedPath?.() as unknown[] | undefined;
+        if (!path || path.length === 0)
+          return;
+        const now = Date.now();
+        const inWindow = now < mentionDebugUntil;
+        const mentionMatched = shouldLogMentionEvent(path);
+        if (!inWindow && !mentionMatched)
+          return;
+        if (inWindow) {
+          if (mentionDebugRemaining <= 0)
+            return;
+          mentionDebugRemaining -= 1;
+        }
+
+        const nodes = path
+          .map(summarizeNode)
+          .filter(Boolean)
+          .slice(0, 8);
+
         (globalThis as any).__tcBlocksuiteDebugLog?.({
           source: "BlocksuiteFrame",
-          message: "keydown @",
-          payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey },
+          message: type,
+          payload: {
+            type,
+            targetTag: toLower((e.target as any)?.tagName),
+            inWindow,
+            mentionMatched,
+            nodes,
+          },
         });
       }
       catch {
@@ -190,9 +248,43 @@ export default function BlocksuiteFrameRoute() {
       }
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      try {
+        if (e.key === "@") {
+          mentionDebugUntil = Date.now() + mentionDebugWindowMs;
+          mentionDebugRemaining = 12;
+          (globalThis as any).__tcBlocksuiteDebugLog?.({
+            source: "BlocksuiteFrame",
+            message: "keydown @",
+            payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey },
+          });
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Escape") {
+          if (Date.now() < mentionDebugUntil) {
+            (globalThis as any).__tcBlocksuiteDebugLog?.({
+              source: "BlocksuiteFrame",
+              message: `keydown ${e.key}`,
+              payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey },
+            });
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const onPointerDown = (e: PointerEvent) => logEvent("pointerdown", e);
+    const onClick = (e: MouseEvent) => logEvent("click", e);
+
     window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("click", onClick, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("click", onClick, true);
     };
   }, []);
 

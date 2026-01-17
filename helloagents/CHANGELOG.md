@@ -42,6 +42,7 @@
 - AI 生图页 `/ai-image`：token 为调试方便本地持久化；路由改为仅开发环境注册（生产不可访问）
 
 ### 修复
+- 增强 Blocksuite @ 提及点击链路调试：在 frame 捕获 pointerdown/click，并在按下 `@` 后短窗口内上报事件路径摘要
 - 补强 Blocksuite @ 提及调试日志：iframe 转发到宿主控制台，并增加入口日志
 - 增加 Blocksuite @ 提及调试日志（菜单/插入路径）
 - 加固空间描述 Blocksuite @ 提及弹窗关闭与重复触发
