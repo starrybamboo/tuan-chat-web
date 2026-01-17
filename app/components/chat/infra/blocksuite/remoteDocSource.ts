@@ -42,35 +42,6 @@ export class RemoteSnapshotDocSource implements DocSource {
     return base64ToUint8Array(remote.updateB64);
   }
 
-  private async tryFlushPending(docId: string, baseFullUpdate: Uint8Array): Promise<Uint8Array> {
-    // If we have queued offline updates, attempt to merge and push a new snapshot.
-    const key = parseRemoteKeyFromDocId(docId);
-    if (!key)
-      return baseFullUpdate;
-
-    const pending = await listUpdates(docId);
-    if (!pending.length)
-      return baseFullUpdate;
-
-    const merged = mergeUpdates([baseFullUpdate, ...pending]);
-    try {
-      await setRemoteSnapshot({
-        ...key,
-        snapshot: {
-          v: 1,
-          updateB64: uint8ArrayToBase64(merged),
-          updatedAt: Date.now(),
-        },
-      });
-      await clearUpdates(docId);
-      return merged;
-    }
-    catch {
-      // Keep queued updates for future attempts.
-      return baseFullUpdate;
-    }
-  }
-
   async pull(docId: string, state: Uint8Array) {
     const key = parseRemoteKeyFromDocId(docId);
     if (!key)
@@ -80,14 +51,15 @@ export class RemoteSnapshotDocSource implements DocSource {
     if (!remote?.updateB64)
       return null;
 
-    let fullUpdate = base64ToUint8Array(remote.updateB64);
+    const remoteFullUpdate = base64ToUint8Array(remote.updateB64);
 
-    // Best-effort: if we have offline edits queued, merge them into remote snapshot.
-    fullUpdate = await this.tryFlushPending(docId, fullUpdate);
-    this.cache.set(docId, fullUpdate);
+    const pending = await listUpdates(docId);
+    const mergedForLocal = pending.length ? mergeUpdates([remoteFullUpdate, ...pending]) : remoteFullUpdate;
 
-    const diff = state.length ? diffUpdate(fullUpdate, state) : fullUpdate;
-    return { data: diff, state: encodeStateVectorFromUpdate(fullUpdate) };
+    this.cache.set(docId, mergedForLocal);
+
+    const diff = state.length ? diffUpdate(mergedForLocal, state) : mergedForLocal;
+    return { data: diff, state: encodeStateVectorFromUpdate(mergedForLocal) };
   }
 
   async push(docId: string, data: Uint8Array) {

@@ -68,6 +68,7 @@
 | 202601171932 | novelapi_proxy_stream_fix | 修复 | 已完成 | [2026-01/202601171932_novelapi_proxy_stream_fix/](2026-01/202601171932_novelapi_proxy_stream_fix/) |
 | 202601172026 | ai_image_v4_params | 修复 | 已完成 | [2026-01/202601172026_ai_image_v4_params/](2026-01/202601172026_ai_image_v4_params/) |
 | 202601172100 | ai_image_char_bg_layout | 变更 | 已完成 | [2026-01/202601172100_ai_image_char_bg_layout/](2026-01/202601172100_ai_image_char_bg_layout/) |
+| 202601172234 | tc_header_upload_and_doc_lazy | 修复 | 已完成 | [2026-01/202601172234_tc_header_upload_and_doc_lazy/](2026-01/202601172234_tc_header_upload_and_doc_lazy/) |
 
 ---
 
@@ -134,3 +135,4 @@
 - [202601171932_novelapi_proxy_stream_fix](2026-01/202601171932_novelapi_proxy_stream_fix/) - 修复 `/api/novelapi/*` 同源代理偶发 500（流式转发 pipeline 化）
 - [202601172026_ai_image_v4_params](2026-01/202601172026_ai_image_v4_params/) - 修复 NAI v4/v4.5 出图 500：对齐 `params_version=3` 与 `v4_prompt` 参数结构
 - [202601172100_ai_image_char_bg_layout](2026-01/202601172100_ai_image_char_bg_layout/) - AI 生图支持 v4/v4.5 “背景/角色”分区（`char_captions`）并对齐普通/专业模式三栏布局
+- [202601172234_tc_header_upload_and_doc_lazy](2026-01/202601172234_tc_header_upload_and_doc_lazy/) - 修复 tc_header 头像上传（iframe 裁剪弹窗）并优化空间文档懒加载（不全量 load / pull 不写回）
