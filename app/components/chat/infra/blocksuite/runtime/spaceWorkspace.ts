@@ -17,10 +17,13 @@ import { BlobEngine, DocEngine, IndexedDBBlobSource, IndexedDBDocSource } from "
 import { Subject, Subscription } from "rxjs";
 import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
-import { applyUpdate, encodeStateAsUpdate } from "yjs";
+import { applyUpdate, encodeStateAsUpdate, mergeUpdates } from "yjs";
 
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineStoreExtensions";
+
+const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
+const REMOTE_RESTORE_ORIGIN = "tc:remote-restore";
 
 class InMemoryWorkspaceMeta implements WorkspaceMeta {
   private _docMetas: DocMeta[] = [];
@@ -93,6 +96,9 @@ class InMemoryWorkspaceMeta implements WorkspaceMeta {
 
 class SpaceDoc implements Doc {
   private readonly _storeContainer: StoreContainer;
+  private _remoteUpdateHandler: ((update: Uint8Array, origin: unknown) => void) | null = null;
+  private _pendingRemoteUpdates: Uint8Array[] = [];
+  private _remotePushTimer: ReturnType<typeof setTimeout> | null = null;
 
   private _loaded = true;
   private _ready = false;
@@ -161,6 +167,33 @@ class SpaceDoc implements Doc {
     this.spaceDoc.load();
     initFn?.();
     this._ready = true;
+
+    // Push local edits to remote snapshot storage on-demand (only for docs that are actually opened/loaded).
+    // This avoids the sync engine pulling every subdoc in the space.
+    this._remoteUpdateHandler = (update: Uint8Array, origin: unknown) => {
+      // Ignore initial loads / programmatic remote restores to avoid redundant PUT right after GET.
+      if (origin === "load" || origin === REMOTE_RESTORE_ORIGIN)
+        return;
+
+      this._enqueueRemoteUpdate(update);
+    };
+    this.spaceDoc.on("update", this._remoteUpdateHandler);
+  }
+
+  private _enqueueRemoteUpdate(update: Uint8Array) {
+    this._pendingRemoteUpdates.push(update);
+    if (this._remotePushTimer)
+      return;
+
+    // Batch frequent editor updates to reduce IndexedDB write pressure.
+    this._remotePushTimer = setTimeout(() => {
+      this._remotePushTimer = null;
+      const pending = this._pendingRemoteUpdates;
+      this._pendingRemoteUpdates = [];
+      if (!pending.length)
+        return;
+      void remoteSnapshotDocSource.push(this.id, mergeUpdates(pending));
+    }, 200);
   }
 
   remove(): void {
@@ -172,7 +205,21 @@ class SpaceDoc implements Doc {
   }
 
   dispose(): void {
-    // Keep data; no-op
+    if (this._remotePushTimer) {
+      clearTimeout(this._remotePushTimer);
+      this._remotePushTimer = null;
+    }
+
+    const pending = this._pendingRemoteUpdates;
+    this._pendingRemoteUpdates = [];
+    if (pending.length) {
+      void remoteSnapshotDocSource.push(this.id, mergeUpdates(pending));
+    }
+
+    if (this._remoteUpdateHandler) {
+      this.spaceDoc.off("update", this._remoteUpdateHandler);
+      this._remoteUpdateHandler = null;
+    }
   }
 
   getStore(options: GetStoreOptions = {}): Store {
@@ -245,7 +292,7 @@ export class SpaceWorkspace implements Workspace {
     this.docSync = new DocEngine(
       this._rootDoc,
       new IndexedDBDocSource(dbPrefix),
-      [new RemoteSnapshotDocSource()],
+      [],
       logger,
     );
 
@@ -441,7 +488,7 @@ export class SpaceWorkspace implements Workspace {
     }
 
     if (params.update.length) {
-      applyUpdate(doc.spaceDoc, params.update);
+      applyUpdate(doc.spaceDoc, params.update, REMOTE_RESTORE_ORIGIN);
     }
 
     // Ensure doc is marked as loaded (and subdoc connected if needed) after applying updates.
