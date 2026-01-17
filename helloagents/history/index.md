@@ -54,6 +54,7 @@
 | 202601171414 | blocksuite_mention_fix2 | 修复 | 已完成 | [2026-01/202601171414_blocksuite-mention-fix2/](2026-01/202601171414_blocksuite-mention-fix2/) |
 | 202601171430 | room_setting_height | 修复 | 已完成 | [2026-01/202601171430_room-setting-height/](2026-01/202601171430_room-setting-height/) |
 | 202601171438 | blocksuite_mention_debug | 修复 | 已完成 | [2026-01/202601171438_blocksuite-mention-debug/](2026-01/202601171438_blocksuite-mention-debug/) |
+| 202601171520 | blocksuite_mention_logs | 修复 | 已完成 | [2026-01/202601171520_blocksuite-mention-logs/](2026-01/202601171520_blocksuite-mention-logs/) |
 
 ---
 
@@ -106,3 +107,4 @@
 - [202601171414_blocksuite-mention-fix2](2026-01/202601171414_blocksuite-mention-fix2/) - 加固 Blocksuite 空间描述 @ 提及弹窗关闭与重复触发
 - [202601171430_room-setting-height](2026-01/202601171430_room-setting-height/) - 房间资料页移除 `max-h-[80vh]` 限制，修复底部留白
 - [202601171438_blocksuite-mention-debug](2026-01/202601171438_blocksuite-mention-debug/) - 增加 Blocksuite @ 提及调试日志
+- [202601171520_blocksuite-mention-logs](2026-01/202601171520_blocksuite-mention-logs/) - 补强 Blocksuite @ 提及日志：iframe 转发到宿主控制台
