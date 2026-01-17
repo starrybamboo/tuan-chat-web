@@ -475,6 +475,7 @@ export default function AiImagePage() {
     const stored = readLocalStorageString(STORAGE_UI_MODE_KEY, "simple").trim();
     return stored === "pro" ? "pro" : "simple";
   });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     writeLocalStorageString(STORAGE_UI_MODE_KEY, uiMode);
@@ -753,24 +754,13 @@ export default function AiImagePage() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="join">
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${requestMode === "proxy" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setRequestMode("proxy")}
-              title="通过本地后端代理请求（推荐，避免浏览器 CORS）"
-            >
-              代理
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${requestMode === "direct" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setRequestMode("direct")}
-              title="浏览器直连 NovelAI（可能被 CORS 拦截；Electron 里通常可用）"
-            >
-              直连
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setIsSettingsOpen(true)}
+          >
+            设置
+          </button>
         </div>
       </div>
 
@@ -904,52 +894,12 @@ export default function AiImagePage() {
                     </div>
                   </div>
                 </div>
-
-                <div className="card bg-base-200">
-                  <div className="card-body gap-3">
-                    <div className="font-medium">连接</div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="form-control">
-                        <label className="label"><span className="label-text">NovelAI Token（Bearer）</span></label>
-                        <input className="input input-bordered" value={token} onChange={e => setToken(e.target.value)} placeholder="pst-... 或其它 token" />
-                      </div>
-                      <div className="form-control">
-                        <label className="label"><span className="label-text">Endpoint</span></label>
-                        <input className="input input-bordered" value={endpoint} onChange={e => setEndpoint(e.target.value)} />
-                      </div>
-                    </div>
-                    <div className="text-xs opacity-70">
-                      {requestMode === "direct" && !isElectronEnv()
-                        ? "提示：浏览器直连通常会遇到 CORS，建议切换到“代理”。"
-                        : "提示：Token 仅保存在本地 localStorage。"}
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           )
         : (
             <div className="flex-1 overflow-hidden flex">
               <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
-                <div className="card bg-base-200">
-                  <div className="card-body gap-3">
-                    <div className="font-medium">连接</div>
-                    <div className="form-control">
-                      <label className="label"><span className="label-text">NovelAI Token（Bearer）</span></label>
-                      <input className="input input-bordered" value={token} onChange={e => setToken(e.target.value)} placeholder="pst-... 或其它 token" />
-                    </div>
-                    <div className="form-control">
-                      <label className="label"><span className="label-text">Endpoint</span></label>
-                      <input className="input input-bordered" value={endpoint} onChange={e => setEndpoint(e.target.value)} />
-                    </div>
-                    <div className="text-xs opacity-70">
-                      {requestMode === "direct" && !isElectronEnv()
-                        ? "浏览器直连可能被 CORS 拦截；建议用代理。"
-                        : "Token 仅保存在本地 localStorage。"}
-                    </div>
-                  </div>
-                </div>
-
                 <div className="card bg-base-200">
                   <div className="card-body gap-3">
                     <div className="flex items-center gap-2">
@@ -1168,6 +1118,86 @@ export default function AiImagePage() {
               </div>
             </div>
           )}
+
+      <dialog className={`modal ${isSettingsOpen ? "modal-open" : ""}`}>
+        <div className="modal-box max-w-2xl">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-bold text-lg">连接设置</h3>
+            <div className="ml-auto text-xs opacity-70">
+              {modelLabel(model)}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <div className="font-medium">请求方式</div>
+              <div className="ml-auto join">
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${requestMode === "proxy" ? "btn-primary" : "btn-ghost"}`}
+                  onClick={() => setRequestMode("proxy")}
+                  title="通过本地后端代理请求（推荐，避免浏览器 CORS）"
+                >
+                  代理
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${requestMode === "direct" ? "btn-primary" : "btn-ghost"}`}
+                  onClick={() => setRequestMode("direct")}
+                  title="浏览器直连 NovelAI（可能被 CORS 拦截；Electron 里通常可用）"
+                >
+                  直连
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="form-control">
+                <label className="label"><span className="label-text">NovelAI Token（Bearer）</span></label>
+                <input
+                  className="input input-bordered"
+                  value={token}
+                  onChange={e => setToken(e.target.value)}
+                  placeholder="pst-... 或其它 token"
+                />
+              </div>
+              <div className="form-control">
+                <label className="label"><span className="label-text">Endpoint</span></label>
+                <div className="join">
+                  <input
+                    className="input input-bordered join-item w-full"
+                    value={endpoint}
+                    onChange={e => setEndpoint(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn join-item"
+                    onClick={() => setEndpoint(DEFAULT_IMAGE_ENDPOINT)}
+                    title="重置为默认"
+                  >
+                    重置
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-xs opacity-70">
+              {requestMode === "direct" && !isElectronEnv()
+                ? "提示：浏览器直连通常会遇到 CORS，建议切换到“代理”。"
+                : "提示：Token 仅保存在本地 localStorage。"}
+            </div>
+          </div>
+
+          <div className="modal-action">
+            <button type="button" className="btn" onClick={() => setIsSettingsOpen(false)}>
+              关闭
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button type="button" onClick={() => setIsSettingsOpen(false)}>close</button>
+        </form>
+      </dialog>
     </div>
   );
 }
