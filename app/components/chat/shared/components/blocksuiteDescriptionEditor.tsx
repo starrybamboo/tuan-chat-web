@@ -880,7 +880,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     };
   }, [isEdgelessFullscreen]);
 
-  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, isEdgelessFullscreen ? "fixed inset-0 z-50 p-2 bg-base-100" : ""]
+  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, isEdgelessFullscreen ? "h-full min-h-0" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -1365,7 +1365,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   // blocksuite-frame 按 URL 的默认 mode 回到 page，并回传 mode，导致出现“白屏一下又回退”。
   // 这里通过始终渲染同一层 wrapper（非全屏时使用 `contents`）来避免 remount。
   const wrapperClassName = isEdgelessFullscreenActive
-    ? [className, "fixed inset-0 z-50 p-2 bg-base-100", "w-full h-full"].filter(Boolean).join(" ")
+    ? [className, "w-full h-full min-h-0"].filter(Boolean).join(" ")
     : "contents";
 
   const iframeClassName = isEdgelessFullscreenActive

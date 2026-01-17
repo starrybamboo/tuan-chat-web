@@ -49,7 +49,7 @@
 - 线索详情弹窗（PL 抽屉）：默认使用全屏弹窗并在顶部固定基础信息/操作区，下方提供大视口的线索文档编辑区；旧 `note` 以折叠区形式展示（默认折叠）
 - 嵌入式隔离（官方兼容）：在 blocksuite 初始化前调用 `startBlocksuiteStyleIsolation` + `ensureBlocksuiteRuntimeStyles`，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的 `body{counter-reset}` 作用域化到 `.tc-blocksuite-scope`/`.blocksuite-portal`，避免污染同页其它 UI
 - 画布切换入口：当 `allowModeSwitch` 启用时，“切换到画布/退出画布”按钮统一渲染在 `tcHeader` 的 actions 区（业务侧不再外置 mode 切换按钮/不再维护外部 mode 状态）
-- iframe 强隔离（最稳）：通过 `blocksuite-frame` 路由在 iframe 内运行 Blocksuite，主窗口仅作为 iframe 宿主，并用 `postMessage` 同步 theme/导航/高度；mode 由 frame 回传给宿主用于 edgeless 全屏宿主处理（宿主不再下发 `set-mode`）
+- iframe 强隔离（最稳）：通过 `blocksuite-frame` 路由在 iframe 内运行 Blocksuite，主窗口仅作为 iframe 宿主，并用 `postMessage` 同步 theme/导航/高度；mode 由 frame 回传给宿主用于 page/edgeless 状态同步与布局处理（画布默认占据原文档区域，不再触发宿主全屏覆盖；宿主不再下发 `set-mode`）
 - 主题同步：仅同步到 `.tc-blocksuite-scope` 与 `.blocksuite-portal`（不改动 `html/body`），确保弹层与编辑器主题一致
 - 上游副作用规避：通过 `pnpm.patchedDependencies` 修补 blocksuite 0.22.4 中对 `document.body.style` 的全局写入（见 `patches/@blocksuite__*.patch`）
 

@@ -20,6 +20,7 @@
 - AI 生图页 `/ai-image` 新增 Simple（简单形态）：自然语言 →（后端 LLM 转换）→ NovelAI tags → 出图，并支持回填到高级面板继续微调
 
 ### 变更
+- Blocksuite：画布切换不再全屏覆盖，改为占据原文档区域
 - 房间列表分类右侧“+”改为“标签页式”创建面板（参考邀请好友），同一弹窗内完成创建房间/文档
 - 文档查看统一使用 Chat 内主视图（`/chat/:spaceId/doc/:docId`），兼容入口 `/doc/:spaceId/:docId` 改为跳转到 Chat 布局（保留侧边栏并支持当前文档高亮）
 - sidebarTree 文档节点样式对齐房间：字号一致，并在标题前插入文档 icon
