@@ -61,6 +61,7 @@
 | 202601171723 | blocksuite_mention_enter_debug | 修复 | 已完成（待确认） | [2026-01/202601171723_blocksuite-mention-enter-debug/](2026-01/202601171723_blocksuite-mention-enter-debug/) |
 | 202601171745 | blocksuite_mention_insert_fix | 修复 | 已完成（待确认） | [2026-01/202601171745_blocksuite-mention-insert-fix/](2026-01/202601171745_blocksuite-mention-insert-fix/) |
 | 202601171831 | doc_sidebar_tc_header | 优化 | 已完成 | [2026-01/202601171831_doc_sidebar_tc_header/](2026-01/202601171831_doc_sidebar_tc_header/) |
+| 202601171843 | blocksuite_kb_notes | 文档 | 已完成 | [2026-01/202601171843_blocksuite-kb-notes/](2026-01/202601171843_blocksuite-kb-notes/) |
 
 ---
 
@@ -120,3 +121,4 @@
 - [202601171723_blocksuite-mention-enter-debug](2026-01/202601171723_blocksuite-mention-enter-debug/) - 增强 Blocksuite @ 提及键盘确认调试：Enter 时输出 activeElement/probe 信息
 - [202601171745_blocksuite-mention-insert-fix](2026-01/202601171745_blocksuite-mention-insert-fix/) - 修复 Blocksuite 空间描述 @ 提及重复插入（成员提及插入链路）
 - [202601171831_doc_sidebar_tc_header](2026-01/202601171831_doc_sidebar_tc_header/) - sidebarTree 独立文档启用 tcHeader（标题/封面）并在列表展示缩略图
+- [202601171843_blocksuite-kb-notes](2026-01/202601171843_blocksuite-kb-notes/) - Blocksuite 豆知识沉淀：mention=embed、linked-doc popover、StrictMode 多次 mount 等
