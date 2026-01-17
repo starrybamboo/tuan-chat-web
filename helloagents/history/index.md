@@ -49,6 +49,7 @@
 | 202601151809 | ai_image_default_proxy | 变更 | 已完成 | [2026-01/202601151809_ai_image_default_proxy/](2026-01/202601151809_ai_image_default_proxy/) |
 | 202601151716 | blocksuite_tc_header_mode_switch | 变更 | 已完成 | [2026-01/202601151716_blocksuite-tc-header-mode-switch/](2026-01/202601151716_blocksuite-tc-header-mode-switch/) |
 | 202601161120 | novelai_nl_image_simple | 功能 | 已完成 | [2026-01/202601161120_novelai_nl_image_simple/](2026-01/202601161120_novelai_nl_image_simple/) |
+| 202601171345 | blocksuite_mention_fix | 修复 | 已完成 | [2026-01/202601171345_blocksuite-mention-fix/](2026-01/202601171345_blocksuite-mention-fix/) |
 
 ---
 
@@ -96,3 +97,4 @@
 - [202601151809_ai_image_default_proxy](2026-01/202601151809_ai_image_default_proxy/) - AI 生图 Web 默认切回同源代理（并持久化请求方式）
 - [202601151716_blocksuite-tc-header-mode-switch](2026-01/202601151716_blocksuite-tc-header-mode-switch/) - 空间资料 Blocksuite 画布切换入口收口到 tcHeader，并移除外部 mode 控制通道
 - [202601161120_novelai_nl_image_simple](2026-01/202601161120_novelai_nl_image_simple/) - AI 生图 Simple：自然语言 → tags → 出图（可回填到高级面板）
+- [202601171345_blocksuite-mention-fix](2026-01/202601171345_blocksuite-mention-fix/) - 修复 Blocksuite 空间描述 @ 提及重复插入与弹窗不关闭
