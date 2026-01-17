@@ -19,6 +19,8 @@
 - 新增 AI 生图测试页：`/ai-image`（Electron 主进程代理请求 NovelAI，便于本地调试）
 - AI 生图页 `/ai-image` 新增 Simple（简单形态）：自然语言 →（后端 LLM 转换）→ NovelAI tags → 出图，并支持回填到高级面板继续微调
 - 新增 Blocksuite 集成豆知识文档：`helloagents/wiki/vendors/blocksuite/gotchas.md`
+- 新增模块文档：`helloagents/wiki/modules/chat.md`、`helloagents/wiki/modules/blocksuite.md`、`helloagents/wiki/modules/webgal.md`、`helloagents/wiki/modules/ai-image.md`
+- 新增本地开发工作流：`helloagents/wiki/workflows/local-dev.md`
 
 ### 变更
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）

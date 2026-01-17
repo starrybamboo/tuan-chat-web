@@ -96,6 +96,7 @@
 
 以下是“本项目自己的 Blocksuite 集成文档/记录”，用于理解为什么要这样集成、以及遇到构建/运行问题时如何排查：
 
+- `helloagents/wiki/modules/blocksuite.md`
 - `app/components/chat/infra/blocksuite/doc/`
 - `docs/BLOCKSUITE_EXAMPLES_STUDY_AND_ADAPTATION_2026-01-04.md`
 - `docs/BLOCKSUITE_EDITOR_REQUIREMENTS_AND_WRAPPERS_2026-01-04.md`

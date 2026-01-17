@@ -73,3 +73,7 @@
 ## 变更历史
 
 - [202601141740_lint_fix](../../history/2026-01/202601141740_lint_fix/) - 修复 lint 报错并补充 ESLint 规则提示
+
+## 相关工作流
+
+- 本地开发（Web / Electron）：[workflows/local-dev.md](../workflows/local-dev.md)
