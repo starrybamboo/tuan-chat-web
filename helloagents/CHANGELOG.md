@@ -21,6 +21,7 @@
 
 ### 变更
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
+- 修复 Blocksuite：`@`（Linked Doc）候选列表与 inline 引用标题不刷新：当 `workspace.meta` 更新时同步触发 `workspace.slots.docListUpdated`，让 `DocDisplayMetaProvider` 刷新标题缓存
 - Chat：房间资料页移除 `max-h-[80vh]` 限制，修复底部留白
 - Blocksuite：画布切换不再全屏覆盖，改为占据原文档区域
 - 房间列表分类右侧“+”改为“标签页式”创建面板（参考邀请好友），同一弹窗内完成创建房间/文档
