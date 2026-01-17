@@ -1,4 +1,5 @@
 // AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互，并复用仓库内 `api/novelai` 的请求类型作为 SSOT。
+import type { AiGenerateImageRequest } from "../../api/novelai/models/AiGenerateImageRequest";
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 import { unzipSync } from "fflate";
@@ -11,15 +12,14 @@ import {
 } from "@/utils/aiImageHistoryDb";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
-import { AiGenerateImageRequest } from "../../api/novelai/models/AiGenerateImageRequest";
 
 type TabKey = "simple" | "prompt" | "undesired" | "image" | "history" | "connection";
 type RequestMode = "direct" | "proxy";
 
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
-const FALLBACK_META_ENDPOINT = "https://api.novelai.net";
 const STORAGE_TOKEN_KEY = "tc:ai-image:novelai-token";
 const STORAGE_REQUEST_MODE_KEY = "tc:ai-image:request-mode";
+const LOCKED_IMAGE_MODEL = "nai-diffusion-4-5-full";
 
 const SAMPLERS_NAI3 = [
   "k_euler",
@@ -167,61 +167,11 @@ async function readImageSize(dataUrl: string): Promise<{ width: number; height: 
   });
 }
 
-function extractModelStrings(input: unknown) {
-  const results = new Set<string>();
-  const visited = new Set<any>();
-  const stack: unknown[] = [input];
-  const isModelString = (value: string) => {
-    const v = value.trim();
-    if (!v || v.length > 120)
-      return false;
-    return /nai-diffusion|safe-diffusion|furry-diffusion|kandinsky/i.test(v);
-  };
-
-  let steps = 0;
-  while (stack.length && steps < 10_000) {
-    steps++;
-    const cur = stack.pop();
-    if (!cur)
-      continue;
-
-    if (typeof cur === "string") {
-      if (isModelString(cur))
-        results.add(cur.trim());
-      continue;
-    }
-
-    if (typeof cur !== "object")
-      continue;
-
-    if (visited.has(cur))
-      continue;
-    visited.add(cur);
-
-    if (Array.isArray(cur)) {
-      for (const item of cur)
-        stack.push(item);
-      continue;
-    }
-
-    for (const value of Object.values(cur as Record<string, unknown>))
-      stack.push(value);
-  }
-
-  return [...results];
-}
-
-function buildFallbackModelList() {
-  const fromOpenapi = Object.values(AiGenerateImageRequest.model) as string[];
-  const candidates = [
-    ...fromOpenapi,
-    "nai-diffusion-4-full",
-    "nai-diffusion-4-curated-preview",
-  ];
-  return [...new Set(candidates)].filter(Boolean);
-}
-
 function modelLabel(value: string) {
+  if (value === "nai-diffusion-4-5-full")
+    return "NAI v4.5 Full";
+  if (value === "nai-diffusion-4-5-curated")
+    return "NAI v4.5 Curated";
   if (value === "nai-diffusion-4-full")
     return "NAI v4 Full";
   if (value === "nai-diffusion-4-curated-preview")
@@ -239,134 +189,18 @@ function modelLabel(value: string) {
   return value;
 }
 
-async function novelApiFetchJsonViaProxy(args: { token: string; endpoint: string; path: string }) {
-  const endpointHeader = normalizeEndpoint(args.endpoint);
-  const res = await fetch(`/api/novelapi${args.path}`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${args.token}`,
-      "Accept": "application/json",
-      "X-NovelAPI-Endpoint": endpointHeader,
-    },
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
-  }
-
-  const contentType = res.headers.get("content-type") || "";
-  if (contentType.toLowerCase().includes("application/json"))
-    return await res.json();
-
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  }
-  catch {
-    return text;
-  }
-}
-
-async function novelApiFetchJsonDirect(args: { token: string; endpoint: string; path: string }) {
-  const endpoint = normalizeEndpoint(args.endpoint);
-  const url = `${endpoint}${args.path}`;
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${args.token}`,
-      Accept: "application/json",
-    },
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
-  }
-  return await res.json();
-}
-
-async function loadModelsRuntime(args: { token: string; imageEndpoint: string; requestMode: RequestMode }) {
-  const token = String(args.token || "").trim();
-  if (!token) {
-    return {
-      models: buildFallbackModelList(),
-      source: "fallback" as const,
-      hint: "缺少 token，已使用降级模型列表",
-    };
-  }
-
-  const tokenLooksPersistent = /^pst-/i.test(token) || /^Bearer\s+pst-/i.test(token);
-  if (tokenLooksPersistent) {
-    return {
-      models: buildFallbackModelList(),
-      source: "fallback" as const,
-      hint: "检测到 persistent token（pst-*），NovelAI 禁止用它访问 /user/clientsettings 等用户元数据接口；已使用降级模型列表（如需运行时模型列表，请使用 /user/login 返回的 accessToken）",
-    };
-  }
-
-  const isElectron = isElectronEnv() && typeof window.electronAPI?.novelaiGetClientSettings === "function";
-  if (isElectron) {
-    const metaEndpoint = normalizeEndpoint(FALLBACK_META_ENDPOINT) || FALLBACK_META_ENDPOINT;
-    const payload = { token, endpoint: metaEndpoint };
-    try {
-      const settings = await window.electronAPI.novelaiGetClientSettings(payload);
-      const models = extractModelStrings(settings);
-      if (models.length > 0) {
-        return { models, source: "runtime" as const, hint: "" };
-      }
-    }
-    catch {
-      // ignore
-    }
-
-    return {
-      models: buildFallbackModelList(),
-      source: "fallback" as const,
-      hint: "未能从上游提取模型列表，已使用降级模型列表",
-    };
-  }
-
-  const metaEndpoint = normalizeEndpoint(FALLBACK_META_ENDPOINT) || FALLBACK_META_ENDPOINT;
-  const fetchJson = args.requestMode === "direct" ? novelApiFetchJsonDirect : novelApiFetchJsonViaProxy;
-
-  try {
-    const settings = await fetchJson({ token, endpoint: metaEndpoint, path: "/user/clientsettings" });
-    const models = extractModelStrings(settings);
-    if (models.length > 0)
-      return { models, source: "runtime" as const, hint: "" };
-  }
-  catch (e) {
-    const hint = args.requestMode === "direct"
-      ? `未能直连拉取模型列表${maybeCorsHintFromError(e)}，已使用降级模型列表`
-      : "未能从上游提取模型列表，已使用降级模型列表";
-    return {
-      models: buildFallbackModelList(),
-      source: "fallback" as const,
-      hint,
-    };
-  }
-
-  try {
-    const userData = await fetchJson({ token, endpoint: metaEndpoint, path: "/user/data" });
-    const models = extractModelStrings(userData);
-    if (models.length > 0)
-      return { models, source: "runtime" as const, hint: "" };
-  }
-  catch (e) {
-    const hint = args.requestMode === "direct"
-      ? `未能直连拉取模型列表${maybeCorsHintFromError(e)}，已使用降级模型列表`
-      : "未能从上游提取模型列表，已使用降级模型列表";
-    return {
-      models: buildFallbackModelList(),
-      source: "fallback" as const,
-      hint,
-    };
-  }
-
-  return {
-    models: buildFallbackModelList(),
-    source: "fallback" as const,
-    hint: "未能从上游提取模型列表，已使用降级模型列表",
-  };
+function isNaiV4Family(model: string) {
+  const value = String(model || "").trim();
+  if (!value)
+    return false;
+  return value === "nai-diffusion-4-curated-preview"
+    || value === "nai-diffusion-4-full"
+    || value === "nai-diffusion-4-full-inpainting"
+    || value === "nai-diffusion-4-curated-inpainting"
+    || value === "nai-diffusion-4-5-curated"
+    || value === "nai-diffusion-4-5-curated-inpainting"
+    || value === "nai-diffusion-4-5-full"
+    || value === "nai-diffusion-4-5-full-inpainting";
 }
 
 async function generateNovelImageViaProxy(args: {
@@ -404,7 +238,7 @@ async function generateNovelImageViaProxy(args: {
   const model = String(args.model || "nai-diffusion-3");
 
   const isNAI3 = model === "nai-diffusion-3";
-  const isNAI4 = model === "nai-diffusion-4-curated-preview" || model === "nai-diffusion-4-full";
+  const isNAI4 = isNaiV4Family(model);
 
   const seed = typeof args.seed === "number" ? args.seed : Math.floor(Math.random() * 2 ** 32);
   const width = clampToMultipleOf64(args.width, 1024);
@@ -566,7 +400,7 @@ async function generateNovelImageDirect(args: {
   const model = String(args.model || "nai-diffusion-3");
 
   const isNAI3 = model === "nai-diffusion-3";
-  const isNAI4 = model === "nai-diffusion-4-curated-preview" || model === "nai-diffusion-4-full";
+  const isNAI4 = isNaiV4Family(model);
 
   const seed = typeof args.seed === "number" ? args.seed : Math.floor(Math.random() * 2 ** 32);
   const width = clampToMultipleOf64(args.width, 1024);
@@ -710,10 +544,9 @@ export default function AiImagePage() {
   const [simpleConverting, setSimpleConverting] = useState(false);
   const [simpleError, setSimpleError] = useState("");
 
-  const [models, setModels] = useState<string[]>(() => buildFallbackModelList());
+  const [models, setModels] = useState<string[]>(() => [LOCKED_IMAGE_MODEL]);
   const [modelsHint, setModelsHint] = useState<string>("");
-  const [modelsLoading, setModelsLoading] = useState(false);
-  const [model, setModel] = useState<string>(() => buildFallbackModelList()[0] || "nai-diffusion-3");
+  const [model, setModel] = useState<string>(() => LOCKED_IMAGE_MODEL);
 
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
@@ -738,7 +571,7 @@ export default function AiImagePage() {
   const [history, setHistory] = useState<AiImageHistoryRow[]>([]);
 
   const isNAI3 = model === "nai-diffusion-3";
-  const isNAI4 = model === "nai-diffusion-4-curated-preview" || model === "nai-diffusion-4-full";
+  const isNAI4 = isNaiV4Family(model);
 
   const samplerOptions = useMemo(() => {
     if (isNAI4)
@@ -987,27 +820,11 @@ export default function AiImagePage() {
     }
   }, [generateImage, simplePrompt, simpleUndesired]);
 
-  const refreshModels = useCallback(async () => {
-    try {
-      setModelsLoading(true);
-      setModelsHint("");
-
-      const res = await loadModelsRuntime({ token, imageEndpoint: endpoint, requestMode });
-      const next = [...new Set(res.models)].filter(Boolean);
-      next.sort((a, b) => a.localeCompare(b));
-
-      setModels(next);
-      setModelsHint(res.hint);
-
-      if (!next.includes(model)) {
-        const fallback = next[0] || buildFallbackModelList()[0] || model;
-        setModel(fallback);
-      }
-    }
-    finally {
-      setModelsLoading(false);
-    }
-  }, [endpoint, model, requestMode, token]);
+  const refreshModels = useCallback(() => {
+    setModels([LOCKED_IMAGE_MODEL]);
+    setModel(LOCKED_IMAGE_MODEL);
+    setModelsHint(`模型已锁定为 ${modelLabel(LOCKED_IMAGE_MODEL)}（${LOCKED_IMAGE_MODEL}）`);
+  }, []);
 
   const clearSavedToken = useCallback(() => {
     setToken("");
@@ -1048,7 +865,7 @@ export default function AiImagePage() {
   }, [requestMode]);
 
   useEffect(() => {
-    void refreshModels();
+    refreshModels();
   }, [refreshModels]);
 
   useEffect(() => {
@@ -1068,8 +885,8 @@ export default function AiImagePage() {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="text-xl font-semibold">AI 生图（NovelAI）</div>
         <div className="flex items-center gap-2">
-          <button type="button" className="btn btn-sm btn-outline" onClick={() => void refreshModels()} disabled={modelsLoading}>
-            {modelsLoading ? "模型加载中..." : "刷新模型"}
+          <button type="button" className="btn btn-sm btn-outline" onClick={() => refreshModels()} disabled>
+            模型已锁定
           </button>
           <button type="button" className="btn btn-sm btn-primary" onClick={() => void handleGenerate()} disabled={loading}>
             {loading ? "生成中..." : "生成 (Ctrl+Enter)"}
@@ -1276,7 +1093,7 @@ export default function AiImagePage() {
                   <div className="label py-1">
                     <span className="label-text text-sm">模型</span>
                   </div>
-                  <select className="select select-bordered" value={model} onChange={e => setModel(e.target.value)}>
+                  <select className="select select-bordered" value={model} disabled>
                     {models.map(value => (
                       <option key={value} value={value}>
                         {`${modelLabel(value)} (${value})`}
