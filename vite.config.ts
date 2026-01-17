@@ -10,6 +10,7 @@ import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 import { defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
@@ -209,12 +210,18 @@ function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint
             return;
           }
 
+          const upstreamBody = upstreamRes.body as any;
           try {
-            Readable.fromWeb(upstreamRes.body as any).pipe(res);
+            await pipeline(Readable.fromWeb(upstreamBody), res as any);
           }
-          catch {
-            const buf = Buffer.from(await upstreamRes.arrayBuffer());
-            res.end(buf);
+          catch (e) {
+            // Avoid crashing the dev server on stream errors (connection reset, aborted, etc.).
+            try {
+              res.destroy(e as any);
+            }
+            catch {
+              // ignore
+            }
           }
         }
         catch (e) {

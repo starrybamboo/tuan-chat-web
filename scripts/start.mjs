@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 import process from "node:process";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import url from "node:url";
 import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 
@@ -240,105 +241,118 @@ else {
   };
 
   const proxyNovelApi = async (req, res, reqUrl) => {
-    const pathname = decodeURIComponent(reqUrl.pathname || "/");
-
-    if (req.method === "OPTIONS") {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
-    const endpointHeader = String(req.headers["x-novelapi-endpoint"] || "").trim();
-    const endpointBase = (endpointHeader || defaultNovelAiEndpoint).replace(/\/+$/, "");
-
-    let endpointUrl;
     try {
-      endpointUrl = new URL(endpointBase);
-    }
-    catch {
-      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end("Invalid x-novelapi-endpoint");
-      return;
-    }
+      const pathname = decodeURIComponent(reqUrl.pathname || "/");
 
-    if (endpointUrl.protocol !== "https:") {
-      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end("NovelAPI endpoint must be https");
-      return;
-    }
+      if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
 
-    if (!isAllowedNovelAiEndpoint(endpointUrl)) {
-      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end("NovelAPI endpoint is not allowed");
-      return;
-    }
+      const endpointHeader = String(req.headers["x-novelapi-endpoint"] || "").trim();
+      const endpointBase = (endpointHeader || defaultNovelAiEndpoint).replace(/\/+$/, "");
 
-    const upstreamPath = pathname.replace(/^\/api\/novelapi/, "") || "/";
-    const upstreamUrl = new URL(upstreamPath + (reqUrl.search || ""), endpointUrl.toString());
+      let endpointUrl;
+      try {
+        endpointUrl = new URL(endpointBase);
+      }
+      catch {
+        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Invalid x-novelapi-endpoint");
+        return;
+      }
 
-    const headers = new Headers();
-    const auth = String(req.headers.authorization || "").trim();
-    if (auth)
-      headers.set("authorization", auth);
+      if (endpointUrl.protocol !== "https:") {
+        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("NovelAPI endpoint must be https");
+        return;
+      }
 
-    const contentType = String(req.headers["content-type"] || "").trim();
-    if (contentType)
-      headers.set("content-type", contentType);
+      if (!isAllowedNovelAiEndpoint(endpointUrl)) {
+        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("NovelAPI endpoint is not allowed");
+        return;
+      }
 
-    const accept = String(req.headers.accept || "").trim();
-    if (accept)
-      headers.set("accept", accept);
+      const upstreamPath = pathname.replace(/^\/api\/novelapi/, "") || "/";
+      const upstreamUrl = new URL(upstreamPath + (reqUrl.search || ""), endpointUrl.toString());
 
-    // NovelAI may require these headers for some environments.
-    headers.set("referer", "https://novelai.net/");
-    headers.set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+      const headers = new Headers();
+      const auth = String(req.headers.authorization || "").trim();
+      if (auth)
+        headers.set("authorization", auth);
 
-    let body;
-    if (req.method && !["GET", "HEAD"].includes(req.method.toUpperCase())) {
-      body = await readBody(req);
-    }
+      const contentType = String(req.headers["content-type"] || "").trim();
+      if (contentType)
+        headers.set("content-type", contentType);
 
-    let upstreamRes;
-    try {
-      upstreamRes = await undiciFetch(upstreamUrl.toString(), {
+      const accept = String(req.headers.accept || "").trim();
+      if (accept)
+        headers.set("accept", accept);
+
+      // NovelAI may require these headers for some environments.
+      headers.set("referer", "https://novelai.net/");
+      headers.set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
+      let body;
+      if (req.method && !["GET", "HEAD"].includes(req.method.toUpperCase())) {
+        body = await readBody(req);
+      }
+
+      const upstreamRes = await undiciFetch(upstreamUrl.toString(), {
         method: req.method || "GET",
         headers,
         body,
         dispatcher: upstreamDispatcher,
       });
+
+      const outHeaders = {};
+      const upstreamContentType = upstreamRes.headers.get("content-type");
+      const upstreamDisposition = upstreamRes.headers.get("content-disposition");
+      if (upstreamContentType)
+        outHeaders["Content-Type"] = upstreamContentType;
+      if (upstreamDisposition)
+        outHeaders["Content-Disposition"] = upstreamDisposition;
+
+      res.writeHead(upstreamRes.status, outHeaders);
+
+      if (!upstreamRes.body) {
+        res.end();
+        return;
+      }
+
+      // Stream response body to the client (avoids buffering large ZIP/images).
+      try {
+        await pipeline(Readable.fromWeb(upstreamRes.body), res);
+      }
+      catch (e) {
+        try {
+          res.destroy(e);
+        }
+        catch {
+          // ignore
+        }
+      }
     }
     catch (e) {
-      res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
       const err = e;
       const message = err instanceof Error ? err.message : String(err);
       const cause = err?.cause;
       const causeMessage = cause instanceof Error ? cause.message : (cause ? String(cause) : "");
-      res.end(`NovelAPI proxy failed: ${message}${causeMessage ? ` (cause: ${causeMessage})` : ""}`);
-      return;
-    }
-
-    const outHeaders = {};
-    const upstreamContentType = upstreamRes.headers.get("content-type");
-    const upstreamDisposition = upstreamRes.headers.get("content-disposition");
-    if (upstreamContentType)
-      outHeaders["Content-Type"] = upstreamContentType;
-    if (upstreamDisposition)
-      outHeaders["Content-Disposition"] = upstreamDisposition;
-
-    res.writeHead(upstreamRes.status, outHeaders);
-
-    if (!upstreamRes.body) {
-      res.end();
-      return;
-    }
-
-    // Stream response body to the client (avoids buffering large ZIP/images).
-    try {
-      Readable.fromWeb(upstreamRes.body).pipe(res);
-    }
-    catch {
-      const buf = Buffer.from(await upstreamRes.arrayBuffer());
-      res.end(buf);
+      try {
+        if (!res.headersSent)
+          res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
+      }
+      catch {
+        // ignore
+      }
+      try {
+        res.end(`NovelAPI proxy failed: ${message}${causeMessage ? ` (cause: ${causeMessage})` : ""}`);
+      }
+      catch {
+        // ignore
+      }
     }
   };
 
