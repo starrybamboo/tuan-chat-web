@@ -87,7 +87,7 @@
 - Electron 环境默认通过 IPC 代理请求 NovelAI：`window.electronAPI.novelaiGenerateImage(...)` + `window.electronAPI.novelaiGetClientSettings(...)`
 - 支持文生图（txt2img）与图生图（img2img：上传图片 + `strength/noise` 等参数）
 - UI 结构与操作逻辑对齐 `https://novelai.net/image`：Prompt/Undesired/Image/History/Connection 分区（tabs）
-- 模型列表尝试运行时拉取（失败自动降级并提示）
+- 模型当前锁定为 `nai-diffusion-4-5-full`（NAI v4.5 Full）；其中“4.5 FULL”对应的模型 ID 即 `nai-diffusion-4-5-full`
 - 生成历史默认保存到本地 IndexedDB，支持查看/删除/清空
 - token 为方便调试会本地持久化（localStorage），可手动清除
 

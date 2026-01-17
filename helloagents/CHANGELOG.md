@@ -71,6 +71,7 @@
 - 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page 模式 `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
 - 修复 AI 生图页运行时拉取模型列表的 502：`/user/*` 元数据接口固定走 `https://api.novelai.net`，避免误发到 `image.novelai.net`
 - 修复 AI 生图页使用 `pst-*` token 拉取 `/user/clientsettings` 返回 403：检测到 persistent token 时直接降级为内置模型列表
+- AI 生图页模型锁定为 NAI v4.5 Full：`nai-diffusion-4-5-full`（UI 的 “4.5 FULL” 对应该模型 ID）
 - 修复 Web 环境同源代理连接超时导致的 502：AI 生图提供“直连”模式作为备选（可能被跨域/CORS 拦截）
 - 修复部分环境（如 Windows 系统代理）下 `/api/novelapi/*` 未显式配置代理导致的 502：dev server 会自动读取系统代理（ProxyServer）作为兜底，并在 502 响应中附带底层 cause 便于排查
 
