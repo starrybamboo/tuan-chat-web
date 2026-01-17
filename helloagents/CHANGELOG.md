@@ -18,6 +18,7 @@
 - Chat 房间列表：分类标题右侧新增“+”创建入口，可创建房间/文档并自动加入分类（持久化到 `/space/sidebarTree`）
 - 新增 AI 生图测试页：`/ai-image`（Electron 主进程代理请求 NovelAI，便于本地调试）
 - AI 生图页 `/ai-image` 新增 Simple（简单形态）：自然语言 →（后端 LLM 转换）→ NovelAI tags → 出图，并支持回填到高级面板继续微调
+- 新增 Blocksuite 集成豆知识文档：`helloagents/wiki/vendors/blocksuite/gotchas.md`
 
 ### 变更
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
