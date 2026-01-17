@@ -294,15 +294,30 @@ async function loadModelsRuntime(args: { token: string; imageEndpoint: string; r
     };
   }
 
+  const tokenLooksPersistent = /^pst-/i.test(token) || /^Bearer\s+pst-/i.test(token);
+  if (tokenLooksPersistent) {
+    return {
+      models: buildFallbackModelList(),
+      source: "fallback" as const,
+      hint: "检测到 persistent token（pst-*），NovelAI 禁止用它访问 /user/clientsettings 等用户元数据接口；已使用降级模型列表（如需运行时模型列表，请使用 /user/login 返回的 accessToken）",
+    };
+  }
+
   const isElectron = isElectronEnv() && typeof window.electronAPI?.novelaiGetClientSettings === "function";
   if (isElectron) {
     const metaEndpoint = normalizeEndpoint(FALLBACK_META_ENDPOINT) || FALLBACK_META_ENDPOINT;
     const payload = { token, endpoint: metaEndpoint };
-    const settings = await window.electronAPI.novelaiGetClientSettings(payload);
-    const models = extractModelStrings(settings);
-    if (models.length > 0) {
-      return { models, source: "runtime" as const, hint: "" };
+    try {
+      const settings = await window.electronAPI.novelaiGetClientSettings(payload);
+      const models = extractModelStrings(settings);
+      if (models.length > 0) {
+        return { models, source: "runtime" as const, hint: "" };
+      }
     }
+    catch {
+      // ignore
+    }
+
     return {
       models: buildFallbackModelList(),
       source: "fallback" as const,
