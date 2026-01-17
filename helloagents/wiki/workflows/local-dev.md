@@ -26,9 +26,9 @@
 
 ## 4. 常见问题
 
-- Vite optimizeDeps chunk 缺失/React hooks 异常：优先执行 `pnpm dev:force`，必要时清理浏览器对 `localhost:5177` 的站点缓存（详见 `helloagents/wiki/modules/tooling.md`）。
+- Vite optimizeDeps chunk 缺失/React hooks 异常：优先执行 `pnpm dev:force`，必要时清理浏览器对 `localhost:5177` 的站点缓存（详见 [modules/tooling.md](../modules/tooling.md)）。
 
 ## 5. Worktree 开发
 
-- 推荐用 Git worktree 进行会话隔离（避免并行改动互相覆盖）：`helloagents/wiki/workflows/git-worktree-sessions.md`
+- 推荐用 Git worktree 进行会话隔离（避免并行改动互相覆盖）：[workflows/git-worktree-sessions.md](git-worktree-sessions.md)
 
