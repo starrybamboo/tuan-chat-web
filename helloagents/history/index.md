@@ -56,7 +56,11 @@
 | 202601171438 | blocksuite_mention_debug | 修复 | 已完成 | [2026-01/202601171438_blocksuite-mention-debug/](2026-01/202601171438_blocksuite-mention-debug/) |
 | 202601171458 | novelai_model_lock_45_full | 变更 | 已完成 | [2026-01/202601171458_novelai_model_lock_45_full/](2026-01/202601171458_novelai_model_lock_45_full/) |
 | 202601171622 | blocksuite_mention_click_debug | 修复 | 已完成（待确认） | [2026-01/202601171622_blocksuite-mention-click-debug/](2026-01/202601171622_blocksuite-mention-click-debug/) |
-| 202601171648 | ai_image_mode_refactor | 优化 | 已完成 | [2026-01/202601171648_ai_image_mode_refactor/](2026-01/202601171648_ai_image_mode_refactor/) |
+| 202601171640 | mention_tc_header_title | 修复 | 已完成 | [2026-01/202601171640_mention-tc-header-title/](2026-01/202601171640_mention-tc-header-title/) |
+| 202601171657 | blocksuite_mention_host_click_debug | 修复 | 已完成（待确认） | [2026-01/202601171657_blocksuite-mention-host-click-debug/](2026-01/202601171657_blocksuite-mention-host-click-debug/) |
+| 202601171723 | blocksuite_mention_enter_debug | 修复 | 已完成（待确认） | [2026-01/202601171723_blocksuite-mention-enter-debug/](2026-01/202601171723_blocksuite-mention-enter-debug/) |
+| 202601171745 | blocksuite_mention_insert_fix | 修复 | 已完成（待确认） | [2026-01/202601171745_blocksuite-mention-insert-fix/](2026-01/202601171745_blocksuite-mention-insert-fix/) |
+| 202601171805 | blocksuite_mention_embed_node | 修复 | 已完成（待确认） | [2026-01/202601171805_blocksuite-mention-embed-node/](2026-01/202601171805_blocksuite-mention-embed-node/) |
 
 ---
 
@@ -110,5 +114,9 @@
 - [202601171430_room-setting-height](2026-01/202601171430_room-setting-height/) - 房间资料页移除 `max-h-[80vh]` 限制，修复底部留白
 - [202601171438_blocksuite-mention-debug](2026-01/202601171438_blocksuite-mention-debug/) - 增加 Blocksuite @ 提及调试日志
 - [202601171458_novelai_model_lock_45_full](2026-01/202601171458_novelai_model_lock_45_full/) - AI 生图模型锁定为 NAI v4.5 Full（`nai-diffusion-4-5-full`）
-- [202601171622_blocksuite-mention-click-debug](2026-01/202601171622_blocksuite-mention-click-debug/) - 增强 Blocksuite @ 提及点击链路调试：捕获候选项点击事件路径摘要
-- [202601171648_ai_image_mode_refactor](2026-01/202601171648_ai_image_mode_refactor/) - AI 生图页双模式重构：普通模式/专业模式三栏布局
+- [202601171622_blocksuite-mention-click-debug](2026-01/202601171622_blocksuite-mention-click-debug/) - 增强 Blocksuite @ 提及点击链路调试：iframe 内捕获点击事件路径摘要
+- [202601171640_mention-tc-header-title](2026-01/202601171640_mention-tc-header-title/) - `@`（Linked Doc）候选列表标题优先使用 `tc_header.title`
+- [202601171657_blocksuite-mention-host-click-debug](2026-01/202601171657_blocksuite-mention-host-click-debug/) - 增强 Blocksuite @ 提及点击链路调试：宿主侧捕获 portal 到 iframe 外的点击事件路径摘要
+- [202601171723_blocksuite-mention-enter-debug](2026-01/202601171723_blocksuite-mention-enter-debug/) - 增强 Blocksuite @ 提及键盘确认调试：Enter 时输出 activeElement/probe 信息
+- [202601171745_blocksuite-mention-insert-fix](2026-01/202601171745_blocksuite-mention-insert-fix/) - 修复 Blocksuite 空间描述 @ 提及重复插入（成员提及插入链路）
+- [202601171805_blocksuite-mention-embed-node](2026-01/202601171805_blocksuite-mention-embed-node/) - 修复 Blocksuite @ 提及重复渲染：提及按 embed 节点规范插入

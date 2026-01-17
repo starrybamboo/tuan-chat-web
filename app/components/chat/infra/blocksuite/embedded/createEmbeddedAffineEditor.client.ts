@@ -21,6 +21,7 @@ import {
   UserServiceExtension,
 } from "@blocksuite/affine/shared/services";
 import { getTestViewManager } from "@blocksuite/integration-test/view";
+import { ZERO_WIDTH_FOR_EMBED_NODE } from "@blocksuite/std/inline";
 import { html } from "lit";
 
 import { tuanchat } from "api/instance";
@@ -91,14 +92,13 @@ function insertMentionViaInlineEditor(params: {
   query: string;
   triggerKey: string;
   memberId: string;
-  displayName: string;
   abort: () => void;
 }): boolean {
-  const { inlineEditor, query, triggerKey, memberId, displayName, abort } = params;
+  const { inlineEditor, query, triggerKey, memberId, abort } = params;
 
   const current = inlineEditor?.getInlineRange?.();
   if (!current) {
-    logMentionMenu("insert: inline range missing", { memberId, displayName });
+    logMentionMenu("insert: inline range missing", { memberId });
     return false;
   }
 
@@ -116,15 +116,20 @@ function insertMentionViaInlineEditor(params: {
 
   try {
     inlineEditor.setInlineRange?.({ index: insertIndex, length: 0 });
-    const text = `@${displayName || "Unknown"} `;
-    inlineEditor.insertText?.({ index: insertIndex, length: 0 }, text, {
+    // IMPORTANT:
+    // Mention inline spec is an "embed" node. It should be represented by a single
+    // ZERO_WIDTH_FOR_EMBED_NODE character with `mention` attributes, otherwise
+    // each character may be rendered as a full mention, causing repeated "@xxx".
+    inlineEditor.insertText?.({ index: insertIndex, length: 0 }, ZERO_WIDTH_FOR_EMBED_NODE, {
       mention: { member: String(memberId) },
     });
-    inlineEditor.setInlineRange?.({ index: insertIndex + text.length, length: 0 });
+    // Add a trailing space (plain text) to make typing easier.
+    inlineEditor.insertText?.({ index: insertIndex + 1, length: 0 }, " ");
+    inlineEditor.setInlineRange?.({ index: insertIndex + 2, length: 0 });
     return true;
   }
   catch (err) {
-    logMentionMenu("insert: failed", { memberId, displayName, err: String(err) });
+    logMentionMenu("insert: failed", { memberId, err: String(err) });
     return false;
   }
 }
@@ -490,7 +495,6 @@ export function createEmbeddedAffineEditor(params: {
                     triggerKey: "@",
                     abort,
                     memberId: id,
-                    displayName: name,
                   });
                   if (inserted) {
                     mentionActionLocked = true;
