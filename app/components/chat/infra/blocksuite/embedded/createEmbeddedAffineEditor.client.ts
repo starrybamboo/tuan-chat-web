@@ -47,11 +47,15 @@ const mentionMenuLockMs = 400;
 let mentionMenuLockUntil = 0;
 const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
 
-const isMentionMenuLocked = () => Date.now() < mentionMenuLockUntil;
-const lockMentionMenu = () => {
+function isMentionMenuLocked() {
+  return Date.now() < mentionMenuLockUntil;
+}
+
+function lockMentionMenu() {
   mentionMenuLockUntil = Date.now() + mentionMenuLockMs;
-};
-const forwardMentionMenu = (message: string, payload?: Record<string, unknown>) => {
+}
+
+function forwardMentionMenu(message: string, payload?: Record<string, unknown>) {
   try {
     const fn = (globalThis as any).__tcBlocksuiteDebugLog as undefined | ((entry: any) => void);
     fn?.({ source: "BlocksuiteMentionMenu", message, payload });
@@ -59,18 +63,19 @@ const forwardMentionMenu = (message: string, payload?: Record<string, unknown>) 
   catch {
     // ignore
   }
-};
-const logMentionMenu = (message: string, payload?: Record<string, unknown>) => {
+}
+
+function logMentionMenu(message: string, payload?: Record<string, unknown>) {
   if (!mentionMenuDebugEnabled)
     return;
   if (payload) {
-    console.log("[BlocksuiteMentionMenu]", message, payload);
+    console.warn("[BlocksuiteMentionMenu]", message, payload);
   }
   else {
-    console.log("[BlocksuiteMentionMenu]", message);
+    console.warn("[BlocksuiteMentionMenu]", message);
   }
   forwardMentionMenu(message, payload);
-};
+}
 
 function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
   if (typeof document === "undefined")
