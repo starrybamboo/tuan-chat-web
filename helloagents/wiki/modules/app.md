@@ -10,6 +10,13 @@
 - **状态:** ?开发中
 - **最后更新:** 2026-01-17
 
+## 相关模块文档（建议从这里分流查阅）
+
+- Chat：[chat](chat.md)
+- Blocksuite 集成：[blocksuite](blocksuite.md)
+- WebGAL：[webgal](webgal.md)
+- AI 生图：[ai-image](ai-image.md)
+
 ## 规范
 
 ### 渲染模式（SPA Mode）
