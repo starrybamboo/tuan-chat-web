@@ -43,6 +43,7 @@
 - AI 生图页 `/ai-image`：token 为调试方便本地持久化；路由改为仅开发环境注册（生产不可访问）
 
 ### 修复
+- 修复 Blocksuite 空间描述 @ 提及重复插入：成员提及改为使用 `inlineEditor` 插入，并为 popover action 增加短窗口去重
 - 增强 Blocksuite @ 提及点击链路调试：在 frame 捕获 pointerdown/click，并在按下 `@` 后短窗口内上报事件路径摘要
 - 增强 Blocksuite @ 提及宿主点击链路调试：收到 frame `keydown @` 后，宿主短窗口捕获 `pointerdown/click` 并输出事件路径摘要（用于定位 portal 到 iframe 外的候选项）
 - 增强 Blocksuite @ 提及键盘确认调试：frame 与宿主在 `Enter` 时输出 activeElement/probe 信息，便于定位插入链路

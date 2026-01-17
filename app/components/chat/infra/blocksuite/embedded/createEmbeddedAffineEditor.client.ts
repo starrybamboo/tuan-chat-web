@@ -26,7 +26,6 @@ import { html } from "lit";
 import { tuanchat } from "api/instance";
 
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
-import { insertMentionAtCurrentSelection } from "../services/mentionPicker";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
@@ -46,6 +45,16 @@ let slashMenuSelectionGuardHandler: ((e: Event) => void) | null = null;
 const mentionMenuLockMs = 400;
 let mentionMenuLockUntil = 0;
 const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
+const mentionCommitDedupMs = 600;
+let mentionCommitDedupUntil = 0;
+
+function isMentionCommitDeduped(): boolean {
+  return Date.now() < mentionCommitDedupUntil;
+}
+
+function lockMentionCommitDedup() {
+  mentionCommitDedupUntil = Date.now() + mentionCommitDedupMs;
+}
 
 function isMentionMenuLocked() {
   return Date.now() < mentionMenuLockUntil;
@@ -75,6 +84,49 @@ function logMentionMenu(message: string, payload?: Record<string, unknown>) {
     console.warn("[BlocksuiteMentionMenu]", message);
   }
   forwardMentionMenu(message, payload);
+}
+
+function insertMentionViaInlineEditor(params: {
+  inlineEditor: any;
+  query: string;
+  triggerKey: string;
+  memberId: string;
+  displayName: string;
+  abort: () => void;
+}): boolean {
+  const { inlineEditor, query, triggerKey, memberId, displayName, abort } = params;
+
+  const current = inlineEditor?.getInlineRange?.();
+  if (!current) {
+    logMentionMenu("insert: inline range missing", { memberId, displayName });
+    return false;
+  }
+
+  const deleteLen = String(triggerKey).length + String(query ?? "").length;
+  const insertIndex = Math.max(0, Number(current.index ?? 0) - deleteLen);
+
+  // Close popover and clear "@query" using the official abort routine first,
+  // then insert mention at the computed index to avoid abort wiping inserted text.
+  try {
+    abort();
+  }
+  catch {
+    // ignore
+  }
+
+  try {
+    inlineEditor.setInlineRange?.({ index: insertIndex, length: 0 });
+    const text = `@${displayName || "Unknown"} `;
+    inlineEditor.insertText?.({ index: insertIndex, length: 0 }, text, {
+      mention: { member: String(memberId) },
+    });
+    inlineEditor.setInlineRange?.({ index: insertIndex + text.length, length: 0 });
+    return true;
+  }
+  catch (err) {
+    logMentionMenu("insert: failed", { memberId, displayName, err: String(err) });
+    return false;
+  }
 }
 
 function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
@@ -363,7 +415,24 @@ export function createEmbeddedAffineEditor(params: {
     logMentionMenu("getDocMenus", { query, locked: isMentionMenuLocked() });
 
     // 1. Official linked-doc menu
-    const docGroup = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
+    const docGroupRaw = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
+    const docGroup = {
+      ...docGroupRaw,
+      items: (docGroupRaw.items ?? []).map((item: any) => {
+        const orig = item?.action;
+        return {
+          ...item,
+          action: () => {
+            if (isMentionCommitDeduped()) {
+              logMentionMenu("doc action deduped", { key: item?.key, name: item?.name });
+              return;
+            }
+            lockMentionCommitDedup();
+            return orig?.();
+          },
+        };
+      }),
+    };
 
     const result: LinkedMenuGroup[] = [];
 
@@ -407,24 +476,25 @@ export function createEmbeddedAffineEditor(params: {
                 action: () => {
                   if (mentionActionLocked || isMentionMenuLocked())
                     return;
+                  if (isMentionCommitDeduped()) {
+                    logMentionMenu("mention action deduped", { memberId: id, name });
+                    return;
+                  }
+                  lockMentionCommitDedup();
 
                   logMentionMenu("action picked", { memberId: id, name });
 
-                  const inserted = insertMentionAtCurrentSelection({
-                    std: editorHost.std,
-                    store: storeAny,
+                  const inserted = insertMentionViaInlineEditor({
+                    inlineEditor,
+                    query,
+                    triggerKey: "@",
+                    abort,
                     memberId: id,
                     displayName: name,
                   });
                   if (inserted) {
                     mentionActionLocked = true;
                     lockMentionMenu();
-                    if (typeof queueMicrotask === "function") {
-                      queueMicrotask(abort);
-                    }
-                    else {
-                      setTimeout(abort, 0);
-                    }
                     logMentionMenu("action applied", { memberId: id, name, inserted });
                   }
                   else {
