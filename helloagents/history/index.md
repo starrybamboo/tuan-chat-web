@@ -64,10 +64,7 @@
 | 202601171843 | blocksuite_kb_notes | 文档 | 已完成 | [2026-01/202601171843_blocksuite-kb-notes/](2026-01/202601171843_blocksuite-kb-notes/) |
 | 202601171854 | ai_image_settings_modal | 优化 | 已完成 | [2026-01/202601171854_ai_image_settings_modal/](2026-01/202601171854_ai_image_settings_modal/) |
 | 202601171905 | project_kb_expand | 文档 | 已完成 | [2026-01/202601171905_project_kb_expand/](2026-01/202601171905_project_kb_expand/) |
-| 202601171911 | tc_header_no_reload | 修复 | 已完成 | [2026-01/202601171911_tc_header_no_reload/](2026-01/202601171911_tc_header_no_reload/) |
-| 202601171932 | novelapi_proxy_stream_fix | 修复 | 已完成 | [2026-01/202601171932_novelapi_proxy_stream_fix/](2026-01/202601171932_novelapi_proxy_stream_fix/) |
-| 202601172026 | ai_image_v4_params | 修复 | 已完成 | [2026-01/202601172026_ai_image_v4_params/](2026-01/202601172026_ai_image_v4_params/) |
-| 202601172100 | ai_image_char_bg_layout | 变更 | 已完成 | [2026-01/202601172100_ai_image_char_bg_layout/](2026-01/202601172100_ai_image_char_bg_layout/) |
+| 202601171925 | cleanup_deleted_space_docs | 修复 | 已完成 | [2026-01/202601171925_cleanup_deleted_space_docs/](2026-01/202601171925_cleanup_deleted_space_docs/) |
 
 ---
 
@@ -130,7 +127,4 @@
 - [202601171843_blocksuite-kb-notes](2026-01/202601171843_blocksuite-kb-notes/) - Blocksuite 豆知识沉淀：mention=embed、linked-doc popover、StrictMode 多次 mount 等
 - [202601171854_ai_image_settings_modal](2026-01/202601171854_ai_image_settings_modal/) - AI 生图页连接设置弹窗化（右上角设置）
 - [202601171905_project_kb_expand](2026-01/202601171905_project_kb_expand/) - 完善现有项目知识库：补齐 Chat/Blocksuite/WebGAL/AI 生图模块文档与本地开发工作流
-- [202601171911_tc_header_no_reload](2026-01/202601171911_tc_header_no_reload/) - 修复编辑 tcHeader 导致 blocksuite iframe 反复重载
-- [202601171932_novelapi_proxy_stream_fix](2026-01/202601171932_novelapi_proxy_stream_fix/) - 修复 `/api/novelapi/*` 同源代理偶发 500（流式转发 pipeline 化）
-- [202601172026_ai_image_v4_params](2026-01/202601172026_ai_image_v4_params/) - 修复 NAI v4/v4.5 出图 500：对齐 `params_version=3` 与 `v4_prompt` 参数结构
-- [202601172100_ai_image_char_bg_layout](2026-01/202601172100_ai_image_char_bg_layout/) - AI 生图支持 v4/v4.5 “背景/角色”分区（`char_captions`）并对齐普通/专业模式三栏布局
+- [202601171925_cleanup_deleted_space_docs](2026-01/202601171925_cleanup_deleted_space_docs/) - 解散房间/空间后清理 Blocksuite 文档，并对齐 `@`（Linked Doc）标题到 tcHeader/业务标题

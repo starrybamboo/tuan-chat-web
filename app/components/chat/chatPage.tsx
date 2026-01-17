@@ -128,6 +128,89 @@ export default function ChatPage() {
   const activeSpaceNameForUi = activeSpaceHeaderOverride?.title ?? activeSpace?.name;
   const activeDocHeaderOverride = useDocHeaderOverrideStore(state => (activeDocId ? state.headers[activeDocId] : undefined));
 
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [{ ensureSpaceDocMeta, getOrCreateSpaceWorkspace }, { deleteSpaceDoc }] = await Promise.all([
+          import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+          import("@/components/chat/infra/blocksuite/deleteSpaceDoc"),
+        ]);
+
+        if (cancelled)
+          return;
+
+        // 1) Ensure business doc metas have business titles so `@`（Linked Doc）菜单默认就能显示房间/空间标题。
+        if (activeSpace?.name) {
+          ensureSpaceDocMeta({
+            spaceId: activeSpaceId,
+            docId: buildSpaceDocId({ kind: "space_description", spaceId: activeSpaceId }),
+            title: activeSpace.name,
+          });
+        }
+        for (const room of rooms) {
+          const roomId = room?.roomId;
+          if (typeof roomId !== "number" || !Number.isFinite(roomId) || roomId <= 0)
+            continue;
+          const title = String(room?.name ?? "").trim();
+          if (!title)
+            continue;
+          ensureSpaceDocMeta({
+            spaceId: activeSpaceId,
+            docId: buildSpaceDocId({ kind: "room_description", roomId }),
+            title,
+          });
+        }
+
+        // 2) Best-effort cleanup: if local workspace still has docs for rooms that no longer exist, purge them.
+        const ws = getOrCreateSpaceWorkspace(activeSpaceId) as any;
+        const metas = (ws?.meta?.docMetas ?? []) as any[];
+        if (!Array.isArray(metas) || metas.length === 0)
+          return;
+
+        const validRoomIds = new Set<number>();
+        for (const room of rooms) {
+          const roomId = room?.roomId;
+          if (typeof roomId === "number" && Number.isFinite(roomId) && roomId > 0) {
+            validRoomIds.add(roomId);
+          }
+        }
+
+        const staleDocIds: string[] = [];
+        for (const m of metas) {
+          const id = String((m as any)?.id ?? "");
+          if (!id)
+            continue;
+          const match = /^room:(\d+):description$/.exec(id);
+          if (!match)
+            continue;
+          const roomId = Number(match[1]);
+          if (!Number.isFinite(roomId) || roomId <= 0)
+            continue;
+          if (!validRoomIds.has(roomId)) {
+            staleDocIds.push(id);
+          }
+        }
+
+        if (staleDocIds.length > 0) {
+          await Promise.allSettled(staleDocIds.map(docId => deleteSpaceDoc({ spaceId: activeSpaceId, docId })));
+        }
+      }
+      catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSpace?.name, activeSpaceId, rooms]);
+
   const spaceSidebarTreeQuery = useGetSpaceSidebarTreeQuery(activeSpaceId ?? -1);
   const setSpaceSidebarTreeMutation = useSetSpaceSidebarTreeMutation();
   const sidebarTreeVersion = spaceSidebarTreeQuery.data?.data?.version ?? 0;

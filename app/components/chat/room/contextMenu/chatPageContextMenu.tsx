@@ -2,6 +2,7 @@ import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
 
@@ -121,6 +122,23 @@ export default function ChatPageContextMenu({
             onSuccess: () => {
               setIsDissolveConfirmOpen(false);
               setDissolveTargetRoomId(null);
+
+              // 业务上的“解散房间”是硬删除：同时清理 room 对应的 Blocksuite 文档（避免 @ 弹窗仍展示已删除房间的 doc）。
+              const spaceId = spaceContext?.spaceId;
+              if (typeof window !== "undefined" && typeof spaceId === "number" && spaceId > 0) {
+                void (async () => {
+                  try {
+                    const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/deleteSpaceDoc");
+                    await deleteSpaceDoc({
+                      spaceId,
+                      docId: buildSpaceDocId({ kind: "room_description", roomId: activeDissolveRoomId }),
+                    });
+                  }
+                  catch {
+                    // ignore
+                  }
+                })();
+              }
 
               // 如果解散的是当前正在浏览的房间，跳回空间根路由，避免停留在已删除房间。
               if (spaceContext?.spaceId && activeRoomId === activeDissolveRoomId) {

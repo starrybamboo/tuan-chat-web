@@ -340,15 +340,30 @@ export class SpaceWorkspace implements Workspace {
           try {
             const doc = (this.getDoc(docId) as SpaceDoc | null) ?? (this.createDoc(docId) as SpaceDoc);
             doc.load();
+            const meta = this.meta.getDocMeta(docId);
+            if (!meta)
+              continue;
+
+            const isBusiness = isBusinessDocId(docId);
             const tcTitle = tryReadTcHeaderTitleFromYDoc(doc.spaceDoc);
-            const storeTitle = tcTitle ? null : tryDeriveDocTitle(doc.getStore({ readonly: true }));
-            const title = tcTitle ?? storeTitle;
-            if (title) {
-              const meta = this.meta.getDocMeta(docId);
-              if (meta && meta.title !== title) {
-                this.meta.setDocMeta(docId, { title });
+            if (tcTitle) {
+              if (meta.title !== tcTitle) {
+                this.meta.setDocMeta(docId, { title: tcTitle });
                 anyMetaChanged = true;
               }
+              continue;
+            }
+
+            // Business docs: if `tc_header.title` is missing, prefer keeping existing meta title
+            // (which may come from room/space name) instead of overriding with blocksuite native title.
+            if (isBusiness && meta.title) {
+              continue;
+            }
+
+            const storeTitle = tryDeriveDocTitle(doc.getStore({ readonly: true }));
+            if (storeTitle && meta.title !== storeTitle) {
+              this.meta.setDocMeta(docId, { title: storeTitle });
+              anyMetaChanged = true;
             }
           }
           catch {
@@ -565,6 +580,10 @@ function tryDeriveDocTitle(store: Store): string | null {
   if (tcTitle)
     return tcTitle;
 
+  return tryReadNativeDocTitle(store);
+}
+
+function tryReadNativeDocTitle(store: Store): string | null {
   try {
     const pages = store.getModelsByFlavour("affine:page") as Array<any>;
     const page = pages?.[0];
@@ -632,14 +651,15 @@ export function getOrCreateSpaceDocStore(params: {
   ensureAffineMinimumBlockData(store);
 
   // Best-effort: sync title into meta so linked-doc can fuzzy-match by title.
-  const title = tryDeriveDocTitle(store);
+  const tcTitle = tryReadTcHeaderTitle(store);
+  const title = tcTitle ?? tryReadNativeDocTitle(store);
   if (title) {
     const meta = ws.meta.getDocMeta(params.docId);
-    if (!meta || meta.title !== title) {
-      if (!meta) {
-        ws.meta.addDocMeta({ id: params.docId, title, tags: [], createDate: Date.now() });
-      }
-      else {
+    if (!meta) {
+      ws.meta.addDocMeta({ id: params.docId, title, tags: [], createDate: Date.now() });
+    }
+    else if (tcTitle || !meta.title) {
+      if (meta.title !== title) {
         ws.meta.setDocMeta(params.docId, { title });
       }
     }
