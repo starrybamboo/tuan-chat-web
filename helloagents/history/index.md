@@ -66,6 +66,7 @@
 | 202601171905 | project_kb_expand | 文档 | 已完成 | [2026-01/202601171905_project_kb_expand/](2026-01/202601171905_project_kb_expand/) |
 | 202601171911 | tc_header_no_reload | 修复 | 已完成 | [2026-01/202601171911_tc_header_no_reload/](2026-01/202601171911_tc_header_no_reload/) |
 | 202601171932 | novelapi_proxy_stream_fix | 修复 | 已完成 | [2026-01/202601171932_novelapi_proxy_stream_fix/](2026-01/202601171932_novelapi_proxy_stream_fix/) |
+| 202601172026 | ai_image_v4_params | 修复 | 已完成 | [2026-01/202601172026_ai_image_v4_params/](2026-01/202601172026_ai_image_v4_params/) |
 
 ---
 
@@ -130,3 +131,4 @@
 - [202601171905_project_kb_expand](2026-01/202601171905_project_kb_expand/) - 完善现有项目知识库：补齐 Chat/Blocksuite/WebGAL/AI 生图模块文档与本地开发工作流
 - [202601171911_tc_header_no_reload](2026-01/202601171911_tc_header_no_reload/) - 修复编辑 tcHeader 导致 blocksuite iframe 反复重载
 - [202601171932_novelapi_proxy_stream_fix](2026-01/202601171932_novelapi_proxy_stream_fix/) - 修复 `/api/novelapi/*` 同源代理偶发 500（流式转发 pipeline 化）
+- [202601172026_ai_image_v4_params](2026-01/202601172026_ai_image_v4_params/) - 修复 NAI v4/v4.5 出图 500：对齐 `params_version=3` 与 `v4_prompt` 参数结构

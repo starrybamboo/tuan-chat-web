@@ -272,14 +272,62 @@ async function generateNovelImageViaProxy(args: {
     parameters.noise = Math.max(0, Math.min(1, noise));
   }
 
-  if (isNAI4) {
-    parameters.cfg_rescale = Number(args.cfgRescale) || 0;
-    parameters.noise_schedule = String(args.noiseSchedule || "karras");
-  }
+  if (isNAI3 || isNAI4) {
+    parameters.params_version = 3;
+    parameters.legacy = false;
+    parameters.legacy_v3_extend = false;
+    parameters.noise_schedule = args.noiseSchedule;
 
-  if (isNAI3) {
-    parameters.smea = Boolean(args.smea);
-    parameters.smea_dyn = Boolean(args.smeaDyn);
+    if (isNAI4) {
+      const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
+
+      parameters.add_original_image = true;
+      parameters.cfg_rescale = cfgRescale;
+      parameters.characterPrompts = [];
+      parameters.controlnet_strength = 1;
+      parameters.deliberate_euler_ancestral_bug = false;
+      parameters.prefer_brownian = true;
+      parameters.reference_image_multiple = [];
+      parameters.reference_information_extracted_multiple = [];
+      parameters.reference_strength_multiple = [];
+      parameters.skip_cfg_above_sigma = null;
+      parameters.use_coords = false;
+      parameters.v4_prompt = {
+        caption: {
+          base_caption: prompt,
+          char_captions: [],
+        },
+        use_coords: parameters.use_coords,
+        use_order: true,
+      };
+      parameters.v4_negative_prompt = {
+        caption: {
+          base_caption: negativePrompt,
+          char_captions: [],
+        },
+      };
+    }
+    else if (isNAI3) {
+      const smea = Boolean(args.smea);
+      const smeaDyn = Boolean(args.smeaDyn);
+      parameters.sm_dyn = smeaDyn;
+      parameters.sm = smea || smeaDyn;
+
+      if (
+        (resolvedSampler === "k_euler_ancestral" || resolvedSampler === "k_dpmpp_2s_ancestral")
+        && args.noiseSchedule === "karras"
+      ) {
+        parameters.noise_schedule = "native";
+      }
+      if (resolvedSampler === "ddim_v3") {
+        parameters.sm = false;
+        parameters.sm_dyn = false;
+        delete parameters.noise_schedule;
+      }
+      if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
+        parameters.scale = parameters.scale / 2;
+      }
+    }
   }
 
   const payload: AiGenerateImageRequest = {
@@ -387,14 +435,62 @@ async function generateNovelImageDirect(args: {
     parameters.noise = Math.max(0, Math.min(1, noise));
   }
 
-  if (isNAI4) {
-    parameters.cfg_rescale = Number(args.cfgRescale) || 0;
-    parameters.noise_schedule = String(args.noiseSchedule || "karras");
-  }
+  if (isNAI3 || isNAI4) {
+    parameters.params_version = 3;
+    parameters.legacy = false;
+    parameters.legacy_v3_extend = false;
+    parameters.noise_schedule = args.noiseSchedule;
 
-  if (isNAI3) {
-    parameters.smea = Boolean(args.smea);
-    parameters.smea_dyn = Boolean(args.smeaDyn);
+    if (isNAI4) {
+      const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
+
+      parameters.add_original_image = true;
+      parameters.cfg_rescale = cfgRescale;
+      parameters.characterPrompts = [];
+      parameters.controlnet_strength = 1;
+      parameters.deliberate_euler_ancestral_bug = false;
+      parameters.prefer_brownian = true;
+      parameters.reference_image_multiple = [];
+      parameters.reference_information_extracted_multiple = [];
+      parameters.reference_strength_multiple = [];
+      parameters.skip_cfg_above_sigma = null;
+      parameters.use_coords = false;
+      parameters.v4_prompt = {
+        caption: {
+          base_caption: prompt,
+          char_captions: [],
+        },
+        use_coords: parameters.use_coords,
+        use_order: true,
+      };
+      parameters.v4_negative_prompt = {
+        caption: {
+          base_caption: negativePrompt,
+          char_captions: [],
+        },
+      };
+    }
+    else if (isNAI3) {
+      const smea = Boolean(args.smea);
+      const smeaDyn = Boolean(args.smeaDyn);
+      parameters.sm_dyn = smeaDyn;
+      parameters.sm = smea || smeaDyn;
+
+      if (
+        (resolvedSampler === "k_euler_ancestral" || resolvedSampler === "k_dpmpp_2s_ancestral")
+        && args.noiseSchedule === "karras"
+      ) {
+        parameters.noise_schedule = "native";
+      }
+      if (resolvedSampler === "ddim_v3") {
+        parameters.sm = false;
+        parameters.sm_dyn = false;
+        delete parameters.noise_schedule;
+      }
+      if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
+        parameters.scale = parameters.scale / 2;
+      }
+    }
   }
 
   const payload: AiGenerateImageRequest = {
