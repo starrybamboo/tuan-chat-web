@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
-import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -96,8 +95,6 @@ interface ChatToolbarProps {
 
 export function ChatToolbar({
   roomId,
-  isKP = false,
-  onStopBgmForAll,
   sideDrawerState,
   setSideDrawerState,
   updateEmojiUrls,
@@ -154,11 +151,6 @@ export function ChatToolbar({
   const isStacked = !isInline;
   const isRunModeOnly = runModeEnabled && !webgalLinkMode;
   const isMobileLinkCompact = isStacked && webgalLinkMode;
-
-  const bgmTrack = useBgmStore(state => (roomId != null ? state.trackByRoomId[roomId] : undefined));
-  const bgmDismissed = useBgmStore(state => (roomId != null ? Boolean(state.userDismissedByRoomId[roomId]) : false));
-  const bgmIsPlaying = useBgmStore(state => (roomId != null ? (state.isPlaying && state.playingRoomId === roomId) : false));
-  const bgmToggle = useBgmStore(state => state.userToggle);
 
   const blurAiPromptFocus = useCallback(() => {
     const active = document.activeElement;
@@ -464,33 +456,6 @@ export function ChatToolbar({
                     className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
                     onClick={onToggleRunMode}
                   />
-                </div>
-              )}
-
-              {/* BGM 个人开关（只在当前房间存在BGM时显示；用户主动关闭后按钮失效） */}
-              {roomId != null && bgmTrack && (
-                <div className="tooltip tooltip-top" data-tip={bgmDismissed ? "你已关闭本曲（需KP重新发送）" : (bgmIsPlaying ? "关闭BGM（仅自己）" : "开启BGM")}>
-                  <button
-                    type="button"
-                    className={`btn btn-xs ${bgmDismissed ? "btn-disabled opacity-50" : "btn-ghost"}`}
-                    disabled={bgmDismissed}
-                    onClick={() => void bgmToggle(roomId)}
-                  >
-                    {bgmIsPlaying ? "关闭BGM" : "开启BGM"}
-                  </button>
-                </div>
-              )}
-
-              {/* KP：停止全员BGM（发送系统消息） */}
-              {roomId != null && bgmTrack && isKP && onStopBgmForAll && (
-                <div className="tooltip tooltip-top" data-tip="停止全员BGM">
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost text-error"
-                    onClick={onStopBgmForAll}
-                  >
-                    停止全员BGM
-                  </button>
                 </div>
               )}
 
