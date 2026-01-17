@@ -16,6 +16,22 @@ import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 type RequestMode = "direct" | "proxy";
 type UiMode = "simple" | "pro";
 
+interface V4PromptCenter {
+  x: number;
+  y: number;
+}
+
+interface V4CharPayload {
+  prompt: string;
+  negativePrompt: string;
+  centerX: number;
+  centerY: number;
+}
+
+interface V4CharEditorRow extends V4CharPayload {
+  id: string;
+}
+
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
 const STORAGE_TOKEN_KEY = "tc:ai-image:novelai-token";
 const STORAGE_REQUEST_MODE_KEY = "tc:ai-image:request-mode";
@@ -54,6 +70,34 @@ const NOISE_SCHEDULES = [
   "exponential",
   "polyexponential",
 ] as const;
+
+function clamp01(input: number, fallback = 0.5) {
+  const value = Number(input);
+  if (!Number.isFinite(value))
+    return fallback;
+  return Math.max(0, Math.min(1, value));
+}
+
+function makeStableId() {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+      return crypto.randomUUID();
+  }
+  catch {
+    // ignore
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function newV4CharEditorRow(): V4CharEditorRow {
+  return {
+    id: makeStableId(),
+    prompt: "",
+    negativePrompt: "",
+    centerX: 0.5,
+    centerY: 0.5,
+  };
+}
 
 function normalizeEndpoint(input: string) {
   const value = String(input || "").trim();
@@ -213,6 +257,9 @@ async function generateNovelImageViaProxy(args: {
   noise: number;
   prompt: string;
   negativePrompt: string;
+  v4Chars?: V4CharPayload[];
+  v4UseCoords?: boolean;
+  v4UseOrder?: boolean;
   model: string;
   width: number;
   height: number;
@@ -280,6 +327,28 @@ async function generateNovelImageViaProxy(args: {
 
     if (isNAI4) {
       const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
+      const useCoords = Boolean(args.v4UseCoords);
+      const useOrder = args.v4UseOrder == null ? true : Boolean(args.v4UseOrder);
+      const v4Chars = Array.isArray(args.v4Chars) ? args.v4Chars : [];
+      const charCenters: V4PromptCenter[] = [];
+      const charCaptionsPositive = v4Chars.map((item) => {
+        const center: V4PromptCenter = {
+          x: clamp01(item.centerX, 0.5),
+          y: clamp01(item.centerY, 0.5),
+        };
+        charCenters.push(center);
+        return {
+          char_caption: String(item.prompt || ""),
+          centers: [center],
+        };
+      });
+      const charCaptionsNegative = v4Chars.map((item, idx) => {
+        const center = charCenters[idx] || { x: 0.5, y: 0.5 };
+        return {
+          char_caption: String(item.negativePrompt || ""),
+          centers: [center],
+        };
+      });
 
       parameters.add_original_image = true;
       parameters.cfg_rescale = cfgRescale;
@@ -291,19 +360,19 @@ async function generateNovelImageViaProxy(args: {
       parameters.reference_information_extracted_multiple = [];
       parameters.reference_strength_multiple = [];
       parameters.skip_cfg_above_sigma = null;
-      parameters.use_coords = false;
+      parameters.use_coords = useCoords;
       parameters.v4_prompt = {
         caption: {
           base_caption: prompt,
-          char_captions: [],
+          char_captions: charCaptionsPositive,
         },
         use_coords: parameters.use_coords,
-        use_order: true,
+        use_order: useOrder,
       };
       parameters.v4_negative_prompt = {
         caption: {
           base_caption: negativePrompt,
-          char_captions: [],
+          char_captions: charCaptionsNegative,
         },
       };
     }
@@ -376,6 +445,9 @@ async function generateNovelImageDirect(args: {
   noise: number;
   prompt: string;
   negativePrompt: string;
+  v4Chars?: V4CharPayload[];
+  v4UseCoords?: boolean;
+  v4UseOrder?: boolean;
   model: string;
   width: number;
   height: number;
@@ -443,6 +515,28 @@ async function generateNovelImageDirect(args: {
 
     if (isNAI4) {
       const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
+      const useCoords = Boolean(args.v4UseCoords);
+      const useOrder = args.v4UseOrder == null ? true : Boolean(args.v4UseOrder);
+      const v4Chars = Array.isArray(args.v4Chars) ? args.v4Chars : [];
+      const charCenters: V4PromptCenter[] = [];
+      const charCaptionsPositive = v4Chars.map((item) => {
+        const center: V4PromptCenter = {
+          x: clamp01(item.centerX, 0.5),
+          y: clamp01(item.centerY, 0.5),
+        };
+        charCenters.push(center);
+        return {
+          char_caption: String(item.prompt || ""),
+          centers: [center],
+        };
+      });
+      const charCaptionsNegative = v4Chars.map((item, idx) => {
+        const center = charCenters[idx] || { x: 0.5, y: 0.5 };
+        return {
+          char_caption: String(item.negativePrompt || ""),
+          centers: [center],
+        };
+      });
 
       parameters.add_original_image = true;
       parameters.cfg_rescale = cfgRescale;
@@ -454,19 +548,19 @@ async function generateNovelImageDirect(args: {
       parameters.reference_information_extracted_multiple = [];
       parameters.reference_strength_multiple = [];
       parameters.skip_cfg_above_sigma = null;
-      parameters.use_coords = false;
+      parameters.use_coords = useCoords;
       parameters.v4_prompt = {
         caption: {
           base_caption: prompt,
-          char_captions: [],
+          char_captions: charCaptionsPositive,
         },
         use_coords: parameters.use_coords,
-        use_order: true,
+        use_order: useOrder,
       };
       parameters.v4_negative_prompt = {
         caption: {
           base_caption: negativePrompt,
-          char_captions: [],
+          char_captions: charCaptionsNegative,
         },
       };
     }
@@ -604,6 +698,11 @@ export default function AiImagePage() {
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
+  const [proPromptTab, setProPromptTab] = useState<"positive" | "negative">("positive");
+
+  const [v4UseCoords, setV4UseCoords] = useState(false);
+  const [v4UseOrder, setV4UseOrder] = useState(true);
+  const [v4Chars, setV4Chars] = useState<V4CharEditorRow[]>([]);
 
   const model: string = LOCKED_IMAGE_MODEL;
   const isNAI3 = model === "nai-diffusion-3";
@@ -673,6 +772,9 @@ export default function AiImagePage() {
     const effectiveMode = args?.mode ?? mode;
     const effectivePrompt = String(args?.prompt ?? prompt).trim();
     const effectiveNegative = String(args?.negativePrompt ?? negativePrompt);
+    const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, ...rest }) => rest) : undefined;
+    const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
+    const v4UseOrderPayload = uiMode === "pro" ? v4UseOrder : undefined;
 
     setError("");
     setLoading(true);
@@ -689,6 +791,9 @@ export default function AiImagePage() {
         noise,
         prompt: effectivePrompt,
         negativePrompt: effectiveNegative,
+        v4Chars: v4CharsPayload,
+        v4UseCoords: v4UseCoordsPayload,
+        v4UseOrder: v4UseOrderPayload,
         model,
         width,
         height,
@@ -714,6 +819,9 @@ export default function AiImagePage() {
         height: res.height,
         prompt: effectivePrompt,
         negativePrompt: effectiveNegative,
+        v4Chars: v4CharsPayload,
+        v4UseCoords: v4UseCoordsPayload ?? false,
+        v4UseOrder: v4UseOrderPayload ?? true,
         dataUrl: res.dataUrl,
         sourceDataUrl: effectiveMode === "img2img" ? sourceImageDataUrl : undefined,
       });
@@ -732,6 +840,7 @@ export default function AiImagePage() {
     height,
     mode,
     model,
+    isNAI4,
     negativePrompt,
     noise,
     noiseSchedule,
@@ -750,22 +859,31 @@ export default function AiImagePage() {
     steps,
     strength,
     token,
+    uiMode,
+    v4Chars,
+    v4UseCoords,
+    v4UseOrder,
     width,
   ]);
 
   const handleSimpleGenerate = useCallback(async () => {
     setSimpleError("");
-    if (!simpleText.trim()) {
-      setSimpleError("请先输入一行自然语言描述");
+    const trimmed = simpleText.trim();
+    if (!trimmed) {
+      if (!prompt.trim()) {
+        setSimpleError("请先输入一行自然语言描述");
+        return;
+      }
+      await runGenerate();
       return;
     }
 
-    if (simpleConvertedFromText !== simpleText.trim() || !simpleConverted) {
+    if (simpleConvertedFromText !== trimmed || !simpleConverted) {
       setSimpleConverting(true);
       try {
-        const converted = await convertNaturalLanguageToNovelAiTags({ input: simpleText.trim() });
+        const converted = await convertNaturalLanguageToNovelAiTags({ input: trimmed });
         setSimpleConverted(converted);
-        setSimpleConvertedFromText(simpleText.trim());
+        setSimpleConvertedFromText(trimmed);
         setPrompt(converted.prompt);
         setNegativePrompt(converted.negativePrompt);
       }
@@ -779,13 +897,28 @@ export default function AiImagePage() {
       }
     }
 
-    await runGenerate({ mode: "txt2img" });
-  }, [runGenerate, simpleConverted, simpleConvertedFromText, simpleText]);
+    await runGenerate();
+  }, [prompt, runGenerate, simpleConverted, simpleConvertedFromText, simpleText]);
 
   const handleLoadHistory = useCallback((row: AiImageHistoryRow) => {
     setMode(row.mode);
     setPrompt(row.prompt);
     setNegativePrompt(row.negativePrompt);
+    setV4UseCoords(Boolean(row.v4UseCoords));
+    setV4UseOrder(row.v4UseOrder == null ? true : Boolean(row.v4UseOrder));
+    setV4Chars(
+      Array.isArray(row.v4Chars)
+        ? row.v4Chars.map((item) => {
+            return {
+              id: makeStableId(),
+              prompt: String(item.prompt || ""),
+              negativePrompt: String(item.negativePrompt || ""),
+              centerX: clamp01(item.centerX, 0.5),
+              centerY: clamp01(item.centerY, 0.5),
+            };
+          })
+        : [],
+    );
     setSeedMode("fixed");
     setSeed(row.seed);
     setWidth(row.width);
@@ -807,6 +940,33 @@ export default function AiImagePage() {
     await deleteAiImageHistory(row.id);
     await refreshHistory();
   }, [history, refreshHistory, result?.dataUrl]);
+
+  const handleAddV4Char = useCallback(() => {
+    setV4Chars(prev => [...prev, newV4CharEditorRow()]);
+  }, []);
+
+  const handleRemoveV4Char = useCallback((id: string) => {
+    setV4Chars(prev => prev.filter(item => item.id !== id));
+  }, []);
+
+  const handleMoveV4Char = useCallback((id: string, direction: -1 | 1) => {
+    setV4Chars((prev) => {
+      const idx = prev.findIndex(item => item.id === id);
+      if (idx < 0)
+        return prev;
+      const nextIdx = idx + direction;
+      if (nextIdx < 0 || nextIdx >= prev.length)
+        return prev;
+      const next = prev.slice();
+      const [moved] = next.splice(idx, 1);
+      next.splice(nextIdx, 0, moved);
+      return next;
+    });
+  }, []);
+
+  const handleUpdateV4Char = useCallback((id: string, patch: Partial<V4CharEditorRow>) => {
+    setV4Chars(prev => prev.map(item => (item.id === id ? { ...item, ...patch } : item)));
+  }, []);
 
   const canGenerate = !loading && !simpleConverting;
 
@@ -860,6 +1020,415 @@ export default function AiImagePage() {
         </div>
       </div>
 
+      <div className="flex-1 overflow-hidden flex">
+        <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
+          <div className="card bg-base-200">
+            <div className="card-body gap-3">
+              <div className="flex items-center gap-2">
+                <div className="font-medium">模式</div>
+                <div className="ml-auto join">
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => setMode("txt2img")}
+                  >
+                    txt2img
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => setMode("img2img")}
+                  >
+                    img2img
+                  </button>
+                </div>
+              </div>
+
+              {mode === "img2img"
+                ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
+                          选择源图
+                        </button>
+                        {result?.dataUrl
+                          ? (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost"
+                                onClick={() => {
+                                  setSourceImageDataUrl(result.dataUrl);
+                                  setSourceImageBase64(dataUrlToBase64(result.dataUrl));
+                                }}
+                              >
+                                使用当前结果
+                              </button>
+                            )
+                          : null}
+                      </div>
+                      <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
+                        {sourceImageDataUrl
+                          ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
+                          : <div className="text-sm opacity-60">未选择源图</div>}
+                      </div>
+                    </div>
+                  )
+                : null}
+            </div>
+          </div>
+
+          <div className="card bg-base-200">
+            <div className="card-body gap-3">
+              <div className="flex items-center gap-2">
+                <div className="font-medium">Prompt</div>
+                {uiMode === "pro" && isNAI4
+                  ? (
+                      <div className="ml-auto flex items-center gap-2">
+                        <label className="label cursor-pointer justify-start gap-2 py-0">
+                          <input type="checkbox" className="toggle toggle-sm" checked={v4UseOrder} onChange={e => setV4UseOrder(e.target.checked)} />
+                          <span className="label-text text-xs">顺序</span>
+                        </label>
+                        <label className="label cursor-pointer justify-start gap-2 py-0">
+                          <input type="checkbox" className="toggle toggle-sm" checked={v4UseCoords} onChange={e => setV4UseCoords(e.target.checked)} />
+                          <span className="label-text text-xs">坐标</span>
+                        </label>
+                      </div>
+                    )
+                  : null}
+              </div>
+
+              {uiMode === "simple"
+                ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="text-sm opacity-80">一行自然语言 → 自动转换 tags → 出图</div>
+                      <input
+                        className="input input-bordered w-full"
+                        value={simpleText}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setSimpleText(next);
+                          if (simpleConverted) {
+                            setSimpleConverted(null);
+                            setSimpleConvertedFromText("");
+                            setPrompt("");
+                            setNegativePrompt("");
+                            setV4Chars([]);
+                          }
+                        }}
+                        placeholder="例如：A girl with silver hair in a rainy cyberpunk street, cinematic lighting"
+                      />
+
+                      {simpleError ? <div className="text-sm text-error">{simpleError}</div> : null}
+
+                      {prompt.trim()
+                        ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="text-xs opacity-70">最终 tags（可编辑后再次生成）：</div>
+                              <textarea
+                                className="textarea textarea-bordered w-full min-h-24"
+                                value={prompt}
+                                onChange={e => setPrompt(e.target.value)}
+                              />
+                            </div>
+                          )
+                        : null}
+                    </div>
+                  )
+                : (
+                    <div className="flex flex-col gap-3">
+                      <div className="join">
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item ${proPromptTab === "positive" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setProPromptTab("positive")}
+                        >
+                          正面
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item ${proPromptTab === "negative" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setProPromptTab("negative")}
+                        >
+                          负面
+                        </button>
+                      </div>
+
+                      <div className="text-xs opacity-70">{proPromptTab === "positive" ? "背景（base_caption）" : "负面背景（base_caption）"}</div>
+                      <textarea
+                        className="textarea textarea-bordered w-full min-h-24"
+                        value={proPromptTab === "positive" ? prompt : negativePrompt}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          if (proPromptTab === "positive")
+                            setPrompt(next);
+                          else
+                            setNegativePrompt(next);
+                        }}
+                      />
+
+                      {isNAI4
+                        ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs opacity-70">角色（char_captions）</div>
+                                <div className="ml-auto flex items-center gap-2">
+                                  <div className="text-xs opacity-60">{v4Chars.length ? `共 ${v4Chars.length} 个` : "暂无"}</div>
+                                  <button type="button" className="btn btn-xs" onClick={handleAddV4Char}>
+                                    添加角色
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-3">
+                                {v4Chars.map((row, idx) => {
+                                  const disabledUp = idx === 0 || !v4UseOrder;
+                                  const disabledDown = idx === v4Chars.length - 1 || !v4UseOrder;
+                                  const value = proPromptTab === "positive" ? row.prompt : row.negativePrompt;
+                                  return (
+                                    <div key={row.id} className="bg-base-100 rounded-box p-2 flex flex-col gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-sm font-medium">{`角色 ${idx + 1}`}</div>
+                                        <div className="ml-auto join">
+                                          <button
+                                            type="button"
+                                            className={`btn btn-xs join-item ${disabledUp ? "btn-disabled" : ""}`}
+                                            onClick={() => handleMoveV4Char(row.id, -1)}
+                                            disabled={disabledUp}
+                                          >
+                                            上移
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className={`btn btn-xs join-item ${disabledDown ? "btn-disabled" : ""}`}
+                                            onClick={() => handleMoveV4Char(row.id, 1)}
+                                            disabled={disabledDown}
+                                          >
+                                            下移
+                                          </button>
+                                        </div>
+                                        <button type="button" className="btn btn-xs btn-ghost" onClick={() => handleRemoveV4Char(row.id)}>
+                                          删除
+                                        </button>
+                                      </div>
+
+                                      <textarea
+                                        className="textarea textarea-bordered w-full min-h-20"
+                                        value={value}
+                                        onChange={(e) => {
+                                          const next = e.target.value;
+                                          if (proPromptTab === "positive")
+                                            handleUpdateV4Char(row.id, { prompt: next });
+                                          else
+                                            handleUpdateV4Char(row.id, { negativePrompt: next });
+                                        }}
+                                      />
+
+                                      {v4UseCoords
+                                        ? (
+                                            <div className="grid grid-cols-2 gap-2">
+                                              <label className="form-control">
+                                                <span className="label-text text-xs">Center X (0-1)</span>
+                                                <input
+                                                  className="input input-bordered input-sm"
+                                                  type="number"
+                                                  min="0"
+                                                  max="1"
+                                                  step="0.01"
+                                                  value={row.centerX}
+                                                  onChange={e => handleUpdateV4Char(row.id, { centerX: clamp01(Number(e.target.value), 0.5) })}
+                                                />
+                                              </label>
+                                              <label className="form-control">
+                                                <span className="label-text text-xs">Center Y (0-1)</span>
+                                                <input
+                                                  className="input input-bordered input-sm"
+                                                  type="number"
+                                                  min="0"
+                                                  max="1"
+                                                  step="0.01"
+                                                  value={row.centerY}
+                                                  onChange={e => handleUpdateV4Char(row.id, { centerY: clamp01(Number(e.target.value), 0.5) })}
+                                                />
+                                              </label>
+                                            </div>
+                                          )
+                                        : null}
+                                    </div>
+                                  );
+                                })}
+                                {!v4Chars.length
+                                  ? (
+                                      <button type="button" className="btn btn-sm btn-ghost" onClick={handleAddV4Char}>
+                                        添加第一个角色
+                                      </button>
+                                    )
+                                  : null}
+                              </div>
+                            </div>
+                          )
+                        : null}
+                    </div>
+                  )}
+            </div>
+          </div>
+
+          <div className="card bg-base-200">
+            <div className="card-body gap-3">
+              <div className="flex items-center gap-2">
+                <div className="font-medium">参数</div>
+                <div className="ml-auto text-xs opacity-70">{modelLabel(model)}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="form-control">
+                  <span className="label-text text-xs">Width</span>
+                  <input className="input input-bordered input-sm" type="number" value={width} onChange={e => setWidth(clampToMultipleOf64(Number(e.target.value), 1024))} />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-xs">Height</span>
+                  <input className="input input-bordered input-sm" type="number" value={height} onChange={e => setHeight(clampToMultipleOf64(Number(e.target.value), 1024))} />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-xs">Steps</span>
+                  <input className="input input-bordered input-sm" type="number" value={steps} onChange={e => setSteps(Number(e.target.value) || 1)} />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-xs">Scale</span>
+                  <input className="input input-bordered input-sm" type="number" value={scale} onChange={e => setScale(Number(e.target.value) || 0)} />
+                </label>
+              </div>
+
+              <label className="form-control">
+                <span className="label-text text-xs">Sampler</span>
+                <select className="select select-bordered select-sm" value={sampler} onChange={e => setSampler(e.target.value)}>
+                  {samplerOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </label>
+
+              {isNAI4
+                ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="form-control">
+                        <span className="label-text text-xs">Noise Schedule</span>
+                        <select className="select select-bordered select-sm" value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
+                          {NOISE_SCHEDULES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </label>
+                      <label className="form-control">
+                        <span className="label-text text-xs">CFG Rescale</span>
+                        <input className="input input-bordered input-sm" type="number" value={cfgRescale} onChange={e => setCfgRescale(Number(e.target.value) || 0)} />
+                      </label>
+                    </div>
+                  )
+                : null}
+
+              {mode === "img2img"
+                ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="form-control">
+                        <span className="label-text text-xs">Strength</span>
+                        <input className="input input-bordered input-sm" type="number" value={strength} step="0.05" min="0" max="1" onChange={e => setStrength(Number(e.target.value) || 0)} />
+                      </label>
+                      <label className="form-control">
+                        <span className="label-text text-xs">Noise</span>
+                        <input className="input input-bordered input-sm" type="number" value={noise} step="0.05" min="0" max="1" onChange={e => setNoise(Number(e.target.value) || 0)} />
+                      </label>
+                    </div>
+                  )
+                : null}
+
+              <div className="flex items-center gap-2">
+                <div className="join">
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${seedMode === "random" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => setSeedMode("random")}
+                  >
+                    随机 Seed
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${seedMode === "fixed" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => setSeedMode("fixed")}
+                  >
+                    固定 Seed
+                  </button>
+                </div>
+                {seedMode === "fixed"
+                  ? <input className="input input-bordered input-sm w-40" type="number" value={seed} onChange={e => setSeed(Number(e.target.value) || 0)} />
+                  : <div className="text-xs opacity-70">将自动生成</div>}
+              </div>
+
+              <label className="label cursor-pointer justify-start gap-3">
+                <input type="checkbox" className="toggle toggle-sm" checked={qualityToggle} onChange={e => setQualityToggle(e.target.checked)} />
+                <span className="label-text">Quality Toggle</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto p-3 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={`btn btn-primary ${canGenerate ? "" : "btn-disabled"}`}
+              onClick={() => void (uiMode === "simple" ? handleSimpleGenerate() : runGenerate())}
+            >
+              {loading || simpleConverting ? "生成中..." : (uiMode === "simple" && simpleConverted ? "重新生成" : "生成")}
+            </button>
+            {result ? <a className="btn" href={result.dataUrl} download={`nai_${result.seed}.png`}>下载</a> : null}
+            {result ? <button type="button" className="btn btn-ghost" onClick={() => void handleDeleteCurrentHistory()}>删除当前</button> : null}
+            {history.length ? <button type="button" className="btn btn-ghost" onClick={() => void handleClearHistory()}>清空历史</button> : null}
+            <div className="ml-auto text-xs opacity-70">{result ? `seed: ${result.seed} · ${result.width}×${result.height}` : ""}</div>
+          </div>
+
+          {error ? <div className="text-sm text-error">{error}</div> : null}
+
+          <div className="bg-base-200 rounded-box p-3 flex items-center justify-center min-h-[520px]">
+            {result
+              ? <img src={result.dataUrl} className="max-h-[720px] w-auto rounded-box" alt="result" />
+              : <div className="text-sm opacity-60">暂无图片</div>}
+          </div>
+        </div>
+
+        <div className="w-[320px] shrink-0 border-l border-base-300 overflow-auto p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="font-medium">历史</div>
+            <div className="ml-auto text-xs opacity-60">{history.length ? `共 ${history.length} 条` : ""}</div>
+          </div>
+          <div className="flex flex-col gap-2">
+            {history.map(row => (
+              <button
+                key={row.id ?? `${row.createdAt}-${row.seed}`}
+                type="button"
+                className={`flex gap-2 items-center rounded-box border p-2 text-left ${result?.dataUrl === row.dataUrl ? "border-primary" : "border-base-300"}`}
+                onClick={() => handleLoadHistory(row)}
+              >
+                <img src={row.dataUrl} className="w-16 h-16 object-cover rounded-box" alt="history" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs opacity-70">
+                    <span>{row.mode}</span>
+                    <span> · </span>
+                    <span>{row.width}</span>
+                    <span>×</span>
+                    <span>{row.height}</span>
+                  </div>
+                  <div className="text-sm truncate">
+                    <span>seed: </span>
+                    <span>{row.seed}</span>
+                  </div>
+                  <div className="text-xs opacity-60 truncate">
+                    {Array.isArray(row.v4Chars) && row.v4Chars.length ? `${row.prompt} · 角色 ${row.v4Chars.length}` : row.prompt}
+                  </div>
+                </div>
+              </button>
+            ))}
+            {!history.length ? <div className="text-sm opacity-60">暂无历史</div> : null}
+          </div>
+        </div>
+      </div>
+
+      {/*
       {uiMode === "simple"
         ? (
             <div className="flex-1 overflow-auto p-4">
@@ -1214,6 +1783,7 @@ export default function AiImagePage() {
               </div>
             </div>
           )}
+      */}
 
       <dialog className={`modal ${isSettingsOpen ? "modal-open" : ""}`}>
         <div className="modal-box max-w-2xl">

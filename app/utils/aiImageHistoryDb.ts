@@ -2,6 +2,13 @@ import { openDB } from "idb";
 
 export type AiImageHistoryMode = "txt2img" | "img2img";
 
+export type AiImageHistoryV4Char = {
+  prompt: string;
+  negativePrompt: string;
+  centerX: number;
+  centerY: number;
+};
+
 export type AiImageHistoryRow = {
   id?: number;
   createdAt: number;
@@ -14,6 +21,10 @@ export type AiImageHistoryRow = {
 
   prompt: string;
   negativePrompt: string;
+
+  v4Chars?: AiImageHistoryV4Char[];
+  v4UseCoords?: boolean;
+  v4UseOrder?: boolean;
 
   dataUrl: string;
   sourceDataUrl?: string;
