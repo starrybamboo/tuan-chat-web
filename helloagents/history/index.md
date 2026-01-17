@@ -59,6 +59,7 @@
 | 202601171640 | mention_tc_header_title | 修复 | 已完成 | [2026-01/202601171640_mention-tc-header-title/](2026-01/202601171640_mention-tc-header-title/) |
 | 202601171657 | blocksuite_mention_host_click_debug | 修复 | 已完成（待确认） | [2026-01/202601171657_blocksuite-mention-host-click-debug/](2026-01/202601171657_blocksuite-mention-host-click-debug/) |
 | 202601171723 | blocksuite_mention_enter_debug | 修复 | 已完成（待确认） | [2026-01/202601171723_blocksuite-mention-enter-debug/](2026-01/202601171723_blocksuite-mention-enter-debug/) |
+| 202601171745 | mention_title_tc_header_refresh | 修复 | 已完成 | [2026-01/202601171745_mention-title-tc-header-refresh/](2026-01/202601171745_mention-title-tc-header-refresh/) |
 
 ---
 
@@ -116,3 +117,4 @@
 - [202601171640_mention-tc-header-title](2026-01/202601171640_mention-tc-header-title/) - `@`（Linked Doc）候选列表标题优先使用 `tc_header.title`
 - [202601171657_blocksuite-mention-host-click-debug](2026-01/202601171657_blocksuite-mention-host-click-debug/) - 增强 Blocksuite @ 提及点击链路调试：宿主侧捕获 portal 到 iframe 外的点击事件路径摘要
 - [202601171723_blocksuite-mention-enter-debug](2026-01/202601171723_blocksuite-mention-enter-debug/) - 增强 Blocksuite @ 提及键盘确认调试：Enter 时输出 activeElement/probe 信息
+- [202601171745_mention-title-tc-header-refresh](2026-01/202601171745_mention-title-tc-header-refresh/) - 修复 `@`（Linked Doc）候选列表与 inline 引用标题不刷新（meta 更新时触发 docListUpdated 刷新标题缓存）

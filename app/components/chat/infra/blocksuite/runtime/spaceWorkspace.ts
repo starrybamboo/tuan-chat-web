@@ -14,7 +14,7 @@ import type {
 import { NoopLogger } from "@blocksuite/global/utils";
 import { AwarenessStore, nanoid, StoreContainer, Text } from "@blocksuite/store";
 import { BlobEngine, DocEngine, IndexedDBBlobSource, IndexedDBDocSource } from "@blocksuite/sync";
-import { Subject } from "rxjs";
+import { Subject, Subscription } from "rxjs";
 import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
 import { applyUpdate, encodeStateAsUpdate } from "yjs";
@@ -210,6 +210,10 @@ export class SpaceWorkspace implements Workspace {
 
   private readonly _titleHydrationAbort = new AbortController();
   private _titleHydrationScheduled = false;
+  private _docListUpdatedBlocked = 0;
+  private _docListUpdatedEmitted = false;
+  private _docListUpdatedResetScheduled = false;
+  private readonly _subscriptions = new Subscription();
 
   readonly slots = {
     docListUpdated: new Subject<void>(),
@@ -255,11 +259,38 @@ export class SpaceWorkspace implements Workspace {
     this.docSync.start();
     this.blobSync.start();
 
+    // Blocksuite 的 DocDisplayMetaProvider 依赖 `workspace.slots.docListUpdated` 来刷新标题缓存。
+    // 我们的自定义 meta 在 setDocMeta 时只触发 docMetaUpdated，因此需要将其映射到 docListUpdated。
+    this._subscriptions.add(
+      this.meta.docMetaUpdated.subscribe(() => {
+        if (this._docListUpdatedBlocked > 0)
+          return;
+        this._emitDocListUpdated();
+      }),
+    );
+
     // Ensure linked-doc can list all docs within this workspace.
     // linked-doc menu reads from `workspace.meta.docMetas`.
     this._syncMetaFromSpaces();
     this._hydrateMissingTitles();
     this._spaces.observe(this._onSpacesChanged);
+  }
+
+  private _emitDocListUpdated() {
+    if (this._docListUpdatedEmitted)
+      return;
+
+    this._docListUpdatedEmitted = true;
+    this.slots.docListUpdated.next();
+
+    if (this._docListUpdatedResetScheduled)
+      return;
+    this._docListUpdatedResetScheduled = true;
+
+    queueMicrotask(() => {
+      this._docListUpdatedResetScheduled = false;
+      this._docListUpdatedEmitted = false;
+    });
   }
 
   private _syncMetaFromSpaces() {
@@ -297,26 +328,38 @@ export class SpaceWorkspace implements Workspace {
         .filter(m => !m.title || isBusinessDocId(m.id))
         .map(m => m.id);
 
+      let anyMetaChanged = false;
+      this._docListUpdatedBlocked++;
       // Avoid blocking the UI if there are many docs.
       // Process sequentially; break early if disposed.
-      for (const docId of pendingIds) {
-        if (this._titleHydrationAbort.signal.aborted)
-          return;
+      try {
+        for (const docId of pendingIds) {
+          if (this._titleHydrationAbort.signal.aborted)
+            return;
 
-        try {
-          const doc = (this.getDoc(docId) as SpaceDoc | null) ?? (this.createDoc(docId) as SpaceDoc);
-          doc.load();
-          const store = doc.getStore({ readonly: true });
-          const title = tryDeriveDocTitle(store);
-          if (title) {
-            const meta = this.meta.getDocMeta(docId);
-            if (meta && meta.title !== title) {
-              this.meta.setDocMeta(docId, { title });
+          try {
+            const doc = (this.getDoc(docId) as SpaceDoc | null) ?? (this.createDoc(docId) as SpaceDoc);
+            doc.load();
+            const tcTitle = tryReadTcHeaderTitleFromYDoc(doc.spaceDoc);
+            const storeTitle = tcTitle ? null : tryDeriveDocTitle(doc.getStore({ readonly: true }));
+            const title = tcTitle ?? storeTitle;
+            if (title) {
+              const meta = this.meta.getDocMeta(docId);
+              if (meta && meta.title !== title) {
+                this.meta.setDocMeta(docId, { title });
+                anyMetaChanged = true;
+              }
             }
           }
+          catch {
+            // ignore; keep empty title
+          }
         }
-        catch {
-          // ignore; keep empty title
+      }
+      finally {
+        this._docListUpdatedBlocked--;
+        if (anyMetaChanged) {
+          this._emitDocListUpdated();
         }
       }
     });
@@ -337,7 +380,7 @@ export class SpaceWorkspace implements Workspace {
 
     const doc = new SpaceDoc({ id, workspace: this, rootDoc: this._rootDoc });
     this._docs.set(id, doc);
-    this.slots.docListUpdated.next();
+    this._emitDocListUpdated();
     return doc;
   }
 
@@ -352,7 +395,7 @@ export class SpaceWorkspace implements Workspace {
 
     this._docs.delete(docId);
     this.meta.removeDocMeta(docId);
-    this.slots.docListUpdated.next();
+    this._emitDocListUpdated();
 
     this._rootDoc.getMap<Y.Doc>("spaces").delete(docId);
   }
@@ -406,6 +449,7 @@ export class SpaceWorkspace implements Workspace {
     this.blobSync.stop();
     this._spaces.unobserve(this._onSpacesChanged);
     this._titleHydrationAbort.abort();
+    this._subscriptions.unsubscribe();
     this._docs.clear();
   }
 }
@@ -534,16 +578,26 @@ function tryDeriveDocTitle(store: Store): string | null {
   }
 }
 
+function tryReadTcHeaderTitleFromYDoc(ydoc: Y.Doc | undefined): string | null {
+  try {
+    const share = (ydoc as any)?.share as Map<string, unknown> | undefined;
+    if (!ydoc || !share || typeof (share as any).get !== "function")
+      return null;
+
+    const tcHeader = (share as any).get("tc_header") as unknown;
+    const title = (tcHeader as any)?.get?.("title") as unknown;
+    const trimmed = typeof title === "string" ? title.trim() : "";
+    return trimmed || null;
+  }
+  catch {
+    return null;
+  }
+}
+
 function tryReadTcHeaderTitle(store: Store): string | null {
   try {
     const ydoc = (store as any)?.spaceDoc as Y.Doc | undefined;
-    if (!ydoc || typeof (ydoc as any).getMap !== "function")
-      return null;
-
-    const map = ydoc.getMap("tc_header") as any;
-    const title = map?.get?.("title") as unknown;
-    const trimmed = typeof title === "string" ? title.trim() : "";
-    return trimmed || null;
+    return tryReadTcHeaderTitleFromYDoc(ydoc);
   }
   catch {
     return null;
