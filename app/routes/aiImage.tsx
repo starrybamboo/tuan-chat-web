@@ -1,6 +1,7 @@
 // AI 生图页面：对齐 NovelAI Image 的桌面端布局与交互，并复用仓库内 `api/novelai` 的请求类型作为 SSOT。
 import type { AiGenerateImageRequest } from "../../api/novelai/models/AiGenerateImageRequest";
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
+import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 import { unzipSync } from "fflate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,6 +11,7 @@ import {
   deleteAiImageHistory,
   listAiImageHistory,
 } from "@/utils/aiImageHistoryDb";
+import { getAiImageStylePresets } from "@/utils/aiImageStylePresets";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 
@@ -97,6 +99,24 @@ function newV4CharEditorRow(): V4CharEditorRow {
     centerX: 0.5,
     centerY: 0.5,
   };
+}
+
+function mergeTagString(base: string, extraTags: string[]) {
+  const a = String(base || "");
+  const list = a
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const uniq = new Set<string>();
+  for (const item of [...extraTags, ...list]) {
+    const value = String(item || "").trim();
+    if (!value)
+      continue;
+    uniq.add(value);
+  }
+
+  return Array.from(uniq).join(", ");
 }
 
 function normalizeEndpoint(input: string) {
@@ -695,6 +715,8 @@ export default function AiImagePage() {
   const [simpleConverted, setSimpleConverted] = useState<NovelAiNl2TagsResult | null>(null);
   const [simpleConverting, setSimpleConverting] = useState(false);
   const [simpleError, setSimpleError] = useState("");
+  const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
+  const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
 
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
@@ -707,6 +729,28 @@ export default function AiImagePage() {
   const model: string = LOCKED_IMAGE_MODEL;
   const isNAI3 = model === "nai-diffusion-3";
   const isNAI4 = isNaiV4Family(model);
+
+  useEffect(() => {
+    if (uiMode !== "simple")
+      return;
+    setMode("txt2img");
+    setSourceImageDataUrl("");
+    setSourceImageBase64("");
+  }, [uiMode]);
+
+  const stylePresets = useMemo(() => getAiImageStylePresets(), []);
+  const selectedStylePresets = useMemo(() => {
+    const index = new Map<string, AiImageStylePreset>(stylePresets.map(p => [p.id, p]));
+    return selectedStyleIds.map(id => index.get(id)).filter(Boolean) as AiImageStylePreset[];
+  }, [selectedStyleIds, stylePresets]);
+
+  const selectedStyleTags = useMemo(() => {
+    return selectedStylePresets.flatMap(p => p.tags);
+  }, [selectedStylePresets]);
+
+  const selectedStyleNegativeTags = useMemo(() => {
+    return selectedStylePresets.flatMap(p => p.negativeTags);
+  }, [selectedStylePresets]);
 
   const samplerOptions = useMemo(() => {
     if (isNAI4)
@@ -872,7 +916,9 @@ export default function AiImagePage() {
         setSimpleError("请先输入一行自然语言描述");
         return;
       }
-      await runGenerate();
+      const effectivePrompt = mergeTagString(prompt, selectedStyleTags);
+      const effectiveNegativePrompt = mergeTagString(negativePrompt, selectedStyleNegativeTags);
+      await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
       return;
     }
 
@@ -904,11 +950,23 @@ export default function AiImagePage() {
       return;
     }
 
-    await runGenerate({ mode: "txt2img", prompt: resolvedPrompt, negativePrompt: resolvedNegativePrompt });
-  }, [negativePrompt, prompt, runGenerate, simpleConverted, simpleConvertedFromText, simpleText]);
+    const effectivePrompt = mergeTagString(resolvedPrompt, selectedStyleTags);
+    const effectiveNegativePrompt = mergeTagString(resolvedNegativePrompt, selectedStyleNegativeTags);
+    await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
+  }, [
+    negativePrompt,
+    prompt,
+    runGenerate,
+    selectedStyleNegativeTags,
+    selectedStyleTags,
+    simpleConverted,
+    simpleConvertedFromText,
+    simpleText,
+  ]);
 
   const handleLoadHistory = useCallback((row: AiImageHistoryRow) => {
-    setMode(row.mode);
+    const effectiveMode: AiImageHistoryMode = uiMode === "simple" ? "txt2img" : row.mode;
+    setMode(effectiveMode);
     setPrompt(row.prompt);
     setNegativePrompt(row.negativePrompt);
     setV4UseCoords(Boolean(row.v4UseCoords));
@@ -930,11 +988,11 @@ export default function AiImagePage() {
     setWidth(row.width);
     setHeight(row.height);
     setResult({ dataUrl: row.dataUrl, seed: row.seed, width: row.width, height: row.height, model: row.model });
-    if (row.mode === "img2img" && row.sourceDataUrl) {
+    if (effectiveMode === "img2img" && row.sourceDataUrl) {
       setSourceImageDataUrl(row.sourceDataUrl);
       setSourceImageBase64(dataUrlToBase64(row.sourceDataUrl));
     }
-  }, []);
+  }, [uiMode]);
 
   const handleDeleteCurrentHistory = useCallback(async () => {
     const selectedDataUrl = result?.dataUrl;
@@ -946,6 +1004,18 @@ export default function AiImagePage() {
     await deleteAiImageHistory(row.id);
     await refreshHistory();
   }, [history, refreshHistory, result?.dataUrl]);
+
+  const handleToggleStyle = useCallback((id: string) => {
+    setSelectedStyleIds((prev) => {
+      if (prev.includes(id))
+        return prev.filter(item => item !== id);
+      return [...prev, id];
+    });
+  }, []);
+
+  const handleClearStyles = useCallback(() => {
+    setSelectedStyleIds([]);
+  }, []);
 
   const handleAddV4Char = useCallback(() => {
     setV4Chars(prev => [...prev, newV4CharEditorRow()]);
@@ -1040,17 +1110,21 @@ export default function AiImagePage() {
                   >
                     txt2img
                   </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => setMode("img2img")}
-                  >
-                    img2img
-                  </button>
+                  {uiMode !== "simple"
+                    ? (
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setMode("img2img")}
+                        >
+                          img2img
+                        </button>
+                      )
+                    : null}
                 </div>
               </div>
 
-              {mode === "img2img"
+              {uiMode !== "simple" && mode === "img2img"
                 ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
@@ -1135,6 +1209,30 @@ export default function AiImagePage() {
                                 value={prompt}
                                 onChange={e => setPrompt(e.target.value)}
                               />
+
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs opacity-70">画风</div>
+                                <div className="ml-auto flex items-center gap-2">
+                                  {selectedStyleIds.length
+                                    ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
+                                    : <div className="text-xs opacity-60">未选择</div>}
+                                  <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
+                                    选择画风
+                                  </button>
+                                  {selectedStyleIds.length
+                                    ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
+                                    : null}
+                                </div>
+                              </div>
+
+                              {selectedStyleTags.length
+                                ? (
+                                    <div className="text-xs opacity-70">
+                                      {`画风 tags：${selectedStyleTags.join(", ")}`}
+                                    </div>
+                                  )
+                                : null}
+
                               <details className="collapse bg-base-100">
                                 <summary className="collapse-title text-sm">负面 tags（可选）</summary>
                                 <div className="collapse-content">
@@ -1144,6 +1242,13 @@ export default function AiImagePage() {
                                     onChange={e => setNegativePrompt(e.target.value)}
                                     placeholder="例如：lowres, bad anatomy"
                                   />
+                                  {selectedStyleNegativeTags.length
+                                    ? (
+                                        <div className="mt-2 text-xs opacity-70">
+                                          {`画风负面 tags：${selectedStyleNegativeTags.join(", ")}`}
+                                        </div>
+                                      )
+                                    : null}
                                 </div>
                               </details>
                             </div>
@@ -1885,6 +1990,61 @@ export default function AiImagePage() {
         </div>
         <form method="dialog" className="modal-backdrop">
           <button type="button" onClick={() => setIsSettingsOpen(false)}>close</button>
+        </form>
+      </dialog>
+
+      <dialog className={`modal ${isStylePickerOpen ? "modal-open" : ""}`}>
+        <div className="modal-box max-w-5xl">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-bold text-lg">选择画风</h3>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="text-xs opacity-70">{selectedStyleIds.length ? `已选 ${selectedStyleIds.length} 个` : ""}</div>
+              {selectedStyleIds.length
+                ? <button type="button" className="btn btn-sm btn-ghost" onClick={handleClearStyles}>清空</button>
+                : null}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {stylePresets.map((preset) => {
+              const selected = selectedStyleIds.includes(preset.id);
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`rounded-box border p-2 text-left flex flex-col gap-2 ${selected ? "border-primary" : "border-base-300"}`}
+                  onClick={() => handleToggleStyle(preset.id)}
+                  title={preset.tags.length ? preset.tags.join(", ") : preset.title}
+                >
+                  <div className="w-full aspect-video rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                    {preset.imageUrl
+                      ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                      : <div className="text-xs opacity-60">{preset.title}</div>}
+                  </div>
+                  <div className="text-sm font-medium truncate">{preset.title}</div>
+                  <div className="text-xs opacity-60 truncate">
+                    {preset.tags.length ? preset.tags.join(", ") : "（未配置 tags）"}
+                  </div>
+                </button>
+              );
+            })}
+            {!stylePresets.length
+              ? (
+                  <div className="text-sm opacity-60">
+                    暂无画风。请在 app/assets/ai-image/styles/ 下放图片（例如 oil-painting.webp），并在 app/utils/aiImageStylePresets.ts 配置对应 tags。
+                  </div>
+                )
+              : null}
+          </div>
+
+          <div className="modal-action">
+            <button type="button" className="btn" onClick={() => setIsStylePickerOpen(false)}>
+              关闭
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button type="button" onClick={() => setIsStylePickerOpen(false)}>close</button>
         </form>
       </dialog>
     </div>

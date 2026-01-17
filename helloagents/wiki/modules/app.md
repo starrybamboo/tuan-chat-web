@@ -93,7 +93,7 @@
 
 - 测试页路由：`/ai-image`（对应 `app/routes/aiImage.tsx`；仅开发环境注册）
 - 提供两种模式：
-  - 普通模式：一行自然语言 →（后端 LLM 转换）→ tags → 一键出图；转换出的 tags 允许继续编辑并再次生成；参数面板仅保留宽/高/Seed（Seed 小于 0 表示随机），其余使用默认值；负面 tags 可选；支持一键切换到专业模式继续微调
+  - 普通模式：仅 txt2img；一行自然语言 →（后端 LLM 转换）→ tags → 一键出图；转换出的 tags 允许继续编辑并再次生成；参数面板仅保留宽/高/Seed（Seed 小于 0 表示随机），其余使用默认值；支持可选负面 tags；支持“画风”多选并追加对应 tags；支持一键切换到专业模式继续微调
   - 专业模式：桌面端三栏布局（左侧参数/中间预览/右侧历史），交互与视觉分区对齐 `https://novelai.net/image`；支持 v4/v4.5 的“背景/角色”分区编辑并映射到 `v4_prompt`/`v4_negative_prompt`（`base_caption` + `char_captions`），并支持角色顺序/坐标开关
 - 连接与请求方式：右上角“设置”弹窗统一配置（Token/Endpoint/代理或直连）
 - NAI v4/v4.5 模型：需要使用 `params_version=3` 的参数结构，并通过 `v4_prompt`/`v4_negative_prompt` 传递 prompt；如使用旧结构可能导致上游 500
