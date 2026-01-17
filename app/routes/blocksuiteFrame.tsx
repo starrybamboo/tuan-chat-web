@@ -179,6 +179,26 @@ export default function BlocksuiteFrameRoute() {
     const mentionDebugWindowMs = 5000;
     let mentionDebugUntil = 0;
     let mentionDebugRemaining = 0;
+    const summarizeEl = (node: unknown) => {
+      if (!(node instanceof Element))
+        return null;
+      const tag = toLower(node.tagName);
+      const id = node.id ? toLower(node.id) : "";
+      const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+      const role = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("role"))
+        : "";
+      const testid = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("data-testid"))
+        : "";
+      return {
+        tag,
+        id: id || undefined,
+        className: cls || undefined,
+        role: role || undefined,
+        testid: testid || undefined,
+      };
+    };
     const summarizeNode = (node: unknown) => {
       if (!(node instanceof Element))
         return null;
@@ -250,13 +270,14 @@ export default function BlocksuiteFrameRoute() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       try {
+        const active = summarizeEl(document.activeElement);
         if (e.key === "@") {
           mentionDebugUntil = Date.now() + mentionDebugWindowMs;
           mentionDebugRemaining = 12;
           (globalThis as any).__tcBlocksuiteDebugLog?.({
             source: "BlocksuiteFrame",
             message: "keydown @",
-            payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey },
+            payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey, active },
           });
           return;
         }
@@ -265,7 +286,7 @@ export default function BlocksuiteFrameRoute() {
             (globalThis as any).__tcBlocksuiteDebugLog?.({
               source: "BlocksuiteFrame",
               message: `keydown ${e.key}`,
-              payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey },
+              payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey, active },
             });
           }
         }

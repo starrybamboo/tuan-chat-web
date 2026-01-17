@@ -1283,6 +1283,40 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
             hostMentionDebugRemainingRef.current = 12;
           }
 
+          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown Enter") {
+            if (Date.now() < hostMentionDebugUntilRef.current && hostMentionDebugRemainingRef.current > 0) {
+              hostMentionDebugRemainingRef.current -= 1;
+              try {
+                const active = document.activeElement;
+                const toLower = (v: unknown) => String(v ?? "").toLowerCase();
+                const summarizeEl = (node: unknown) => {
+                  if (!(node instanceof Element))
+                    return null;
+                  const tag = toLower(node.tagName);
+                  const id = node.id ? toLower(node.id) : "";
+                  const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+                  const role = typeof (node as any).getAttribute === "function"
+                    ? toLower((node as any).getAttribute("role"))
+                    : "";
+                  const testid = typeof (node as any).getAttribute === "function"
+                    ? toLower((node as any).getAttribute("data-testid"))
+                    : "";
+                  return { tag, id: id || undefined, className: cls || undefined, role: role || undefined, testid: testid || undefined };
+                };
+                const probes = {
+                  blocksuitePortal: document.querySelectorAll("blocksuite-portal, .blocksuite-portal").length,
+                  affineMenu: document.querySelectorAll("affine-menu").length,
+                  roleListbox: document.querySelectorAll("[role='listbox']").length,
+                  roleMenu: document.querySelectorAll("[role='menu']").length,
+                };
+                console.warn("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
+              }
+              catch {
+                // ignore
+              }
+            }
+          }
+
           if (payload && typeof payload === "object") {
             console.warn("[BlocksuiteFrameDebug]", source, message, payload);
           }
