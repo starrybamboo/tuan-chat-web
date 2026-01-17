@@ -47,6 +47,7 @@
 - `@`（Linked Doc）标题刷新机制：当 `workspace.meta`（docMetaUpdated）发生变化时，`spaceWorkspace.ts` 会同步触发 `workspace.slots.docListUpdated`（带去重/批量水合节流），确保 blocksuite 的 `DocDisplayMetaProvider` 能刷新菜单与 inline 引用的标题缓存
 - 空间描述 @ 提及：选择成员后立即关闭弹窗，并对插入动作增加防重入保护，避免重复插入
 - 乐观显示（room/space）：iframe 侧 header 变化通过 `postMessage` 上报，宿主写入 `entityHeaderOverrideStore`（localStorage），房间/空间列表与房间顶部标题栏优先显示覆盖值
+- tcHeader 性能：iframe 宿主侧会冻结 `tcHeaderTitle/tcHeaderImageUrl`（仅用于首次初始化或切换 doc 的兜底写入），避免“实时同步标题/头像”导致 iframe `src` 变化触发 `blocksuite-frame` 重新加载
 - 线索文档化（方案A试运行）：线索正文统一使用 `BlocksuiteClueDescriptionEditor`（`doc_type=description`），创建线索仅填基础信息（name/image/folder）；`space_clue.note` 保留为兼容字段，不再作为主要编辑入口
 - 线索详情弹窗（PL 抽屉）：默认使用全屏弹窗并在顶部固定基础信息/操作区，下方提供大视口的线索文档编辑区；旧 `note` 以折叠区形式展示（默认折叠）
 - 嵌入式隔离（官方兼容）：在 blocksuite 初始化前调用 `startBlocksuiteStyleIsolation` + `ensureBlocksuiteRuntimeStyles`，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的 `body{counter-reset}` 作用域化到 `.tc-blocksuite-scope`/`.blocksuite-portal`，避免污染同页其它 UI

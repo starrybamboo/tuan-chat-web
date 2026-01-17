@@ -1460,6 +1460,32 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     };
   }, [instanceId]);
 
+  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
+  const frozenTcHeaderFallbackRef = useRef<{
+    workspaceId: string;
+    docId: string;
+    title?: string;
+    imageUrl?: string;
+  } | null>(null);
+
+  if (tcHeaderEnabled) {
+    const prev = frozenTcHeaderFallbackRef.current;
+    if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
+      frozenTcHeaderFallbackRef.current = {
+        workspaceId,
+        docId,
+        title: tcHeader?.fallbackTitle,
+        imageUrl: tcHeader?.fallbackImageUrl,
+      };
+    }
+  }
+  else if (frozenTcHeaderFallbackRef.current) {
+    frozenTcHeaderFallbackRef.current = null;
+  }
+
+  const frozenTcHeaderTitle = frozenTcHeaderFallbackRef.current?.title;
+  const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
+
   const initParams = useMemo(() => {
     return {
       instanceId,
@@ -1471,21 +1497,21 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       allowModeSwitch: allowModeSwitch ? "1" : "0",
       fullscreenEdgeless: fullscreenEdgeless ? "1" : "0",
       mode: forcedMode,
-      tcHeader: tcHeader?.enabled ? "1" : "0",
-      tcHeaderTitle: tcHeader?.fallbackTitle,
-      tcHeaderImageUrl: tcHeader?.fallbackImageUrl,
+      tcHeader: tcHeaderEnabled ? "1" : "0",
+      tcHeaderTitle: frozenTcHeaderTitle,
+      tcHeaderImageUrl: frozenTcHeaderImageUrl,
     };
   }, [
     allowModeSwitch,
     docId,
+    frozenTcHeaderImageUrl,
+    frozenTcHeaderTitle,
     forcedMode,
     fullscreenEdgeless,
     instanceId,
     readOnly,
     spaceId,
-    tcHeader?.enabled,
-    tcHeader?.fallbackImageUrl,
-    tcHeader?.fallbackTitle,
+    tcHeaderEnabled,
     variant,
     workspaceId,
   ]);
