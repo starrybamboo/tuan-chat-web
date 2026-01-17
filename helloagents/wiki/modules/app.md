@@ -73,8 +73,9 @@
 - 展开/折叠状态：仅本地 IndexedDB 保存（`app/components/chat/infra/indexedDB/sidebarTreeUiDb.ts`），不写入后端树结构
 - 文档元信息回补：若 Blocksuite workspace `meta.docMetas` 为空，则从 `sidebarTree` 的 doc 节点回补（`extractDocMetasFromSidebarTree`），并通过 `ensureSpaceDocMeta` 回写 workspace meta，避免刷新后文档节点被过滤/无法打开
 - 创建入口：分类标题右侧“+”打开“标签页式”创建面板（参考邀请好友）；在同一弹窗内创建房间/文档，成功后自动追加到对应分类并写入 `/space/sidebarTree`
-- 文档节点样式：侧边栏文档条目与房间条目字号一致，并在标题前显示文档 icon
+- 文档节点样式：侧边栏文档条目与房间条目字号一致；默认显示文档 icon；当文档启用 `tc_header.imageUrl` 时条目显示缩略图并叠加文档 icon（保持与房间条目区分），缩略图/标题的本地缓存见 `app/components/chat/stores/docHeaderOverrideStore.ts`
 - 文档打开方式：统一在 Chat 布局内打开（保留左侧侧边栏），路由为 `/chat/:spaceId/doc/:docId`；兼容入口 `/doc/:spaceId/:docId` 会跳转到上述路由
+- 文档头部：独立文档打开后启用 `tcHeader`（`tc_header.title/imageUrl`）并禁用 Blocksuite 内置 `doc-title`，标题/封面在侧边栏条目中乐观显示
 
 ### AI 生图测试（NovelAI）
 
