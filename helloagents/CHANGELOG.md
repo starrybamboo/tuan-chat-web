@@ -91,6 +91,7 @@
 - 修复部分环境（如 Windows 系统代理）下 `/api/novelapi/*` 未显式配置代理导致的 502：dev server 会自动读取系统代理（ProxyServer）作为兜底，并在 502 响应中附带底层 cause 便于排查
 - 修复 `/api/novelapi/*` 同源代理偶发 500：流式转发改为使用 `pipeline` 并捕获异常，避免连接中断导致服务端崩溃
 - 修复 AI 生图 NAI v4.5 Full 出图 500：对齐 NAI v4/v4.5 所需的 `params_version=3` 参数结构（`v4_prompt`/`v4_negative_prompt`）
+- AI 生图：专业模式支持“背景/角色”分区编辑并写入 `v4_prompt`/`v4_negative_prompt` 的 `char_captions`；普通/专业统一三栏布局，并在历史记录中回填结构化 prompt
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）

@@ -286,8 +286,29 @@ app.whenReady().then(() => {
     const height = clampToMultipleOf64(req?.height, 1024);
 
     const isNAI3 = model === "nai-diffusion-3";
-    const isNAI4 = model === "nai-diffusion-4-curated-preview" || model === "nai-diffusion-4-full";
+    const isNAI4 = typeof model === "string" && (
+      model === "nai-diffusion-4-curated-preview"
+      || model === "nai-diffusion-4-full"
+      || model === "nai-diffusion-4-full-inpainting"
+      || model === "nai-diffusion-4-curated-inpainting"
+      || model === "nai-diffusion-4-5-curated"
+      || model === "nai-diffusion-4-5-curated-inpainting"
+      || model === "nai-diffusion-4-5-full"
+      || model === "nai-diffusion-4-5-full-inpainting"
+    );
     const resolvedSampler = sampler === "k_euler_a" ? "k_euler_ancestral" : sampler;
+
+    const clamp01 = (input, fallback = 0.5) => {
+      const value = Number(input);
+      if (!Number.isFinite(value)) {
+        return fallback;
+      }
+      return Math.max(0, Math.min(1, value));
+    };
+
+    const v4Chars = Array.isArray(req?.v4Chars) ? req.v4Chars : [];
+    const v4UseCoords = Boolean(req?.v4UseCoords);
+    const v4UseOrder = req?.v4UseOrder == null ? true : Boolean(req.v4UseOrder);
 
     const parameters = {
       seed,
@@ -323,6 +344,25 @@ app.whenReady().then(() => {
 
       if (isNAI4) {
         const cfgRescale = Number.isFinite(req?.cfgRescale) ? Number(req.cfgRescale) : 0;
+        const charCenters = [];
+        const charCaptionsPositive = v4Chars.map((item) => {
+          const center = {
+            x: clamp01(item?.centerX, 0.5),
+            y: clamp01(item?.centerY, 0.5),
+          };
+          charCenters.push(center);
+          return {
+            char_caption: String(item?.prompt || ""),
+            centers: [center],
+          };
+        });
+        const charCaptionsNegative = v4Chars.map((item, idx) => {
+          const center = charCenters[idx] || { x: 0.5, y: 0.5 };
+          return {
+            char_caption: String(item?.negativePrompt || ""),
+            centers: [center],
+          };
+        });
 
         parameters.add_original_image = true;
         parameters.cfg_rescale = cfgRescale;
@@ -334,19 +374,19 @@ app.whenReady().then(() => {
         parameters.reference_information_extracted_multiple = [];
         parameters.reference_strength_multiple = [];
         parameters.skip_cfg_above_sigma = null;
-        parameters.use_coords = false;
+        parameters.use_coords = v4UseCoords;
         parameters.v4_prompt = {
           caption: {
             base_caption: prompt,
-            char_captions: [],
+            char_captions: charCaptionsPositive,
           },
           use_coords: parameters.use_coords,
-          use_order: true,
+          use_order: v4UseOrder,
         };
         parameters.v4_negative_prompt = {
           caption: {
             base_caption: negativePrompt,
-            char_captions: [],
+            char_captions: charCaptionsNegative,
           },
         };
       }

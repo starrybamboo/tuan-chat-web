@@ -91,7 +91,7 @@
 - 测试页路由：`/ai-image`（对应 `app/routes/aiImage.tsx`；仅开发环境注册）
 - 提供两种模式：
   - 普通模式：一行自然语言 →（后端 LLM 转换）→ tags → 一键出图；转换出的 tags 允许继续编辑并再次生成；支持一键切换到专业模式继续微调
-  - 专业模式：桌面端三栏布局（左侧参数/中间预览/右侧历史），交互与视觉分区对齐 `https://novelai.net/image`
+  - 专业模式：桌面端三栏布局（左侧参数/中间预览/右侧历史），交互与视觉分区对齐 `https://novelai.net/image`；支持 v4/v4.5 的“背景/角色”分区编辑并映射到 `v4_prompt`/`v4_negative_prompt`（`base_caption` + `char_captions`），并支持角色顺序/坐标开关
 - 连接与请求方式：右上角“设置”弹窗统一配置（Token/Endpoint/代理或直连）
 - NAI v4/v4.5 模型：需要使用 `params_version=3` 的参数结构，并通过 `v4_prompt`/`v4_negative_prompt` 传递 prompt；如使用旧结构可能导致上游 500
 - Web 环境默认使用同源代理模式请求 NovelAI：`/api/novelapi/*`（其中 `/user/*` 元数据接口固定走 `https://api.novelai.net`，用于模型/设置拉取；如需排查上游响应，可切换为“直连”模式，但可能被跨域/CORS 或 Referer 限制拦截）
@@ -101,7 +101,7 @@
 - 支持文生图（txt2img）与图生图（img2img：上传图片 + `strength/noise` 等参数）
 - UI 结构与操作逻辑对齐 `https://novelai.net/image`：三栏分区（参数/预览/历史）
 - 模型当前锁定为 `nai-diffusion-4-5-full`（NAI v4.5 Full）；其中“4.5 FULL”对应的模型 ID 即 `nai-diffusion-4-5-full`
-- 生成历史默认保存到本地 IndexedDB，支持查看/删除/清空
+- 生成历史默认保存到本地 IndexedDB，支持查看/删除/清空；v4/v4.5 生成会额外保存角色/坐标等结构化信息，点击历史可回填编辑器
 - token 为方便调试会本地持久化（localStorage），可手动清除
 
 ## 变更历史
