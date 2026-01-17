@@ -729,8 +729,7 @@ export default function AiImagePage() {
   const [strength, setStrength] = useState(0.7);
   const [noise, setNoise] = useState(0.2);
 
-  const [seedMode, setSeedMode] = useState<"random" | "fixed">("random");
-  const [seed, setSeed] = useState<number>(0);
+  const [seed, setSeed] = useState<number>(-1);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -779,8 +778,8 @@ export default function AiImagePage() {
     setError("");
     setLoading(true);
     try {
-      const rawSeed = seedMode === "fixed" ? Number(seed) : undefined;
-      const seedValue = typeof rawSeed === "number" && Number.isFinite(rawSeed) ? rawSeed : undefined;
+      const seedInput = Number(seed);
+      const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const generator = requestMode === "direct" ? generateNovelImageDirect : generateNovelImageViaProxy;
       const res = await generator({
         token,
@@ -809,7 +808,7 @@ export default function AiImagePage() {
       });
 
       setResult(res);
-      setSeed(res.seed);
+      setSeed(seedValue == null ? -1 : res.seed);
       await addAiImageHistory({
         createdAt: Date.now(),
         mode: effectiveMode,
@@ -851,7 +850,6 @@ export default function AiImagePage() {
     sampler,
     scale,
     seed,
-    seedMode,
     smea,
     smeaDyn,
     sourceImageBase64,
@@ -928,7 +926,6 @@ export default function AiImagePage() {
           })
         : [],
     );
-    setSeedMode("fixed");
     setSeed(row.seed);
     setWidth(row.width);
     setHeight(row.height);
@@ -1138,6 +1135,17 @@ export default function AiImagePage() {
                                 value={prompt}
                                 onChange={e => setPrompt(e.target.value)}
                               />
+                              <details className="collapse bg-base-100">
+                                <summary className="collapse-title text-sm">负面 tags（可选）</summary>
+                                <div className="collapse-content">
+                                  <textarea
+                                    className="textarea textarea-bordered w-full min-h-20"
+                                    value={negativePrompt}
+                                    onChange={e => setNegativePrompt(e.target.value)}
+                                    placeholder="例如：lowres, bad anatomy"
+                                  />
+                                </div>
+                              </details>
                             </div>
                           )
                         : null}
@@ -1359,25 +1367,15 @@ export default function AiImagePage() {
                 : null}
 
               <div className="flex items-center gap-2">
-                <div className="join">
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${seedMode === "random" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => setSeedMode("random")}
-                  >
-                    随机 Seed
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${seedMode === "fixed" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => setSeedMode("fixed")}
-                  >
-                    固定 Seed
-                  </button>
-                </div>
-                {seedMode === "fixed"
-                  ? <input className="input input-bordered input-sm w-40" type="number" value={seed} onChange={e => setSeed(Number(e.target.value) || 0)} />
-                  : <div className="text-xs opacity-70">将自动生成</div>}
+                <label className="form-control w-full">
+                  <span className="label-text text-xs">Seed（小于 0 = 随机）</span>
+                  <input
+                    className="input input-bordered input-sm w-full"
+                    type="number"
+                    value={seed}
+                    onChange={e => setSeed(Number(e.target.value))}
+                  />
+                </label>
               </div>
 
               {uiMode !== "simple"
