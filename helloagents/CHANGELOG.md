@@ -44,6 +44,7 @@
 
 ### 修复
 - 增强 Blocksuite @ 提及点击链路调试：在 frame 捕获 pointerdown/click，并在按下 `@` 后短窗口内上报事件路径摘要
+- 增强 Blocksuite @ 提及宿主点击链路调试：收到 frame `keydown @` 后，宿主短窗口捕获 `pointerdown/click` 并输出事件路径摘要（用于定位 portal 到 iframe 外的候选项）
 - 补强 Blocksuite @ 提及调试日志：iframe 转发到宿主控制台，并增加入口日志
 - 增加 Blocksuite @ 提及调试日志（菜单/插入路径）
 - 加固空间描述 Blocksuite @ 提及弹窗关闭与重复触发

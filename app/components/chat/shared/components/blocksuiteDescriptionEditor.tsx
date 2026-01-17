@@ -1158,6 +1158,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
+  const hostMentionDebugUntilRef = useRef(0);
+  const hostMentionDebugRemainingRef = useRef(0);
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
   useEffect(() => {
@@ -1272,6 +1274,15 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           const source = String(entry?.source ?? "unknown");
           const message = String(entry?.message ?? "");
           const payload = (entry?.payload ?? null) as any;
+
+          // Host-side click debug:
+          // If the mention picker is rendered outside iframe (portal), then iframe won't see click events.
+          // Arm a short window after '@' to capture host pointer/click path summaries.
+          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown @") {
+            hostMentionDebugUntilRef.current = Date.now() + 5000;
+            hostMentionDebugRemainingRef.current = 12;
+          }
+
           if (payload && typeof payload === "object") {
             console.warn("[BlocksuiteFrameDebug]", source, message, payload);
           }
@@ -1290,6 +1301,68 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       window.removeEventListener("message", onMessage);
     };
   }, [forcedMode, instanceId, navigate, onModeChange, onTcHeaderChange]);
+
+  // 宿主侧捕获 click/pointerdown：用于定位 mention 弹窗是否是 portal 到 iframe 外。
+  useEffect(() => {
+    if (!(import.meta as any)?.env?.DEV)
+      return;
+    if (typeof document === "undefined")
+      return;
+
+    const toLower = (v: unknown) => String(v ?? "").toLowerCase();
+    const summarizeNode = (node: unknown) => {
+      if (!(node instanceof Element))
+        return null;
+      const tag = toLower(node.tagName);
+      const id = node.id ? toLower(node.id) : "";
+      const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+      const role = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("role"))
+        : "";
+      const testid = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("data-testid"))
+        : "";
+      return {
+        tag,
+        id: id || undefined,
+        className: cls || undefined,
+        role: role || undefined,
+        testid: testid || undefined,
+      };
+    };
+
+    const logHostEvent = (type: string, e: Event) => {
+      const now = Date.now();
+      if (now >= hostMentionDebugUntilRef.current)
+        return;
+      if (hostMentionDebugRemainingRef.current <= 0)
+        return;
+      hostMentionDebugRemainingRef.current -= 1;
+
+      try {
+        const path = (e as any).composedPath?.() as unknown[] | undefined;
+        const nodes = Array.isArray(path)
+          ? path.map(summarizeNode).filter(Boolean).slice(0, 10)
+          : [];
+        console.warn("[BlocksuiteHostDebug]", type, {
+          targetTag: toLower((e.target as any)?.tagName),
+          nodes,
+        });
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const onPointerDown = (e: PointerEvent) => logHostEvent("pointerdown", e);
+    const onClick = (e: MouseEvent) => logHostEvent("click", e);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, []);
 
   // 画布全屏：需要由宿主处理（iframe 内的 fixed 只能覆盖 iframe 自己）。
   useEffect(() => {
