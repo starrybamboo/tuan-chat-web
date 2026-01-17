@@ -58,6 +58,11 @@
 
 ### VS Code/IDE 约定
 
+### NovelAPI 同源代理（/api/novelapi）
+
+- 开发服务（Vite）与 `pnpm start` 均支持 `/api/novelapi/*` 同源代理到 NovelAI。
+- 若生成图片/ZIP 时偶发出现本地服务 500，通常是流式转发过程中连接被中断导致的 stream error；已改为使用 `pipeline` 并在异常时返回 502/销毁响应，避免中间件崩溃。
+
 仓库包含 `.vscode/` 设置，保存时以 ESLint 进行格式化；首次安装依赖后可能需要执行一次 `pnpm lint` 完成 ESLint 相关初始化（以仓库 README 为准）。
 
 ### ESLint 规则提示
