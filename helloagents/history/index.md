@@ -50,7 +50,7 @@
 | 202601151716 | blocksuite_tc_header_mode_switch | 变更 | 已完成 | [2026-01/202601151716_blocksuite-tc-header-mode-switch/](2026-01/202601151716_blocksuite-tc-header-mode-switch/) |
 | 202601161120 | novelai_nl_image_simple | 功能 | 已完成 | [2026-01/202601161120_novelai_nl_image_simple/](2026-01/202601161120_novelai_nl_image_simple/) |
 | 202601171345 | blocksuite_mention_fix | 修复 | 已完成 | [2026-01/202601171345_blocksuite-mention-fix/](2026-01/202601171345_blocksuite-mention-fix/) |
-| 202601171400 | blocksuite_canvas_inline | 优化 | 已完成 | [2026-01/202601171400_blocksuite-canvas-inline/](2026-01/202601171400_blocksuite-canvas-inline/) |
+| 202601171414 | blocksuite_mention_fix2 | 修复 | 已完成 | [2026-01/202601171414_blocksuite-mention-fix2/](2026-01/202601171414_blocksuite-mention-fix2/) |
 
 ---
 
@@ -99,4 +99,4 @@
 - [202601151716_blocksuite-tc-header-mode-switch](2026-01/202601151716_blocksuite-tc-header-mode-switch/) - 空间资料 Blocksuite 画布切换入口收口到 tcHeader，并移除外部 mode 控制通道
 - [202601161120_novelai_nl_image_simple](2026-01/202601161120_novelai_nl_image_simple/) - AI 生图 Simple：自然语言 → tags → 出图（可回填到高级面板）
 - [202601171345_blocksuite-mention-fix](2026-01/202601171345_blocksuite-mention-fix/) - 修复 Blocksuite 空间描述 @ 提及重复插入与弹窗不关闭
-- [202601171400_blocksuite-canvas-inline](2026-01/202601171400_blocksuite-canvas-inline/) - 画布切换改为非全屏：仅占据原文档区域
+- [202601171414_blocksuite-mention-fix2](2026-01/202601171414_blocksuite-mention-fix2/) - 加固 Blocksuite 空间描述 @ 提及弹窗关闭与重复触发

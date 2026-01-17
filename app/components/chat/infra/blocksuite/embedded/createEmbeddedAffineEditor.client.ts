@@ -43,6 +43,13 @@ const viewManager = getTestViewManager();
 let slashMenuSelectionGuardInstalled = false;
 let slashMenuSelectionGuardRefCount = 0;
 let slashMenuSelectionGuardHandler: ((e: Event) => void) | null = null;
+const mentionMenuLockMs = 400;
+let mentionMenuLockUntil = 0;
+
+const isMentionMenuLocked = () => Date.now() < mentionMenuLockUntil;
+const lockMentionMenu = () => {
+  mentionMenuLockUntil = Date.now() + mentionMenuLockMs;
+};
 
 function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
   if (typeof document === "undefined")
@@ -323,6 +330,8 @@ export function createEmbeddedAffineEditor(params: {
   ): Promise<LinkedMenuGroup[]> => {
     if (signal.aborted)
       return [];
+    if (isMentionMenuLocked())
+      return [];
 
     let mentionActionLocked = false;
 
@@ -363,7 +372,7 @@ export function createEmbeddedAffineEditor(params: {
                   ? html`<img src="${(m as any).avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
                   : html`<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:#eee;border-radius:50%;font-size:12px;">@</div>`,
                 action: () => {
-                  if (mentionActionLocked)
+                  if (mentionActionLocked || isMentionMenuLocked())
                     return;
 
                   const inserted = insertMentionAtCurrentSelection({
@@ -374,7 +383,13 @@ export function createEmbeddedAffineEditor(params: {
                   });
                   if (inserted) {
                     mentionActionLocked = true;
-                    abort();
+                    lockMentionMenu();
+                    if (typeof queueMicrotask === "function") {
+                      queueMicrotask(abort);
+                    }
+                    else {
+                      setTimeout(abort, 0);
+                    }
                   }
                 },
               };
