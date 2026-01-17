@@ -56,6 +56,7 @@
 | 202601171438 | blocksuite_mention_debug | 修复 | 已完成 | [2026-01/202601171438_blocksuite-mention-debug/](2026-01/202601171438_blocksuite-mention-debug/) |
 | 202601171458 | novelai_model_lock_45_full | 变更 | 已完成 | [2026-01/202601171458_novelai_model_lock_45_full/](2026-01/202601171458_novelai_model_lock_45_full/) |
 | 202601171622 | blocksuite_mention_click_debug | 修复 | 已完成（待确认） | [2026-01/202601171622_blocksuite-mention-click-debug/](2026-01/202601171622_blocksuite-mention-click-debug/) |
+| 202601171648 | ai_image_mode_refactor | 优化 | 已完成 | [2026-01/202601171648_ai_image_mode_refactor/](2026-01/202601171648_ai_image_mode_refactor/) |
 
 ---
 
@@ -110,3 +111,4 @@
 - [202601171438_blocksuite-mention-debug](2026-01/202601171438_blocksuite-mention-debug/) - 增加 Blocksuite @ 提及调试日志
 - [202601171458_novelai_model_lock_45_full](2026-01/202601171458_novelai_model_lock_45_full/) - AI 生图模型锁定为 NAI v4.5 Full（`nai-diffusion-4-5-full`）
 - [202601171622_blocksuite-mention-click-debug](2026-01/202601171622_blocksuite-mention-click-debug/) - 增强 Blocksuite @ 提及点击链路调试：捕获候选项点击事件路径摘要
+- [202601171648_ai_image_mode_refactor](2026-01/202601171648_ai_image_mode_refactor/) - AI 生图页双模式重构：普通模式/专业模式三栏布局

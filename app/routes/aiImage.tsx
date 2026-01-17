@@ -13,12 +13,13 @@ import {
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 
-type TabKey = "simple" | "prompt" | "undesired" | "image" | "history" | "connection";
 type RequestMode = "direct" | "proxy";
+type UiMode = "simple" | "pro";
 
 const DEFAULT_IMAGE_ENDPOINT = "https://image.novelai.net";
 const STORAGE_TOKEN_KEY = "tc:ai-image:novelai-token";
 const STORAGE_REQUEST_MODE_KEY = "tc:ai-image:request-mode";
+const STORAGE_UI_MODE_KEY = "tc:ai-image:ui-mode";
 const LOCKED_IMAGE_MODEL = "nai-diffusion-4-5-full";
 
 const SAMPLERS_NAI3 = [
@@ -235,7 +236,7 @@ async function generateNovelImageViaProxy(args: {
     throw new Error("缺少 prompt");
 
   const negativePrompt = String(args.negativePrompt || "");
-  const model = String(args.model || "nai-diffusion-3");
+  const model = String(args.model || LOCKED_IMAGE_MODEL);
 
   const isNAI3 = model === "nai-diffusion-3";
   const isNAI4 = isNaiV4Family(model);
@@ -267,82 +268,35 @@ async function generateNovelImageViaProxy(args: {
     const strength = Number.isFinite(args.strength) ? Number(args.strength) : 0.7;
     const noise = Number.isFinite(args.noise) ? Number(args.noise) : 0.2;
     parameters.image = imageBase64;
-    parameters.strength = strength;
-    parameters.noise = noise;
+    parameters.strength = Math.max(0, Math.min(1, strength));
+    parameters.noise = Math.max(0, Math.min(1, noise));
   }
 
-  if (isNAI3 || isNAI4) {
-    parameters.params_version = 3;
-    parameters.legacy = false;
-    parameters.legacy_v3_extend = false;
-    parameters.noise_schedule = args.noiseSchedule;
+  if (isNAI4) {
+    parameters.cfg_rescale = Number(args.cfgRescale) || 0;
+    parameters.noise_schedule = String(args.noiseSchedule || "karras");
+  }
 
-    if (isNAI4) {
-      const cfgRescale = Number.isFinite(args.cfgRescale) ? Number(args.cfgRescale) : 0;
-
-      parameters.add_original_image = true;
-      parameters.cfg_rescale = cfgRescale;
-      parameters.characterPrompts = [];
-      parameters.controlnet_strength = 1;
-      parameters.deliberate_euler_ancestral_bug = false;
-      parameters.prefer_brownian = true;
-      parameters.reference_image_multiple = [];
-      parameters.reference_information_extracted_multiple = [];
-      parameters.reference_strength_multiple = [];
-      parameters.skip_cfg_above_sigma = null;
-      parameters.use_coords = false;
-      parameters.v4_prompt = {
-        caption: {
-          base_caption: prompt,
-          char_captions: [],
-        },
-        use_coords: parameters.use_coords,
-        use_order: true,
-      };
-      parameters.v4_negative_prompt = {
-        caption: {
-          base_caption: negativePrompt,
-          char_captions: [],
-        },
-      };
-    }
-    else if (isNAI3) {
-      const smea = Boolean(args.smea);
-      const smeaDyn = Boolean(args.smeaDyn);
-      parameters.sm_dyn = smeaDyn;
-      parameters.sm = smea || smeaDyn;
-
-      if (
-        (resolvedSampler === "k_euler_ancestral" || resolvedSampler === "k_dpmpp_2s_ancestral")
-        && args.noiseSchedule === "karras"
-      ) {
-        parameters.noise_schedule = "native";
-      }
-      if (resolvedSampler === "ddim_v3") {
-        parameters.sm = false;
-        parameters.sm_dyn = false;
-        delete parameters.noise_schedule;
-      }
-      if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
-        parameters.scale = parameters.scale / 2;
-      }
-    }
+  if (isNAI3) {
+    parameters.smea = Boolean(args.smea);
+    parameters.smea_dyn = Boolean(args.smeaDyn);
   }
 
   const payload: AiGenerateImageRequest = {
-    model: model as unknown as AiGenerateImageRequest.model,
     input: prompt,
+    model: model as unknown as AiGenerateImageRequest.model,
     action: (args.mode === "img2img" ? "img2img" : "generate") as AiGenerateImageRequest.action,
     parameters,
   };
 
+  const endpointHeader = normalizeEndpoint(endpoint);
   const res = await fetch("/api/novelapi/ai/generate-image", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "Accept": "application/octet-stream",
-      "X-NovelAPI-Endpoint": endpoint,
+      "X-NovelAPI-Endpoint": endpointHeader,
     },
     body: JSON.stringify(payload),
   });
@@ -397,7 +351,7 @@ async function generateNovelImageDirect(args: {
     throw new Error("缺少 prompt");
 
   const negativePrompt = String(args.negativePrompt || "");
-  const model = String(args.model || "nai-diffusion-3");
+  const model = String(args.model || LOCKED_IMAGE_MODEL);
 
   const isNAI3 = model === "nai-diffusion-3";
   const isNAI4 = isNaiV4Family(model);
@@ -417,47 +371,38 @@ async function generateNovelImageDirect(args: {
     scale: Number(args.scale),
     sampler: resolvedSampler,
     negative_prompt: negativePrompt,
-    // align with novelai-bot defaults
     ucPreset: 2,
     qualityToggle: Boolean(args.qualityToggle),
   };
 
   if (args.mode === "img2img") {
-    const img = String(args.sourceImageBase64 || "").trim();
-    if (!img)
-      throw new Error("img2img 缺少源图片");
-    parameters.image = img;
-    parameters.strength = Math.min(0.999, Math.max(0.01, Number(args.strength)));
-    parameters.noise = Math.min(1, Math.max(0, Number(args.noise)));
+    const imageBase64 = String(args.sourceImageBase64 || "").trim();
+    if (!imageBase64)
+      throw new Error("img2img 缺少源图片（sourceImageBase64）");
+
+    const strength = Number.isFinite(args.strength) ? Number(args.strength) : 0.7;
+    const noise = Number.isFinite(args.noise) ? Number(args.noise) : 0.2;
+    parameters.image = imageBase64;
+    parameters.strength = Math.max(0, Math.min(1, strength));
+    parameters.noise = Math.max(0, Math.min(1, noise));
   }
 
-  if (isNAI3 || isNAI4) {
-    parameters.sampler = resolvedSampler;
-    parameters.noise_schedule = args.noiseSchedule;
-    parameters.cfg_rescale = Number(args.cfgRescale);
-    parameters.sm = Boolean(args.smea);
-    parameters.sm_dyn = Boolean(args.smeaDyn);
+  if (isNAI4) {
+    parameters.cfg_rescale = Number(args.cfgRescale) || 0;
+    parameters.noise_schedule = String(args.noiseSchedule || "karras");
+  }
 
-    if (isNAI3) {
-      if (parameters.sm) {
-        parameters.noise_schedule = "native";
-      }
-      if (resolvedSampler === "ddim_v3") {
-        parameters.sm = false;
-        parameters.sm_dyn = false;
-        delete parameters.noise_schedule;
-      }
-      if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
-        parameters.scale = parameters.scale / 2;
-      }
-    }
+  if (isNAI3) {
+    parameters.smea = Boolean(args.smea);
+    parameters.smea_dyn = Boolean(args.smeaDyn);
   }
 
   const payload: AiGenerateImageRequest = {
-    model: model as unknown as AiGenerateImageRequest.model,
     input: prompt,
+    model: model as unknown as AiGenerateImageRequest.model,
     action: (args.mode === "img2img" ? "img2img" : "generate") as AiGenerateImageRequest.action,
     parameters,
+    url: endpoint,
   };
 
   const url = `${endpoint}/ai/generate-image`;
@@ -490,63 +435,90 @@ async function generateNovelImageDirect(args: {
   return { dataUrl, seed, width, height, model };
 }
 
-function LeftTabButton(props: { tab: TabKey; active: TabKey; onChange: (tab: TabKey) => void; children: string }) {
-  return (
-    <button
-      type="button"
-      className={`btn btn-sm join-item flex-1 ${props.active === props.tab ? "btn-primary" : "btn-ghost"}`}
-      onClick={() => props.onChange(props.tab)}
-    >
-      {props.children}
-    </button>
-  );
+/* __SEGMENT_2_END__ */
+
+function readLocalStorageString(key: string, fallback: string) {
+  if (typeof window === "undefined")
+    return fallback;
+  try {
+    const value = String(window.localStorage.getItem(key) || "");
+    return value || fallback;
+  }
+  catch {
+    return fallback;
+  }
+}
+
+function writeLocalStorageString(key: string, value: string) {
+  if (typeof window === "undefined")
+    return;
+  try {
+    window.localStorage.setItem(key, value);
+  }
+  catch {
+    // ignore
+  }
+}
+
+function dataUrlToBase64(dataUrl: string) {
+  const value = String(dataUrl || "");
+  const idx = value.indexOf(",");
+  if (idx < 0)
+    return "";
+  return value.slice(idx + 1).trim();
 }
 
 export default function AiImagePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [activeTab, setActiveTab] = useState<TabKey>("prompt");
-
-  const [token, setToken] = useState(() => {
-    if (typeof window === "undefined")
-      return "";
-    try {
-      return String(window.localStorage.getItem(STORAGE_TOKEN_KEY) || "");
-    }
-    catch {
-      return "";
-    }
+  const [uiMode, setUiMode] = useState<UiMode>(() => {
+    const stored = readLocalStorageString(STORAGE_UI_MODE_KEY, "simple").trim();
+    return stored === "pro" ? "pro" : "simple";
   });
+
+  useEffect(() => {
+    writeLocalStorageString(STORAGE_UI_MODE_KEY, uiMode);
+  }, [uiMode]);
+
+  const [token, setToken] = useState(() => readLocalStorageString(STORAGE_TOKEN_KEY, ""));
   const [endpoint, setEndpoint] = useState(DEFAULT_IMAGE_ENDPOINT);
   const [requestMode, setRequestMode] = useState<RequestMode>(() => {
-    if (typeof window === "undefined")
-      return "proxy";
-    try {
-      const stored = String(window.localStorage.getItem(STORAGE_REQUEST_MODE_KEY) || "").trim();
-      if (stored === "direct" || stored === "proxy")
-        return stored;
-    }
-    catch {
-      // ignore
-    }
-    return "proxy";
+    const stored = readLocalStorageString(STORAGE_REQUEST_MODE_KEY, "proxy").trim();
+    return stored === "direct" ? "direct" : "proxy";
   });
+
+  useEffect(() => {
+    writeLocalStorageString(STORAGE_TOKEN_KEY, token);
+  }, [token]);
+
+  useEffect(() => {
+    writeLocalStorageString(STORAGE_REQUEST_MODE_KEY, requestMode);
+  }, [requestMode]);
 
   const [mode, setMode] = useState<AiImageHistoryMode>("txt2img");
   const [sourceImageDataUrl, setSourceImageDataUrl] = useState("");
   const [sourceImageBase64, setSourceImageBase64] = useState("");
 
-  const [prompt, setPrompt] = useState("");
-  const [negativePrompt, setNegativePrompt] = useState("");
-  const [simplePrompt, setSimplePrompt] = useState("");
-  const [simpleUndesired, setSimpleUndesired] = useState("");
+  const [simpleText, setSimpleText] = useState("");
+  const [simpleConvertedFromText, setSimpleConvertedFromText] = useState("");
   const [simpleConverted, setSimpleConverted] = useState<NovelAiNl2TagsResult | null>(null);
   const [simpleConverting, setSimpleConverting] = useState(false);
   const [simpleError, setSimpleError] = useState("");
 
-  const [models, setModels] = useState<string[]>(() => [LOCKED_IMAGE_MODEL]);
-  const [modelsHint, setModelsHint] = useState<string>("");
-  const [model, setModel] = useState<string>(() => LOCKED_IMAGE_MODEL);
+  const [prompt, setPrompt] = useState("");
+  const [negativePrompt, setNegativePrompt] = useState("");
+
+  const model: string = LOCKED_IMAGE_MODEL;
+  const isNAI3 = model === "nai-diffusion-3";
+  const isNAI4 = isNaiV4Family(model);
+
+  const samplerOptions = useMemo(() => {
+    if (isNAI4)
+      return SAMPLERS_NAI4;
+    if (isNAI3)
+      return SAMPLERS_NAI3;
+    return SAMPLERS_BASE;
+  }, [isNAI3, isNAI4]);
 
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
@@ -555,8 +527,8 @@ export default function AiImagePage() {
   const [sampler, setSampler] = useState("k_euler_a");
   const [noiseSchedule, setNoiseSchedule] = useState("karras");
   const [cfgRescale, setCfgRescale] = useState(0);
-  const [smea, setSmea] = useState(false);
-  const [smeaDyn, setSmeaDyn] = useState(false);
+  const [smea] = useState(false);
+  const [smeaDyn] = useState(false);
   const [qualityToggle, setQualityToggle] = useState(false);
   const [strength, setStrength] = useState(0.7);
   const [noise, setNoise] = useState(0.2);
@@ -570,20 +542,29 @@ export default function AiImagePage() {
 
   const [history, setHistory] = useState<AiImageHistoryRow[]>([]);
 
-  const isNAI3 = model === "nai-diffusion-3";
-  const isNAI4 = isNaiV4Family(model);
-
-  const samplerOptions = useMemo(() => {
-    if (isNAI4)
-      return SAMPLERS_NAI4;
-    if (isNAI3)
-      return SAMPLERS_NAI3;
-    return SAMPLERS_BASE;
-  }, [isNAI3, isNAI4]);
-
   const refreshHistory = useCallback(async () => {
     const rows = await listAiImageHistory({ limit: 30 });
     setHistory(rows);
+  }, []);
+
+  useEffect(() => {
+    void refreshHistory();
+  }, [refreshHistory]);
+
+  const handlePickSourceImage = useCallback(async (file: File) => {
+    const bytes = await readFileAsBytes(file);
+    const mime = file.type || mimeFromFilename(file.name);
+    const dataUrl = base64DataUrl(mime, bytes);
+    setSourceImageDataUrl(dataUrl);
+    setSourceImageBase64(bytesToBase64(bytes));
+    try {
+      const size = await readImageSize(dataUrl);
+      setWidth(clampToMultipleOf64(size.width, 1024));
+      setHeight(clampToMultipleOf64(size.height, 1024));
+    }
+    catch {
+      // ignore
+    }
   }, []);
 
   const handleClearHistory = useCallback(async () => {
@@ -591,179 +572,59 @@ export default function AiImagePage() {
     await refreshHistory();
   }, [refreshHistory]);
 
-  const handleDeleteCurrentHistory = useCallback(async () => {
-    const selectedDataUrl = result?.dataUrl;
-    if (!selectedDataUrl)
-      return;
+  const runGenerate = useCallback(async (args?: { prompt?: string; negativePrompt?: string; mode?: AiImageHistoryMode }) => {
+    const effectiveMode = args?.mode ?? mode;
+    const effectivePrompt = String(args?.prompt ?? prompt).trim();
+    const effectiveNegative = String(args?.negativePrompt ?? negativePrompt);
 
-    const row = history.find(h => h.dataUrl === selectedDataUrl);
-    if (!row || typeof row.id !== "number")
-      return;
-
-    await deleteAiImageHistory(row.id as number);
-    await refreshHistory();
-  }, [history, refreshHistory, result]);
-
-  const handlePickFile = useCallback(async (file: File) => {
-    const bytes = await readFileAsBytes(file);
-    const dataUrl = detectBinaryDataUrl(bytes) || base64DataUrl(file.type || "image/png", bytes);
-    const size = await readImageSize(dataUrl).catch(() => ({ width: 0, height: 0 }));
-    setMode("img2img");
-    setSourceImageDataUrl(dataUrl);
-    setSourceImageBase64(bytesToBase64(bytes));
-
-    if (size.width && size.height) {
-      setWidth(clampToMultipleOf64(size.width, 1024));
-      setHeight(clampToMultipleOf64(size.height, 1024));
-    }
-
-    setActiveTab("image");
-  }, []);
-
-  const handleSimpleConvert = useCallback(async () => {
+    setError("");
+    setLoading(true);
     try {
-      setSimpleError("");
-      setSimpleConverting(true);
-
-      const res = await convertNaturalLanguageToNovelAiTags({
-        input: simplePrompt,
-        negativeHint: simpleUndesired,
+      const rawSeed = seedMode === "fixed" ? Number(seed) : undefined;
+      const seedValue = typeof rawSeed === "number" && Number.isFinite(rawSeed) ? rawSeed : undefined;
+      const generator = requestMode === "direct" ? generateNovelImageDirect : generateNovelImageViaProxy;
+      const res = await generator({
+        token,
+        endpoint,
+        mode: effectiveMode,
+        sourceImageBase64: effectiveMode === "img2img" ? sourceImageBase64 : undefined,
+        strength,
+        noise,
+        prompt: effectivePrompt,
+        negativePrompt: effectiveNegative,
+        model,
+        width,
+        height,
+        steps,
+        scale,
+        sampler,
+        noiseSchedule,
+        cfgRescale,
+        smea,
+        smeaDyn,
+        qualityToggle,
+        seed: seedValue,
       });
-      setSimpleConverted(res);
-    }
-    catch (e) {
-      setSimpleError(e instanceof Error ? e.message : String(e));
-    }
-    finally {
-      setSimpleConverting(false);
-    }
-  }, [simplePrompt, simpleUndesired]);
-
-  const handleSimpleApplyToAdvanced = useCallback((res?: NovelAiNl2TagsResult | null) => {
-    const next = res || simpleConverted;
-    if (!next)
-      return;
-    setPrompt(next.prompt);
-    setNegativePrompt(next.negativePrompt);
-    setActiveTab("prompt");
-  }, [simpleConverted]);
-
-  const generateImage = useCallback(async (args: { prompt: string; negativePrompt: string }) => {
-    try {
-      setError("");
-      setLoading(true);
-
-      const tokenValue = token.trim();
-      if (!tokenValue)
-        throw new Error("请先填写 token");
-
-      const promptValue = String(args.prompt || "").trim();
-      if (!promptValue)
-        throw new Error("请先填写 prompt");
-
-      const negativePromptValue = String(args.negativePrompt || "");
-
-      if (mode === "img2img" && !sourceImageBase64.trim())
-        throw new Error("img2img 需要上传源图片（拖拽到右侧预览区也可以）");
-
-      const endpointValue = normalizeEndpoint(endpoint) || DEFAULT_IMAGE_ENDPOINT;
-      const seedValue = seedMode === "fixed" ? seed : undefined;
-
-      const useIpc = isElectronEnv() && typeof window.electronAPI?.novelaiGenerateImage === "function";
-
-      let res: { dataUrl: string; seed: number; width: number; height: number; model: string };
-      if (useIpc) {
-        res = await window.electronAPI.novelaiGenerateImage({
-          token: tokenValue,
-          endpoint: endpointValue,
-          mode,
-          sourceImageBase64: mode === "img2img" ? sourceImageBase64 : undefined,
-          prompt: promptValue,
-          negativePrompt: negativePromptValue,
-          model,
-          width,
-          height,
-          steps,
-          scale,
-          sampler,
-          noiseSchedule,
-          cfgRescale,
-          smea,
-          smeaDyn,
-          qualityToggle,
-          strength,
-          noise,
-          seed: seedValue,
-        });
-      }
-      else if (requestMode === "direct") {
-        res = await generateNovelImageDirect({
-          token: tokenValue,
-          endpoint: endpointValue,
-          mode,
-          sourceImageBase64: mode === "img2img" ? sourceImageBase64 : undefined,
-          strength,
-          noise,
-          prompt: promptValue,
-          negativePrompt: negativePromptValue,
-          model,
-          width,
-          height,
-          steps,
-          scale,
-          sampler,
-          noiseSchedule,
-          cfgRescale,
-          smea,
-          smeaDyn,
-          qualityToggle,
-          seed: seedValue,
-        });
-      }
-      else {
-        res = await generateNovelImageViaProxy({
-          token: tokenValue,
-          endpoint: endpointValue,
-          mode,
-          sourceImageBase64: mode === "img2img" ? sourceImageBase64 : undefined,
-          strength,
-          noise,
-          prompt: promptValue,
-          negativePrompt: negativePromptValue,
-          model,
-          width,
-          height,
-          steps,
-          scale,
-          sampler,
-          noiseSchedule,
-          cfgRescale,
-          smea,
-          smeaDyn,
-          qualityToggle,
-          seed: seedValue,
-        });
-      }
 
       setResult(res);
+      setSeed(res.seed);
       await addAiImageHistory({
         createdAt: Date.now(),
-        mode,
+        mode: effectiveMode,
         model: res.model,
         seed: res.seed,
         width: res.width,
         height: res.height,
-        prompt: promptValue,
-        negativePrompt: negativePromptValue,
+        prompt: effectivePrompt,
+        negativePrompt: effectiveNegative,
         dataUrl: res.dataUrl,
-        sourceDataUrl: mode === "img2img" ? (sourceImageDataUrl || undefined) : undefined,
-      }, { maxItems: 30 });
-
+        sourceDataUrl: effectiveMode === "img2img" ? sourceImageDataUrl : undefined,
+      });
       await refreshHistory();
-      setActiveTab("history");
     }
     catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setError(message);
     }
     finally {
       setLoading(false);
@@ -774,10 +635,13 @@ export default function AiImagePage() {
     height,
     mode,
     model,
+    negativePrompt,
     noise,
     noiseSchedule,
+    prompt,
     qualityToggle,
     refreshHistory,
+    requestMode,
     sampler,
     scale,
     seed,
@@ -789,672 +653,521 @@ export default function AiImagePage() {
     steps,
     strength,
     token,
-    requestMode,
     width,
   ]);
 
-  const handleGenerate = useCallback(async () => {
-    await generateImage({ prompt, negativePrompt });
-  }, [generateImage, negativePrompt, prompt]);
-
   const handleSimpleGenerate = useCallback(async () => {
-    try {
-      setSimpleError("");
+    setSimpleError("");
+    if (!simpleText.trim()) {
+      setSimpleError("请先输入一行自然语言描述");
+      return;
+    }
+
+    if (simpleConvertedFromText !== simpleText.trim() || !simpleConverted) {
       setSimpleConverting(true);
-
-      const res = await convertNaturalLanguageToNovelAiTags({
-        input: simplePrompt,
-        negativeHint: simpleUndesired,
-      });
-      setSimpleConverted(res);
-      setPrompt(res.prompt);
-      setNegativePrompt(res.negativePrompt);
-
-      await generateImage({ prompt: res.prompt, negativePrompt: res.negativePrompt });
-    }
-    catch (e) {
-      setSimpleError(e instanceof Error ? e.message : String(e));
-    }
-    finally {
-      setSimpleConverting(false);
-    }
-  }, [generateImage, simplePrompt, simpleUndesired]);
-
-  const refreshModels = useCallback(() => {
-    setModels([LOCKED_IMAGE_MODEL]);
-    setModel(LOCKED_IMAGE_MODEL);
-    setModelsHint(`模型已锁定为 ${modelLabel(LOCKED_IMAGE_MODEL)}（${LOCKED_IMAGE_MODEL}）`);
-  }, []);
-
-  const clearSavedToken = useCallback(() => {
-    setToken("");
-    if (typeof window === "undefined")
-      return;
-    try {
-      window.localStorage.removeItem(STORAGE_TOKEN_KEY);
-    }
-    catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    void refreshHistory();
-  }, [refreshHistory]);
-
-  useEffect(() => {
-    if (typeof window === "undefined")
-      return;
-    try {
-      window.localStorage.setItem(STORAGE_TOKEN_KEY, token);
-    }
-    catch {
-      // ignore
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (typeof window === "undefined")
-      return;
-    try {
-      window.localStorage.setItem(STORAGE_REQUEST_MODE_KEY, requestMode);
-    }
-    catch {
-      // ignore
-    }
-  }, [requestMode]);
-
-  useEffect(() => {
-    refreshModels();
-  }, [refreshModels]);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey && e.key === "Enter"))
+      try {
+        const converted = await convertNaturalLanguageToNovelAiTags({ input: simpleText.trim() });
+        setSimpleConverted(converted);
+        setSimpleConvertedFromText(simpleText.trim());
+        setPrompt(converted.prompt);
+        setNegativePrompt(converted.negativePrompt);
+      }
+      catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        setSimpleError(message);
         return;
-      e.preventDefault();
-      if (!loading)
-        void handleGenerate();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleGenerate, loading]);
+      }
+      finally {
+        setSimpleConverting(false);
+      }
+    }
+
+    await runGenerate({ mode: "txt2img" });
+  }, [runGenerate, simpleConverted, simpleConvertedFromText, simpleText]);
+
+  const handleLoadHistory = useCallback((row: AiImageHistoryRow) => {
+    setMode(row.mode);
+    setPrompt(row.prompt);
+    setNegativePrompt(row.negativePrompt);
+    setSeedMode("fixed");
+    setSeed(row.seed);
+    setWidth(row.width);
+    setHeight(row.height);
+    setResult({ dataUrl: row.dataUrl, seed: row.seed, width: row.width, height: row.height, model: row.model });
+    if (row.mode === "img2img" && row.sourceDataUrl) {
+      setSourceImageDataUrl(row.sourceDataUrl);
+      setSourceImageBase64(dataUrlToBase64(row.sourceDataUrl));
+    }
+  }, []);
+
+  const handleDeleteCurrentHistory = useCallback(async () => {
+    const selectedDataUrl = result?.dataUrl;
+    if (!selectedDataUrl)
+      return;
+    const row = history.find(h => h.dataUrl === selectedDataUrl);
+    if (!row || typeof row.id !== "number")
+      return;
+    await deleteAiImageHistory(row.id);
+    await refreshHistory();
+  }, [history, refreshHistory, result?.dataUrl]);
+
+  const canGenerate = !loading && !simpleConverting;
 
   return (
-    <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="text-xl font-semibold">AI 生图（NovelAI）</div>
-        <div className="flex items-center gap-2">
-          <button type="button" className="btn btn-sm btn-outline" onClick={() => refreshModels()} disabled>
-            模型已锁定
+    <div className="h-screen w-full flex flex-col">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file)
+            return;
+          void handlePickSourceImage(file);
+          e.target.value = "";
+        }}
+      />
+
+      <div className="px-4 py-3 border-b border-base-300 flex items-center gap-3">
+        <div className="join">
+          <button
+            type="button"
+            className={`btn btn-sm join-item ${uiMode === "simple" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setUiMode("simple")}
+          >
+            普通模式
           </button>
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => void handleGenerate()} disabled={loading}>
-            {loading ? "生成中..." : "生成 (Ctrl+Enter)"}
+          <button
+            type="button"
+            className={`btn btn-sm join-item ${uiMode === "pro" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setUiMode("pro")}
+          >
+            专业模式
           </button>
+        </div>
+
+        <div className="text-xs opacity-70">
+          模型已锁定：
+          {modelLabel(model)}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <div className="join">
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${requestMode === "proxy" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setRequestMode("proxy")}
+              title="通过本地后端代理请求（推荐，避免浏览器 CORS）"
+            >
+              代理
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${requestMode === "direct" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setRequestMode("direct")}
+              title="浏览器直连 NovelAI（可能被 CORS 拦截；Electron 里通常可用）"
+            >
+              直连
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[420px,1fr] gap-4">
-        <div className="card bg-base-100 shadow-sm border border-base-200 overflow-hidden">
-          <div className="card-body p-3 gap-3">
-            <div className="join w-full">
-              <LeftTabButton tab="simple" active={activeTab} onChange={setActiveTab}>Simple</LeftTabButton>
-              <LeftTabButton tab="prompt" active={activeTab} onChange={setActiveTab}>Prompt</LeftTabButton>
-              <LeftTabButton tab="undesired" active={activeTab} onChange={setActiveTab}>Undesired</LeftTabButton>
-              <LeftTabButton tab="image" active={activeTab} onChange={setActiveTab}>Image</LeftTabButton>
-              <LeftTabButton tab="history" active={activeTab} onChange={setActiveTab}>History</LeftTabButton>
-              <LeftTabButton tab="connection" active={activeTab} onChange={setActiveTab}>Connection</LeftTabButton>
-            </div>
+      {uiMode === "simple"
+        ? (
+            <div className="flex-1 overflow-auto p-4">
+              <div className="max-w-4xl mx-auto flex flex-col gap-4">
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="text-sm opacity-80">一行自然语言 → 自动转换 tags → 直接出图</div>
+                    <input
+                      className="input input-bordered w-full"
+                      value={simpleText}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setSimpleText(next);
+                        if (simpleConverted) {
+                          setSimpleConverted(null);
+                          setSimpleConvertedFromText("");
+                          setPrompt("");
+                          setNegativePrompt("");
+                        }
+                      }}
+                      placeholder="例如：A girl with silver hair in a rainy cyberpunk street, cinematic lighting"
+                    />
 
-            {activeTab === "simple" && (
-              <div className="flex flex-col gap-3">
-                <div className="text-sm font-semibold">自然语言一键出图</div>
-                <textarea
-                  className="textarea textarea-bordered w-full min-h-36"
-                  value={simplePrompt}
-                  onChange={e => setSimplePrompt(e.target.value)}
-                  placeholder="用自然语言描述你想画的内容，例如：黄昏的海边，少女回头，风吹起头发，电影感，暖色调。"
-                />
+                    {simpleError ? <div className="text-sm text-error">{simpleError}</div> : null}
+                    {error ? <div className="text-sm text-error">{error}</div> : null}
 
-                <div className="text-sm font-semibold">不希望出现（可选）</div>
-                <textarea
-                  className="textarea textarea-bordered w-full min-h-24"
-                  value={simpleUndesired}
-                  onChange={e => setSimpleUndesired(e.target.value)}
-                  placeholder="例如：lowres, blurry, extra fingers... 或中文描述也可以"
-                />
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline"
-                    onClick={() => void handleSimpleConvert()}
-                    disabled={simpleConverting || loading}
-                  >
-                    {simpleConverting ? "转换中..." : "仅转换为 tags"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary"
-                    onClick={() => void handleSimpleGenerate()}
-                    disabled={simpleConverting || loading}
-                  >
-                    {simpleConverting ? "转换中..." : "转换并出图"}
-                  </button>
-                </div>
-
-                <div className="text-xs opacity-60">
-                  说明：此处会通过后端 LLM 将自然语言转换为 NovelAI tags；转换结果可回填到 Prompt/Undesired 继续微调。
-                </div>
-
-                {!!simpleError && (
-                  <div className="alert alert-error py-2">
-                    <span className="text-sm">{simpleError}</span>
-                  </div>
-                )}
-
-                {simpleConverted && (
-                  <div className="border border-base-200 rounded-xl p-3 bg-base-200/30 flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-semibold">转换结果（tags）</div>
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="btn btn-xs btn-outline"
-                        onClick={() => handleSimpleApplyToAdvanced(simpleConverted)}
+                        className={`btn btn-primary ${canGenerate ? "" : "btn-disabled"}`}
+                        onClick={() => void handleSimpleGenerate()}
                       >
-                        回填到高级面板
+                        {loading || simpleConverting ? "处理中..." : (simpleConverted ? "重新生成" : "生成")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={() => setUiMode("pro")}
+                        title="切换到 NovelAI 风格的参数面板"
+                      >
+                        进入专业模式
                       </button>
                     </div>
-                    <div className="text-xs opacity-60">Prompt</div>
-                    <textarea className="textarea textarea-bordered w-full min-h-24" value={simpleConverted.prompt} readOnly />
-                    <div className="text-xs opacity-60">Undesired</div>
-                    <textarea className="textarea textarea-bordered w-full min-h-20" value={simpleConverted.negativePrompt} readOnly />
-                  </div>
-                )}
-              </div>
-            )}
 
-            {activeTab === "prompt" && (
-              <div className="flex flex-col gap-2">
-                <div className="text-sm font-semibold">Prompt</div>
-                <textarea
-                  className="textarea textarea-bordered w-full min-h-44"
-                  value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                  placeholder="写下你想要的画面描述..."
-                />
-                <div className="text-xs opacity-60">
-                  快捷键：`Ctrl+Enter` 生成；拖拽图片到右侧预览区进入 img2img。
-                </div>
-              </div>
-            )}
-
-            {activeTab === "undesired" && (
-              <div className="flex flex-col gap-2">
-                <div className="text-sm font-semibold">Undesired Content</div>
-                <textarea
-                  className="textarea textarea-bordered w-full min-h-44"
-                  value={negativePrompt}
-                  onChange={e => setNegativePrompt(e.target.value)}
-                  placeholder="不希望出现的内容（negative prompt）..."
-                />
-              </div>
-            )}
-
-            {activeTab === "image" && (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold">Image</div>
-                  <div className="flex items-center gap-2">
-                    <div className="badge badge-outline">{mode}</div>
-                    {modelsHint && <div className="badge badge-warning badge-outline">模型降级</div>}
+                    {simpleConverted
+                      ? (
+                          <div className="grid grid-cols-1 gap-2">
+                            <div className="text-xs opacity-70">已转换 tags（可继续编辑后再点“重新生成”）：</div>
+                            <textarea
+                              className="textarea textarea-bordered w-full min-h-20"
+                              value={prompt}
+                              onChange={e => setPrompt(e.target.value)}
+                            />
+                            <details className="collapse bg-base-100">
+                              <summary className="collapse-title text-sm">高级：负面 tags（可选）</summary>
+                              <div className="collapse-content">
+                                <textarea
+                                  className="textarea textarea-bordered w-full min-h-20"
+                                  value={negativePrompt}
+                                  onChange={e => setNegativePrompt(e.target.value)}
+                                />
+                              </div>
+                            </details>
+                          </div>
+                        )
+                      : null}
                   </div>
                 </div>
 
-                {modelsHint && (
-                  <div className="alert alert-warning py-2">
-                    <span className="text-xs">{modelsHint}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${mode === "txt2img" ? "btn-primary" : "btn-outline"}`}
-                    onClick={() => setMode("txt2img")}
-                    disabled={loading}
-                  >
-                    txt2img
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${mode === "img2img" ? "btn-primary" : "btn-outline"}`}
-                    onClick={() => setMode("img2img")}
-                    disabled={loading}
-                  >
-                    img2img
-                  </button>
-                </div>
-
-                {mode === "img2img" && (
-                  <div className="flex flex-col gap-2">
-                    <div className="text-xs opacity-70">源图片（可拖拽到右侧预览区）</div>
-                    <input
-                      type="file"
-                      className="file-input file-input-bordered w-full"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file)
-                          return;
-                        void handlePickFile(file);
-                      }}
-                    />
-                    {sourceImageDataUrl && (
-                      <div className="w-full overflow-hidden rounded-md border border-base-200 bg-base-200">
-                        <img
-                          src={sourceImageDataUrl}
-                          alt="source"
-                          className="w-full h-auto block max-h-40 object-contain bg-base-200"
-                          draggable={false}
-                        />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="card bg-base-200">
+                    <div className="card-body gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium">预览</div>
+                        <div className="text-xs opacity-70">
+                          {result ? `seed: ${result.seed} · ${result.width}×${result.height}` : ""}
+                        </div>
+                        <div className="ml-auto flex items-center gap-2">
+                          {result
+                            ? (
+                                <a className="btn btn-sm" href={result.dataUrl} download={`nai_${result.seed}.png`}>下载</a>
+                              )
+                            : null}
+                          {result
+                            ? (
+                                <button type="button" className="btn btn-sm btn-ghost" onClick={() => void handleDeleteCurrentHistory()}>
+                                  删除当前
+                                </button>
+                              )
+                            : null}
+                          {history.length
+                            ? (
+                                <button type="button" className="btn btn-sm btn-ghost" onClick={() => void handleClearHistory()}>
+                                  清空历史
+                                </button>
+                              )
+                            : null}
+                        </div>
                       </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="form-control">
-                        <span className="label-text text-xs opacity-70">strength</span>
-                        <input
-                          type="number"
-                          className="input input-bordered input-sm"
-                          value={strength}
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          onChange={e => setStrength(Number(e.target.value))}
-                        />
-                      </label>
-                      <label className="form-control">
-                        <span className="label-text text-xs opacity-70">noise</span>
-                        <input
-                          type="number"
-                          className="input input-bordered input-sm"
-                          value={noise}
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          onChange={e => setNoise(Number(e.target.value))}
-                        />
-                      </label>
+                      <div className="bg-base-100 rounded-box p-2 min-h-64 flex items-center justify-center">
+                        {result
+                          ? <img src={result.dataUrl} className="max-h-[480px] w-auto rounded-box" alt="result" />
+                          : <div className="text-sm opacity-60">暂无图片</div>}
+                      </div>
                     </div>
                   </div>
-                )}
 
-                <label className="form-control">
-                  <div className="label py-1">
-                    <span className="label-text text-sm">模型</span>
+                  <div className="card bg-base-200">
+                    <div className="card-body gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium">历史</div>
+                        <div className="ml-auto text-xs opacity-60">{history.length ? `共 ${history.length} 条` : ""}</div>
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {history.map(row => (
+                          <button
+                            key={row.id ?? `${row.createdAt}-${row.seed}`}
+                            type="button"
+                            className={`rounded-box overflow-hidden border ${result?.dataUrl === row.dataUrl ? "border-primary" : "border-base-300"}`}
+                            onClick={() => handleLoadHistory(row)}
+                            title={`seed ${row.seed}`}
+                          >
+                            <img src={row.dataUrl} className="w-full h-20 object-cover" alt="history" />
+                          </button>
+                        ))}
+                        {!history.length ? <div className="text-sm opacity-60">暂无历史</div> : null}
+                      </div>
+                    </div>
                   </div>
-                  <select className="select select-bordered" value={model} disabled>
-                    {models.map(value => (
-                      <option key={value} value={value}>
-                        {`${modelLabel(value)} (${value})`}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="form-control">
-                    <span className="label-text text-xs opacity-70">宽</span>
-                    <input
-                      type="number"
-                      className="input input-bordered input-sm"
-                      value={width}
-                      onChange={e => setWidth(clampToMultipleOf64(Number(e.target.value), 1024))}
-                    />
-                  </label>
-                  <label className="form-control">
-                    <span className="label-text text-xs opacity-70">高</span>
-                    <input
-                      type="number"
-                      className="input input-bordered input-sm"
-                      value={height}
-                      onChange={e => setHeight(clampToMultipleOf64(Number(e.target.value), 1024))}
-                    />
-                  </label>
                 </div>
 
-                <details className="collapse collapse-arrow border border-base-200 bg-base-200/40" open>
-                  <summary className="collapse-title text-sm font-semibold py-3">常用参数</summary>
-                  <div className="collapse-content">
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="font-medium">连接</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="form-control">
+                        <label className="label"><span className="label-text">NovelAI Token（Bearer）</span></label>
+                        <input className="input input-bordered" value={token} onChange={e => setToken(e.target.value)} placeholder="pst-... 或其它 token" />
+                      </div>
+                      <div className="form-control">
+                        <label className="label"><span className="label-text">Endpoint</span></label>
+                        <input className="input input-bordered" value={endpoint} onChange={e => setEndpoint(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="text-xs opacity-70">
+                      {requestMode === "direct" && !isElectronEnv()
+                        ? "提示：浏览器直连通常会遇到 CORS，建议切换到“代理”。"
+                        : "提示：Token 仅保存在本地 localStorage。"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        : (
+            <div className="flex-1 overflow-hidden flex">
+              <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="font-medium">连接</div>
+                    <div className="form-control">
+                      <label className="label"><span className="label-text">NovelAI Token（Bearer）</span></label>
+                      <input className="input input-bordered" value={token} onChange={e => setToken(e.target.value)} placeholder="pst-... 或其它 token" />
+                    </div>
+                    <div className="form-control">
+                      <label className="label"><span className="label-text">Endpoint</span></label>
+                      <input className="input input-bordered" value={endpoint} onChange={e => setEndpoint(e.target.value)} />
+                    </div>
+                    <div className="text-xs opacity-70">
+                      {requestMode === "direct" && !isElectronEnv()
+                        ? "浏览器直连可能被 CORS 拦截；建议用代理。"
+                        : "Token 仅保存在本地 localStorage。"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">模式</div>
+                      <div className="ml-auto join">
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setMode("txt2img")}
+                        >
+                          txt2img
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setMode("img2img")}
+                        >
+                          img2img
+                        </button>
+                      </div>
+                    </div>
+
+                    {mode === "img2img"
+                      ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
+                                选择源图
+                              </button>
+                              {result?.dataUrl
+                                ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-ghost"
+                                      onClick={() => {
+                                        setSourceImageDataUrl(result.dataUrl);
+                                        setSourceImageBase64(dataUrlToBase64(result.dataUrl));
+                                      }}
+                                    >
+                                      使用当前结果
+                                    </button>
+                                  )
+                                : null}
+                            </div>
+                            <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
+                              {sourceImageDataUrl
+                                ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
+                                : <div className="text-sm opacity-60">未选择源图</div>}
+                            </div>
+                          </div>
+                        )
+                      : null}
+                  </div>
+                </div>
+
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="font-medium">Prompt</div>
+                    <textarea className="textarea textarea-bordered w-full min-h-28" value={prompt} onChange={e => setPrompt(e.target.value)} />
+                    <div className="font-medium">Negative</div>
+                    <textarea className="textarea textarea-bordered w-full min-h-24" value={negativePrompt} onChange={e => setNegativePrompt(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">参数</div>
+                      <div className="ml-auto text-xs opacity-70">{modelLabel(model)}</div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2">
                       <label className="form-control">
-                        <span className="label-text text-xs opacity-70">steps</span>
-                        <input
-                          type="number"
-                          className="input input-bordered input-sm"
-                          value={steps}
-                          onChange={e => setSteps(Number(e.target.value))}
-                        />
+                        <span className="label-text text-xs">Width</span>
+                        <input className="input input-bordered input-sm" type="number" value={width} onChange={e => setWidth(clampToMultipleOf64(Number(e.target.value), 1024))} />
                       </label>
                       <label className="form-control">
-                        <span className="label-text text-xs opacity-70">scale</span>
-                        <input
-                          type="number"
-                          className="input input-bordered input-sm"
-                          value={scale}
-                          step={0.5}
-                          onChange={e => setScale(Number(e.target.value))}
-                        />
+                        <span className="label-text text-xs">Height</span>
+                        <input className="input input-bordered input-sm" type="number" value={height} onChange={e => setHeight(clampToMultipleOf64(Number(e.target.value), 1024))} />
+                      </label>
+                      <label className="form-control">
+                        <span className="label-text text-xs">Steps</span>
+                        <input className="input input-bordered input-sm" type="number" value={steps} onChange={e => setSteps(Number(e.target.value) || 1)} />
+                      </label>
+                      <label className="form-control">
+                        <span className="label-text text-xs">Scale</span>
+                        <input className="input input-bordered input-sm" type="number" value={scale} onChange={e => setScale(Number(e.target.value) || 0)} />
                       </label>
                     </div>
 
-                    <label className="form-control mt-2">
-                      <span className="label-text text-xs opacity-70">sampler</span>
+                    <label className="form-control">
+                      <span className="label-text text-xs">Sampler</span>
                       <select className="select select-bordered select-sm" value={sampler} onChange={e => setSampler(e.target.value)}>
                         {samplerOptions.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </label>
 
-                    <label className="form-control mt-2">
-                      <span className="label-text text-xs opacity-70">noise_schedule</span>
-                      <select className="select select-bordered select-sm" value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
-                        {NOISE_SCHEDULES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </label>
+                    {isNAI4
+                      ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="form-control">
+                              <span className="label-text text-xs">Noise Schedule</span>
+                              <select className="select select-bordered select-sm" value={noiseSchedule} onChange={e => setNoiseSchedule(e.target.value)}>
+                                {NOISE_SCHEDULES.map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </label>
+                            <label className="form-control">
+                              <span className="label-text text-xs">CFG Rescale</span>
+                              <input className="input input-bordered input-sm" type="number" value={cfgRescale} onChange={e => setCfgRescale(Number(e.target.value) || 0)} />
+                            </label>
+                          </div>
+                        )
+                      : null}
 
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <label className="form-control">
-                        <span className="label-text text-xs opacity-70">seed</span>
-                        <div className="join w-full">
-                          <button
-                            type="button"
-                            className={`btn btn-sm join-item flex-1 ${seedMode === "random" ? "btn-primary" : "btn-outline"}`}
-                            onClick={() => setSeedMode("random")}
-                          >
-                            随机
-                          </button>
-                          <button
-                            type="button"
-                            className={`btn btn-sm join-item flex-1 ${seedMode === "fixed" ? "btn-primary" : "btn-outline"}`}
-                            onClick={() => setSeedMode("fixed")}
-                          >
-                            固定
-                          </button>
-                        </div>
-                      </label>
-                      <label className="form-control">
-                        <span className="label-text text-xs opacity-70">固定 seed</span>
-                        <input
-                          type="number"
-                          className="input input-bordered input-sm"
-                          value={seed}
-                          disabled={seedMode !== "fixed"}
-                          onChange={e => setSeed(Number(e.target.value))}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </details>
+                    {mode === "img2img"
+                      ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="form-control">
+                              <span className="label-text text-xs">Strength</span>
+                              <input className="input input-bordered input-sm" type="number" value={strength} step="0.05" min="0" max="1" onChange={e => setStrength(Number(e.target.value) || 0)} />
+                            </label>
+                            <label className="form-control">
+                              <span className="label-text text-xs">Noise</span>
+                              <input className="input input-bordered input-sm" type="number" value={noise} step="0.05" min="0" max="1" onChange={e => setNoise(Number(e.target.value) || 0)} />
+                            </label>
+                          </div>
+                        )
+                      : null}
 
-                <details className="collapse collapse-arrow border border-base-200 bg-base-200/40">
-                  <summary className="collapse-title text-sm font-semibold py-3">高级设置</summary>
-                  <div className="collapse-content">
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="form-control">
-                        <span className="label-text text-xs opacity-70">cfg_rescale (v4)</span>
-                        <input
-                          type="number"
-                          className="input input-bordered input-sm"
-                          value={cfgRescale}
-                          step={0.1}
-                          onChange={e => setCfgRescale(Number(e.target.value))}
-                        />
-                      </label>
-                      <div className="flex flex-col gap-1 pt-1">
-                        <label className="label cursor-pointer justify-start gap-3 py-1">
-                          <input type="checkbox" className="checkbox checkbox-sm" checked={qualityToggle} onChange={e => setQualityToggle(e.target.checked)} />
-                          <span className="label-text text-sm">quality</span>
-                        </label>
-                        <label className="label cursor-pointer justify-start gap-3 py-1">
-                          <input type="checkbox" className="checkbox checkbox-sm" checked={smea} onChange={e => setSmea(e.target.checked)} />
-                          <span className="label-text text-sm">smea (v3)</span>
-                        </label>
-                        <label className="label cursor-pointer justify-start gap-3 py-1">
-                          <input type="checkbox" className="checkbox checkbox-sm" checked={smeaDyn} onChange={e => setSmeaDyn(e.target.checked)} />
-                          <span className="label-text text-sm">smea_dyn (v3)</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </details>
-              </div>
-            )}
-            {activeTab === "history" && (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold">历史（本地）</div>
-                  <div className="flex items-center gap-2">
-                    <button type="button" className="btn btn-xs btn-outline" onClick={() => void refreshHistory()} disabled={loading}>刷新</button>
-                    <button
-                      type="button"
-                      className="btn btn-xs btn-outline btn-error"
-                      onClick={() => void handleClearHistory()}
-                      disabled={loading || history.length === 0}
-                    >
-                      清空
-                    </button>
-                  </div>
-                </div>
-
-                {history.length === 0 && <div className="text-sm opacity-60">暂无历史记录</div>}
-
-                {history.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {history.map((item) => {
-                      const selected = item.dataUrl === result?.dataUrl;
-                      return (
+                    <div className="flex items-center gap-2">
+                      <div className="join">
                         <button
-                          key={item.id}
                           type="button"
-                          className={`aspect-square overflow-hidden rounded-md border ${selected ? "border-primary" : "border-base-200"} bg-base-200`}
-                          onClick={() => {
-                            setResult({ dataUrl: item.dataUrl, seed: item.seed, width: item.width, height: item.height, model: item.model });
-                            setMode(item.mode);
-                            setModel(item.model);
-                            setWidth(item.width);
-                            setHeight(item.height);
-                            setSeedMode("fixed");
-                            setSeed(item.seed);
-                            setPrompt(item.prompt);
-                            setNegativePrompt(item.negativePrompt);
-                            setSourceImageDataUrl(item.sourceDataUrl || "");
-                          }}
+                          className={`btn btn-sm join-item ${seedMode === "random" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setSeedMode("random")}
                         >
-                          <img src={item.dataUrl} alt="history" className="w-full h-full object-cover" draggable={false} />
+                          随机 Seed
                         </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {history.length > 0 && (
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs opacity-60">点击缩略图可回填参数</div>
-                    <button
-                      type="button"
-                      className="btn btn-xs btn-outline btn-error"
-                      disabled={!result?.dataUrl || history.length === 0}
-                      onClick={() => void handleDeleteCurrentHistory()}
-                    >
-                      删除当前
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "connection" && (
-              <div className="flex flex-col gap-3">
-                <div className="text-sm font-semibold">Connection</div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="text-sm opacity-70">请求方式（Web）</div>
-                  <div className="join">
-                    <button
-                      type="button"
-                      className={`btn btn-sm join-item ${requestMode === "direct" ? "btn-primary" : "btn-ghost"}`}
-                      onClick={() => setRequestMode("direct")}
-                      disabled={isElectronEnv()}
-                    >
-                      直连
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-sm join-item ${requestMode === "proxy" ? "btn-primary" : "btn-ghost"}`}
-                      onClick={() => setRequestMode("proxy")}
-                      disabled={isElectronEnv()}
-                    >
-                      同源代理
-                    </button>
-                  </div>
-                  {isElectronEnv() && (
-                    <div className="text-xs opacity-60">Electron 环境固定走 IPC（直连），该选项仅对 Web 生效</div>
-                  )}
-                </div>
-
-                <label className="form-control">
-                  <span className="label-text text-sm">Endpoint</span>
-                  <input
-                    className="input input-bordered"
-                    value={endpoint}
-                    onChange={e => setEndpoint(e.target.value)}
-                    placeholder={DEFAULT_IMAGE_ENDPOINT}
-                  />
-                </label>
-
-                <label className="form-control">
-                  <span className="label-text text-sm">Token</span>
-                  <input
-                    className="input input-bordered"
-                    value={token}
-                    onChange={e => setToken(e.target.value)}
-                    placeholder="Persistent API token..."
-                  />
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <span className="label-text-alt opacity-60">token 已本地持久化（仅用于调试）</span>
-                    <button type="button" className="btn btn-xs btn-outline" onClick={clearSavedToken} disabled={!token.trim()}>
-                      清除 token
-                    </button>
-                  </div>
-                </label>
-
-                <div className="text-xs opacity-60 leading-relaxed">
-                  Web 环境默认使用“同源代理”模式请求 NovelAI（不受浏览器跨域限制）；如需排查上游响应，可切到“直连”（可能被跨域/CORS 或 Referer 限制拦截）。
-                  Electron 环境默认通过 IPC 代理请求（不受浏览器跨域限制）。
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="card bg-base-100 shadow-sm border border-base-200 overflow-hidden">
-          <div className="card-body p-4 gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file)
-                  return;
-                void handlePickFile(file);
-              }}
-            />
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-semibold">预览</div>
-              <div className="text-xs opacity-60">
-                {result ? `seed=${result.seed} · ${result.width}×${result.height} · ${result.model}` : "暂无结果"}
-              </div>
-            </div>
-
-            <div
-              className="relative w-full min-h-[520px] overflow-hidden rounded-xl border border-base-200 bg-base-200 flex items-center justify-center"
-              onDragOver={(e) => {
-                e.preventDefault();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = e.dataTransfer.files?.[0];
-                if (!file)
-                  return;
-                if (!file.type.startsWith("image/"))
-                  return;
-                void handlePickFile(file);
-              }}
-              onDoubleClick={() => {
-                if (mode === "img2img")
-                  fileInputRef.current?.click();
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  if (mode === "img2img")
-                    fileInputRef.current?.click();
-                }
-              }}
-            >
-              {result?.dataUrl
-                ? (
-                    <img
-                      src={result.dataUrl}
-                      alt="result"
-                      className="max-h-[520px] w-auto max-w-full object-contain"
-                      draggable={false}
-                    />
-                  )
-                : (
-                    <div className="text-sm opacity-60 text-center px-6">
-                      <div className="font-semibold opacity-80 mb-1">拖拽图片到此处</div>
-                      <div>自动进入 img2img，并载入源图</div>
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item ${seedMode === "fixed" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setSeedMode("fixed")}
+                        >
+                          固定 Seed
+                        </button>
+                      </div>
+                      {seedMode === "fixed"
+                        ? <input className="input input-bordered input-sm w-40" type="number" value={seed} onChange={e => setSeed(Number(e.target.value) || 0)} />
+                        : <div className="text-xs opacity-70">将自动生成</div>}
                     </div>
-                  )}
-            </div>
 
-            {!!error && (
-              <div className="alert alert-error py-2">
-                <span className="text-sm">{error}</span>
+                    <label className="label cursor-pointer justify-start gap-3">
+                      <input type="checkbox" className="toggle toggle-sm" checked={qualityToggle} onChange={e => setQualityToggle(e.target.checked)} />
+                      <span className="label-text">Quality Toggle</span>
+                    </label>
+                  </div>
+                </div>
               </div>
-            )}
 
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="text-xs opacity-60">
-                {mode === "img2img" && sourceImageDataUrl
-                  ? "img2img：已载入源图（双击预览区可替换）"
-                  : "txt2img"}
+              <div className="flex-1 overflow-auto p-3 flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className={`btn btn-primary ${canGenerate ? "" : "btn-disabled"}`}
+                    onClick={() => void runGenerate()}
+                  >
+                    {loading ? "生成中..." : "生成"}
+                  </button>
+                  {result ? <a className="btn" href={result.dataUrl} download={`nai_${result.seed}.png`}>下载</a> : null}
+                  {result ? <button type="button" className="btn btn-ghost" onClick={() => void handleDeleteCurrentHistory()}>删除当前</button> : null}
+                  {history.length ? <button type="button" className="btn btn-ghost" onClick={() => void handleClearHistory()}>清空历史</button> : null}
+                  <div className="ml-auto text-xs opacity-70">{result ? `seed: ${result.seed} · ${result.width}×${result.height}` : ""}</div>
+                </div>
+
+                {error ? <div className="text-sm text-error">{error}</div> : null}
+
+                <div className="bg-base-200 rounded-box p-3 flex items-center justify-center min-h-[520px]">
+                  {result
+                    ? <img src={result.dataUrl} className="max-h-[720px] w-auto rounded-box" alt="result" />
+                    : <div className="text-sm opacity-60">暂无图片</div>}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  disabled={loading}
-                  onClick={() => {
-                    setResult(null);
-                    setError("");
-                  }}
-                >
-                  清空预览
-                </button>
-                <button type="button" className="btn btn-primary" onClick={() => void handleGenerate()} disabled={loading}>
-                  {loading ? "生成中..." : "生成"}
-                </button>
+
+              <div className="w-[320px] shrink-0 border-l border-base-300 overflow-auto p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="font-medium">历史</div>
+                  <div className="ml-auto text-xs opacity-60">{history.length ? `共 ${history.length} 条` : ""}</div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {history.map(row => (
+                    <button
+                      key={row.id ?? `${row.createdAt}-${row.seed}`}
+                      type="button"
+                      className={`flex gap-2 items-center rounded-box border p-2 text-left ${result?.dataUrl === row.dataUrl ? "border-primary" : "border-base-300"}`}
+                      onClick={() => handleLoadHistory(row)}
+                    >
+                      <img src={row.dataUrl} className="w-16 h-16 object-cover rounded-box" alt="history" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs opacity-70">
+                          <span>{row.mode}</span>
+                          <span> · </span>
+                          <span>{row.width}</span>
+                          <span>×</span>
+                          <span>{row.height}</span>
+                        </div>
+                        <div className="text-sm truncate">
+                          <span>seed: </span>
+                          <span>{row.seed}</span>
+                        </div>
+                        <div className="text-xs opacity-60 truncate">{row.prompt}</div>
+                      </div>
+                    </button>
+                  ))}
+                  {!history.length ? <div className="text-sm opacity-60">暂无历史</div> : null}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
     </div>
   );
 }

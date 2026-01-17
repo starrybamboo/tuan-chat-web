@@ -78,15 +78,15 @@
 ### AI 生图测试（NovelAI）
 
 - 测试页路由：`/ai-image`（对应 `app/routes/aiImage.tsx`；仅开发环境注册）
-- 提供两种形态：
-  - Simple（简单形态）：自然语言 →（后端 LLM 转换）→ NovelAI tags → 出图；支持回填到高级面板继续微调
-  - Advanced（复杂形态）：对齐 `https://novelai.net/image` 的参数面板（Prompt/Undesired/Image/History/Connection）
+- 提供两种模式：
+  - 普通模式：一行自然语言 →（后端 LLM 转换）→ tags → 一键出图；转换出的 tags 允许继续编辑并再次生成；支持一键切换到专业模式继续微调
+  - 专业模式：桌面端三栏布局（左侧参数/中间预览/右侧历史），交互与视觉分区对齐 `https://novelai.net/image`
 - Web 环境默认使用同源代理模式请求 NovelAI：`/api/novelapi/*`（其中 `/user/*` 元数据接口固定走 `https://api.novelai.net`，用于模型/设置拉取；如需排查上游响应，可切换为“直连”模式，但可能被跨域/CORS 或 Referer 限制拦截）
 - 注意：`pst-*`（persistent access token）无法访问 `/user/clientsettings` / `/user/data` 等用户元数据接口（会 403），此时模型列表直接降级为内置列表；如需运行时模型列表，请使用 `/user/login` 返回的 `accessToken`（novelai-bot 同样走该流程）
 - 若本机网络无法直连 NovelAI（例如需要本地代理/加速），可配置 `NOVELAPI_PROXY=http://127.0.0.1:7897`；在 Windows 上若开启了系统代理（ProxyServer），dev server 会自动尝试读取并使用
 - Electron 环境默认通过 IPC 代理请求 NovelAI：`window.electronAPI.novelaiGenerateImage(...)` + `window.electronAPI.novelaiGetClientSettings(...)`
 - 支持文生图（txt2img）与图生图（img2img：上传图片 + `strength/noise` 等参数）
-- UI 结构与操作逻辑对齐 `https://novelai.net/image`：Prompt/Undesired/Image/History/Connection 分区（tabs）
+- UI 结构与操作逻辑对齐 `https://novelai.net/image`：三栏分区（参数/预览/历史）
 - 模型当前锁定为 `nai-diffusion-4-5-full`（NAI v4.5 Full）；其中“4.5 FULL”对应的模型 ID 即 `nai-diffusion-4-5-full`
 - 生成历史默认保存到本地 IndexedDB，支持查看/删除/清空
 - token 为方便调试会本地持久化（localStorage），可手动清除
