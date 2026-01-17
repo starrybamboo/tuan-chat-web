@@ -45,6 +45,7 @@
 - AI 生图页 `/ai-image` 再次重写：模型改为运行时拉取（失败自动降级），历史仅保留 IndexedDB；Electron 增加 `novelai:get-clientsettings` IPC；NovelAPI proxy 允许 `api.novelai.net`
 - AI 生图页 `/ai-image`：token 为调试方便本地持久化；路由改为仅开发环境注册（生产不可访问）
 - AI 生图页 `/ai-image` 双模式重构：普通模式（一行自然语言 + 单按钮出图，tags 可编辑再生成）+ 专业模式（三栏布局：参数/预览/历史）
+- AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
 - 修复 Blocksuite 空间描述 @ 提及重复插入：成员提及改为使用 `inlineEditor` 插入，并为 popover action 增加短窗口去重
