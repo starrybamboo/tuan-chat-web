@@ -23,7 +23,6 @@
 - 新增本地开发工作流：`helloagents/wiki/workflows/local-dev.md`
 
 ### 变更
-- Chat：空间资料页拆出“跑团设置”页面，空间规则与空间骰娘独立管理，成员可见且仅空间拥有者可编辑
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
 - 修复 Blocksuite：`@`（Linked Doc）候选列表与 inline 引用标题不刷新：当 `workspace.meta` 更新时同步触发 `workspace.slots.docListUpdated`，让 `DocDisplayMetaProvider` 刷新标题缓存
 - 修复 Blocksuite：解散房间/空间后 `@` 弹窗仍出现已删除实体的文档：解散成功或收到房间解散推送（type=14）时 best-effort 清理对应 doc meta（`room:<roomId>:description`/`space:<spaceId>:description`）
@@ -54,7 +53,8 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
-- 修复 Chat：空间资料页移除规则/骰娘后文档区域未填满空位的布局问题
+- 修复房间/文档列表标题显示 `Untitled`：`Untitled` 视为占位，房间列表在 room.name 为空时回退 doc meta/`tc_header` 标题
+- 修复 `Untitled` 占位未被替换：水合阶段将 `Untitled` 视为缺失标题
 - 修复空间资料 `@` 列表仍展示已删除房间文档：打开菜单时按房间列表过滤并清理过期 `workspace.meta.docMetas`
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
@@ -116,8 +116,3 @@
 
 ### ??
 - ?????????? WebP?????????????
-
-## [Unreleased]
-
-### ??
-- ?????? WebP ????????? pre-commit
