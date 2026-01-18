@@ -7,6 +7,7 @@ import MemberLists from "@/components/chat/shared/components/memberLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
+import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { BaselineArrowBackIosNew } from "@/icons";
 import {
@@ -26,6 +27,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   // const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
   const resolvedTab = (!spaceContext.isSpaceOwner && activeTab === "setting") ? "members" : activeTab;
+  const headerTitle = resolvedTab === "trpg" ? "跑团设置" : "空间资料";
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
@@ -102,7 +104,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
           <BaselineArrowBackIosNew className="size-5" />
         </button>
         <div className="text-sm font-medium opacity-80 truncate">
-          空间资料
+          {headerTitle}
         </div>
 
       </div>
@@ -121,6 +123,12 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       {resolvedTab === "setting" && spaceContext.isSpaceOwner && (
         <div className="h-full p-4 overflow-y-auto">
           <SpaceSettingWindow onClose={onClose} />
+        </div>
+      )}
+
+      {resolvedTab === "trpg" && (
+        <div className="h-full p-4 overflow-y-auto">
+          <SpaceTrpgSettingWindow />
         </div>
       )}
 
