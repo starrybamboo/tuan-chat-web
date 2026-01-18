@@ -34,6 +34,9 @@ type BgmState = {
 
   lastStopReasonByRoomId: Record<number, StopReason | undefined>;
 
+  /** 每个房间当前音量（0-100），用于记忆用户调节结果 */
+  volumeByRoomId: Record<number, number | undefined>;
+
   setActiveRoomId: (roomId: number | null) => void;
 
   onRoomInterrupted: (roomId: number) => void;
@@ -52,12 +55,46 @@ type BgmState = {
 
   /** 悬浮球/按钮：开启或关闭（关闭会 dismiss） */
   userToggle: (roomId: number) => Promise<void>;
+
+  /** 设置指定房间的音量（仅本地） */
+  setVolume: (roomId: number, volume: number) => void;
 };
 
-function extractEffectiveVolume(track?: BgmTrack): number | undefined {
+/**
+ * 音量映射说明：
+ * - UI: 0~100
+ * - 输出: GainNode.gain（0~n）
+ * 使用指数曲线让“10以上调节更明显”，并降低最大增益避免过大。
+ */
+const BGM_MAX_GAIN = 1.6; // 最大增益（整体偏大时下调这里）
+const BGM_CURVE = 2.2; // >1 越大：低音量更细腻，高音量段变化更明显
+
+function uiToGain(uiVolume: number | undefined): number | undefined {
+  if (typeof uiVolume !== "number")
+    return undefined;
+
+  const v = Math.max(0, Math.min(100, uiVolume)) / 100; // 0~1
+  if (v <= 0)
+    return 0;
+
+  // 指数曲线：gain = v^curve * maxGain
+  const gain = v ** BGM_CURVE * BGM_MAX_GAIN;
+  return gain;
+}
+
+function extractEffectiveVolume(track?: BgmTrack, userVolume?: number): number | undefined {
   if (!track)
     return undefined;
-  return typeof track.volume === "number" ? track.volume : undefined;
+
+  const userGain = uiToGain(userVolume);
+  if (typeof userGain === "number")
+    return userGain;
+
+  const trackGain = uiToGain(typeof track.volume === "number" ? track.volume : undefined);
+  if (typeof trackGain === "number")
+    return trackGain;
+
+  return undefined;
 }
 
 export const useBgmStore = create<BgmState>((set, get) => ({
@@ -69,6 +106,7 @@ export const useBgmStore = create<BgmState>((set, get) => ({
   userDismissedByRoomId: {},
   userEnabledByRoomId: {},
   lastStopReasonByRoomId: {},
+  volumeByRoomId: {},
 
   setActiveRoomId: (roomId) => {
     const prevActive = get().activeRoomId;
@@ -121,25 +159,32 @@ export const useBgmStore = create<BgmState>((set, get) => ({
         ...state.kpStoppedByRoomId,
         [roomId]: false,
       },
-      // 新曲默认允许播放，并清除“主动关闭”状态
+      // 新曲默认允许播放
       userEnabledByRoomId: {
         ...state.userEnabledByRoomId,
         [roomId]: true,
       },
+      // 不再强制清除 dismissed，这样可以在有需要时仍使用该标记
       userDismissedByRoomId: {
         ...state.userDismissedByRoomId,
-        [roomId]: false,
+      },
+      // 如果 track 自带 volume 则初始化默认音量，否则默认 50
+      volumeByRoomId: {
+        ...state.volumeByRoomId,
+        [roomId]: typeof track.volume === "number"
+          ? Math.max(0, Math.min(100, track.volume))
+          : (state.volumeByRoomId[roomId] ?? 50),
       },
     }));
 
-    // 只在当前激活房间自动播放；否则仅记录，进入房间需要用户手动开启。
     if (get().activeRoomId !== roomId)
       return;
 
+    const userVolume = get().volumeByRoomId[roomId];
     try {
       await playBgm(track.url, {
         loop: true,
-        volume: extractEffectiveVolume(track),
+        volume: extractEffectiveVolume(track, userVolume),
       });
       set(state => ({
         ...state,
@@ -148,7 +193,6 @@ export const useBgmStore = create<BgmState>((set, get) => ({
       }));
     }
     catch {
-      // 可能被 autoplay 策略拦截：保持“可开启”状态，等待用户手动点击。
       set(state => ({
         ...state,
         playingRoomId: null,
@@ -191,21 +235,24 @@ export const useBgmStore = create<BgmState>((set, get) => ({
     if (state.kpStoppedByRoomId[roomId])
       return;
 
-    if (state.userDismissedByRoomId[roomId])
-      return;
-
+    // 不再因为 dismissed 阻止开启，dismiss 仅表示是否隐藏控件（目前未使用）
     set(s => ({
       ...s,
       userEnabledByRoomId: {
         ...s.userEnabledByRoomId,
         [roomId]: true,
       },
+      userDismissedByRoomId: {
+        ...s.userDismissedByRoomId,
+        [roomId]: false,
+      },
     }));
 
+    const userVolume = state.volumeByRoomId[roomId];
     try {
       await playBgm(track.url, {
         loop: true,
-        volume: extractEffectiveVolume(track),
+        volume: extractEffectiveVolume(track, userVolume),
       });
       set(s => ({
         ...s,
@@ -233,9 +280,10 @@ export const useBgmStore = create<BgmState>((set, get) => ({
         ...s.userEnabledByRoomId,
         [roomId]: false,
       },
+      // 不再把控件 dismiss 掉，仍然显示浮动球，方便重新开启
       userDismissedByRoomId: {
         ...s.userDismissedByRoomId,
-        [roomId]: true,
+        [roomId]: false,
       },
       lastStopReasonByRoomId: {
         ...s.lastStopReasonByRoomId,
@@ -250,15 +298,48 @@ export const useBgmStore = create<BgmState>((set, get) => ({
     if (!track)
       return;
 
-    if (state.userDismissedByRoomId[roomId])
-      return;
-
     const isPlayingThisRoom = state.isPlaying && state.playingRoomId === roomId;
+
     if (isPlayingThisRoom) {
-      get().userStopAndDismiss(roomId);
+      const isPlayingThis = state.playingRoomId === roomId;
+      if (isPlayingThis) {
+        pauseBgm();
+      }
+      set(s => ({
+        ...s,
+        playingRoomId: isPlayingThis ? null : s.playingRoomId,
+        isPlaying: isPlayingThis ? false : s.isPlaying,
+        userEnabledByRoomId: {
+          ...s.userEnabledByRoomId,
+          [roomId]: false,
+        },
+      }));
       return;
     }
 
     await get().userStart(roomId);
+  },
+
+  setVolume: (roomId, volume) => {
+    const clamped = Math.max(0, Math.min(100, volume));
+    set(state => ({
+      ...state,
+      volumeByRoomId: {
+        ...state.volumeByRoomId,
+        [roomId]: clamped,
+      },
+    }));
+
+    const state = get();
+    const isPlayingThisRoom = state.playingRoomId === roomId && state.isPlaying;
+    if (isPlayingThisRoom) {
+      const track = state.trackByRoomId[roomId];
+      if (track) {
+        void playBgm(track.url, {
+          loop: true,
+          volume: extractEffectiveVolume(track, clamped),
+        });
+      }
+    }
   },
 }));
