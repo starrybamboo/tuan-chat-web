@@ -76,6 +76,7 @@
 
 ### 2026-01
 
+- [202601181610_ai-image-style-left](2026-01/202601181610_ai-image-style-left/) - ????????????
 - [202601181442_ai-image-simple-style-ui](2026-01/202601181442_ai-image-simple-style-ui/) - ??????????
 - [202601181413_ai-image-style-precommit](2026-01/202601181413_ai-image-style-precommit/) - ?? WebP ????? pre-commit
 - [202601181336_ai-image-style-webp](2026-01/202601181336_ai-image-style-webp/) - ????? WebP ??????
@@ -144,6 +145,7 @@
 
 | ??? | ???? | ?? | ?? | ????? |
 |--------|----------|------|------|------------|
+| 202601181610 | ai-image-style-left | ?? | ???? | history/2026-01/202601181610_ai-image-style-left/ |
 | 202601181442 | ai-image-simple-style-ui | ?? | ???? | history/2026-01/202601181442_ai-image-simple-style-ui/ |
 | 202601181413 | ai-image-style-precommit | ?? | ???? | history/2026-01/202601181413_ai-image-style-precommit/ |
 | 202601181336 | ai-image-style-webp | ?? | ???? | history/2026-01/202601181336_ai-image-style-webp/ |
