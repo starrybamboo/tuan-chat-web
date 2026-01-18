@@ -1080,10 +1080,14 @@ export default function AiImagePage() {
           </button>
         </div>
 
-        <div className="text-xs opacity-70">
-          模型已锁定：
-          {modelLabel(model)}
-        </div>
+        {uiMode !== "simple"
+          ? (
+              <div className="text-xs opacity-70">
+                模型已锁定：
+                {modelLabel(model)}
+              </div>
+            )
+          : null}
 
         <div className="ml-auto flex items-center gap-2">
           <button
@@ -1098,20 +1102,20 @@ export default function AiImagePage() {
 
       <div className="flex-1 overflow-hidden flex">
         <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
-          <div className="card bg-base-200">
-            <div className="card-body gap-3">
-              <div className="flex items-center gap-2">
-                <div className="font-medium">模式</div>
-                <div className="ml-auto join">
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => setMode("txt2img")}
-                  >
-                    txt2img
-                  </button>
-                  {uiMode !== "simple"
-                    ? (
+          {uiMode !== "simple"
+            ? (
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">模式</div>
+                      <div className="ml-auto join">
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
+                          onClick={() => setMode("txt2img")}
+                        >
+                          txt2img
+                        </button>
                         <button
                           type="button"
                           className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
@@ -1119,43 +1123,43 @@ export default function AiImagePage() {
                         >
                           img2img
                         </button>
-                      )
-                    : null}
-                </div>
-              </div>
-
-              {uiMode !== "simple" && mode === "img2img"
-                ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
-                          选择源图
-                        </button>
-                        {result?.dataUrl
-                          ? (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-ghost"
-                                onClick={() => {
-                                  setSourceImageDataUrl(result.dataUrl);
-                                  setSourceImageBase64(dataUrlToBase64(result.dataUrl));
-                                }}
-                              >
-                                使用当前结果
-                              </button>
-                            )
-                          : null}
-                      </div>
-                      <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
-                        {sourceImageDataUrl
-                          ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
-                          : <div className="text-sm opacity-60">未选择源图</div>}
                       </div>
                     </div>
-                  )
-                : null}
-            </div>
-          </div>
+
+                    {mode === "img2img"
+                      ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
+                                选择源图
+                              </button>
+                              {result?.dataUrl
+                                ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-ghost"
+                                      onClick={() => {
+                                        setSourceImageDataUrl(result.dataUrl);
+                                        setSourceImageBase64(dataUrlToBase64(result.dataUrl));
+                                      }}
+                                    >
+                                      使用当前结果
+                                    </button>
+                                  )
+                                : null}
+                            </div>
+                            <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
+                              {sourceImageDataUrl
+                                ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
+                                : <div className="text-sm opacity-60">未选择源图</div>}
+                            </div>
+                          </div>
+                        )
+                      : null}
+                  </div>
+                </div>
+              )
+            : null}
 
           <div className="card bg-base-200">
             <div className="card-body gap-3">
@@ -1210,29 +1214,6 @@ export default function AiImagePage() {
                                 onChange={e => setPrompt(e.target.value)}
                               />
 
-                              <div className="flex items-center gap-2">
-                                <div className="text-xs opacity-70">画风</div>
-                                <div className="ml-auto flex items-center gap-2">
-                                  {selectedStyleIds.length
-                                    ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
-                                    : <div className="text-xs opacity-60">未选择</div>}
-                                  <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                                    选择画风
-                                  </button>
-                                  {selectedStyleIds.length
-                                    ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
-                                    : null}
-                                </div>
-                              </div>
-
-                              {selectedStyleTags.length
-                                ? (
-                                    <div className="text-xs opacity-70">
-                                      {`画风 tags：${selectedStyleTags.join(", ")}`}
-                                    </div>
-                                  )
-                                : null}
-
                               <details className="collapse bg-base-100">
                                 <summary className="collapse-title text-sm">负面 tags（可选）</summary>
                                 <div className="collapse-content">
@@ -1242,13 +1223,6 @@ export default function AiImagePage() {
                                     onChange={e => setNegativePrompt(e.target.value)}
                                     placeholder="例如：lowres, bad anatomy"
                                   />
-                                  {selectedStyleNegativeTags.length
-                                    ? (
-                                        <div className="mt-2 text-xs opacity-70">
-                                          {`画风负面 tags：${selectedStyleNegativeTags.join(", ")}`}
-                                        </div>
-                                      )
-                                    : null}
                                 </div>
                               </details>
                             </div>
@@ -1398,7 +1372,9 @@ export default function AiImagePage() {
             <div className="card-body gap-3">
               <div className="flex items-center gap-2">
                 <div className="font-medium">参数</div>
-                <div className="ml-auto text-xs opacity-70">{modelLabel(model)}</div>
+                {uiMode !== "simple"
+                  ? <div className="ml-auto text-xs opacity-70">{modelLabel(model)}</div>
+                  : null}
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -1511,6 +1487,55 @@ export default function AiImagePage() {
           </div>
 
           {error ? <div className="text-sm text-error">{error}</div> : null}
+
+          {uiMode === "simple"
+            ? (
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">画风参考</div>
+                      <div className="ml-auto flex items-center gap-2">
+                        {selectedStyleIds.length
+                          ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
+                          : <div className="text-xs opacity-60">未选择</div>}
+                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
+                          选择画风
+                        </button>
+                        {selectedStyleIds.length
+                          ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
+                          : null}
+                      </div>
+                    </div>
+
+                    {selectedStylePresets.length
+                      ? (
+                          <div className="rounded-box border border-base-300 bg-base-100 divide-y divide-base-300">
+                            {selectedStylePresets.map((preset) => {
+                              return (
+                                <div key={preset.id} className="flex items-center gap-3 p-2">
+                                  {preset.imageUrl
+                                    ? <img src={preset.imageUrl} className="w-16 h-16 rounded-box object-cover" alt={preset.id} />
+                                    : <div className="w-16 h-16 rounded-box bg-base-200 flex items-center justify-center text-xs opacity-60">无图</div>}
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-medium">{preset.id}</div>
+                                    {preset.tags.length
+                                      ? <div className="text-xs opacity-60 truncate">{preset.tags.join(", ")}</div>
+                                      : null}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )
+                      : (
+                          <div className="text-sm opacity-60">
+                            未选择画风。请从右上角“选择画风”添加参考。
+                          </div>
+                        )}
+                  </div>
+                </div>
+              )
+            : null}
 
           <div className="bg-base-200 rounded-box p-3 flex items-center justify-center min-h-[520px]">
             {result
