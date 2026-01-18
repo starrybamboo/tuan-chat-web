@@ -916,7 +916,7 @@ export default function AiImagePage() {
         setSimpleError("请先输入一行自然语言描述");
         return;
       }
-      const effectivePrompt = mergeTagString(prompt, selectedStyleTags);
+      const effectivePrompt = mergeTagString(prompt, [...selectedStyleIds, ...selectedStyleTags]);
       const effectiveNegativePrompt = mergeTagString(negativePrompt, selectedStyleNegativeTags);
       await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
       return;
@@ -950,7 +950,7 @@ export default function AiImagePage() {
       return;
     }
 
-    const effectivePrompt = mergeTagString(resolvedPrompt, selectedStyleTags);
+    const effectivePrompt = mergeTagString(resolvedPrompt, [...selectedStyleIds, ...selectedStyleTags]);
     const effectiveNegativePrompt = mergeTagString(resolvedNegativePrompt, selectedStyleNegativeTags);
     await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
   }, [
