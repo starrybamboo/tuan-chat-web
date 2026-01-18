@@ -371,8 +371,13 @@ export class SpaceWorkspace implements Workspace {
       // linked-doc uses `workspace.meta.docMetas` as its data source.
       // For business docIds, the title should prefer `tc_header.title` (instead of blocksuite native title).
       const isBusinessDocId = (id: string) => /^(?:room|space|clue|user):/.test(id);
+      const isPlaceholderTitle = (title: unknown) => {
+        if (typeof title !== "string")
+          return false;
+        return title.trim().toLowerCase() === "untitled";
+      };
       const pendingIds = metas
-        .filter(m => !m.title || isBusinessDocId(m.id))
+        .filter(m => !m.title || isBusinessDocId(m.id) || isPlaceholderTitle(m.title))
         .map(m => m.id);
 
       let anyMetaChanged = false;
@@ -392,6 +397,8 @@ export class SpaceWorkspace implements Workspace {
               continue;
 
             const isBusiness = isBusinessDocId(docId);
+            const metaTitle = typeof meta.title === "string" ? meta.title.trim() : "";
+            const metaIsPlaceholder = isPlaceholderTitle(metaTitle);
             const tcTitle = tryReadTcHeaderTitleFromYDoc(doc.spaceDoc);
             if (tcTitle) {
               if (meta.title !== tcTitle) {
@@ -403,7 +410,7 @@ export class SpaceWorkspace implements Workspace {
 
             // Business docs: if `tc_header.title` is missing, prefer keeping existing meta title
             // (which may come from room/space name) instead of overriding with blocksuite native title.
-            if (isBusiness && meta.title) {
+            if (isBusiness && metaTitle && !metaIsPlaceholder) {
               continue;
             }
 
