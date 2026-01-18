@@ -10,6 +10,7 @@ import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
+import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
@@ -120,6 +121,8 @@ export default function ChatRoomListPanel({
     }
     return map;
   }, [visibleDocMetas]);
+
+  const docHeaderOverrides = useDocHeaderOverrideStore(state => state.headers);
 
   const roomById = useMemo(() => {
     const map = new Map<number, Room>();
@@ -648,9 +651,14 @@ export default function ChatRoomListPanel({
                             })
                             .map((node, index) => {
                               const isRoom = node.type === "room";
+                              const docId = isRoom ? "" : String((node as any).targetId);
+                              const docOverride = !isRoom ? docHeaderOverrides[docId] : undefined;
+                              const docOverrideTitle = typeof docOverride?.title === "string" ? docOverride.title.trim() : "";
+                              const docOverrideImageUrl = typeof docOverride?.imageUrl === "string" ? docOverride.imageUrl.trim() : "";
+
                               const title = isRoom
                                 ? (roomById.get(Number((node as any).targetId))?.name ?? (node as any)?.fallbackTitle ?? String((node as any).targetId))
-                                : (docMetaMap.get(String((node as any).targetId))?.title ?? (node as any)?.fallbackTitle ?? String((node as any).targetId));
+                                : (docOverrideTitle || (docMetaMap.get(docId)?.title ?? (node as any)?.fallbackTitle ?? docId));
 
                               const showInsertBefore = canEdit
                                 && dragging?.kind === "node"
@@ -809,8 +817,23 @@ export default function ChatRoomListPanel({
                                             setDropTarget(null);
                                           }}
                                         >
-                                          <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center">
-                                            <FileTextIcon className="size-4 opacity-70" />
+                                          <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center relative overflow-hidden">
+                                            {docOverrideImageUrl
+                                              ? (
+                                                  <>
+                                                    <img
+                                                      src={docOverrideImageUrl}
+                                                      alt={title || "doc"}
+                                                      className="w-full h-full object-cover"
+                                                    />
+                                                    <span className="absolute bottom-0.5 right-0.5 size-4 rounded bg-base-100/80 flex items-center justify-center border border-base-300/60">
+                                                      <FileTextIcon className="size-3 opacity-70" />
+                                                    </span>
+                                                  </>
+                                                )
+                                              : (
+                                                  <FileTextIcon className="size-4 opacity-70" />
+                                                )}
                                           </div>
                                           <span className="flex-1 min-w-0 truncate text-left">{title}</span>
                                         </div>

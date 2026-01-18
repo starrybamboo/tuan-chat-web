@@ -515,6 +515,65 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 没有权限
   const noRole = curRoleId <= 0;
 
+  const containsCommandRequestAllToken = useCallback((text: string) => {
+    const raw = String(text ?? "");
+    return /@all\b/i.test(raw) || raw.includes("@全员");
+  }, []);
+
+  const stripCommandRequestAllToken = useCallback((text: string) => {
+    return String(text ?? "")
+      .replace(/@all\b/gi, " ")
+      .replace(/@全员/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }, []);
+
+  const extractFirstCommandText = useCallback((text: string): string | null => {
+    const trimmed = String(text ?? "").trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (isCommand(trimmed)) {
+      return trimmed;
+    }
+    const match = trimmed.match(/[.。/][A-Z][^\n]*/i);
+    if (!match) {
+      return null;
+    }
+    const candidate = match[0].trim();
+    return isCommand(candidate) ? candidate : null;
+  }, []);
+
+  const handleExecuteCommandRequest = useCallback((payload: { command: string; threadId?: number; requestMessageId: number }) => {
+    const { command, threadId, requestMessageId } = payload;
+    const rawCommand = String(command ?? "").trim();
+    if (!rawCommand) {
+      toast.error("指令为空");
+      return;
+    }
+
+    const isKP = spaceContext.isSpaceOwner;
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (noRole && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("正在发送中，请稍等");
+      return;
+    }
+
+    commandExecutor({
+      command: rawCommand,
+      originMessage: rawCommand,
+      threadId,
+      replyMessageId: requestMessageId,
+    });
+  }, [commandExecutor, isSubmitting, noRole, notMember, spaceContext.isSpaceOwner]);
+
   /**
    * 发送消息的辅助函数
    * 如果设置了 insertAfterMessageId，则使用 HTTP API 发送并更新 position
@@ -841,7 +900,31 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         return;
       }
 
-      if (webgalVarPayload) {
+      const isCommandRequestByAll = isKP && containsCommandRequestAllToken(inputText);
+      const extractedCommandForRequest = isCommandRequestByAll ? extractFirstCommandText(trimmedWithoutMentions) : null;
+      const requestCommand = extractedCommandForRequest ? stripCommandRequestAllToken(extractedCommandForRequest) : null;
+      const shouldSendCommandRequest = Boolean(requestCommand && isCommand(requestCommand));
+
+      if (shouldSendCommandRequest) {
+        const requestMsg: ChatMessageRequest = {
+          ...getCommonFields() as any,
+          content: requestCommand,
+          messageType: MessageType.COMMAND_REQUEST,
+          extra: {
+            commandRequest: {
+              command: requestCommand,
+              allowAll: true,
+            },
+          },
+        };
+
+        await sendMessageWithInsert(requestMsg);
+
+        // 消耗掉 firstMessage 状态，并防止后续再次作为文本发送
+        isFirstMessage = false;
+        textContent = "";
+      }
+      else if (webgalVarPayload) {
         const varMsg: ChatMessageRequest = {
           ...getCommonFields() as any,
           content: "",
@@ -1366,6 +1449,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   virtuosoRef={virtuosoRef}
                   onBackgroundUrlChange={setBackgroundUrl}
                   onEffectChange={setCurrentEffect}
+                  onExecuteCommandRequest={handleExecuteCommandRequest}
                 >
                 </ChatFrame>
               </div>

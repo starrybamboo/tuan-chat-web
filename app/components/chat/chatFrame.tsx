@@ -56,6 +56,11 @@ interface ChatFrameProps {
   isMessageMovable?: (message: Message) => boolean;
   onBackgroundUrlChange?: (url: string | null) => void;
   onEffectChange?: (effectName: string | null) => void;
+  onExecuteCommandRequest?: (payload: {
+    command: string;
+    threadId?: number;
+    requestMessageId: number;
+  }) => void;
 }
 
 interface ThreadHintMeta {
@@ -74,6 +79,7 @@ function ChatFrame(props: ChatFrameProps) {
     isMessageMovable,
     onBackgroundUrlChange,
     onEffectChange,
+    onExecuteCommandRequest,
   } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -950,6 +956,7 @@ function ChatFrame(props: ChatFrameProps) {
           chatMessageResponse={chatMessageResponse}
           useChatBubbleStyle={useChatBubbleStyle}
           threadHintMeta={threadHintMeta}
+          onExecuteCommandRequest={onExecuteCommandRequest}
         />
       </div>
     )

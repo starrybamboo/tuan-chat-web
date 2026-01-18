@@ -3,6 +3,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
@@ -50,8 +51,6 @@ interface BlocksuiteDescriptionEditorProps {
   allowModeSwitch?: boolean;
   /** 画布模式下是否支持全屏 */
   fullscreenEdgeless?: boolean;
-  /** 隐藏内置的“切换到画布/退出画布”按钮（用于把按钮放到外层 topbar） */
-  hideModeSwitchButton?: boolean;
   /** 启用“图片+标题”的自定义头部，并禁用 blocksuite 内置 doc-title */
   tcHeader?: {
     enabled?: boolean;
@@ -66,18 +65,11 @@ interface BlocksuiteDescriptionEditorProps {
     header: BlocksuiteDocHeader;
   }) => void;
   /** 对外暴露 editor mode 的控制能力；卸载时会回传 null */
-  onActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
   /** editor mode 变化回调（page/edgeless） */
   onModeChange?: (mode: DocMode) => void;
   /** iframe 内部请求导航时，允许宿主拦截并自行处理；返回 true 表示已处理，阻止默认 navigate */
   onNavigate?: (to: string) => boolean | void;
   className?: string;
-}
-
-export interface BlocksuiteDescriptionEditorActions {
-  toggleMode: () => DocMode;
-  setMode: (mode: DocMode) => void;
-  getMode: () => DocMode;
 }
 
 function normalizeAppThemeToBlocksuiteTheme(raw: string | null | undefined): "light" | "dark" {
@@ -161,10 +153,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     allowModeSwitch = false,
     fullscreenEdgeless = false,
     mode: forcedMode = "page",
-    hideModeSwitchButton = false,
     tcHeader,
     onTcHeaderChange,
-    onActionsChange,
     onModeChange,
   } = props;
 
@@ -196,6 +186,25 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
   const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteDocHeader | null>(null);
+
+  useEffect(() => {
+    if (!(import.meta as any)?.env?.DEV)
+      return;
+    try {
+      const inIframe = isProbablyInIframe();
+      const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
+      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
+      try {
+        (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
+      }
+      catch {
+        // ignore
+      }
+    }
+    catch {
+      // ignore
+    }
+  }, [docId, props.instanceId, spaceId, variant, workspaceId]);
 
   const tcHeaderEntity = useMemo(() => {
     const parsed = parseDescriptionDocId(docId);
@@ -337,7 +346,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         primaryModeByDocId.set(id, next);
         flushToStorage();
         emit(id, next);
-        currentModeRef.current = next;
         setCurrentMode(next);
         return next;
       },
@@ -358,27 +366,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       },
     };
   }, [allowModeSwitch, forcedMode, workspaceId]);
-
-  const externalActions: BlocksuiteDescriptionEditorActions = useMemo(() => {
-    return {
-      toggleMode: () => {
-        return docModeProvider.togglePrimaryMode(docId);
-      },
-      setMode: (mode: DocMode) => {
-        docModeProvider.setPrimaryMode(mode, docId);
-      },
-      getMode: () => {
-        return docModeProvider.getEditorMode() ?? forcedMode;
-      },
-    };
-  }, [docId, docModeProvider, forcedMode]);
-
-  useEffect(() => {
-    onActionsChange?.(externalActions);
-    return () => {
-      onActionsChange?.(null);
-    };
-  }, [externalActions, onActionsChange]);
 
   useEffect(() => {
     if (allowModeSwitch) {
@@ -552,11 +539,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           });
           if (ensured) {
             setTcHeaderState(ensured);
+            if (ensured.title) {
+              runtime.ensureDocMeta({ workspaceId, docId, title: ensured.title });
+            }
           }
 
           unsubscribeHeader = subscribeBlocksuiteDocHeader(store, (h) => {
             if (h) {
               setTcHeaderState(h);
+              if (h.title) {
+                runtime.ensureDocMeta({ workspaceId, docId, title: h.title });
+              }
             }
           });
         }
@@ -912,13 +905,103 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     };
   }, [isEdgelessFullscreen]);
 
-  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, isEdgelessFullscreen ? "fixed inset-0 z-50 p-2 bg-base-100" : ""]
+  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, isEdgelessFullscreen ? "h-full min-h-0" : ""]
     .filter(Boolean)
     .join(" ");
 
   const canEditTcHeader = tcHeaderEnabled && !readOnly;
   const tcHeaderImageUrl = tcHeaderState?.imageUrl ?? tcHeader?.fallbackImageUrl ?? "";
   const tcHeaderTitle = tcHeaderState?.title ?? tcHeader?.fallbackTitle ?? "";
+
+  const resetBuiltinDocTitle = async () => {
+    const store = storeRef.current;
+    if (!store)
+      return;
+
+    try {
+      const { Text } = await import("@blocksuite/store");
+
+      const normalizeTitleText = (raw: string) => {
+        // Keep behavior stable for "empty but has zero-width placeholders".
+        return String(raw ?? "").replace(/[\s\u200B]+/g, "").trim();
+      };
+
+      const candidates: any[] = [];
+
+      // Prefer root when available (DocTitle reads from `doc.root.props.title`).
+      const rootModel = (store as any).root;
+      if (rootModel?.props?.title) {
+        candidates.push(rootModel);
+      }
+
+      // Fallback: explicit page models.
+      const pages = (store as any).getModelsByFlavour?.("affine:page") as any[] | undefined;
+      if (Array.isArray(pages)) {
+        candidates.push(...pages);
+      }
+
+      const seen = new Set<string>();
+      const uniqueCandidates = candidates.filter((m) => {
+        const key = String(m?.id ?? "");
+        if (!key)
+          return true;
+        if (seen.has(key))
+          return false;
+        seen.add(key);
+        return true;
+      });
+
+      const shouldReset = uniqueCandidates.some((m) => {
+        const titleObj = m?.props?.title;
+        const currentTitle = typeof titleObj?.toString === "function" ? titleObj.toString() : String(titleObj ?? "");
+        return Boolean(normalizeTitleText(currentTitle));
+      });
+
+      if (!shouldReset) {
+        toast("内置标题已为空");
+        return;
+      }
+
+      const doUpdate = () => {
+        for (const m of uniqueCandidates) {
+          try {
+            (store as any).updateBlock?.(m, { title: new Text("") });
+          }
+          catch {
+            // ignore
+          }
+        }
+      };
+
+      if (typeof (store as any).transact === "function") {
+        (store as any).transact(doUpdate);
+      }
+      else {
+        doUpdate();
+      }
+
+      // Best-effort: immediately remove any `<doc-title>` nodes if they exist.
+      try {
+        const nodes = document.querySelectorAll("[data-tc-blocksuite-root] doc-title");
+        for (const n of Array.from(nodes)) {
+          try {
+            n.remove();
+          }
+          catch {
+            // ignore
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+
+      toast.success("已清空内置标题");
+    }
+    catch {
+      // ignore
+    }
+  };
 
   return (
     <div className={rootClassName}>
@@ -943,46 +1026,73 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             fileName={`blocksuite-header-${docId.replaceAll(":", "-")}`}
                             aspect={1}
                           >
-                            <div className="relative group overflow-hidden rounded-lg shrink-0">
+                            <div className="tc-blocksuite-tc-header-avatar" aria-label="更换头像">
                               {tcHeaderImageUrl
                                 ? (
                                     <img
                                       src={tcHeaderImageUrl}
                                       alt={tcHeaderTitle || "header"}
-                                      className="w-10 h-10 rounded transition-all duration-200 group-hover:brightness-75"
+                                      className="tc-blocksuite-tc-header-avatar-img"
                                     />
                                   )
-                                : (
-                                    <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
-                                  )}
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black/20">
-                                <span className="text-xs text-white font-semibold">更换</span>
+                                : null}
+                              <div className="tc-blocksuite-tc-header-avatar-overlay">
+                                <span className="tc-blocksuite-tc-header-avatar-overlay-text">更换</span>
                               </div>
                             </div>
                           </ImgUploaderWithCopper>
                         )
                       : (
-                          <div className="relative overflow-hidden rounded-lg shrink-0">
+                          <div className="tc-blocksuite-tc-header-avatar tc-blocksuite-tc-header-avatar-readonly">
                             {tcHeaderImageUrl
                               ? (
                                   <img
                                     src={tcHeaderImageUrl}
                                     alt={tcHeaderTitle || "header"}
-                                    className="w-10 h-10 rounded"
+                                    className="tc-blocksuite-tc-header-avatar-img"
                                   />
                                 )
-                              : (
-                                  <div className="w-10 h-10 rounded bg-base-200 border border-base-300" />
-                                )}
+                              : null}
                           </div>
                         )}
 
+                    <input
+                      className="tc-blocksuite-tc-header-title"
+                      value={tcHeaderTitle}
+                      disabled={!canEditTcHeader}
+                      placeholder="Title"
+                      onChange={(e) => {
+                        const store = storeRef.current;
+                        if (!store)
+                          return;
+                        setBlocksuiteDocHeader(store, { title: e.target.value });
+                      }}
+                      onBlur={(e) => {
+                        const store = storeRef.current;
+                        if (!store)
+                          return;
+                        setBlocksuiteDocHeader(store, { title: e.target.value.trim() });
+                      }}
+                    />
+
                     <div className="tc-blocksuite-tc-header-actions">
-                      {allowModeSwitch && !hideModeSwitchButton
+                      {canEditTcHeader
                         ? (
                             <button
                               type="button"
-                              className="btn btn-sm"
+                              className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
+                              title="清空 blocksuite 内置 doc-title（仅影响旧文档）"
+                              onClick={() => void resetBuiltinDocTitle()}
+                            >
+                              重置内置标题
+                            </button>
+                          )
+                        : null}
+                      {allowModeSwitch
+                        ? (
+                            <button
+                              type="button"
+                              className="tc-blocksuite-tc-header-btn"
                               onClick={() => {
                                 docModeProvider.togglePrimaryMode(docId);
                               }}
@@ -993,25 +1103,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                         : null}
                     </div>
                   </div>
-
-                  <input
-                    className="tc-blocksuite-tc-header-title"
-                    value={tcHeaderTitle}
-                    disabled={!canEditTcHeader}
-                    placeholder="Title"
-                    onChange={(e) => {
-                      const store = storeRef.current;
-                      if (!store)
-                        return;
-                      setBlocksuiteDocHeader(store, { title: e.target.value });
-                    }}
-                    onBlur={(e) => {
-                      const store = storeRef.current;
-                      if (!store)
-                        return;
-                      setBlocksuiteDocHeader(store, { title: e.target.value.trim() });
-                    }}
-                  />
                 </div>
               </div>
             )
@@ -1019,39 +1110,20 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
         {allowModeSwitch && !tcHeaderEnabled
           ? (
-              hideModeSwitchButton
-                ? null
-                : (
-                    <div className="flex items-center justify-end p-2 border-b border-base-300">
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        onClick={() => {
-                          docModeProvider.togglePrimaryMode(docId);
-                        }}
-                      >
-                        {currentMode === "page" ? "切换到画布" : "退出画布"}
-                      </button>
-                    </div>
-                  )
-            )
-          : null}
-
-        {allowModeSwitch && hideModeSwitchButton && currentMode === "edgeless"
-          ? (
-              <div className="absolute top-2 right-2 z-10">
+              <div className="flex items-center justify-end p-2 border-b border-base-300">
                 <button
                   type="button"
                   className="btn btn-sm"
                   onClick={() => {
-                    docModeProvider.setPrimaryMode("page", docId);
+                    docModeProvider.togglePrimaryMode(docId);
                   }}
                 >
-                  返回页面
+                  {currentMode === "page" ? "切换到画布" : "退出画布"}
                 </button>
               </div>
             )
           : null}
+
         <div
           ref={hostContainerRef}
           className={`${isFull || isEdgelessFullscreen ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
@@ -1071,11 +1143,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     readOnly = false,
     allowModeSwitch = false,
     fullscreenEdgeless = false,
-    hideModeSwitchButton = false,
     tcHeader,
     onTcHeaderChange,
     className,
-    onActionsChange,
     onModeChange,
     onNavigate,
   } = props;
@@ -1088,75 +1158,16 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
-  const currentModeRef = useRef<DocMode>(forcedMode);
+  const hostMentionDebugUntilRef = useRef(0);
+  const hostMentionDebugRemainingRef = useRef(0);
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
 
-  // 当外部强制 mode 变化时，同步本地 ref（以及 iframe 侧）。
-  useEffect(() => {
-    if (allowModeSwitch)
-      return;
-    currentModeRef.current = forcedMode;
-    setFrameMode(forcedMode);
-    try {
-      iframeRef.current?.contentWindow?.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "set-mode",
-          mode: forcedMode,
-        },
-        getPostMessageTargetOrigin(),
-      );
-    }
-    catch {
-      // ignore
-    }
-  }, [allowModeSwitch, forcedMode, instanceId]);
-
+  // 画布全屏状态由 frame 回传的 mode 驱动（宿主不再下发 set-mode）。
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
-
-  const actions: BlocksuiteDescriptionEditorActions = useMemo(() => {
-    const post = (payload: any) => {
-      try {
-        iframeRef.current?.contentWindow?.postMessage(payload, getPostMessageTargetOrigin());
-      }
-      catch {
-        // ignore
-      }
-    };
-
-    return {
-      toggleMode: () => {
-        const prev = currentModeRef.current ?? forcedMode;
-        const next = prev === "page" ? "edgeless" : "page";
-        currentModeRef.current = next;
-        setFrameMode(next);
-        onModeChange?.(next);
-        post({ tc: "tc-blocksuite-frame", instanceId, type: "set-mode", mode: next });
-        return next;
-      },
-      setMode: (m: DocMode) => {
-        currentModeRef.current = m;
-        setFrameMode(m);
-        onModeChange?.(m);
-        post({ tc: "tc-blocksuite-frame", instanceId, type: "set-mode", mode: m });
-      },
-      getMode: () => {
-        return currentModeRef.current ?? forcedMode;
-      },
-    };
-  }, [forcedMode, instanceId, onModeChange]);
-
-  useEffect(() => {
-    onActionsChange?.(actions);
-    return () => {
-      onActionsChange?.(null);
-    };
-  }, [actions, onActionsChange]);
 
   // 父子窗口通信：mode 同步、导航委托、主题同步。
   useEffect(() => {
@@ -1183,7 +1194,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
       if (data.type === "mode" && (data.mode === "page" || data.mode === "edgeless")) {
         const next = data.mode as DocMode;
-        currentModeRef.current = next;
         setFrameMode(next);
         onModeChange?.(next);
         return;
@@ -1200,15 +1210,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           const win = iframeRef.current?.contentWindow;
           if (!win)
             return;
-          win.postMessage(
-            {
-              tc: "tc-blocksuite-frame",
-              instanceId,
-              type: "set-mode",
-              mode: (currentModeRef.current ?? forcedMode),
-            },
-            getPostMessageTargetOrigin(),
-          );
           win.postMessage(
             {
               tc: "tc-blocksuite-frame",
@@ -1264,6 +1265,68 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         catch {
           // ignore
         }
+        return;
+      }
+
+      if (data.type === "debug-log") {
+        try {
+          const entry = data.entry as any;
+          const source = String(entry?.source ?? "unknown");
+          const message = String(entry?.message ?? "");
+          const payload = (entry?.payload ?? null) as any;
+
+          // Host-side click debug:
+          // If the mention picker is rendered outside iframe (portal), then iframe won't see click events.
+          // Arm a short window after '@' to capture host pointer/click path summaries.
+          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown @") {
+            hostMentionDebugUntilRef.current = Date.now() + 5000;
+            hostMentionDebugRemainingRef.current = 12;
+          }
+
+          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown Enter") {
+            if (Date.now() < hostMentionDebugUntilRef.current && hostMentionDebugRemainingRef.current > 0) {
+              hostMentionDebugRemainingRef.current -= 1;
+              try {
+                const active = document.activeElement;
+                const toLower = (v: unknown) => String(v ?? "").toLowerCase();
+                const summarizeEl = (node: unknown) => {
+                  if (!(node instanceof Element))
+                    return null;
+                  const tag = toLower(node.tagName);
+                  const id = node.id ? toLower(node.id) : "";
+                  const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+                  const role = typeof (node as any).getAttribute === "function"
+                    ? toLower((node as any).getAttribute("role"))
+                    : "";
+                  const testid = typeof (node as any).getAttribute === "function"
+                    ? toLower((node as any).getAttribute("data-testid"))
+                    : "";
+                  return { tag, id: id || undefined, className: cls || undefined, role: role || undefined, testid: testid || undefined };
+                };
+                const probes = {
+                  blocksuitePortal: document.querySelectorAll("blocksuite-portal, .blocksuite-portal").length,
+                  affineMenu: document.querySelectorAll("affine-menu").length,
+                  roleListbox: document.querySelectorAll("[role='listbox']").length,
+                  roleMenu: document.querySelectorAll("[role='menu']").length,
+                };
+                console.warn("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
+              }
+              catch {
+                // ignore
+              }
+            }
+          }
+
+          if (payload && typeof payload === "object") {
+            console.warn("[BlocksuiteFrameDebug]", source, message, payload);
+          }
+          else {
+            console.warn("[BlocksuiteFrameDebug]", source, message);
+          }
+        }
+        catch {
+          // ignore
+        }
       }
     };
 
@@ -1272,6 +1335,68 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       window.removeEventListener("message", onMessage);
     };
   }, [forcedMode, instanceId, navigate, onModeChange, onTcHeaderChange]);
+
+  // 宿主侧捕获 click/pointerdown：用于定位 mention 弹窗是否是 portal 到 iframe 外。
+  useEffect(() => {
+    if (!(import.meta as any)?.env?.DEV)
+      return;
+    if (typeof document === "undefined")
+      return;
+
+    const toLower = (v: unknown) => String(v ?? "").toLowerCase();
+    const summarizeNode = (node: unknown) => {
+      if (!(node instanceof Element))
+        return null;
+      const tag = toLower(node.tagName);
+      const id = node.id ? toLower(node.id) : "";
+      const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+      const role = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("role"))
+        : "";
+      const testid = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("data-testid"))
+        : "";
+      return {
+        tag,
+        id: id || undefined,
+        className: cls || undefined,
+        role: role || undefined,
+        testid: testid || undefined,
+      };
+    };
+
+    const logHostEvent = (type: string, e: Event) => {
+      const now = Date.now();
+      if (now >= hostMentionDebugUntilRef.current)
+        return;
+      if (hostMentionDebugRemainingRef.current <= 0)
+        return;
+      hostMentionDebugRemainingRef.current -= 1;
+
+      try {
+        const path = (e as any).composedPath?.() as unknown[] | undefined;
+        const nodes = Array.isArray(path)
+          ? path.map(summarizeNode).filter(Boolean).slice(0, 10)
+          : [];
+        console.warn("[BlocksuiteHostDebug]", type, {
+          targetTag: toLower((e.target as any)?.tagName),
+          nodes,
+        });
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const onPointerDown = (e: PointerEvent) => logHostEvent("pointerdown", e);
+    const onClick = (e: MouseEvent) => logHostEvent("click", e);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, []);
 
   // 画布全屏：需要由宿主处理（iframe 内的 fixed 只能覆盖 iframe 自己）。
   useEffect(() => {
@@ -1335,6 +1460,32 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     };
   }, [instanceId]);
 
+  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
+  const frozenTcHeaderFallbackRef = useRef<{
+    workspaceId: string;
+    docId: string;
+    title?: string;
+    imageUrl?: string;
+  } | null>(null);
+
+  if (tcHeaderEnabled) {
+    const prev = frozenTcHeaderFallbackRef.current;
+    if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
+      frozenTcHeaderFallbackRef.current = {
+        workspaceId,
+        docId,
+        title: tcHeader?.fallbackTitle,
+        imageUrl: tcHeader?.fallbackImageUrl,
+      };
+    }
+  }
+  else if (frozenTcHeaderFallbackRef.current) {
+    frozenTcHeaderFallbackRef.current = null;
+  }
+
+  const frozenTcHeaderTitle = frozenTcHeaderFallbackRef.current?.title;
+  const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
+
   const initParams = useMemo(() => {
     return {
       instanceId,
@@ -1345,24 +1496,22 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       readOnly: readOnly ? "1" : "0",
       allowModeSwitch: allowModeSwitch ? "1" : "0",
       fullscreenEdgeless: fullscreenEdgeless ? "1" : "0",
-      hideModeSwitchButton: hideModeSwitchButton ? "1" : "0",
       mode: forcedMode,
-      tcHeader: tcHeader?.enabled ? "1" : "0",
-      tcHeaderTitle: tcHeader?.fallbackTitle,
-      tcHeaderImageUrl: tcHeader?.fallbackImageUrl,
+      tcHeader: tcHeaderEnabled ? "1" : "0",
+      tcHeaderTitle: frozenTcHeaderTitle,
+      tcHeaderImageUrl: frozenTcHeaderImageUrl,
     };
   }, [
     allowModeSwitch,
     docId,
+    frozenTcHeaderImageUrl,
+    frozenTcHeaderTitle,
     forcedMode,
     fullscreenEdgeless,
-    hideModeSwitchButton,
     instanceId,
     readOnly,
     spaceId,
-    tcHeader?.enabled,
-    tcHeader?.fallbackImageUrl,
-    tcHeader?.fallbackTitle,
+    tcHeaderEnabled,
     variant,
     workspaceId,
   ]);
@@ -1393,7 +1542,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   // blocksuite-frame 按 URL 的默认 mode 回到 page，并回传 mode，导致出现“白屏一下又回退”。
   // 这里通过始终渲染同一层 wrapper（非全屏时使用 `contents`）来避免 remount。
   const wrapperClassName = isEdgelessFullscreenActive
-    ? [className, "fixed inset-0 z-50 p-2 bg-base-100", "w-full h-full"].filter(Boolean).join(" ")
+    ? [className, "w-full h-full min-h-0"].filter(Boolean).join(" ")
     : "contents";
 
   const iframeClassName = isEdgelessFullscreenActive
@@ -1416,17 +1565,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       const win = iframeRef.current?.contentWindow;
       if (!win)
         return;
-      // 同步当前 mode（allowModeSwitch 场景也需要，防止 iframe 侧按默认值启动）。
-      win.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "set-mode",
-          mode: (currentModeRef.current ?? forcedMode),
-        },
-        getPostMessageTargetOrigin(),
-      );
-
       // 同步主题
       win.postMessage(
         {

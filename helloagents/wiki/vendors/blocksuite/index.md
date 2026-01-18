@@ -60,8 +60,15 @@
 - custom element：`<doc-title>`
   - 源码：`node_modules/@blocksuite/affine-fragment-doc-title/src/doc-title.ts`
   - 关键样式：`font-size: 40px; line-height: 50px; font-weight: 700; max-width: var(--affine-editor-width); padding: 38px 0; padding-left/right: var(--affine-editor-side-padding, 24px)`
-- 本项目替代策略：`BlocksuiteDescriptionEditor` 在启用 `tcHeader` 时，会在 specs 层过滤 `DocTitleViewExtension` 来禁用内置标题，并让自定义 header 的标题排版对齐上述样式基准。
-- 兜底策略：考虑到 blocksuite 在 iframe 内可能注入/调整 CSS，且上游 specs 过滤可能因引用形态差异漏删，本项目在 tcHeader 模式下额外通过 CSS 强制隐藏 `<doc-title>`，确保不会与业务 header 并存。
+- 本项目替代策略（tcHeader 场景不渲染内置标题）：
+  - 使用自定义容器 `tc-affine-editor-container`（fork 自 `@blocksuite/integration-test`），把 `<doc-title>` 变成“可选渲染”，避免 page 模式固定插入导致双标题。
+    - 定义：`app/components/chat/infra/blocksuite/embedded/tcAffineEditorContainer.ts`
+    - 使用：`app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts`（`disableDocTitle` → `disableDocTitle` 属性）
+  - specs 层仍会过滤 `DocTitleViewExtension`，减少 fragment side-effect（例如 meta 同步）带来的歧义。
+  - `tcHeader` 头部样式由运行时样式注入控制（确保 iframe 的 `blocksuiteFrame` 路由也生效）：
+    - 注入入口：`app/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles.ts`
+    - 样式文件：`app/components/chat/infra/blocksuite/styles/tcHeader.css`
+- 旧数据处理：如果历史文档曾经编辑过内置标题（写入 `doc.root.props.title`/`affine:page.title`），仍可能在某些入口出现“双标题/标题不一致”。`BlocksuiteDescriptionEditor` 的 `tcHeader` 区域提供“重置内置标题”按钮，可一键清空内置标题数据。
 
 ---
 
@@ -79,10 +86,17 @@
 
 ---
 
+## 3.5 集成豆知识 / 常见坑（本项目）
+
+- [Blocksuite 集成豆知识 / 常见坑](gotchas.md)
+
+---
+
 ## 4. 项目内相关文档（补充阅读）
 
 以下是“本项目自己的 Blocksuite 集成文档/记录”，用于理解为什么要这样集成、以及遇到构建/运行问题时如何排查：
 
+- `helloagents/wiki/modules/blocksuite.md`
 - `app/components/chat/infra/blocksuite/doc/`
 - `docs/BLOCKSUITE_EXAMPLES_STUDY_AND_ADAPTATION_2026-01-04.md`
 - `docs/BLOCKSUITE_EDITOR_REQUIREMENTS_AND_WRAPPERS_2026-01-04.md`

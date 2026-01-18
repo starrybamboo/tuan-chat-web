@@ -1,4 +1,3 @@
-import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import {
   useGetSpaceInfoQuery,
   useGetUserSpacesQuery,
@@ -14,17 +13,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blo
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { tuanchat } from "../../../../api/instance";
 
-function SpaceSettingWindow({
-  onClose,
-  onEditorActionsChange,
-  onEditorModeChange,
-  hideEditorModeSwitchButton = false,
-}: {
-  onClose: () => void;
-  onEditorActionsChange?: (actions: BlocksuiteDescriptionEditorActions | null) => void;
-  onEditorModeChange?: (mode: "page" | "edgeless") => void;
-  hideEditorModeSwitchButton?: boolean;
-}) {
+function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId);
   const setActiveSpaceId = spaceContext.setActiveSpaceId;
@@ -475,9 +464,6 @@ function SpaceSettingWindow({
                   fullscreenEdgeless
                   variant="full"
                   className="h-full"
-                  hideModeSwitchButton={hideEditorModeSwitchButton}
-                  onActionsChange={onEditorActionsChange}
-                  onModeChange={onEditorModeChange}
                   tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: space?.avatar ?? "" }}
                   onTcHeaderChange={({ header }) => {
                     handleBlocksuiteHeaderChange({ title: header.title, imageUrl: header.imageUrl });
