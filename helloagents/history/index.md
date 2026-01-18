@@ -76,6 +76,7 @@
 
 ### 2026-01
 
+- [202601181413_ai-image-style-precommit](2026-01/202601181413_ai-image-style-precommit/) - ?? WebP ????? pre-commit
 - [202601181336_ai-image-style-webp](2026-01/202601181336_ai-image-style-webp/) - ????? WebP ??????
 - [202601070338_blocksuite_docs](2026-01/202601070338_blocksuite_docs/) - Blocksuite 依赖文档补全（0.22.4）
 - [202601070431_blocksuite_docs_0_22_4](2026-01/202601070431_blocksuite_docs_0_22_4/) - Blocksuite 0.22.4 文档方案（未执行归档：已由 blocksuite_docs 覆盖）
@@ -142,4 +143,5 @@
 
 | ??? | ???? | ?? | ?? | ????? |
 |--------|----------|------|------|------------|
+| 202601181413 | ai-image-style-precommit | ?? | ???? | history/2026-01/202601181413_ai-image-style-precommit/ |
 | 202601181336 | ai-image-style-webp | ?? | ???? | history/2026-01/202601181336_ai-image-style-webp/ |
