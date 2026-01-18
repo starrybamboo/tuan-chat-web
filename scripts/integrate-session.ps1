@@ -1,8 +1,9 @@
 param(
   [string]$IntegrationBranch = "dev-jxc",
   [switch]$AutoCommit,
-  [string]$CommitMessage = "chore: integrate session worktree",
+  [string]$CommitMessage = "集成：合并 session worktree",
   [switch]$DeleteBranch,
+  [switch]$RemoveWorktree,
   [switch]$DryRun,
   [switch]$Yes
 )
@@ -96,7 +97,11 @@ if ($needsCommit -and -not $AutoCommit -and -not $DryRun) {
 if ($DryRun) {
   Write-Host "[DryRun] Planned actions:"
   Write-Host "- merge --no-ff $sessionBranch -> $IntegrationBranch"
-  Write-Host "- worktree remove $sessionPath"
+  if ($RemoveWorktree) {
+    Write-Host "- worktree remove $sessionPath"
+  } else {
+    Write-Host "- (keep worktree) $sessionPath"
+  }
   if ($DeleteBranch) {
     Write-Host "- branch -d $sessionBranch"
   }
@@ -119,7 +124,11 @@ if ($needsCommit -and $AutoCommit) {
 if (-not $Yes) {
   Write-Host "About to run:"
   Write-Host "1) merge --no-ff $sessionBranch -> $IntegrationBranch"
-  Write-Host "2) worktree remove $sessionPath"
+  if ($RemoveWorktree) {
+    Write-Host "2) worktree remove $sessionPath"
+  } else {
+    Write-Host "2) (keep worktree) $sessionPath"
+  }
   if ($DeleteBranch) {
     Write-Host "3) branch -d $sessionBranch"
   }
@@ -134,10 +143,16 @@ if (-not $Yes) {
 
 Invoke-Git @("checkout", $IntegrationBranch) $integrationPath
 Invoke-Git @("merge", "--no-ff", $sessionBranch) $integrationPath
-Invoke-Git @("worktree", "remove", $sessionPath) $integrationPath
+if ($RemoveWorktree) {
+  Invoke-Git @("worktree", "remove", $sessionPath) $integrationPath
+}
 
 if ($DeleteBranch) {
   Invoke-Git @("branch", "-d", $sessionBranch) $integrationPath
 }
 
-Write-Host "Done: merged $sessionBranch -> $IntegrationBranch, removed worktree: $sessionPath"
+if ($RemoveWorktree) {
+  Write-Host "Done: merged $sessionBranch -> $IntegrationBranch, removed worktree: $sessionPath"
+} else {
+  Write-Host "Done: merged $sessionBranch -> $IntegrationBranch, kept worktree: $sessionPath"
+}

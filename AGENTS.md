@@ -18,6 +18,8 @@
 2. 必须先创建（或复用）一个 **session worktree**，并在该目录下完成所有开发操作（`<slug>` 默认自动生成，不需要追问用户）。
 3. **任何改动默认都要合入主分支**：阶段性成果/任务完成后，回到主 worktree 将 session 分支合入 `dev-jxc`（或用户指定的主分支）。
 4. **默认不清理 worktree**：合并后保留 session worktree 目录，便于继续迭代；仅当用户明确要求清理时才执行 `git worktree remove`。
+5. **默认不重复安装依赖（避免卡顿）**：除非本次变更涉及依赖调整，否则不要在每个 worktree 里都生成一份 `node_modules`；优先复用主 worktree 的依赖（例如用 Junction）。
+6. **同一对话尽量复用 worktree**：同一个任务上下文后续修改默认继续使用同一个 session worktree，避免反复创建新 worktree 造成目录膨胀与卡顿；仅在用户明确要求并行新 session 时才新建。
 
 ### 创建 session worktree（示例）
 
@@ -38,12 +40,14 @@
 
 为减少人工操作，本仓库提供一键脚本：`scripts/integrate-session.ps1`。
 
-**推荐用法：在 session worktree 中执行（会合并到 `dev-jxc`；脚本默认会移除当前 session worktree）**
+**推荐用法：在 session worktree 中执行（会合并到 `dev-jxc`；脚本默认不会移除当前 session worktree）**
 
 - 交互确认：
   - `.\scripts\integrate-session.ps1`
 - 无交互（自动继续）：
   - `.\scripts\integrate-session.ps1 -Yes`
+- 合并后移除当前 session worktree（需要清理时再用）：
+  - `.\scripts\integrate-session.ps1 -Yes -RemoveWorktree`
 - 合并后删除 session 分支（可选）：
   - `.\scripts\integrate-session.ps1 -Yes -DeleteBranch`
 - 自动提交未提交改动后再合并（可选）：
@@ -54,7 +58,13 @@
 **说明**
 - 脚本会执行 `git merge --no-ff`，因此会产生一次 merge commit（仅本地，不会自动 push）。
 - 若主 worktree 存在未提交改动，脚本会直接中止以避免丢失改动；session worktree 默认也会中止，可用 `-AutoCommit` 自动提交。
-- 若需要“合并但不清理 worktree”，请不要使用该脚本的默认行为，改为手动合并（或后续为脚本新增保留参数）。
+- 若需要清理 worktree，请显式使用 `-RemoveWorktree`（避免合并时触发删除导致卡顿）。
+
+## node_modules 复用（推荐）
+
+为避免 `tuan-chat-web.worktrees\\*` 下生成多份 `node_modules` 导致卡顿，推荐在主 worktree 执行一次：
+
+- `powershell -File "C:\\Users\\降星驰\\.codex\\scripts\\git-worktree-link-node-modules.ps1" -RepoRoot "D:\\A_collection\\tuan-chat-web" -IntegrationBranch "dev-jxc" -AllSessionWorktrees -Force`
 
 ## 重要边界与安全约束
 
