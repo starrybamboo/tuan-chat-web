@@ -1,3 +1,4 @@
+// Blocksuite 工作区运行时：仅使用 tc_header 同步文档标题。
 import type {
   Doc,
   DocMeta,
@@ -99,6 +100,7 @@ class SpaceDoc implements Doc {
   private _remoteUpdateHandler: ((update: Uint8Array, origin: unknown) => void) | null = null;
   private _pendingRemoteUpdates: Uint8Array[] = [];
   private _remotePushTimer: ReturnType<typeof setTimeout> | null = null;
+  private _lastTcHeaderTitle: string | null = null;
 
   private _loaded = true;
   private _ready = false;
@@ -167,15 +169,16 @@ class SpaceDoc implements Doc {
     this.spaceDoc.load();
     initFn?.();
     this._ready = true;
+    this._refreshMetaTitleFromTcHeader();
 
     // Push local edits to remote snapshot storage on-demand (only for docs that are actually opened/loaded).
     // This avoids the sync engine pulling every subdoc in the space.
     this._remoteUpdateHandler = (update: Uint8Array, origin: unknown) => {
       // Ignore initial loads / programmatic remote restores to avoid redundant PUT right after GET.
-      if (origin === "load" || origin === REMOTE_RESTORE_ORIGIN)
-        return;
-
-      this._enqueueRemoteUpdate(update);
+      if (origin !== "load" && origin !== REMOTE_RESTORE_ORIGIN) {
+        this._enqueueRemoteUpdate(update);
+      }
+      this._refreshMetaTitleFromTcHeader();
     };
     this.spaceDoc.on("update", this._remoteUpdateHandler);
   }
@@ -222,6 +225,28 @@ class SpaceDoc implements Doc {
     }
   }
 
+  private _refreshMetaTitleFromTcHeader(): void {
+    const nextTitle = tryReadTcHeaderTitleFromYDoc(this.spaceDoc) ?? "";
+    if (this._lastTcHeaderTitle === nextTitle)
+      return;
+    this._lastTcHeaderTitle = nextTitle;
+
+    const meta = this.workspace.meta.getDocMeta(this.id);
+    if (!meta) {
+      this.workspace.meta.addDocMeta({
+        id: this.id,
+        title: nextTitle,
+        tags: [],
+        createDate: Date.now(),
+      });
+      return;
+    }
+
+    if (meta.title !== nextTitle) {
+      this.workspace.meta.setDocMeta(this.id, { title: nextTitle });
+    }
+  }
+
   getStore(options: GetStoreOptions = {}): Store {
     const storeExtensions = (this.workspace as SpaceWorkspace).storeExtensions.concat(options.extensions ?? []);
     const storeId = options.id ?? this.spaceDoc.guid;
@@ -257,6 +282,7 @@ export class SpaceWorkspace implements Workspace {
 
   private readonly _titleHydrationAbort = new AbortController();
   private _titleHydrationScheduled = false;
+  private readonly _tcHeaderHydratedDocIds = new Set<string>();
   private _docListUpdatedBlocked = 0;
   private _docListUpdatedEmitted = false;
   private _docListUpdatedResetScheduled = false;
@@ -356,7 +382,7 @@ export class SpaceWorkspace implements Workspace {
   }
 
   private _hydrateMissingTitles() {
-    // Titles are derived from document content, so we need to load subdocs.
+    // Titles are derived from tc_header, so we need to load subdocs.
     // Do this lazily and in a read-only way to avoid mutating docs during listing.
     if (this._titleHydrationScheduled)
       return;
@@ -369,16 +395,10 @@ export class SpaceWorkspace implements Workspace {
 
       const metas = this.meta.docMetas;
       // linked-doc uses `workspace.meta.docMetas` as its data source.
-      // For business docIds, the title should prefer `tc_header.title` (instead of blocksuite native title).
-      const isBusinessDocId = (id: string) => /^(?:room|space|clue|user):/.test(id);
-      const isPlaceholderTitle = (title: unknown) => {
-        if (typeof title !== "string")
-          return false;
-        return title.trim().toLowerCase() === "untitled";
-      };
+      // Always hydrate titles from tc_header and do not fallback to native titles.
       const pendingIds = metas
-        .filter(m => !m.title || isBusinessDocId(m.id) || isPlaceholderTitle(m.title))
-        .map(m => m.id);
+        .map(m => m.id)
+        .filter(id => !this._tcHeaderHydratedDocIds.has(id));
 
       let anyMetaChanged = false;
       this._docListUpdatedBlocked++;
@@ -396,29 +416,13 @@ export class SpaceWorkspace implements Workspace {
             if (!meta)
               continue;
 
-            const isBusiness = isBusinessDocId(docId);
-            const metaTitle = typeof meta.title === "string" ? meta.title.trim() : "";
-            const metaIsPlaceholder = isPlaceholderTitle(metaTitle);
             const tcTitle = tryReadTcHeaderTitleFromYDoc(doc.spaceDoc);
-            if (tcTitle) {
-              if (meta.title !== tcTitle) {
-                this.meta.setDocMeta(docId, { title: tcTitle });
-                anyMetaChanged = true;
-              }
-              continue;
-            }
-
-            // Business docs: if `tc_header.title` is missing, prefer keeping existing meta title
-            // (which may come from room/space name) instead of overriding with blocksuite native title.
-            if (isBusiness && metaTitle && !metaIsPlaceholder) {
-              continue;
-            }
-
-            const storeTitle = tryDeriveDocTitle(doc.getStore({ readonly: true }));
-            if (storeTitle && meta.title !== storeTitle) {
-              this.meta.setDocMeta(docId, { title: storeTitle });
+            const nextTitle = tcTitle ?? "";
+            if (meta.title !== nextTitle) {
+              this.meta.setDocMeta(docId, { title: nextTitle });
               anyMetaChanged = true;
             }
+            this._tcHeaderHydratedDocIds.add(docId);
           }
           catch {
             // ignore; keep empty title
@@ -464,6 +468,7 @@ export class SpaceWorkspace implements Workspace {
 
     this._docs.delete(docId);
     this.meta.removeDocMeta(docId);
+    this._tcHeaderHydratedDocIds.delete(docId);
     this._emitDocListUpdated();
 
     this._rootDoc.getMap<Y.Doc>("spaces").delete(docId);
@@ -629,28 +634,6 @@ function ensureAffineMinimumBlockData(store: Store) {
   });
 }
 
-function tryDeriveDocTitle(store: Store): string | null {
-  const tcTitle = tryReadTcHeaderTitle(store);
-  if (tcTitle)
-    return tcTitle;
-
-  return tryReadNativeDocTitle(store);
-}
-
-function tryReadNativeDocTitle(store: Store): string | null {
-  try {
-    const pages = store.getModelsByFlavour("affine:page") as Array<any>;
-    const page = pages?.[0];
-    const title = page?.props?.title;
-    const str = typeof title?.toString === "function" ? title.toString() : "";
-    const trimmed = String(str ?? "").trim();
-    return trimmed || null;
-  }
-  catch {
-    return null;
-  }
-}
-
 function tryReadTcHeaderTitleFromYDoc(ydoc: Y.Doc | undefined): string | null {
   try {
     const share = (ydoc as any)?.share as Map<string, unknown> | undefined;
@@ -705,18 +688,13 @@ export function getOrCreateSpaceDocStore(params: {
   ensureAffineMinimumBlockData(store);
 
   // Best-effort: sync title into meta so linked-doc can fuzzy-match by title.
-  const tcTitle = tryReadTcHeaderTitle(store);
-  const title = tcTitle ?? tryReadNativeDocTitle(store);
-  if (title) {
-    const meta = ws.meta.getDocMeta(params.docId);
-    if (!meta) {
-      ws.meta.addDocMeta({ id: params.docId, title, tags: [], createDate: Date.now() });
-    }
-    else if (tcTitle || !meta.title) {
-      if (meta.title !== title) {
-        ws.meta.setDocMeta(params.docId, { title });
-      }
-    }
+  const tcTitle = tryReadTcHeaderTitle(store) ?? "";
+  const meta = ws.meta.getDocMeta(params.docId);
+  if (!meta) {
+    ws.meta.addDocMeta({ id: params.docId, title: tcTitle, tags: [], createDate: Date.now() });
+  }
+  else if (meta.title !== tcTitle) {
+    ws.meta.setDocMeta(params.docId, { title: tcTitle });
   }
   return store;
 }
