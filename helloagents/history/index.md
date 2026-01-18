@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601180022 | space_mention_cleanup | 修复 | 已完成 | [2026-01/202601180022_space-mention-cleanup/](2026-01/202601180022_space-mention-cleanup/) |
 | 202601070338 | blocksuite_docs | 功能 | 已完成 | [2026-01/202601070338_blocksuite_docs/](2026-01/202601070338_blocksuite_docs/) |
 | 202601070431 | blocksuite_docs_0_22_4 | 文档 | 已跳过 | [2026-01/202601070431_blocksuite_docs_0_22_4/](2026-01/202601070431_blocksuite_docs_0_22_4/) |
 | 202601070539 | blocksuite_docs_0224 | 文档 | 已跳过 | [2026-01/202601070539_blocksuite_docs_0224/](2026-01/202601070539_blocksuite_docs_0224/) |
@@ -76,6 +77,7 @@
 
 ### 2026-01
 
+- [202601180022_space-mention-cleanup](2026-01/202601180022_space-mention-cleanup/) - 空间资料 @ 列表过滤已删除房间文档
 - [202601181336_ai-image-style-webp](2026-01/202601181336_ai-image-style-webp/) - ????? WebP ??????
 - [202601070338_blocksuite_docs](2026-01/202601070338_blocksuite_docs/) - Blocksuite 依赖文档补全（0.22.4）
 - [202601070431_blocksuite_docs_0_22_4](2026-01/202601070431_blocksuite_docs_0_22_4/) - Blocksuite 0.22.4 文档方案（未执行归档：已由 blocksuite_docs 覆盖）

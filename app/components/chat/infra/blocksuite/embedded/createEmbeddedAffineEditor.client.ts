@@ -28,6 +28,7 @@ import { tuanchat } from "api/instance";
 
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
+import { parseSpaceDocId } from "../spaceDocId";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
@@ -48,6 +49,9 @@ let mentionMenuLockUntil = 0;
 const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
 const mentionCommitDedupMs = 600;
 let mentionCommitDedupUntil = 0;
+const ROOM_LIST_CACHE_TTL_MS = 10_000;
+const roomListCache = new Map<number, { at: number; ids: Set<number> }>();
+const roomListInflight = new Map<number, Promise<Set<number> | null>>();
 
 function isMentionCommitDeduped(): boolean {
   return Date.now() < mentionCommitDedupUntil;
@@ -131,6 +135,54 @@ function insertMentionViaInlineEditor(params: {
   catch (err) {
     logMentionMenu("insert: failed", { memberId, err: String(err) });
     return false;
+  }
+}
+
+function parseRoomIdFromDocKey(key: string): number | null {
+  const parsed = parseSpaceDocId(key);
+  if (parsed?.kind !== "room_description")
+    return null;
+  return parsed.roomId;
+}
+
+async function getRoomIdsForSpace(spaceId: number, signal: AbortSignal): Promise<Set<number> | null> {
+  if (!Number.isFinite(spaceId) || spaceId <= 0)
+    return null;
+
+  const cached = roomListCache.get(spaceId);
+  if (cached && Date.now() - cached.at <= ROOM_LIST_CACHE_TTL_MS) {
+    return cached.ids;
+  }
+
+  const inflight = roomListInflight.get(spaceId);
+  if (inflight)
+    return inflight;
+
+  const task = (async () => {
+    if (signal.aborted)
+      return null;
+    const resp = await tuanchat.roomController.getUserRooms(spaceId);
+    const rooms = (resp as any)?.data?.rooms ?? [];
+    const ids = new Set<number>();
+    for (const room of rooms) {
+      const id = Number((room as any)?.roomId);
+      if (Number.isFinite(id) && id > 0) {
+        ids.add(id);
+      }
+    }
+    roomListCache.set(spaceId, { at: Date.now(), ids });
+    return ids;
+  })();
+
+  roomListInflight.set(spaceId, task);
+  try {
+    return await task;
+  }
+  catch {
+    return null;
+  }
+  finally {
+    roomListInflight.delete(spaceId);
   }
 }
 
@@ -421,9 +473,44 @@ export function createEmbeddedAffineEditor(params: {
 
     // 1. Official linked-doc menu
     const docGroupRaw = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
+    const docItemsRaw = Array.isArray(docGroupRaw.items) ? docGroupRaw.items : [];
+    let docItems = docItemsRaw;
+    const removedDocIds: string[] = [];
+
+    if (params.spaceId && params.spaceId > 0 && docItemsRaw.length > 0) {
+      const hasRoomDoc = docItemsRaw.some(item => parseRoomIdFromDocKey(item.key) !== null);
+      if (hasRoomDoc) {
+        const roomIds = await getRoomIdsForSpace(params.spaceId, signal);
+        if (roomIds && !signal.aborted) {
+          docItems = docItemsRaw.filter((item) => {
+            const roomId = parseRoomIdFromDocKey(item.key);
+            if (roomId === null)
+              return true;
+            if (roomIds.has(roomId))
+              return true;
+            removedDocIds.push(item.key);
+            return false;
+          });
+        }
+      }
+    }
+
+    if (removedDocIds.length > 0) {
+      try {
+        const metaAny = (workspace as any)?.meta;
+        if (metaAny?.removeDocMeta) {
+          for (const docId of removedDocIds) {
+            metaAny.removeDocMeta(docId);
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    }
     const docGroup = {
       ...docGroupRaw,
-      items: (docGroupRaw.items ?? []).map((item: any) => {
+      items: docItems.map((item: any) => {
         const orig = item?.action;
         return {
           ...item,
