@@ -252,6 +252,7 @@ export class SpaceWorkspace implements Workspace {
   private readonly _spaces: Y.Map<Y.Doc>;
   private readonly _onSpacesChanged = () => {
     this._syncMetaFromSpaces();
+    this._hydrateMissingTitles();
   };
 
   private readonly _titleHydrationAbort = new AbortController();
@@ -318,6 +319,7 @@ export class SpaceWorkspace implements Workspace {
     // Ensure linked-doc can list all docs within this workspace.
     // linked-doc menu reads from `workspace.meta.docMetas`.
     this._syncMetaFromSpaces();
+    this._hydrateMissingTitles();
     this._spaces.observe(this._onSpacesChanged);
   }
 
