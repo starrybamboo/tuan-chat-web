@@ -32,17 +32,20 @@ export async function ensureBlocksuiteRuntimeStyles(): Promise<void> {
       fontsMod,
       katexMod,
       headerMod,
+      tcHeaderMod,
     ] = await Promise.all([
       import("@toeverything/theme/style.css?inline"),
       import("@toeverything/theme/fonts.css?inline"),
       import("katex/dist/katex.min.css?inline"),
       import("./affine-embed-synced-doc-header.css?inline"),
+      import("./tcHeader.css?inline"),
     ]);
 
     const themeCss = rewriteThemeRoot(((themeMod as any)?.default as string | undefined) ?? "");
     const fontsCss = (((fontsMod as any)?.default as string | undefined) ?? "");
     const katexCss = rewriteKatexGlobalCounterReset(((katexMod as any)?.default as string | undefined) ?? "");
     const headerCss = (((headerMod as any)?.default as string | undefined) ?? "");
+    const tcHeaderCss = (((tcHeaderMod as any)?.default as string | undefined) ?? "");
 
     const styleEl = document.createElement("style");
     styleEl.id = STYLE_ID;
@@ -53,6 +56,7 @@ export async function ensureBlocksuiteRuntimeStyles(): Promise<void> {
       fontsCss,
       katexCss,
       headerCss,
+      tcHeaderCss,
       `
       ${SCOPE_SELECTOR} .dg > ul { overflow: auto; }
       `,

@@ -118,7 +118,12 @@ export default function App() {
   // - 避免重复初始化全局 provider（尤其是 websocket）
   // - 减少 iframe 冷启动成本
   if (isBlocksuiteFrame) {
-    return <Outlet />;
+    return (
+      <>
+        <Outlet />
+        <div id="modal-root"></div>
+      </>
+    );
   }
 
   return (

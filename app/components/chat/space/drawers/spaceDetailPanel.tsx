@@ -1,5 +1,4 @@
 import type { SpaceDetailTab } from "../spaceHeaderBar";
-import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
 import { use, useState } from "react";
 import toast from "react-hot-toast";
@@ -31,9 +30,6 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
   const [inviteMemberMode, setInviteMemberMode] = useState<"spectator" | "player">("spectator");
-
-  const [spaceDocEditorActions, setSpaceDocEditorActions] = useState<BlocksuiteDescriptionEditorActions | null>(null);
-  const [spaceDocEditorMode, setSpaceDocEditorMode] = useState<"page" | "edgeless">("page");
 
   const addMemberMutation = useAddSpaceMemberMutation();
   const addRoleMutation = useAddSpaceRoleMutation();
@@ -109,25 +105,6 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
           空间资料
         </div>
 
-        {resolvedTab === "setting" && spaceContext.isSpaceOwner
-          ? (
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={() => {
-                    if (!spaceDocEditorActions)
-                      return;
-                    const next = spaceDocEditorActions.toggleMode();
-                    setSpaceDocEditorMode(next ?? "page");
-                  }}
-                  disabled={!spaceDocEditorActions}
-                >
-                  {spaceDocEditorMode === "page" ? "切换到画布" : "退出画布"}
-                </button>
-              </div>
-            )
-          : null}
       </div>
       {resolvedTab === "members" && (
         <div className="h-full space-y-2 p-4 overflow-y-auto">
@@ -143,13 +120,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
       {resolvedTab === "setting" && spaceContext.isSpaceOwner && (
         <div className="h-full p-4 overflow-y-auto">
-          <SpaceSettingWindow
-            onClose={onClose}
-            hideEditorModeSwitchButton
-            onEditorActionsChange={setSpaceDocEditorActions}
-            onEditorModeChange={setSpaceDocEditorMode}
-          >
-          </SpaceSettingWindow>
+          <SpaceSettingWindow onClose={onClose} />
         </div>
       )}
 

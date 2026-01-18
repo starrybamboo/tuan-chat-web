@@ -1,3 +1,4 @@
+// 嵌入式 Blocksuite 编辑器创建与扩展配置。
 import type { LinkedMenuGroup } from "@blocksuite/affine-widget-linked-doc";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 
@@ -20,14 +21,15 @@ import {
   UserServiceExtension,
 } from "@blocksuite/affine/shared/services";
 import { getTestViewManager } from "@blocksuite/integration-test/view";
+import { ZERO_WIDTH_FOR_EMBED_NODE } from "@blocksuite/std/inline";
 import { html } from "lit";
 
 import { tuanchat } from "api/instance";
 
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
-import { insertMentionAtCurrentSelection } from "../services/mentionPicker";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
+import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
 type ElementSnapshot = { attrs: Map<string, string | null>; className: string; styleText: string };
 
@@ -41,6 +43,96 @@ const viewManager = getTestViewManager();
 let slashMenuSelectionGuardInstalled = false;
 let slashMenuSelectionGuardRefCount = 0;
 let slashMenuSelectionGuardHandler: ((e: Event) => void) | null = null;
+const mentionMenuLockMs = 400;
+let mentionMenuLockUntil = 0;
+const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
+const mentionCommitDedupMs = 600;
+let mentionCommitDedupUntil = 0;
+
+function isMentionCommitDeduped(): boolean {
+  return Date.now() < mentionCommitDedupUntil;
+}
+
+function lockMentionCommitDedup() {
+  mentionCommitDedupUntil = Date.now() + mentionCommitDedupMs;
+}
+
+function isMentionMenuLocked() {
+  return Date.now() < mentionMenuLockUntil;
+}
+
+function lockMentionMenu() {
+  mentionMenuLockUntil = Date.now() + mentionMenuLockMs;
+}
+
+function forwardMentionMenu(message: string, payload?: Record<string, unknown>) {
+  try {
+    const fn = (globalThis as any).__tcBlocksuiteDebugLog as undefined | ((entry: any) => void);
+    fn?.({ source: "BlocksuiteMentionMenu", message, payload });
+  }
+  catch {
+    // ignore
+  }
+}
+
+function logMentionMenu(message: string, payload?: Record<string, unknown>) {
+  if (!mentionMenuDebugEnabled)
+    return;
+  if (payload) {
+    console.warn("[BlocksuiteMentionMenu]", message, payload);
+  }
+  else {
+    console.warn("[BlocksuiteMentionMenu]", message);
+  }
+  forwardMentionMenu(message, payload);
+}
+
+function insertMentionViaInlineEditor(params: {
+  inlineEditor: any;
+  query: string;
+  triggerKey: string;
+  memberId: string;
+  abort: () => void;
+}): boolean {
+  const { inlineEditor, query, triggerKey, memberId, abort } = params;
+
+  const current = inlineEditor?.getInlineRange?.();
+  if (!current) {
+    logMentionMenu("insert: inline range missing", { memberId });
+    return false;
+  }
+
+  const deleteLen = String(triggerKey).length + String(query ?? "").length;
+  const insertIndex = Math.max(0, Number(current.index ?? 0) - deleteLen);
+
+  // Close popover and clear "@query" using the official abort routine first,
+  // then insert mention at the computed index to avoid abort wiping inserted text.
+  try {
+    abort();
+  }
+  catch {
+    // ignore
+  }
+
+  try {
+    inlineEditor.setInlineRange?.({ index: insertIndex, length: 0 });
+    // IMPORTANT:
+    // Mention inline spec is an "embed" node. It should be represented by a single
+    // ZERO_WIDTH_FOR_EMBED_NODE character with `mention` attributes, otherwise
+    // each character may be rendered as a full mention, causing repeated "@xxx".
+    inlineEditor.insertText?.({ index: insertIndex, length: 0 }, ZERO_WIDTH_FOR_EMBED_NODE, {
+      mention: { member: String(memberId) },
+    });
+    // Add a trailing space (plain text) to make typing easier.
+    inlineEditor.insertText?.({ index: insertIndex + 1, length: 0 }, " ");
+    inlineEditor.setInlineRange?.({ index: insertIndex + 2, length: 0 });
+    return true;
+  }
+  catch (err) {
+    logMentionMenu("insert: failed", { memberId, err: String(err) });
+    return false;
+  }
+}
 
 function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
   if (typeof document === "undefined")
@@ -286,8 +378,9 @@ export function createEmbeddedAffineEditor(params: {
     // ignore
   }
 
+  ensureTCAffineEditorContainerDefined();
   const editor = document.createElement(
-    "affine-editor-container",
+    TC_AFFINE_EDITOR_CONTAINER_TAG,
   ) as unknown as HTMLElement;
 
   // Used to scope any injected CSS to this editor only.
@@ -306,6 +399,7 @@ export function createEmbeddedAffineEditor(params: {
   };
 
   (editor as any).autofocus = autofocus;
+  (editor as any).disableDocTitle = disableDocTitle;
   (editor as any).doc = storeAny;
 
   const userService = createTuanChatUserService();
@@ -319,9 +413,31 @@ export function createEmbeddedAffineEditor(params: {
   ): Promise<LinkedMenuGroup[]> => {
     if (signal.aborted)
       return [];
+    if (isMentionMenuLocked())
+      return [];
+
+    let mentionActionLocked = false;
+    logMentionMenu("getDocMenus", { query, locked: isMentionMenuLocked() });
 
     // 1. Official linked-doc menu
-    const docGroup = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
+    const docGroupRaw = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
+    const docGroup = {
+      ...docGroupRaw,
+      items: (docGroupRaw.items ?? []).map((item: any) => {
+        const orig = item?.action;
+        return {
+          ...item,
+          action: () => {
+            if (isMentionCommitDeduped()) {
+              logMentionMenu("doc action deduped", { key: item?.key, name: item?.name });
+              return;
+            }
+            lockMentionCommitDedup();
+            return orig?.();
+          },
+        };
+      }),
+    };
 
     const result: LinkedMenuGroup[] = [];
 
@@ -342,6 +458,12 @@ export function createEmbeddedAffineEditor(params: {
           return name.toLowerCase().includes(q) || id.includes(q);
         });
 
+        logMentionMenu("menu request", {
+          query,
+          locked: isMentionMenuLocked(),
+          memberCount: filtered.length,
+        });
+
         if (filtered.length > 0) {
           memberGroup = {
             name: "Members",
@@ -357,12 +479,31 @@ export function createEmbeddedAffineEditor(params: {
                   ? html`<img src="${(m as any).avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
                   : html`<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:#eee;border-radius:50%;font-size:12px;">@</div>`,
                 action: () => {
-                  insertMentionAtCurrentSelection({
-                    std: editorHost.std,
-                    store: storeAny,
+                  if (mentionActionLocked || isMentionMenuLocked())
+                    return;
+                  if (isMentionCommitDeduped()) {
+                    logMentionMenu("mention action deduped", { memberId: id, name });
+                    return;
+                  }
+                  lockMentionCommitDedup();
+
+                  logMentionMenu("action picked", { memberId: id, name });
+
+                  const inserted = insertMentionViaInlineEditor({
+                    inlineEditor,
+                    query,
+                    triggerKey: "@",
+                    abort,
                     memberId: id,
-                    displayName: name,
                   });
+                  if (inserted) {
+                    mentionActionLocked = true;
+                    lockMentionMenu();
+                    logMentionMenu("action applied", { memberId: id, name, inserted });
+                  }
+                  else {
+                    logMentionMenu("action blocked", { memberId: id, name, inserted });
+                  }
                 },
               };
             }),
@@ -528,10 +669,25 @@ export function createEmbeddedAffineEditor(params: {
   });
 
   const pageSpecsBase = viewManager.get("page");
+  const normalizeExtHint = (v: unknown) => String(v ?? "").trim().toLowerCase();
   const isDocTitleExtension = (ext: any) => {
-    return ext === DocTitleViewExtension
-      || ext?.name === "affine-doc-title-fragment"
-      || ext?.constructor === DocTitleViewExtension;
+    if (!ext)
+      return false;
+
+    // Prefer identity checks when possible.
+    if (ext === DocTitleViewExtension || ext?.constructor === DocTitleViewExtension)
+      return true;
+
+    // Some builds may duplicate module instances (e.g. workspace + iframe bundles),
+    // so fall back to semantic matching by name/id.
+    const name = normalizeExtHint(ext?.name ?? (typeof ext === "function" ? ext.name : ""));
+    const id = normalizeExtHint(ext?.id ?? ext?.key ?? ext?.type ?? ext?.displayName);
+
+    if (name === "affine-doc-title-fragment" || id === "affine-doc-title-fragment")
+      return true;
+
+    // Final heuristic: match "doc"+"title" but avoid over-broad matches.
+    return (name.includes("doc") && name.includes("title")) || (id.includes("doc") && id.includes("title"));
   };
   const pageSpecs = disableDocTitle
     ? pageSpecsBase.filter(ext => !isDocTitleExtension(ext))

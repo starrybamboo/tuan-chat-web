@@ -17,6 +17,7 @@ import type {
 } from "./wsModels";
 import type { NewFriendRequestPush } from "./wsModels";
 import type { SpaceSidebarTreeUpdatedPush } from "./wsModels";
+import type { RoomDismissPush } from "./wsModels";
 import {tuanchat} from "./instance";
 import {
   useGetUserSessionsQuery,
@@ -24,6 +25,8 @@ import {
 } from "./hooks/messageSessionQueryHooks";
 import type {MessageSessionResponse} from "./models/MessageSessionResponse";
 import type {ApiResultListMessageSessionResponse} from "./models/ApiResultListMessageSessionResponse";
+import type { ApiResultRoom } from "./models/ApiResultRoom";
+import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
 import { MessageType } from "./wsModels";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 
@@ -189,6 +192,47 @@ export function useWebSocket() {
   const [receivedDirectMessages, updateReceivedDirectMessages] = useImmer<Record<number, DirectMessageEvent[]>>({});
 
   const queryClient = useQueryClient();
+
+  const cleanupRoomDescriptionDocOnDissolve = useCallback((roomId: number) => {
+    if (typeof window === "undefined")
+      return;
+
+    const docId = `room:${roomId}:description`;
+
+    // 优先从 roomInfo 缓存拿 spaceId（避免对所有 space 做 best-effort 删除）。
+    const roomInfo = queryClient.getQueryData<ApiResultRoom>(["getRoomInfo", roomId]);
+    const cachedSpaceId = roomInfo?.data?.spaceId;
+    const spaceIdFromRoomInfo = (typeof cachedSpaceId === "number" && Number.isFinite(cachedSpaceId) && cachedSpaceId > 0)
+      ? cachedSpaceId
+      : null;
+
+    void (async () => {
+      try {
+        const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/deleteSpaceDoc");
+
+        if (spaceIdFromRoomInfo != null) {
+          await deleteSpaceDoc({ spaceId: spaceIdFromRoomInfo, docId });
+          return;
+        }
+
+        // roomInfo 缓存缺失时，best-effort：对当前缓存中出现过的 space 都尝试删除一次（不存在则 no-op）。
+        const queries = queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] });
+        const spaceIds = new Set<number>();
+        for (const [key] of queries) {
+          const maybeSpaceId = Array.isArray(key) ? key[1] : null;
+          const sid = typeof maybeSpaceId === "number" ? maybeSpaceId : Number(maybeSpaceId);
+          if (Number.isFinite(sid) && sid > 0) {
+            spaceIds.add(sid);
+          }
+        }
+
+        await Promise.allSettled(Array.from(spaceIds).map(spaceId => deleteSpaceDoc({ spaceId, docId })));
+      }
+      catch {
+        // ignore
+      }
+    })();
+  }, [queryClient]);
 
   /**
    * 群聊的未读消息数
@@ -472,6 +516,8 @@ export function useWebSocket() {
         break;
       }
       case 14:{ // 房间解散
+        const event = message as RoomDismissPush;
+        cleanupRoomDescriptionDocOnDissolve(event.data.roomId);
         queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
         queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
         break;

@@ -262,6 +262,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         content: executorProp.originMessage,
         roleId: curRoleId,
         avatarId: curAvatarId,
+        threadId: executorProp.threadId,
+        replayMessageId: executorProp.replyMessageId,
         extra: {},
       };
       const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
@@ -341,6 +343,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         roleId: dicerRoleId,
         avatarId: chosenAvatarId,
         content: "",
+        threadId: executorProp.threadId,
         replayMessageId: optMsgRes.data?.messageId ?? undefined,
         extra: {},
       };

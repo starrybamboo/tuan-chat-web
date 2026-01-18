@@ -37,6 +37,38 @@
 | 202601140604 | director_set_var | 优化 | 已完成 | [2026-01/202601140604_director_set_var/](2026-01/202601140604_director_set_var/) |
 | 202601141319 | blocksuite_title_conflict_fix | 修复 | 已完成 | [2026-01/202601141319_blocksuite_title_conflict_fix/](2026-01/202601141319_blocksuite_title_conflict_fix/) |
 | 202601141740 | lint_fix | 修复 | 已完成 | [2026-01/202601141740_lint_fix/](2026-01/202601141740_lint_fix/) |
+| 202601141830 | blocksuite_doc_title_reset | 修复 | 已完成 | [2026-01/202601141830_blocksuite_doc_title_reset/](2026-01/202601141830_blocksuite_doc_title_reset/) |
+| 202601141920 | ai_image_novelai | 功能 | 已完成（待确认） | [2026-01/202601141920_ai_image_novelai/](2026-01/202601141920_ai_image_novelai/) |
+| 202601142115 | ai_image_dev_only | 优化 | 已完成 | [2026-01/202601142115_ai_image_dev_only/](2026-01/202601142115_ai_image_dev_only/) |
+| 202601142140 | blocksuite_doc_title_optional_container | 修复 | 已完成 | [2026-01/202601142140_blocksuite_doc_title_optional_container/](2026-01/202601142140_blocksuite_doc_title_optional_container/) |
+| 202601142246 | ai_image_meta_endpoint_fix | 修复 | 已完成 | [2026-01/202601142246_ai_image_meta_endpoint_fix/](2026-01/202601142246_ai_image_meta_endpoint_fix/) |
+| 202601142250 | command_request_button | 功能 | 已完成 | [2026-01/202601142250_command_request_button/](2026-01/202601142250_command_request_button/) |
+| 202601151614 | command_request_message_type | 功能 | 已完成 | [2026-01/202601151614_command_request_message_type/](2026-01/202601151614_command_request_message_type/) |
+| 202601142337 | ai_image_proxy_env | 修复 | 已完成 | [2026-01/202601142337_ai_image_proxy_env/](2026-01/202601142337_ai_image_proxy_env/) |
+| 202601151630 | ai_image_direct_fetch | 变更 | 已完成 | [2026-01/202601151630_ai_image_direct_fetch/](2026-01/202601151630_ai_image_direct_fetch/) |
+| 202601151809 | ai_image_default_proxy | 变更 | 已完成 | [2026-01/202601151809_ai_image_default_proxy/](2026-01/202601151809_ai_image_default_proxy/) |
+| 202601151716 | blocksuite_tc_header_mode_switch | 变更 | 已完成 | [2026-01/202601151716_blocksuite-tc-header-mode-switch/](2026-01/202601151716_blocksuite-tc-header-mode-switch/) |
+| 202601161120 | novelai_nl_image_simple | 功能 | 已完成 | [2026-01/202601161120_novelai_nl_image_simple/](2026-01/202601161120_novelai_nl_image_simple/) |
+| 202601171345 | blocksuite_mention_fix | 修复 | 已完成 | [2026-01/202601171345_blocksuite-mention-fix/](2026-01/202601171345_blocksuite-mention-fix/) |
+| 202601171400 | blocksuite_canvas_inline | 优化 | 已完成 | [2026-01/202601171400_blocksuite-canvas-inline/](2026-01/202601171400_blocksuite-canvas-inline/) |
+| 202601171414 | blocksuite_mention_fix2 | 修复 | 已完成 | [2026-01/202601171414_blocksuite-mention-fix2/](2026-01/202601171414_blocksuite-mention-fix2/) |
+| 202601171430 | room_setting_height | 修复 | 已完成 | [2026-01/202601171430_room-setting-height/](2026-01/202601171430_room-setting-height/) |
+| 202601171438 | blocksuite_mention_debug | 修复 | 已完成 | [2026-01/202601171438_blocksuite-mention-debug/](2026-01/202601171438_blocksuite-mention-debug/) |
+| 202601171458 | novelai_model_lock_45_full | 变更 | 已完成 | [2026-01/202601171458_novelai_model_lock_45_full/](2026-01/202601171458_novelai_model_lock_45_full/) |
+| 202601171622 | blocksuite_mention_click_debug | 修复 | 已完成（待确认） | [2026-01/202601171622_blocksuite-mention-click-debug/](2026-01/202601171622_blocksuite-mention-click-debug/) |
+| 202601171640 | mention_tc_header_title | 修复 | 已完成 | [2026-01/202601171640_mention-tc-header-title/](2026-01/202601171640_mention-tc-header-title/) |
+| 202601171657 | blocksuite_mention_host_click_debug | 修复 | 已完成（待确认） | [2026-01/202601171657_blocksuite-mention-host-click-debug/](2026-01/202601171657_blocksuite-mention-host-click-debug/) |
+| 202601171723 | blocksuite_mention_enter_debug | 修复 | 已完成（待确认） | [2026-01/202601171723_blocksuite-mention-enter-debug/](2026-01/202601171723_blocksuite-mention-enter-debug/) |
+| 202601171745 | blocksuite_mention_insert_fix | 修复 | 已完成（待确认） | [2026-01/202601171745_blocksuite-mention-insert-fix/](2026-01/202601171745_blocksuite-mention-insert-fix/) |
+| 202601171831 | doc_sidebar_tc_header | 优化 | 已完成 | [2026-01/202601171831_doc_sidebar_tc_header/](2026-01/202601171831_doc_sidebar_tc_header/) |
+| 202601171843 | blocksuite_kb_notes | 文档 | 已完成 | [2026-01/202601171843_blocksuite-kb-notes/](2026-01/202601171843_blocksuite-kb-notes/) |
+| 202601171854 | ai_image_settings_modal | 优化 | 已完成 | [2026-01/202601171854_ai_image_settings_modal/](2026-01/202601171854_ai_image_settings_modal/) |
+| 202601171905 | project_kb_expand | 文档 | 已完成 | [2026-01/202601171905_project_kb_expand/](2026-01/202601171905_project_kb_expand/) |
+| 202601171911 | tc_header_no_reload | 修复 | 已完成 | [2026-01/202601171911_tc_header_no_reload/](2026-01/202601171911_tc_header_no_reload/) |
+| 202601171932 | novelapi_proxy_stream_fix | 修复 | 已完成 | [2026-01/202601171932_novelapi_proxy_stream_fix/](2026-01/202601171932_novelapi_proxy_stream_fix/) |
+| 202601172026 | ai_image_v4_params | 修复 | 已完成 | [2026-01/202601172026_ai_image_v4_params/](2026-01/202601172026_ai_image_v4_params/) |
+| 202601172100 | ai_image_char_bg_layout | 变更 | 已完成 | [2026-01/202601172100_ai_image_char_bg_layout/](2026-01/202601172100_ai_image_char_bg_layout/) |
+| 202601172234 | tc_header_upload_and_doc_lazy | 修复 | 已完成 | [2026-01/202601172234_tc_header_upload_and_doc_lazy/](2026-01/202601172234_tc_header_upload_and_doc_lazy/) |
 
 ---
 
@@ -72,3 +104,35 @@
 - [202601140604_director_set_var](2026-01/202601140604_director_set_var/) - 导演控制台支持设置 WebGAL 空间变量（保留 `/var set ...` 快捷方式）
 - [202601141319_blocksuite_title_conflict_fix](2026-01/202601141319_blocksuite_title_conflict_fix/) - 修复 tcHeader 与内置 doc-title 并存，并重写 tcHeader 标题样式以抵御 iframe 注入/重置影响
 - [202601141740_lint_fix](2026-01/202601141740_lint_fix/) - 修复 ESLint 报错/告警（hooks deps / unused vars / 正则回溯 / node process）
+- [202601141830_blocksuite_doc_title_reset](2026-01/202601141830_blocksuite_doc_title_reset/) - 修复 Blocksuite 双标题：加固禁用 doc-title（fragment）并提供内置标题重置按钮
+- [202601141920_ai_image_novelai](2026-01/202601141920_ai_image_novelai/) - AI 生图页重写：运行时模型拉取（失败降级）+ 仅保留 IndexedDB 历史 + Electron clientsettings IPC
+- [202601142115_ai_image_dev_only](2026-01/202601142115_ai_image_dev_only/) - AI 生图调试增强：token 本地持久化 + 路由仅开发环境可用
+- [202601142140_blocksuite_doc_title_optional_container](2026-01/202601142140_blocksuite_doc_title_optional_container/) - 让 `<doc-title>` 不再固定插入：使用 tc-affine-editor-container 按需渲染
+- [202601142246_ai_image_meta_endpoint_fix](2026-01/202601142246_ai_image_meta_endpoint_fix/) - 修复 AI 生图模型运行时拉取端点：`/user/*` 固定走 api.novelai.net
+- [202601142250_command_request_button](2026-01/202601142250_command_request_button/) - 跑团检定请求按钮消息：KP 发送 `@All` 指令生成按钮，成员点击后以自身角色在原 thread 执行
+- [202601151614_command_request_message_type](2026-01/202601151614_command_request_message_type/) - 检定请求升级为独立消息类型 `COMMAND_REQUEST(12)`（前后端一致）
+- [202601142337_ai_image_proxy_env](2026-01/202601142337_ai_image_proxy_env/) - 修复 NovelAPI 同源代理连接超时 502：支持读取本机代理环境变量
+- [202601151630_ai_image_direct_fetch](2026-01/202601151630_ai_image_direct_fetch/) - AI 生图 Web 端默认直连 NovelAI（Connection 可切换同源代理）
+- [202601151809_ai_image_default_proxy](2026-01/202601151809_ai_image_default_proxy/) - AI 生图 Web 默认切回同源代理（并持久化请求方式）
+- [202601151716_blocksuite-tc-header-mode-switch](2026-01/202601151716_blocksuite-tc-header-mode-switch/) - 空间资料 Blocksuite 画布切换入口收口到 tcHeader，并移除外部 mode 控制通道
+- [202601161120_novelai_nl_image_simple](2026-01/202601161120_novelai_nl_image_simple/) - AI 生图 Simple：自然语言 → tags → 出图（可回填到高级面板）
+- [202601171345_blocksuite-mention-fix](2026-01/202601171345_blocksuite-mention-fix/) - 修复 Blocksuite 空间描述 @ 提及重复插入与弹窗不关闭
+- [202601171400_blocksuite-canvas-inline](2026-01/202601171400_blocksuite-canvas-inline/) - 画布切换改为非全屏：仅占据原文档区域
+- [202601171414_blocksuite-mention-fix2](2026-01/202601171414_blocksuite-mention-fix2/) - 加固 Blocksuite 空间描述 @ 提及弹窗关闭与重复触发
+- [202601171430_room-setting-height](2026-01/202601171430_room-setting-height/) - 房间资料页移除 `max-h-[80vh]` 限制，修复底部留白
+- [202601171438_blocksuite-mention-debug](2026-01/202601171438_blocksuite-mention-debug/) - 增加 Blocksuite @ 提及调试日志
+- [202601171458_novelai_model_lock_45_full](2026-01/202601171458_novelai_model_lock_45_full/) - AI 生图模型锁定为 NAI v4.5 Full（`nai-diffusion-4-5-full`）
+- [202601171622_blocksuite-mention-click-debug](2026-01/202601171622_blocksuite-mention-click-debug/) - 增强 Blocksuite @ 提及点击链路调试：iframe 内捕获点击事件路径摘要
+- [202601171640_mention-tc-header-title](2026-01/202601171640_mention-tc-header-title/) - `@`（Linked Doc）候选列表标题优先使用 `tc_header.title`
+- [202601171657_blocksuite-mention-host-click-debug](2026-01/202601171657_blocksuite-mention-host-click-debug/) - 增强 Blocksuite @ 提及点击链路调试：宿主侧捕获 portal 到 iframe 外的点击事件路径摘要
+- [202601171723_blocksuite-mention-enter-debug](2026-01/202601171723_blocksuite-mention-enter-debug/) - 增强 Blocksuite @ 提及键盘确认调试：Enter 时输出 activeElement/probe 信息
+- [202601171745_blocksuite-mention-insert-fix](2026-01/202601171745_blocksuite-mention-insert-fix/) - 修复 Blocksuite 空间描述 @ 提及重复插入（成员提及插入链路）
+- [202601171831_doc_sidebar_tc_header](2026-01/202601171831_doc_sidebar_tc_header/) - sidebarTree 独立文档启用 tcHeader（标题/封面）并在列表展示缩略图
+- [202601171843_blocksuite-kb-notes](2026-01/202601171843_blocksuite-kb-notes/) - Blocksuite 豆知识沉淀：mention=embed、linked-doc popover、StrictMode 多次 mount 等
+- [202601171854_ai_image_settings_modal](2026-01/202601171854_ai_image_settings_modal/) - AI 生图页连接设置弹窗化（右上角设置）
+- [202601171905_project_kb_expand](2026-01/202601171905_project_kb_expand/) - 完善现有项目知识库：补齐 Chat/Blocksuite/WebGAL/AI 生图模块文档与本地开发工作流
+- [202601171911_tc_header_no_reload](2026-01/202601171911_tc_header_no_reload/) - 修复编辑 tcHeader 导致 blocksuite iframe 反复重载
+- [202601171932_novelapi_proxy_stream_fix](2026-01/202601171932_novelapi_proxy_stream_fix/) - 修复 `/api/novelapi/*` 同源代理偶发 500（流式转发 pipeline 化）
+- [202601172026_ai_image_v4_params](2026-01/202601172026_ai_image_v4_params/) - 修复 NAI v4/v4.5 出图 500：对齐 `params_version=3` 与 `v4_prompt` 参数结构
+- [202601172100_ai_image_char_bg_layout](2026-01/202601172100_ai_image_char_bg_layout/) - AI 生图支持 v4/v4.5 “背景/角色”分区（`char_captions`）并对齐普通/专业模式三栏布局
+- [202601172234_tc_header_upload_and_doc_lazy](2026-01/202601172234_tc_header_upload_and_doc_lazy/) - 修复 tc_header 头像上传（iframe 裁剪弹窗）并优化空间文档懒加载（不全量 load / pull 不写回）

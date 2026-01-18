@@ -1,6 +1,5 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { Route } from "./+types/blocksuiteFrame";
-import type { BlocksuiteDescriptionEditorActions } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -51,7 +50,7 @@ function getBlocksuiteMeasuredScrollHeight(): number {
   // 如果把 viewport.scrollHeight 当 max，iframe 高度会“只增不减”。
   // 因此这里优先测量“真实内容容器”的高度（会随内容增减），viewport 只做兜底。
 
-  const editorContainer = document.querySelector("affine-editor-container") as Element | null;
+  const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
   const rootForQuery: ParentNode = ((editorContainer as any)?.shadowRoot as ShadowRoot | null) ?? editorContainer ?? document;
 
   const measureElement = (el: HTMLElement | null): number => {
@@ -134,11 +133,8 @@ export default function BlocksuiteFrameRoute() {
   const variant = (sp.get("variant") === "full" ? "full" : "embedded") as "embedded" | "full";
   const allowModeSwitch = parseBool01(sp.get("allowModeSwitch"));
   const fullscreenEdgeless = parseBool01(sp.get("fullscreenEdgeless"));
-  const hideModeSwitchButton = parseBool01(sp.get("hideModeSwitchButton"));
   const forcedMode = (sp.get("mode") === "edgeless" ? "edgeless" : "page") as DocMode;
 
-  const actionsRef = useRef<BlocksuiteDescriptionEditorActions | null>(null);
-  const pendingModeRef = useRef<DocMode | null>(null);
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
 
   const postToParent = (payload: any) => {
@@ -151,6 +147,167 @@ export default function BlocksuiteFrameRoute() {
   };
 
   const measureAndPostHeight = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    (globalThis as any).__tcBlocksuiteDebugLog = (entry: any) => {
+      postToParent({
+        tc: "tc-blocksuite-frame",
+        instanceId,
+        type: "debug-log",
+        entry,
+      });
+    };
+
+    return () => {
+      try {
+        delete (globalThis as any).__tcBlocksuiteDebugLog;
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+
+    const toLower = (v: unknown) => String(v ?? "").toLowerCase();
+    const mentionDebugWindowMs = 5000;
+    let mentionDebugUntil = 0;
+    let mentionDebugRemaining = 0;
+    const summarizeEl = (node: unknown) => {
+      if (!(node instanceof Element))
+        return null;
+      const tag = toLower(node.tagName);
+      const id = node.id ? toLower(node.id) : "";
+      const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+      const role = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("role"))
+        : "";
+      const testid = typeof (node as any).getAttribute === "function"
+        ? toLower((node as any).getAttribute("data-testid"))
+        : "";
+      return {
+        tag,
+        id: id || undefined,
+        className: cls || undefined,
+        role: role || undefined,
+        testid: testid || undefined,
+      };
+    };
+    const summarizeNode = (node: unknown) => {
+      if (!(node instanceof Element))
+        return null;
+      const tag = toLower(node.tagName);
+      const id = node.id ? toLower(node.id) : "";
+      const cls = typeof (node as any).className === "string" ? toLower((node as any).className) : "";
+      return {
+        tag,
+        id: id || undefined,
+        className: cls || undefined,
+      };
+    };
+
+    const shouldLogMentionEvent = (path: unknown[]) => {
+      for (const n of path) {
+        if (!(n instanceof Element))
+          continue;
+        const tag = toLower(n.tagName);
+        const id = toLower(n.id);
+        const cls = typeof (n as any).className === "string" ? toLower((n as any).className) : "";
+        const anyText = `${tag} ${id} ${cls}`;
+        if (anyText.includes("mention"))
+          return true;
+        if (anyText.includes("affine-inline-mention"))
+          return true;
+        if (anyText.includes("affine-mention"))
+          return true;
+      }
+      return false;
+    };
+
+    const logEvent = (type: string, e: Event) => {
+      try {
+        const path = (e as any).composedPath?.() as unknown[] | undefined;
+        if (!path || path.length === 0)
+          return;
+        const now = Date.now();
+        const inWindow = now < mentionDebugUntil;
+        const mentionMatched = shouldLogMentionEvent(path);
+        if (!inWindow && !mentionMatched)
+          return;
+        if (inWindow) {
+          if (mentionDebugRemaining <= 0)
+            return;
+          mentionDebugRemaining -= 1;
+        }
+
+        const nodes = path
+          .map(summarizeNode)
+          .filter(Boolean)
+          .slice(0, 8);
+
+        (globalThis as any).__tcBlocksuiteDebugLog?.({
+          source: "BlocksuiteFrame",
+          message: type,
+          payload: {
+            type,
+            targetTag: toLower((e.target as any)?.tagName),
+            inWindow,
+            mentionMatched,
+            nodes,
+          },
+        });
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      try {
+        const active = summarizeEl(document.activeElement);
+        if (e.key === "@") {
+          mentionDebugUntil = Date.now() + mentionDebugWindowMs;
+          mentionDebugRemaining = 12;
+          (globalThis as any).__tcBlocksuiteDebugLog?.({
+            source: "BlocksuiteFrame",
+            message: "keydown @",
+            payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey, active },
+          });
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Escape") {
+          if (Date.now() < mentionDebugUntil) {
+            (globalThis as any).__tcBlocksuiteDebugLog?.({
+              source: "BlocksuiteFrame",
+              message: `keydown ${e.key}`,
+              payload: { key: e.key, code: (e as any).code, shiftKey: e.shiftKey, active },
+            });
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    };
+
+    const onPointerDown = (e: PointerEvent) => logEvent("pointerdown", e);
+    const onClick = (e: MouseEvent) => logEvent("click", e);
+
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("click", onClick, true);
+    };
+  }, []);
 
   useEffect(() => {
     // Handshake: let host know iframe is alive.
@@ -291,7 +448,7 @@ export default function BlocksuiteFrameRoute() {
 
     // 兜底：blocksuite 的 DOM（含 shadow DOM）变化不一定触发 input/keydown。
     // 这里对编辑器根做 MutationObserver，保证“删除导致高度回缩”也能被捕捉。
-    const editorContainer = document.querySelector("affine-editor-container") as Element | null;
+    const editorContainer = document.querySelector("tc-affine-editor-container, affine-editor-container") as Element | null;
     const moTargets: Array<ParentNode> = [];
     if (editorContainer)
       moTargets.push(editorContainer);
@@ -390,24 +547,6 @@ export default function BlocksuiteFrameRoute() {
       if (data.instanceId && data.instanceId !== instanceId)
         return;
 
-      if (data.type === "set-mode" && (data.mode === "page" || data.mode === "edgeless")) {
-        const next = data.mode as DocMode;
-        setCurrentMode(next);
-        const actions = actionsRef.current;
-        if (actions) {
-          try {
-            actions.setMode(next);
-          }
-          catch {
-            // ignore
-          }
-        }
-        else {
-          pendingModeRef.current = next;
-        }
-        return;
-      }
-
       if (data.type === "request-height") {
         try {
           measureAndPostHeight.current?.();
@@ -466,22 +605,8 @@ export default function BlocksuiteFrameRoute() {
         readOnly={readOnly}
         allowModeSwitch={allowModeSwitch}
         fullscreenEdgeless={fullscreenEdgeless}
-        hideModeSwitchButton={hideModeSwitchButton}
         mode={forcedMode}
         tcHeader={tcHeaderEnabled ? { enabled: true, fallbackTitle: tcHeaderTitle, fallbackImageUrl: tcHeaderImageUrl } : undefined}
-        onActionsChange={(actions) => {
-          actionsRef.current = actions;
-          if (actions && pendingModeRef.current) {
-            const pending = pendingModeRef.current;
-            pendingModeRef.current = null;
-            try {
-              actions.setMode(pending);
-            }
-            catch {
-              // ignore
-            }
-          }
-        }}
         onModeChange={(mode) => {
           setCurrentMode(mode);
           postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "mode", mode });

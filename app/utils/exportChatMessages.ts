@@ -130,6 +130,10 @@ function formatMessageContent(
       const summary = payload ? formatWebgalVarSummary(payload) : "";
       return `[变量]${summary ? ` ${summary}` : ""}`;
     }
+    case MessageType.COMMAND_REQUEST: {
+      const command = (extra as any)?.commandRequest?.command || content;
+      return command ? `[检定请求] ${command}` : "[检定请求]";
+    }
     case MessageType.CLUE_CARD: {
       const clue = extra?.clueMessage as { name?: string; description?: string } | undefined;
       const name = clue?.name || content || "线索卡";

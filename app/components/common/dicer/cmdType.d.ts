@@ -15,6 +15,10 @@ interface ExecutorProp { // eslint-disable-line ts/consistent-type-definitions
    */
   roomId?: number;
   /**
+   * thread id（用于消息线程聚合）；为空表示主消息流
+   */
+  threadId?: number;
+  /**
    * 完整的原始消息
    */
   originMessage?: string;

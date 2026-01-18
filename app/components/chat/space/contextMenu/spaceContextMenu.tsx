@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
@@ -115,6 +116,24 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
             onSuccess: () => {
               setIsDissolveConfirmOpen(false);
               setDissolveTargetSpaceId(null);
+
+              // 解散空间会级联解散房间（房间文档会通过 ROOM_DISSOLVE 推送逐个清理）。
+              // 这里额外清理空间自身的描述文档，避免 @ 弹窗仍展示已删除空间的 doc。
+              if (typeof window !== "undefined") {
+                const target = dissolveTargetSpaceId;
+                void (async () => {
+                  try {
+                    const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/deleteSpaceDoc");
+                    await deleteSpaceDoc({
+                      spaceId: target,
+                      docId: buildSpaceDocId({ kind: "space_description", spaceId: target }),
+                    });
+                  }
+                  catch {
+                    // ignore
+                  }
+                })();
+              }
 
               if (typeof window !== "undefined") {
                 localStorage.removeItem("storedChatIds");
