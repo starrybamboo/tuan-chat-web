@@ -1368,6 +1368,55 @@ export default function AiImagePage() {
             </div>
           </div>
 
+          {uiMode === "simple"
+            ? (
+                <div className="card bg-base-200">
+                  <div className="card-body gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">画风参考</div>
+                      <div className="ml-auto flex items-center gap-2">
+                        {selectedStyleIds.length
+                          ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
+                          : <div className="text-xs opacity-60">未选择</div>}
+                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
+                          选择画风
+                        </button>
+                        {selectedStyleIds.length
+                          ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
+                          : null}
+                      </div>
+                    </div>
+
+                    {selectedStylePresets.length
+                      ? (
+                          <div className="rounded-box border border-base-300 bg-base-100 divide-y divide-base-300">
+                            {selectedStylePresets.map((preset) => {
+                              return (
+                                <div key={preset.id} className="flex items-center gap-3 p-2">
+                                  {preset.imageUrl
+                                    ? <img src={preset.imageUrl} className="w-16 h-16 rounded-box object-cover" alt={preset.id} />
+                                    : <div className="w-16 h-16 rounded-box bg-base-200 flex items-center justify-center text-xs opacity-60">无图</div>}
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-medium">{preset.id}</div>
+                                    {preset.tags.length
+                                      ? <div className="text-xs opacity-60 truncate">{preset.tags.join(", ")}</div>
+                                      : null}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )
+                      : (
+                          <div className="text-sm opacity-60">
+                            未选择画风。请点击“选择画风”添加参考。
+                          </div>
+                        )}
+                  </div>
+                </div>
+              )
+            : null}
+
           <div className="card bg-base-200">
             <div className="card-body gap-3">
               <div className="flex items-center gap-2">
@@ -1487,55 +1536,6 @@ export default function AiImagePage() {
           </div>
 
           {error ? <div className="text-sm text-error">{error}</div> : null}
-
-          {uiMode === "simple"
-            ? (
-                <div className="card bg-base-200">
-                  <div className="card-body gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="font-medium">画风参考</div>
-                      <div className="ml-auto flex items-center gap-2">
-                        {selectedStyleIds.length
-                          ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
-                          : <div className="text-xs opacity-60">未选择</div>}
-                        <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                          选择画风
-                        </button>
-                        {selectedStyleIds.length
-                          ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
-                          : null}
-                      </div>
-                    </div>
-
-                    {selectedStylePresets.length
-                      ? (
-                          <div className="rounded-box border border-base-300 bg-base-100 divide-y divide-base-300">
-                            {selectedStylePresets.map((preset) => {
-                              return (
-                                <div key={preset.id} className="flex items-center gap-3 p-2">
-                                  {preset.imageUrl
-                                    ? <img src={preset.imageUrl} className="w-16 h-16 rounded-box object-cover" alt={preset.id} />
-                                    : <div className="w-16 h-16 rounded-box bg-base-200 flex items-center justify-center text-xs opacity-60">无图</div>}
-                                  <div className="min-w-0">
-                                    <div className="text-sm font-medium">{preset.id}</div>
-                                    {preset.tags.length
-                                      ? <div className="text-xs opacity-60 truncate">{preset.tags.join(", ")}</div>
-                                      : null}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )
-                      : (
-                          <div className="text-sm opacity-60">
-                            未选择画风。请点击右侧“选择画风”添加参考。
-                          </div>
-                        )}
-                  </div>
-                </div>
-              )
-            : null}
 
           <div className="bg-base-200 rounded-box p-3 flex items-center justify-center min-h-[520px]">
             {result
