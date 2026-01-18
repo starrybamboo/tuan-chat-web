@@ -8,7 +8,7 @@
 
 - **职责:** 页面路由、页面组件、通用组件与工具库组织
 - **状态:** ?开发中
-- **最后更新:** 2026-01-17
+- **最后更新:** 2026-01-18
 
 ## 相关模块文档（建议从这里分流查阅）
 
@@ -53,6 +53,7 @@
 - `@`（Linked Doc）菜单标题来源：`spaceWorkspace.ts` 会将 `workspace.meta.title` 优先与 `tc_header.title` 对齐（无则回退 blocksuite 原生标题），确保提及/引用列表与业务标题一致
 - `@`（Linked Doc）标题刷新机制：当 `workspace.meta`（docMetaUpdated）发生变化时，`spaceWorkspace.ts` 会同步触发 `workspace.slots.docListUpdated`（带去重/批量水合节流），确保 blocksuite 的 `DocDisplayMetaProvider` 能刷新菜单与 inline 引用的标题缓存
 - 解散房间/空间后的文档清理：业务“解散”成功或收到房间解散推送（type=14）后，会 best-effort 调用 `deleteSpaceDoc` 清理对应 `room:<roomId>:description`/`space:<spaceId>:description`，避免 `@` 弹窗仍展示已删除实体的文档
+- 空间资料 @ 列表清理：打开 `@` 菜单时按房间列表过滤 `room:<id>:description`，并同步移除过期 `workspace.meta.docMetas`，避免插入后显示 `deleted doc`
 - 空间描述 @ 提及：选择成员后立即关闭弹窗，并对插入动作增加防重入保护，避免重复插入
 - 乐观显示（room/space）：iframe 侧 header 变化通过 `postMessage` 上报，宿主写入 `entityHeaderOverrideStore`（localStorage），房间/空间列表与房间顶部标题栏优先显示覆盖值
 - tcHeader 性能：iframe 宿主侧会冻结 `tcHeaderTitle/tcHeaderImageUrl`（仅用于首次初始化或切换 doc 的兜底写入），避免“实时同步标题/头像”导致 iframe `src` 变化触发 `blocksuite-frame` 重新加载
