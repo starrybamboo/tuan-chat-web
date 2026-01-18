@@ -76,6 +76,7 @@
 
 ### 2026-01
 
+- [202601181336_ai-image-style-webp](2026-01/202601181336_ai-image-style-webp/) - ????? WebP ??????
 - [202601070338_blocksuite_docs](2026-01/202601070338_blocksuite_docs/) - Blocksuite 依赖文档补全（0.22.4）
 - [202601070431_blocksuite_docs_0_22_4](2026-01/202601070431_blocksuite_docs_0_22_4/) - Blocksuite 0.22.4 文档方案（未执行归档：已由 blocksuite_docs 覆盖）
 - [202601070539_blocksuite_docs_0224](2026-01/202601070539_blocksuite_docs_0224/) - Blocksuite 0.22.4 文档方案（未执行归档：已由 blocksuite_docs 覆盖）
@@ -136,3 +137,9 @@
 - [202601172026_ai_image_v4_params](2026-01/202601172026_ai_image_v4_params/) - 修复 NAI v4/v4.5 出图 500：对齐 `params_version=3` 与 `v4_prompt` 参数结构
 - [202601172100_ai_image_char_bg_layout](2026-01/202601172100_ai_image_char_bg_layout/) - AI 生图支持 v4/v4.5 “背景/角色”分区（`char_captions`）并对齐普通/专业模式三栏布局
 - [202601172234_tc_header_upload_and_doc_lazy](2026-01/202601172234_tc_header_upload_and_doc_lazy/) - 修复 tc_header 头像上传（iframe 裁剪弹窗）并优化空间文档懒加载（不全量 load / pull 不写回）
+
+## ??
+
+| ??? | ???? | ?? | ?? | ????? |
+|--------|----------|------|------|------------|
+| 202601181336 | ai-image-style-webp | ?? | ???? | history/2026-01/202601181336_ai-image-style-webp/ |
