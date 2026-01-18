@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601181608 | space_setting_doc_fill | 修复 | 已完成 | [2026-01/202601181608_space-setting-doc-fill/](2026-01/202601181608_space-setting-doc-fill/) |
 | 202601181437 | space_trpg_settings | 功能 | 已完成 | [2026-01/202601181437_space-trpg-settings/](2026-01/202601181437_space-trpg-settings/) |
 | 202601180022 | space_mention_cleanup | 修复 | 已完成 | [2026-01/202601180022_space-mention-cleanup/](2026-01/202601180022_space-mention-cleanup/) |
 | 202601070338 | blocksuite_docs | 功能 | 已完成 | [2026-01/202601070338_blocksuite_docs/](2026-01/202601070338_blocksuite_docs/) |
