@@ -9,6 +9,9 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601181608 | space_setting_doc_fill | 修复 | 已完成 | [2026-01/202601181608_space-setting-doc-fill/](2026-01/202601181608_space-setting-doc-fill/) |
+| 202601181437 | space_trpg_settings | 功能 | 已完成 | [2026-01/202601181437_space-trpg-settings/](2026-01/202601181437_space-trpg-settings/) |
+| 202601180022 | space_mention_cleanup | 修复 | 已完成 | [2026-01/202601180022_space-mention-cleanup/](2026-01/202601180022_space-mention-cleanup/) |
 | 202601070338 | blocksuite_docs | 功能 | 已完成 | [2026-01/202601070338_blocksuite_docs/](2026-01/202601070338_blocksuite_docs/) |
 | 202601070431 | blocksuite_docs_0_22_4 | 文档 | 已跳过 | [2026-01/202601070431_blocksuite_docs_0_22_4/](2026-01/202601070431_blocksuite_docs_0_22_4/) |
 | 202601070539 | blocksuite_docs_0224 | 文档 | 已跳过 | [2026-01/202601070539_blocksuite_docs_0224/](2026-01/202601070539_blocksuite_docs_0224/) |
@@ -76,9 +79,8 @@
 
 ### 2026-01
 
-- [202601181610_ai-image-style-left](2026-01/202601181610_ai-image-style-left/) - ????????????
-- [202601181442_ai-image-simple-style-ui](2026-01/202601181442_ai-image-simple-style-ui/) - ??????????
-- [202601181413_ai-image-style-precommit](2026-01/202601181413_ai-image-style-precommit/) - ?? WebP ????? pre-commit
+- [202601181437_space-trpg-settings](2026-01/202601181437_space-trpg-settings/) - 跑团设置页面拆分（空间规则/骰娘）
+- [202601180022_space-mention-cleanup](2026-01/202601180022_space-mention-cleanup/) - 空间资料 @ 列表过滤已删除房间文档
 - [202601181336_ai-image-style-webp](2026-01/202601181336_ai-image-style-webp/) - ????? WebP ??????
 - [202601070338_blocksuite_docs](2026-01/202601070338_blocksuite_docs/) - Blocksuite 依赖文档补全（0.22.4）
 - [202601070431_blocksuite_docs_0_22_4](2026-01/202601070431_blocksuite_docs_0_22_4/) - Blocksuite 0.22.4 文档方案（未执行归档：已由 blocksuite_docs 覆盖）
@@ -145,7 +147,4 @@
 
 | ??? | ???? | ?? | ?? | ????? |
 |--------|----------|------|------|------------|
-| 202601181610 | ai-image-style-left | ?? | ???? | history/2026-01/202601181610_ai-image-style-left/ |
-| 202601181442 | ai-image-simple-style-ui | ?? | ???? | history/2026-01/202601181442_ai-image-simple-style-ui/ |
-| 202601181413 | ai-image-style-precommit | ?? | ???? | history/2026-01/202601181413_ai-image-style-precommit/ |
 | 202601181336 | ai-image-style-webp | ?? | ???? | history/2026-01/202601181336_ai-image-style-webp/ |

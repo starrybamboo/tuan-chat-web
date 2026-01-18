@@ -220,15 +220,14 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <div className="w-full p-4 min-w-[40vw] h-[80vh] overflow-hidden">
+    <div className="w-full min-w-0 h-full min-h-0 overflow-hidden">
       {!space
         ? (
             <div className="flex items-center justify-center opacity-70">加载中...</div>
           )
         : (
-            <div className="h-full flex flex-col md:flex-row gap-4">
+            <div className="h-full flex flex-col gap-4">
               {/* 左侧：空间信息 */}
-              <div className="md:w-96 shrink-0 space-y-4 overflow-y-auto">
                 {cloneSourceId
                   ? (
                       <div className="mb-4">
@@ -276,8 +275,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                       </div>
                     )
                   : null}
-
-              </div>
 
               {/* 右侧：空间描述文档 */}
               <div className="flex-1 min-w-0 min-h-0">
