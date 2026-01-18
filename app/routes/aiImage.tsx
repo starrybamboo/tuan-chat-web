@@ -1529,7 +1529,7 @@ export default function AiImagePage() {
                         )
                       : (
                           <div className="text-sm opacity-60">
-                            未选择画风。请从右上角“选择画风”添加参考。
+                            未选择画风。请点击右侧“选择画风”添加参考。
                           </div>
                         )}
                   </div>
