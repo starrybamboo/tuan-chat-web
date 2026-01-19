@@ -1,5 +1,5 @@
-import { UsersIcon } from "@phosphor-icons/react";
-import React, { use } from "react";
+import { AddressBookIcon, UsersIcon } from "@phosphor-icons/react";
+import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
@@ -7,9 +7,14 @@ import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { useAddRoomMemberMutation } from "../../../../../api/hooks/chatQueryHooks";
+import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomModuleRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
+import RoleList from "../../shared/components/roleLists";
+import { AddModuleRoleWindow } from "../../window/addModuleRoleWindow";
+import { AddRoleWindow } from "../../window/addRoleWindow";
 
-export default function RoomUserList() {
+export default function RoomUserList({ type}: { type: string }) {
+  const isRole = type === "Role";
+
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
   const members = roomContext.roomMembers;
@@ -30,34 +35,114 @@ export default function RoomUserList() {
       },
     });
   }
+
+  const roomRolesQuery = useGetRoomRoleQuery(roomId);
+  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+
+  const moduleRolesQuery = useGetRoomModuleRoleQuery(roomId);
+  const moduleRoles = useMemo(() => moduleRolesQuery.data?.data ?? [], [moduleRolesQuery.data?.data]);
+
+  const [isRoleHandleOpen, setIsRoleHandleOpen] = useState<boolean>(false);
+  const [isModuleRoleHandleOpen, setIsModuleRoleHandleOpen] = useState<boolean>(false);
+
+  const addRoleMutation = useAddRoomRoleMutation();
+
+  const handleAddRole = async (roleId: number) => {
+    addRoleMutation.mutate(
+      { roomId, roleIdList: [roleId] },
+      {
+        onSettled: () => {
+          toast("添加角色成功");
+        },
+      },
+    );
+  };
+
+  const handleAddModuleRole = async (roleId: number) => {
+    addRoleMutation.mutate(
+      { roomId, roleIdList: [roleId] },
+      {
+        onSettled: () => {
+          toast("添加NPC成功");
+        },
+      },
+    );
+  };
+
   return (
-    <div className="space-y-2 p-2 overflow-auto items-center flex flex-col">
-      {/* 群成员列表 */}
+    <div className="h-full min-h-0 p-2 flex flex-col items-center">
       <div className="flex flex-row justify-between items-center gap-2 min-w-60 mt-2">
         <div className="flex items-center gap-2">
-          <UsersIcon className="inline size-5" />
-          <p className="text-start font-semibold">
-            群成员-
-            {members.length}
-          </p>
+          {isRole
+            ? (
+                <>
+                  <AddressBookIcon className="size-5" />
+                  <p className="text-start font-semibold">
+                    角色列表-
+                    {roomRoles.length + moduleRoles.length}
+                  </p>
+                </>
+              )
+            : (
+                <>
+                  <UsersIcon className="inline size-5" />
+                  <p className="text-start font-semibold">
+                    群成员-
+                    {members.length}
+                  </p>
+                </>
+              )}
         </div>
+
+        {(curMember?.memberType === 1 || curMember?.memberType === 2) && (
+          <button
+            type="button"
+            className="btn btn-xs btn-dash btn-info"
+            onClick={() => setIsRoleHandleOpen(true)}
+          >
+            角色+
+          </button>
+        )}
         {curMember?.memberType === 1 && (
           <button
-            className="btn btn-dash btn-info"
             type="button"
-            onClick={() => setIsMemberHandleOpen(true)}
+            className="btn btn-xs btn-dash btn-info"
+            onClick={() => setIsModuleRoleHandleOpen(true)}
           >
-            添加成员
+            NPC+
           </button>
         )}
       </div>
+      <div className="divider w-full" />
+
       <div
-        className="divider w-full"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-visible w-full flex justify-center "
       >
+        {isRole
+          ? (
+              <>
+                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-56"} />
+                <RoleList roles={moduleRoles} className={getScreenSize() === "sm" ? "w-full" : "w-56"} isModuleRole={true} />
+              </>
+            )
+          : (
+              <MemberLists
+                members={members}
+                className={getScreenSize() === "sm" ? "w-full" : "w-56"}
+                isSpace={false}
+              />
+            )}
       </div>
-      <MemberLists members={members} className={getScreenSize() === "sm" ? "w-full" : "w-60"} isSpace={false}></MemberLists>
+
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <AddMemberWindow handleAddMember={handleAddMember} showSpace={true}></AddMemberWindow>
+        <AddMemberWindow handleAddMember={handleAddMember} showSpace={true} />
+      </PopWindow>
+      {/* 弹窗 */}
+      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
+        <AddRoleWindow handleAddRole={handleAddRole} />
+      </PopWindow>
+      <PopWindow isOpen={isModuleRoleHandleOpen} onClose={() => setIsModuleRoleHandleOpen(false)}>
+        <AddModuleRoleWindow handleAddRole={handleAddModuleRole} />
       </PopWindow>
     </div>
   );
