@@ -16,12 +16,6 @@ import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
-function isPlaceholderTitle(value: unknown): boolean {
-  if (typeof value !== "string")
-    return false;
-  return value.trim().toLowerCase() === "untitled";
-}
-
 export interface ChatRoomListPanelProps {
   isPrivateChatMode: boolean;
 
@@ -117,16 +111,6 @@ export default function ChatRoomListPanel({
       return parsed?.kind === "independent";
     });
   }, [docMetas, isSpaceOwner]);
-
-  const docMetaMapAll = useMemo(() => {
-    const map = new Map<string, MinimalDocMeta>();
-    for (const m of docMetas ?? []) {
-      if (m?.id) {
-        map.set(m.id, m);
-      }
-    }
-    return map;
-  }, [docMetas]);
 
   const docMetaMap = useMemo(() => {
     const map = new Map<string, MinimalDocMeta>();
@@ -671,12 +655,10 @@ export default function ChatRoomListPanel({
                               const docOverride = !isRoom ? docHeaderOverrides[docId] : undefined;
                               const docOverrideTitle = typeof docOverride?.title === "string" ? docOverride.title.trim() : "";
                               const docOverrideImageUrl = typeof docOverride?.imageUrl === "string" ? docOverride.imageUrl.trim() : "";
-                              const docMetaTitleRaw = !isRoom ? docMetaMap.get(docId)?.title : undefined;
-                              const docMetaTitle = isPlaceholderTitle(docMetaTitleRaw) ? "" : (docMetaTitleRaw ?? "");
 
                               const title = isRoom
                                 ? (roomById.get(Number((node as any).targetId))?.name ?? (node as any)?.fallbackTitle ?? String((node as any).targetId))
-                                : (docOverrideTitle || docMetaTitle || (node as any)?.fallbackTitle || docId);
+                                : (docOverrideTitle || (docMetaMap.get(docId)?.title ?? (node as any)?.fallbackTitle ?? docId));
 
                               const showInsertBefore = canEdit
                                 && dragging?.kind === "node"
@@ -696,22 +678,6 @@ export default function ChatRoomListPanel({
                                         const room = roomById.get(rid);
                                         if (!room)
                                           return null;
-
-                                        const roomDocId = `room:${rid}:description`;
-                                        const roomDocOverride = docHeaderOverrides[roomDocId];
-                                        const roomDocOverrideTitle = typeof roomDocOverride?.title === "string" ? roomDocOverride.title.trim() : "";
-                                        const roomDocMetaTitle = typeof docMetaMapAll.get(roomDocId)?.title === "string"
-                                          ? docMetaMapAll.get(roomDocId)!.title!.trim()
-                                          : "";
-                                        const preferredRoomTitle = roomDocOverrideTitle || roomDocMetaTitle;
-                                        const roomNameRaw = typeof room.name === "string" ? room.name : "";
-                                        const roomName = roomNameRaw.trim();
-                                        const roomDisplayName = preferredRoomTitle && (isPlaceholderTitle(roomName) || !roomName)
-                                          ? preferredRoomTitle
-                                          : roomNameRaw;
-                                        const roomDisplay = roomDisplayName && roomDisplayName !== room.name
-                                          ? { ...room, name: roomDisplayName }
-                                          : room;
 
                                         return (
                                           <div
@@ -768,7 +734,7 @@ export default function ChatRoomListPanel({
                                             }}
                                           >
                                             <RoomButton
-                                              room={roomDisplay}
+                                              room={room}
                                               unreadMessageNumber={unreadMessagesNumber[rid]}
                                               onclick={() => {
                                                 onSelectRoom(rid);
