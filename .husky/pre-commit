@@ -5,4 +5,7 @@ if [ "$branch" = "refs/heads/main" ]; then
   exit 1
 fi
 
+pnpm run optimize:ai-style-images
+git add app/assets/ai-image/styles
+
 pnpm exec lint-staged

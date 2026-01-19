@@ -1,8 +1,8 @@
 import { HouseIcon } from "@phosphor-icons/react";
 import React from "react";
-import { AddIcon, ChevronDown, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
+import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
 
-export type SpaceDetailTab = "members" | "workflow" | "setting";
+export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 
 export interface SpaceHeaderBarProps {
   spaceName?: string;
@@ -54,6 +54,18 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
             >
               <MapPlaceHolderIcon className="size-4 opacity-70" />
               <span className="flex-1 text-left">流程图</span>
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="gap-3"
+              onClick={() => {
+                onOpenSpaceDetailPanel("trpg");
+              }}
+            >
+              <DiceD6Icon className="size-4 opacity-70" />
+              <span className="flex-1 text-left">跑团设置</span>
             </button>
           </li>
           {isSpaceOwner && (
