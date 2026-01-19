@@ -2,6 +2,7 @@ import type { ClueMessage } from "../../../../api/models/ClueMessage";
 
 import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import ClueListForPL from "@/components/chat/room/drawers/clueListForPL";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
 import MessageThreadDrawer from "@/components/chat/room/drawers/messageThreadDrawer";
@@ -9,10 +10,13 @@ import DNDMap from "@/components/chat/shared/map/DNDMap";
 import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { ChatBubbleEllipsesOutline, Detective, WebgalIcon, XMarkICon } from "@/icons";
+import ChatToolbarDock from "../input/chatToolbarDock";
 
 export interface SubRoomWindowProps {
   onClueSend: (clue: ClueMessage) => void;
@@ -33,6 +37,40 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender }: SubRoomWindowProp
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
   const isWebgalResizing = false;
+
+  const roomContext = React.use(RoomContext);
+  const curRoleId = roomContext.curRoleId;
+  const curMember = roomContext.curMember;
+  const isSpectator = (curMember?.memberType ?? 3) >= 3;
+
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
+  const toggleDialogNotend = useRoomPreferenceStore(state => state.toggleDialogNotend);
+  const toggleDialogConcat = useRoomPreferenceStore(state => state.toggleDialogConcat);
+  const setDefaultFigurePositionForRole = useRoomPreferenceStore(state => state.setDefaultFigurePositionForRole);
+  const defaultFigurePosition = useRoomPreferenceStore(state => state.defaultFigurePositionMap[curRoleId ?? -1]);
+
+  const screenSize = useScreenSize();
+  const isStacked = screenSize === "sm";
+  const isMobileLinkCompact = isStacked && webgalLinkMode;
+  const isRunModeOnly = runModeEnabled && !webgalLinkMode;
+
+  const onSetDefaultFigurePosition = React.useCallback((position: "left" | "center" | "right" | undefined) => {
+    setDefaultFigurePositionForRole(curRoleId ?? -1, position);
+  }, [curRoleId, setDefaultFigurePositionForRole]);
+
+  const onToggleDialogNotend = React.useCallback(() => toggleDialogNotend(), [toggleDialogNotend]);
+  const onToggleDialogConcat = React.useCallback(() => toggleDialogConcat(), [toggleDialogConcat]);
+
+  const onToggleRealtimeRender = React.useCallback(() => {
+    if (isRealtimeRenderActive) {
+      stopRealtimeRender();
+      setIsRealtimeRenderEnabled(false);
+    }
+    else {
+      setIsRealtimeRenderEnabled(true);
+    }
+  }, [isRealtimeRenderActive, setIsRealtimeRenderEnabled, stopRealtimeRender]);
 
   const subRoomWindowWidth = useDrawerPreferenceStore(state => state.subRoomWindowWidth);
   const setSubRoomWindowWidth = useDrawerPreferenceStore(state => state.setSubRoomWindowWidth);
@@ -110,14 +148,14 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender }: SubRoomWindowProp
         return { minWidth: min, maxWidth: max };
       }
       case "clue": {
-        const min = 300;
-        const max = typeof window === "undefined" ? 700 : Math.max(min, w - minRemainingWidth);
+        const min = 280;
+        const max = 420;
         return { minWidth: min, maxWidth: max };
       }
       case "map": {
         const min = 560;
         const max = typeof window === "undefined" ? 1100 : Math.max(min, w - minRemainingWidth);
-        return { minWidth: Math.min(720, max), maxWidth: max };
+        return { minWidth: min, maxWidth: max };
       }
       case "webgal": {
         const min = 520;
@@ -226,6 +264,29 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender }: SubRoomWindowProp
               </span>
             </div>
             <div className="flex items-center">
+              <ChatToolbarDock
+                isInline={true}
+                isRunModeOnly={isRunModeOnly}
+                isMobileLinkCompact={isMobileLinkCompact}
+
+                showWebgalControls={webgalLinkMode}
+                onInsertWebgalCommandPrefix={undefined}
+
+                defaultFigurePosition={defaultFigurePosition}
+                onSetDefaultFigurePosition={onSetDefaultFigurePosition}
+                onToggleDialogNotend={onToggleDialogNotend}
+                onToggleDialogConcat={onToggleDialogConcat}
+
+                onSendEffect={undefined}
+                onClearBackground={undefined}
+                onClearFigure={undefined}
+                onSetWebgalVar={undefined}
+                isSpectator={isSpectator}
+
+                onToggleRealtimeRender={onToggleRealtimeRender}
+
+                showRunControls={true}
+              />
               <button
                 type="button"
                 className="btn btn-ghost btn-square btn-sm"

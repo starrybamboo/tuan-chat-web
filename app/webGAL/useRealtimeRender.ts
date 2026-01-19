@@ -98,7 +98,7 @@ export function useRealtimeRender({
   ttsConfig,
   miniAvatarEnabled = false,
   voiceFiles,
-  autoFigureEnabled = false,
+  autoFigureEnabled = true,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
   const [initProgress, setInitProgress] = useState<InitProgress | null>(null);

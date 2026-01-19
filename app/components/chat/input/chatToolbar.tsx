@@ -1,5 +1,4 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
-import { CheckerboardIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
@@ -8,7 +7,6 @@ import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
-  Detective,
   DiceD6Icon,
   EmojiIconWhite,
   GalleryBroken,
@@ -16,8 +14,8 @@ import {
   MusicNote,
   SendIcon,
   SparklesOutline,
-  WebgalIcon,
 } from "@/icons";
+import ChatToolbarDock from "./chatToolbarDock";
 
 const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
 
@@ -66,7 +64,7 @@ interface ChatToolbarProps {
   onToggleRunMode?: () => void;
   // 默认立绘位置
   defaultFigurePosition?: "left" | "center" | "right";
-  onSetDefaultFigurePosition?: (position: "left" | "center" | "right") => void;
+  onSetDefaultFigurePosition?: (position: "left" | "center" | "right" | undefined) => void;
   // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
   dialogNotend?: boolean;
   onToggleDialogNotend?: () => void;
@@ -95,8 +93,6 @@ interface ChatToolbarProps {
 
 export function ChatToolbar({
   roomId,
-  sideDrawerState,
-  setSideDrawerState,
   updateEmojiUrls,
   updateImgFiles,
   disableSendMessage,
@@ -107,7 +103,6 @@ export function ChatToolbar({
   statusWebSocketUtils,
   statusExcludeSelf = false,
   isSpectator = false,
-  isRealtimeRenderActive = false,
   onToggleRealtimeRender,
   webgalLinkMode = false,
   onToggleWebgalLinkMode,
@@ -115,9 +110,7 @@ export function ChatToolbar({
   onToggleRunMode,
   defaultFigurePosition,
   onSetDefaultFigurePosition,
-  dialogNotend = false,
   onToggleDialogNotend,
-  dialogConcat = false,
   onToggleDialogConcat,
   onSendEffect,
   onClearBackground,
@@ -255,7 +248,7 @@ export function ChatToolbar({
 
   const webgalVarModal = isWebgalVarModalOpen && typeof document !== "undefined"
     ? createPortal(
-        <div className="modal modal-open z-[9999]">
+        <div className="modal modal-open z-9999">
           <div className="modal-box">
             <h3 className="font-bold text-lg">设置变量</h3>
             <div className="py-4 space-y-3">
@@ -342,7 +335,7 @@ export function ChatToolbar({
                 </div>
                 <div
                   tabIndex={3}
-                  className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-[220px] md:w-[280px] z-[9999] absolute mb-6"
+                  className="dropdown-content bg-base-100 rounded-box p-3 shadow-lg border border-base-300 w-55 md:w-70 z-9999 absolute mb-6"
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="flex flex-col gap-2">
@@ -390,7 +383,7 @@ export function ChatToolbar({
                 </div>
                 <ul
                   tabIndex={2}
-                  className="dropdown-content menu bg-base-100 rounded-box z-[9999] w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
+                  className="dropdown-content menu bg-base-100 rounded-box z-9999 w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
                 >
                   <EmojiWindow onChoose={async (emoji) => {
                     updateEmojiUrls((draft) => {
@@ -512,172 +505,30 @@ export function ChatToolbar({
         )}
       </div>
 
-      {/* 右侧按钮组 */}
-      <div
-        className={`flex ${isInline ? "mr-2 items-start gap-2 flex-nowrap" : "mt-1 items-center gap-2 flex-wrap justify-end flex-grow"} ${
-          isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
-        }`}
-      >
-        {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
-        {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && !isMobileLinkCompact && (
-          <div className="tooltip tooltip-top" data-tip="WebGAL 指令（插入 % 前缀）">
-            <button
-              type="button"
-              className="btn btn-xs btn-ghost border border-base-300 md:mt-1"
-              onClick={onInsertWebgalCommandPrefix}
-            >
-              %指令
-            </button>
-          </div>
-        )}
+      <ChatToolbarDock
+        isInline={isInline}
+        isRunModeOnly={isRunModeOnly}
+        isMobileLinkCompact={isMobileLinkCompact}
 
-        {/* 默认立绘位置选择器（仅在联动模式下显示） */}
-        {showWebgalControls && webgalLinkMode && onSetDefaultFigurePosition && !isMobileLinkCompact && (
-          <div className="flex items-center gap-1">
-            <div className="tooltip tooltip-top" data-tip="本角色默认位置（点击取消选择）">
-              <div className="join">
-                {(["left", "center", "right"] as const).map(pos => (
-                  <button
-                    key={pos}
-                    type="button"
-                    className={`join-item btn btn-xs px-2 md:mt-1 ${defaultFigurePosition === pos ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      // 如果点击的是当前选中的位置，则取消选择
-                      if (defaultFigurePosition === pos) {
-                        onSetDefaultFigurePosition(undefined as any);
-                      }
-                      else {
-                        onSetDefaultFigurePosition(pos);
-                      }
-                    }}
-                    title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}（再次点击取消）`}
-                  >
-                    {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        showWebgalControls={showWebgalControls}
+        onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
 
-        {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
-        {showWebgalControls && webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
-          <div className="flex items-center gap-2 text-xs md:mt-2">
-            {onToggleDialogNotend && (
-              <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-xs checkbox-primary rounded-none"
-                  checked={dialogNotend}
-                  onChange={onToggleDialogNotend}
-                />
-                <span className="tooltip tooltip-top" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
-              </label>
-            )}
-            {onToggleDialogConcat && (
-              <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-xs checkbox-primary rounded-none"
-                  checked={dialogConcat}
-                  onChange={onToggleDialogConcat}
-                />
-                <span className="tooltip tooltip-top" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
-              </label>
-            )}
-          </div>
-        )}
+        defaultFigurePosition={defaultFigurePosition}
+        onSetDefaultFigurePosition={onSetDefaultFigurePosition}
 
-        {/* WebGAL 导演控制台 */}
-        {showWebgalControls && webgalLinkMode && onSendEffect && (
-          <div className="dropdown dropdown-top dropdown-center md:dropdown-end mt-0.5 md:mt-1">
-            <div
-              tabIndex={0}
-              role="button"
-              className="tooltip tooltip-top hover:text-info"
-              data-tip="导演控制台"
-              aria-label="导演控制台"
-              title="导演控制台"
-            >
-              <FilmSlateIcon className="size-6" />
-            </div>
-            <ul tabIndex={0} className="dropdown-content z-[9999] menu p-2 shadow bg-base-100 rounded-box w-52 mb-4">
-              {onSendEffect && (
-                <>
-                  <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>
-                  <li><a onClick={() => onSendEffect("snow")}>❄️ 下雪</a></li>
-                  <li><a onClick={() => onSendEffect("sakura")}>🌸 樱花</a></li>
-                  <li><a onClick={() => onSendEffect("none")}>🛑 停止特效</a></li>
-                </>
-              )}
-              {(onClearBackground || onClearFigure) && (
-                <>
-                  <li className="divider my-1" role="separator"></li>
-                  {onClearBackground && <li><a onClick={onClearBackground}>🗑️ 清除背景</a></li>}
-                  {onClearFigure && <li><a onClick={onClearFigure}>👤 清除立绘</a></li>}
-                </>
-              )}
-              {onSetWebgalVar && !isSpectator && (
-                <>
-                  <li className="divider my-1" role="separator"></li>
-                  <li>
-                    <a
-                      onClick={() => {
-                        setWebgalVarError(null);
-                        setIsWebgalVarModalOpen(true);
-                      }}
-                    >
-                      设置变量…
-                    </a>
-                  </li>
-                </>
-              )}
-            </ul>
-          </div>
-        )}
+        onToggleDialogNotend={onToggleDialogNotend}
+        onToggleDialogConcat={onToggleDialogConcat}
 
-        {/* 实时渲染按钮：仅在联动模式开启时展示 */}
-        {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
-          <div
-            className={`tooltip tooltip-top mt-0.5 md:mt-1 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
-            data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
-            onClick={onToggleRealtimeRender}
-          >
-            <WebgalIcon className={`size-5 cursor-pointer mb-2 md:mb-0 ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
-          </div>
-        )}
+        onSendEffect={onSendEffect}
+        onClearBackground={onClearBackground}
+        onClearFigure={onClearFigure}
+        onSetWebgalVar={onSetWebgalVar}
+        isSpectator={isSpectator}
 
-        {showRunControls && runModeEnabled && (
-          <div className="flex gap-2 ml-0.5 mb-1 md:mb-0 md:mt-1">
-            <div
-              className="tooltip tooltip-top hover:text-info"
-              data-tip="查看线索"
-              data-side-drawer-toggle="true"
-              onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
-            >
-              <Detective className="size-6"></Detective>
-            </div>
+        onToggleRealtimeRender={onToggleRealtimeRender}
 
-            <div
-              className="tooltip tooltip-top"
-              data-tip="展示先攻表"
-              data-side-drawer-toggle="true"
-              onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
-            >
-              <SwordIcon className="size-6 jump_icon"></SwordIcon>
-            </div>
-
-            <div
-              className="tooltip tooltip-top"
-              data-tip="地图"
-              data-side-drawer-toggle="true"
-              onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
-            >
-              <CheckerboardIcon className="size-6 jump_icon"></CheckerboardIcon>
-            </div>
-          </div>
-        )}
-      </div>
+        showRunControls={showRunControls}
+      />
     </div>
   );
 }
