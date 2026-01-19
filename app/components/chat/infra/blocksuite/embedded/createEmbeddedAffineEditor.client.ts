@@ -5,7 +5,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine-block-embed-doc";
 import { LinkedDocIcon, LinkedEdgelessIcon } from "@blocksuite/affine-components/icons";
 import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
-import { insertLinkedNode } from "@blocksuite/affine-inline-reference";
+import { REFERENCE_NODE } from "@blocksuite/affine-shared/consts";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier, TelemetryProvider } from "@blocksuite/affine-shared/services";
 import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
@@ -135,6 +135,23 @@ function syncMetaTitleFromTcHeader(workspace: WorkspaceLike, docId: string, titl
   catch {
     // ignore
   }
+}
+
+function insertLinkedNodeWithTitle(params: { inlineEditor: any; docId: string; title?: string }) {
+  const { inlineEditor, docId, title } = params;
+  if (!inlineEditor)
+    return;
+  const inlineRange = inlineEditor.getInlineRange?.();
+  if (!inlineRange)
+    return;
+  const reference: { type: "LinkedPage"; pageId: string; title?: string } = { type: "LinkedPage", pageId: docId };
+  if (title)
+    reference.title = title;
+  inlineEditor.insertText(inlineRange, REFERENCE_NODE, { reference });
+  inlineEditor.setInlineRange({
+    index: inlineRange.index + 1,
+    length: 0,
+  });
 }
 
 async function readTcHeaderTitle(params: {
@@ -626,9 +643,12 @@ export function createEmbeddedAffineEditor(params: {
         icon: mode === "edgeless" ? LinkedEdgelessIcon : LinkedDocIcon,
         action: () => {
           abort();
-          insertLinkedNode({
+          const safeTitle = typeof title === "string" ? title : "";
+          syncMetaTitleFromTcHeader(workspace, docId, safeTitle);
+          insertLinkedNodeWithTitle({
             inlineEditor,
             docId,
+            title: safeTitle,
           });
           editorHost?.std
             ?.getOptional?.(TelemetryProvider)
