@@ -13,7 +13,8 @@ async function pathExists(targetPath) {
   try {
     await fs.access(targetPath);
     return true;
-  } catch {
+  }
+  catch {
     return false;
   }
 }
