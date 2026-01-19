@@ -1,6 +1,7 @@
 import { ExportIcon } from "@phosphor-icons/react";
 import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import {
   BaselineArrowBackIosNew,
@@ -20,6 +21,13 @@ function RoomHeaderBarImpl({
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+
+  const closeThreadPane = () => {
+    setComposerTarget("main");
+    setThreadRootMessageId(undefined);
+  };
 
   return (
     <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
@@ -50,7 +58,10 @@ function RoomHeaderBarImpl({
             className="tooltip tooltip-bottom hover:text-info relative z-50"
             data-tip="导出记录"
             data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
+            onClick={() => {
+              closeThreadPane();
+              setSideDrawerState(sideDrawerState === "export" ? "none" : "export");
+            }}
           >
             <ExportIcon className="size-6" />
           </div>
@@ -58,7 +69,10 @@ function RoomHeaderBarImpl({
             className="tooltip tooltip-bottom hover:text-info relative z-50"
             data-tip="房间成员"
             data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
+            onClick={() => {
+              closeThreadPane();
+              setSideDrawerState(sideDrawerState === "user" ? "none" : "user");
+            }}
           >
             <MemberIcon className="size-6" />
           </div>
@@ -66,7 +80,10 @@ function RoomHeaderBarImpl({
             className="tooltip tooltip-bottom hover:text-info relative z-50"
             data-tip="房间角色"
             data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
+            onClick={() => {
+              closeThreadPane();
+              setSideDrawerState(sideDrawerState === "role" ? "none" : "role");
+            }}
           >
             <RoleListIcon className="size-6" />
           </div>

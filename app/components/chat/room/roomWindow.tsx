@@ -27,6 +27,7 @@ import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomPopWindows from "@/components/chat/room/roomPopWindows";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
+import SubRoomWindow from "@/components/chat/room/subRoomWindow";
 import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
@@ -1432,79 +1433,84 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         {/* Pixi 特效层：覆盖 header + 主聊天区 + 输入区（在 UI 内容之下） */}
         <PixiOverlay effectName={currentEffect} />
 
-        <div className="relative z-10 flex flex-col h-full min-h-0">
-          <RoomHeaderBar
-            roomName={roomHeaderOverride?.title ?? room?.name}
-            toggleLeftDrawer={spaceContext.toggleLeftDrawer}
-          />
-          <div className="flex-1 w-full flex bg-transparent relative min-h-0">
-            {/* 左侧主区域：消息流 + 输入框（会被右侧抽屉挤压） */}
-            <div className="flex-1 min-w-0 flex flex-col min-h-0">
-              {/* 主聊天区（可点击切换输入目标） */}
-              <div
-                className={`bg-transparent flex-1 min-w-0 min-h-0 ${composerTarget === "main" ? "" : ""}`}
-                onMouseDown={() => setComposerTarget("main")}
-              >
-                <ChatFrame
-                  key={roomId}
-                  virtuosoRef={virtuosoRef}
-                  onBackgroundUrlChange={setBackgroundUrl}
-                  onEffectChange={setCurrentEffect}
-                  onExecuteCommandRequest={handleExecuteCommandRequest}
+        <div className="relative z-10 flex h-full min-h-0">
+          {/* 左侧列：Header + 主体（主体内承载 RoomSideDrawers，因此抽屉在 Header 下方） */}
+          <div className="flex-1 min-w-0 flex flex-col h-full min-h-0">
+            <RoomHeaderBar
+              roomName={roomHeaderOverride?.title ?? room?.name}
+              toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+            />
+            <div className="flex-1 w-full flex bg-transparent relative min-h-0">
+              <div className="flex-1 min-w-0 flex flex-col min-h-0">
+                {/* 主聊天区（可点击切换输入目标） */}
+                <div
+                  className={`bg-transparent flex-1 min-w-0 min-h-0 ${composerTarget === "main" ? "" : ""}`}
+                  onMouseDown={() => setComposerTarget("main")}
                 >
-                </ChatFrame>
+                  <ChatFrame
+                    key={roomId}
+                    virtuosoRef={virtuosoRef}
+                    onBackgroundUrlChange={setBackgroundUrl}
+                    onEffectChange={setCurrentEffect}
+                    onExecuteCommandRequest={handleExecuteCommandRequest}
+                  >
+                  </ChatFrame>
+                </div>
+
+                {/* 共享输入区域（主区 + Thread 共用） */}
+                <RoomComposerPanel
+                  roomId={roomId}
+                  userId={Number(userId)}
+                  webSocketUtils={webSocketUtils}
+                  handleSelectCommand={handleSelectCommand}
+                  ruleId={space?.ruleId ?? -1}
+                  handleMessageSubmit={handleMessageSubmit}
+                  onAIRewrite={handleQuickRewrite}
+                  currentChatStatus={myStatue as any}
+                  onChangeChatStatus={handleManualStatusChange}
+                  isSpectator={isSpectator}
+                  onToggleRealtimeRender={handleToggleRealtimeRender}
+                  onSendEffect={handleSendEffect}
+                  onClearBackground={handleClearBackground}
+                  onClearFigure={handleClearFigure}
+                  onSetWebgalVar={handleSetWebgalVar}
+                  isKP={spaceContext.isSpaceOwner}
+                  onStopBgmForAll={handleStopBgmForAll}
+                  noRole={noRole}
+                  notMember={notMember}
+                  isSubmitting={isSubmitting}
+                  placeholderText={placeholderText}
+                  curRoleId={curRoleId}
+                  curAvatarId={curAvatarId}
+                  setCurRoleId={setCurRoleId}
+                  setCurAvatarId={setCurAvatarId}
+                  roomRoles={roomRoles}
+                  chatInputRef={chatInputRef as any}
+                  atMentionRef={atMentionRef as any}
+                  onInputSync={handleInputAreaChange}
+                  onPasteFiles={handlePasteFiles}
+                  onKeyDown={handleKeyDown}
+                  onKeyUp={handleKeyUp}
+                  onMouseDown={handleMouseDown}
+                  onCompositionStart={() => isComposingRef.current = true}
+                  onCompositionEnd={() => isComposingRef.current = false}
+                  inputDisabled={notMember && noRole}
+                />
+
+                {/* BGM 悬浮球：仅在本房间有BGM且用户未主动关闭时显示 */}
+                <BgmFloatingBall roomId={roomId} />
               </div>
 
-              {/* 共享输入区域（主区 + Thread 共用） */}
-              <RoomComposerPanel
-                roomId={roomId}
-                userId={Number(userId)}
-                webSocketUtils={webSocketUtils}
-                handleSelectCommand={handleSelectCommand}
-                ruleId={space?.ruleId ?? -1}
-                handleMessageSubmit={handleMessageSubmit}
-                onAIRewrite={handleQuickRewrite}
-                currentChatStatus={myStatue as any}
-                onChangeChatStatus={handleManualStatusChange}
-                isSpectator={isSpectator}
-                onToggleRealtimeRender={handleToggleRealtimeRender}
-                onSendEffect={handleSendEffect}
-                onClearBackground={handleClearBackground}
-                onClearFigure={handleClearFigure}
-                onSetWebgalVar={handleSetWebgalVar}
-                isKP={spaceContext.isSpaceOwner}
-                onStopBgmForAll={handleStopBgmForAll}
-                noRole={noRole}
-                notMember={notMember}
-                isSubmitting={isSubmitting}
-                placeholderText={placeholderText}
-                curRoleId={curRoleId}
-                curAvatarId={curAvatarId}
-                setCurRoleId={setCurRoleId}
-                setCurAvatarId={setCurAvatarId}
-                roomRoles={roomRoles}
-                chatInputRef={chatInputRef as any}
-                atMentionRef={atMentionRef as any}
-                onInputSync={handleInputAreaChange}
-                onPasteFiles={handlePasteFiles}
-                onKeyDown={handleKeyDown}
-                onKeyUp={handleKeyUp}
-                onMouseDown={handleMouseDown}
-                onCompositionStart={() => isComposingRef.current = true}
-                onCompositionEnd={() => isComposingRef.current = false}
-                inputDisabled={notMember && noRole}
-              />
-
-              {/* BGM 悬浮球：仅在本房间有BGM且用户未主动关闭时显示 */}
-              <BgmFloatingBall roomId={roomId} />
+              {/* 右侧轻量抽屉：仅影响 Header 下方的主体区域 */}
+              <RoomSideDrawers />
             </div>
-
-            {/* 右侧面板（Thread/其它抽屉）：dock 模式会真实占位并挤压左侧内容 */}
-            <RoomSideDrawers
-              onClueSend={handleClueSend}
-              stopRealtimeRender={handleStopRealtimeRender}
-            />
           </div>
+
+          {/* 右侧列：SubRoomWindow（重内容面板）与 Header 顶部对齐，并可拖拽宽度 */}
+          <SubRoomWindow
+            onClueSend={handleClueSend}
+            stopRealtimeRender={handleStopRealtimeRender}
+          />
         </div>
       </div>
 
