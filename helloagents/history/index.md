@@ -80,6 +80,7 @@
 ## 按月归档
 
 ### 2026-01
+- 202601191140_blocksuite_mention_ref_title (2026-01/202601191140_blocksuite_mention_ref_title/) - ?? @??????????
 
 - [202601191041_blocksuite_mention_tc_header_menu](2026-01/202601191041_blocksuite_mention_tc_header_menu/) - Blocksuite @ 菜单标题使用 tc_header
 - [202601190001_blocksuite_mention_tc_header](2026-01/202601190001_blocksuite_mention_tc_header/) - Blocksuite @ 引用标题仅使用 tc_header
@@ -152,4 +153,5 @@
 
 | ??? | ???? | ?? | ?? | ????? |
 |--------|----------|------|------|------------|
+| 202601191140 | blocksuite_mention_ref_title | ?? | ???? | [202601191140_blocksuite_mention_ref_title](2026-01/202601191140_blocksuite_mention_ref_title/) |
 | 202601181336 | ai-image-style-webp | ?? | ???? | history/2026-01/202601181336_ai-image-style-webp/ |
