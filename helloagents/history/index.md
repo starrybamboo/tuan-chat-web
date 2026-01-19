@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601191041 | blocksuite_mention_tc_header_menu | 变更 | 已完成 | [2026-01/202601191041_blocksuite_mention_tc_header_menu/](2026-01/202601191041_blocksuite_mention_tc_header_menu/) |
 | 202601190001 | blocksuite_mention_tc_header | 变更 | 已完成 | [2026-01/202601190001_blocksuite_mention_tc_header/](2026-01/202601190001_blocksuite_mention_tc_header/) |
 | 202601180335 | doc_title_placeholder | 修复 | 已完成 | [2026-01/202601180335_doc-title-placeholder/](2026-01/202601180335_doc-title-placeholder/) |
 | 202601180238 | tc_header_title_hydration | 修复 | 已完成 | [2026-01/202601180238_tc-header-title-hydration/](2026-01/202601180238_tc-header-title-hydration/) |
@@ -80,6 +81,7 @@
 
 ### 2026-01
 
+- [202601191041_blocksuite_mention_tc_header_menu](2026-01/202601191041_blocksuite_mention_tc_header_menu/) - Blocksuite @ 菜单标题使用 tc_header
 - [202601190001_blocksuite_mention_tc_header](2026-01/202601190001_blocksuite_mention_tc_header/) - Blocksuite @ 引用标题仅使用 tc_header
 - [202601180335_doc-title-placeholder](2026-01/202601180335_doc-title-placeholder/) - `Untitled` 视为占位标题并允许 tc_header 覆盖
 - [202601180238_tc-header-title-hydration](2026-01/202601180238_tc-header-title-hydration/) - 房间/文档列表标题对齐 tc_header
