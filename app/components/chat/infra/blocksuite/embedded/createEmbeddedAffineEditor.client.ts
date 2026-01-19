@@ -124,10 +124,12 @@ function syncMetaTitleFromTcHeader(workspace: WorkspaceLike, docId: string, titl
     const current = metaAny.getDocMeta?.(docId);
     if (!current) {
       metaAny.addDocMeta?.({ id: docId, title, tags: [], createDate: Date.now() });
+      workspace.slots.docListUpdated.next();
       return;
     }
     if (current.title !== title) {
       metaAny.setDocMeta?.(docId, { title });
+      workspace.slots.docListUpdated.next();
     }
   }
   catch {
