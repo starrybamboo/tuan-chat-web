@@ -59,7 +59,7 @@ export default function ChatPage() {
   const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
 
   const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
-  const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting"))
+  const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg"))
     ? urlRoomId
     : null;
   const isSpaceDetailRoute = spaceDetailRouteTab != null;
@@ -244,7 +244,7 @@ export default function ChatPage() {
 
   // 主区域视图：不再用 URL 管理（避免 URL 变得过长/冲突）
   type RoomSettingTab = "role" | "setting";
-  type SpaceDetailTab = "members" | "workflow" | "setting";
+  type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
   const [mainView, setMainView] = useState<"chat" | "spaceDetail" | "roomSetting">("chat");
   const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
   const [roomSettingState, setRoomSettingState] = useState<{ roomId: number; tab: RoomSettingTab } | null>(null);

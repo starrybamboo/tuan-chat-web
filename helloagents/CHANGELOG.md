@@ -23,6 +23,7 @@
 - 新增本地开发工作流：`helloagents/wiki/workflows/local-dev.md`
 
 ### 变更
+- 合并冲突处理：启用仓库级 rerere，并使用自动策略完成冲突解决与提交
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
 - 修复 Blocksuite：`@`（Linked Doc）候选列表与 inline 引用标题不刷新：当 `workspace.meta` 更新时同步触发 `workspace.slots.docListUpdated`，让 `DocDisplayMetaProvider` 刷新标题缓存
 - 修复 Blocksuite：解散房间/空间后 `@` 弹窗仍出现已删除实体的文档：解散成功或收到房间解散推送（type=14）时 best-effort 清理对应 doc meta（`room:<roomId>:description`/`space:<spaceId>:description`）
