@@ -62,6 +62,9 @@ import {
 } from "../../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
+import { tuanchat } from "../../../../api/instance";
+import UTILS from "@/components/common/dicer/utils/utils";
+import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
@@ -1095,19 +1098,50 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
       const avatarMap = useRoomRoleSelectionStore.getState().curAvatarIdMap;
 
+      let dicerRoleId: number | null = null;
+      let dicerAvatarId: number | null = null;
+
+      const ensureDicerSender = async () => {
+        if (dicerRoleId != null && dicerAvatarId != null) {
+          return;
+        }
+        dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+
+        const cachedAvatarId = avatarMap[dicerRoleId] ?? null;
+        if (cachedAvatarId != null && cachedAvatarId > 0) {
+          dicerAvatarId = cachedAvatarId;
+          return;
+        }
+
+        const avatars = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+        const defaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") ?? null;
+        dicerAvatarId = defaultLabelAvatar?.avatarId ?? (avatars[0]?.avatarId ?? 0);
+      };
+
       const total = messages.length;
       for (let i = 0; i < messages.length; i++) {
         const msg = messages[i];
-        const roleId = msg.roleId;
-        const avatarId = roleId <= 0 ? -1 : (avatarMap[roleId] ?? -1);
+        let roleId = msg.roleId;
+        let avatarId = roleId <= 0 ? -1 : (avatarMap[roleId] ?? -1);
+        let messageType = MessageType.TEXT;
+        let extra: any = {};
+
+        // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
+        if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
+          await ensureDicerSender();
+          roleId = dicerRoleId ?? roleId;
+          avatarId = dicerAvatarId ?? 0;
+          messageType = MessageType.DICE;
+          extra = { result: msg.content };
+        }
 
         const request: ChatMessageRequest = {
           roomId,
           roleId,
           avatarId,
           content: msg.content,
-          messageType: MessageType.TEXT,
-          extra: {},
+          messageType,
+          extra,
         };
 
         if (composerTarget === "thread" && threadRootMessageId) {
@@ -1135,7 +1169,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       useRoomUiStore.getState().setReplyMessage(prevReply);
       setIsSubmitting(false);
     }
-  }, [isSubmitting, notMember, roomId, sendMessageWithInsert]);
+  }, [isSubmitting, notMember, roomContext, roomId, sendMessageWithInsert]);
 
   // 线索消息发送
   const handleClueSend = (clue: ClueMessage) => {

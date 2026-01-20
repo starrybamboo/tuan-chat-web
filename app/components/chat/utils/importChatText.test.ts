@@ -1,4 +1,4 @@
-import { normalizeSpeakerName, parseImportedChatText } from "./importChatText";
+import { isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "./importChatText";
 
 describe("parseImportedChatText", () => {
   it("解析标准格式（含中文冒号）", () => {
@@ -39,5 +39,16 @@ describe("normalizeSpeakerName", () => {
   it("去除首尾空白并压缩空白", () => {
     expect(normalizeSpeakerName("  KP  ")).toBe("KP");
     expect(normalizeSpeakerName("蓝色   的人")).toBe("蓝色 的人");
+  });
+});
+
+describe("isDicerSpeakerName", () => {
+  it("识别骰娘名称（含英文别名）", () => {
+    expect(isDicerSpeakerName("骰娘")).toBe(true);
+    expect(isDicerSpeakerName(" Dice ")).toBe(true);
+    expect(isDicerSpeakerName("dicer")).toBe(true);
+    expect(isDicerSpeakerName("dicebot")).toBe(true);
+    expect(isDicerSpeakerName("KP")).toBe(false);
+    expect(isDicerSpeakerName("蓝色的人")).toBe(false);
   });
 });

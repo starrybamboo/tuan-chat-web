@@ -5,6 +5,11 @@ export type ImportedChatLine = {
   content: string;
 };
 
+export const IMPORT_SPECIAL_ROLE_ID = {
+  NARRATOR: -1,
+  DICER: -2,
+} as const;
+
 export type ImportChatTextParseResult = {
   messages: ImportedChatLine[];
   invalidLines: Array<{ lineNumber: number; raw: string }>;
@@ -71,4 +76,15 @@ export function parseImportedChatText(text: string): ImportChatTextParseResult {
 
 export function normalizeSpeakerName(name: string) {
   return String(name ?? "").trim().replace(/\s+/g, " ");
+}
+
+export function isDicerSpeakerName(name: string) {
+  const normalized = normalizeSpeakerName(name).toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return normalized === "骰娘"
+    || normalized === "dice"
+    || normalized === "dicer"
+    || normalized === "dicebot";
 }
