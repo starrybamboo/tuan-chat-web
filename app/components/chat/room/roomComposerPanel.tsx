@@ -214,13 +214,13 @@ function RoomComposerPanelImpl({
     }
     const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
     return draftName || currentRole?.roleName || "未选择角色";
-  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap]);
+  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator]);
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editingName, setEditingName] = React.useState("");
   const [isAvatarPopoverOpen, setIsAvatarPopoverOpen] = React.useState(false);
   const avatarPopoverRef = React.useRef<HTMLDivElement | null>(null);
-  const showSelfStatus = Boolean(currentChatStatus && onChangeChatStatus && !isSpectator);
+  const showSelfStatus = Boolean(currentChatStatus && !isSpectator);
   const showOtherStatus = React.useMemo(() => {
     const raw = (webSocketUtils?.chatStatus?.[roomId] ?? []) as { userId: number; status: "input" | "wait" | "leave" | "idle" }[];
     if (!raw.length) {
@@ -505,7 +505,7 @@ function RoomComposerPanelImpl({
                         )}
                       </div>
                     </div>
-                    {webgalLinkMode && (
+                    {(webgalLinkMode || runModeEnabled) && (
                       <div className="flex items-start gap-2">
                         <ChatToolbarFromStore
                           roomId={roomId}
@@ -548,7 +548,7 @@ function RoomComposerPanelImpl({
                           showMainActions={false}
                           showSendButton={false}
                           showWebgalControls={true}
-                          showRunControls={false}
+                          showRunControls={true}
                         />
                       </div>
                     )}

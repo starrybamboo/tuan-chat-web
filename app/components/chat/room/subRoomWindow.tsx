@@ -2,109 +2,37 @@ import type { ClueMessage } from "../../../../api/models/ClueMessage";
 
 import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
-import { RoomContext } from "@/components/chat/core/roomContext";
 import ClueListForPL from "@/components/chat/room/drawers/clueListForPL";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
-import MessageThreadDrawer from "@/components/chat/room/drawers/messageThreadDrawer";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
-import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
-import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
-import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { ChatBubbleEllipsesOutline, Detective, WebgalIcon, XMarkICon } from "@/icons";
-import ChatToolbarDock from "../input/chatToolbarDock";
+import { Detective, XMarkICon } from "@/icons";
 
 export interface SubRoomWindowProps {
   onClueSend: (clue: ClueMessage) => void;
-  stopRealtimeRender: () => void;
-  onSendEffect?: (effectName: string) => void;
-  onClearBackground?: () => void;
-  onClearFigure?: () => void;
 }
 
-type SubPane = "thread" | "initiative" | "map" | "clue" | "webgal";
+type SubPane = "map" | "clue" | "initiative";
 
-function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onClearBackground, onClearFigure }: SubRoomWindowProps) {
+function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-
-  const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
-  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
-
-  const realtimePreviewUrl = useRealtimeRenderStore(state => state.previewUrl);
-  const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
-  const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
-  const isWebgalResizing = false;
-
-  const roomContext = React.use(RoomContext);
-  const curMember = roomContext.curMember;
-  const isSpectator = (curMember?.memberType ?? 3) >= 3;
-
-  const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
-  const isRunModeOnly = runModeEnabled;
-
-  const onToggleRealtimeRender = React.useCallback(() => {
-    if (isRealtimeRenderActive) {
-      stopRealtimeRender();
-      setIsRealtimeRenderEnabled(false);
-    }
-    else {
-      setIsRealtimeRenderEnabled(true);
-    }
-  }, [isRealtimeRenderActive, setIsRealtimeRenderEnabled, stopRealtimeRender]);
 
   const subRoomWindowWidth = useDrawerPreferenceStore(state => state.subRoomWindowWidth);
   const setSubRoomWindowWidth = useDrawerPreferenceStore(state => state.setSubRoomWindowWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
 
-  const activePane: SubPane | null = React.useMemo(() => {
-    if (sideDrawerState === "thread" || typeof threadRootMessageId === "number") {
-      return "thread";
-    }
-    if (sideDrawerState === "initiative") {
-      return "initiative";
-    }
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [activePane, setActivePane] = React.useState<SubPane>("map");
+
+  React.useEffect(() => {
     if (sideDrawerState === "map") {
-      return "map";
+      setIsOpen(true);
+      setActivePane("map");
     }
-    if (sideDrawerState === "clue") {
-      return "clue";
-    }
-    if (sideDrawerState === "webgal") {
-      return "webgal";
-    }
-    return null;
-  }, [sideDrawerState, threadRootMessageId]);
-
-  const isOpen = activePane !== null;
-  const showRunControls = runModeEnabled && activePane !== "thread" && activePane !== "webgal";
-
-  // 互斥：当用户打开其它右侧工具（initiative/map/clue/webgal）时，自动关闭 Thread。
-  React.useEffect(() => {
-    if (threadRootMessageId == null) {
-      return;
-    }
-    if (sideDrawerState === "initiative" || sideDrawerState === "map" || sideDrawerState === "clue" || sideDrawerState === "webgal") {
-      setComposerTarget("main");
-      setThreadRootMessageId(undefined);
-    }
-  }, [sideDrawerState, setComposerTarget, setThreadRootMessageId, threadRootMessageId]);
-
-  // 从 webgal pane 切走时，确保停止实时渲染（保持原 drawer 行为）。
-  const prevPaneRef = React.useRef<SubPane | null>(null);
-  React.useEffect(() => {
-    const prev = prevPaneRef.current;
-    prevPaneRef.current = activePane;
-
-    if (prev === "webgal" && activePane !== "webgal") {
-      stopRealtimeRender();
-      setIsRealtimeRenderEnabled(false);
-    }
-  }, [activePane, setIsRealtimeRenderEnabled, stopRealtimeRender]);
+  }, [sideDrawerState]);
 
   // 预留左侧聊天区的“最小可用宽度”。当左侧已经无法继续缩小时，SubRoomWindow 也不允许继续拖宽，避免整体溢出。
   // 这里额外考虑了 RoomSideDrawers（user/role/export）可能占据的固定宽度。
@@ -123,107 +51,32 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onCle
     const w = typeof window === "undefined" ? 1200 : window.innerWidth;
 
     switch (activePane) {
-      case "thread": {
-        const min = 360;
-        const max = typeof window === "undefined" ? 900 : Math.max(min, w - minRemainingWidth);
-        return { minWidth: min, maxWidth: max };
-      }
       case "initiative": {
         const min = 280;
         const max = 420;
         return { minWidth: min, maxWidth: max };
       }
       case "clue": {
-        const min = 280;
-        const max = 420;
+        const min = 320;
+        const max = 480;
         return { minWidth: min, maxWidth: max };
       }
-      case "map": {
+      default: {
         const min = 560;
         const max = typeof window === "undefined" ? 1100 : Math.max(min, w - minRemainingWidth);
         return { minWidth: min, maxWidth: max };
       }
-      case "webgal": {
-        const min = 520;
-        const max = typeof window === "undefined" ? 1100 : Math.max(min, w - minRemainingWidth);
-        return { minWidth: min, maxWidth: max };
-      }
-      default: {
-        return { minWidth: 360, maxWidth: 900 };
-      }
     }
   }, [activePane, minRemainingWidth]);
 
-  const { title, Icon } = React.useMemo(() => {
-    switch (activePane) {
-      case "thread":
-        return { title: "子区", Icon: ChatBubbleEllipsesOutline };
-      case "initiative":
-        return { title: "先攻表", Icon: SwordIcon };
-      case "map":
-        return { title: "地图", Icon: CheckerboardIcon };
-      case "clue":
-        return { title: "线索", Icon: Detective };
-      case "webgal":
-        return { title: "WebGAL", Icon: WebgalIcon };
-      default:
-        return { title: "", Icon: null as any };
-    }
-  }, [activePane]);
+  const title = activePane === "map" ? "地图" : activePane === "initiative" ? "先攻表" : "线索";
 
   const close = React.useCallback(() => {
-    if (activePane === "thread") {
-      setComposerTarget("main");
-      setThreadRootMessageId(undefined);
-      return;
+    setIsOpen(false);
+    if (sideDrawerState === "map") {
+      setSideDrawerState("none");
     }
-
-    if (activePane === "webgal") {
-      stopRealtimeRender();
-      setIsRealtimeRenderEnabled(false);
-    }
-
-    setSideDrawerState("none");
-  }, [activePane, setComposerTarget, setIsRealtimeRenderEnabled, setSideDrawerState, setThreadRootMessageId, stopRealtimeRender]);
-
-  const content = React.useMemo(() => {
-    switch (activePane) {
-      case "thread":
-        return <MessageThreadDrawer />;
-      case "initiative":
-        return (
-          <div className="overflow-auto flex-1 min-h-0">
-            <InitiativeList />
-          </div>
-        );
-      case "map":
-        return (
-          <div className="overflow-auto h-full">
-            <DNDMap />
-          </div>
-        );
-      case "clue":
-        return (
-          <div className="overflow-auto flex-1 min-h-0">
-            <ClueListForPL onSend={onClueSend} />
-          </div>
-        );
-      case "webgal":
-        // 给内容区加 padding，避免拖拽手柄被 Webgal 遮挡
-        return (
-          <div className="h-full" style={{ paddingLeft: 8 }}>
-            <WebGALPreview
-              previewUrl={realtimePreviewUrl}
-              isActive={isRealtimeRenderActive}
-              isResizing={isWebgalResizing}
-              onClose={close}
-            />
-          </div>
-        );
-      default:
-        return null;
-    }
-  }, [activePane, close, isRealtimeRenderActive, onClueSend, realtimePreviewUrl, isWebgalResizing]);
+  }, [setSideDrawerState, sideDrawerState]);
 
   return (
     <OpenAbleDrawer
@@ -240,35 +93,55 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onCle
         <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
           <div className="flex justify-between items-center w-full px-2 h-10">
             <div className="flex items-center gap-2 min-w-0">
-              {Icon
-                ? (
-                    <Icon className="size-5 opacity-80" />
-                  )
-                : null}
+              {activePane === "map" && <CheckerboardIcon className="size-5 opacity-80" />}
+              {activePane === "initiative" && <SwordIcon className="size-5 opacity-80" />}
+              {activePane === "clue" && <Detective className="size-5 opacity-80" />}
               <span className="text-center font-semibold line-clamp-1 truncate min-w-0 text-sm sm:text-base">
                 {title}
               </span>
             </div>
             <div className="flex items-center">
-              {activePane !== "thread" && (
-                <ChatToolbarDock
-                  isInline={true}
-                  isRunModeOnly={isRunModeOnly}
-                  isMobileLinkCompact={false}
-                  showWebgalControls={false}
-                  onInsertWebgalCommandPrefix={undefined}
-
-                  onSendEffect={onSendEffect}
-                  onClearBackground={onClearBackground}
-                  onClearFigure={onClearFigure}
-                  onSetWebgalVar={undefined}
-                  isSpectator={isSpectator}
-
-                  onToggleRealtimeRender={onToggleRealtimeRender}
-
-                  showRunControls={showRunControls}
-                />
-              )}
+              <div className="flex items-center gap-2 mr-1">
+                <div
+                  className={`tooltip tooltip-bottom ${activePane === "map" ? "text-primary" : "hover:text-info"}`}
+                  data-tip="地图"
+                >
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    aria-label="地图"
+                    onClick={() => setActivePane("map")}
+                  >
+                    <CheckerboardIcon className="size-5" />
+                  </button>
+                </div>
+                <div
+                  className={`tooltip tooltip-bottom ${activePane === "initiative" ? "text-primary" : "hover:text-info"}`}
+                  data-tip="先攻"
+                >
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    aria-label="先攻表"
+                    onClick={() => setActivePane("initiative")}
+                  >
+                    <SwordIcon className="size-5" />
+                  </button>
+                </div>
+                <div
+                  className={`tooltip tooltip-bottom ${activePane === "clue" ? "text-primary" : "hover:text-info"}`}
+                  data-tip="线索"
+                >
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    aria-label="线索"
+                    onClick={() => setActivePane("clue")}
+                  >
+                    <Detective className="size-5" />
+                  </button>
+                </div>
+              </div>
               <button
                 type="button"
                 className="btn btn-ghost btn-square btn-sm"
@@ -283,7 +156,21 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onCle
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden">
-          {content}
+          {activePane === "map" && (
+            <div className="overflow-auto h-full">
+              <DNDMap />
+            </div>
+          )}
+          {activePane === "initiative" && (
+            <div className="overflow-auto h-full">
+              <InitiativeList />
+            </div>
+          )}
+          {activePane === "clue" && (
+            <div className="overflow-auto h-full">
+              <ClueListForPL onSend={onClueSend} />
+            </div>
+          )}
         </div>
       </div>
     </OpenAbleDrawer>

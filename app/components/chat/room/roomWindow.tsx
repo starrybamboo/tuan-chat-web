@@ -191,10 +191,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     await realtimeRenderApiRef.current?.toggleRealtimeRender();
   }, []);
 
-  const handleStopRealtimeRender = useCallback(() => {
-    realtimeRenderApiRef.current?.stopRealtimeRender();
-  }, []);
-
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
   const spaceMembers = useMemo(() => {
@@ -1327,18 +1323,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               </div>
 
               {/* 右侧轻量抽屉：仅影响 Header 下方的主体区域 */}
-              <RoomSideDrawers />
+              <RoomSideDrawers onClueSend={handleClueSend} />
             </div>
           </div>
 
           {/* 右侧列：SubRoomWindow（重内容面板）与 Header 顶部对齐，并可拖拽宽度 */}
-          <SubRoomWindow
-            onClueSend={handleClueSend}
-            stopRealtimeRender={handleStopRealtimeRender}
-            onSendEffect={handleSendEffect}
-            onClearBackground={handleClearBackground}
-            onClearFigure={handleClearFigure}
-          />
+          <SubRoomWindow onClueSend={handleClueSend} />
         </div>
       </div>
 
