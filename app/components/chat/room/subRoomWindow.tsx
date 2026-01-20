@@ -21,11 +21,14 @@ import ChatToolbarDock from "../input/chatToolbarDock";
 export interface SubRoomWindowProps {
   onClueSend: (clue: ClueMessage) => void;
   stopRealtimeRender: () => void;
+  onSendEffect?: (effectName: string) => void;
+  onClearBackground?: () => void;
+  onClearFigure?: () => void;
 }
 
 type SubPane = "thread" | "initiative" | "map" | "clue" | "webgal";
 
-function SubRoomWindowImpl({ onClueSend, stopRealtimeRender }: SubRoomWindowProps) {
+function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onClearBackground, onClearFigure }: SubRoomWindowProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
@@ -54,6 +57,8 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender }: SubRoomWindowProp
   const isStacked = screenSize === "sm";
   const isMobileLinkCompact = isStacked && webgalLinkMode;
   const isRunModeOnly = runModeEnabled && !webgalLinkMode;
+  const showRunControls = runModeEnabled && !webgalLinkMode;
+  const showWebgalControls = webgalLinkMode && !runModeEnabled;
 
   const onSetDefaultFigurePosition = React.useCallback((position: "left" | "center" | "right" | undefined) => {
     setDefaultFigurePositionForRole(curRoleId ?? -1, position);
@@ -264,29 +269,31 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender }: SubRoomWindowProp
               </span>
             </div>
             <div className="flex items-center">
-              <ChatToolbarDock
-                isInline={true}
-                isRunModeOnly={isRunModeOnly}
-                isMobileLinkCompact={isMobileLinkCompact}
+              {activePane !== "thread" && (
+                <ChatToolbarDock
+                  isInline={true}
+                  isRunModeOnly={isRunModeOnly}
+                  isMobileLinkCompact={isMobileLinkCompact}
 
-                showWebgalControls={webgalLinkMode}
-                onInsertWebgalCommandPrefix={undefined}
+                  showWebgalControls={showWebgalControls}
+                  onInsertWebgalCommandPrefix={undefined}
 
-                defaultFigurePosition={defaultFigurePosition}
-                onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-                onToggleDialogNotend={onToggleDialogNotend}
-                onToggleDialogConcat={onToggleDialogConcat}
+                  defaultFigurePosition={defaultFigurePosition}
+                  onSetDefaultFigurePosition={onSetDefaultFigurePosition}
+                  onToggleDialogNotend={onToggleDialogNotend}
+                  onToggleDialogConcat={onToggleDialogConcat}
 
-                onSendEffect={undefined}
-                onClearBackground={undefined}
-                onClearFigure={undefined}
-                onSetWebgalVar={undefined}
-                isSpectator={isSpectator}
+                  onSendEffect={onSendEffect}
+                  onClearBackground={onClearBackground}
+                  onClearFigure={onClearFigure}
+                  onSetWebgalVar={undefined}
+                  isSpectator={isSpectator}
 
-                onToggleRealtimeRender={onToggleRealtimeRender}
+                  onToggleRealtimeRender={onToggleRealtimeRender}
 
-                showRunControls={true}
-              />
+                  showRunControls={showRunControls}
+                />
+              )}
               <button
                 type="button"
                 className="btn btn-ghost btn-square btn-sm"

@@ -61,7 +61,7 @@ export default function ChatToolbarDock({
     >
       {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
       {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && !isMobileLinkCompact && (
-        <div className="tooltip tooltip-top" data-tip="WebGAL 指令（插入 % 前缀）">
+        <div className="tooltip tooltip-bottom" data-tip="WebGAL 指令（插入 % 前缀）">
           <button
             type="button"
             className="btn btn-xs btn-ghost border border-base-300 md:mt-1"
@@ -75,7 +75,7 @@ export default function ChatToolbarDock({
       {/* 默认立绘位置选择器（仅在联动模式下显示） */}
       {showWebgalControls && webgalLinkMode && onSetDefaultFigurePosition && !isMobileLinkCompact && (
         <div className="flex items-center gap-1">
-          <div className="tooltip tooltip-top" data-tip="本角色默认位置（点击取消选择）">
+          <div className="tooltip tooltip-bottom" data-tip="本角色默认位置（点击取消选择）">
             <div className="join">
               {(["left", "center", "right"] as const).map(pos => (
                 <button
@@ -111,7 +111,7 @@ export default function ChatToolbarDock({
                 checked={!!dialogNotend}
                 onChange={onToggleDialogNotend}
               />
-              <span className="tooltip tooltip-top" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
+              <span className="tooltip tooltip-bottom" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
             </label>
           )}
           {onToggleDialogConcat && (
@@ -122,7 +122,7 @@ export default function ChatToolbarDock({
                 checked={!!dialogConcat}
                 onChange={onToggleDialogConcat}
               />
-              <span className="tooltip tooltip-top" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
+              <span className="tooltip tooltip-bottom" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
             </label>
           )}
         </div>
@@ -130,11 +130,11 @@ export default function ChatToolbarDock({
 
       {/* WebGAL 导演控制台 */}
       {showWebgalControls && webgalLinkMode && onSendEffect && (
-        <div className="dropdown dropdown-top dropdown-center md:dropdown-end mt-0.5 md:mt-1">
-          <div tabIndex={0} role="button" className="tooltip tooltip-top hover:text-info" data-tip="导演控制台" aria-label="导演控制台" title="导演控制台">
+        <div className="dropdown dropdown-bottom dropdown-center md:dropdown-end mt-0.5 md:mt-1">
+          <div tabIndex={0} role="button" className="tooltip tooltip-bottom hover:text-info" data-tip="导演控制台" aria-label="导演控制台" title="导演控制台">
             <FilmSlateIcon className="size-6" />
           </div>
-          <ul tabIndex={0} className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-52 mb-4">
+          <ul tabIndex={0} className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-52 mt-2">
             {onSendEffect && (
               <>
                 <li><a onClick={() => onSendEffect("rain")}>🌧️ 下雨</a></li>
@@ -165,7 +165,7 @@ export default function ChatToolbarDock({
       {/* 实时渲染按钮：仅在联动模式开启时展示 */}
       {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
         <div
-          className={`tooltip tooltip-top mt-0.5 md:mt-1 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+          className={`tooltip tooltip-bottom mt-0.5 md:mt-1 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
           data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
           onClick={onToggleRealtimeRender}
         >
@@ -175,15 +175,15 @@ export default function ChatToolbarDock({
 
       {showRunControls && runModeEnabled && (
         <div className="flex gap-2 ml-0.5 mb-1 md:mb-0 md:mt-1">
-          <div className="tooltip tooltip-top hover:text-info" data-tip="查看线索" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}>
+          <div className="tooltip tooltip-bottom hover:text-info" data-tip="查看线索" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}>
             <Detective className="size-6" />
           </div>
 
-          <div className="tooltip tooltip-top" data-tip="展示先攻表" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}>
+          <div className="tooltip tooltip-bottom" data-tip="展示先攻表" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}>
             <SwordIcon className="size-6 jump_icon" />
           </div>
 
-          <div className="tooltip tooltip-top" data-tip="地图" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}>
+          <div className="tooltip tooltip-bottom" data-tip="地图" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}>
             <CheckerboardIcon className="size-6 jump_icon" />
           </div>
         </div>

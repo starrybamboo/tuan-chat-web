@@ -1510,6 +1510,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           <SubRoomWindow
             onClueSend={handleClueSend}
             stopRealtimeRender={handleStopRealtimeRender}
+            onSendEffect={handleSendEffect}
+            onClearBackground={handleClearBackground}
+            onClearFigure={handleClearFigure}
           />
         </div>
       </div>

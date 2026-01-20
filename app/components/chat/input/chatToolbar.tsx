@@ -15,7 +15,6 @@ import {
   SendIcon,
   SparklesOutline,
 } from "@/icons";
-import ChatToolbarDock from "./chatToolbarDock";
 
 const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
 
@@ -93,6 +92,8 @@ interface ChatToolbarProps {
 
 export function ChatToolbar({
   roomId,
+  sideDrawerState,
+  setSideDrawerState,
   updateEmojiUrls,
   updateImgFiles,
   disableSendMessage,
@@ -103,20 +104,11 @@ export function ChatToolbar({
   statusWebSocketUtils,
   statusExcludeSelf = false,
   isSpectator = false,
-  onToggleRealtimeRender,
   webgalLinkMode = false,
   onToggleWebgalLinkMode,
   runModeEnabled = false,
   onToggleRunMode,
-  defaultFigurePosition,
-  onSetDefaultFigurePosition,
-  onToggleDialogNotend,
-  onToggleDialogConcat,
-  onSendEffect,
-  onClearBackground,
-  onClearFigure,
   onSetWebgalVar,
-  onInsertWebgalCommandPrefix,
   setAudioFile,
   layout = "stacked",
   showStatusBar = true,
@@ -124,8 +116,6 @@ export function ChatToolbar({
   showRunModeToggle = true,
   showMainActions = true,
   showSendButton = true,
-  showWebgalControls = true,
-  showRunControls = true,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const aiPromptDropdownRef = useRef<HTMLDivElement>(null);
@@ -142,8 +132,26 @@ export function ChatToolbar({
   const isMobile = screenSize === "sm";
   const isInline = layout === "inline";
   const isStacked = !isInline;
-  const isRunModeOnly = runModeEnabled && !webgalLinkMode;
-  const isMobileLinkCompact = isStacked && webgalLinkMode;
+
+  const openWebgalPreview = useCallback(() => {
+    if (onToggleRunMode && runModeEnabled) {
+      onToggleRunMode();
+    }
+    if (onToggleWebgalLinkMode && !webgalLinkMode) {
+      onToggleWebgalLinkMode();
+    }
+    setSideDrawerState(sideDrawerState === "webgal" ? "none" : "webgal");
+  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, setSideDrawerState, sideDrawerState, webgalLinkMode]);
+
+  const openRunClue = useCallback(() => {
+    if (onToggleWebgalLinkMode && webgalLinkMode) {
+      onToggleWebgalLinkMode();
+    }
+    if (onToggleRunMode && !runModeEnabled) {
+      onToggleRunMode();
+    }
+    setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue");
+  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, setSideDrawerState, sideDrawerState, webgalLinkMode]);
 
   const blurAiPromptFocus = useCallback(() => {
     const active = document.activeElement;
@@ -435,7 +443,7 @@ export function ChatToolbar({
                 >
                   <LinkFilled
                     className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
-                    onClick={onToggleWebgalLinkMode}
+                    onClick={openWebgalPreview}
                   />
                 </div>
               )}
@@ -447,7 +455,7 @@ export function ChatToolbar({
                 >
                   <DiceD6Icon
                     className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
-                    onClick={onToggleRunMode}
+                    onClick={openRunClue}
                   />
                 </div>
               )}
@@ -473,7 +481,7 @@ export function ChatToolbar({
                   >
                     <LinkFilled
                       className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
-                      onClick={onToggleWebgalLinkMode}
+                      onClick={openWebgalPreview}
                     />
                   </div>
                 )}
@@ -485,7 +493,7 @@ export function ChatToolbar({
                   >
                     <DiceD6Icon
                       className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
-                      onClick={onToggleRunMode}
+                      onClick={openRunClue}
                     />
                   </div>
                 )}
@@ -505,30 +513,6 @@ export function ChatToolbar({
         )}
       </div>
 
-      <ChatToolbarDock
-        isInline={isInline}
-        isRunModeOnly={isRunModeOnly}
-        isMobileLinkCompact={isMobileLinkCompact}
-
-        showWebgalControls={showWebgalControls}
-        onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-
-        defaultFigurePosition={defaultFigurePosition}
-        onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-
-        onToggleDialogNotend={onToggleDialogNotend}
-        onToggleDialogConcat={onToggleDialogConcat}
-
-        onSendEffect={onSendEffect}
-        onClearBackground={onClearBackground}
-        onClearFigure={onClearFigure}
-        onSetWebgalVar={onSetWebgalVar}
-        isSpectator={isSpectator}
-
-        onToggleRealtimeRender={onToggleRealtimeRender}
-
-        showRunControls={showRunControls}
-      />
     </div>
   );
 }
