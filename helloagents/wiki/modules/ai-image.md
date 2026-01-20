@@ -21,6 +21,8 @@
 
 - 仅支持 txt2img（不提供 img2img）
 - 输入自然语言后由后端转换为 NovelAI tags，前端允许继续编辑 tags 并再次生成
+- 自然语言输入框右侧提供“一键出图”：NL→tags→出图，并写回最终 tags（含画风合并结果）
+- tags 区提供“按 tag 出图”：不触发 NL→tags，直接按当前 tags 出图（仍会合并画风 tags）
 - “画风”选择在普通模式面板中默认展示（无需先点击生成）
 - 选择画风后，会在面板中显示已选画风的缩略图，便于确认当前选择
 - Seed 规则对齐 NovelAI：Seed < 0 表示随机
@@ -35,7 +37,7 @@
 
 - 图片目录：`app/assets/ai-image/styles/`（文件名即画风 ID，例如 `oil-painting.webp`）
 - 画风 tags 配置：`app/utils/aiImageStylePresets.ts`（按文件名 ID 配置 `tags`/`negativeTags`）
-- 使用方式：普通模式选择画风可多选，生成时会把画风 tags 合并进最终 prompt（负面同理；普通/专业模式生成请求均会合并）
+- 使用方式：普通模式选择画风可多选，普通模式生成时会把画风 tags 合并进最终 prompt（负面同理）
 
 ## 关键约定（本项目）
 
