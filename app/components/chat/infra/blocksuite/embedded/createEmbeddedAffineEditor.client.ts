@@ -154,6 +154,17 @@ function insertLinkedNodeWithTitle(params: { inlineEditor: any; docId: string; t
   });
 }
 
+function ensureDocExistsInWorkspace(workspace: WorkspaceLike, docId: string) {
+  try {
+    const wsAny = workspace as any;
+    const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
+    doc?.load?.();
+  }
+  catch {
+    // ignore
+  }
+}
+
 async function readTcHeaderTitle(params: {
   docId: string;
   signal: AbortSignal;
@@ -589,9 +600,10 @@ export function createEmbeddedAffineEditor(params: {
 
     const queryText = String(query ?? "");
     const filterQuery = queryText.trim();
+    const wsForTitle = ((editorHost as any)?.std?.workspace ?? workspace) as WorkspaceLike;
     const docEntries = await Promise.all(docIds.map(async (docId: string) => ({
       docId,
-      title: await readTcHeaderTitle({ docId, signal, workspace }),
+      title: await readTcHeaderTitle({ docId, signal, workspace: wsForTitle }),
     })));
 
     let filteredEntries = docEntries.filter(({ title }) => {
@@ -644,7 +656,9 @@ export function createEmbeddedAffineEditor(params: {
         action: () => {
           abort();
           const safeTitle = typeof title === "string" ? title : "";
-          syncMetaTitleFromTcHeader(workspace, docId, safeTitle);
+          const wsForInsert = ((editorHost as any)?.std?.workspace ?? workspace) as WorkspaceLike;
+          ensureDocExistsInWorkspace(wsForInsert, docId);
+          syncMetaTitleFromTcHeader(wsForInsert, docId, safeTitle);
           insertLinkedNodeWithTitle({
             inlineEditor,
             docId,
