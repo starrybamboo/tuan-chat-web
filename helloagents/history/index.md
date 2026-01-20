@@ -81,6 +81,7 @@
 - 202601191140_blocksuite_mention_ref_title (2026-01/202601191140_blocksuite_mention_ref_title/) - ?? @??????????
 - 202601191418_blocksuite_mention_ref_title_alias (2026-01/202601191418_blocksuite_mention_ref_title_alias/) - ??????????
 - 202601201346_blocksuite_mention_deleted_doc_fix (2026-01/202601201346_blocksuite_mention_deleted_doc_fix/) - ???????? Deleted doc
+- 202601201354_blocksuite_mention_deleted_doc_fix2 (2026-01/202601201354_blocksuite_mention_deleted_doc_fix2/) - ???????? Deleted doc?workspace ???
 
 - [202601201340_disable_google_fonts](2026-01/202601201340_disable_google_fonts/) - 默认不再加载 Google Fonts（Inter）外链样式，避免网络不可达时阻塞页面首屏渲染
 - [202601192104_merge-rerere](2026-01/202601192104_merge-rerere/) - 合并冲突自动解决与rerere启用
@@ -150,6 +151,7 @@
 
 | ??? | ???? | ?? | ?? | ????? |
 |--------|----------|------|------|------------|
+| 202601201354 | blocksuite_mention_deleted_doc_fix2 | ?? | ???? | [202601201354_blocksuite_mention_deleted_doc_fix2](2026-01/202601201354_blocksuite_mention_deleted_doc_fix2/) |
 | 202601201346 | blocksuite_mention_deleted_doc_fix | ?? | ???? | [202601201346_blocksuite_mention_deleted_doc_fix](2026-01/202601201346_blocksuite_mention_deleted_doc_fix/) |
 | 202601191418 | blocksuite_mention_ref_title_alias | ?? | ???? | [202601191418_blocksuite_mention_ref_title_alias](2026-01/202601191418_blocksuite_mention_ref_title_alias/) |
 | 202601191140 | blocksuite_mention_ref_title | ?? | ???? | [202601191140_blocksuite_mention_ref_title](2026-01/202601191140_blocksuite_mention_ref_title/) |
