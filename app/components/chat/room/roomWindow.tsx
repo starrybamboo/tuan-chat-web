@@ -37,8 +37,10 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
+import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
+import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -205,6 +207,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
+  const [isImportChatTextOpen, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
 
   // RealtimeRender 编排：用独立组件隔离 useEffect/订阅，避免 RoomWindow 被 status/initProgress/previewUrl 等高频变化拖着重渲染
   const realtimeRenderApiRef = useRef<RealtimeRenderOrchestratorApi | null>(null);
@@ -1062,6 +1065,78 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
   };
 
+  const handleImportChatText = useCallback(async (
+    messages: Array<{ roleId: number; content: string }>,
+    onProgress?: (sent: number, total: number) => void,
+  ) => {
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("正在发送中，请稍等");
+      return;
+    }
+    if (!messages.length) {
+      toast.error("没有可导入的有效消息");
+      return;
+    }
+
+    const ui = useRoomUiStore.getState();
+    const prevInsertAfter = ui.insertAfterMessageId;
+    const prevReply = ui.replyMessage;
+
+    ui.setInsertAfterMessageId(undefined);
+    ui.setReplyMessage(undefined);
+
+    setIsSubmitting(true);
+    try {
+      const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+      const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
+      const avatarMap = useRoomRoleSelectionStore.getState().curAvatarIdMap;
+
+      const total = messages.length;
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        const roleId = msg.roleId;
+        const avatarId = roleId <= 0 ? -1 : (avatarMap[roleId] ?? -1);
+
+        const request: ChatMessageRequest = {
+          roomId,
+          roleId,
+          avatarId,
+          content: msg.content,
+          messageType: MessageType.TEXT,
+          extra: {},
+        };
+
+        if (composerTarget === "thread" && threadRootMessageId) {
+          request.threadId = threadRootMessageId;
+        }
+
+        const draftCustomRoleName = draftCustomRoleNameMap[roleId];
+        if (draftCustomRoleName?.trim()) {
+          request.webgal = {
+            ...(request.webgal as any),
+            customRoleName: draftCustomRoleName.trim(),
+          } as any;
+        }
+
+        await sendMessageWithInsert(request);
+        onProgress?.(i + 1, total);
+
+        if (total >= 30) {
+          await new Promise(resolve => setTimeout(resolve, 30));
+        }
+      }
+    }
+    finally {
+      useRoomUiStore.getState().setInsertAfterMessageId(prevInsertAfter);
+      useRoomUiStore.getState().setReplyMessage(prevReply);
+      setIsSubmitting(false);
+    }
+  }, [isSubmitting, notMember, roomId, sendMessageWithInsert]);
+
   // 线索消息发送
   const handleClueSend = (clue: ClueMessage) => {
     const clueMessage: ChatMessageRequest = {
@@ -1478,6 +1553,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               onClearBackground={handleClearBackground}
               onClearFigure={handleClearFigure}
               onSetWebgalVar={handleSetWebgalVar}
+              onOpenImportChatText={() => setIsImportChatTextOpen(true)}
               isKP={spaceContext.isSpaceOwner}
               onStopBgmForAll={handleStopBgmForAll}
               noRole={noRole}
@@ -1506,6 +1582,20 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           </div>
         </div>
       </div>
+
+      <PopWindow
+        isOpen={isImportChatTextOpen}
+        onClose={() => setIsImportChatTextOpen(false)}
+      >
+        <ImportChatMessagesWindow
+          isKP={Boolean(spaceContext.isSpaceOwner)}
+          availableRoles={roomRolesThatUserOwn}
+          onImport={async (items, onProgress) => {
+            await handleImportChatText(items.map(i => ({ roleId: i.roleId, content: i.content })), onProgress);
+          }}
+          onClose={() => setIsImportChatTextOpen(false)}
+        />
+      </PopWindow>
 
       <RoomPopWindows
         isRoleHandleOpen={isRoleHandleOpen}

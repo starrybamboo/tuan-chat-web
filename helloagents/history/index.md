@@ -71,6 +71,7 @@
 | 202601172234 | tc_header_upload_and_doc_lazy | 修复 | 已完成 | [2026-01/202601172234_tc_header_upload_and_doc_lazy/](2026-01/202601172234_tc_header_upload_and_doc_lazy/) |
 | 202601192104 | merge_rerere | 变更 | 已完成 | [2026-01/202601192104_merge-rerere/](2026-01/202601192104_merge-rerere/) |
 | 202601192227 | lint_fix | 修复 | 已完成 | [2026-01/202601192227_lint-fix/](2026-01/202601192227_lint-fix/) |
+| 202601201337 | chat_import_text | 功能 | 已完成 | [2026-01/202601201337_chat_import_text/](2026-01/202601201337_chat_import_text/) |
 
 ---
 
@@ -78,6 +79,7 @@
 
 ### 2026-01
 
+- [202601201337_chat_import_text](2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
 - [202601192104_merge-rerere](2026-01/202601192104_merge-rerere/) - 合并冲突自动解决与rerere启用
 - [202601192227_lint-fix](2026-01/202601192227_lint-fix/) - 修复 lint 警告
 - [202601070338_blocksuite_docs](2026-01/202601070338_blocksuite_docs/) - Blocksuite 依赖文档补全（0.22.4）
