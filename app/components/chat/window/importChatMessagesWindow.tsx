@@ -16,6 +16,7 @@ export interface ImportChatMessagesWindowProps {
   availableRoles: UserRole[];
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   onClose: () => void;
+  onOpenRoleAddWindow?: () => void;
 }
 
 export default function ImportChatMessagesWindow({
@@ -23,6 +24,7 @@ export default function ImportChatMessagesWindow({
   availableRoles,
   onImport,
   onClose,
+  onOpenRoleAddWindow,
 }: ImportChatMessagesWindowProps) {
   const [rawText, setRawText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -111,7 +113,7 @@ export default function ImportChatMessagesWindow({
       return;
     }
     if (!isKP && availableRoles.length === 0) {
-      toast.error("当前房间没有可用角色，无法导入");
+      toast.error("当前房间没有可用角色，请先创建/导入角色");
       return;
     }
 
@@ -136,6 +138,15 @@ export default function ImportChatMessagesWindow({
     finally {
       setIsImporting(false);
     }
+  };
+
+  const handleQuickCreateRole = () => {
+    if (!onOpenRoleAddWindow) {
+      toast.error("当前页面无法打开创建角色入口");
+      return;
+    }
+    onClose();
+    setTimeout(() => onOpenRoleAddWindow(), 0);
   };
 
   return (
@@ -199,6 +210,21 @@ export default function ImportChatMessagesWindow({
 
         <div className="rounded-md border border-base-300 bg-base-100 p-3 space-y-2">
           <div className="font-semibold text-sm">角色映射</div>
+          {!isKP && roleOptions.length === 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-base-200/60 rounded-md p-2">
+              <div className="text-xs text-base-content/70">
+                当前房间没有可用角色，无法导入。可先快速创建角色并导入到房间。
+              </div>
+              <button
+                type="button"
+                className="btn btn-xs btn-outline"
+                onClick={handleQuickCreateRole}
+                disabled={isImporting}
+              >
+                创建/导入角色
+              </button>
+            </div>
+          )}
           {speakers.length === 0 && (
             <div className="text-sm text-base-content/60">请先导入文本内容</div>
           )}

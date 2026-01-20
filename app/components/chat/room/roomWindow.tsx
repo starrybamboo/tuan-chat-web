@@ -1594,6 +1594,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             await handleImportChatText(items.map(i => ({ roleId: i.roleId, content: i.content })), onProgress);
           }}
           onClose={() => setIsImportChatTextOpen(false)}
+          onOpenRoleAddWindow={() => setIsRoleAddWindowOpen(true)}
         />
       </PopWindow>
 
