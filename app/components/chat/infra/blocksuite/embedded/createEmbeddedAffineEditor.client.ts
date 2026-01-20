@@ -5,8 +5,8 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine-block-embed-doc";
 import { LinkedDocIcon, LinkedEdgelessIcon } from "@blocksuite/affine-components/icons";
 import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
-import { REFERENCE_NODE } from "@blocksuite/affine-shared/consts";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
+import { REFERENCE_NODE } from "@blocksuite/affine-shared/consts";
 import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier, TelemetryProvider } from "@blocksuite/affine-shared/services";
 import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
 import {
@@ -124,13 +124,24 @@ function syncMetaTitleFromTcHeader(workspace: WorkspaceLike, docId: string, titl
     const current = metaAny.getDocMeta?.(docId);
     if (!current) {
       metaAny.addDocMeta?.({ id: docId, title, tags: [], createDate: Date.now() });
-      workspace.slots.docListUpdated.next();
+      (workspace as any)?.slots?.docListUpdated?.next?.();
       return;
     }
     if (current.title !== title) {
       metaAny.setDocMeta?.(docId, { title });
-      workspace.slots.docListUpdated.next();
+      (workspace as any)?.slots?.docListUpdated?.next?.();
     }
+  }
+  catch {
+    // ignore
+  }
+}
+
+function ensureDocExistsInWorkspace(workspace: WorkspaceLike, docId: string) {
+  try {
+    const wsAny = workspace as any;
+    const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
+    doc?.load?.();
   }
   catch {
     // ignore
@@ -152,17 +163,6 @@ function insertLinkedNodeWithTitle(params: { inlineEditor: any; docId: string; t
     index: inlineRange.index + 1,
     length: 0,
   });
-}
-
-function ensureDocExistsInWorkspace(workspace: WorkspaceLike, docId: string) {
-  try {
-    const wsAny = workspace as any;
-    const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
-    doc?.load?.();
-  }
-  catch {
-    // ignore
-  }
 }
 
 async function readTcHeaderTitle(params: {
