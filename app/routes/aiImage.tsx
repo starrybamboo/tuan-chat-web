@@ -818,8 +818,9 @@ export default function AiImagePage() {
     const effectiveMode = args?.mode ?? mode;
     const basePrompt = String(args?.prompt ?? prompt).trim();
     const baseNegative = String(args?.negativePrompt ?? negativePrompt);
-    const effectivePrompt = mergeTagString(basePrompt, selectedStyleTags).trim();
-    const effectiveNegative = mergeTagString(baseNegative, selectedStyleNegativeTags);
+    const mergeStyleTags = uiMode === "simple";
+    const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, selectedStyleTags).trim() : basePrompt;
+    const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, selectedStyleNegativeTags) : baseNegative;
     const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, ...rest }) => rest) : undefined;
     const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
     const v4UseOrderPayload = uiMode === "pro" ? v4UseOrder : undefined;
@@ -827,10 +828,12 @@ export default function AiImagePage() {
     setError("");
     setLoading(true);
     try {
-      if (effectivePrompt !== basePrompt)
-        setPrompt(effectivePrompt);
-      if (effectiveNegative !== baseNegative)
-        setNegativePrompt(effectiveNegative);
+      if (mergeStyleTags) {
+        if (effectivePrompt !== basePrompt)
+          setPrompt(effectivePrompt);
+        if (effectiveNegative !== baseNegative)
+          setNegativePrompt(effectiveNegative);
+      }
 
       const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
@@ -920,17 +923,11 @@ export default function AiImagePage() {
     width,
   ]);
 
-  const handleSimpleGenerate = useCallback(async () => {
+  const handleSimpleGenerateFromText = useCallback(async () => {
     setSimpleError("");
     const trimmed = simpleText.trim();
     if (!trimmed) {
-      if (!prompt.trim()) {
-        setSimpleError("请先输入一行自然语言描述");
-        return;
-      }
-      const effectivePrompt = mergeTagString(prompt, selectedStyleTags);
-      const effectiveNegativePrompt = mergeTagString(negativePrompt, selectedStyleNegativeTags);
-      await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
+      setSimpleError("请先输入一行自然语言描述");
       return;
     }
 
@@ -962,19 +959,24 @@ export default function AiImagePage() {
       return;
     }
 
-    const effectivePrompt = mergeTagString(resolvedPrompt, selectedStyleTags);
-    const effectiveNegativePrompt = mergeTagString(resolvedNegativePrompt, selectedStyleNegativeTags);
-    await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
+    await runGenerate({ mode: "txt2img", prompt: resolvedPrompt, negativePrompt: resolvedNegativePrompt });
   }, [
     negativePrompt,
     prompt,
     runGenerate,
-    selectedStyleNegativeTags,
-    selectedStyleTags,
     simpleConverted,
     simpleConvertedFromText,
     simpleText,
   ]);
+
+  const handleSimpleGenerateFromTags = useCallback(async () => {
+    setSimpleError("");
+    if (!prompt.trim()) {
+      setSimpleError("prompt 为空：请先完成自然语言转换或手动编辑 tags");
+      return;
+    }
+    await runGenerate({ mode: "txt2img", prompt, negativePrompt });
+  }, [negativePrompt, prompt, runGenerate]);
 
   const handleLoadHistory = useCallback((row: AiImageHistoryRow) => {
     setMode("txt2img");
@@ -1131,22 +1133,31 @@ export default function AiImagePage() {
                 ? (
                     <div className="flex flex-col gap-3">
                       <div className="text-sm opacity-80">一行自然语言 → 自动转换 tags → 出图</div>
-                      <input
-                        className="input input-bordered w-full"
-                        value={simpleText}
-                        onChange={(e) => {
-                          const next = e.target.value;
-                          setSimpleText(next);
-                          if (simpleConverted) {
-                            setSimpleConverted(null);
-                            setSimpleConvertedFromText("");
-                            setPrompt("");
-                            setNegativePrompt("");
-                            setV4Chars([]);
-                          }
-                        }}
-                        placeholder="例如：A girl with silver hair in a rainy cyberpunk street, cinematic lighting"
-                      />
+                      <div className="join w-full">
+                        <input
+                          className="input input-bordered join-item flex-1"
+                          value={simpleText}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            setSimpleText(next);
+                            if (simpleConverted) {
+                              setSimpleConverted(null);
+                              setSimpleConvertedFromText("");
+                              setPrompt("");
+                              setNegativePrompt("");
+                              setV4Chars([]);
+                            }
+                          }}
+                          placeholder="例如：A girl with silver hair in a rainy cyberpunk street, cinematic lighting"
+                        />
+                        <button
+                          type="button"
+                          className={`btn btn-primary join-item ${canGenerate ? "" : "btn-disabled"}`}
+                          onClick={() => void handleSimpleGenerateFromText()}
+                        >
+                          {loading || simpleConverting ? "出图中..." : "一键出图"}
+                        </button>
+                      </div>
 
                       {simpleError ? <div className="text-sm text-error">{simpleError}</div> : null}
 
@@ -1203,7 +1214,18 @@ export default function AiImagePage() {
                       {prompt.trim()
                         ? (
                             <div className="flex flex-col gap-2">
-                              <div className="text-xs opacity-70">最终 tags（可编辑后再次生成）：</div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs opacity-70">最终 tags（可编辑）：</div>
+                                <div className="ml-auto">
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs btn-primary ${canGenerate ? "" : "btn-disabled"}`}
+                                    onClick={() => void handleSimpleGenerateFromTags()}
+                                  >
+                                    按 tag 出图
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
                                 className="textarea textarea-bordered w-full min-h-24"
                                 value={prompt}
@@ -1474,13 +1496,17 @@ export default function AiImagePage() {
 
         <div className="flex-1 overflow-auto p-3 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className={`btn btn-primary ${canGenerate ? "" : "btn-disabled"}`}
-              onClick={() => void (uiMode === "simple" ? handleSimpleGenerate() : runGenerate())}
-            >
-              {loading || simpleConverting ? "生成中..." : (uiMode === "simple" && simpleConverted ? "重新生成" : "生成")}
-            </button>
+            {uiMode !== "simple"
+              ? (
+                  <button
+                    type="button"
+                    className={`btn btn-primary ${canGenerate ? "" : "btn-disabled"}`}
+                    onClick={() => void runGenerate()}
+                  >
+                    {loading ? "生成中..." : "生成"}
+                  </button>
+                )
+              : null}
             {result ? <a className="btn" href={result.dataUrl} download={`nai_${result.seed}.png`}>下载</a> : null}
             {result ? <button type="button" className="btn btn-ghost" onClick={() => void handleDeleteCurrentHistory()}>删除当前</button> : null}
             {history.length ? <button type="button" className="btn btn-ghost" onClick={() => void handleClearHistory()}>清空历史</button> : null}
