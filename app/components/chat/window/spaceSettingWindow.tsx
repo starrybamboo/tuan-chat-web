@@ -228,53 +228,53 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         : (
             <div className="h-full flex flex-col gap-4">
               {/* 左侧：空间信息 */}
-                {cloneSourceId
-                  ? (
-                      <div className="mb-4">
-                        <label className="label mb-2">
-                          <span className="label-text">克隆来源</span>
-                        </label>
-                        <div className="flex items-center justify-between gap-3 rounded border border-neutral-200 dark:border-neutral-700 px-3 py-2">
-                          <div className="text-sm text-neutral-600 dark:text-neutral-300">
-                            {cloneSourceSpace?.name
-                              ? (
-                                  <>
-                                    {cloneSourceSpace.name}
-                                    <span className="ml-2 text-xs opacity-70">
-                                      (ID:
-                                      {cloneSourceId}
-                                      )
-                                    </span>
-                                  </>
-                                )
-                              : (
-                                  <>
-                                    来源ID:
-                                    {" "}
-                                    {cloneSourceId}
-                                    <span className="ml-2 text-xs opacity-70">(未在当前列表中找到空间名称)</span>
-                                  </>
-                                )}
-                          </div>
-
-                          {cloneSourceSpace?.spaceId
+              {cloneSourceId
+                ? (
+                    <div className="mb-4">
+                      <label className="label mb-2">
+                        <span className="label-text">克隆来源</span>
+                      </label>
+                      <div className="flex items-center justify-between gap-3 rounded border border-neutral-200 dark:border-neutral-700 px-3 py-2">
+                        <div className="text-sm text-neutral-600 dark:text-neutral-300">
+                          {cloneSourceSpace?.name
                             ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm"
-                                  onClick={() => {
-                                    setActiveSpaceId(cloneSourceSpace.spaceId!);
-                                    onClose();
-                                  }}
-                                >
-                                  前往
-                                </button>
+                                <>
+                                  {cloneSourceSpace.name}
+                                  <span className="ml-2 text-xs opacity-70">
+                                    (ID:
+                                    {cloneSourceId}
+                                    )
+                                  </span>
+                                </>
                               )
-                            : null}
+                            : (
+                                <>
+                                  来源ID:
+                                  {" "}
+                                  {cloneSourceId}
+                                  <span className="ml-2 text-xs opacity-70">(未在当前列表中找到空间名称)</span>
+                                </>
+                              )}
                         </div>
+
+                        {cloneSourceSpace?.spaceId
+                          ? (
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => {
+                                  setActiveSpaceId(cloneSourceSpace.spaceId!);
+                                  onClose();
+                                }}
+                              >
+                                前往
+                              </button>
+                            )
+                          : null}
                       </div>
-                    )
-                  : null}
+                    </div>
+                  )
+                : null}
 
               {/* 右侧：空间描述文档 */}
               <div className="flex-1 min-w-0 min-h-0">

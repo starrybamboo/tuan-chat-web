@@ -177,7 +177,7 @@ export default function Topbar() {
                   );
                 })}
               </div>
-              <div className="mx-2 border-1 border-l h-5 opacity-40" />
+              <div className="mx-2 border border-l h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
               {/* <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span> */}
@@ -224,7 +224,7 @@ export default function Topbar() {
                         clickEnterProfilePage={false}
                       />
                     </button>
-                    <div tabIndex={0} className="dropdown-content z-[50] card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
+                    <div tabIndex={0} className="dropdown-content z-50 card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
                       {/* Header */}
                       <div className="card-body p-4 border-b border-base-300">
                         <div className="flex items-center gap-3">
