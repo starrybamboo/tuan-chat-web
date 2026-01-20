@@ -22,7 +22,7 @@
 - worktree 根目录：`D:\A_collection\tuan-chat-web.worktrees\`
 - 分支命名：`session/YYYYMMDD-HHMM_<slug>`
 
-> 说明：这些约定也写入了仓库根目录的 `AGENTS.md`，用于让 Codex 在新会话中自动遵守该流程。
+> 说明：本仓库已移除根目录 `AGENTS.md`（避免影响团队协作）；如需让 Codex 在本机自动遵守，可使用本地 Skill：`tuan-chat-web`。
 
 ## 标准流程
 
@@ -65,5 +65,5 @@
 
 ## 为什么“新会话没有遵守”
 
-如果只在对话里口头约定，新的 Codex 会话不一定继承上下文；把约定固化到仓库的 `AGENTS.md` 后，只要会话在该仓库下运行，Codex 就能读取并遵守。
+如果只在对话里口头约定，新的 Codex 会话不一定继承上下文；本仓库不再提供 `AGENTS.md`，建议把约定写入知识库文档，并在个人环境中通过本地 Skill（`tuan-chat-web`）启用。
 
