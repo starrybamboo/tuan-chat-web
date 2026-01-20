@@ -102,7 +102,7 @@ export function ensureTCAffineMentionDefined(): void {
         data-selected=${this.selected}
         data-type="error"
         class="affine-mention"
-        >@Unknown Member<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
+        >Unknown Member<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
       ></span>`;
 
       const userService = this.std.getOptional(UserProvider);
@@ -121,7 +121,7 @@ export function ensureTCAffineMentionDefined(): void {
             data-selected=${this.selected}
             data-type="removed"
             class="affine-mention"
-            >@Inactive Member<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
+            >Inactive Member<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
           ></span>`;
         }
 
@@ -132,7 +132,7 @@ export function ensureTCAffineMentionDefined(): void {
           data-selected=${this.selected}
           data-type="default"
           class="affine-mention"
-          >@${avatar
+          >${avatar
             ? html`<img class="affine-mention-avatar" src="${avatar}" alt="" />`
             : null}${name}<v-text
             .str=${ZERO_WIDTH_FOR_EMBED_NODE}
@@ -145,7 +145,7 @@ export function ensureTCAffineMentionDefined(): void {
           data-selected=${this.selected}
           data-type="loading"
           class="affine-mention"
-          >@loading<span class="dots"
+          >loading<span class="dots"
             ><span class="dot">.</span><span class="dot">.</span
             ><span class="dot">.</span></span
           ><v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
@@ -170,4 +170,3 @@ export function ensureTCAffineMentionDefined(): void {
 
   customElements.define("affine-mention", TCAffineMention as any);
 }
-
