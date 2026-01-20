@@ -71,7 +71,7 @@ function ProfilePage() {
   }, [location.pathname, userId]);
 
   return (
-    <div className="card bg-base-100 mb-50 mx-auto">
+    <div className="card bg-base-100 mb-50 mx-auto max-w-4xl">
       {/* 导航栏 */}
       <div
         role="tablist"
