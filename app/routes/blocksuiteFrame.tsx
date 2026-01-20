@@ -4,6 +4,7 @@ import type { Route } from "./+types/blocksuiteFrame";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { BlocksuiteDescriptionEditorRuntime } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 
 function getPostMessageTargetOrigin(): string {
   if (typeof window === "undefined") {
@@ -151,6 +152,8 @@ export default function BlocksuiteFrameRoute() {
   useEffect(() => {
     if (typeof window === "undefined")
       return;
+    if (!isBlocksuiteDebugEnabled())
+      return;
 
     (globalThis as any).__tcBlocksuiteDebugLog = (entry: any) => {
       postToParent({
@@ -173,6 +176,8 @@ export default function BlocksuiteFrameRoute() {
 
   useEffect(() => {
     if (typeof window === "undefined")
+      return;
+    if (!isBlocksuiteDebugEnabled())
       return;
 
     const toLower = (v: unknown) => String(v ?? "").toLowerCase();

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
+import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
@@ -188,12 +189,12 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteDocHeader | null>(null);
 
   useEffect(() => {
-    if (!(import.meta as any)?.env?.DEV)
+    if (!isBlocksuiteDebugEnabled())
       return;
     try {
       const inIframe = isProbablyInIframe();
       const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
-      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
+      console.debug("[BlocksuiteMentionHost] runtime mount", msg);
       try {
         (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
       }
@@ -573,13 +574,13 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         // ignore
       }
 
-      if (typeof window !== "undefined" && import.meta.env.DEV) {
+      if (isBlocksuiteDebugEnabled()) {
         try {
           const rootId = (store as any)?.root?.id;
           const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
           const first = paragraphs?.[0];
           const firstText = first?.props?.text;
-          console.warn("[BlocksuiteDescriptionEditor] store ready", {
+          console.debug("[BlocksuiteDescriptionEditor] store ready", {
             docId,
             rootId,
             paragraphCount: paragraphs?.length ?? 0,
@@ -1278,12 +1279,12 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           // Host-side click debug:
           // If the mention picker is rendered outside iframe (portal), then iframe won't see click events.
           // Arm a short window after '@' to capture host pointer/click path summaries.
-          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown @") {
+          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && message === "keydown @") {
             hostMentionDebugUntilRef.current = Date.now() + 5000;
             hostMentionDebugRemainingRef.current = 12;
           }
 
-          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown Enter") {
+          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && message === "keydown Enter") {
             if (Date.now() < hostMentionDebugUntilRef.current && hostMentionDebugRemainingRef.current > 0) {
               hostMentionDebugRemainingRef.current -= 1;
               try {
@@ -1309,7 +1310,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
                   roleListbox: document.querySelectorAll("[role='listbox']").length,
                   roleMenu: document.querySelectorAll("[role='menu']").length,
                 };
-                console.warn("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
+                console.debug("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
               }
               catch {
                 // ignore
@@ -1317,11 +1318,13 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
             }
           }
 
-          if (payload && typeof payload === "object") {
-            console.warn("[BlocksuiteFrameDebug]", source, message, payload);
-          }
-          else {
-            console.warn("[BlocksuiteFrameDebug]", source, message);
+          if (isBlocksuiteDebugEnabled()) {
+            if (payload && typeof payload === "object") {
+              console.debug("[BlocksuiteFrameDebug]", source, message, payload);
+            }
+            else {
+              console.debug("[BlocksuiteFrameDebug]", source, message);
+            }
           }
         }
         catch {
@@ -1338,7 +1341,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   // 宿主侧捕获 click/pointerdown：用于定位 mention 弹窗是否是 portal 到 iframe 外。
   useEffect(() => {
-    if (!(import.meta as any)?.env?.DEV)
+    if (!isBlocksuiteDebugEnabled())
       return;
     if (typeof document === "undefined")
       return;
@@ -1378,7 +1381,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         const nodes = Array.isArray(path)
           ? path.map(summarizeNode).filter(Boolean).slice(0, 10)
           : [];
-        console.warn("[BlocksuiteHostDebug]", type, {
+        console.debug("[BlocksuiteHostDebug]", type, {
           targetTag: toLower((e.target as any)?.tagName),
           nodes,
         });
