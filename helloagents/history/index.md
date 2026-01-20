@@ -71,6 +71,7 @@
 | 202601172234 | tc_header_upload_and_doc_lazy | 修复 | 已完成 | [2026-01/202601172234_tc_header_upload_and_doc_lazy/](2026-01/202601172234_tc_header_upload_and_doc_lazy/) |
 | 202601192104 | merge_rerere | 变更 | 已完成 | [2026-01/202601192104_merge-rerere/](2026-01/202601192104_merge-rerere/) |
 | 202601192227 | lint_fix | 修复 | 已完成 | [2026-01/202601192227_lint-fix/](2026-01/202601192227_lint-fix/) |
+| 202601201340 | disable_google_fonts | 修复 | 已完成（轻量迭代） | [2026-01/202601201340_disable_google_fonts/](2026-01/202601201340_disable_google_fonts/) |
 
 ---
 
@@ -78,6 +79,7 @@
 
 ### 2026-01
 
+- [202601201340_disable_google_fonts](2026-01/202601201340_disable_google_fonts/) - 默认不再加载 Google Fonts（Inter）外链样式，避免网络不可达时阻塞页面首屏渲染
 - [202601192104_merge-rerere](2026-01/202601192104_merge-rerere/) - 合并冲突自动解决与rerere启用
 - [202601192227_lint-fix](2026-01/202601192227_lint-fix/) - 修复 lint 警告
 - [202601070338_blocksuite_docs](2026-01/202601070338_blocksuite_docs/) - Blocksuite 依赖文档补全（0.22.4）
