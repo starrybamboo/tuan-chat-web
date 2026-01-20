@@ -36,6 +36,7 @@ $12026-01-19
 ### 样式与组件
 
 - 以 Tailwind CSS + daisyUI 为主，补充样式文件见 `app/app.css` 等
+- 字体策略：默认不再通过 Google Fonts 注入 Inter 外链样式（避免部分网络环境不可达导致 `<link rel="stylesheet">` 长时间阻塞页面渲染）。如确需启用，可在环境变量中设置 `VITE_ENABLE_GOOGLE_FONTS=true`（见 `app/root.tsx`）
 
 ## 依赖
 
