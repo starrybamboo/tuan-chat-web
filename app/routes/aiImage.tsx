@@ -2018,7 +2018,7 @@ export default function AiImagePage() {
                   onClick={() => handleToggleStyle(preset.id)}
                   title={preset.tags.length ? preset.tags.join(", ") : preset.title}
                 >
-                  <div className="w-full aspect-video rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                  <div className="w-full aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
                     {preset.imageUrl
                       ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
                       : <div className="text-xs opacity-60">{preset.title}</div>}
