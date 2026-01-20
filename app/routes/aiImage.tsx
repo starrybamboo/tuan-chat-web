@@ -743,7 +743,12 @@ export default function AiImagePage() {
   }, [selectedStyleIds, stylePresets]);
 
   const selectedStyleTags = useMemo(() => {
-    return selectedStylePresets.flatMap(p => p.tags);
+    return selectedStylePresets.flatMap((preset) => {
+      if (preset.tags.length)
+        return preset.tags;
+      const fallback = String(preset.title || "").trim();
+      return fallback ? [fallback] : [];
+    });
   }, [selectedStylePresets]);
 
   const selectedStyleNegativeTags = useMemo(() => {
@@ -822,6 +827,11 @@ export default function AiImagePage() {
     setError("");
     setLoading(true);
     try {
+      if (effectivePrompt !== basePrompt)
+        setPrompt(effectivePrompt);
+      if (effectiveNegative !== baseNegative)
+        setNegativePrompt(effectiveNegative);
+
       const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const generator = requestMode === "direct" ? generateNovelImageDirect : generateNovelImageViaProxy;
