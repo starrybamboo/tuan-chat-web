@@ -77,7 +77,7 @@
 | 202601201451 | blocksuite_mention_user_profile | 修复 | 已完成 | [2026-01/202601201451_blocksuite_mention_user_profile/](2026-01/202601201451_blocksuite_mention_user_profile/) |
 | 202601201551 | blocksuite_mention_inline_avatar | 修复 | 已完成 | [2026-01/202601201551_blocksuite_mention_inline_avatar/](2026-01/202601201551_blocksuite_mention_inline_avatar/) |
 | 202601201622 | blocksuite_mention_remove_at | 优化 | 已完成 | [2026-01/202601201622_blocksuite_mention_remove_at/](2026-01/202601201622_blocksuite_mention_remove_at/) |
-| 202601201638 | blocksuite_disable_debug_logs | 优化 | 已完成 | [2026-01/202601201638_blocksuite_disable_debug_logs/](2026-01/202601201638_blocksuite_disable_debug_logs/) |
+| 202601201628 | ai_image_simple_style_picker_early | 修复 | 已完成（待确认） | [2026-01/202601201628_ai_image_simple_style_picker_early/](2026-01/202601201628_ai_image_simple_style_picker_early/) |
 
 ---
 
@@ -85,7 +85,7 @@
 
 ### 2026-01
 
-- [202601201638_blocksuite_disable_debug_logs](2026-01/202601201638_blocksuite_disable_debug_logs/) - Blocksuite 默认关闭 debug 控制台输出（需显式开启）
+- [202601201628_ai_image_simple_style_picker_early](2026-01/202601201628_ai_image_simple_style_picker_early/) - AI 生图：普通模式“画风”选择前置展示（无需先点击生成）
 - [202601201622_blocksuite_mention_remove_at](2026-01/202601201622_blocksuite_mention_remove_at/) - Blocksuite 文档内 mention 节点移除 `@` 前缀（头像+用户名已足够）
 - [202601201551_blocksuite_mention_inline_avatar](2026-01/202601201551_blocksuite_mention_inline_avatar/) - Blocksuite 文档内 `@mention` 展示头像与用户名（自定义 `<affine-mention />`）
 - [202601201451_blocksuite_mention_user_profile](2026-01/202601201451_blocksuite_mention_user_profile/) - Blocksuite `@` 弹窗用户候选显示头像与用户名（基于 `/user/info` 缓存）

@@ -1200,6 +1200,31 @@ export default function AiImagePage() {
 
                       {simpleError ? <div className="text-sm text-error">{simpleError}</div> : null}
 
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs opacity-70">画风</div>
+                          <div className="ml-auto flex items-center gap-2">
+                            {selectedStyleIds.length
+                              ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
+                              : <div className="text-xs opacity-60">未选择</div>}
+                            <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
+                              选择画风
+                            </button>
+                            {selectedStyleIds.length
+                              ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
+                              : null}
+                          </div>
+                        </div>
+
+                        {selectedStyleTags.length
+                          ? (
+                              <div className="text-xs opacity-70">
+                                {`画风 tags：${selectedStyleTags.join(", ")}`}
+                              </div>
+                            )
+                          : null}
+                      </div>
+
                       {prompt.trim()
                         ? (
                             <div className="flex flex-col gap-2">
@@ -1209,29 +1234,6 @@ export default function AiImagePage() {
                                 value={prompt}
                                 onChange={e => setPrompt(e.target.value)}
                               />
-
-                              <div className="flex items-center gap-2">
-                                <div className="text-xs opacity-70">画风</div>
-                                <div className="ml-auto flex items-center gap-2">
-                                  {selectedStyleIds.length
-                                    ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
-                                    : <div className="text-xs opacity-60">未选择</div>}
-                                  <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                                    选择画风
-                                  </button>
-                                  {selectedStyleIds.length
-                                    ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
-                                    : null}
-                                </div>
-                              </div>
-
-                              {selectedStyleTags.length
-                                ? (
-                                    <div className="text-xs opacity-70">
-                                      {`画风 tags：${selectedStyleTags.join(", ")}`}
-                                    </div>
-                                  )
-                                : null}
 
                               <details className="collapse bg-base-100">
                                 <summary className="collapse-title text-sm">负面 tags（可选）</summary>
