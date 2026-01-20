@@ -1093,15 +1093,6 @@ export default function AiImagePage() {
 
       <div className="flex-1 overflow-hidden flex">
         <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
-              <div className="card bg-base-200">
-            <div className="card-body gap-3">
-              <div className="flex items-center gap-2">
-                <div className="font-medium">模式</div>
-                <div className="ml-auto text-sm opacity-70">txt2img</div>
-              </div>
-            </div>
-          </div>
-
           <div className="card bg-base-200">
             <div className="card-body gap-3">
               <div className="flex items-center gap-2">
@@ -1665,15 +1656,6 @@ export default function AiImagePage() {
         : (
             <div className="flex-1 overflow-hidden flex">
               <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
-                <div className="card bg-base-200">
-                  <div className="card-body gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="font-medium">模式</div>
-                      <div className="ml-auto text-sm opacity-70">txt2img</div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="card bg-base-200">
                   <div className="card-body gap-3">
                     <div className="font-medium">Prompt</div>
