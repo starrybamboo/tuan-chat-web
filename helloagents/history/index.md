@@ -75,6 +75,7 @@
 | 202601201425 | blocksuite_mention_user_submenu | 优化 | 已完成 | [2026-01/202601201425_blocksuite_mention_user_submenu/](2026-01/202601201425_blocksuite_mention_user_submenu/) |
 | 202601201439 | room_npc_create | 功能 | 已完成 | [2026-01/202601201439_room_npc_create/](2026-01/202601201439_room_npc_create/) |
 | 202601201451 | blocksuite_mention_user_profile | 修复 | 已完成 | [2026-01/202601201451_blocksuite_mention_user_profile/](2026-01/202601201451_blocksuite_mention_user_profile/) |
+| 202601201551 | blocksuite_mention_inline_avatar | 修复 | 已完成 | [2026-01/202601201551_blocksuite_mention_inline_avatar/](2026-01/202601201551_blocksuite_mention_inline_avatar/) |
 
 ---
 
@@ -82,6 +83,7 @@
 
 ### 2026-01
 
+- [202601201551_blocksuite_mention_inline_avatar](2026-01/202601201551_blocksuite_mention_inline_avatar/) - Blocksuite 文档内 `@mention` 展示头像与用户名（自定义 `<affine-mention />`）
 - [202601201451_blocksuite_mention_user_profile](2026-01/202601201451_blocksuite_mention_user_profile/) - Blocksuite `@` 弹窗用户候选显示头像与用户名（基于 `/user/info` 缓存）
 - [202601201439_room_npc_create](2026-01/202601201439_room_npc_create/) - 房间角色列表 NPC+ 直接创建 NPC（并加入空间 NPC 库）
 - [202601201425_blocksuite_mention_user_submenu](2026-01/202601201425_blocksuite_mention_user_submenu/) - Blocksuite `@` 弹窗用户列表收口为二级入口（默认仅“展开用户列表”），提升文档选择体验
