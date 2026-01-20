@@ -705,36 +705,68 @@ export function createEmbeddedAffineEditor(params: {
         const resp = await tuanchat.spaceMemberController.getMemberList(params.spaceId);
         const members = (resp.data ?? []).filter(m => m.userId != null);
 
-        const q = query.toLowerCase();
-        const filtered = members.filter((m) => {
-          const id = String(m.userId);
-          // Best effort: cast to any to check for extra fields if backend sends them
-          // otherwise fallback to ID.
-          const anyM = m as any;
-          const name = anyM.displayName || anyM.username || anyM.nickname || id;
-          return name.toLowerCase().includes(q) || id.includes(q);
-        });
+        const q = String(query ?? "").trim().toLowerCase();
+        const memberIds = members
+          .map(m => Number(m.userId))
+          .filter(id => Number.isFinite(id) && id > 0);
+
+        const MAX_MEMBERS = 20;
+        const MAX_SCAN_MEMBERS = 200;
+        const SCAN_BATCH_SIZE = 30;
+        const isNumericQuery = q.length > 0 && /^[0-9]+$/.test(q);
+
+        let filteredIds: number[] = [];
+        if (!q) {
+          filteredIds = memberIds.slice(0, MAX_MEMBERS);
+        }
+        else if (isNumericQuery) {
+          filteredIds = memberIds.filter(id => String(id).includes(q)).slice(0, MAX_MEMBERS);
+        }
+        else {
+          const matched: number[] = [];
+          const limit = Math.min(memberIds.length, MAX_SCAN_MEMBERS);
+          for (let offset = 0; offset < limit && matched.length < MAX_MEMBERS; offset += SCAN_BATCH_SIZE) {
+            const batch = memberIds.slice(offset, offset + SCAN_BATCH_SIZE);
+            if (batch.length === 0)
+              break;
+            await userService.prefetch(batch.map(String));
+            for (const id of batch) {
+              const cached = userService.getCachedUserInfo(String(id));
+              const nameLower = cached && "removed" in cached && cached.removed
+                ? ""
+                : String(cached?.name ?? "").toLowerCase();
+              if (nameLower.includes(q)) {
+                matched.push(id);
+                if (matched.length >= MAX_MEMBERS)
+                  break;
+              }
+            }
+          }
+          filteredIds = matched;
+        }
 
         logMentionMenu("menu request", {
           query,
           locked: isMentionMenuLocked(),
-          memberCount: filtered.length,
+          memberCount: filteredIds.length,
         });
 
-        if (filtered.length > 0) {
+        if (filteredIds.length > 0) {
+          await userService.prefetch(filteredIds.map(String));
           memberGroup = {
             // 放到二级入口：默认仅展示“展开”项，避免成员过多影响文档选择。
             name: "用户",
-            items: filtered.slice(0, 20).map((m) => {
-              const id = String(m.userId);
-              const anyM = m as any;
-              const name = anyM.displayName || anyM.username || anyM.nickname || id;
+            items: filteredIds.map((idNum) => {
+              const id = String(idNum);
+              const cached = userService.getCachedUserInfo(id);
+              const name = cached && "removed" in cached && cached.removed ? id : (cached?.name || id);
+              const avatar = cached && "removed" in cached && cached.removed ? null : (cached?.avatar ?? null);
 
               return {
                 key: `member:${id}`,
                 name,
-                icon: (m as any).avatar
-                  ? html`<img src="${(m as any).avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
+                icon: avatar
+                  ? html`<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
                   : html`<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:#eee;border-radius:50%;font-size:12px;">@</div>`,
                 action: () => {
                   if (mentionActionLocked || isMentionMenuLocked())

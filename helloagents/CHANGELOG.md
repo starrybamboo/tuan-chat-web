@@ -63,6 +63,7 @@
 - 修复编辑 `tcHeader` 导致 blocksuite iframe 反复重载：冻结 `blocksuite-frame` URL 中的 `tcHeaderTitle/tcHeaderImageUrl`（仅首次初始化/切换文档时传入）
 - 修复 Blocksuite 空间描述 @ 提及重复插入：成员提及改为使用 `inlineEditor` 插入，并为 popover action 增加短窗口去重
 - 修复 Blocksuite @ 提及重复渲染（`@鸠 @鸠 ...`）：提及插入改为写入 `ZERO_WIDTH_FOR_EMBED_NODE`（embed 节点）而非写入 `@displayName` 文本
+- 修复 Blocksuite：`@` 弹窗用户候选仅显示 `userId`：改为拉取用户信息并展示头像/用户名
 - 增强 Blocksuite @ 提及点击链路调试：在 frame 捕获 pointerdown/click，并在按下 `@` 后短窗口内上报事件路径摘要
 - 增强 Blocksuite @ 提及宿主点击链路调试：收到 frame `keydown @` 后，宿主短窗口捕获 `pointerdown/click` 并输出事件路径摘要（用于定位 portal 到 iframe 外的候选项）
 - 增强 Blocksuite @ 提及键盘确认调试：frame 与宿主在 `Enter` 时输出 activeElement/probe 信息，便于定位插入链路
