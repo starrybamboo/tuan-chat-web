@@ -28,6 +28,7 @@
 ### 专业模式（pro）
 
 - 三栏布局：左侧参数 / 中间预览 / 右侧历史
+- 固定 txt2img（移除模式选择与 img2img 面板）
 - v4/v4.5 支持“背景/角色”结构化 prompt：写入 `v4_prompt`/`v4_negative_prompt` 的 `base_caption` + `char_captions`
 
 ## 画风预设（普通模式）
