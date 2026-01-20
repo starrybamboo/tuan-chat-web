@@ -72,6 +72,7 @@
 | 202601192104 | merge_rerere | 变更 | 已完成 | [2026-01/202601192104_merge-rerere/](2026-01/202601192104_merge-rerere/) |
 | 202601192227 | lint_fix | 修复 | 已完成 | [2026-01/202601192227_lint-fix/](2026-01/202601192227_lint-fix/) |
 | 202601201337 | chat_import_text | 功能 | 已完成 | [2026-01/202601201337_chat_import_text/](2026-01/202601201337_chat_import_text/) |
+| 202601201424 | chat_import_quick_create_role | 功能 | 已完成 | [2026-01/202601201424_chat_import_quick_create_role/](2026-01/202601201424_chat_import_quick_create_role/) |
 
 ---
 
@@ -79,6 +80,7 @@
 
 ### 2026-01
 
+- [202601201424_chat_import_quick_create_role](2026-01/202601201424_chat_import_quick_create_role/) - 导入文本无角色时提供“创建/导入角色”快捷入口
 - [202601201337_chat_import_text](2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
 - [202601192104_merge-rerere](2026-01/202601192104_merge-rerere/) - 合并冲突自动解决与rerere启用
 - [202601192227_lint-fix](2026-01/202601192227_lint-fix/) - 修复 lint 警告
