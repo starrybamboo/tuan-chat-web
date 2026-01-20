@@ -1216,6 +1216,31 @@ export default function AiImagePage() {
                           </div>
                         </div>
 
+                        {selectedStylePresets.length
+                          ? (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedStylePresets.map((preset) => {
+                                  return (
+                                    <button
+                                      key={preset.id}
+                                      type="button"
+                                      className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
+                                      onClick={() => setIsStylePickerOpen(true)}
+                                      title="点击继续选择画风"
+                                    >
+                                      <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                                        {preset.imageUrl
+                                          ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                                          : <div className="text-xs opacity-60">{preset.title}</div>}
+                                      </div>
+                                      <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )
+                          : null}
+
                         {selectedStyleTags.length
                           ? (
                               <div className="text-xs opacity-70">
