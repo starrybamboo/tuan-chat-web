@@ -106,6 +106,7 @@
 - AI 生图：普通模式参数面板精简为宽/高/Seed，修复“自然语言转换后生成提示 prompt 为空”的问题
 - AI 生图：Seed 输入对齐 NovelAI（Seed < 0 表示随机）；普通模式补充可选负面 tags 输入
 - AI 生图：普通模式移除 img2img，并新增“画风”多选（从本地图片加载预设并追加对应 tags）
+- 房间角色列表：`NPC+` 改为“创建 NPC 并加入房间”，并同步写入空间 NPC 库（仍可从 NPC 库导入）
 - 默认不再加载 Google Fonts（Inter）外链样式，避免网络不可达时阻塞页面首屏渲染；如需启用可设置 `VITE_ENABLE_GOOGLE_FONTS=true`
 
 ### 移除
