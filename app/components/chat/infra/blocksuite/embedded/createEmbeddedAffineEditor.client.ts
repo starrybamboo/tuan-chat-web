@@ -87,6 +87,121 @@ function logMentionMenu(message: string, payload?: Record<string, unknown>) {
   forwardMentionMenu(message, payload);
 }
 
+function normalizeTcHeaderTitle(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getCachedTcHeaderTitle(docId: string): string | null {
+  const cached = tcHeaderTitleCache.get(docId);
+  if (!cached)
+    return null;
+  if (Date.now() - cached.at > TC_HEADER_TITLE_TTL_MS) {
+    tcHeaderTitleCache.delete(docId);
+    return null;
+  }
+  return cached.title;
+}
+
+function cacheTcHeaderTitle(docId: string, title: string) {
+  tcHeaderTitleCache.set(docId, { at: Date.now(), title });
+}
+
+function syncMetaTitleFromTcHeader(workspace: WorkspaceLike, docId: string, title: string) {
+  try {
+    const metaAny = (workspace as any)?.meta;
+    if (!metaAny)
+      return;
+    const current = metaAny.getDocMeta?.(docId);
+    if (!current) {
+      metaAny.addDocMeta?.({ id: docId, title, tags: [], createDate: Date.now() });
+      workspace.slots.docListUpdated.next();
+      return;
+    }
+    if (current.title !== title) {
+      metaAny.setDocMeta?.(docId, { title });
+      workspace.slots.docListUpdated.next();
+    }
+  }
+  catch {
+    // ignore
+  }
+}
+
+function insertLinkedNodeWithTitle(params: { inlineEditor: any; docId: string; title?: string }) {
+  const { inlineEditor, docId, title } = params;
+  if (!inlineEditor)
+    return;
+  const inlineRange = inlineEditor.getInlineRange?.();
+  if (!inlineRange)
+    return;
+  const reference: { type: "LinkedPage"; pageId: string; title?: string } = { type: "LinkedPage", pageId: docId };
+  if (title)
+    reference.title = title;
+  inlineEditor.insertText(inlineRange, REFERENCE_NODE, { reference });
+  inlineEditor.setInlineRange({
+    index: inlineRange.index + 1,
+    length: 0,
+  });
+}
+
+function ensureDocExistsInWorkspace(workspace: WorkspaceLike, docId: string) {
+  try {
+    const wsAny = workspace as any;
+    const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
+    doc?.load?.();
+  }
+  catch {
+    // ignore
+  }
+}
+
+async function readTcHeaderTitle(params: {
+  docId: string;
+  signal: AbortSignal;
+  workspace: WorkspaceLike;
+}): Promise<string> {
+  const { docId, signal, workspace } = params;
+  if (signal.aborted)
+    return "";
+
+  const cached = getCachedTcHeaderTitle(docId);
+  if (cached !== null)
+    return cached;
+
+  const inflight = tcHeaderTitleInflight.get(docId);
+  if (inflight)
+    return inflight;
+
+  const task = (async () => {
+    if (signal.aborted)
+      return "";
+    let title = "";
+    try {
+      const wsAny = workspace as any;
+      const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
+      doc?.load?.();
+      const store = doc?.getStore?.({ readonly: true }) ?? doc?.getStore?.();
+      const header = readBlocksuiteDocHeader(store);
+      title = normalizeTcHeaderTitle(header?.title);
+    }
+    catch {
+      // ignore
+    }
+
+    cacheTcHeaderTitle(docId, title);
+    syncMetaTitleFromTcHeader(workspace, docId, title);
+    return title;
+  })();
+
+  tcHeaderTitleInflight.set(docId, task);
+  try {
+    return await task;
+  }
+  finally {
+    tcHeaderTitleInflight.delete(docId);
+  }
+}
+
 function insertMentionViaInlineEditor(params: {
   inlineEditor: any;
   query: string;
@@ -419,8 +534,90 @@ export function createEmbeddedAffineEditor(params: {
     let mentionActionLocked = false;
     logMentionMenu("getDocMenus", { query, locked: isMentionMenuLocked() });
 
-    // 1. Official linked-doc menu
-    const docGroupRaw = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
+    // 1. Custom linked-doc menu (tc_header only)
+    const metaAny = (workspace as any)?.meta ?? (editorHost as any)?.store?.workspace?.meta;
+    const docMetas = Array.isArray(metaAny?.docMetas) ? metaAny.docMetas : [];
+    const currentDocId = (editorHost as any)?.store?.id ?? (storeAny as any)?.id;
+    const docIds = docMetas.map((m: any) => m?.id).filter((id: string) => id && id !== currentDocId);
+
+    const queryText = String(query ?? "");
+    const filterQuery = queryText.trim();
+    const wsForTitle = ((editorHost as any)?.std?.workspace ?? workspace) as WorkspaceLike;
+    const docEntries = await Promise.all(docIds.map(async (docId: string) => ({
+      docId,
+      title: await readTcHeaderTitle({ docId, signal, workspace: wsForTitle }),
+    })));
+
+    let filteredEntries = docEntries.filter(({ title }) => {
+      if (!filterQuery)
+        return true;
+      if (!title)
+        return false;
+      return isFuzzyMatch(title, filterQuery);
+    });
+
+    const removedDocIds: string[] = [];
+    if (params.spaceId && params.spaceId > 0 && filteredEntries.length > 0) {
+      const hasRoomDoc = filteredEntries.some(item => parseRoomIdFromDocKey(item.docId) !== null);
+      if (hasRoomDoc) {
+        const roomIds = await getRoomIdsForSpace(params.spaceId, signal);
+        if (roomIds && !signal.aborted) {
+          filteredEntries = filteredEntries.filter((item) => {
+            const roomId = parseRoomIdFromDocKey(item.docId);
+            if (roomId === null)
+              return true;
+            if (roomIds.has(roomId))
+              return true;
+            removedDocIds.push(item.docId);
+            return false;
+          });
+        }
+      }
+    }
+
+    if (removedDocIds.length > 0) {
+      try {
+        if (metaAny?.removeDocMeta) {
+          for (const docId of removedDocIds) {
+            metaAny.removeDocMeta(docId);
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    const MAX_DOCS = 6;
+    const docItems = filteredEntries.map(({ docId, title }) => {
+      const mode = docModeProvider?.getPrimaryMode?.(docId);
+      return {
+        key: docId,
+        name: title,
+        icon: mode === "edgeless" ? LinkedEdgelessIcon : LinkedDocIcon,
+        action: () => {
+          abort();
+          const safeTitle = typeof title === "string" ? title : "";
+          const wsForInsert = ((editorHost as any)?.std?.workspace ?? workspace) as WorkspaceLike;
+          ensureDocExistsInWorkspace(wsForInsert, docId);
+          syncMetaTitleFromTcHeader(wsForInsert, docId, safeTitle);
+          insertLinkedNodeWithTitle({
+            inlineEditor,
+            docId,
+            title: safeTitle,
+          });
+          editorHost?.std
+            ?.getOptional?.(TelemetryProvider)
+            ?.track?.("LinkedDocCreated", {
+              control: "linked doc",
+              module: "inline @",
+              type: "doc",
+              other: "existing doc",
+            });
+        },
+      };
+    });
+
     const docGroup = {
       ...docGroupRaw,
       items: (docGroupRaw.items ?? []).map((item: any) => {
