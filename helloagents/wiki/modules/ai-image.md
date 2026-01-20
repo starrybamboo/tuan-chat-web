@@ -35,7 +35,7 @@
 
 - 图片目录：`app/assets/ai-image/styles/`（文件名即画风 ID，例如 `oil-painting.webp`）
 - 画风 tags 配置：`app/utils/aiImageStylePresets.ts`（按文件名 ID 配置 `tags`/`negativeTags`）
-- 使用方式：普通模式选择画风可多选，生成时会把画风 tags 合并进最终 prompt（负面同理）
+- 使用方式：普通模式选择画风可多选，生成时会把画风 tags 合并进最终 prompt（负面同理；普通/专业模式生成请求均会合并）
 
 ## 关键约定（本项目）
 
