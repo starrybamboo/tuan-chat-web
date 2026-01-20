@@ -811,8 +811,10 @@ export default function AiImagePage() {
 
   const runGenerate = useCallback(async (args?: { prompt?: string; negativePrompt?: string; mode?: AiImageHistoryMode }) => {
     const effectiveMode = args?.mode ?? mode;
-    const effectivePrompt = String(args?.prompt ?? prompt).trim();
-    const effectiveNegative = String(args?.negativePrompt ?? negativePrompt);
+    const basePrompt = String(args?.prompt ?? prompt).trim();
+    const baseNegative = String(args?.negativePrompt ?? negativePrompt);
+    const effectivePrompt = mergeTagString(basePrompt, selectedStyleTags).trim();
+    const effectiveNegative = mergeTagString(baseNegative, selectedStyleNegativeTags);
     const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, ...rest }) => rest) : undefined;
     const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
     const v4UseOrderPayload = uiMode === "pro" ? v4UseOrder : undefined;
@@ -891,6 +893,8 @@ export default function AiImagePage() {
     requestMode,
     sampler,
     scale,
+    selectedStyleNegativeTags,
+    selectedStyleTags,
     seed,
     smea,
     smeaDyn,
