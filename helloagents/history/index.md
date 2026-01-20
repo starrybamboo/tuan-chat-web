@@ -73,6 +73,7 @@
 | 202601192227 | lint_fix | 修复 | 已完成 | [2026-01/202601192227_lint-fix/](2026-01/202601192227_lint-fix/) |
 | 202601201337 | chat_import_text | 功能 | 已完成 | [2026-01/202601201337_chat_import_text/](2026-01/202601201337_chat_import_text/) |
 | 202601201425 | blocksuite_mention_user_submenu | 优化 | 已完成 | [2026-01/202601201425_blocksuite_mention_user_submenu/](2026-01/202601201425_blocksuite_mention_user_submenu/) |
+| 202601201439 | room_npc_create | 功能 | 已完成 | [2026-01/202601201439_room_npc_create/](2026-01/202601201439_room_npc_create/) |
 
 ---
 
@@ -80,6 +81,7 @@
 
 ### 2026-01
 
+- [202601201439_room_npc_create](2026-01/202601201439_room_npc_create/) - 房间角色列表 NPC+ 直接创建 NPC（并加入空间 NPC 库）
 - [202601201425_blocksuite_mention_user_submenu](2026-01/202601201425_blocksuite_mention_user_submenu/) - Blocksuite `@` 弹窗用户列表收口为二级入口（默认仅“展开用户列表”），提升文档选择体验
 - [202601201337_chat_import_text](2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
 - [202601192104_merge-rerere](2026-01/202601192104_merge-rerere/) - 合并冲突自动解决与rerere启用

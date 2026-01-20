@@ -38,11 +38,11 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
       spaceId,
-      roleIdList: [roleId],
+      roleId,
     }, {
       onSettled: () => {
         // setIsRoleHandleOpen(false);
-        toast("添加成员成功");
+        toast("添加NPC成功");
       },
     });
   };
