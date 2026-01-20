@@ -731,8 +731,6 @@ export default function AiImagePage() {
   const isNAI4 = isNaiV4Family(model);
 
   useEffect(() => {
-    if (uiMode !== "simple")
-      return;
     setMode("txt2img");
     setSourceImageDataUrl("");
     setSourceImageBase64("");
@@ -965,8 +963,9 @@ export default function AiImagePage() {
   ]);
 
   const handleLoadHistory = useCallback((row: AiImageHistoryRow) => {
-    const effectiveMode: AiImageHistoryMode = uiMode === "simple" ? "txt2img" : row.mode;
-    setMode(effectiveMode);
+    setMode("txt2img");
+    setSourceImageDataUrl("");
+    setSourceImageBase64("");
     setPrompt(row.prompt);
     setNegativePrompt(row.negativePrompt);
     setV4UseCoords(Boolean(row.v4UseCoords));
@@ -988,11 +987,7 @@ export default function AiImagePage() {
     setWidth(row.width);
     setHeight(row.height);
     setResult({ dataUrl: row.dataUrl, seed: row.seed, width: row.width, height: row.height, model: row.model });
-    if (effectiveMode === "img2img" && row.sourceDataUrl) {
-      setSourceImageDataUrl(row.sourceDataUrl);
-      setSourceImageBase64(dataUrlToBase64(row.sourceDataUrl));
-    }
-  }, [uiMode]);
+  }, []);
 
   const handleDeleteCurrentHistory = useCallback(async () => {
     const selectedDataUrl = result?.dataUrl;
@@ -1098,62 +1093,12 @@ export default function AiImagePage() {
 
       <div className="flex-1 overflow-hidden flex">
         <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
-          <div className="card bg-base-200">
+              <div className="card bg-base-200">
             <div className="card-body gap-3">
               <div className="flex items-center gap-2">
                 <div className="font-medium">模式</div>
-                <div className="ml-auto join">
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => setMode("txt2img")}
-                  >
-                    txt2img
-                  </button>
-                  {uiMode !== "simple"
-                    ? (
-                        <button
-                          type="button"
-                          className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
-                          onClick={() => setMode("img2img")}
-                        >
-                          img2img
-                        </button>
-                      )
-                    : null}
-                </div>
+                <div className="ml-auto text-sm opacity-70">txt2img</div>
               </div>
-
-              {uiMode !== "simple" && mode === "img2img"
-                ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
-                          选择源图
-                        </button>
-                        {result?.dataUrl
-                          ? (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-ghost"
-                                onClick={() => {
-                                  setSourceImageDataUrl(result.dataUrl);
-                                  setSourceImageBase64(dataUrlToBase64(result.dataUrl));
-                                }}
-                              >
-                                使用当前结果
-                              </button>
-                            )
-                          : null}
-                      </div>
-                      <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
-                        {sourceImageDataUrl
-                          ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
-                          : <div className="text-sm opacity-60">未选择源图</div>}
-                      </div>
-                    </div>
-                  )
-                : null}
             </div>
           </div>
 
@@ -1724,54 +1669,8 @@ export default function AiImagePage() {
                   <div className="card-body gap-3">
                     <div className="flex items-center gap-2">
                       <div className="font-medium">模式</div>
-                      <div className="ml-auto join">
-                        <button
-                          type="button"
-                          className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
-                          onClick={() => setMode("txt2img")}
-                        >
-                          txt2img
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
-                          onClick={() => setMode("img2img")}
-                        >
-                          img2img
-                        </button>
-                      </div>
+                      <div className="ml-auto text-sm opacity-70">txt2img</div>
                     </div>
-
-                    {mode === "img2img"
-                      ? (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
-                                选择源图
-                              </button>
-                              {result?.dataUrl
-                                ? (
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-ghost"
-                                      onClick={() => {
-                                        setSourceImageDataUrl(result.dataUrl);
-                                        setSourceImageBase64(dataUrlToBase64(result.dataUrl));
-                                      }}
-                                    >
-                                      使用当前结果
-                                    </button>
-                                  )
-                                : null}
-                            </div>
-                            <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
-                              {sourceImageDataUrl
-                                ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
-                                : <div className="text-sm opacity-60">未选择源图</div>}
-                            </div>
-                          </div>
-                        )
-                      : null}
                   </div>
                 </div>
 
