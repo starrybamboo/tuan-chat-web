@@ -41,7 +41,7 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - `Link to Doc`（文档候选）始终优先展示
 - `用户`（空间成员提及）默认收起为二级入口，仅展示“展开用户列表”，需要时再展开选择（实现位于 `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts` 的 `getDocMenus()`）
 - `用户`候选的展示信息（头像/名称）来自 `createTuanChatUserService()`：按 `userId` 拉取 `/user/info` 并缓存（避免仅显示 userId）
-- mention 节点的渲染组件为 `<affine-mention />`（`@blocksuite/affine-inline-mention`）；本项目在 Blocksuite core elements 初始化前注册自定义 `<affine-mention />`，让 mention 在文档内展示头像 + 名称：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`
+- mention 节点的渲染组件为 `<affine-mention />`（`@blocksuite/affine-inline-mention`）；本项目在 Blocksuite core elements 初始化前注册自定义 `<affine-mention />`，让 mention 在文档内展示头像 + 名称，并移除前缀 `@`：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`
 
 ## 常见坑位（入口）
 
