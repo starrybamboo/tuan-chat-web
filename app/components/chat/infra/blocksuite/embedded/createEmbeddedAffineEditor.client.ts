@@ -723,7 +723,8 @@ export function createEmbeddedAffineEditor(params: {
 
         if (filtered.length > 0) {
           memberGroup = {
-            name: "Members",
+            // 放到二级入口：默认仅展示“展开”项，避免成员过多影响文档选择。
+            name: "用户",
             items: filtered.slice(0, 20).map((m) => {
               const id = String(m.userId);
               const anyM = m as any;
@@ -764,6 +765,10 @@ export function createEmbeddedAffineEditor(params: {
                 },
               };
             }),
+            // linked-doc popover 的 overflow 展开逻辑要求 maxDisplay 为 truthy。
+            // 这里使用一个极小的非 0 数，让默认列表为空，只保留 “more/展开” 行。
+            maxDisplay: 0.0001,
+            overflowText: "展开用户列表",
           };
         }
       }
@@ -771,10 +776,10 @@ export function createEmbeddedAffineEditor(params: {
         // ignore network errors
       }
     }
-    if (memberGroup)
-      result.push(memberGroup);
     if (docGroup.items.length > 0)
       result.push(docGroup);
+    if (memberGroup)
+      result.push(memberGroup);
 
     return result;
   };

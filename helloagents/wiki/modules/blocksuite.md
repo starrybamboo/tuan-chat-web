@@ -37,6 +37,10 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 
 当前 Blocksuite 版本下，输入 `@` 打开的弹窗来自 linked-doc widget 的 popover；同时 mention 在模型层是 embed 节点，插入必须遵循 embed 规则（见 gotchas）。
 
+补充约定（本项目 UI 信息架构）：
+- `Link to Doc`（文档候选）始终优先展示
+- `用户`（空间成员提及）默认收起为二级入口，仅展示“展开用户列表”，需要时再展开选择（实现位于 `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts` 的 `getDocMenus()`）
+
 ## 常见坑位（入口）
 
 - `mention` 是 embed 节点、linked-doc popover、`abort()` 语义、StrictMode 多次 mount 等：`helloagents/wiki/vendors/blocksuite/gotchas.md`
