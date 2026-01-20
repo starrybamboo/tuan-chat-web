@@ -107,7 +107,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   enabled: false,
   ttsEnabled: false,
   miniAvatarEnabled: false,
-  autoFigureEnabled: false,
+  autoFigureEnabled: true,
   ttsApiUrl: "",
   terrePortOverride: null,
   terrePort: getDefaultTerrePort(),

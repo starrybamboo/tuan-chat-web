@@ -181,10 +181,10 @@ export default function InitiativeList() {
   };
 
   return (
-    <div className="flex flex-col bg-base-100">
+    <div className="flex flex-col bg-transparent">
       {/* 卡片容器 */}
       <div className="w-full p-3">
-        <div className="rounded-xl border border-base-300 bg-base-100 shadow-sm">
+        <div className="rounded-xl border border-base-300 bg-base-300 shadow-none">
           {/* 头部：标题 + 统计 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-base-200">
             <div className="flex items-center gap-2">
@@ -300,7 +300,7 @@ export default function InitiativeList() {
                             ),
                           );
                         }}
-                        className="font-medium text-sm text-base-content truncate max-w-[9rem] sm:max-w-[12rem] min-h-6 leading-6 inline-flex items-center"
+                        className="font-medium text-sm text-base-content truncate max-w-36 sm:max-w-48 min-h-6 leading-6 inline-flex items-center"
                         usingInput
                       >
                       </EditableField>
@@ -320,7 +320,7 @@ export default function InitiativeList() {
                               ),
                             );
                           }}
-                          className="w-[3rem] text-right tabular-nums min-h-5 leading-5 inline-flex items-center justify-end"
+                          className="w-12 text-right tabular-nums min-h-5 leading-5 inline-flex items-center justify-end"
                           usingInput
                           type="number"
                         />
@@ -337,7 +337,7 @@ export default function InitiativeList() {
                               ),
                             );
                           }}
-                          className="w-[3rem] text-right tabular-nums min-h-5 leading-5 inline-flex items-center justify-end"
+                          className="w-12 text-right tabular-nums min-h-5 leading-5 inline-flex items-center justify-end"
                           usingInput
                           type="number"
                         />
@@ -365,7 +365,7 @@ export default function InitiativeList() {
                             ),
                           );
                         }}
-                        className="w-[3.5rem] text-right text-sm tabular-nums text-base-content/90 min-h-6 leading-6 inline-flex items-center justify-end"
+                        className="w-14 text-right text-sm tabular-nums text-base-content/90 min-h-6 leading-6 inline-flex items-center justify-end"
                         usingInput
                         type="number"
                       >
@@ -397,7 +397,7 @@ export default function InitiativeList() {
         onClose={() => setIsImportPopupOpen(false)}
         fullScreen={false}
       >
-        <div className="p-4 space-y-4 min-w-[260px] max-w-sm">
+        <div className="p-4 space-y-4 min-w-65 max-w-sm">
           <h3 className="text-base font-semibold">从角色导入先攻（敏捷）</h3>
           <p className="text-xs text-base-content/60">
             选择一个角色，从其当前规则的能力/基础属性中自动识别“敏捷”等字段并填入先攻列表。

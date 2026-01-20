@@ -270,26 +270,27 @@ export default function WebGALPreview({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </a>
-          {onClose && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs btn-circle"
-              onClick={onClose}
-              title="关闭预览"
-            >
-              ✕
-            </button>
-          )}
         </div>
       </div>
       <div className="flex-1 relative bg-black">
-        <iframe
-          src={previewUrl}
-          className={`absolute inset-0 w-full h-full border-0 ${isResizing ? "pointer-events-none" : ""}`}
-          title="WebGAL 实时预览"
-          allow="autoplay; fullscreen"
-          sandbox="allow-scripts allow-same-origin"
-        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className={`${isResizing ? "pointer-events-none" : ""} flex items-center justify-center w-full h-full`}>
+            <iframe
+              src={previewUrl}
+              title="WebGAL 实时预览"
+              allow="autoplay; fullscreen"
+              sandbox="allow-scripts allow-same-origin"
+              style={{
+                width: "100%",
+                height: "auto",
+                aspectRatio: "16/9",
+                maxWidth: "100%",
+                maxHeight: "100%",
+                border: 0,
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* WebGAL 设置对话框 */}

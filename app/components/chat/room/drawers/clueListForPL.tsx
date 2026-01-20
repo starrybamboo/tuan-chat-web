@@ -290,9 +290,9 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
   const isLoading = getMyClueStarsBySpaceQuery.isLoading || getCluesByClueStarsQuery.isLoading;
 
   return (
-    <div className="space-y-3 p-3 overflow-auto flex flex-col items-center">
+    <div className="space-y-3 p-3 overflow-auto flex flex-col w-full items-stretch">
       {/* 标题和操作按钮 */}
-      <div className="flex justify-between items-center w-full max-w-64 gap-2">
+      <div className="flex justify-between items-center w-full gap-2">
         <span className="font-medium text-lg">持有线索</span>
         <div className="flex gap-1">
           <button
@@ -356,7 +356,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                     <button
                       type="button"
                       onClick={() => toggleFolder(folder.id!)}
-                      className="btn flex w-full max-w-64 mx-auto gap-3 p-3 bg-base-200 rounded-lg items-center hover:bg-base-300 transition border border-base-300"
+                      className="btn flex w-full gap-3 p-3 bg-base-200 rounded-lg items-center hover:bg-base-300 transition border border-base-300"
                       aria-expanded={openFolderId === folder.id}
                       aria-controls={`clue-drawer-${folder.id}`}
                     >

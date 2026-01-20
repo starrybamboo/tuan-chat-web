@@ -139,19 +139,20 @@ export function OpenAbleDrawer({
   const renderedWidth = clamp(width, bounds.min, bounds.max);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // 保留鼠标事件回退兼容性
     isDragging.current = true;
     startX.current = e.clientX;
     startWidth.current = width;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (ev: MouseEvent) => {
       if (!isDragging.current)
         return;
 
       const deltaX = handlePosition === "left"
-        ? (startX.current - e.clientX) // 向左拖拽为正值
-        : (e.clientX - startX.current); // 向右拖拽为正值
+        ? (startX.current - ev.clientX)
+        : (ev.clientX - startX.current);
       const newWidth = clamp(startWidth.current + deltaX, bounds.min, bounds.max);
       setWidth(newWidth);
       onWidthChange?.(newWidth);
@@ -167,6 +168,51 @@ export function OpenAbleDrawer({
 
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
+  }, [width, clamp, bounds.min, bounds.max, onWidthChange, handlePosition]);
+
+  // 使用 Pointer Events，可以在 pointermove 进入子元素（如 WebGAL canvas）时仍保持拖拽
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = width;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const pointerId = (e as any).pointerId;
+    try {
+      (e.target as Element)?.setPointerCapture?.(pointerId);
+    }
+    catch {
+      // ignore
+    }
+
+    const handlePointerMove = (ev: PointerEvent) => {
+      if (!isDragging.current)
+        return;
+      const deltaX = handlePosition === "left"
+        ? (startX.current - ev.clientX)
+        : (ev.clientX - startX.current);
+      const newWidth = clamp(startWidth.current + deltaX, bounds.min, bounds.max);
+      setWidth(newWidth);
+      onWidthChange?.(newWidth);
+    };
+
+    const handlePointerUp = () => {
+      isDragging.current = false;
+      try {
+        (e.target as Element)?.releasePointerCapture?.(pointerId);
+      }
+      catch {
+        // ignore
+      }
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerUp);
   }, [width, clamp, bounds.min, bounds.max, onWidthChange, handlePosition]);
 
   if (!isOpen) {
@@ -188,10 +234,12 @@ export function OpenAbleDrawer({
       className={`relative ${className}`}
       style={{ width: `${Math.max(0, renderedWidth)}px` }}
     >
-      {/* 拖拽手柄（默认在左侧） */}
+      {/* 拖拽手柄（默认在左侧） - 加宽并提升 z-index，同时使用 pointer 事件以避免被子元素捕获 */}
       <div
-        className={`absolute top-0 h-full w-3 cursor-col-resize z-[1000] ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors`}
+        className={`absolute top-0 h-full w-4 cursor-col-resize z-2000 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors pointer-events-auto`}
+        onPointerDown={handlePointerDown}
         onMouseDown={handleMouseDown}
+        style={{ touchAction: "none" }}
         title="拖拽调整宽度"
       >
         <div

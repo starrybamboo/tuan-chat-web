@@ -9,6 +9,8 @@ interface ChatStatusBarProps {
   userId: number | undefined | null;
   webSocketUtils: any;
   excludeSelf?: boolean;
+  showGrouped?: boolean;
+  showGroupDivider?: boolean;
   className?: string;
   currentChatStatus?: ChatStatusType | "idle";
   onChangeChatStatus?: (status: ChatStatusType | "idle") => void;
@@ -28,6 +30,8 @@ export default function ChatStatusBar({
   userId,
   webSocketUtils,
   excludeSelf = true,
+  showGrouped = true,
+  showGroupDivider = true,
   className,
   currentChatStatus,
   onChangeChatStatus,
@@ -35,6 +39,9 @@ export default function ChatStatusBar({
   compact = false,
 }: ChatStatusBarProps) {
   const grouped = useMemo(() => {
+    if (!showGrouped) {
+      return [];
+    }
     const statusPriority: ChatStatusType[] = ["input", "wait", "leave"]; // idle 不展示
     const raw = (webSocketUtils.chatStatus?.[roomId] ?? []) as { userId: number; status: ChatStatusType }[];
     const others = excludeSelf && userId != null ? raw.filter(s => s.userId !== userId) : raw;
@@ -44,7 +51,7 @@ export default function ChatStatusBar({
         users: others.filter(o => o.status === st).map(o => o.userId),
       }))
       .filter(g => g.users.length > 0);
-  }, [excludeSelf, roomId, userId, webSocketUtils.chatStatus]);
+  }, [excludeSelf, roomId, showGrouped, userId, webSocketUtils.chatStatus]);
 
   const showSelector = !isSpectator && currentChatStatus && onChangeChatStatus;
   if (grouped.length === 0 && !showSelector)
@@ -129,7 +136,7 @@ export default function ChatStatusBar({
             </ul>
           </div>
         )}
-        {grouped.length > 0 && (
+        {showSelector && grouped.length > 0 && (
           <span className="h-3 w-px bg-base-content/20" aria-hidden />
         )}
         {grouped.map((g, groupIndex) => {
@@ -163,7 +170,7 @@ export default function ChatStatusBar({
                       </>
                     )}
               </span>
-              {groupIndex < grouped.length - 1 && <span className="opacity-50 mx-2">/</span>}
+              {showGroupDivider && groupIndex < grouped.length - 1 && <span className="opacity-50 mx-2">/</span>}
             </span>
           );
         })}
