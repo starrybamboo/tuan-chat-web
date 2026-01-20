@@ -3,13 +3,13 @@ import type { LinkedMenuGroup } from "@blocksuite/affine-widget-linked-doc";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 
 import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine-block-embed-doc";
+import { LinkedDocIcon, LinkedEdgelessIcon } from "@blocksuite/affine-components/icons";
 import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import { REFERENCE_NODE } from "@blocksuite/affine-shared/consts";
 import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier, TelemetryProvider } from "@blocksuite/affine-shared/services";
 import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
 import {
-  createLinkedDocMenuGroup,
   LinkedWidgetConfigExtension,
 } from "@blocksuite/affine-widget-linked-doc";
 import { LinkedDocViewExtension } from "@blocksuite/affine-widget-linked-doc/view";
@@ -28,8 +28,10 @@ import { html } from "lit";
 
 import { tuanchat } from "api/instance";
 
+import { readBlocksuiteDocHeader } from "../docHeader";
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
+import { parseSpaceDocId } from "../spaceDocId";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
@@ -50,6 +52,12 @@ let mentionMenuLockUntil = 0;
 const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
 const mentionCommitDedupMs = 600;
 let mentionCommitDedupUntil = 0;
+const ROOM_LIST_CACHE_TTL_MS = 10_000;
+const roomListCache = new Map<number, { at: number; ids: Set<number> }>();
+const roomListInflight = new Map<number, Promise<Set<number> | null>>();
+const TC_HEADER_TITLE_TTL_MS = 10_000;
+const tcHeaderTitleCache = new Map<string, { at: number; title: string }>();
+const tcHeaderTitleInflight = new Map<string, Promise<string>>();
 
 function isMentionCommitDeduped(): boolean {
   return Date.now() < mentionCommitDedupUntil;
@@ -248,6 +256,54 @@ function insertMentionViaInlineEditor(params: {
   catch (err) {
     logMentionMenu("insert: failed", { memberId, err: String(err) });
     return false;
+  }
+}
+
+function parseRoomIdFromDocKey(key: string): number | null {
+  const parsed = parseSpaceDocId(key);
+  if (parsed?.kind !== "room_description")
+    return null;
+  return parsed.roomId;
+}
+
+async function getRoomIdsForSpace(spaceId: number, signal: AbortSignal): Promise<Set<number> | null> {
+  if (!Number.isFinite(spaceId) || spaceId <= 0)
+    return null;
+
+  const cached = roomListCache.get(spaceId);
+  if (cached && Date.now() - cached.at <= ROOM_LIST_CACHE_TTL_MS) {
+    return cached.ids;
+  }
+
+  const inflight = roomListInflight.get(spaceId);
+  if (inflight)
+    return inflight;
+
+  const task = (async () => {
+    if (signal.aborted)
+      return null;
+    const resp = await tuanchat.roomController.getUserRooms(spaceId);
+    const rooms = (resp as any)?.data?.rooms ?? [];
+    const ids = new Set<number>();
+    for (const room of rooms) {
+      const id = Number((room as any)?.roomId);
+      if (Number.isFinite(id) && id > 0) {
+        ids.add(id);
+      }
+    }
+    roomListCache.set(spaceId, { at: Date.now(), ids });
+    return ids;
+  })();
+
+  roomListInflight.set(spaceId, task);
+  try {
+    return await task;
+  }
+  catch {
+    return null;
+  }
+  finally {
+    roomListInflight.delete(spaceId);
   }
 }
 
@@ -621,8 +677,8 @@ export function createEmbeddedAffineEditor(params: {
     });
 
     const docGroup = {
-      ...docGroupRaw,
-      items: (docGroupRaw.items ?? []).map((item: any) => {
+      name: "Link to Doc",
+      items: docItems.map((item: any) => {
         const orig = item?.action;
         return {
           ...item,
@@ -636,6 +692,8 @@ export function createEmbeddedAffineEditor(params: {
           },
         };
       }),
+      maxDisplay: MAX_DOCS,
+      overflowText: `${docItems.length - MAX_DOCS} more docs`,
     };
 
     const result: LinkedMenuGroup[] = [];
