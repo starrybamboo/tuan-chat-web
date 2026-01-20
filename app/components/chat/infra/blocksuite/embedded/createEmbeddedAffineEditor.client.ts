@@ -28,6 +28,7 @@ import { html } from "lit";
 
 import { tuanchat } from "api/instance";
 
+import { isBlocksuiteDebugEnabled } from "../debugFlags";
 import { readBlocksuiteDocHeader } from "../docHeader";
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
@@ -49,7 +50,7 @@ let slashMenuSelectionGuardRefCount = 0;
 let slashMenuSelectionGuardHandler: ((e: Event) => void) | null = null;
 const mentionMenuLockMs = 400;
 let mentionMenuLockUntil = 0;
-const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
+const mentionMenuDebugEnabled = isBlocksuiteDebugEnabled();
 const mentionCommitDedupMs = 600;
 let mentionCommitDedupUntil = 0;
 const ROOM_LIST_CACHE_TTL_MS = 10_000;
@@ -89,10 +90,10 @@ function logMentionMenu(message: string, payload?: Record<string, unknown>) {
   if (!mentionMenuDebugEnabled)
     return;
   if (payload) {
-    console.warn("[BlocksuiteMentionMenu]", message, payload);
+    console.debug("[BlocksuiteMentionMenu]", message, payload);
   }
   else {
-    console.warn("[BlocksuiteMentionMenu]", message);
+    console.debug("[BlocksuiteMentionMenu]", message);
   }
   forwardMentionMenu(message, payload);
 }
