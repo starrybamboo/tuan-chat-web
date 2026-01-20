@@ -40,6 +40,7 @@ export interface RoomComposerPanelProps {
   onClearBackground: () => void;
   onClearFigure: () => void;
   onSetWebgalVar: (key: string, expr: string) => Promise<void> | void;
+  onOpenImportChatText?: () => void;
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
   isKP?: boolean;
@@ -91,6 +92,7 @@ function RoomComposerPanelImpl({
   onClearBackground,
   onClearFigure,
   onSetWebgalVar,
+  onOpenImportChatText,
   isKP,
   onStopBgmForAll,
   noRole,
@@ -341,6 +343,7 @@ function RoomComposerPanelImpl({
                       onClearBackground={onClearBackground}
                       onClearFigure={onClearFigure}
                       onSetWebgalVar={onSetWebgalVar}
+                      onOpenImportChatText={onOpenImportChatText}
                       isKP={isKP}
                       onStopBgmForAll={onStopBgmForAll}
                       noRole={noRole}
@@ -434,6 +437,7 @@ function RoomComposerPanelImpl({
                     onClearBackground={onClearBackground}
                     onClearFigure={onClearFigure}
                     onSetWebgalVar={onSetWebgalVar}
+                    onOpenImportChatText={onOpenImportChatText}
                     isKP={isKP}
                     onStopBgmForAll={onStopBgmForAll}
                     noRole={noRole}

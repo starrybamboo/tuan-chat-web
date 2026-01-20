@@ -21,6 +21,7 @@
 - 新增 Blocksuite 集成豆知识文档：`helloagents/wiki/vendors/blocksuite/gotchas.md`
 - 新增模块文档：`helloagents/wiki/modules/chat.md`、`helloagents/wiki/modules/blocksuite.md`、`helloagents/wiki/modules/webgal.md`、`helloagents/wiki/modules/ai-image.md`
 - 新增本地开发工作流：`helloagents/wiki/workflows/local-dev.md`
+- 聊天输入区支持导入 `.txt` 文本为多条消息：按 `[角色名]：内容` 解析，自动匹配可用角色，无法匹配时提示用户指定映射后再发送
 
 ### 变更
 - 合并冲突处理：启用仓库级 rerere，并使用自动策略完成冲突解决与提交
