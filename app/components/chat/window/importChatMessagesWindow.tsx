@@ -2,7 +2,7 @@ import type { UserRole } from "../../../../api";
 
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
+import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
 
 export interface ResolvedImportChatMessage {
   lineNumber: number;
@@ -72,7 +72,12 @@ export default function ImportChatMessagesWindow({
       const normalized = normalizeSpeakerName(speaker);
 
       if (isKP && (normalized === "旁白" || normalized.toLowerCase() === "narrator")) {
-        next[speaker] = -1;
+        next[speaker] = IMPORT_SPECIAL_ROLE_ID.NARRATOR;
+        continue;
+      }
+
+      if (isDicerSpeakerName(normalized)) {
+        next[speaker] = IMPORT_SPECIAL_ROLE_ID.DICER;
         continue;
       }
 
@@ -250,7 +255,8 @@ export default function ImportChatMessagesWindow({
                       disabled={isImporting}
                     >
                       <option value="">请选择角色</option>
-                      {isKP && <option value="-1">旁白（KP）</option>}
+                      {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>旁白（KP）</option>}
+                      <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>骰娘（系统）</option>
                       {roleOptions.map(o => (
                         <option key={o.roleId} value={String(o.roleId)}>{o.label}</option>
                       ))}
