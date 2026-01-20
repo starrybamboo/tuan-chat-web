@@ -7,20 +7,16 @@ import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realt
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { SpaceWebgalVarsRecord, WebgalVarMessagePayload } from "@/types/webgalVar";
-import { IdentificationCardIcon } from "@phosphor-icons/react";
 // *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 // hooks (local)
 import ChatFrame from "@/components/chat/chatFrame";
-import ChatStatusBar from "@/components/chat/chatStatusBar";
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
-import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import BgmFloatingBall from "@/components/chat/room/bgmFloatingBall";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
@@ -40,10 +36,7 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { NarratorIcon, UserSwitchIcon } from "@/icons";
 
 import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { getImageSize } from "@/utils/getImgSize";
@@ -92,15 +85,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
-  const [sidebarCardHost, setSidebarCardHost] = useState<HTMLElement | null>(null);
-  const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
-
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-    setSidebarCardHost(document.getElementById("chat-sidebar-user-card"));
-  }, []);
 
   // 输入区编辑态：放入 zustand store，避免 RoomWindow 每次敲字重渲染
   const resetChatInputUi = useChatInputUiStore(state => state.reset);
@@ -191,18 +175,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const setCurAvatarId = useCallback((_avatarId: number) => {
     setCurAvatarIdForRole(curRoleId, _avatarId);
   }, [curRoleId, setCurAvatarIdForRole]);
-
-  const currentRole = useMemo(() => {
-    return roomRolesThatUserOwn.find(role => role.roleId === curRoleId);
-  }, [roomRolesThatUserOwn, curRoleId]);
-
-  const displayRoleName = useMemo(() => {
-    if (curRoleId <= 0) {
-      return "旁白";
-    }
-    const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
-    return draftName || currentRole?.roleName || "未选择角色";
-  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap]);
 
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
@@ -1248,54 +1220,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
-  const [isRoleSwitchDropdownOpen, setIsRoleSwitchDropdownOpen] = useState(false);
-
-  // 侧边栏底部头像卡片：点击卡片任意空白处也能呼出“切换角色”的 dropdown
-  const roleSwitchTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const roleSwitchDropdownRef = useRef<HTMLDivElement | null>(null);
-  const handleSidebarAvatarCardClick = useCallback((e: React.MouseEvent) => {
-    const target = e.target as HTMLElement | null;
-    if (!target)
-      return;
-
-    // dropdown 内的点击不触发卡片级打开逻辑（否则会导致闪烁/无法关闭）
-    if (target.closest(".dropdown") || target.closest(".dropdown-content"))
-      return;
-
-    // 点击了内部按钮/输入等交互元素时，不触发卡片级打开逻辑
-    if (target.closest("button, a, input, textarea, select"))
-      return;
-
-    setIsRoleSwitchDropdownOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        queueMicrotask(() => {
-          roleSwitchTriggerRef.current?.focus();
-        });
-      }
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isRoleSwitchDropdownOpen)
-      return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target)
-        return;
-      if (roleSwitchDropdownRef.current?.contains(target))
-        return;
-      setIsRoleSwitchDropdownOpen(false);
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [isRoleSwitchDropdownOpen]);
-
   useEffect(() => {
     if (backgroundUrl) {
       const id = setTimeout(() => setDisplayedBgUrl(backgroundUrl), 0);
@@ -1303,107 +1227,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
   }, [backgroundUrl]);
 
-  const sidebarUserCard = sidebarCardHost
-    ? createPortal(
-        <div className="w-full">
-          <div
-            className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/80 shadow-sm p-2 cursor-pointer"
-            onClick={handleSidebarAvatarCardClick}
-          >
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {curRoleId <= 0
-                ? (
-                    <div className="size-10 rounded-full bg-base-300 flex items-center justify-center shrink-0">
-                      <NarratorIcon className="size-6 text-base-content/60" />
-                    </div>
-                  )
-                : (
-                    <RoleAvatarComponent
-                      avatarId={curAvatarId}
-                      width={10}
-                      isRounded={true}
-                      withTitle={false}
-                      stopPopWindow={true}
-                      alt={displayRoleName || "无头像"}
-                    />
-                  )}
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate ml-1">{displayRoleName}</div>
-                <ChatStatusBar
-                  roomId={roomId}
-                  userId={Number(userId)}
-                  webSocketUtils={webSocketUtils}
-                  excludeSelf={true}
-                  currentChatStatus={myStatue as any}
-                  onChangeChatStatus={handleManualStatusChange}
-                  isSpectator={isSpectator}
-                  compact={true}
-                  className=""
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Identification / Role detail dropdown */}
-              <div className="dropdown dropdown-top dropdown-start">
-                <button
-                  type="button"
-                  tabIndex={0}
-                  className="btn btn-circle btn-ghost btn-sm"
-                  aria-label="角色详情"
-                  title="角色详情"
-                >
-                  <IdentificationCardIcon className="size-6" />
-                </button>
-                <ul
-                  tabIndex={0}
-                  className="dropdown-content bg-base-100 rounded-box z-9999 shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-240 mb-6"
-                >
-                  <div className="p-2 w-full max-w-[90vw]">
-                    <RoleDetail roleId={curRoleId} allowKickOut={false} />
-                  </div>
-                </ul>
-              </div>
-            </div>
-            <div
-              ref={roleSwitchDropdownRef}
-              className={`dropdown dropdown-top dropdown-center ${isRoleSwitchDropdownOpen ? "dropdown-open" : ""}`}
-            >
-              <button
-                ref={roleSwitchTriggerRef}
-                type="button"
-                tabIndex={0}
-                className="btn btn-circle btn-ghost btn-sm"
-                aria-label="切换角色"
-                title="切换角色"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsRoleSwitchDropdownOpen(prev => !prev);
-                }}
-              >
-                <UserSwitchIcon className="size-6" />
-              </button>
-              <ul
-                tabIndex={0}
-                className="dropdown-content menu bg-base-100 rounded-box z-9999 shadow-lg p-2 border border-base-300 max-h-[60vh] overflow-y-auto overflow-x-hidden md:w-120 mb-6 ml-6"
-              >
-                <ExpressionChooser
-                  roleId={curRoleId}
-                  handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
-                  handleRoleChange={roleId => setCurRoleId(roleId)}
-                  showNarratorOption={true}
-                />
-              </ul>
-            </div>
-
-          </div>
-        </div>,
-        sidebarCardHost,
-      )
-    : null;
-
   return (
     <RoomContext value={roomContext}>
-      {sidebarUserCard}
       <RoomSideDrawerGuards spaceId={spaceId} />
       <RealtimeRenderOrchestrator
         spaceId={spaceId}

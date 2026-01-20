@@ -3,9 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
+import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
+
 import {
   DiceD6Icon,
   EmojiIconWhite,
@@ -108,7 +110,16 @@ export function ChatToolbar({
   onToggleWebgalLinkMode,
   runModeEnabled = false,
   onToggleRunMode,
+  onInsertWebgalCommandPrefix,
+  onSendEffect,
+  onClearBackground,
+  onClearFigure,
   onSetWebgalVar,
+  onToggleRealtimeRender,
+  defaultFigurePosition,
+  onSetDefaultFigurePosition,
+  onToggleDialogNotend,
+  onToggleDialogConcat,
   setAudioFile,
   layout = "stacked",
   showStatusBar = true,
@@ -116,6 +127,8 @@ export function ChatToolbar({
   showRunModeToggle = true,
   showMainActions = true,
   showSendButton = true,
+  showWebgalControls = false,
+  showRunControls = false,
 }: ChatToolbarProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const aiPromptDropdownRef = useRef<HTMLDivElement>(null);
@@ -133,15 +146,19 @@ export function ChatToolbar({
   const isInline = layout === "inline";
   const isStacked = !isInline;
 
-  const openWebgalPreview = useCallback(() => {
+  const handleToggleWebgalLinkMode = useCallback(() => {
+    if (!onToggleWebgalLinkMode) {
+      return;
+    }
+    if (webgalLinkMode) {
+      onToggleWebgalLinkMode();
+      return;
+    }
     if (onToggleRunMode && runModeEnabled) {
       onToggleRunMode();
     }
-    if (onToggleWebgalLinkMode && !webgalLinkMode) {
-      onToggleWebgalLinkMode();
-    }
-    setSideDrawerState(sideDrawerState === "webgal" ? "none" : "webgal");
-  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, setSideDrawerState, sideDrawerState, webgalLinkMode]);
+    onToggleWebgalLinkMode();
+  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, webgalLinkMode]);
 
   const openRunClue = useCallback(() => {
     if (onToggleWebgalLinkMode && webgalLinkMode) {
@@ -253,6 +270,10 @@ export function ChatToolbar({
       toast.error(err?.message ? `设置变量失败：${err.message}` : "设置变量失败");
     }
   }, [closeWebgalVarModal, onSetWebgalVar, webgalVarExpr, webgalVarKey]);
+
+  const openWebgalVarModal = useCallback(() => {
+    setIsWebgalVarModalOpen(true);
+  }, []);
 
   const webgalVarModal = isWebgalVarModalOpen && typeof document !== "undefined"
     ? createPortal(
@@ -439,11 +460,11 @@ export function ChatToolbar({
               {showWebgalLinkToggle && onToggleWebgalLinkMode && !isStacked && (
                 <div
                   className="tooltip tooltip-top"
-                  data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
+                  data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                 >
                   <LinkFilled
                     className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
-                    onClick={openWebgalPreview}
+                    onClick={handleToggleWebgalLinkMode}
                   />
                 </div>
               )}
@@ -477,11 +498,11 @@ export function ChatToolbar({
                 {showWebgalLinkToggle && onToggleWebgalLinkMode && (
                   <div
                     className="tooltip tooltip-top"
-                    data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示立绘/情感设置）"}
+                    data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                   >
                     <LinkFilled
                       className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
-                      onClick={openWebgalPreview}
+                      onClick={handleToggleWebgalLinkMode}
                     />
                   </div>
                 )}
@@ -513,6 +534,29 @@ export function ChatToolbar({
         )}
       </div>
 
+      {(showWebgalControls || showRunControls) && (
+        <div className={isInline ? "mt-1" : "mt-2"}>
+          <ChatToolbarDock
+            isInline={isInline}
+            isRunModeOnly={runModeEnabled && !webgalLinkMode}
+            isMobileLinkCompact={isMobile && webgalLinkMode}
+            showWebgalControls={showWebgalControls}
+            onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
+            defaultFigurePosition={defaultFigurePosition}
+            onSetDefaultFigurePosition={onSetDefaultFigurePosition}
+            onToggleDialogNotend={onToggleDialogNotend}
+            onToggleDialogConcat={onToggleDialogConcat}
+            onSendEffect={onSendEffect}
+            onClearBackground={onClearBackground}
+            onClearFigure={onClearFigure}
+            onSetWebgalVar={onSetWebgalVar}
+            onOpenWebgalVarModal={openWebgalVarModal}
+            isSpectator={isSpectator}
+            onToggleRealtimeRender={onToggleRealtimeRender}
+            showRunControls={showRunControls}
+          />
+        </div>
+      )}
     </div>
   );
 }

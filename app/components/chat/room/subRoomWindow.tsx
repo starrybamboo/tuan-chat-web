@@ -13,7 +13,6 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { ChatBubbleEllipsesOutline, Detective, WebgalIcon, XMarkICon } from "@/icons";
 import ChatToolbarDock from "../input/chatToolbarDock";
@@ -42,30 +41,11 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onCle
   const isWebgalResizing = false;
 
   const roomContext = React.use(RoomContext);
-  const curRoleId = roomContext.curRoleId;
   const curMember = roomContext.curMember;
   const isSpectator = (curMember?.memberType ?? 3) >= 3;
 
-  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
-  const toggleDialogNotend = useRoomPreferenceStore(state => state.toggleDialogNotend);
-  const toggleDialogConcat = useRoomPreferenceStore(state => state.toggleDialogConcat);
-  const setDefaultFigurePositionForRole = useRoomPreferenceStore(state => state.setDefaultFigurePositionForRole);
-  const defaultFigurePosition = useRoomPreferenceStore(state => state.defaultFigurePositionMap[curRoleId ?? -1]);
-
-  const screenSize = useScreenSize();
-  const isStacked = screenSize === "sm";
-  const isMobileLinkCompact = isStacked && webgalLinkMode;
-  const isRunModeOnly = runModeEnabled && !webgalLinkMode;
-  const showRunControls = runModeEnabled && !webgalLinkMode;
-  const showWebgalControls = webgalLinkMode && !runModeEnabled;
-
-  const onSetDefaultFigurePosition = React.useCallback((position: "left" | "center" | "right" | undefined) => {
-    setDefaultFigurePositionForRole(curRoleId ?? -1, position);
-  }, [curRoleId, setDefaultFigurePositionForRole]);
-
-  const onToggleDialogNotend = React.useCallback(() => toggleDialogNotend(), [toggleDialogNotend]);
-  const onToggleDialogConcat = React.useCallback(() => toggleDialogConcat(), [toggleDialogConcat]);
+  const isRunModeOnly = runModeEnabled;
 
   const onToggleRealtimeRender = React.useCallback(() => {
     if (isRealtimeRenderActive) {
@@ -101,6 +81,7 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onCle
   }, [sideDrawerState, threadRootMessageId]);
 
   const isOpen = activePane !== null;
+  const showRunControls = runModeEnabled && activePane !== "thread" && activePane !== "webgal";
 
   // 互斥：当用户打开其它右侧工具（initiative/map/clue/webgal）时，自动关闭 Thread。
   React.useEffect(() => {
@@ -273,15 +254,9 @@ function SubRoomWindowImpl({ onClueSend, stopRealtimeRender, onSendEffect, onCle
                 <ChatToolbarDock
                   isInline={true}
                   isRunModeOnly={isRunModeOnly}
-                  isMobileLinkCompact={isMobileLinkCompact}
-
-                  showWebgalControls={showWebgalControls}
+                  isMobileLinkCompact={false}
+                  showWebgalControls={false}
                   onInsertWebgalCommandPrefix={undefined}
-
-                  defaultFigurePosition={defaultFigurePosition}
-                  onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-                  onToggleDialogNotend={onToggleDialogNotend}
-                  onToggleDialogConcat={onToggleDialogConcat}
 
                   onSendEffect={onSendEffect}
                   onClearBackground={onClearBackground}

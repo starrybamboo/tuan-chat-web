@@ -94,24 +94,35 @@ export default function RoomUserList({ type}: { type: string }) {
               )}
         </div>
 
-        {(curMember?.memberType === 1 || curMember?.memberType === 2) && (
-          <button
-            type="button"
-            className="btn btn-xs btn-dash btn-info"
-            onClick={() => setIsRoleHandleOpen(true)}
-          >
-            角色+
-          </button>
-        )}
-        {curMember?.memberType === 1 && (
-          <button
-            type="button"
-            className="btn btn-xs btn-dash btn-info"
-            onClick={() => setIsModuleRoleHandleOpen(true)}
-          >
-            NPC+
-          </button>
-        )}
+        <div className="flex gap-2">
+          {!isRole && curMember?.memberType === 1 && (
+            <button
+              className="btn btn-dash btn-info"
+              type="button"
+              onClick={() => setIsMemberHandleOpen(true)}
+            >
+              添加成员
+            </button>
+          )}
+          {isRole && (curMember?.memberType === 1 || curMember?.memberType === 2) && (
+            <button
+              type="button"
+              className="btn btn-xs btn-dash btn-info"
+              onClick={() => setIsRoleHandleOpen(true)}
+            >
+              角色+
+            </button>
+          )}
+          {isRole && curMember?.memberType === 1 && (
+            <button
+              type="button"
+              className="btn btn-xs btn-dash btn-info"
+              onClick={() => setIsModuleRoleHandleOpen(true)}
+            >
+              NPC+
+            </button>
+          )}
+        </div>
       </div>
       <div className="divider w-full" />
 
