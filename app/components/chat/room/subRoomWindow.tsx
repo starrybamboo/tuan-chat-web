@@ -5,16 +5,18 @@ import React from "react";
 import ClueListForPL from "@/components/chat/room/drawers/clueListForPL";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
+import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { Detective, XMarkICon } from "@/icons";
+import { Detective, WebgalIcon, XMarkICon } from "@/icons";
 
 export interface SubRoomWindowProps {
   onClueSend: (clue: ClueMessage) => void;
 }
 
-type SubPane = "map" | "clue" | "initiative";
+type SubPane = "map" | "clue" | "initiative" | "webgal";
 
 function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
@@ -27,10 +29,17 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [activePane, setActivePane] = React.useState<SubPane>("map");
 
+  const webgalPreviewUrl = useRealtimeRenderStore(state => state.previewUrl);
+  const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
+
   React.useEffect(() => {
     if (sideDrawerState === "map") {
       setIsOpen(true);
       setActivePane("map");
+    }
+    if (sideDrawerState === "webgal") {
+      setIsOpen(true);
+      setActivePane("webgal");
     }
   }, [sideDrawerState]);
 
@@ -61,6 +70,7 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
         const max = 480;
         return { minWidth: min, maxWidth: max };
       }
+      case "webgal":
       default: {
         const min = 560;
         const max = typeof window === "undefined" ? 1100 : Math.max(min, w - minRemainingWidth);
@@ -69,11 +79,17 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
     }
   }, [activePane, minRemainingWidth]);
 
-  const title = activePane === "map" ? "地图" : activePane === "initiative" ? "先攻表" : "线索";
+  const title = activePane === "map"
+    ? "地图"
+    : activePane === "initiative"
+      ? "先攻表"
+      : activePane === "webgal"
+        ? "WebGAL 预览"
+        : "线索";
 
   const close = React.useCallback(() => {
     setIsOpen(false);
-    if (sideDrawerState === "map") {
+    if (sideDrawerState === "map" || sideDrawerState === "webgal") {
       setSideDrawerState("none");
     }
   }, [setSideDrawerState, sideDrawerState]);
@@ -96,6 +112,7 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
               {activePane === "map" && <CheckerboardIcon className="size-5 opacity-80" />}
               {activePane === "initiative" && <SwordIcon className="size-5 opacity-80" />}
               {activePane === "clue" && <Detective className="size-5 opacity-80" />}
+              {activePane === "webgal" && <WebgalIcon className="size-5 opacity-80" />}
               <span className="text-center font-semibold line-clamp-1 truncate min-w-0 text-sm sm:text-base">
                 {title}
               </span>
@@ -141,6 +158,19 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
                     <Detective className="size-5" />
                   </button>
                 </div>
+                <div
+                  className={`tooltip tooltip-bottom ${activePane === "webgal" ? "text-primary" : "hover:text-info"}`}
+                  data-tip="WebGAL"
+                >
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    aria-label="WebGAL 预览"
+                    onClick={() => setActivePane("webgal")}
+                  >
+                    <WebgalIcon className="size-5" />
+                  </button>
+                </div>
               </div>
               <button
                 type="button"
@@ -170,6 +200,14 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
             <div className="overflow-auto h-full">
               <ClueListForPL onSend={onClueSend} />
             </div>
+          )}
+          {activePane === "webgal" && (
+            <WebGALPreview
+              previewUrl={webgalPreviewUrl}
+              isActive={isRealtimeRenderActive}
+              onClose={close}
+              className="h-full"
+            />
           )}
         </div>
       </div>
