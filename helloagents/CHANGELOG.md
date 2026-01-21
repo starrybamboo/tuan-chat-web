@@ -116,6 +116,7 @@
 - AI 生图：普通模式生成时合并画风 tags 并写回 prompt（避免画风选择未生效）
 - AI 生图：普通模式新增“自然语言一键出图”与“按 tag 出图”，并移除底部生成按钮
 - 房间角色列表：`NPC+` 改为“创建 NPC 并加入房间”，并同步写入空间 NPC 库（仍可从 NPC 库导入）
+- 角色立绘：无 `spriteUrl` 时默认使用 `avatarUrl` 作为立绘来源（预览/校正/渲染）
 - 默认不再加载 Google Fonts（Inter）外链样式，避免网络不可达时阻塞页面首屏渲染；如需启用可设置 `VITE_ENABLE_GOOGLE_FONTS=true`
 
 ### 移除

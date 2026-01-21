@@ -14,7 +14,7 @@ import {
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
 import { TransformControl } from "../TransformControl";
-import { parseTransformFromAvatar } from "../utils";
+import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
 import { useImageCropWorker } from "../worker/useImageCropWorker";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -71,8 +71,8 @@ export function SpriteCropper({
   // 裁剪源：默认使用 spriteUrl，可切换为 originUrl（如果存在）
   const [sourceMode, setSourceMode] = useState<"sprite" | "origin">("sprite");
 
-  // 过滤头像列表：允许使用 spriteUrl 或 originUrl 作为裁剪源
-  const filteredAvatars = roleAvatars.filter(avatar => avatar.spriteUrl || avatar.originUrl);
+  // 过滤头像列表：无立绘时允许使用头像作为默认立绘；仍保留 originUrl 作为“原图”裁剪源
+  const filteredAvatars = roleAvatars.filter(avatar => Boolean(getEffectiveSpriteUrl(avatar)) || Boolean(avatar.originUrl));
   // 批量模式下的当前立绘索引，使用传入的初始索引
   const [currentSpriteIndex, setCurrentSpriteIndex] = useState(() => {
     // 确保初始索引在有效范围内
@@ -129,7 +129,7 @@ export function SpriteCropper({
       return "";
     if (sourceMode === "origin" && avatar.originUrl)
       return avatar.originUrl;
-    return avatar.spriteUrl || avatar.originUrl || "";
+    return getEffectiveSpriteUrl(avatar) || avatar.originUrl || "";
   }, [sourceMode]);
 
   // 获取当前裁剪源 URL
