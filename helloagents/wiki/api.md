@@ -6,7 +6,16 @@
 
 ## 认证方式
 
-（待补充：以实际后端约定为准，例如 Cookie/Token 等）
+当前前端以 **Bearer Token** 为主（Sa-Token）：
+
+- HTTP：`Authorization: Bearer <token>`（token 存本地 `localStorage.token`）
+- WebSocket：连接时追加 `?token=<token>`（同样来自 `localStorage.token`）
+- 兼容性：由于 tokenValue 无法反推出 uid，前端额外缓存 `localStorage.uid` 作为“当前用户ID”兜底
+
+### 401 / Token 失效行为
+
+- 当 HTTP 请求返回 `401`（且不是 `/user/login`、`/user/register`）时，前端会清理本地登录态（`token/uid`）并跳转到 `/login?redirect=<原页面>`。
+- 当 WebSocket 收到 `type=100`（token 失效）时，同样会清理本地登录态并跳转到登录页。
 
 ---
 

@@ -66,6 +66,19 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   // 处理成功登录后的关闭
   const handleSuccessAndClose = () => {
     onClose();
+
+    // 兼容：/login?redirect=...（例如 401 自动跳转或邀请链接跳转）
+    try {
+      const redirect = searchParams.get("redirect");
+      if (window.location.pathname === "/login") {
+        window.location.assign(redirect || "/chat");
+        return;
+      }
+    }
+    catch {
+      // ignore
+    }
+
     window.location.reload();
   };
 

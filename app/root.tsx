@@ -2,7 +2,7 @@ import type { Route } from "./+types/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import React from "react";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import {
   isRouteErrorResponse,
   Links,
@@ -16,6 +16,7 @@ import {
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
+import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import "./app.css";
 import "./animation.css";
 
@@ -106,6 +107,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation();
   const isBlocksuiteFrame = location.pathname.startsWith("/blocksuite-frame");
+
+  React.useEffect(() => {
+    const msg = consumeAuthToast();
+    if (msg) {
+      toast.error(msg);
+    }
+  }, []);
 
   React.useEffect(() => {
     if (isBlocksuiteFrame)
