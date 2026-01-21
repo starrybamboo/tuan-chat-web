@@ -797,6 +797,79 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
   const isEdgelessFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
 
+  const fullscreenRootRef = useRef<HTMLDivElement | null>(null);
+  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined")
+      return;
+
+    const onChange = () => {
+      try {
+        const docAny = document as any;
+        setIsBrowserFullscreen(Boolean(docAny.fullscreenElement ?? docAny.webkitFullscreenElement ?? docAny.msFullscreenElement));
+      }
+      catch {
+        setIsBrowserFullscreen(false);
+      }
+    };
+
+    onChange();
+    document.addEventListener("fullscreenchange", onChange);
+    const onWebkitChange = onChange as any;
+    document.addEventListener("webkitfullscreenchange" as any, onWebkitChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange" as any, onWebkitChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined")
+      return;
+    if (!isBrowserFullscreen)
+      return;
+    if (currentMode === "edgeless")
+      return;
+    try {
+      const docAny = document as any;
+      const exit = docAny.exitFullscreen ?? docAny.webkitExitFullscreen ?? docAny.msExitFullscreen;
+      void exit?.call(document);
+    }
+    catch {
+      // ignore
+    }
+  }, [currentMode, isBrowserFullscreen]);
+
+  const toggleBrowserFullscreen = async () => {
+    try {
+      const root = fullscreenRootRef.current;
+      if (!root)
+        return;
+
+      const docAny = document as any;
+      const enabled = docAny.fullscreenEnabled ?? docAny.webkitFullscreenEnabled ?? docAny.msFullscreenEnabled;
+      const request = (root as any).requestFullscreen ?? (root as any).webkitRequestFullscreen ?? (root as any).msRequestFullscreen;
+      const exit = docAny.exitFullscreen ?? docAny.webkitExitFullscreen ?? docAny.msExitFullscreen;
+      const fsElement = docAny.fullscreenElement ?? docAny.webkitFullscreenElement ?? docAny.msFullscreenElement;
+
+      if (enabled === false || typeof request !== "function") {
+        toast.error("当前环境不支持全屏");
+        return;
+      }
+
+      if (fsElement) {
+        await exit?.call(document);
+      }
+      else {
+        await request.call(root);
+      }
+    }
+    catch {
+      toast.error("全屏切换失败");
+    }
+  };
+
   const hasHeightConstraintClass = useMemo(() => {
     const v = (className ?? "").trim();
     if (!v)
@@ -807,7 +880,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   }, [className]);
 
   const viewportOverflowClass = currentMode === "page"
-    ? ((isFull || isEdgelessFullscreen || hasHeightConstraintClass) ? "overflow-auto" : "overflow-visible")
+    ? ((isFull || isEdgelessFullscreen || isBrowserFullscreen || hasHeightConstraintClass) ? "overflow-auto" : "overflow-visible")
     : "overflow-hidden";
 
   useEffect(() => {
@@ -824,7 +897,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       else {
         editor.mode = currentMode;
       }
-      editor.style.height = isEdgelessFullscreen || isFull ? "100%" : "auto";
+      editor.style.height = (isEdgelessFullscreen || isBrowserFullscreen || isFull) ? "100%" : "auto";
     }
     catch {
       // ignore
@@ -891,7 +964,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         }
       }
     };
-  }, [currentMode, isEdgelessFullscreen, isFull]);
+  }, [currentMode, isBrowserFullscreen, isEdgelessFullscreen, isFull]);
 
   useEffect(() => {
     if (typeof document === "undefined")
@@ -906,7 +979,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     };
   }, [isEdgelessFullscreen]);
 
-  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, isEdgelessFullscreen ? "h-full min-h-0" : ""]
+  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, (isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -1007,7 +1080,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   return (
     <div className={rootClassName}>
       <div
-        className={`relative bg-base-100 border border-base-300 ${viewportOverflowClass}${isEdgelessFullscreen ? " h-full" : " rounded-box"}${isFull || isEdgelessFullscreen ? " flex flex-col" : ""}`}
+        ref={fullscreenRootRef}
+        className={`relative bg-base-100 border border-base-300 ${viewportOverflowClass}${(isEdgelessFullscreen || isBrowserFullscreen) ? " h-full" : " rounded-box"}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " flex flex-col" : ""}`}
       >
         {tcHeaderEnabled
           ? (
@@ -1089,6 +1163,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             </button>
                           )
                         : null}
+                      {currentMode === "edgeless"
+                        ? (
+                            <button
+                              type="button"
+                              className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
+                              onClick={() => void toggleBrowserFullscreen()}
+                            >
+                              {isBrowserFullscreen ? "退出全屏" : "全屏"}
+                            </button>
+                          )
+                        : null}
                       {allowModeSwitch
                         ? (
                             <button
@@ -1112,6 +1197,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         {allowModeSwitch && !tcHeaderEnabled
           ? (
               <div className="flex items-center justify-end p-2 border-b border-base-300">
+                {currentMode === "edgeless"
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm mr-2"
+                        onClick={() => void toggleBrowserFullscreen()}
+                      >
+                        {isBrowserFullscreen ? "退出全屏" : "全屏"}
+                      </button>
+                    )
+                  : null}
                 <button
                   type="button"
                   className="btn btn-sm"
@@ -1127,7 +1223,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
         <div
           ref={hostContainerRef}
-          className={`${isFull || isEdgelessFullscreen ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
+          className={`${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
         />
       </div>
     </div>
@@ -1598,7 +1694,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         src={src}
         title="blocksuite-editor"
         className={iframeClassName}
-        allow="clipboard-read; clipboard-write"
+        allow="clipboard-read; clipboard-write; fullscreen"
+        allowFullScreen
         sandbox="allow-scripts allow-same-origin"
         height={iframeHeightAttr}
         onLoad={() => {
