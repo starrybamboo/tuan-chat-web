@@ -78,6 +78,7 @@
 | 202601201551 | blocksuite_mention_inline_avatar | 修复 | 已完成 | [2026-01/202601201551_blocksuite_mention_inline_avatar/](2026-01/202601201551_blocksuite_mention_inline_avatar/) |
 | 202601201622 | blocksuite_mention_remove_at | 优化 | 已完成 | [2026-01/202601201622_blocksuite_mention_remove_at/](2026-01/202601201622_blocksuite_mention_remove_at/) |
 | 202601201638 | blocksuite_disable_debug_logs | 优化 | 已完成 | [2026-01/202601201638_blocksuite_disable_debug_logs/](2026-01/202601201638_blocksuite_disable_debug_logs/) |
+| 202601211600 | blocksuite_mention_profile_popover | 功能 | 已完成 | [2026-01/202601211600_blocksuite_mention_profile_popover/](2026-01/202601211600_blocksuite_mention_profile_popover/) |
 
 ---
 
@@ -85,6 +86,7 @@
 
 ### 2026-01
 
+- [202601211600_blocksuite_mention_profile_popover](2026-01/202601211600_blocksuite_mention_profile_popover/) - Blocksuite 文档内用户 mention 支持点击跳转个人主页 + 悬浮预览个人主页
 - [202601201638_blocksuite_disable_debug_logs](2026-01/202601201638_blocksuite_disable_debug_logs/) - Blocksuite 默认关闭 debug 控制台输出（需显式开启）
 - [202601201622_blocksuite_mention_remove_at](2026-01/202601201622_blocksuite_mention_remove_at/) - Blocksuite 文档内 mention 节点移除 `@` 前缀（头像+用户名已足够）
 - [202601201551_blocksuite_mention_inline_avatar](2026-01/202601201551_blocksuite_mention_inline_avatar/) - Blocksuite 文档内 `@mention` 展示头像与用户名（自定义 `<affine-mention />`）

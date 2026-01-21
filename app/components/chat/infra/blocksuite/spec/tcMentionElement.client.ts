@@ -9,6 +9,30 @@ import type { DeltaInsert } from "@blocksuite/store";
 import { css, html } from "lit";
 import { property } from "lit/decorators.js";
 
+function getPostMessageTargetOrigin(): string {
+  if (typeof window === "undefined") {
+    return "*";
+  }
+
+  const origin = window.location.origin;
+  if (!origin || origin === "null") {
+    return "*";
+  }
+  return origin;
+}
+
+function getBlocksuiteFrameInstanceId(): string | undefined {
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const v = sp.get("instanceId") ?? "";
+    const trimmed = v.trim();
+    return trimmed ? trimmed : undefined;
+  }
+  catch {
+    return undefined;
+  }
+}
+
 export function ensureTCAffineMentionDefined(): void {
   if (typeof window === "undefined")
     return;
@@ -97,11 +121,115 @@ export function ensureTCAffineMentionDefined(): void {
       }
     `;
 
+    private postToHost(payload: Record<string, unknown>) {
+      try {
+        const instanceId = getBlocksuiteFrameInstanceId();
+        window.parent.postMessage(
+          {
+            tc: "tc-blocksuite-frame",
+            ...(instanceId ? { instanceId } : null),
+            ...payload,
+          },
+          getPostMessageTargetOrigin(),
+        );
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    private getUserId(): string | undefined {
+      const memberId = this.delta.attributes?.mention?.member;
+      if (!memberId)
+        return undefined;
+      const v = String(memberId).trim();
+      return v ? v : undefined;
+    }
+
+    private buildAnchorRectFromEvent(e: Event): null | {
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+      width: number;
+      height: number;
+    } {
+      try {
+        const target = (e as any).currentTarget as unknown;
+        if (!(target instanceof HTMLElement))
+          return null;
+
+        const mentionRect = target.getBoundingClientRect();
+        const frameEl = window.frameElement instanceof HTMLElement ? window.frameElement : null;
+        const frameRect = frameEl?.getBoundingClientRect() ?? null;
+
+        if (!frameRect) {
+          return {
+            left: mentionRect.left,
+            top: mentionRect.top,
+            right: mentionRect.right,
+            bottom: mentionRect.bottom,
+            width: mentionRect.width,
+            height: mentionRect.height,
+          };
+        }
+
+        return {
+          left: frameRect.left + mentionRect.left,
+          top: frameRect.top + mentionRect.top,
+          right: frameRect.left + mentionRect.right,
+          bottom: frameRect.top + mentionRect.bottom,
+          width: mentionRect.width,
+          height: mentionRect.height,
+        };
+      }
+      catch {
+        return null;
+      }
+    }
+
+    private onMentionClick(e: MouseEvent) {
+      const userId = this.getUserId();
+      if (!userId)
+        return;
+      this.postToHost({
+        type: "mention-click",
+        userId,
+        anchorRect: this.buildAnchorRectFromEvent(e),
+      });
+    }
+
+    private onMentionPointerEnter(e: PointerEvent) {
+      const userId = this.getUserId();
+      if (!userId)
+        return;
+      this.postToHost({
+        type: "mention-hover",
+        state: "enter",
+        userId,
+        anchorRect: this.buildAnchorRectFromEvent(e),
+      });
+    }
+
+    private onMentionPointerLeave() {
+      const userId = this.getUserId();
+      if (!userId)
+        return;
+      this.postToHost({
+        type: "mention-hover",
+        state: "leave",
+        userId,
+      });
+    }
+
     override render() {
       const errorContent = html`<span
         data-selected=${this.selected}
         data-type="error"
         class="affine-mention"
+        @click=${this.onMentionClick}
+        @pointerenter=${this.onMentionPointerEnter}
+        @pointerleave=${this.onMentionPointerLeave}
         >Unknown Member<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
       ></span>`;
 
@@ -121,6 +249,9 @@ export function ensureTCAffineMentionDefined(): void {
             data-selected=${this.selected}
             data-type="removed"
             class="affine-mention"
+            @click=${this.onMentionClick}
+            @pointerenter=${this.onMentionPointerEnter}
+            @pointerleave=${this.onMentionPointerLeave}
             >Inactive Member<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
           ></span>`;
         }
@@ -132,6 +263,9 @@ export function ensureTCAffineMentionDefined(): void {
           data-selected=${this.selected}
           data-type="default"
           class="affine-mention"
+          @click=${this.onMentionClick}
+          @pointerenter=${this.onMentionPointerEnter}
+          @pointerleave=${this.onMentionPointerLeave}
           >${avatar
             ? html`<img class="affine-mention-avatar" src="${avatar}" alt="" />`
             : null}${name}<v-text
@@ -145,6 +279,9 @@ export function ensureTCAffineMentionDefined(): void {
           data-selected=${this.selected}
           data-type="loading"
           class="affine-mention"
+          @click=${this.onMentionClick}
+          @pointerenter=${this.onMentionPointerEnter}
+          @pointerleave=${this.onMentionPointerLeave}
           >loading<span class="dots"
             ><span class="dot">.</span><span class="dot">.</span
             ><span class="dot">.</span></span

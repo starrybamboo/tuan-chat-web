@@ -11,6 +11,8 @@ import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/deb
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
+import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 
 import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -1161,11 +1163,41 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
   const hostMentionDebugUntilRef = useRef(0);
   const hostMentionDebugRemainingRef = useRef(0);
+  const [mentionProfilePopover, setMentionProfilePopover] = useState<BlocksuiteMentionProfilePopoverState | null>(null);
+  const mentionProfilePopoverStateRef = useRef<BlocksuiteMentionProfilePopoverState | null>(null);
+  const mentionProfilePopoverHoveredRef = useRef(false);
+  const mentionProfilePopoverCloseTimerRef = useRef<number | null>(null);
+
+  const clearMentionProfilePopoverCloseTimer = () => {
+    const t = mentionProfilePopoverCloseTimerRef.current;
+    if (t !== null) {
+      mentionProfilePopoverCloseTimerRef.current = null;
+      try {
+        window.clearTimeout(t);
+      }
+      catch {
+        // ignore
+      }
+    }
+  };
+
+  const scheduleMentionProfilePopoverClose = () => {
+    clearMentionProfilePopoverCloseTimer();
+    mentionProfilePopoverCloseTimerRef.current = window.setTimeout(() => {
+      if (mentionProfilePopoverHoveredRef.current)
+        return;
+      setMentionProfilePopover(null);
+    }, 160);
+  };
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
+
+  useEffect(() => {
+    mentionProfilePopoverStateRef.current = mentionProfilePopover;
+  }, [mentionProfilePopover]);
 
   // 画布全屏状态由 frame 回传的 mode 驱动（宿主不再下发 set-mode）。
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
@@ -1242,6 +1274,61 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           // ignore
         }
         return;
+      }
+
+      if (data.type === "mention-click" && typeof data.userId === "string" && data.userId) {
+        try {
+          clearMentionProfilePopoverCloseTimer();
+          setMentionProfilePopover(null);
+          const to = `/profile/${encodeURIComponent(data.userId)}`;
+          const handled = onNavigateRef.current?.(to);
+          if (handled === true)
+            return;
+          navigate(to);
+        }
+        catch {
+          // ignore
+        }
+        return;
+      }
+
+      if (data.type === "mention-hover" && (data.state === "enter" || data.state === "leave") && typeof data.userId === "string" && data.userId) {
+        if (data.state === "enter") {
+          const ar = data.anchorRect as any;
+          const anchorRectOk = Boolean(ar)
+            && typeof ar.left === "number"
+            && typeof ar.top === "number"
+            && typeof ar.right === "number"
+            && typeof ar.bottom === "number"
+            && typeof ar.width === "number"
+            && typeof ar.height === "number";
+
+          if (!anchorRectOk)
+            return;
+
+          try {
+            clearMentionProfilePopoverCloseTimer();
+            mentionProfilePopoverHoveredRef.current = false;
+            setMentionProfilePopover({ userId: data.userId, anchorRect: ar });
+          }
+          catch {
+            // ignore
+          }
+          return;
+        }
+
+        if (data.state === "leave") {
+          try {
+            const current = mentionProfilePopoverStateRef.current;
+            if (!current || current.userId !== data.userId)
+              return;
+            scheduleMentionProfilePopoverClose();
+          }
+          catch {
+            // ignore
+          }
+          return;
+        }
       }
 
       if (data.type === "tc-header" && data.header && typeof data.docId === "string") {
@@ -1338,6 +1425,25 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       window.removeEventListener("message", onMessage);
     };
   }, [forcedMode, instanceId, navigate, onModeChange, onTcHeaderChange]);
+
+  useEffect(() => {
+    if (!mentionProfilePopover)
+      return;
+    if (typeof window === "undefined")
+      return;
+
+    const close = () => {
+      clearMentionProfilePopoverCloseTimer();
+      setMentionProfilePopover(null);
+    };
+
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close, true);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close, true);
+    };
+  }, [mentionProfilePopover]);
 
   // 宿主侧捕获 click/pointerdown：用于定位 mention 弹窗是否是 portal 到 iframe 外。
   useEffect(() => {
@@ -1593,6 +1699,22 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   /* eslint-disable react-dom/no-unsafe-iframe-sandbox */
   return (
     <div className={wrapperClassName}>
+      <BlocksuiteMentionProfilePopover
+        state={mentionProfilePopover}
+        onRequestClose={() => {
+          clearMentionProfilePopoverCloseTimer();
+          setMentionProfilePopover(null);
+        }}
+        onHoverChange={(hovered) => {
+          mentionProfilePopoverHoveredRef.current = hovered;
+          if (hovered) {
+            clearMentionProfilePopoverCloseTimer();
+          }
+          else if (mentionProfilePopover) {
+            scheduleMentionProfilePopoverClose();
+          }
+        }}
+      />
       <iframe
         ref={iframeRef}
         src={src}
