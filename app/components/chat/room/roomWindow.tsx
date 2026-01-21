@@ -1069,7 +1069,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   };
 
   const handleImportChatText = useCallback(async (
-    messages: Array<{ roleId: number; content: string }>,
+    messages: Array<{ roleId: number; content: string; figurePosition?: "left" | "center" | "right" }>,
     onProgress?: (sent: number, total: number) => void,
   ) => {
     if (notMember) {
@@ -1125,6 +1125,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         let avatarId = roleId <= 0 ? -1 : (avatarMap[roleId] ?? -1);
         let messageType = MessageType.TEXT;
         let extra: any = {};
+        const figurePosition = msg.figurePosition;
 
         // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
         if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
@@ -1153,6 +1154,16 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           request.webgal = {
             ...(request.webgal as any),
             customRoleName: draftCustomRoleName.trim(),
+          } as any;
+        }
+
+        if (messageType === MessageType.TEXT && roleId > 0 && figurePosition) {
+          request.webgal = {
+            ...(request.webgal as any),
+            voiceRenderSettings: {
+              ...((request.webgal as any)?.voiceRenderSettings ?? {}),
+              figurePosition,
+            },
           } as any;
         }
 
@@ -1625,7 +1636,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           isKP={Boolean(spaceContext.isSpaceOwner)}
           availableRoles={roomRolesThatUserOwn}
           onImport={async (items, onProgress) => {
-            await handleImportChatText(items.map(i => ({ roleId: i.roleId, content: i.content })), onProgress);
+            await handleImportChatText(items.map(i => ({ roleId: i.roleId, content: i.content, figurePosition: i.figurePosition })), onProgress);
           }}
           onClose={() => setIsImportChatTextOpen(false)}
           onOpenRoleAddWindow={() => setIsRoleAddWindowOpen(true)}
