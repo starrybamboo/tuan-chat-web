@@ -1,4 +1,4 @@
-import type { Plugin } from "vite";
+import type { Plugin, PluginOption } from "vite";
 
 import * as babelCore from "@babel/core";
 import { reactRouter } from "@react-router/dev/vite";
@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 import process from "node:process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { visualizer } from "rollup-plugin-visualizer";
 import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 import { defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
@@ -365,6 +366,13 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [
+      visualizer({
+        gzipSize: true,
+        brotliSize: true,
+        filename: "stats.html",
+        emitFile: true,
+        template: "treemap",
+      }) as PluginOption,
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
       novelApiProxyPlugin(novelApiConfig),
