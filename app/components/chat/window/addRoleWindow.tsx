@@ -60,7 +60,7 @@ export function AddRoleWindow({
   }
   
   const handleImportSpaceRole = (roleId: number) => {
-    addRoomRoleMutation.mutate({ roomId: roomId ?? -1, roleIdList: [roleId], type: 1 });
+    addRoomRoleMutation.mutate({ roomId: roomId ?? -1, roleIdList: [roleId] });
   };
 
   return (
