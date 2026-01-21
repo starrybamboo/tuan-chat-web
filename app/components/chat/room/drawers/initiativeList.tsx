@@ -116,7 +116,7 @@ export default function InitiativeList() {
     const agilityKeys = ["敏捷", "敏", "dex", "agi", "速度", "spd"];
     const lower = (s: string) => String(s).toLowerCase();
 
-    const tryPickScalar = (obj: any, _candidates: string[]): number | null => {
+    const tryPickScalar = (obj: any): number | null => {
       if (obj == null)
         return null;
       if (typeof obj === "number")
@@ -132,11 +132,6 @@ export default function InitiativeList() {
       if (node == null || depth > 3)
         return null;
 
-      // 数字/字符串直接返回
-      const scalar = tryPickScalar(node, _candidates);
-      if (scalar != null)
-        return scalar;
-
       // 对象：优先看有无 name/label 字段匹配，再看 key 匹配
       if (typeof node === "object" && !Array.isArray(node)) {
         const keys = Object.keys(node);
@@ -146,16 +141,17 @@ export default function InitiativeList() {
         if (typeof nameField === "string") {
           const ln = lower(nameField);
           if (_candidates.some(c => ln.includes(lower(c)))) {
-            const val = tryPickScalar(node.value ?? node.val ?? node.score ?? node.num, _candidates);
+            const val = tryPickScalar(node.value ?? node.val ?? node.score ?? node.num);
             if (val != null)
               return val;
           }
         }
 
+        // 键名直接匹配候选时，读取其数值或深挖其子节点
         for (const k of keys) {
           const lk = lower(k);
           if (_candidates.some(c => lk.includes(lower(c)))) {
-            const val = tryPickScalar(node[k], _candidates);
+            const val = tryPickScalar(node[k]) ?? search(node[k], _candidates, depth + 1);
             if (val != null)
               return val;
           }
