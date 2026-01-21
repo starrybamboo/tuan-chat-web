@@ -1,4 +1,5 @@
 import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
+import { ArrowSquareIn } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
@@ -39,6 +40,10 @@ interface ChatToolbarProps {
   // 消息发送
   disableSendMessage: boolean;
   handleMessageSubmit: () => void;
+
+  // 导入消息（外部文本 -> 多条消息）
+  disableImportChatText?: boolean;
+  onOpenImportChatText?: () => void;
 
   // AI重写：重写行为由快捷键触发；工具栏仅提供提示词编辑入口
   onAIRewrite?: (prompt: string) => void;
@@ -100,6 +105,8 @@ export function ChatToolbar({
   updateImgFiles,
   disableSendMessage,
   handleMessageSubmit,
+  disableImportChatText = false,
+  onOpenImportChatText,
   currentChatStatus,
   onChangeChatStatus,
   statusUserId,
@@ -143,6 +150,16 @@ export function ChatToolbar({
   const webgalVarKeyInputRef = useRef<HTMLInputElement>(null);
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
+
+  const handleOpenImport = useCallback(() => {
+    if (!onOpenImportChatText)
+      return;
+    if (disableImportChatText)
+      return;
+    setIsAiPromptOpen(false);
+    setIsEmojiOpen(false);
+    onOpenImportChatText();
+  }, [disableImportChatText, onOpenImportChatText]);
   const isInline = layout === "inline";
   const isStacked = !isInline;
 
@@ -456,6 +473,19 @@ export function ChatToolbar({
                 </div>
               )}
 
+              {/* 导入文本 */}
+              {onOpenImportChatText && (
+                <div
+                  className={isMobile ? "" : "tooltip tooltip-top"}
+                  data-tip={isMobile ? undefined : "导入文本"}
+                >
+                  <ArrowSquareIn
+                    className={`size-6 jump_icon mt-1 md:mt-0 ${disableImportChatText ? "cursor-not-allowed opacity-20" : "cursor-pointer"}`}
+                    onClick={handleOpenImport}
+                  />
+                </div>
+              )}
+
               {/* WebGAL 联动模式按钮 */}
               {showWebgalLinkToggle && onToggleWebgalLinkMode && !isStacked && (
                 <div
@@ -526,6 +556,18 @@ export function ChatToolbar({
                       onClick={handleMessageSubmit}
                     >
                     </SendIcon>
+                  </div>
+                )}
+
+                {onOpenImportChatText && (
+                  <div
+                    className={isMobile ? "" : "tooltip tooltip-top"}
+                    data-tip={isMobile ? undefined : "导入文本"}
+                  >
+                    <ArrowSquareIn
+                      className={`size-6 jump_icon ${disableImportChatText ? "cursor-not-allowed opacity-20" : "cursor-pointer"}`}
+                      onClick={handleOpenImport}
+                    />
                   </div>
                 )}
               </div>

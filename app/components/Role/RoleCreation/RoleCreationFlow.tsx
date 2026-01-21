@@ -14,7 +14,7 @@ import {
   useUpdateRoleWithLocalMutation,
   useUploadAvatarMutation,
 } from "api/hooks/RoleAndAvatarHooks";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import RulesSection from "../rules/RulesSection";
@@ -33,6 +33,14 @@ interface RoleCreationFlowProps {
   setRoles?: Dispatch<SetStateAction<Role[]>>;
   setSelectedRoleId?: SetSelectedRoleIdFn;
   onSave?: (updatedRole: Role) => void;
+  title?: string;
+  description?: string;
+  roleCreateDefaults?: {
+    type?: number;
+    spaceId?: number;
+  };
+  initialCharacterData?: CharacterData;
+  hideRuleSelection?: boolean;
 }
 
 export default function RoleCreationFlow({
@@ -41,6 +49,11 @@ export default function RoleCreationFlow({
   setRoles,
   setSelectedRoleId,
   onSave,
+  title,
+  description,
+  roleCreateDefaults,
+  initialCharacterData,
+  hideRuleSelection,
 }: RoleCreationFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -48,6 +61,20 @@ export default function RoleCreationFlow({
   // 弹窗状态
   const [isSTModalOpen, setIsSTModalOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+
+  // Calculate effective steps based on hideRuleSelection
+  const effectiveSteps = useMemo(() => {
+    let steps = UNIFIED_STEPS;
+    if (hideRuleSelection) {
+      steps = steps.filter(step => step.id !== 2);
+    }
+    // Remap IDs for UI consistency (StepIndicator relies on index logic essentially) and keep original ID
+    return steps.map((s, i) => ({
+      ...s,
+      originalId: s.id,
+      id: i + 1, // Remap ID to 1-based index
+    }));
+  }, [hideRuleSelection]);
 
   const {
     characterData,
@@ -59,7 +86,7 @@ export default function RoleCreationFlow({
     handleDeleteField,
     handleRenameField,
     handleRuleChange,
-  } = useCharacterData();
+  } = useCharacterData({ initialData: initialCharacterData });
 
   const { mutateAsync: createRole } = useCreateRoleMutation();
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
@@ -71,10 +98,12 @@ export default function RoleCreationFlow({
   const hasBasicInfo = characterData.name.trim().length > 0 && characterData.description.trim().length > 0;
   const hasRule = characterData.ruleId > 0;
 
+  const currentOriginalStepId = effectiveSteps[currentStep - 1]?.originalId || 1;
+
   let canProceedCurrent = true;
-  if (currentStep === 1)
+  if (currentOriginalStepId === 1)
     canProceedCurrent = hasBasicInfo;
-  else if (currentStep === 2)
+  else if (currentOriginalStepId === 2)
     canProceedCurrent = hasRule;
 
   // ST导入成功回调
@@ -111,6 +140,7 @@ export default function RoleCreationFlow({
         {
           characterData,
           createRole,
+          roleCreateDefaults,
           uploadAvatar,
           setRoleAbility,
           updateRole,
@@ -174,7 +204,9 @@ export default function RoleCreationFlow({
   ];
 
   const renderStepContent = () => {
-    switch (currentStep) {
+    const originalStepId = effectiveSteps[currentStep - 1]?.originalId || 1;
+
+    switch (originalStepId) {
       case 1:
         return (
           <BasicInfoStep characterData={characterData} onCharacterDataChange={handleCharacterDataChange} />
@@ -237,9 +269,9 @@ export default function RoleCreationFlow({
   return (
     <>
       <RoleCreationLayout
-        title="创建角色"
-        description="填写角色信息，完成角色创建"
-        steps={UNIFIED_STEPS}
+        title={title ?? "创建角色"}
+        description={description ?? "填写角色信息，完成角色创建"}
+        steps={effectiveSteps}
         currentStep={currentStep}
         onStepChange={setCurrentStep}
         canProceedCurrent={canProceedCurrent}

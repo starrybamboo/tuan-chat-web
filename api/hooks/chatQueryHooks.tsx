@@ -20,6 +20,7 @@ import type { Message } from "../models/Message";
 import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { SpaceExtraSetRequest } from "../models/SpaceExtraSetRequest";
+import type { SpaceRole } from "../models/SpaceRole";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
@@ -470,6 +471,7 @@ export function useAddRoomRoleMutation() {
         mutationKey: ['addRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['roomModuleRole', variables.roomId] });
         }
     });
 }
@@ -484,6 +486,7 @@ export function useDeleteRole1Mutation() {
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['roomModuleRole', variables.roomId] });
         }
     });
 }
@@ -570,15 +573,12 @@ export function useGetRoomModuleRoleQuery(roomId: number) {
 export function useAddSpaceRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (_req: { spaceId: number } & Record<string, any>) => {
-            // 后端 SpaceModuleController 目前仅提供 GET /capi/space/module/role，没有“添加角色”接口。
-            // 为避免 TS 报错并让调用方能走 onError，这里显式 reject。
-            throw new Error("Space 模组角色添加接口不存在：请先补齐后端接口并更新 OpenAPI 代码生成");
-        },
+        mutationFn: (req: SpaceRole) => tuanchat.spaceModuleController.addSpaceRole(req),
         mutationKey: ['addSpaceRole'],
         onSuccess: (_, variables) => {
-            // 与 useGetSpaceRolesQuery 的 queryKey 保持一致
+            // 与 useGetSpaceRolesQuery / useGetSpaceModuleRoleQuery 的 queryKey 保持一致
             queryClient.invalidateQueries({ queryKey: ['spaceRole', variables.spaceId] });
+            queryClient.invalidateQueries({ queryKey: ['spaceModuleRole', variables.spaceId] });
         }
     });
 }

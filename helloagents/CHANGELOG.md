@@ -9,6 +9,7 @@
 ### 新增
 - Blocksuite 描述文档支持自定义“图片 + 标题”头部（`tc_header`），并禁用 blocksuite 内置 `doc-title`；宿主侧支持乐观显示 room/space 标题与头像覆盖值
 - Blocksuite 描述文档 `tcHeader` 新增“重置内置标题”按钮：一键清空 blocksuite 内置页面标题（用于修复历史文档的双标题/标题不一致）
+- Blocksuite 描述文档画布（edgeless）新增“全屏/退出全屏”按钮（浏览器 Fullscreen API）
 - 新增 BlockSuite 学习路线文档：`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
 - 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
 - 新增 Quill 引用统计审计报告：`helloagents/wiki/reports/2026-01-14_quill_reference_audit.md`
@@ -21,10 +22,18 @@
 - 新增 Blocksuite 集成豆知识文档：`helloagents/wiki/vendors/blocksuite/gotchas.md`
 - 新增模块文档：`helloagents/wiki/modules/chat.md`、`helloagents/wiki/modules/blocksuite.md`、`helloagents/wiki/modules/webgal.md`、`helloagents/wiki/modules/ai-image.md`
 - 新增本地开发工作流：`helloagents/wiki/workflows/local-dev.md`
+- 聊天输入区支持导入 `.txt` 文本为多条消息：按 `[角色名]：内容` 解析，自动匹配可用角色，无法匹配时提示用户指定映射后再发送
+- 聊天室文本导入：当房间无可用角色时提供“创建/导入角色”快捷入口
+- 聊天室文本导入：支持发言人为“骰娘”时按 `DICE(6)` 类型发送（`extra.result=content`）
+- 聊天室文本导入：支持为发言人设置立绘位置（左/中/右），发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
 
 ### 变更
+- 聊天室文本导入：导入弹窗 UI 重构（双栏分区、消息预览、缺失映射提示与快捷创建入口）
 - 合并冲突处理：启用仓库级 rerere，并使用自动策略完成冲突解决与提交
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
+- 优化 Blocksuite：`@`（Linked Doc）弹窗将“用户/成员”候选默认收起为二级入口（“展开用户列表”），避免成员过多影响选择文档
+- 优化 Blocksuite：文档内“用户 mention”支持点击跳转个人主页，并支持悬浮预览个人主页
+- 优化 Blocksuite：默认关闭 mention/debug 相关控制台输出（需显式开启 `tc:blocksuite:debug=1` 或 `__TC_BLOCKSUITE_DEBUG=true`）
 - 修复 Blocksuite：`@`（Linked Doc）候选列表与 inline 引用标题不刷新：当 `workspace.meta` 更新时同步触发 `workspace.slots.docListUpdated`，让 `DocDisplayMetaProvider` 刷新标题缓存
 - 修复 Blocksuite：解散房间/空间后 `@` 弹窗仍出现已删除实体的文档：解散成功或收到房间解散推送（type=14）时 best-effort 清理对应 doc meta（`room:<roomId>:description`/`space:<spaceId>:description`）
 - 修复 Blocksuite：未打开过的房间/空间文档在 `@`（Linked Doc）弹窗中显示 blocksuite 原生标题：进入空间后用房间/空间列表预填 `workspace.meta.title`，并避免在无 `tc_header.title` 时被原生标题覆盖
@@ -54,11 +63,15 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
+- 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
 - 修复编辑 `tcHeader` 导致 blocksuite iframe 反复重载：冻结 `blocksuite-frame` URL 中的 `tcHeaderTitle/tcHeaderImageUrl`（仅首次初始化/切换文档时传入）
 - 修复 Blocksuite 空间描述 @ 提及重复插入：成员提及改为使用 `inlineEditor` 插入，并为 popover action 增加短窗口去重
 - 修复 Blocksuite @ 提及重复渲染（`@鸠 @鸠 ...`）：提及插入改为写入 `ZERO_WIDTH_FOR_EMBED_NODE`（embed 节点）而非写入 `@displayName` 文本
+- 修复 Blocksuite：`@` 弹窗用户候选仅显示 `userId`：改为拉取用户信息并展示头像/用户名
+- 修复 Blocksuite：文档内 `@mention` 仅显示文本：通过自定义 `<affine-mention />` 组件让 mention 节点展示头像 + 用户名
+- 优化 Blocksuite：文档内 mention 节点移除前缀 `@`（已展示头像+用户名，无需额外符号）
 - 增强 Blocksuite @ 提及点击链路调试：在 frame 捕获 pointerdown/click，并在按下 `@` 后短窗口内上报事件路径摘要
 - 增强 Blocksuite @ 提及宿主点击链路调试：收到 frame `keydown @` 后，宿主短窗口捕获 `pointerdown/click` 并输出事件路径摘要（用于定位 portal 到 iframe 外的候选项）
 - 增强 Blocksuite @ 提及键盘确认调试：frame 与宿主在 `Enter` 时输出 activeElement/probe 信息，便于定位插入链路
@@ -88,6 +101,7 @@
 - 修复房间列表分类展开“闪开闪关”：IndexedDB 异步读取展开状态时不再覆盖用户在读取完成前的手动展开操作
 - 修复文档刷新后侧边栏文档节点丢失/重置默认无效：从 `/space/sidebarTree` 回补 doc metas，并回写 Blocksuite workspace meta 以保证可见/可打开
 - 修复空间模式首次进入可能落到 `/chat/<spaceId>/null`：房间列表就绪后按自定义排序自动进入首个房间（并使用 `replace` 回填路由）
+- 修复空间抽屉面板“跑团设置”打开后空白：`SpaceDetailPanel` 增加 `trpg` tab 渲染 `SpaceTrpgSettingWindow`
 - 修复 ESLint 报错/告警：补全 Blocksuite 描述文档相关 `useEffect` 依赖；移除未使用的 Zustand `get` 参数；`/var set` 解析改为非正则解析避免回溯；`novelai-openapi.mjs` 显式引入 `node:process`
 - 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page 模式 `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
 - 修复 AI 生图页运行时拉取模型列表的 502：`/user/*` 元数据接口固定走 `https://api.novelai.net`，避免误发到 `image.novelai.net`
@@ -101,10 +115,27 @@
 - AI 生图：普通模式参数面板精简为宽/高/Seed，修复“自然语言转换后生成提示 prompt 为空”的问题
 - AI 生图：Seed 输入对齐 NovelAI（Seed < 0 表示随机）；普通模式补充可选负面 tags 输入
 - AI 生图：普通模式移除 img2img，并新增“画风”多选（从本地图片加载预设并追加对应 tags）
+- AI 生图：普通模式“画风”选择前置展示（无需先点击生成）
+- AI 生图：普通模式选择画风后显示已选画风缩略图
+- AI 生图：移除模式选择，固定为 txt2img
+- AI 生图：普通模式生成时合并画风 tags 并写回 prompt（避免画风选择未生效）
+- AI 生图：普通模式新增“自然语言一键出图”与“按 tag 出图”，并移除底部生成按钮
+- 认证：HTTP 401 自动清理本地登录态并跳转到 `/login`（保留 redirect）；WS token 失效（type=100）同样引导重新登录
+- 房间角色列表：`NPC+` 复用角色创建流程创建 NPC 并加入房间；角色头像弹窗复用角色页面详情（CharacterDetail）；并通过 `type=2 + spaceId` 绑定空间，自动进入空间 NPC 库（仍可从 NPC 库导入）
+- 角色页（/role）：不再展示 NPC（`type=2`）；房间角色列表支持移除 NPC（权限同普通角色）
+- 获取我的角色：改用 `GET /role/user/type`（type=0/1），避免 NPC 与用户角色混在一起
+- 角色立绘：无 `spriteUrl` 时默认使用 `avatarUrl` 作为立绘来源（预览/校正/渲染）
+- WebGAL：渲染时若消息未携带 `avatarId`，会回退到角色本身的 `avatarId`（角色头像）
+- 默认不再加载 Google Fonts（Inter）外链样式，避免网络不可达时阻塞页面首屏渲染；如需启用可设置 `VITE_ENABLE_GOOGLE_FONTS=true`
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
 
+### ??
+- ?? @???? Deleted doc?workspace ???
+- ?? @????? Deleted doc
+- ?? @????????????
+- ?? @??????????
 ## [1.0.0] - 2025-12-27
 
 ### 新增

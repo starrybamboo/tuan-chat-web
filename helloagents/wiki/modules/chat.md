@@ -8,7 +8,8 @@
 
 - **职责:** Chat 页面与布局、房间列表与分类、消息渲染与发送、房间资料与文档入口、跑团相关交互
 - **状态:** ?开发中
-$12026-01-19
+- **最后更新:** 2026-01-20
+
 
 ## 入口与目录
 
@@ -17,6 +18,8 @@ $12026-01-19
   - `/chat/:spaceId/:roomId`：房间聊天页
   - `/chat/:spaceId/:roomId/setting`：房间资料页（含 Blocksuite 文档）
   - `/chat/:spaceId/doc/:docId`：独立文档页（保留侧边栏）
+- 关键 UI：
+  - `SpaceDetailPanel`（空间抽屉面板）：支持 `members/workflow/trpg/setting` 四类 tab；其中 `trpg` 对应 `SpaceTrpgSettingWindow`（空间规则/空间骰娘）
 
 ## 核心概念（约定）
 
@@ -42,9 +45,35 @@ $12026-01-19
 - 使用独立消息类型：`COMMAND_REQUEST(12)`（与后端枚举对齐）
 - KP 发送包含 `@All` 的指令会生成“检定请求”卡片；成员点击后以自身角色在原 thread 执行该指令
 
+### 4) 文本导入：txt → 多条聊天消息
+
+- 入口位于聊天输入区工具栏：支持选择 `.txt` 文件或粘贴文本
+- 解析规则：每行一条消息，格式为 `[角色名]：对话内容`（支持中文/英文冒号）
+- 角色映射：优先按“角色名精确匹配”自动映射；无法唯一匹配时要求用户手动指定映射后再发送
+- KP 可选择“旁白（roleId=-1）”作为导入目标
+- 若发言人映射为“骰娘（系统）”，发送时会解析实际骰娘角色并按 `DICE(6)` 类型发送（`extra.result=content`）
+- 立绘位置：可为每个发言人选择左/中/右位置，导入发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
+- 若当前房间无可用角色（非KP），导入弹窗提供“创建/导入角色”快捷入口
+- 导入弹窗 UI：双栏卡片分区、消息预览、缺失角色高亮与快捷引导
+
+### 5) 房间角色：NPC+ 快速创建
+
+- KP 在“角色列表”点击 `NPC+` 打开“创建NPC”弹窗（复用角色创建流程），创建完成后自动加入当前房间
+- 创建时通过 `type=2 + spaceId` 绑定空间，后端会自动将其纳入“空间 NPC 库”，方便后续在其它房间复用（也可从 NPC 库导入）
+- 点击角色头像弹窗：默认复用角色页面详情（CharacterDetail）；在房间上下文中保留“踢出角色”等权限操作
+- 删除房间角色：KP 可在角色头像详情中将 NPC/角色从当前房间移除
+- 获取“我的角色”：前端改用 `GET /role/user/type`（分别取 type=0/1），不再从 `/role/user` 拉取后再前端过滤
+
 ## 相关文档
 
 - 项目概览：[overview](../overview.md)
 - app 模块（含 Chat/Blocksuite 集成事实来源）：[app](app.md)
 - Blocksuite 集成：[blocksuite](blocksuite.md)
 - Blocksuite 依赖与坑位：[vendors/blocksuite](../vendors/blocksuite/index.md)
+
+## 变更历史
+
+- [202601201337_chat_import_text](../../history/2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
+- [202601201620_chat_import_dicer](../../history/2026-01/202601201620_chat_import_dicer/) - 文本导入支持“骰娘”发言：按骰娘角色发送并使用 `DICE(6)` 类型
+- [202601211623_chat_import_figure_position](../../history/2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）
+- [202601211700_chat_import_ui_refine](../../history/2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口

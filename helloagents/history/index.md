@@ -70,6 +70,18 @@
 | 202601172100 | ai_image_char_bg_layout | 变更 | 已完成 | [2026-01/202601172100_ai_image_char_bg_layout/](2026-01/202601172100_ai_image_char_bg_layout/) |
 | 202601172234 | tc_header_upload_and_doc_lazy | 修复 | 已完成 | [2026-01/202601172234_tc_header_upload_and_doc_lazy/](2026-01/202601172234_tc_header_upload_and_doc_lazy/) |
 | 202601192104 | merge_rerere | 变更 | 已完成 | [2026-01/202601192104_merge-rerere/](2026-01/202601192104_merge-rerere/) |
+| 202601192227 | lint_fix | 修复 | 已完成 | [2026-01/202601192227_lint-fix/](2026-01/202601192227_lint-fix/) |
+| 202601201337 | chat_import_text | 功能 | 已完成 | [2026-01/202601201337_chat_import_text/](2026-01/202601201337_chat_import_text/) |
+| 202601201425 | blocksuite_mention_user_submenu | 优化 | 已完成 | [2026-01/202601201425_blocksuite_mention_user_submenu/](2026-01/202601201425_blocksuite_mention_user_submenu/) |
+| 202601201439 | room_npc_create | 功能 | 已完成 | [2026-01/202601201439_room_npc_create/](2026-01/202601201439_room_npc_create/) |
+| 202601201451 | blocksuite_mention_user_profile | 修复 | 已完成 | [2026-01/202601201451_blocksuite_mention_user_profile/](2026-01/202601201451_blocksuite_mention_user_profile/) |
+| 202601201551 | blocksuite_mention_inline_avatar | 修复 | 已完成 | [2026-01/202601201551_blocksuite_mention_inline_avatar/](2026-01/202601201551_blocksuite_mention_inline_avatar/) |
+| 202601201622 | blocksuite_mention_remove_at | 优化 | 已完成 | [2026-01/202601201622_blocksuite_mention_remove_at/](2026-01/202601201622_blocksuite_mention_remove_at/) |
+| 202601201638 | blocksuite_disable_debug_logs | 优化 | 已完成 | [2026-01/202601201638_blocksuite_disable_debug_logs/](2026-01/202601201638_blocksuite_disable_debug_logs/) |
+| 202601211600 | blocksuite_mention_profile_popover | 功能 | 已完成 | [2026-01/202601211600_blocksuite_mention_profile_popover/](2026-01/202601211600_blocksuite_mention_profile_popover/) |
+| 202601211623 | chat_import_figure_position | 功能 | 已完成 | [2026-01/202601211623_chat_import_figure_position/](2026-01/202601211623_chat_import_figure_position/) |
+| 202601211740 | room-role-delete-filter-npc | 优化 | 已完成 | [2026-01/202601211740_room-role-delete-filter-npc/](2026-01/202601211740_room-role-delete-filter-npc/) |
+| 202601211915 | use-user-roles-by-type | 优化 | 已完成 | [2026-01/202601211915_use-user-roles-by-type/](2026-01/202601211915_use-user-roles-by-type/) |
 
 ---
 
@@ -77,7 +89,20 @@
 
 ### 2026-01
 
+- [202601211915_use-user-roles-by-type](2026-01/202601211915_use-user-roles-by-type/) - 获取“我的角色”改用 `GET /role/user/type`（type=0/1 合并），避免取回 NPC
+- [202601211740_room-role-delete-filter-npc](2026-01/202601211740_room-role-delete-filter-npc/) - 房间角色支持移除 NPC；角色页（/role）隐藏 NPC；导入我的角色过滤 NPC
+- [202601211700_chat_import_ui_refine](2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口
+- [202601211623_chat_import_figure_position](2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）
+- [202601211600_blocksuite_mention_profile_popover](2026-01/202601211600_blocksuite_mention_profile_popover/) - Blocksuite 文档内用户 mention 支持点击跳转个人主页 + 悬浮预览个人主页
+- [202601201638_blocksuite_disable_debug_logs](2026-01/202601201638_blocksuite_disable_debug_logs/) - Blocksuite 默认关闭 debug 控制台输出（需显式开启）
+- [202601201622_blocksuite_mention_remove_at](2026-01/202601201622_blocksuite_mention_remove_at/) - Blocksuite 文档内 mention 节点移除 `@` 前缀（头像+用户名已足够）
+- [202601201551_blocksuite_mention_inline_avatar](2026-01/202601201551_blocksuite_mention_inline_avatar/) - Blocksuite 文档内 `@mention` 展示头像与用户名（自定义 `<affine-mention />`）
+- [202601201451_blocksuite_mention_user_profile](2026-01/202601201451_blocksuite_mention_user_profile/) - Blocksuite `@` 弹窗用户候选显示头像与用户名（基于 `/user/info` 缓存）
+- [202601201439_room_npc_create](2026-01/202601201439_room_npc_create/) - 房间角色列表 NPC+ 直接创建 NPC（并加入空间 NPC 库）
+- [202601201425_blocksuite_mention_user_submenu](2026-01/202601201425_blocksuite_mention_user_submenu/) - Blocksuite `@` 弹窗用户列表收口为二级入口（默认仅“展开用户列表”），提升文档选择体验
+- [202601201337_chat_import_text](2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
 - [202601192104_merge-rerere](2026-01/202601192104_merge-rerere/) - 合并冲突自动解决与rerere启用
+- [202601192227_lint-fix](2026-01/202601192227_lint-fix/) - 修复 lint 警告
 - [202601070338_blocksuite_docs](2026-01/202601070338_blocksuite_docs/) - Blocksuite 依赖文档补全（0.22.4）
 - [202601070431_blocksuite_docs_0_22_4](2026-01/202601070431_blocksuite_docs_0_22_4/) - Blocksuite 0.22.4 文档方案（未执行归档：已由 blocksuite_docs 覆盖）
 - [202601070539_blocksuite_docs_0224](2026-01/202601070539_blocksuite_docs_0224/) - Blocksuite 0.22.4 文档方案（未执行归档：已由 blocksuite_docs 覆盖）
@@ -138,3 +163,4 @@
 - [202601172026_ai_image_v4_params](2026-01/202601172026_ai_image_v4_params/) - 修复 NAI v4/v4.5 出图 500：对齐 `params_version=3` 与 `v4_prompt` 参数结构
 - [202601172100_ai_image_char_bg_layout](2026-01/202601172100_ai_image_char_bg_layout/) - AI 生图支持 v4/v4.5 “背景/角色”分区（`char_captions`）并对齐普通/专业模式三栏布局
 - [202601172234_tc_header_upload_and_doc_lazy](2026-01/202601172234_tc_header_upload_and_doc_lazy/) - 修复 tc_header 头像上传（iframe 裁剪弹窗）并优化空间文档懒加载（不全量 load / pull 不写回）
+- [202601211604_auth_401_handling](2026-01/202601211604_auth_401_handling/) - 认证：HTTP 401 自动清理登录态并跳转登录页；WS token 失效（type=100）同样引导重新登录

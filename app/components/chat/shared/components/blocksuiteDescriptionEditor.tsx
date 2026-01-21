@@ -2,16 +2,19 @@ import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
 import { base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
+import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-
 import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
+
+import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
@@ -188,12 +191,12 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteDocHeader | null>(null);
 
   useEffect(() => {
-    if (!(import.meta as any)?.env?.DEV)
+    if (!isBlocksuiteDebugEnabled())
       return;
     try {
       const inIframe = isProbablyInIframe();
       const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
-      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
+      console.debug("[BlocksuiteMentionHost] runtime mount", msg);
       try {
         (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
       }
@@ -573,13 +576,13 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         // ignore
       }
 
-      if (typeof window !== "undefined" && import.meta.env.DEV) {
+      if (isBlocksuiteDebugEnabled()) {
         try {
           const rootId = (store as any)?.root?.id;
           const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
           const first = paragraphs?.[0];
           const firstText = first?.props?.text;
-          console.warn("[BlocksuiteDescriptionEditor] store ready", {
+          console.debug("[BlocksuiteDescriptionEditor] store ready", {
             docId,
             rootId,
             paragraphCount: paragraphs?.length ?? 0,
@@ -796,6 +799,79 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
   const isEdgelessFullscreen = allowModeSwitch && fullscreenEdgeless && currentMode === "edgeless";
 
+  const fullscreenRootRef = useRef<HTMLDivElement | null>(null);
+  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined")
+      return;
+
+    const onChange = () => {
+      try {
+        const docAny = document as any;
+        setIsBrowserFullscreen(Boolean(docAny.fullscreenElement ?? docAny.webkitFullscreenElement ?? docAny.msFullscreenElement));
+      }
+      catch {
+        setIsBrowserFullscreen(false);
+      }
+    };
+
+    onChange();
+    document.addEventListener("fullscreenchange", onChange);
+    const onWebkitChange = onChange as any;
+    document.addEventListener("webkitfullscreenchange" as any, onWebkitChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange" as any, onWebkitChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined")
+      return;
+    if (!isBrowserFullscreen)
+      return;
+    if (currentMode === "edgeless")
+      return;
+    try {
+      const docAny = document as any;
+      const exit = docAny.exitFullscreen ?? docAny.webkitExitFullscreen ?? docAny.msExitFullscreen;
+      void exit?.call(document);
+    }
+    catch {
+      // ignore
+    }
+  }, [currentMode, isBrowserFullscreen]);
+
+  const toggleBrowserFullscreen = async () => {
+    try {
+      const root = fullscreenRootRef.current;
+      if (!root)
+        return;
+
+      const docAny = document as any;
+      const enabled = docAny.fullscreenEnabled ?? docAny.webkitFullscreenEnabled ?? docAny.msFullscreenEnabled;
+      const request = (root as any).requestFullscreen ?? (root as any).webkitRequestFullscreen ?? (root as any).msRequestFullscreen;
+      const exit = docAny.exitFullscreen ?? docAny.webkitExitFullscreen ?? docAny.msExitFullscreen;
+      const fsElement = docAny.fullscreenElement ?? docAny.webkitFullscreenElement ?? docAny.msFullscreenElement;
+
+      if (enabled === false || typeof request !== "function") {
+        toast.error("当前环境不支持全屏");
+        return;
+      }
+
+      if (fsElement) {
+        await exit?.call(document);
+      }
+      else {
+        await request.call(root);
+      }
+    }
+    catch {
+      toast.error("全屏切换失败");
+    }
+  };
+
   const hasHeightConstraintClass = useMemo(() => {
     const v = (className ?? "").trim();
     if (!v)
@@ -806,7 +882,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   }, [className]);
 
   const viewportOverflowClass = currentMode === "page"
-    ? ((isFull || isEdgelessFullscreen || hasHeightConstraintClass) ? "overflow-auto" : "overflow-visible")
+    ? ((isFull || isEdgelessFullscreen || isBrowserFullscreen || hasHeightConstraintClass) ? "overflow-auto" : "overflow-visible")
     : "overflow-hidden";
 
   useEffect(() => {
@@ -823,7 +899,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       else {
         editor.mode = currentMode;
       }
-      editor.style.height = isEdgelessFullscreen || isFull ? "100%" : "auto";
+      editor.style.height = (isEdgelessFullscreen || isBrowserFullscreen || isFull) ? "100%" : "auto";
     }
     catch {
       // ignore
@@ -890,7 +966,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         }
       }
     };
-  }, [currentMode, isEdgelessFullscreen, isFull]);
+  }, [currentMode, isBrowserFullscreen, isEdgelessFullscreen, isFull]);
 
   useEffect(() => {
     if (typeof document === "undefined")
@@ -905,7 +981,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     };
   }, [isEdgelessFullscreen]);
 
-  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, isEdgelessFullscreen ? "h-full min-h-0" : ""]
+  const rootClassName = ["tc-blocksuite-scope", tcHeaderEnabled ? "tc-blocksuite-tc-header-enabled" : "", className, (isEdgelessFullscreen || isBrowserFullscreen) ? "h-full min-h-0" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -1006,7 +1082,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   return (
     <div className={rootClassName}>
       <div
-        className={`relative bg-base-100 border border-base-300 ${viewportOverflowClass}${isEdgelessFullscreen ? " h-full" : " rounded-box"}${isFull || isEdgelessFullscreen ? " flex flex-col" : ""}`}
+        ref={fullscreenRootRef}
+        className={`relative bg-base-100 border border-base-300 ${viewportOverflowClass}${(isEdgelessFullscreen || isBrowserFullscreen) ? " h-full" : " rounded-box"}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " flex flex-col" : ""}`}
       >
         {tcHeaderEnabled
           ? (
@@ -1088,6 +1165,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
                             </button>
                           )
                         : null}
+                      {currentMode === "edgeless"
+                        ? (
+                            <button
+                              type="button"
+                              className="tc-blocksuite-tc-header-btn tc-blocksuite-tc-header-btn-ghost"
+                              onClick={() => void toggleBrowserFullscreen()}
+                            >
+                              {isBrowserFullscreen ? "退出全屏" : "全屏"}
+                            </button>
+                          )
+                        : null}
                       {allowModeSwitch
                         ? (
                             <button
@@ -1111,6 +1199,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         {allowModeSwitch && !tcHeaderEnabled
           ? (
               <div className="flex items-center justify-end p-2 border-b border-base-300">
+                {currentMode === "edgeless"
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm mr-2"
+                        onClick={() => void toggleBrowserFullscreen()}
+                      >
+                        {isBrowserFullscreen ? "退出全屏" : "全屏"}
+                      </button>
+                    )
+                  : null}
                 <button
                   type="button"
                   className="btn btn-sm"
@@ -1126,7 +1225,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
         <div
           ref={hostContainerRef}
-          className={`${isFull || isEdgelessFullscreen ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
+          className={`${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? "flex-1 min-h-0" : "min-h-32"} w-full ${currentMode === "edgeless" ? "affine-edgeless-viewport" : "affine-page-viewport"}`}
         />
       </div>
     </div>
@@ -1160,11 +1259,65 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
   const hostMentionDebugUntilRef = useRef(0);
   const hostMentionDebugRemainingRef = useRef(0);
+  const [mentionProfilePopover, setMentionProfilePopover] = useState<BlocksuiteMentionProfilePopoverState | null>(null);
+  const mentionProfilePopoverStateRef = useRef<BlocksuiteMentionProfilePopoverState | null>(null);
+  const mentionProfilePopoverHoveredRef = useRef(false);
+  const mentionProfilePopoverOpenTimerRef = useRef<number | null>(null);
+  const mentionProfilePopoverCloseTimerRef = useRef<number | null>(null);
+
+  const clearMentionProfilePopoverOpenTimer = () => {
+    const t = mentionProfilePopoverOpenTimerRef.current;
+    if (t !== null) {
+      mentionProfilePopoverOpenTimerRef.current = null;
+      try {
+        window.clearTimeout(t);
+      }
+      catch {
+        // ignore
+      }
+    }
+  };
+
+  const clearMentionProfilePopoverCloseTimer = () => {
+    const t = mentionProfilePopoverCloseTimerRef.current;
+    if (t !== null) {
+      mentionProfilePopoverCloseTimerRef.current = null;
+      try {
+        window.clearTimeout(t);
+      }
+      catch {
+        // ignore
+      }
+    }
+  };
+
+  const scheduleMentionProfilePopoverClose = () => {
+    clearMentionProfilePopoverCloseTimer();
+    mentionProfilePopoverCloseTimerRef.current = window.setTimeout(() => {
+      if (mentionProfilePopoverHoveredRef.current)
+        return;
+      setMentionProfilePopover(null);
+    }, 160);
+  };
+
+  const scheduleMentionProfilePopoverOpen = (next: BlocksuiteMentionProfilePopoverState) => {
+    clearMentionProfilePopoverOpenTimer();
+    clearMentionProfilePopoverCloseTimer();
+    mentionProfilePopoverOpenTimerRef.current = window.setTimeout(() => {
+      mentionProfilePopoverOpenTimerRef.current = null;
+      mentionProfilePopoverHoveredRef.current = false;
+      setMentionProfilePopover(next);
+    }, 240);
+  };
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
+
+  useEffect(() => {
+    mentionProfilePopoverStateRef.current = mentionProfilePopover;
+  }, [mentionProfilePopover]);
 
   // 画布全屏状态由 frame 回传的 mode 驱动（宿主不再下发 set-mode）。
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
@@ -1243,6 +1396,65 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         return;
       }
 
+      if (data.type === "mention-click" && typeof data.userId === "string" && data.userId) {
+        try {
+          clearMentionProfilePopoverCloseTimer();
+          setMentionProfilePopover(null);
+          const to = `/profile/${encodeURIComponent(data.userId)}`;
+          const handled = onNavigateRef.current?.(to);
+          if (handled === true)
+            return;
+          navigate(to);
+        }
+        catch {
+          // ignore
+        }
+        return;
+      }
+
+      if (data.type === "mention-hover" && (data.state === "enter" || data.state === "leave") && typeof data.userId === "string" && data.userId) {
+        if (data.state === "enter") {
+          const ar = data.anchorRect as any;
+          const anchorRectOk = Boolean(ar)
+            && typeof ar.left === "number"
+            && typeof ar.top === "number"
+            && typeof ar.right === "number"
+            && typeof ar.bottom === "number"
+            && typeof ar.width === "number"
+            && typeof ar.height === "number";
+
+          if (!anchorRectOk)
+            return;
+
+          try {
+            scheduleMentionProfilePopoverOpen({ userId: data.userId, anchorRect: ar });
+          }
+          catch {
+            // ignore
+          }
+          return;
+        }
+
+        if (data.state === "leave") {
+          try {
+            const current = mentionProfilePopoverStateRef.current;
+            // 若还未真正打开（仅处于 delay 计时），直接取消。
+            if (!current) {
+              clearMentionProfilePopoverOpenTimer();
+              return;
+            }
+            if (current.userId !== data.userId)
+              return;
+            clearMentionProfilePopoverOpenTimer();
+            scheduleMentionProfilePopoverClose();
+          }
+          catch {
+            // ignore
+          }
+          return;
+        }
+      }
+
       if (data.type === "tc-header" && data.header && typeof data.docId === "string") {
         try {
           const header = data.header as BlocksuiteDocHeader;
@@ -1278,12 +1490,12 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           // Host-side click debug:
           // If the mention picker is rendered outside iframe (portal), then iframe won't see click events.
           // Arm a short window after '@' to capture host pointer/click path summaries.
-          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown @") {
+          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && message === "keydown @") {
             hostMentionDebugUntilRef.current = Date.now() + 5000;
             hostMentionDebugRemainingRef.current = 12;
           }
 
-          if ((import.meta as any)?.env?.DEV && source === "BlocksuiteFrame" && message === "keydown Enter") {
+          if (isBlocksuiteDebugEnabled() && source === "BlocksuiteFrame" && message === "keydown Enter") {
             if (Date.now() < hostMentionDebugUntilRef.current && hostMentionDebugRemainingRef.current > 0) {
               hostMentionDebugRemainingRef.current -= 1;
               try {
@@ -1309,7 +1521,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
                   roleListbox: document.querySelectorAll("[role='listbox']").length,
                   roleMenu: document.querySelectorAll("[role='menu']").length,
                 };
-                console.warn("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
+                console.debug("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
               }
               catch {
                 // ignore
@@ -1317,11 +1529,13 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
             }
           }
 
-          if (payload && typeof payload === "object") {
-            console.warn("[BlocksuiteFrameDebug]", source, message, payload);
-          }
-          else {
-            console.warn("[BlocksuiteFrameDebug]", source, message);
+          if (isBlocksuiteDebugEnabled()) {
+            if (payload && typeof payload === "object") {
+              console.debug("[BlocksuiteFrameDebug]", source, message, payload);
+            }
+            else {
+              console.debug("[BlocksuiteFrameDebug]", source, message);
+            }
           }
         }
         catch {
@@ -1336,9 +1550,29 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     };
   }, [forcedMode, instanceId, navigate, onModeChange, onTcHeaderChange]);
 
+  useEffect(() => {
+    if (!mentionProfilePopover)
+      return;
+    if (typeof window === "undefined")
+      return;
+
+    const close = () => {
+      clearMentionProfilePopoverOpenTimer();
+      clearMentionProfilePopoverCloseTimer();
+      setMentionProfilePopover(null);
+    };
+
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close, true);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close, true);
+    };
+  }, [mentionProfilePopover]);
+
   // 宿主侧捕获 click/pointerdown：用于定位 mention 弹窗是否是 portal 到 iframe 外。
   useEffect(() => {
-    if (!(import.meta as any)?.env?.DEV)
+    if (!isBlocksuiteDebugEnabled())
       return;
     if (typeof document === "undefined")
       return;
@@ -1378,7 +1612,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         const nodes = Array.isArray(path)
           ? path.map(summarizeNode).filter(Boolean).slice(0, 10)
           : [];
-        console.warn("[BlocksuiteHostDebug]", type, {
+        console.debug("[BlocksuiteHostDebug]", type, {
           targetTag: toLower((e.target as any)?.tagName),
           nodes,
         });
@@ -1590,12 +1824,29 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   /* eslint-disable react-dom/no-unsafe-iframe-sandbox */
   return (
     <div className={wrapperClassName}>
+      <BlocksuiteMentionProfilePopover
+        state={mentionProfilePopover}
+        onRequestClose={() => {
+          clearMentionProfilePopoverCloseTimer();
+          setMentionProfilePopover(null);
+        }}
+        onHoverChange={(hovered) => {
+          mentionProfilePopoverHoveredRef.current = hovered;
+          if (hovered) {
+            clearMentionProfilePopoverCloseTimer();
+          }
+          else if (mentionProfilePopover) {
+            scheduleMentionProfilePopoverClose();
+          }
+        }}
+      />
       <iframe
         ref={iframeRef}
         src={src}
         title="blocksuite-editor"
         className={iframeClassName}
-        allow="clipboard-read; clipboard-write"
+        allow="clipboard-read; clipboard-write; fullscreen"
+        allowFullScreen
         sandbox="allow-scripts allow-same-origin"
         height={iframeHeightAttr}
         onLoad={() => {

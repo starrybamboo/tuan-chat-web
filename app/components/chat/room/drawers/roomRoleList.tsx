@@ -3,8 +3,8 @@ import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import RoleList from "@/components/chat/shared/components/roleLists";
-import { AddModuleRoleWindow } from "@/components/chat/window/addModuleRoleWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import CreateNpcRoleWindow from "@/components/chat/window/createNpcRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
@@ -35,17 +35,6 @@ export default function RoomRoleList() {
       {
         onSettled: () => {
           toast("添加角色成功");
-        },
-      },
-    );
-  };
-
-  const handleAddModuleRole = async (roleId: number) => {
-    addRoleMutation.mutate(
-      { roomId, roleIdList: [roleId] },
-      {
-        onSettled: () => {
-          toast("添加NPC成功");
         },
       },
     );
@@ -97,7 +86,7 @@ export default function RoomRoleList() {
         <AddRoleWindow handleAddRole={handleAddRole} />
       </PopWindow>
       <PopWindow isOpen={isModuleRoleHandleOpen} onClose={() => setIsModuleRoleHandleOpen(false)}>
-        <AddModuleRoleWindow handleAddRole={handleAddModuleRole} />
+        <CreateNpcRoleWindow onClose={() => setIsModuleRoleHandleOpen(false)} />
       </PopWindow>
     </div>
   );

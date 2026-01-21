@@ -33,9 +33,13 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
+import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
+import UTILS from "@/components/common/dicer/utils/utils";
+import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
 import { parseWebgalVarCommand } from "@/types/webgalVar";
@@ -52,6 +56,7 @@ import {
   useSetSpaceExtraMutation,
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
+import { tuanchat } from "../../../../api/instance";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
@@ -178,6 +183,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
+  const [isImportChatTextOpen, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
 
   // RealtimeRender 编排：用独立组件隔离 useEffect/订阅，避免 RoomWindow 被 status/initProgress/previewUrl 等高频变化拖着重渲染
   const realtimeRenderApiRef = useRef<RealtimeRenderOrchestratorApi | null>(null);
@@ -1031,6 +1037,120 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     }
   };
 
+  const handleImportChatText = useCallback(async (
+    messages: Array<{ roleId: number; content: string; figurePosition?: "left" | "center" | "right" }>,
+    onProgress?: (sent: number, total: number) => void,
+  ) => {
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("正在发送中，请稍等");
+      return;
+    }
+    if (!messages.length) {
+      toast.error("没有可导入的有效消息");
+      return;
+    }
+
+    const ui = useRoomUiStore.getState();
+    const prevInsertAfter = ui.insertAfterMessageId;
+    const prevReply = ui.replyMessage;
+
+    ui.setInsertAfterMessageId(undefined);
+    ui.setReplyMessage(undefined);
+
+    setIsSubmitting(true);
+    try {
+      const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+      const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
+      const avatarMap = useRoomRoleSelectionStore.getState().curAvatarIdMap;
+
+      let dicerRoleId: number | null = null;
+      let dicerAvatarId: number | null = null;
+
+      const ensureDicerSender = async () => {
+        if (dicerRoleId != null && dicerAvatarId != null) {
+          return;
+        }
+        dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+
+        const cachedAvatarId = avatarMap[dicerRoleId] ?? null;
+        if (cachedAvatarId != null && cachedAvatarId > 0) {
+          dicerAvatarId = cachedAvatarId;
+          return;
+        }
+
+        const avatars = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
+        const defaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") ?? null;
+        dicerAvatarId = defaultLabelAvatar?.avatarId ?? (avatars[0]?.avatarId ?? 0);
+      };
+
+      const total = messages.length;
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        let roleId = msg.roleId;
+        let avatarId = roleId <= 0 ? -1 : (avatarMap[roleId] ?? -1);
+        let messageType = MessageType.TEXT;
+        let extra: any = {};
+        const figurePosition = msg.figurePosition;
+
+        // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
+        if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
+          await ensureDicerSender();
+          roleId = dicerRoleId ?? roleId;
+          avatarId = dicerAvatarId ?? 0;
+          messageType = MessageType.DICE;
+          extra = { result: msg.content };
+        }
+
+        const request: ChatMessageRequest = {
+          roomId,
+          roleId,
+          avatarId,
+          content: msg.content,
+          messageType,
+          extra,
+        };
+
+        if (composerTarget === "thread" && threadRootMessageId) {
+          request.threadId = threadRootMessageId;
+        }
+
+        const draftCustomRoleName = draftCustomRoleNameMap[roleId];
+        if (draftCustomRoleName?.trim()) {
+          request.webgal = {
+            ...(request.webgal as any),
+            customRoleName: draftCustomRoleName.trim(),
+          } as any;
+        }
+
+        if (messageType === MessageType.TEXT && roleId > 0 && figurePosition) {
+          request.webgal = {
+            ...(request.webgal as any),
+            voiceRenderSettings: {
+              ...((request.webgal as any)?.voiceRenderSettings ?? {}),
+              figurePosition,
+            },
+          } as any;
+        }
+
+        await sendMessageWithInsert(request);
+        onProgress?.(i + 1, total);
+
+        if (total >= 30) {
+          await new Promise(resolve => setTimeout(resolve, 30));
+        }
+      }
+    }
+    finally {
+      useRoomUiStore.getState().setInsertAfterMessageId(prevInsertAfter);
+      useRoomUiStore.getState().setReplyMessage(prevReply);
+      setIsSubmitting(false);
+    }
+  }, [isSubmitting, notMember, roomContext, roomId, sendMessageWithInsert]);
+
   // 线索消息发送
   const handleClueSend = (clue: ClueMessage) => {
     const clueMessage: ChatMessageRequest = {
@@ -1295,6 +1415,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onClearBackground={handleClearBackground}
                   onClearFigure={handleClearFigure}
                   onSetWebgalVar={handleSetWebgalVar}
+                  onOpenImportChatText={() => setIsImportChatTextOpen(true)}
                   isKP={spaceContext.isSpaceOwner}
                   onStopBgmForAll={handleStopBgmForAll}
                   noRole={noRole}
@@ -1331,6 +1452,21 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           <SubRoomWindow onClueSend={handleClueSend} />
         </div>
       </div>
+
+      <PopWindow
+        isOpen={isImportChatTextOpen}
+        onClose={() => setIsImportChatTextOpen(false)}
+      >
+        <ImportChatMessagesWindow
+          isKP={Boolean(spaceContext.isSpaceOwner)}
+          availableRoles={roomRolesThatUserOwn}
+          onImport={async (items, onProgress) => {
+            await handleImportChatText(items.map(i => ({ roleId: i.roleId, content: i.content, figurePosition: i.figurePosition })), onProgress);
+          }}
+          onClose={() => setIsImportChatTextOpen(false)}
+          onOpenRoleAddWindow={() => setIsRoleAddWindowOpen(true)}
+        />
+      </PopWindow>
 
       <RoomPopWindows
         isRoleHandleOpen={isRoleHandleOpen}

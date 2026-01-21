@@ -5,7 +5,12 @@ import UTILS from "@/components/common/dicer/utils/utils";
 import type { Role } from "../../types";
 import type { CharacterData } from "../types";
 
-type CreateRoleFn = (payload: { roleName: string; description: string }) => Promise<number | undefined | null>;
+type CreateRoleFn = (payload: {
+  roleName: string;
+  description: string;
+  type?: number;
+  spaceId?: number;
+}) => Promise<number | undefined | null>;
 
 type UploadAvatarFn = (payload: { avatarUrl: string; spriteUrl: string; roleId: number }) => Promise<{ data?: { avatarId?: number; avatarUrl?: string } } | undefined>;
 
@@ -24,9 +29,15 @@ type BeforeSetRoleAbilityHook = (data: CharacterData) => CharacterData;
 
 export type SetSelectedRoleIdFn = Dispatch<SetStateAction<number | null>> | ((id: number | null) => void);
 
+type RoleCreateDefaults = {
+  type?: number;
+  spaceId?: number;
+};
+
 type CompleteRoleCreationDeps = {
   characterData: CharacterData;
   createRole: CreateRoleFn;
+  roleCreateDefaults?: RoleCreateDefaults;
   uploadAvatar: UploadAvatarFn;
   setRoleAbility: SetRoleAbilityFn;
   updateRole: UpdateRoleFn;
@@ -46,6 +57,7 @@ export async function completeRoleCreation(
   const {
     characterData,
     createRole,
+    roleCreateDefaults,
     uploadAvatar,
     setRoleAbility,
     updateRole,
@@ -57,7 +69,11 @@ export async function completeRoleCreation(
   const trimmedName = characterData.name.trim();
   const trimmedDescription = characterData.description.trim();
 
-  const roleId = await createRole({ roleName: trimmedName, description: trimmedDescription });
+  const roleId = await createRole({
+    roleName: trimmedName,
+    description: trimmedDescription,
+    ...(roleCreateDefaults ?? {}),
+  });
   if (!roleId && roleId !== 0)
     throw new Error("角色创建失败");
 
@@ -94,6 +110,7 @@ export async function completeRoleCreation(
     avatarId: avatarId ?? 0,
     modelName: "散华",
     speakerName: "鸣潮",
+    type: roleCreateDefaults?.type,
   };
 
   if (setRoles)

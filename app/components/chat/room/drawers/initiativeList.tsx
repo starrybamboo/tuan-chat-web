@@ -57,7 +57,12 @@ export default function InitiativeList() {
   const [newItem, setNewItem] = useState({ name: "", value: "", hp: "", maxHp: "" });
   const [newExtras, setNewExtras] = useState<Record<string, string>>({});
   const [showParamEditor, setShowParamEditor] = useState(false);
-  const [newParam, setNewParam] = useState({ key: "", label: "", source: "manual" as const, attrKey: "" });
+  const [newParam, setNewParam] = useState<{
+    key: string;
+    label: string;
+    source: InitiativeParam["source"];
+    attrKey: string;
+  }>({ key: "", label: "", source: "manual", attrKey: "" });
   const [isImportPopupOpen, setIsImportPopupOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("value");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");

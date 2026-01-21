@@ -295,6 +295,26 @@ export class ChatRenderer {
     return role || null;
   }
 
+  private async getEffectiveAvatarIdFromMessage(message: Message): Promise<number> {
+    const messageAvatarId = Number(message.avatarId ?? 0);
+    if (Number.isFinite(messageAvatarId) && messageAvatarId > 0) {
+      return messageAvatarId;
+    }
+
+    const roleId = Number(message.roleId ?? 0);
+    if (!Number.isFinite(roleId) || roleId <= 0) {
+      return 0;
+    }
+
+    const role = await this.fetchRole(roleId);
+    const roleAvatarId = Number((role as any)?.avatarId ?? 0);
+    if (Number.isFinite(roleAvatarId) && roleAvatarId > 0) {
+      return roleAvatarId;
+    }
+
+    return 0;
+  }
+
   /**
    * 将情感标题对象转换为八维情感向量数组
    * @param avatarTitle 情感nVector标题对象，键为情感名称，值为字符串格式的数值
@@ -357,14 +377,14 @@ export class ChatRenderer {
    * @returns filename
    */
   private async uploadSprite(message: Message): Promise<string | null> {
-    const avatarId = message.avatarId;
-    if (typeof avatarId !== "number" || Number.isNaN(avatarId) || avatarId <= 0) {
+    const avatarId = await this.getEffectiveAvatarIdFromMessage(message);
+    if (avatarId <= 0) {
       return null;
     }
 
     const avatar = await this.fetchAvatar(avatarId);
     const spriteUrl = avatar?.spriteUrl || avatar?.avatarUrl;
-    const spriteName = this.getSpriteName(message.roleId, message.avatarId);
+    const spriteName = this.getSpriteName(message.roleId, avatarId);
     if (!spriteName || !spriteUrl || !avatar?.avatarId) {
       return null;
     }
@@ -380,8 +400,8 @@ export class ChatRenderer {
    * @returns filename
    */
   private async getAndUploadSprite(message: Message): Promise<string | null> {
-    const avatarId = message.avatarId;
-    if (typeof avatarId !== "number" || Number.isNaN(avatarId) || avatarId <= 0) {
+    const avatarId = await this.getEffectiveAvatarIdFromMessage(message);
+    if (avatarId <= 0) {
       return null;
     }
 
@@ -392,12 +412,12 @@ export class ChatRenderer {
   }
 
   private async getAndUploadMiniAvatar(message: Message): Promise<string | null> {
-    const avatarId = message.avatarId;
-    const roleId = message.roleId;
-    if (typeof avatarId !== "number" || Number.isNaN(avatarId) || avatarId <= 0) {
+    const avatarId = await this.getEffectiveAvatarIdFromMessage(message);
+    const roleId = Number(message.roleId ?? 0);
+    if (avatarId <= 0) {
       return null;
     }
-    if (typeof roleId !== "number" || Number.isNaN(roleId) || roleId <= 0) {
+    if (!Number.isFinite(roleId) || roleId <= 0) {
       return null;
     }
 
@@ -590,13 +610,13 @@ export class ChatRenderer {
           // 判断消息类型：黑屏文字（messageType === 9）
           const isIntroText = message.messageType === 9;
           const roleId = message.roleId ?? 0;
-          const avatarId = message.avatarId ?? 0;
 
           // 判断是否为旁白：roleId <= 0
           const isNarrator = roleId <= 0;
 
           const role = roleId > 0 ? await this.fetchRole(roleId) : undefined;
-          const roleAvatar = avatarId > 0 ? await this.fetchAvatar(avatarId) : undefined;
+          const effectiveAvatarId = await this.getEffectiveAvatarIdFromMessage(messageResponse.message);
+          const roleAvatar = effectiveAvatarId > 0 ? await this.fetchAvatar(effectiveAvatarId) : undefined;
 
           // 获取消息级别的语音渲染设置
           const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
@@ -689,9 +709,7 @@ export class ChatRenderer {
                 = repliedSpriteName
                   ? (spriteState.has(messageSpriteName || "") && spriteState.has(repliedSpriteName))
                   : (spriteState.has(messageSpriteName || ""));
-              const avatar = (typeof message.avatarId === "number" && message.avatarId > 0)
-                ? await this.fetchAvatar(message.avatarId)
-                : undefined;
+              const avatar = roleAvatar || undefined;
               await this.sceneEditor.addDialog(
                 displayRoleName,
                 avatar || undefined,

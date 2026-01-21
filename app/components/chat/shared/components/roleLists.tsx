@@ -1,3 +1,5 @@
+import type { UserRole } from "../../../../../api";
+
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 
 export default function RoleList({
@@ -17,7 +19,6 @@ export default function RoleList({
           className={`flex gap-3 p-3 bg-base-200 rounded-lg items-center ${className}`}
         >
           <div className="flex flex-row gap-3 items-center">
-            {/* role列表 */}
             <RoleAvatarComponent
               avatarId={role.avatarId ?? -1}
               roleId={role.roleId}
