@@ -17,6 +17,8 @@
   - `/chat/:spaceId/:roomId`：房间聊天页
   - `/chat/:spaceId/:roomId/setting`：房间资料页（含 Blocksuite 文档）
   - `/chat/:spaceId/doc/:docId`：独立文档页（保留侧边栏）
+- 关键 UI：
+  - `SpaceDetailPanel`（空间抽屉面板）：支持 `members/workflow/trpg/setting` 四类 tab；其中 `trpg` 对应 `SpaceTrpgSettingWindow`（空间规则/空间骰娘）
 
 ## 核心概念（约定）
 
