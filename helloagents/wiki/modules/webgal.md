@@ -22,6 +22,10 @@
   - 导演控制台“设置变量”发送 `WEBGAL_VAR(11)` 结构化消息（保留 `/var set a=1` 快捷方式）
   - 持久化写入 `space.extra.webgalVars`
   - 实时渲染侧转换为 `setVar:<k>=<v> -global;`
+- 立绘/头像选择：
+  - 优先使用消息携带的 `avatarId`（通常来自发送时选择的头像）
+  - 若消息未携带 `avatarId`，渲染侧会回退到角色本身的 `avatarId`（角色头像）
+  - 上传立绘资源时：优先 `spriteUrl`，若为空则使用 `avatarUrl` 作为立绘源
 
 ## 相关文档
 

@@ -81,6 +81,7 @@
 | 202601201952 | ai_image_simple_nl_tag_generate_buttons | 优化 | 已完成（待确认） | [2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/](2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/) |
 | 202601211450 | chat-npc-create-reuse-role | 优化 | 已完成 | [2026-01/202601211450_chat-npc-create-reuse-role/](2026-01/202601211450_chat-npc-create-reuse-role/) |
 | 202601211511 | role_avatar_as_sprite | 优化 | 已完成 | [2026-01/202601211511_role_avatar_as_sprite/](2026-01/202601211511_role_avatar_as_sprite/) |
+| 202601211552 | webgal_role_avatar_id_fallback | 优化 | 已完成 | [2026-01/202601211552_webgal_role_avatar_id_fallback/](2026-01/202601211552_webgal_role_avatar_id_fallback/) |
 
 ---
 
@@ -88,6 +89,7 @@
 
 ### 2026-01
 
+- [202601211552_webgal_role_avatar_id_fallback](2026-01/202601211552_webgal_role_avatar_id_fallback/) - WebGAL 渲染：消息未携带 `avatarId` 时回退到角色的 `avatarId`
 - [202601211511_role_avatar_as_sprite](2026-01/202601211511_role_avatar_as_sprite/) - 无立绘（`spriteUrl` 为空）的头像默认使用 `avatarUrl` 作为立绘来源
 - [202601211450_chat-npc-create-reuse-role](2026-01/202601211450_chat-npc-create-reuse-role/) - 房间角色：创建 NPC 复用创建角色（`type=2 + spaceId` 绑定空间）
 - [202601201952_ai_image_simple_nl_tag_generate_buttons](2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/) - AI 生图：普通模式一键出图（自然语言）+ 按 tag 出图
