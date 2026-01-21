@@ -1,11 +1,12 @@
+import type { AffineTextAttributes } from "@blocksuite/affine-shared/types";
+import type { BlockStdScope } from "@blocksuite/std";
+import type { DeltaInsert } from "@blocksuite/store";
+
 import { UserProvider } from "@blocksuite/affine-shared/services";
 import { unsafeCSSVarV2 } from "@blocksuite/affine-shared/theme";
-import type { AffineTextAttributes } from "@blocksuite/affine-shared/types";
 import { SignalWatcher, WithDisposable } from "@blocksuite/global/lit";
-import type { BlockStdScope } from "@blocksuite/std";
 import { ShadowlessElement } from "@blocksuite/std";
 import { ZERO_WIDTH_FOR_EMBED_NODE, ZERO_WIDTH_FOR_EMPTY_LINE } from "@blocksuite/std/inline";
-import type { DeltaInsert } from "@blocksuite/store";
 import { css, html } from "lit";
 import { property } from "lit/decorators.js";
 
@@ -26,7 +27,7 @@ function getBlocksuiteFrameInstanceId(): string | undefined {
     const sp = new URLSearchParams(window.location.search);
     const v = sp.get("instanceId") ?? "";
     const trimmed = v.trim();
-    return trimmed ? trimmed : undefined;
+    return trimmed || undefined;
   }
   catch {
     return undefined;
@@ -143,7 +144,7 @@ export function ensureTCAffineMentionDefined(): void {
       if (!memberId)
         return undefined;
       const v = String(memberId).trim();
-      return v ? v : undefined;
+      return v || undefined;
     }
 
     private buildAnchorRectFromEvent(e: Event): null | {

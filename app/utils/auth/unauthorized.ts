@@ -85,4 +85,3 @@ export function handleUnauthorized(params?: {
 
   window.location.assign(target);
 }
-

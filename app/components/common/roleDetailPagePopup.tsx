@@ -7,9 +7,9 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
+import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
-import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
 function toRoleViewModel(roleId: number, raw: any): Role {
   return {

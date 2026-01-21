@@ -208,7 +208,10 @@ export default function ImportChatMessagesWindow({
               </span>
             </h2>
             <div className="text-xs text-base-content/60 flex items-center gap-2">
-              <span>每行一条消息，格式：<code className="bg-base-200 px-1 rounded">[角色名]：内容</code></span>
+              <span>
+                每行一条消息，格式：
+                <code className="bg-base-200 px-1 rounded">[角色名]：内容</code>
+              </span>
             </div>
           </div>
         </div>
@@ -258,21 +261,24 @@ export default function ImportChatMessagesWindow({
               <div className={`
                 border-2 border-dashed rounded-xl p-6 text-center transition-all
                 ${fileName
-                  ? "border-success/50 bg-success/5"
-                  : "border-base-300 hover:border-primary/50 hover:bg-base-200/30"}
-              `}>
-                {fileName ? (
-                  <div className="flex flex-col items-center gap-2 text-success">
-                    <FileText size={32} weight="duotone" />
-                    <span className="font-medium text-sm">{fileName}</span>
-                    <span className="text-xs opacity-70">点击更换文件</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-base-content/50">
-                    <FileText size={32} weight="light" />
-                    <span className="text-sm">点击选择 .txt 文件，或拖拽文件到此处</span>
-                  </div>
-                )}
+      ? "border-success/50 bg-success/5"
+      : "border-base-300 hover:border-primary/50 hover:bg-base-200/30"}
+              `}
+              >
+                {fileName
+                  ? (
+                      <div className="flex flex-col items-center gap-2 text-success">
+                        <FileText size={32} weight="duotone" />
+                        <span className="font-medium text-sm">{fileName}</span>
+                        <span className="text-xs opacity-70">点击更换文件</span>
+                      </div>
+                    )
+                  : (
+                      <div className="flex flex-col items-center gap-2 text-base-content/50">
+                        <FileText size={32} weight="light" />
+                        <span className="text-sm">点击选择 .txt 文件，或拖拽文件到此处</span>
+                      </div>
+                    )}
               </div>
             </div>
 
@@ -296,12 +302,16 @@ export default function ImportChatMessagesWindow({
                 <div className="flex flex-wrap gap-2 text-xs">
                   <div className="badge badge-sm badge-ghost gap-1">
                     <CheckCircle className="text-success" size={12} weight="fill" />
-                    {parsed.messages.length} 条有效
+                    {parsed.messages.length}
+                    {" "}
+                    条有效
                   </div>
                   {parsed.invalidLines.length > 0 && (
                     <div className="badge badge-sm badge-warning gap-1">
                       <Warning className="text-warning-content" size={12} weight="fill" />
-                      {parsed.invalidLines.length} 条无效
+                      {parsed.invalidLines.length}
+                      {" "}
+                      条无效
                     </div>
                   )}
                 </div>
@@ -312,7 +322,9 @@ export default function ImportChatMessagesWindow({
                     <div className="opacity-90">
                       部分行无法解析（格式不对）：
                       <div className="mt-1 font-mono text-[10px] opacity-70">
-                        行号: {parsed.invalidLines.slice(0, 10).map(i => i.lineNumber).join(", ")}
+                        行号:
+                        {" "}
+                        {parsed.invalidLines.slice(0, 10).map(i => i.lineNumber).join(", ")}
                         {parsed.invalidLines.length > 10 && " ..."}
                       </div>
                     </div>
@@ -329,7 +341,9 @@ export default function ImportChatMessagesWindow({
           <div className="p-3 border-b border-base-200 flex items-center justify-between bg-base-100">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <span className="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center text-xs">2</span>
-              角色匹配与设置 ({speakers.length})
+              角色匹配与设置 (
+              {speakers.length}
+              )
             </div>
             {onOpenRoleAddWindow && (
               <button
@@ -355,116 +369,125 @@ export default function ImportChatMessagesWindow({
               </div>
             )}
 
-            {speakers.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-base-content/30 gap-3">
-                <User size={48} weight="duotone" />
-                <span className="text-sm">等待导入文本...</span>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto p-0 scrollbar-thin">
-                <table className="table table-pin-rows table-sm w-full">
-                  <thead>
-                    <tr className="bg-base-100 z-10">
-                      <th className="bg-base-200/50 w-1/3">文本中的名字</th>
-                      <th className="bg-base-200/50 w-1/3">对应房间角色</th>
-                      <th className="bg-base-200/50 w-1/4">显示位置</th>
-                      <th className="bg-base-200/50 w-12 text-center">状态</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {speakers.map((speaker) => {
-                      const value = mapping[speaker];
-                      const figurePosition = figurePositionMap[speaker] ?? null;
-                      const isMissing = value == null;
-
-                      return (
-                        <tr key={speaker} className={`group hover:bg-base-50 ${isMissing ? "bg-error/5" : ""}`}>
-                          <td>
-                            <div className="font-mono text-sm font-medium truncate max-w-[140px] px-2 py-1 rounded bg-base-200/50 w-fit" title={speaker}>
-                              {speaker}
-                            </div>
-                          </td>
-                          <td>
-                            <select
-                              className={`select select-bordered select-xs w-full max-w-full ${isMissing ? "select-error" : ""}`}
-                              value={value == null ? "" : String(value)}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setMapping(prev => ({ ...prev, [speaker]: v ? Number(v) : null }));
-                              }}
-                              disabled={isImporting}
-                              title="选择角色"
-                            >
-                              <option value="">-- 请选择 --</option>
-                              <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 特殊角色 -</option>
-                              {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>📝 旁白 (KP)</option>}
-                              <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (系统)</option>
-                              <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 房间角色 -</option>
-                              {roleOptions.map(o => (
-                                <option key={o.roleId} value={String(o.roleId)}>👤 {o.label}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td>
-                            <div className="join w-full">
-                              <input
-                                className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
-                                type="radio"
-                                name={`pos-${speaker}`}
-                                aria-label="左"
-                                checked={figurePosition === "left"}
-                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "left" }))}
-                                disabled={isImporting || value == null || value <= 0}
-                                title="立绘位置：左"
-                              />
-                               <input
-                                className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
-                                type="radio"
-                                name={`pos-${speaker}`}
-                                aria-label="中"
-                                checked={figurePosition === "center"}
-                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "center" }))}
-                                disabled={isImporting || value == null || value <= 0}
-                                title="立绘位置：中"
-                              />
-                               <input
-                                className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
-                                type="radio"
-                                name={`pos-${speaker}`}
-                                aria-label="右"
-                                checked={figurePosition === "right"}
-                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "right" }))}
-                                disabled={isImporting || value == null || value <= 0}
-                                title="立绘位置：右"
-                              />
-                              <input
-                                className="join-item btn btn-xs btn-ghost px-1 font-mono text-[10px] aria-checked:opacity-50"
-                                type="radio"
-                                name={`pos-${speaker}`}
-                                aria-label="✕"
-                                checked={figurePosition == null}
-                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: null }))}
-                                disabled={isImporting || value == null || value <= 0}
-                                title="不显示立绘"
-                              />
-                            </div>
-                          </td>
-                          <td className="text-center">
-                            {isMissing && <div className="badge badge-xs badge-error animate-pulse">!</div>}
-                            {!isMissing && <div className="badge badge-xs badge-success badge-outline">ok</div>}
-                          </td>
+            {speakers.length === 0
+              ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-base-content/30 gap-3">
+                    <User size={48} weight="duotone" />
+                    <span className="text-sm">等待导入文本...</span>
+                  </div>
+                )
+              : (
+                  <div className="flex-1 overflow-y-auto p-0 scrollbar-thin">
+                    <table className="table table-pin-rows table-sm w-full">
+                      <thead>
+                        <tr className="bg-base-100 z-10">
+                          <th className="bg-base-200/50 w-1/3">文本中的名字</th>
+                          <th className="bg-base-200/50 w-1/3">对应房间角色</th>
+                          <th className="bg-base-200/50 w-1/4">显示位置</th>
+                          <th className="bg-base-200/50 w-12 text-center">状态</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            
+                      </thead>
+                      <tbody>
+                        {speakers.map((speaker) => {
+                          const value = mapping[speaker];
+                          const figurePosition = figurePositionMap[speaker] ?? null;
+                          const isMissing = value == null;
+
+                          return (
+                            <tr key={speaker} className={`group hover:bg-base-50 ${isMissing ? "bg-error/5" : ""}`}>
+                              <td>
+                                <div className="font-mono text-sm font-medium truncate max-w-[140px] px-2 py-1 rounded bg-base-200/50 w-fit" title={speaker}>
+                                  {speaker}
+                                </div>
+                              </td>
+                              <td>
+                                <select
+                                  className={`select select-bordered select-xs w-full max-w-full ${isMissing ? "select-error" : ""}`}
+                                  value={value == null ? "" : String(value)}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setMapping(prev => ({ ...prev, [speaker]: v ? Number(v) : null }));
+                                  }}
+                                  disabled={isImporting}
+                                  title="选择角色"
+                                >
+                                  <option value="">-- 请选择 --</option>
+                                  <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 特殊角色 -</option>
+                                  {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>📝 旁白 (KP)</option>}
+                                  <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (系统)</option>
+                                  <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 房间角色 -</option>
+                                  {roleOptions.map(o => (
+                                    <option key={o.roleId} value={String(o.roleId)}>
+                                      👤
+                                      {o.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                <div className="join w-full">
+                                  <input
+                                    className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                    type="radio"
+                                    name={`pos-${speaker}`}
+                                    aria-label="左"
+                                    checked={figurePosition === "left"}
+                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "left" }))}
+                                    disabled={isImporting || value == null || value <= 0}
+                                    title="立绘位置：左"
+                                  />
+                                  <input
+                                    className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                    type="radio"
+                                    name={`pos-${speaker}`}
+                                    aria-label="中"
+                                    checked={figurePosition === "center"}
+                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "center" }))}
+                                    disabled={isImporting || value == null || value <= 0}
+                                    title="立绘位置：中"
+                                  />
+                                  <input
+                                    className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                    type="radio"
+                                    name={`pos-${speaker}`}
+                                    aria-label="右"
+                                    checked={figurePosition === "right"}
+                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "right" }))}
+                                    disabled={isImporting || value == null || value <= 0}
+                                    title="立绘位置：右"
+                                  />
+                                  <input
+                                    className="join-item btn btn-xs btn-ghost px-1 font-mono text-[10px] aria-checked:opacity-50"
+                                    type="radio"
+                                    name={`pos-${speaker}`}
+                                    aria-label="✕"
+                                    checked={figurePosition == null}
+                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: null }))}
+                                    disabled={isImporting || value == null || value <= 0}
+                                    title="不显示立绘"
+                                  />
+                                </div>
+                              </td>
+                              <td className="text-center">
+                                {isMissing && <div className="badge badge-xs badge-error animate-pulse">!</div>}
+                                {!isMissing && <div className="badge badge-xs badge-success badge-outline">ok</div>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
             {/* Mapping specific alerts or footers */}
             {speakers.length > 0 && missingSpeakers.length > 0 && (
               <div className="p-2 bg-error/10 text-error text-xs text-center border-t border-error/10">
-                还有 {missingSpeakers.length} 个角色未指定映射
+                还有
+                {" "}
+                {missingSpeakers.length}
+                {" "}
+                个角色未指定映射
               </div>
             )}
           </div>
@@ -474,22 +497,25 @@ export default function ImportChatMessagesWindow({
       {/* Footer */}
       <div className="flex-none p-4 border-t border-base-200 bg-base-100 flex items-center justify-between gap-4">
         <div className="flex-1 flex items-center gap-2">
-           {isImporting && progress && (
-             <div className="flex flex-col w-full max-w-md gap-1">
-                <div className="flex justify-between text-xs text-base-content/60">
-                  <span>导入进度</span>
-                  <span>{Math.round((progress.sent / progress.total) * 100)}%</span>
-                </div>
-                <progress className="progress progress-primary w-full h-2" value={progress.sent} max={progress.total}></progress>
-             </div>
-           )}
-           {!isImporting && (
-             <span className="text-xs text-base-content/50">
-               提示：请确认所有角色都已正确匹配后再开始导入。
-             </span>
-           )}
+          {isImporting && progress && (
+            <div className="flex flex-col w-full max-w-md gap-1">
+              <div className="flex justify-between text-xs text-base-content/60">
+                <span>导入进度</span>
+                <span>
+                  {Math.round((progress.sent / progress.total) * 100)}
+                  %
+                </span>
+              </div>
+              <progress className="progress progress-primary w-full h-2" value={progress.sent} max={progress.total}></progress>
+            </div>
+          )}
+          {!isImporting && (
+            <span className="text-xs text-base-content/50">
+              提示：请确认所有角色都已正确匹配后再开始导入。
+            </span>
+          )}
         </div>
-        
+
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -513,4 +539,3 @@ export default function ImportChatMessagesWindow({
     </div>
   );
 }
-

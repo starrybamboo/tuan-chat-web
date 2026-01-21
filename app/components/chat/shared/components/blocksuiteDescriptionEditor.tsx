@@ -2,6 +2,7 @@ import type { DocMode } from "@blocksuite/affine/model";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
+import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
@@ -11,10 +12,9 @@ import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/deb
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
-import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
-
 import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
+
+import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { ensureBlocksuiteRuntimeStyles } from "@/components/chat/infra/blocksuite/styles/ensureBlocksuiteRuntimeStyles";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";

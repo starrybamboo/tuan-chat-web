@@ -670,7 +670,7 @@ function writeLocalStorageString(key: string, value: string) {
   }
 }
 
-function dataUrlToBase64(dataUrl: string) {
+function _dataUrlToBase64(dataUrl: string) {
   const value = String(dataUrl || "");
   const idx = value.indexOf(",");
   if (idx < 0)

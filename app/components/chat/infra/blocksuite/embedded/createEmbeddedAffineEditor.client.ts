@@ -714,7 +714,7 @@ export function createEmbeddedAffineEditor(params: {
         const MAX_MEMBERS = 20;
         const MAX_SCAN_MEMBERS = 200;
         const SCAN_BATCH_SIZE = 30;
-        const isNumericQuery = q.length > 0 && /^[0-9]+$/.test(q);
+        const isNumericQuery = q.length > 0 && /^\d+$/.test(q);
 
         let filteredIds: number[] = [];
         if (!q) {

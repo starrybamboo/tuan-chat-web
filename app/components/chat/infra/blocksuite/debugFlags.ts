@@ -20,4 +20,3 @@ export function isBlocksuiteDebugEnabled(): boolean {
     return false;
   }
 }
-

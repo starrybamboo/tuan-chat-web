@@ -2,7 +2,7 @@ import type { Route } from "./+types/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import React from "react";
-import { Toaster, toast } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import {
   isRouteErrorResponse,
   Links,

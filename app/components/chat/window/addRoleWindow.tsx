@@ -45,7 +45,7 @@ export function AddRoleWindow({
   const userId = useGlobalContext().userId;
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
-  
+
   const addRoomRoleMutation = useAddRoomRoleMutation();
 
   const [isCreatingNpc, setIsCreatingNpc] = useState(false);
@@ -58,7 +58,7 @@ export function AddRoleWindow({
   if (isCreatingNpc) {
     return <CreateNpcRoleWindow onClose={() => setIsCreatingNpc(false)} />;
   }
-  
+
   const handleImportSpaceRole = (roleId: number) => {
     addRoomRoleMutation.mutate({ roomId: roomId ?? -1, roleIdList: [roleId] });
   };
@@ -68,69 +68,71 @@ export function AddRoleWindow({
       <p className="text-lg font-bold text-center w-full mb-4">
         导入角色
       </p>
-      
+
       <div role="tablist" className="tabs tabs-boxed mb-4 mx-auto w-fit">
-        <a 
-            role="tab" 
-            className={`tab ${activeTab === "my" ? "tab-active" : ""}`} 
-            onClick={() => setActiveTab("my")}
+        <a
+          role="tab"
+          className={`tab ${activeTab === "my" ? "tab-active" : ""}`}
+          onClick={() => setActiveTab("my")}
         >
-            我的角色
+          我的角色
         </a>
-        <a 
-            role="tab" 
-            className={`tab ${activeTab === "space" ? "tab-active" : ""}`} 
-            onClick={() => setActiveTab("space")}
+        <a
+          role="tab"
+          className={`tab ${activeTab === "space" ? "tab-active" : ""}`}
+          onClick={() => setActiveTab("space")}
         >
-            空间角色
+          空间角色
         </a>
       </div>
 
       <div className="bg-base-100 rounded-box p-6">
-        {activeTab === "my" ? (
-          <>
-            {
-              availableRoles.length === 0 && (
-                <div className="text-center font-bold py-5">你已经没有角色可以导入了哦</div>
-              )
-            }
-            <div className="flex flex-wrap gap-3 justify-center">
-              {availableRoles.map(role => (
-                <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
-                  <div className="flex flex-col items-center p-3">
-                    <div onClick={() => handleAddRole(role.roleId)}>
-                      <RoleAvatarComponent
-                        avatarId={role.avatarId ?? -1}
-                        roleId={role.roleId}
-                        width={24}
-                        isRounded={true}
-                        withTitle={false}
-                        stopPopWindow={true}
-                      />
+        {activeTab === "my"
+          ? (
+              <>
+                {
+                  availableRoles.length === 0 && (
+                    <div className="text-center font-bold py-5">你已经没有角色可以导入了哦</div>
+                  )
+                }
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {availableRoles.map(role => (
+                    <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
+                      <div className="flex flex-col items-center p-3">
+                        <div onClick={() => handleAddRole(role.roleId)}>
+                          <RoleAvatarComponent
+                            avatarId={role.avatarId ?? -1}
+                            roleId={role.roleId}
+                            width={24}
+                            isRounded={true}
+                            withTitle={false}
+                            stopPopWindow={true}
+                          />
+                        </div>
+                        <p className="text-center block">{role.roleName}</p>
+                      </div>
                     </div>
-                    <p className="text-center block">{role.roleName}</p>
+                  ))}
+                  <div
+                    className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => setIsCreatingNpc(true)}
+                  >
+                    <div className="flex flex-col items-center p-3">
+                      <AddRingLight className="size-24 jump_icon" />
+                      <p className="text-center block">创建NPC</p>
+                    </div>
                   </div>
                 </div>
-              ))}
-              <div
-                className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => setIsCreatingNpc(true)}
-              >
-                <div className="flex flex-col items-center p-3">
-                  <AddRingLight className="size-24 jump_icon" />
-                  <p className="text-center block">创建NPC</p>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-             {availableSpaceRoles.length === 0 && (
-                <div className="text-center font-bold py-5">暂无空间角色可导入</div>
-             )}
-             <div className="flex flex-wrap gap-3 justify-center">
-                {availableSpaceRoles.map(role => (
-                   <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
+              </>
+            )
+          : (
+              <>
+                {availableSpaceRoles.length === 0 && (
+                  <div className="text-center font-bold py-5">暂无空间角色可导入</div>
+                )}
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {availableSpaceRoles.map(role => (
+                    <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
                         <div onClick={() => handleImportSpaceRole(role.roleId)}>
                           <RoleAvatarComponent
@@ -144,11 +146,11 @@ export function AddRoleWindow({
                         </div>
                         <p className="text-center block">{role.roleName}</p>
                       </div>
-                   </div>
-                ))}
-             </div>
-          </>
-        )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
       </div>
     </div>
   );

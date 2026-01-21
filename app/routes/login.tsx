@@ -1,6 +1,6 @@
-import LoginModal from "@/components/auth/LoginModal";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import LoginModal from "@/components/auth/LoginModal";
 
 export function meta() {
   return [
@@ -31,4 +31,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

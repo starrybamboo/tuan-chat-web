@@ -1,19 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-export type BlocksuiteMentionAnchorRect = {
+export interface BlocksuiteMentionAnchorRect {
   left: number;
   top: number;
   right: number;
   bottom: number;
   width: number;
   height: number;
-};
+}
 
-export type BlocksuiteMentionProfilePopoverState = {
+export interface BlocksuiteMentionProfilePopoverState {
   userId: string;
   anchorRect: BlocksuiteMentionAnchorRect;
-};
+}
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
