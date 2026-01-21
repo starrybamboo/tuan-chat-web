@@ -59,7 +59,6 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
         await addRoomRoleMutation.mutateAsync({
           roomId,
           roleIdList: [createdRole.id],
-          type: 1,
         });
         toast.success("NPC创建成功");
         onClose();
@@ -80,7 +79,6 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
       await addRoomRoleMutation.mutateAsync({
         roomId,
         roleIdList: [roleId],
-        type: 1,
       });
       toast.success("添加NPC成功");
       onClose();
