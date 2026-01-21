@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
@@ -17,7 +18,6 @@ export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
-  const [isIconShifted, setIsIconShifted] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
@@ -42,6 +42,8 @@ export default function Topbar() {
     queryKey: ["authStatus"],
     queryFn: checkAuthStatus,
   });
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -124,32 +126,11 @@ export default function Topbar() {
 
   return (
     <div className="w-full">
-      <div
-        className={`relative z-50 px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible transition-all duration-300 ease-out ${
-          isIconShifted ? "py-2" : "py-1"
-        }`}
-      >
+      <div className="relative z-50 px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible py-1">
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
           <div className="hidden md:flex">
-            <Link
-              to="/chat"
-              onClick={(event) => {
-                // 仅在桌面（min-width: 1024px，对应 Tailwind 的 lg）允许切换展开/收起
-                if (typeof window !== "undefined" && window.matchMedia) {
-                  const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-                  if (!isDesktop) {
-                    // 移动端不阻止默认行为，保持正常导航
-                    return;
-                  }
-                }
-
-                event.preventDefault();
-                setIsIconShifted(prev => !prev);
-              }}
-              aria-expanded={isIconShifted}
-              className="flex items-center"
-            >
+            <Link to="/chat" className="flex items-center">
               <img
                 src="http://47.119.147.6/tuan/favicon.ico"
                 alt="Logo"
@@ -158,11 +139,7 @@ export default function Topbar() {
             </Link>
           </div>
 
-          <div
-            className={`hidden lg:flex items-center gap-3 overflow-hidden transition-all duration-300 ease-out ${
-              isIconShifted ? "opacity-100 translate-x-0" : "max-w-0 opacity-0 -translate-x-2"
-            }`}
-          >
+          <div className="hidden lg:flex items-center gap-2">
             <div className="flex items-center gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -170,7 +147,7 @@ export default function Topbar() {
                   <div key={item.to} className="tooltip tooltip-bottom" data-tip={item.label}>
                     <Link
                       to={item.to}
-                      className="btn btn-ghost btn-sm gap-2 hover:bg-base-200"
+                      className="btn btn-ghost btn-sm gap-1 px-2 hover:bg-base-200"
                       aria-label={item.label}
                     >
                       <Icon className="size-6 opacity-80" />
@@ -180,18 +157,13 @@ export default function Topbar() {
                 );
               })}
             </div>
-            {!isIconShifted && <div className="mx-1 border-1 border-l h-5 opacity-40" />}
           </div>
         </div>
 
         {/* 右侧用户区域 */}
         {!isLoading && (
           <div className="navbar-end gap-1 md:gap-2">
-            <div
-              className={`flex items-center gap-2 transition-all duration-300 ease-out ${
-                isIconShifted ? "opacity-0 translate-x-2 pointer-events-none" : "opacity-100 translate-x-0"
-              }`}
-            >
+            <div className="flex items-center gap-2 lg:hidden">
               <div className="flex items-center gap-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -208,7 +180,7 @@ export default function Topbar() {
                   );
                 })}
               </div>
-              <div className="mx-2 border-1 border-l h-5 opacity-40" />
+              <div className="mx-2 border border-l h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
               {/* <span className="hidden sm:inline text-xs opacity-70 select-none">Bug反馈</span> */}
@@ -255,7 +227,7 @@ export default function Topbar() {
                         clickEnterProfilePage={false}
                       />
                     </button>
-                    <div tabIndex={0} className="dropdown-content z-[50] card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
+                    <div tabIndex={0} className="dropdown-content z-50 card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
                       {/* Header */}
                       <div className="card-body p-4 border-b border-base-300">
                         <div className="flex items-center gap-3">
@@ -310,7 +282,7 @@ export default function Topbar() {
                             主题切换
                           </div>
                         </div>
-                        {isElectronEnv() && (
+                        {isElectronEnv() && webgalLinkMode && !runModeEnabled && (
                           <WebgalStarter className="w-full">
                             <button
                               type="button"

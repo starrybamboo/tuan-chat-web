@@ -82,7 +82,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
   const renderedCommentCount = allMoments.reduce((sum, m) => sum + (m.stats?.commentCount || 0), 0);
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className="min-h-screen bg-base-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 左侧用户信息栏 */}

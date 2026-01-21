@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 type DrawerPreferenceState = {
   chatLeftPanelWidth: number;
+  subRoomWindowWidth: number;
   userDrawerWidth: number;
   roleDrawerWidth: number;
   threadDrawerWidth: number;
@@ -15,6 +16,7 @@ type DrawerPreferenceState = {
   hydrateFromLocalStorage: () => void;
 
   setChatLeftPanelWidth: (width: number) => void;
+  setSubRoomWindowWidth: (width: number) => void;
   setUserDrawerWidth: (width: number) => void;
   setRoleDrawerWidth: (width: number) => void;
   setThreadDrawerWidth: (width: number) => void;
@@ -60,10 +62,11 @@ function writeNumber(key: string, value: number): void {
 
 const DEFAULT_DRAWER_WIDTHS = {
   chatLeftPanelWidth: 430,
+  subRoomWindowWidth: 560,
   userDrawerWidth: 300,
   roleDrawerWidth: 300,
   threadDrawerWidth: 420,
-  initiativeDrawerWidth: 300,
+  initiativeDrawerWidth: 480,
   clueDrawerWidth: 300,
   mapDrawerWidth: 600,
   exportDrawerWidth: 350,
@@ -76,6 +79,7 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   // IMPORTANT: 不要在模块初始化期读取 localStorage（客户端会与服务端 HTML 不一致，触发 hydration mismatch）。
   // 统一先用默认值首屏渲染，随后在 mount 后通过 hydrateFromLocalStorage 覆盖为用户偏好。
   chatLeftPanelWidth: DEFAULT_DRAWER_WIDTHS.chatLeftPanelWidth,
+  subRoomWindowWidth: DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth,
   userDrawerWidth: DEFAULT_DRAWER_WIDTHS.userDrawerWidth,
   roleDrawerWidth: DEFAULT_DRAWER_WIDTHS.roleDrawerWidth,
   threadDrawerWidth: DEFAULT_DRAWER_WIDTHS.threadDrawerWidth,
@@ -92,6 +96,7 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
 
     const next = {
       chatLeftPanelWidth: readNumber("chatLeftPanelWidth", DEFAULT_DRAWER_WIDTHS.chatLeftPanelWidth),
+      subRoomWindowWidth: readNumber("subRoomWindowWidth", DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth),
       userDrawerWidth: readNumber("userDrawerWidth", DEFAULT_DRAWER_WIDTHS.userDrawerWidth),
       roleDrawerWidth: readNumber("roleDrawerWidth", DEFAULT_DRAWER_WIDTHS.roleDrawerWidth),
       threadDrawerWidth: readNumber("threadDrawerWidth", DEFAULT_DRAWER_WIDTHS.threadDrawerWidth),
@@ -124,6 +129,10 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   setChatLeftPanelWidth: (width) => {
     writeNumber("chatLeftPanelWidth", width);
     set({ chatLeftPanelWidth: width });
+  },
+  setSubRoomWindowWidth: (width) => {
+    writeNumber("subRoomWindowWidth", width);
+    set({ subRoomWindowWidth: width });
   },
   setUserDrawerWidth: (width) => {
     writeNumber("userDrawerWidth", width);

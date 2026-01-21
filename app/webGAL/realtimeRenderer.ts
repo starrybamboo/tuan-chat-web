@@ -242,7 +242,7 @@ export class RealtimeRenderer {
   private miniAvatarEnabled: boolean = false;
 
   // 自动填充立绘相关（没有设置立绘时是否自动填充左侧立绘）
-  private autoFigureEnabled: boolean = false;
+  private autoFigureEnabled: boolean = true;
 
   // TTS 相关
   private ttsConfig: RealtimeTTSConfig = { enabled: false };
