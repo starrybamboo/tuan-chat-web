@@ -33,6 +33,13 @@ interface RoleCreationFlowProps {
   setRoles?: Dispatch<SetStateAction<Role[]>>;
   setSelectedRoleId?: SetSelectedRoleIdFn;
   onSave?: (updatedRole: Role) => void;
+  title?: string;
+  description?: string;
+  roleCreateDefaults?: {
+    type?: number;
+    spaceId?: number;
+  };
+  initialCharacterData?: CharacterData;
 }
 
 export default function RoleCreationFlow({
@@ -41,6 +48,10 @@ export default function RoleCreationFlow({
   setRoles,
   setSelectedRoleId,
   onSave,
+  title,
+  description,
+  roleCreateDefaults,
+  initialCharacterData,
 }: RoleCreationFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,7 +70,7 @@ export default function RoleCreationFlow({
     handleDeleteField,
     handleRenameField,
     handleRuleChange,
-  } = useCharacterData();
+  } = useCharacterData({ initialData: initialCharacterData });
 
   const { mutateAsync: createRole } = useCreateRoleMutation();
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
@@ -111,6 +122,7 @@ export default function RoleCreationFlow({
         {
           characterData,
           createRole,
+          roleCreateDefaults,
           uploadAvatar,
           setRoleAbility,
           updateRole,
@@ -237,8 +249,8 @@ export default function RoleCreationFlow({
   return (
     <>
       <RoleCreationLayout
-        title="创建角色"
-        description="填写角色信息，完成角色创建"
+        title={title ?? "创建角色"}
+        description={description ?? "填写角色信息，完成角色创建"}
         steps={UNIFIED_STEPS}
         currentStep={currentStep}
         onStepChange={setCurrentStep}

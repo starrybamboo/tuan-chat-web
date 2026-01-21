@@ -1,25 +1,24 @@
+import type { CharacterData } from "@/components/Role/RoleCreation/types";
+import type { Role } from "@/components/Role/types";
+import RoleCreationFlow from "@/components/Role/RoleCreation/RoleCreationFlow";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useAddRoomRoleMutation, useGetRoomModuleRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
-import { useCreateRoleMutation } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetSpaceModuleRoleQuery } from "../../../../api/hooks/spaceModuleHooks";
 
 export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext.spaceId ?? -1;
+  const ruleId = spaceContext.ruleId ?? 0;
 
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
 
-  const [roleName, setRoleName] = useState("");
-  const [description, setDescription] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-
-  const createRoleMutation = useCreateRoleMutation();
   const addRoomRoleMutation = useAddRoomRoleMutation();
+  const [activeTab, setActiveTab] = useState<"create" | "import">("create");
 
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
@@ -37,51 +36,39 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
     return spaceNpcRoles.filter(r => !roleIdInRoomSet.has(r.roleId));
   }, [roleIdInRoomSet, spaceNpcRoles]);
 
-  const handleCreateNpc = async () => {
-    const trimmedName = roleName.trim();
-    const trimmedDesc = description.trim();
-    if (!trimmedName) {
-      toast.error("请输入NPC名字");
-      return;
-    }
-    if (spaceId <= 0 || roomId <= 0) {
-      toast.error("空间/房间信息异常，无法创建NPC");
-      return;
-    }
-    if (isCreating) {
-      toast.error("正在创建中，请稍等");
-      return;
-    }
+  const initialCharacterData = useMemo<CharacterData>(() => {
+    return {
+      name: "",
+      description: "",
+      avatar: "",
+      ruleId: ruleId > 0 ? ruleId : 0,
+      act: {},
+      basic: {},
+      ability: {},
+      skill: {},
+    };
+  }, [ruleId]);
 
-    setIsCreating(true);
-    try {
-      const newRoleId = await createRoleMutation.mutateAsync({
-        roleName: trimmedName,
-        description: trimmedDesc,
-        type: 2,
-        spaceId,
-      });
-
-      if (!newRoleId || newRoleId <= 0) {
-        throw new Error("创建角色失败");
+  const handleCreateNpcComplete = (createdRole: Role) => {
+    void (async () => {
+      if (spaceId <= 0 || roomId <= 0) {
+        toast.error("空间/房间信息异常，无法创建NPC");
+        return;
       }
-
-      await addRoomRoleMutation.mutateAsync({
-        roomId,
-        roleIdList: [newRoleId],
-        type: 1,
-      });
-
-      toast.success("NPC创建成功");
-      onClose();
-    }
-    catch (e: any) {
-      console.error("创建NPC失败", e);
-      toast.error(e?.message ? `创建NPC失败：${e.message}` : "创建NPC失败");
-    }
-    finally {
-      setIsCreating(false);
-    }
+      try {
+        await addRoomRoleMutation.mutateAsync({
+          roomId,
+          roleIdList: [createdRole.id],
+          type: 1,
+        });
+        toast.success("NPC创建成功");
+        onClose();
+      }
+      catch (e: any) {
+        console.error("添加NPC到房间失败", e);
+        toast.error(e?.message ? `添加NPC到房间失败：${e.message}` : "添加NPC到房间失败");
+      }
+    })();
   };
 
   const handleImportNpcToRoom = async (roleId: number) => {
@@ -106,61 +93,63 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
 
   return (
     <div className="justify-center w-full">
-      <p className="text-lg font-bold text-center w-full mb-4">创建NPC</p>
-
-      <div className="bg-base-100 rounded-box p-6 space-y-4">
-        <div className="space-y-2">
-          <div className="text-sm font-semibold">快速创建</div>
-          <input
-            className="input input-bordered w-full"
-            placeholder="NPC名字（必填）"
-            value={roleName}
-            onChange={e => setRoleName(e.target.value)}
-            disabled={isCreating}
-          />
-          <textarea
-            className="textarea textarea-bordered w-full min-h-20"
-            placeholder="NPC简介（可选）"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            disabled={isCreating}
-          />
-          <button
-            type="button"
-            className={`btn btn-sm ${isCreating ? "btn-disabled" : "btn-info"}`}
-            onClick={handleCreateNpc}
-            disabled={isCreating}
-          >
-            创建并加入房间
-          </button>
-        </div>
-
-        <div className="divider">或从NPC库导入</div>
-
-        {importableSpaceNpcRoles.length === 0 && (
-          <div className="text-center font-bold py-2">无可导入NPC</div>
-        )}
-
-        <div className="flex flex-wrap gap-3 justify-center">
-          {importableSpaceNpcRoles.map(role => (
-            <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
-              <div className="flex flex-col items-center p-3">
-                <div onClick={() => handleImportNpcToRoom(role.roleId)}>
-                  <RoleAvatarComponent
-                    avatarId={role.avatarId ?? -1}
-                    roleId={role.roleId}
-                    width={24}
-                    isRounded={true}
-                    withTitle={false}
-                    stopPopWindow={true}
-                  />
-                </div>
-                <p className="text-center block">{role.roleName}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="tabs tabs-boxed w-full mb-3">
+        <button
+          type="button"
+          className={`tab flex-1 ${activeTab === "create" ? "tab-active" : ""}`}
+          onClick={() => setActiveTab("create")}
+        >
+          创建NPC
+        </button>
+        <button
+          type="button"
+          className={`tab flex-1 ${activeTab === "import" ? "tab-active" : ""}`}
+          onClick={() => setActiveTab("import")}
+        >
+          从NPC库导入
+        </button>
       </div>
+
+      {activeTab === "create" && (
+        <div className="bg-base-100 rounded-box p-2 sm:p-4">
+          <RoleCreationFlow
+            title="创建NPC"
+            description="填写NPC信息，完成创建并加入当前房间"
+            onBack={onClose}
+            onComplete={handleCreateNpcComplete}
+            roleCreateDefaults={{ type: 2, spaceId: spaceId > 0 ? spaceId : undefined }}
+            initialCharacterData={initialCharacterData}
+          />
+        </div>
+      )}
+
+      {activeTab === "import" && (
+        <div className="bg-base-100 rounded-box p-6 space-y-4">
+          {importableSpaceNpcRoles.length === 0 && (
+            <div className="text-center font-bold py-2">无可导入NPC</div>
+          )}
+
+          <div className="flex flex-wrap gap-3 justify-center">
+            {importableSpaceNpcRoles.map(role => (
+              <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
+                <div className="flex flex-col items-center p-3">
+                  <div onClick={() => handleImportNpcToRoom(role.roleId)}>
+                    <RoleAvatarComponent
+                      avatarId={role.avatarId ?? -1}
+                      roleId={role.roleId}
+                      width={24}
+                      isRounded={true}
+                      withTitle={false}
+                      stopPopWindow={true}
+                    />
+                  </div>
+                  <p className="text-center block">{role.roleName}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

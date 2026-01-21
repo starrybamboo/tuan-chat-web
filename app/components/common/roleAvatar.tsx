@@ -4,6 +4,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
+import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useGetRoleAvatarQuery,
@@ -35,6 +36,7 @@ const sizeMap = {
  * @param alt
  * @param allowKickOut 是否允许被踢出，模组角色是不可以的
  * @param hoverToScale 是否允许鼠标悬停时放大
+ * @param detailVariant 详情弹窗形态：simple(旧) / page(复用角色页面)
  */
 export default function RoleAvatarComponent({
   avatarId,
@@ -47,6 +49,7 @@ export default function RoleAvatarComponent({
   alt = "avatar",
   allowKickOut = true,
   hoverToScale = false,
+  detailVariant = "page",
 }: {
   avatarId: number;
   roleId?: number;
@@ -57,6 +60,7 @@ export default function RoleAvatarComponent({
   alt?: string;
   allowKickOut?: boolean;
   hoverToScale?: boolean;
+  detailVariant?: "simple" | "page";
 }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const roleAvatar = avatarQuery.data?.data;
@@ -98,7 +102,17 @@ export default function RoleAvatarComponent({
           (isOpen && !stopPopWindow && roomId) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)} fullScreen={getScreenSize() === "sm"}>
               <div className="justify-center w-full">
-                <RoleDetail roleId={roleIdTrue ?? -1} allowKickOut={allowKickOut}></RoleDetail>
+                {detailVariant === "simple"
+                  ? (
+                      <RoleDetail roleId={roleIdTrue ?? -1} allowKickOut={allowKickOut}></RoleDetail>
+                    )
+                  : (
+                      <RoleDetailPagePopup
+                        roleId={roleIdTrue ?? -1}
+                        allowKickOut={allowKickOut}
+                        onClose={() => setIsOpen(false)}
+                      />
+                    )}
               </div>
             </PopWindow>
           )
