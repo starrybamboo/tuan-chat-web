@@ -66,7 +66,7 @@ const DEFAULT_DRAWER_WIDTHS = {
   userDrawerWidth: 300,
   roleDrawerWidth: 300,
   threadDrawerWidth: 420,
-  initiativeDrawerWidth: 300,
+  initiativeDrawerWidth: 480,
   clueDrawerWidth: 300,
   mapDrawerWidth: 600,
   exportDrawerWidth: 350,
