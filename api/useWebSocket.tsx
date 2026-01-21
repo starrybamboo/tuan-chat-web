@@ -9,6 +9,7 @@ import {useGlobalContext} from "@/components/globalContextProvider";
 import toast from "react-hot-toast";
 import React from "react";
 import { useNavigate } from "react-router";
+import { handleUnauthorized } from "@/utils/auth/unauthorized";
 import type {
   ChatStatusEvent,
   ChatStatusType,
@@ -557,7 +558,15 @@ export function useWebSocket() {
         break;
       }
       case 100: { // Token invalidated
-        // TODO
+        try {
+          closingRef.current = true;
+          wsRef.current?.close();
+        }
+        catch {
+          // ignore
+        }
+
+        handleUnauthorized({ source: "ws" });
         break;
       }
       default: {
