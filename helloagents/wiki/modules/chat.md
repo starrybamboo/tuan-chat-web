@@ -53,6 +53,7 @@
 - 若发言人映射为“骰娘（系统）”，发送时会解析实际骰娘角色并按 `DICE(6)` 类型发送（`extra.result=content`）
 - 立绘位置：可为每个发言人选择左/中/右位置，导入发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
 - 若当前房间无可用角色（非KP），导入弹窗提供“创建/导入角色”快捷入口
+- 导入弹窗 UI：双栏卡片分区、消息预览、缺失角色高亮与快捷引导
 
 ### 5) 房间角色：NPC+ 快速创建
 
@@ -73,3 +74,4 @@
 - [202601201337_chat_import_text](../../history/2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
 - [202601201620_chat_import_dicer](../../history/2026-01/202601201620_chat_import_dicer/) - 文本导入支持“骰娘”发言：按骰娘角色发送并使用 `DICE(6)` 类型
 - [202601211623_chat_import_figure_position](../../history/2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）
+- [202601211700_chat_import_ui_refine](../../history/2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口

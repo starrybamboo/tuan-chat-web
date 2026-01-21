@@ -28,6 +28,7 @@
 - 聊天室文本导入：支持为发言人设置立绘位置（左/中/右），发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
 
 ### 变更
+- 聊天室文本导入：导入弹窗 UI 重构（双栏分区、消息预览、缺失映射提示与快捷创建入口）
 - 合并冲突处理：启用仓库级 rerere，并使用自动策略完成冲突解决与提交
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
 - 优化 Blocksuite：`@`（Linked Doc）弹窗将“用户/成员”候选默认收起为二级入口（“展开用户列表”），避免成员过多影响选择文档
