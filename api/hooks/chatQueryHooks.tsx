@@ -486,6 +486,7 @@ export function useDeleteRole1Mutation() {
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['roomModuleRole', variables.roomId] });
         }
     });
 }

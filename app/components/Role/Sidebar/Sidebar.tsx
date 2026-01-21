@@ -91,18 +91,20 @@ export function Sidebar({
       const mappedRoles = roleQuery?.pages.flatMap(page =>
         (page.data?.list ?? []).map(convertRole),
       ) ?? [];
+      const filteredMappedRoles = mappedRoles.filter(role => role.type !== 2);
       // 将映射后的角色数据设置到状态中
       setRoles((prev) => {
+        const filteredPrev = prev.filter(role => role.type !== 2);
         // 如果存在旧角色数据，需要过滤掉重复的角色，这也避免了头像数据的重复加载
-        const existingIds = new Set(prev.map(r => r.id));
-        const newRoles = mappedRoles.filter(
+        const existingIds = new Set(filteredPrev.map(r => r.id));
+        const newRoles = filteredMappedRoles.filter(
           role => !existingIds.has(role.id),
         );
-        return [...prev, ...newRoles];
+        return [...filteredPrev, ...newRoles];
       });
 
       // 并行加载所有角色的头像
-      const avatarPromises = mappedRoles.map(async (role) => {
+      const avatarPromises = filteredMappedRoles.map(async (role) => {
         // 检查角色的头像是否已经缓存
         const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", role.id]);
         if (cachedAvatar) {

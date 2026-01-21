@@ -25,7 +25,7 @@ export function AddRoleWindow({
   const navigate = useNavigate();
 
   const availableRoles = useMemo(() => {
-    return userRoles.filter(role => !roomRoles.some(r => r.roleId === role.roleId));
+    return userRoles.filter(role => role.type !== 2 && !roomRoles.some(r => r.roleId === role.roleId));
   }, [roomRoles, userRoles]);
 
   return (
