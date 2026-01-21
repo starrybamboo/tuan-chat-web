@@ -80,6 +80,7 @@
 | 202601201638 | blocksuite_disable_debug_logs | 优化 | 已完成 | [2026-01/202601201638_blocksuite_disable_debug_logs/](2026-01/202601201638_blocksuite_disable_debug_logs/) |
 | 202601211600 | blocksuite_mention_profile_popover | 功能 | 已完成 | [2026-01/202601211600_blocksuite_mention_profile_popover/](2026-01/202601211600_blocksuite_mention_profile_popover/) |
 | 202601211623 | chat_import_figure_position | 功能 | 已完成 | [2026-01/202601211623_chat_import_figure_position/](2026-01/202601211623_chat_import_figure_position/) |
+| 202601211740 | room-role-delete-filter-npc | 优化 | 已完成 | [2026-01/202601211740_room-role-delete-filter-npc/](2026-01/202601211740_room-role-delete-filter-npc/) |
 
 ---
 
@@ -87,6 +88,7 @@
 
 ### 2026-01
 
+- [202601211740_room-role-delete-filter-npc](2026-01/202601211740_room-role-delete-filter-npc/) - 房间角色支持移除 NPC；角色页（/role）隐藏 NPC；导入我的角色过滤 NPC
 - [202601211623_chat_import_figure_position](2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）
 - [202601211600_blocksuite_mention_profile_popover](2026-01/202601211600_blocksuite_mention_profile_popover/) - Blocksuite 文档内用户 mention 支持点击跳转个人主页 + 悬浮预览个人主页
 - [202601201638_blocksuite_disable_debug_logs](2026-01/202601201638_blocksuite_disable_debug_logs/) - Blocksuite 默认关闭 debug 控制台输出（需显式开启）

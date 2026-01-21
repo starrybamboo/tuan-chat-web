@@ -24,7 +24,7 @@ export default function RoleList({
             width={10}
             isRounded={true}
             withTitle={false}
-            allowKickOut={!isModuleRole}
+            allowKickOut={true}
           />
           <div className="flex flex-col items-center gap-2">
             <span>{role.roleName}</span>

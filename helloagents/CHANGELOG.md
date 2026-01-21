@@ -121,6 +121,7 @@
 - AI 生图：普通模式新增“自然语言一键出图”与“按 tag 出图”，并移除底部生成按钮
 - 认证：HTTP 401 自动清理本地登录态并跳转到 `/login`（保留 redirect）；WS token 失效（type=100）同样引导重新登录
 - 房间角色列表：`NPC+` 复用角色创建流程创建 NPC 并加入房间；角色头像弹窗复用角色页面详情（CharacterDetail）；并通过 `type=2 + spaceId` 绑定空间，自动进入空间 NPC 库（仍可从 NPC 库导入）
+- 角色页（/role）：不再展示 NPC（`type=2`）；房间角色列表支持移除 NPC（权限同普通角色）
 - 角色立绘：无 `spriteUrl` 时默认使用 `avatarUrl` 作为立绘来源（预览/校正/渲染）
 - WebGAL：渲染时若消息未携带 `avatarId`，会回退到角色本身的 `avatarId`（角色头像）
 - 默认不再加载 Google Fonts（Inter）外链样式，避免网络不可达时阻塞页面首屏渲染；如需启用可设置 `VITE_ENABLE_GOOGLE_FONTS=true`
