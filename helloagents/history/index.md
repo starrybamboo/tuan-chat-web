@@ -82,6 +82,7 @@
 | 202601211450 | chat-npc-create-reuse-role | 优化 | 已完成 | [2026-01/202601211450_chat-npc-create-reuse-role/](2026-01/202601211450_chat-npc-create-reuse-role/) |
 | 202601211511 | role_avatar_as_sprite | 优化 | 已完成 | [2026-01/202601211511_role_avatar_as_sprite/](2026-01/202601211511_role_avatar_as_sprite/) |
 | 202601211542 | space_trpg_setting | 修复 | 已完成 | [2026-01/202601211542_space_trpg_setting/](2026-01/202601211542_space_trpg_setting/) |
+| 202601211552 | webgal_role_avatar_id_fallback | 优化 | 已完成 | [2026-01/202601211552_webgal_role_avatar_id_fallback/](2026-01/202601211552_webgal_role_avatar_id_fallback/) |
 | 202601211630 | npc-ui-reuse-role | 重构 | 已完成 | [2026-01/202601211630_npc-ui-reuse-role/](2026-01/202601211630_npc-ui-reuse-role/) |
 
 ---
@@ -91,6 +92,7 @@
 ### 2026-01
 
 - [202601211630_npc-ui-reuse-role](2026-01/202601211630_npc-ui-reuse-role/) - NPC 创建/详情弹窗全面复用角色创建与角色详情页面（CharacterDetail）
+- [202601211552_webgal_role_avatar_id_fallback](2026-01/202601211552_webgal_role_avatar_id_fallback/) - WebGAL 渲染：消息未携带 `avatarId` 时回退到角色的 `avatarId`
 - [202601211542_space_trpg_setting](2026-01/202601211542_space_trpg_setting/) - 修复空间抽屉面板“跑团设置”打开后空白（渲染 SpaceTrpgSettingWindow）
 - [202601211511_role_avatar_as_sprite](2026-01/202601211511_role_avatar_as_sprite/) - 无立绘（`spriteUrl` 为空）的头像默认使用 `avatarUrl` 作为立绘来源
 - [202601211450_chat-npc-create-reuse-role](2026-01/202601211450_chat-npc-create-reuse-role/) - 房间角色：创建 NPC 复用创建角色（`type=2 + spaceId` 绑定空间）
