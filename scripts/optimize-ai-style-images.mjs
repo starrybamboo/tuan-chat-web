@@ -28,6 +28,25 @@ const files = await fg(["**/*.{png,jpg,jpeg,webp}"], {
   absolute: true,
 });
 
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function retryFsOp(fn, attempts = 3, delayMs = 150) {
+  let lastErr;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn();
+    }
+    catch (err) {
+      lastErr = err;
+      if (err?.code !== "EBUSY" && err?.code !== "EPERM")
+        throw err;
+      if (i < attempts - 1)
+        await wait(delayMs);
+    }
+  }
+  throw lastErr;
+}
+
 for (const file of files) {
   const ext = path.extname(file).toLowerCase();
   const dir = path.dirname(file);
@@ -44,10 +63,15 @@ for (const file of files) {
     .webp({ quality, effort: 6 })
     .toFile(tempOutput);
 
-  await fs.rm(output, { force: true });
-  await fs.rename(tempOutput, output);
-
-  if (file !== output) {
-    await fs.rm(file, { force: true });
+  try {
+    await retryFsOp(() => fs.rm(output, { force: true }));
+    await retryFsOp(() => fs.rename(tempOutput, output));
+    if (file !== output)
+      await retryFsOp(() => fs.rm(file, { force: true }));
+  }
+  catch (err) {
+    // best-effort cleanup and continue; log for visibility
+    console.warn(`Skip optimizing ${file}: ${err?.code ?? err}`);
+    await fs.rm(tempOutput, { force: true }).catch(() => {});
   }
 }
