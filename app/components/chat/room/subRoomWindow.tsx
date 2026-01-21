@@ -52,8 +52,8 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
 
     switch (activePane) {
       case "initiative": {
-        const min = 280;
-        const max = 420;
+        const min = 380;
+        const max = 640;
         return { minWidth: min, maxWidth: max };
       }
       case "clue": {
