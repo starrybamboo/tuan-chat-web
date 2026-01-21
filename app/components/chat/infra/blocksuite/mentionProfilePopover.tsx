@@ -28,11 +28,8 @@ function buildPopoverPosition(anchorRect: BlocksuiteMentionAnchorRect, desiredWi
   const width = clamp(desiredWidth, 280, vw - margin * 2);
   const height = clamp(desiredHeight, 240, vh - margin * 2);
 
-  const left = clamp(
-    Math.round(anchorRect.left),
-    margin,
-    Math.max(margin, vw - width - margin),
-  );
+  const centerX = anchorRect.left + Math.max(0, anchorRect.width) / 2;
+  const left = clamp(Math.round(centerX - width / 2), margin, Math.max(margin, vw - width - margin));
 
   const belowTop = Math.round(anchorRect.bottom + gap);
   const aboveTop = Math.round(anchorRect.top - height - gap);
@@ -128,4 +125,3 @@ export function BlocksuiteMentionProfilePopover(props: {
     document.body,
   );
 }
-

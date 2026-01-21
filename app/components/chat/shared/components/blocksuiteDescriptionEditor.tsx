@@ -1166,7 +1166,21 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const [mentionProfilePopover, setMentionProfilePopover] = useState<BlocksuiteMentionProfilePopoverState | null>(null);
   const mentionProfilePopoverStateRef = useRef<BlocksuiteMentionProfilePopoverState | null>(null);
   const mentionProfilePopoverHoveredRef = useRef(false);
+  const mentionProfilePopoverOpenTimerRef = useRef<number | null>(null);
   const mentionProfilePopoverCloseTimerRef = useRef<number | null>(null);
+
+  const clearMentionProfilePopoverOpenTimer = () => {
+    const t = mentionProfilePopoverOpenTimerRef.current;
+    if (t !== null) {
+      mentionProfilePopoverOpenTimerRef.current = null;
+      try {
+        window.clearTimeout(t);
+      }
+      catch {
+        // ignore
+      }
+    }
+  };
 
   const clearMentionProfilePopoverCloseTimer = () => {
     const t = mentionProfilePopoverCloseTimerRef.current;
@@ -1188,6 +1202,16 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         return;
       setMentionProfilePopover(null);
     }, 160);
+  };
+
+  const scheduleMentionProfilePopoverOpen = (next: BlocksuiteMentionProfilePopoverState) => {
+    clearMentionProfilePopoverOpenTimer();
+    clearMentionProfilePopoverCloseTimer();
+    mentionProfilePopoverOpenTimerRef.current = window.setTimeout(() => {
+      mentionProfilePopoverOpenTimerRef.current = null;
+      mentionProfilePopoverHoveredRef.current = false;
+      setMentionProfilePopover(next);
+    }, 240);
   };
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
@@ -1307,9 +1331,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
             return;
 
           try {
-            clearMentionProfilePopoverCloseTimer();
-            mentionProfilePopoverHoveredRef.current = false;
-            setMentionProfilePopover({ userId: data.userId, anchorRect: ar });
+            scheduleMentionProfilePopoverOpen({ userId: data.userId, anchorRect: ar });
           }
           catch {
             // ignore
@@ -1320,8 +1342,14 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         if (data.state === "leave") {
           try {
             const current = mentionProfilePopoverStateRef.current;
-            if (!current || current.userId !== data.userId)
+            // 若还未真正打开（仅处于 delay 计时），直接取消。
+            if (!current) {
+              clearMentionProfilePopoverOpenTimer();
               return;
+            }
+            if (current.userId !== data.userId)
+              return;
+            clearMentionProfilePopoverOpenTimer();
             scheduleMentionProfilePopoverClose();
           }
           catch {
@@ -1433,6 +1461,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       return;
 
     const close = () => {
+      clearMentionProfilePopoverOpenTimer();
       clearMentionProfilePopoverCloseTimer();
       setMentionProfilePopover(null);
     };
