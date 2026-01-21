@@ -24,6 +24,10 @@ $12026-01-19
 
 Blocksuite 运行在 `/blocksuite-frame` 内；宿主侧只负责 iframe 容器与 `postMessage` 同步（主题/高度/模式等），避免上游 portal/global style 副作用污染同页 UI。
 
+### 1.1) 画布全屏（Fullscreen API）
+
+描述文档在 edgeless（画布）模式提供“全屏/退出全屏”按钮：由 `/blocksuite-frame` 内的运行时调用浏览器 Fullscreen API；宿主侧 iframe 需开启 `allowFullScreen` 权限（实现位于 `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`）。
+
 ### 2) SSR 安全：避免在模块顶层静态导入 Blocksuite runtime
 
 React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；Blocksuite 依赖链可能访问 DOM 全局对象。约定：在 `useEffect`/事件回调边界内使用 `import()` 动态加载，并在 cleanup 中解除订阅。
