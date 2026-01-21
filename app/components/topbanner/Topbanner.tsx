@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
@@ -41,6 +42,8 @@ export default function Topbar() {
     queryKey: ["authStatus"],
     queryFn: checkAuthStatus,
   });
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -279,7 +282,7 @@ export default function Topbar() {
                             主题切换
                           </div>
                         </div>
-                        {isElectronEnv() && (
+                        {isElectronEnv() && webgalLinkMode && !runModeEnabled && (
                           <WebgalStarter className="w-full">
                             <button
                               type="button"
