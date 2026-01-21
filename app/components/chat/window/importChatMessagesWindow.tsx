@@ -1,9 +1,21 @@
 import type { UserRole } from "../../../../api";
+import type { FigurePosition } from "@/types/voiceRenderTypes";
 
+import {
+  Broom,
+  ChatCircleText,
+  CheckCircle,
+  FileText,
+  Info,
+  User,
+  UserPlus,
+  Warning,
+  WarningCircle,
+  X,
+} from "@phosphor-icons/react";
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
-import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 export interface ResolvedImportChatMessage {
   lineNumber: number;
@@ -106,14 +118,15 @@ export default function ImportChatMessagesWindow({
     });
   }, [availableRoles, isKP, speakers]);
 
-  const handlePickFile = async (file: File | null) => {
+  const handlePickFile = async (files: FileList | null) => {
+    const file = files?.[0];
     if (!file)
       return;
     try {
       const text = await file.text();
       setFileName(file.name);
       setRawText(text);
-      toast.success("已读取文件");
+      toast.success(`已读取文件: ${file.name}`);
     }
     catch (e: any) {
       console.error("读取文件失败", e);
@@ -174,158 +187,330 @@ export default function ImportChatMessagesWindow({
     setTimeout(() => onOpenRoleAddWindow(), 0);
   };
 
+  const handleClear = () => {
+    setFileName(null);
+    setRawText("");
+  };
+
   return (
-    <div className="w-[90vw] max-w-3xl p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-lg font-bold">导入文本到聊天室</div>
-          <div className="text-xs text-base-content/60 mt-1">
-            支持格式：`[角色名]：对话内容`（每行一条消息）
+    <div className="w-[95vw] max-w-6xl h-[85vh] flex flex-col bg-base-100 rounded-xl overflow-hidden shadow-2xl">
+      {/* Header */}
+      <div className="flex-none flex items-center justify-between p-4 border-b border-base-200 bg-base-100/50 backdrop-blur-sm z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+            <ChatCircleText size={24} weight="duotone" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              导入对话
+              <span className={`badge badge-sm ${isKP ? "badge-info" : "badge-ghost"} font-normal`}>
+                {isKP ? "KP模式" : "玩家模式"}
+              </span>
+            </h2>
+            <div className="text-xs text-base-content/60 flex items-center gap-2">
+              <span>每行一条消息，格式：<code className="bg-base-200 px-1 rounded">[角色名]：内容</code></span>
+            </div>
           </div>
         </div>
-        <button type="button" className="btn btn-sm btn-ghost" onClick={onClose} disabled={isImporting}>
-          关闭
+        <button
+          type="button"
+          className="btn btn-ghost btn-circle btn-sm"
+          onClick={onClose}
+          disabled={isImporting}
+          title="关闭"
+        >
+          <X size={20} />
         </button>
       </div>
 
-      <div className="mt-4 space-y-4">
-        <div className="rounded-md border border-base-300 bg-base-100 p-3 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="file"
-              accept=".txt,text/plain"
-              className="file-input file-input-sm file-input-bordered"
-              onChange={e => handlePickFile(e.target.files?.[0] ?? null)}
-              disabled={isImporting}
-            />
-            {fileName && (
-              <span className="text-xs text-base-content/60">
-                已选择：
-                {fileName}
-              </span>
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-base-200">
+        {/* Left Column: Input Source */}
+        <div className="flex flex-col h-full bg-base-50/50">
+          <div className="p-3 border-b border-base-200 flex items-center justify-between bg-base-100">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <span className="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center text-xs">1</span>
+              粘贴文本或上传文件
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+              onClick={handleClear}
+              disabled={isImporting || (!rawText && !fileName)}
+              title="清空内容"
+            >
+              <Broom size={14} />
+              清空
+            </button>
+          </div>
+
+          <div className="flex-1 p-4 overflow-y-auto space-y-4">
+            {/* File Drop / Action Area */}
+            <div className="relative group">
+              <input
+                type="file"
+                accept=".txt,text/plain"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                onChange={e => handlePickFile(e.target.files)}
+                disabled={isImporting}
+                title="选择文本文件"
+              />
+              <div className={`
+                border-2 border-dashed rounded-xl p-6 text-center transition-all
+                ${fileName
+                  ? "border-success/50 bg-success/5"
+                  : "border-base-300 hover:border-primary/50 hover:bg-base-200/30"}
+              `}>
+                {fileName ? (
+                  <div className="flex flex-col items-center gap-2 text-success">
+                    <FileText size={32} weight="duotone" />
+                    <span className="font-medium text-sm">{fileName}</span>
+                    <span className="text-xs opacity-70">点击更换文件</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-base-content/50">
+                    <FileText size={32} weight="light" />
+                    <span className="text-sm">点击选择 .txt 文件，或拖拽文件到此处</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Text Area */}
+            <div className="relative flex-1 min-h-[300px] flex flex-col">
+              <div className="label pt-0 pb-1">
+                <span className="label-text text-xs text-base-content/60">或者直接粘贴文本内容：</span>
+              </div>
+              <textarea
+                className="textarea textarea-bordered w-full flex-1 font-mono text-xs leading-relaxed resize-none focus:outline-hidden focus:border-primary transition-colors h-full"
+                placeholder={"[KP]：欢迎来到这里\n[张三]：这是哪里？\n[KP]：请进行侦查判定\n..."}
+                value={rawText}
+                onChange={e => setRawText(e.target.value)}
+                disabled={isImporting}
+              />
+            </div>
+
+            {/* Parsing Stats & Errors */}
+            {(parsed.messages.length > 0 || parsed.invalidLines.length > 0) && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <div className="badge badge-sm badge-ghost gap-1">
+                    <CheckCircle className="text-success" size={12} weight="fill" />
+                    {parsed.messages.length} 条有效
+                  </div>
+                  {parsed.invalidLines.length > 0 && (
+                    <div className="badge badge-sm badge-warning gap-1">
+                      <Warning className="text-warning-content" size={12} weight="fill" />
+                      {parsed.invalidLines.length} 条无效
+                    </div>
+                  )}
+                </div>
+
+                {parsed.invalidLines.length > 0 && (
+                  <div className="alert alert-warning shadow-xs py-2 text-xs flex-row items-start">
+                    <WarningCircle size={16} className="mt-0.5 shrink-0" />
+                    <div className="opacity-90">
+                      部分行无法解析（格式不对）：
+                      <div className="mt-1 font-mono text-[10px] opacity-70">
+                        行号: {parsed.invalidLines.slice(0, 10).map(i => i.lineNumber).join(", ")}
+                        {parsed.invalidLines.length > 10 && " ..."}
+                      </div>
+                    </div>
+                  </div>
+
+                )}
+              </div>
             )}
           </div>
-
-          <textarea
-            className="textarea textarea-bordered w-full min-h-40 font-mono text-xs"
-            placeholder={"在此粘贴文本，或选择 .txt 文件\n示例：\n[KP]：你好\n[蓝色的人]：你好"}
-            value={rawText}
-            onChange={e => setRawText(e.target.value)}
-            disabled={isImporting}
-          />
-
-          <div className="flex flex-wrap items-center gap-3 text-xs text-base-content/70">
-            <span>
-              有效消息：
-              {parsed.messages.length}
-            </span>
-            <span>
-              无效行：
-              {parsed.invalidLines.length}
-            </span>
-          </div>
-
-          {parsed.invalidLines.length > 0 && (
-            <div className="text-xs text-warning">
-              检测到无效行（仅展示前 5 条）：
-              {parsed.invalidLines.slice(0, 5).map(i => `#${i.lineNumber}`).join("、")}
-            </div>
-          )}
         </div>
 
-        <div className="rounded-md border border-base-300 bg-base-100 p-3 space-y-2">
-          <div className="font-semibold text-sm">角色映射</div>
-          {!isKP && roleOptions.length === 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-base-200/60 rounded-md p-2">
-              <div className="text-xs text-base-content/70">
-                当前房间没有可用角色，无法导入。可先快速创建角色并导入到房间。
-              </div>
+        {/* Right Column: Mapping */}
+        <div className="flex flex-col h-full bg-base-100">
+          <div className="p-3 border-b border-base-200 flex items-center justify-between bg-base-100">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <span className="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center text-xs">2</span>
+              角色匹配与设置 ({speakers.length})
+            </div>
+            {onOpenRoleAddWindow && (
               <button
                 type="button"
-                className="btn btn-xs btn-outline"
+                className="btn btn-xs btn-outline btn-primary gap-1"
                 onClick={handleQuickCreateRole}
                 disabled={isImporting}
               >
-                创建/导入角色
+                <UserPlus size={14} />
+                导入角色
               </button>
-            </div>
-          )}
-          {speakers.length === 0 && (
-            <div className="text-sm text-base-content/60">请先导入文本内容</div>
-          )}
-
-          {speakers.length > 0 && (
-            <div className="space-y-2">
-              {speakers.map((speaker) => {
-                const value = mapping[speaker];
-                const figurePosition = figurePositionMap[speaker] ?? null;
-                return (
-                  <div key={speaker} className="flex flex-wrap items-center gap-2">
-                    <div className="w-40 min-w-0 truncate text-sm">
-                      [
-                      {speaker}
-                      ]
-                    </div>
-                    <select
-                      className="select select-sm select-bordered flex-1 min-w-52"
-                      value={value == null ? "" : String(value)}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setMapping(prev => ({ ...prev, [speaker]: v ? Number(v) : null }));
-                      }}
-                      disabled={isImporting}
-                    >
-                      <option value="">请选择角色</option>
-                      {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>旁白（KP）</option>}
-                      <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>骰娘（系统）</option>
-                      {roleOptions.map(o => (
-                        <option key={o.roleId} value={String(o.roleId)}>{o.label}</option>
-                      ))}
-                    </select>
-
-                    <select
-                      className="select select-sm select-bordered w-28"
-                      value={figurePosition ?? ""}
-                      onChange={(e) => {
-                        const pos = e.target.value as Exclude<FigurePosition, undefined> | "";
-                        setFigurePositionMap(prev => ({ ...prev, [speaker]: pos ? pos : null }));
-                      }}
-                      disabled={isImporting || value == null || value <= 0}
-                      title={value != null && value > 0 ? "设置该发言人的立绘位置" : "旁白/系统消息不显示立绘"}
-                    >
-                      <option value="">不设置</option>
-                      <option value="left">左</option>
-                      <option value="center">中</option>
-                      <option value="right">右</option>
-                    </select>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {missingSpeakers.length > 0 && (
-            <div className="text-xs text-error">
-              仍需指定：
-              {missingSpeakers.map(s => `[${s}]`).join("、")}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-xs text-base-content/60">
-            {progress && isImporting ? `导入中：${progress.sent}/${progress.total}` : " "}
+            )}
           </div>
+
+          <div className="flex-1 overflow-hidden relative flex flex-col">
+            {!isKP && roleOptions.length === 0 && (
+              <div className="m-4 alert alert-info py-3 text-sm">
+                <Info size={20} />
+                <div>
+                  <h3 className="font-bold text-xs">无可用角色</h3>
+                  <div className="text-xs opacity-90">请先创建或导入角色，然后再进行映射。</div>
+                </div>
+              </div>
+            )}
+
+            {speakers.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-base-content/30 gap-3">
+                <User size={48} weight="duotone" />
+                <span className="text-sm">等待导入文本...</span>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-0 scrollbar-thin">
+                <table className="table table-pin-rows table-sm w-full">
+                  <thead>
+                    <tr className="bg-base-100 z-10">
+                      <th className="bg-base-200/50 w-1/3">文本中的名字</th>
+                      <th className="bg-base-200/50 w-1/3">对应房间角色</th>
+                      <th className="bg-base-200/50 w-1/4">显示位置</th>
+                      <th className="bg-base-200/50 w-12 text-center">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {speakers.map((speaker) => {
+                      const value = mapping[speaker];
+                      const figurePosition = figurePositionMap[speaker] ?? null;
+                      const isMissing = value == null;
+
+                      return (
+                        <tr key={speaker} className={`group hover:bg-base-50 ${isMissing ? "bg-error/5" : ""}`}>
+                          <td>
+                            <div className="font-mono text-sm font-medium truncate max-w-[140px] px-2 py-1 rounded bg-base-200/50 w-fit" title={speaker}>
+                              {speaker}
+                            </div>
+                          </td>
+                          <td>
+                            <select
+                              className={`select select-bordered select-xs w-full max-w-full ${isMissing ? "select-error" : ""}`}
+                              value={value == null ? "" : String(value)}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMapping(prev => ({ ...prev, [speaker]: v ? Number(v) : null }));
+                              }}
+                              disabled={isImporting}
+                              title="选择角色"
+                            >
+                              <option value="">-- 请选择 --</option>
+                              <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 特殊角色 -</option>
+                              {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>📝 旁白 (KP)</option>}
+                              <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (系统)</option>
+                              <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 房间角色 -</option>
+                              {roleOptions.map(o => (
+                                <option key={o.roleId} value={String(o.roleId)}>👤 {o.label}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <div className="join w-full">
+                              <input
+                                className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                type="radio"
+                                name={`pos-${speaker}`}
+                                aria-label="左"
+                                checked={figurePosition === "left"}
+                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "left" }))}
+                                disabled={isImporting || value == null || value <= 0}
+                                title="立绘位置：左"
+                              />
+                               <input
+                                className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                type="radio"
+                                name={`pos-${speaker}`}
+                                aria-label="中"
+                                checked={figurePosition === "center"}
+                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "center" }))}
+                                disabled={isImporting || value == null || value <= 0}
+                                title="立绘位置：中"
+                              />
+                               <input
+                                className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                type="radio"
+                                name={`pos-${speaker}`}
+                                aria-label="右"
+                                checked={figurePosition === "right"}
+                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "right" }))}
+                                disabled={isImporting || value == null || value <= 0}
+                                title="立绘位置：右"
+                              />
+                              <input
+                                className="join-item btn btn-xs btn-ghost px-1 font-mono text-[10px] aria-checked:opacity-50"
+                                type="radio"
+                                name={`pos-${speaker}`}
+                                aria-label="✕"
+                                checked={figurePosition == null}
+                                onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: null }))}
+                                disabled={isImporting || value == null || value <= 0}
+                                title="不显示立绘"
+                              />
+                            </div>
+                          </td>
+                          <td className="text-center">
+                            {isMissing && <div className="badge badge-xs badge-error animate-pulse">!</div>}
+                            {!isMissing && <div className="badge badge-xs badge-success badge-outline">ok</div>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            {/* Mapping specific alerts or footers */}
+            {speakers.length > 0 && missingSpeakers.length > 0 && (
+              <div className="p-2 bg-error/10 text-error text-xs text-center border-t border-error/10">
+                还有 {missingSpeakers.length} 个角色未指定映射
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex-none p-4 border-t border-base-200 bg-base-100 flex items-center justify-between gap-4">
+        <div className="flex-1 flex items-center gap-2">
+           {isImporting && progress && (
+             <div className="flex flex-col w-full max-w-md gap-1">
+                <div className="flex justify-between text-xs text-base-content/60">
+                  <span>导入进度</span>
+                  <span>{Math.round((progress.sent / progress.total) * 100)}%</span>
+                </div>
+                <progress className="progress progress-primary w-full h-2" value={progress.sent} max={progress.total}></progress>
+             </div>
+           )}
+           {!isImporting && (
+             <span className="text-xs text-base-content/50">
+               提示：请确认所有角色都已正确匹配后再开始导入。
+             </span>
+           )}
+        </div>
+        
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            className={`btn btn-sm ${canImport ? "btn-info" : "btn-disabled"}`}
+            className="btn btn-ghost"
+            onClick={onClose}
+            disabled={isImporting}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary px-8"
             onClick={handleImport}
             disabled={!canImport}
           >
-            开始导入
+            {isImporting ? <span className="loading loading-spinner loading-xs"></span> : null}
+            {isImporting ? "正在导入..." : `开始导入 (${parsed.messages.length} 条)`}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
