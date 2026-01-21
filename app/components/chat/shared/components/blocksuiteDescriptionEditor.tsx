@@ -33,31 +33,6 @@ async function loadBlocksuiteRuntime() {
   };
 }
 
-let runtimePromise: Promise<Awaited<ReturnType<typeof loadBlocksuiteRuntime>>> | null = null;
-let runtimeStylesPromise: Promise<void> | null = null;
-let coreElementsPromise: Promise<void> | null = null;
-
-function getBlocksuiteRuntimePromise() {
-  if (!runtimePromise) {
-    runtimePromise = loadBlocksuiteRuntime();
-  }
-  return runtimePromise;
-}
-
-function ensureBlocksuiteRuntimeStylesOnce() {
-  if (!runtimeStylesPromise) {
-    runtimeStylesPromise = ensureBlocksuiteRuntimeStyles();
-  }
-  return runtimeStylesPromise;
-}
-
-function ensureBlocksuiteCoreElementsOnce(runtime: Awaited<ReturnType<typeof loadBlocksuiteRuntime>>) {
-  if (!coreElementsPromise) {
-    coreElementsPromise = runtime.ensureBlocksuiteCoreElementsDefined();
-  }
-  return coreElementsPromise;
-}
-
 interface BlocksuiteDescriptionEditorProps {
   /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
   workspaceId: string;
@@ -500,20 +475,19 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       })();
 
       // 在 blocksuite 初始化前确保运行时 CSS 已经注入（并做作用域重写），避免加载期间污染全局样式。
-      const runtimePromise = getBlocksuiteRuntimePromise();
       try {
-        await ensureBlocksuiteRuntimeStylesOnce();
+        await ensureBlocksuiteRuntimeStyles();
       }
       catch {
         // ignore
       }
 
-      const runtime = await runtimePromise;
+      const runtime = await loadBlocksuiteRuntime();
       runtimeRef.current = runtime;
       if (abort.signal.aborted)
         return;
 
-      const coreElementsReady = ensureBlocksuiteCoreElementsOnce(runtime);
+      await runtime.ensureBlocksuiteCoreElementsDefined();
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
 
@@ -545,7 +519,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       // a duplicate/conflicting default page, which results in a blank view.
       if (!abort.signal.aborted) {
         try {
-          await coreElementsReady;
           const remote = await remoteSnapshotPromise;
           if (remote?.updateB64) {
             const update = base64ToUint8Array(remote.updateB64);
