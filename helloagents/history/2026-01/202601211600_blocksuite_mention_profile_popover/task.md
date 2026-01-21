@@ -18,4 +18,4 @@
 
 ## 4. 归档与集成
 - [√] 4.1 迁移方案包至 `helloagents/history/YYYY-MM/` 并更新 `helloagents/history/index.md`
-- [ ] 4.2 自动集成 session 分支到集成分支并更新测试分支
+- [√] 4.2 自动集成 session 分支到集成分支并更新测试分支
