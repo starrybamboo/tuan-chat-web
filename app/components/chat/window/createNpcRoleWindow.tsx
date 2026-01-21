@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { useAddRoomRoleMutation, useAddSpaceRoleMutation, useGetRoomModuleRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
+import { useAddRoomRoleMutation, useGetRoomModuleRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useCreateRoleMutation } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetSpaceModuleRoleQuery } from "../../../../api/hooks/spaceModuleHooks";
 
@@ -19,7 +19,6 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
   const [isCreating, setIsCreating] = useState(false);
 
   const createRoleMutation = useCreateRoleMutation();
-  const addSpaceRoleMutation = useAddSpaceRoleMutation();
   const addRoomRoleMutation = useAddRoomRoleMutation();
 
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
@@ -59,17 +58,13 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
       const newRoleId = await createRoleMutation.mutateAsync({
         roleName: trimmedName,
         description: trimmedDesc,
-        type: 0,
+        type: 2,
+        spaceId,
       });
 
       if (!newRoleId || newRoleId <= 0) {
         throw new Error("创建角色失败");
       }
-
-      await addSpaceRoleMutation.mutateAsync({
-        spaceId,
-        roleId: newRoleId,
-      });
 
       await addRoomRoleMutation.mutateAsync({
         roomId,
