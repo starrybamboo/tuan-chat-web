@@ -35,6 +35,11 @@
 
 入口参考：`api/useWebSocket.tsx`。为便于排查未处理类型，可能会在运行时记录调试信息（以源码为准）。
 
+### 401 / 重新登录
+
+- HTTP：OpenAPI Fetch 客户端在 `api/core/request.ts` 捕获 `401`（排除 `/user/login`、`/user/register`）后会清理本地 `token/uid`，并跳转到 `/login?redirect=...`。
+- WebSocket：服务端推送 `type=100`（token失效）时会触发同样的重新登录流程。
+
 ## API 接口
 
 接口清单以 `helloagents/wiki/api.md` 与 OpenAPI 文件为准。

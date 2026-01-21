@@ -8,7 +8,7 @@
 
 - **职责:** AI 生图页面、生成参数与历史、请求方式切换、Electron 代理适配
 - **状态:** ?开发中（部分路由仅开发环境启用）
-$12026-01-19
+- **最后更新:** 2026-01-20
 
 ## 入口与目录
 
@@ -21,18 +21,23 @@ $12026-01-19
 
 - 仅支持 txt2img（不提供 img2img）
 - 输入自然语言后由后端转换为 NovelAI tags，前端允许继续编辑 tags 并再次生成
+- 自然语言输入框右侧提供“一键出图”：NL→tags→出图，并写回最终 tags（含画风合并结果）
+- tags 区提供“按 tag 出图”：不触发 NL→tags，直接按当前 tags 出图（仍会合并画风 tags）
+- “画风”选择在普通模式面板中默认展示（无需先点击生成）
+- 选择画风后，会在面板中显示已选画风的缩略图，便于确认当前选择
 - Seed 规则对齐 NovelAI：Seed < 0 表示随机
 
 ### 专业模式（pro）
 
 - 三栏布局：左侧参数 / 中间预览 / 右侧历史
+- 固定 txt2img（移除模式选择与 img2img 面板）
 - v4/v4.5 支持“背景/角色”结构化 prompt：写入 `v4_prompt`/`v4_negative_prompt` 的 `base_caption` + `char_captions`
 
 ## 画风预设（普通模式）
 
 - 图片目录：`app/assets/ai-image/styles/`（文件名即画风 ID，例如 `oil-painting.webp`）
 - 画风 tags 配置：`app/utils/aiImageStylePresets.ts`（按文件名 ID 配置 `tags`/`negativeTags`）
-- 使用方式：普通模式选择画风可多选，生成时会把画风 tags 合并进最终 prompt（负面同理）
+- 使用方式：普通模式选择画风可多选，普通模式生成时会把画风 tags 合并进最终 prompt（负面同理）
 
 ## 关键约定（本项目）
 

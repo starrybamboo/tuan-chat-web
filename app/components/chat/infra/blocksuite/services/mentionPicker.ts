@@ -3,9 +3,11 @@ import type { TextSelection } from "@blocksuite/std";
 
 import { getTextSelectionCommand } from "@blocksuite/affine/shared/commands";
 
+import { isBlocksuiteDebugEnabled } from "../debugFlags";
+
 const mentionInsertDedupWindowMs = 500;
 const recentMentionInsertions = new Map<string, number>();
-const mentionDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
+const mentionDebugEnabled = isBlocksuiteDebugEnabled();
 
 function forwardMentionDebug(message: string, payload?: Record<string, unknown>) {
   try {
@@ -21,10 +23,10 @@ function logMentionDebug(message: string, payload?: Record<string, unknown>) {
   if (!mentionDebugEnabled)
     return;
   if (payload) {
-    console.warn("[BlocksuiteMention]", message, payload);
+    console.debug("[BlocksuiteMention]", message, payload);
   }
   else {
-    console.warn("[BlocksuiteMention]", message);
+    console.debug("[BlocksuiteMention]", message);
   }
   forwardMentionDebug(message, payload);
 }

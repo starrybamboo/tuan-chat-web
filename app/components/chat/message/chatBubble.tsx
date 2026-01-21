@@ -1,6 +1,6 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
 import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
-import React, { use, useMemo, useState } from "react";
+import React, { use, useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -166,7 +166,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const introHold = (message.webgal as any)?.introHold as boolean | undefined;
 
   // 更新消息并同步到本地缓存
-  function updateMessageAndSync(newMessage: Message) {
+  const updateMessageAndSync = useCallback((newMessage: Message) => {
     updateMessageMutation.mutate(newMessage, {
       onSuccess: (response) => {
         // 更新成功后同步到本地 IndexedDB
@@ -184,7 +184,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         }
       },
     });
-  }
+  }, [chatMessageResponse, roomContext, updateMessageMutation]);
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
@@ -230,14 +230,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
   }
 
-  function handleContentUpdate(content: string) {
+  const handleContentUpdate = useCallback((content: string) => {
     if (message.content !== content) {
       updateMessageAndSync({
         ...message,
         content,
       });
     }
-  }
+  }, [message, updateMessageAndSync]);
 
   // 处理语音渲染设置更新
   function handleVoiceRenderSettingsChange(
@@ -293,7 +293,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   }
 
   // 处理音频用途切换（语音/BGM/音效）
-  function handleAudioPurposeChange(purpose: string) {
+  const handleAudioPurposeChange = useCallback((purpose: string) => {
     const soundMessage = message.extra?.soundMessage;
     if (!soundMessage)
       return;
@@ -325,7 +325,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         }
       },
     });
-  }
+  }, [chatMessageResponse, message, roomContext, updateMessageMutation]);
 
   // 处理角色名编辑
   function handleRoleNameClick() {
@@ -680,15 +680,22 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
     return <div className="flex flex-col">{contentElements}</div>;
   }, [
+    canEdit,
+    chatMessageResponse,
+    handleAudioPurposeChange,
+    handleContentUpdate,
     message.content,
     message.extra,
     message.messageType,
     message.messageId,
     message.replyMessageId,
+    message.threadId,
+    message.webgal,
     roomContext.curRoleId,
     roomContext.curMember?.memberType,
     spaceContext.isSpaceOwner,
     onExecuteCommandRequest,
+    scrollToGivenMessage,
   ]);
 
   const formattedTime = useMemo(() => {

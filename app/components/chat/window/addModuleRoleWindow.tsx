@@ -1,43 +1,55 @@
-import { useGetRoomRoleQuery } from "api/hooks/chatQueryHooks";
-import React, { use, useMemo } from "react";
+import React, { use, useMemo, useState } from "react";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { AddRingLight } from "@/icons";
+import { useGetRoomModuleRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceModuleRoleQuery } from "../../../../api/hooks/spaceModuleHooks";
-import { RoomContext } from "../core/roomContext";
+import CreateNpcRoleWindow from "./createNpcRoleWindow";
 
 export function AddModuleRoleWindow({
   handleAddRole,
 }: {
   handleAddRole: (roleId: number) => void;
 }) {
+  const roomContext = use(RoomContext);
+  const roomId = roomContext.roomId ?? -1;
+
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext.spaceId ?? -1;
-  const roomContext = use(RoomContext);
-  const roomId = roomContext.roomId;
 
-  const spaceModuleRolesQuery = useGetSpaceModuleRoleQuery(spaceId);
-  const roomRolesQuery = useGetRoomRoleQuery(roomId ?? -1);
+  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
+  const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
 
-  const filteredModuleRoles = useMemo(() => {
-    const spaceModuleRoles = spaceModuleRolesQuery.data?.data ?? [];
-    const roomRoles = roomRolesQuery.data?.data ?? [];
-    const roomRoleIds = new Set(roomRoles.map(role => role.roleId));
-    return spaceModuleRoles.filter(role => !roomRoleIds.has(role.roleId));
-  }, [spaceModuleRolesQuery.data?.data, roomRolesQuery.data?.data]);
+  const spaceRolesQuery = useGetSpaceModuleRoleQuery(spaceId);
+  const spaceRoles = useMemo(() => spaceRolesQuery.data?.data ?? [], [spaceRolesQuery.data?.data]);
+
+  const roleIdInRoomSet = useMemo(() => {
+    return new Set<number>(roomNpcRoles.map(r => r.roleId));
+  }, [roomNpcRoles]);
+
+  const availableSpaceRoles = useMemo(() => {
+    return spaceRoles.filter(r => !roleIdInRoomSet.has(r.roleId));
+  }, [roleIdInRoomSet, spaceRoles]);
+
+  const [isCreatingNpc, setIsCreatingNpc] = useState(false);
+
+  if (isCreatingNpc) {
+    return <CreateNpcRoleWindow onClose={() => setIsCreatingNpc(false)} />;
+  }
 
   return (
     <div className="justify-center w-full">
       <p className="text-lg font-bold text-center w-full mb-4">
-        导入模组角色
+        导入NPC
       </p>
+
       <div className="bg-base-100 rounded-box p-6">
-        {
-          filteredModuleRoles.length === 0 && (
-            <div className="text-center font-bold py-5">无模组角色可导入</div>
-          )
-        }
+        {availableSpaceRoles.length === 0 && (
+          <div className="text-center font-bold py-5">暂无NPC可导入</div>
+        )}
         <div className="flex flex-wrap gap-3 justify-center">
-          {filteredModuleRoles.map(role => (
+          {availableSpaceRoles.map(role => (
             <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
               <div className="flex flex-col items-center p-3">
                 <div onClick={() => handleAddRole(role.roleId)}>
@@ -54,6 +66,15 @@ export function AddModuleRoleWindow({
               </div>
             </div>
           ))}
+          <div
+            className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => setIsCreatingNpc(true)}
+          >
+            <div className="flex flex-col items-center p-3">
+              <AddRingLight className="size-24 jump_icon" />
+              <p className="text-center block">创建NPC</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

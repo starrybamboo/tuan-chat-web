@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { MusicNote } from "@/icons";
 
@@ -40,7 +40,7 @@ export default function BgmFloatingBall({ roomId }: { roomId: number }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelSize, setPanelSize] = useState<{ w: number; h: number }>({ w: 260, h: 88 });
 
-  const clampPos = (p: Pos, expanded: boolean): Pos => {
+  const clampPos = useCallback((p: Pos, expanded: boolean): Pos => {
     if (typeof window === "undefined")
       return p;
 
@@ -57,7 +57,7 @@ export default function BgmFloatingBall({ roomId }: { roomId: number }) {
       x: Math.min(Math.max(margin, p.x), maxX),
       y: Math.min(Math.max(minY, p.y), maxY),
     };
-  };
+  }, [panelSize.h, panelSize.w, topSafe]);
 
   // 运行时测量 Topbanner 高度，作为 topSafe（兼容桌面/移动端、展开收起）
   useEffect(() => {
@@ -75,14 +75,12 @@ export default function BgmFloatingBall({ roomId }: { roomId: number }) {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExpanded]);
+  }, [clampPos, isExpanded]);
 
   // 测量值变化时再 clamp 一次，避免异步测量导致瞬间遮挡
   useEffect(() => {
     setPos(prev => clampPos(prev, isExpanded));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topSafe]);
+  }, [clampPos, isExpanded]);
 
   // 测量展开面板真实尺寸（避免固定 260 导致靠右时裁切）
   useEffect(() => {
@@ -105,14 +103,14 @@ export default function BgmFloatingBall({ roomId }: { roomId: number }) {
     setPos(prev => clampPos(prev, true));
 
     return () => ro.disconnect();
-  }, [isExpanded]);
+  }, [clampPos, isExpanded]);
 
   // 视口变化时避免跑出屏幕
   useEffect(() => {
     const onResize = () => setPos(prev => clampPos(prev, isExpanded));
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [isExpanded]);
+  }, [clampPos, isExpanded]);
 
   const handleToggle = () => {
     if (!hasTrack)

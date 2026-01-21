@@ -19732,8 +19732,13 @@
           },
           "type": {
             "type": "integer",
-            "description": "角色类型,0:角色,1:骰娘",
+            "description": "角色类型,0:角色,1:骰娘,2:NPC",
             "format": "int32"
+          },
+          "spaceId": {
+            "type": "integer",
+            "description": "空间id（NPC 绑定空间；非NPC可为空）",
+            "format": "int64"
           },
           "extra": {
             "type": "object",
@@ -21851,8 +21856,13 @@
           },
           "type": {
             "type": "integer",
-            "description": "角色类型,0:角色,1:骰娘",
+            "description": "角色类型,0:角色,1:骰娘,2:NPC",
             "format": "int32"
+          },
+          "spaceId": {
+            "type": "integer",
+            "description": "空间id（NPC 绑定空间；非NPC可为空）",
+            "format": "int64"
           },
           "extra": {
             "type": "object",
@@ -21993,8 +22003,13 @@
           },
           "type": {
             "type": "integer",
-            "description": "角色类型,0:角色,1:骰娘",
+            "description": "角色类型,0:角色,1:骰娘,2:NPC",
             "format": "int32"
+          },
+          "spaceId": {
+            "type": "integer",
+            "description": "空间id（NPC 绑定空间；非NPC可为空）",
+            "format": "int64"
           },
           "modelName": {
             "type": "string",

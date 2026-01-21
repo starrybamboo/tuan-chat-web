@@ -34,6 +34,16 @@ export async function ensureBlocksuiteCoreElementsDefined(): Promise<void> {
   }
   g[EFFECTS_ONCE_KEY] = true;
 
+  // Define our customized mention element early so upstream effects won't register the default one.
+  // (customElements.define is globally patched in app/root.tsx to ignore duplicate defines.)
+  try {
+    const mod = await import("./tcMentionElement.client");
+    mod.ensureTCAffineMentionDefined();
+  }
+  catch {
+    // ignore
+  }
+
   const [
     attachmentViewMod,
     bookmarkViewMod,

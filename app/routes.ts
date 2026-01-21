@@ -8,6 +8,9 @@ export default [
   // Blocksuite iframe: used for strong style isolation.
   route("blocksuite-frame", "routes/blocksuiteFrame.tsx"),
 
+  // Dedicated login page (avoid wrapping by dashboard layout to prevent double modals).
+  route("login", "routes/login.tsx"),
+
   // index("routes/dashBoard.tsx"),
   layout("routes/dashBoard.tsx", [
     // 临时举措

@@ -1279,23 +1279,28 @@ export class RealtimeRenderer {
     // 判断消息类型：黑屏文字（messageType === 9）
     const isIntroText = (msg.messageType as number) === 9;
     const roleId = msg.roleId ?? 0;
-    const avatarId = msg.avatarId ?? 0;
 
     // 判断是否为旁白：roleId <= 0
     const isNarrator = roleId <= 0;
 
     // 获取角色信息
     const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
+    // avatarId 优先使用消息上的 avatarId；若缺失则回退到角色本身的 avatarId（即“角色头像”）
+    const messageAvatarId = msg.avatarId ?? 0;
+    const roleAvatarId = Number(role?.avatarId ?? 0);
+    const effectiveAvatarId = messageAvatarId > 0
+      ? messageAvatarId
+      : (roleAvatarId > 0 ? roleAvatarId : 0);
     // 优先使用自定义角色名
     const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
     const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
-    const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
+    const avatar = effectiveAvatarId > 0 ? this.avatarMap.get(effectiveAvatarId) : undefined;
 
     // 获取立绘文件名
-    const spriteFileName = (avatarId > 0 && roleId > 0)
-      ? await this.getAndUploadSprite(avatarId, roleId)
+    const spriteFileName = (effectiveAvatarId > 0 && roleId > 0)
+      ? await this.getAndUploadSprite(effectiveAvatarId, roleId)
       : null;
 
     console.error(msg.content, msg.webgal?.voiceRenderSettings);
@@ -1380,7 +1385,7 @@ export class RealtimeRenderer {
     const isNormalDialog = !isNarrator && !isIntroText;
     if (isNormalDialog) {
       const miniAvatarFileName = this.miniAvatarEnabled
-        ? (avatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(avatarId, roleId) : null)
+        ? (effectiveAvatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(effectiveAvatarId, roleId) : null)
         : null;
 
       if (miniAvatarFileName) {
@@ -1588,8 +1593,14 @@ export class RealtimeRenderer {
         concat?: boolean;
       } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
-      const avatarId = msg.avatarId ?? 0;
-      const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
+      const roleId = msg.roleId ?? 0;
+      const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
+      const messageAvatarId = msg.avatarId ?? 0;
+      const roleAvatarId = Number(role?.avatarId ?? 0);
+      const effectiveAvatarId = messageAvatarId > 0
+        ? messageAvatarId
+        : (roleAvatarId > 0 ? roleAvatarId : 0);
+      const avatar = effectiveAvatarId > 0 ? this.avatarMap.get(effectiveAvatarId) : undefined;
       const emotionVector = customEmotionVector && customEmotionVector.length > 0
         ? customEmotionVector
         : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);

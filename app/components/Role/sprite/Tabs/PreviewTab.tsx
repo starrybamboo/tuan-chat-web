@@ -4,7 +4,7 @@ import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { withOssResizeProcess } from "@/utils/ossImageProcess";
-import { parseTransformFromAvatar } from "../utils";
+import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
 
 interface RenderTransform {
   scale: number;
@@ -49,7 +49,7 @@ export function PreviewTab({
   // 预览模式: 'sprite' | 'avatar' | 'render'
   const [previewMode, setPreviewMode] = useState<"sprite" | "avatar" | "render">("sprite");
 
-  const spriteUrl = currentAvatar?.spriteUrl || null;
+  const spriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
   const avatarUrl = currentAvatar?.avatarUrl || null;
 
   const MAX_PREVIEW_WIDTH = 1440;

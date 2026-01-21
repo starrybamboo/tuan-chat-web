@@ -7,6 +7,7 @@ import MemberLists from "@/components/chat/shared/components/memberLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
+import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { BaselineArrowBackIosNew } from "@/icons";
 import {
@@ -26,6 +27,13 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   // const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
   const resolvedTab = (!spaceContext.isSpaceOwner && activeTab === "setting") ? "members" : activeTab;
+  const panelTitle = resolvedTab === "members"
+    ? "空间成员"
+    : resolvedTab === "workflow"
+      ? "流程图"
+      : resolvedTab === "trpg"
+        ? "跑团设置"
+        : "空间资料";
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
@@ -38,11 +46,11 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
       spaceId,
-      roleIdList: [roleId],
+      roleId,
     }, {
       onSettled: () => {
         // setIsRoleHandleOpen(false);
-        toast("添加成员成功");
+        toast("添加NPC成功");
       },
     });
   };
@@ -102,7 +110,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
           <BaselineArrowBackIosNew className="size-5" />
         </button>
         <div className="text-sm font-medium opacity-80 truncate">
-          空间资料
+          {panelTitle}
         </div>
 
       </div>
@@ -127,6 +135,12 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       {resolvedTab === "workflow" && (
         <div className="h-full p-4 overflow-y-auto">
           <WorkflowWindow></WorkflowWindow>
+        </div>
+      )}
+
+      {resolvedTab === "trpg" && (
+        <div className="h-full overflow-hidden">
+          <SpaceTrpgSettingWindow />
         </div>
       )}
 
