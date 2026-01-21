@@ -1,4 +1,4 @@
-import type { Route } from "../+types/home";
+import type { Route } from "./+types/index";
 import ModuleWithTabs from "@/components/module/ModuleWithTabs";
 
 export function meta(_args: Route.MetaArgs) {

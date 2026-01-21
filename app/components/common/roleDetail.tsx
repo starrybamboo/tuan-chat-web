@@ -1,21 +1,27 @@
-import { RoomContext } from "@/components/chat/roomContext";
-import { SpaceContext } from "@/components/chat/spaceContext";
+import { use, useState } from "react";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
-import { use, useState } from "react";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserInfoQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 /**
  * 角色的详情界面
  * @param roleId
  * @param allowKickOut 是否允许被踢出，模组角色是不可以的
  */
-export function RoleDetail({ roleId, allowKickOut = true }: {
+export function RoleDetail({
+  roleId,
+  allowKickOut = true,
+  showAbilities = true,
+}: {
   roleId: number;
   allowKickOut?: boolean;
+  showAbilities?: boolean;
 }) {
   const roleQuery = useGetRoleQuery(roleId);
   const role = roleQuery.data?.data;
@@ -97,8 +103,8 @@ export function RoleDetail({ roleId, allowKickOut = true }: {
                     )
                   : (
                       <>
-                        <div className="flex items-center gap-2">
-                          <h2 className="card-title text-lg truncate max-w-[180px]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <h2 className="card-title text-lg truncate min-w-0 flex-1">
                             {role?.roleName || `角色 ${roleId}`}
                           </h2>
                           <span className="badge badge-outline badge-sm font-mono">
@@ -177,13 +183,15 @@ export function RoleDetail({ roleId, allowKickOut = true }: {
         </div>
       </div>
 
-      <div className="card card-compact border border-base-200 shadow-sm">
-        <div className="card-body gap-3">
-          <div className="mt-1">
-            <ExpansionModule roleId={roleId} ruleId={ruleId ?? undefined} />
+      {showAbilities && (
+        <div className="card card-compact border border-base-200 shadow-sm">
+          <div className="card-body gap-3">
+            <div className="mt-1">
+              <ExpansionModule roleId={roleId} ruleId={ruleId ?? undefined} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 踢出角色确认弹窗 */}
       <ConfirmModal

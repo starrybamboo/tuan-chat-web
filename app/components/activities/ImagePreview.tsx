@@ -1,5 +1,5 @@
-import { RotateLeftIcon, RotateRightIcon } from "@/icons";
 import React, { useCallback, useState } from "react";
+import { RotateLeftIcon, RotateRightIcon } from "@/icons";
 
 interface ImagePreviewProps {
   images: string[];

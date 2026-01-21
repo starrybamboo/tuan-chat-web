@@ -12,11 +12,13 @@ interface UserAchievementMedalsProps {
   className?: string;
 }
 
+const EMPTY_MEDALS: Medal[] = [];
+
 /**
  * 用户的成就系统，目前只有一个框架在吃灰
  */
 const UserAchievementMedals: React.FC<UserAchievementMedalsProps> = ({
-  medals = [],
+  medals = EMPTY_MEDALS,
   className = "",
 }) => {
   const [expandedMedals, setExpandedMedals] = useState(false);

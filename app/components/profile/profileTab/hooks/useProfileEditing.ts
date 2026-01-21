@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import type { UserInfoResponse } from "../../../../../api";
 
-import { useUpdateUserInfoMutation } from "../../../../../api/queryHooks";
+import { useUpdateUserInfoMutation } from "../../../../../api/hooks/UserHooks";
 
 export function useProfileEditing(user: UserInfoResponse | undefined) {
   // 内联编辑状态
@@ -42,13 +42,6 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
     setEditingDescription("");
   };
 
-  const saveReadMe = async (readMeContent: string) => {
-    await updateUserInfoMutation.mutateAsync({
-      ...user,
-      readMe: readMeContent,
-    } as UserInfoResponse);
-  };
-
   // 头像上传即时保存
   const handleAvatarUpdate = (newAvatarUrl: string) => {
     updateUserInfoMutation.mutate({
@@ -71,7 +64,6 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
     startEditingProfile,
     saveProfile,
     cancelEditingProfile,
-    saveReadMe,
     handleAvatarUpdate,
 
     // API状态

@@ -1,8 +1,8 @@
-import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import Pagination from "@/components/common/pagination";
 
 import 教室图片 from "./images/教室.webp";
 
@@ -178,6 +178,27 @@ export function ContentCard({
 export default function ModuleHome() {
   const navigate = useNavigate();
 
+  interface ModuleCard {
+    id: string;
+    rule: string;
+    title: string;
+    image: string;
+    content?: string;
+    type: "mixed";
+    authorName?: string;
+    moduleId: number;
+    ruleId?: number;
+    userId?: number;
+    createTime?: string;
+    updateTime?: string;
+    minPeople?: number;
+    maxPeople?: number;
+    minTime?: number;
+    maxTime?: number;
+    parent?: unknown;
+    readMe?: unknown;
+  }
+
   const RuleList = useRuleListQuery();
 
   // 分页状态管理
@@ -199,7 +220,7 @@ export default function ModuleHome() {
   // 先转换数据格式
   const allItems = useMemo(() => {
     if (!moduleData?.list) {
-      return [];
+      return [] as ModuleCard[];
     }
     // 将 API 数据转换为 ContentCard 所需的格式
     return moduleData.list
@@ -207,12 +228,12 @@ export default function ModuleHome() {
       .map((module: any) => ({
         id: `module-${module.moduleId}`,
         rule: RuleList.data?.find(rule => rule.ruleId === module.ruleId)?.ruleName ?? "",
-        title: module.moduleName,
-        image: (module.image && module.image !== null && module.image !== "null") ? module.image : 教室图片, // 更严格的空值检查
+        title: String(module.moduleName ?? ""),
+        image: (module.image && module.image !== null && module.image !== "null") ? String(module.image) : 教室图片, // 更严格的空值检查
         content: module.description,
         type: "mixed" as const,
         authorName: module.authorName,
-        moduleId: module.moduleId,
+        moduleId: Number(module.moduleId),
         ruleId: module.ruleId, // 所用的规则id
         userId: module.userId, // 上传者
         createTime: module.createTime,
@@ -223,7 +244,7 @@ export default function ModuleHome() {
         maxTime: module.maxTime,
         parent: module.parent, // 从哪个模组fork来
         readMe: module.readMe, // md字段
-      }));
+      })) as ModuleCard[];
   }, [moduleData, RuleList]);
 
   // 前端分页（移除搜索过滤）
@@ -264,8 +285,8 @@ export default function ModuleHome() {
   useEffect(() => {
     if (ModuleList.isSuccess && currentItems.length > 0) {
       const imageUrls = currentItems
-        .map(item => item.image)
-        .filter(url => url && url !== null && url !== undefined && url !== "null"); // 过滤掉空值
+        .map((item: ModuleCard) => item.image)
+        .filter((url): url is string => typeof url === "string" && url.length > 0 && url !== "null"); // 过滤掉空值
       preloadImages(imageUrls).then(() => {
         setImagesReady(true);
       });
@@ -377,7 +398,7 @@ export default function ModuleHome() {
                   );
                 }
 
-                return currentItems.map(card => (
+                return currentItems.map((card: ModuleCard) => (
                   <ContentCard
                     key={card.id}
                     title={card.title}

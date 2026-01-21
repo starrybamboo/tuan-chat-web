@@ -1,10 +1,10 @@
-import RoomButton from "@/components/chat/smallComponents/roomButton";
-import SpaceButton from "@/components/chat/smallComponents/spaceButton";
 import React, { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
+import RoomButton from "@/components/chat/shared/components/roomButton";
+import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import {
-  useGetUserRoomsQueries,
+  useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "../../../../api/hooks/chatQueryHooks";
 
@@ -22,29 +22,16 @@ function ForwardWindow({ onClickRoom, generateForwardMessage }:
 
   // 获取空间和房间数据
   const userSpacesQuery = useGetUserSpacesQuery();
-  const spaces = userSpacesQuery.data?.data ?? [];
-  const userRoomsQueries = useGetUserRoomsQueries(spaces);
+  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
 
   // 状态：当前选中的空间ID
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   // 状态：是否正在生成转发消息
   const [isGeneratingForward, setIsGeneratingForward] = useState(false);
 
-  // 使用 useMemo 优化计算，将房间数据按 spaceId 组织
-  const spaceIdToRooms = useMemo(() => {
-    const result: Record<number, any[]> = {};
-    for (const space of spaces) {
-      const spaceId = space.spaceId ?? -1;
-      // 找到对应空间的房间查询结果
-      result[spaceId] = userRoomsQueries.find(query =>
-        query.data?.data?.some(room => room.spaceId === space.spaceId),
-      )?.data?.data ?? [];
-    }
-    return result;
-  }, [spaces, userRoomsQueries]);
-
+  const userRoomsQuery = useGetUserRoomsQuery(selectedSpaceId ?? -1);
   // 获取当前选中空间的房间列表
-  const currentRooms = selectedSpaceId ? spaceIdToRooms[selectedSpaceId] ?? [] : [];
+  const currentRooms = useMemo(() => userRoomsQuery.data?.data?.rooms ?? [], [userRoomsQuery.data?.data?.rooms]);
 
   /**
    * 处理“分享到社区”按钮点击事件

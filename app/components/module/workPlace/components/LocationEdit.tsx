@@ -1,13 +1,12 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
-import type { StageEntityResponse } from "api/models/StageEntityResponse";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import { invokeSaveWithTinyRetry } from "@/components/module/workPlace/components/invokeSaveWithTinyRetry";
+import { useModuleContext } from "@/components/module/workPlace/context/moduleContext";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
-import { useModuleContext } from "../context/_moduleContext";
-import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface LocationEditProps {
   location: StageEntityResponse;
@@ -66,7 +65,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
             if (changed) {
               // 同步更新 scene 中引用的地点名
               const newScenes = sceneEntities?.map((scene) => {
-                const newLocations = scene.entityInfo?.locations.map((loc: string | undefined) => (loc === oldName ? location.name : loc));
+                const newLocations = scene.entityInfo?.locations?.map((loc: string | undefined) => (loc === oldName ? location.name : loc));
                 return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
               });
               newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));

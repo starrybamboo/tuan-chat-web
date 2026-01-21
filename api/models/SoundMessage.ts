@@ -19,5 +19,13 @@ export type SoundMessage = {
      * 时长（秒）
      */
     second: number;
+    /**
+     * 用途（如：bgm）
+     */
+    purpose?: string;
+    /**
+     * 音量（0-100）
+     */
+    volume?: number;
 };
 

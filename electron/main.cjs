@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+const { Buffer } = require("node:buffer");
 const { spawn } = require("node:child_process"); // 用于创建子进程
 const fs = require("node:fs");
 const path = require("node:path");
@@ -7,6 +8,7 @@ const detectPort = require("detect-port").default; // 用于检测端口占用
 
 // 控制应用生命周期和创建原生浏览器窗口的模组
 const { app, BrowserWindow, protocol, ipcMain, Menu } = require("electron");
+const { unzipSync } = require("fflate");
 // // --- 忽略证书错误以解决 SSL handshake failed 问题 ---
 // app.commandLine.appendSwitch("ignore-certificate-errors");
 
@@ -61,6 +63,81 @@ function createWindow() {
     // 使用自定义协议加载应用的根目录，而不是具体的 index.html 文件
     mainWindow.loadURL("app://./");
   }
+}
+
+function clampToMultipleOf64(value, fallback) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0)
+    return fallback;
+  return Math.max(64, Math.round(num / 64) * 64);
+}
+
+function base64DataUrl(mime, bytes) {
+  const b64 = Buffer.from(bytes).toString("base64");
+  return `data:${mime};base64,${b64}`;
+}
+
+function mimeFromFilename(name) {
+  const lower = String(name || "").toLowerCase();
+  if (lower.endsWith(".png"))
+    return "image/png";
+  if (lower.endsWith(".webp"))
+    return "image/webp";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
+    return "image/jpeg";
+  return "application/octet-stream";
+}
+
+function firstImageFromZip(zipBytes) {
+  const files = unzipSync(zipBytes);
+  const names = Object.keys(files);
+  if (!names.length)
+    throw new Error("ZIP 解包失败：未找到任何文件");
+
+  const preferred = names.find(n => /\.(?:png|webp|jpe?g)$/i.test(n)) || names[0];
+  const mime = mimeFromFilename(preferred);
+  return base64DataUrl(mime, files[preferred]);
+}
+
+function startsWithBytes(bytes, prefix) {
+  if (!bytes || bytes.length < prefix.length)
+    return false;
+  return prefix.every((b, i) => bytes[i] === b);
+}
+
+function looksLikeZip(bytes) {
+  if (!bytes || bytes.length < 4)
+    return false;
+  return (
+    bytes[0] === 0x50
+    && bytes[1] === 0x4B
+    && (
+      (bytes[2] === 0x03 && bytes[3] === 0x04)
+      || (bytes[2] === 0x05 && bytes[3] === 0x06)
+      || (bytes[2] === 0x07 && bytes[3] === 0x08)
+    )
+  );
+}
+
+function detectBinaryDataUrl(bytes) {
+  if (startsWithBytes(bytes, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
+    return base64DataUrl("image/png", bytes);
+  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)
+    return base64DataUrl("image/jpeg", bytes);
+  if (
+    bytes.length >= 12
+    && bytes[0] === 0x52
+    && bytes[1] === 0x49
+    && bytes[2] === 0x46
+    && bytes[3] === 0x46
+    && bytes[8] === 0x57
+    && bytes[9] === 0x45
+    && bytes[10] === 0x42
+    && bytes[11] === 0x50
+  ) {
+    return base64DataUrl("image/webp", bytes);
+  }
+  return "";
 }
 
 // 区分开发环境和生产（打包后）环境
@@ -144,6 +221,271 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+
+  ipcMain.handle("novelai:get-clientsettings", async (_event, req) => {
+    const token = String(req?.token || "").trim();
+    if (!token) {
+      throw new Error("缺少 NovelAI token（Bearer）");
+    }
+
+    const endpoint = String(req?.endpoint || "https://api.novelai.net").replace(/\/+$/, "");
+    const url = `${endpoint}/user/clientsettings`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "authorization": `Bearer ${token}`,
+        "accept": "application/json",
+        "referer": "https://novelai.net/",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`请求失败: ${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
+    }
+
+    const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+    if (contentType.includes("application/json")) {
+      return await res.json();
+    }
+
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    }
+    catch {
+      return text;
+    }
+  });
+
+  ipcMain.handle("novelai:generate-image", async (_event, req) => {
+    const token = String(req?.token || "").trim();
+    if (!token) {
+      throw new Error("缺少 NovelAI token（Bearer）");
+    }
+
+    const endpoint = String(req?.endpoint || "https://image.novelai.net").replace(/\/+$/, "");
+    const mode = String(req?.mode || "txt2img");
+    const prompt = String(req?.prompt || "").trim();
+    if (!prompt) {
+      throw new Error("缺少 prompt");
+    }
+
+    const negativePrompt = String(req?.negativePrompt || "");
+    const model = String(req?.model || "nai-diffusion-3");
+    const seed = Number.isFinite(req?.seed) ? Number(req.seed) : Math.floor(Math.random() * 2 ** 32);
+    const steps = Number.isFinite(req?.steps) ? Math.max(1, Math.floor(req.steps)) : 28;
+    const scale = Number.isFinite(req?.scale) ? Number(req.scale) : 5;
+    const sampler = String(req?.sampler || "k_euler_ancestral");
+    const noiseSchedule = String(req?.noiseSchedule || "karras");
+    const qualityToggle = Boolean(req?.qualityToggle);
+
+    const width = clampToMultipleOf64(req?.width, 1024);
+    const height = clampToMultipleOf64(req?.height, 1024);
+
+    const isNAI3 = model === "nai-diffusion-3";
+    const isNAI4 = typeof model === "string" && (
+      model === "nai-diffusion-4-curated-preview"
+      || model === "nai-diffusion-4-full"
+      || model === "nai-diffusion-4-full-inpainting"
+      || model === "nai-diffusion-4-curated-inpainting"
+      || model === "nai-diffusion-4-5-curated"
+      || model === "nai-diffusion-4-5-curated-inpainting"
+      || model === "nai-diffusion-4-5-full"
+      || model === "nai-diffusion-4-5-full-inpainting"
+    );
+    const resolvedSampler = sampler === "k_euler_a" ? "k_euler_ancestral" : sampler;
+
+    const clamp01 = (input, fallback = 0.5) => {
+      const value = Number(input);
+      if (!Number.isFinite(value)) {
+        return fallback;
+      }
+      return Math.max(0, Math.min(1, value));
+    };
+
+    const v4Chars = Array.isArray(req?.v4Chars) ? req.v4Chars : [];
+    const v4UseCoords = Boolean(req?.v4UseCoords);
+    const v4UseOrder = req?.v4UseOrder == null ? true : Boolean(req.v4UseOrder);
+
+    const parameters = {
+      seed,
+      width,
+      height,
+      n_samples: 1,
+      steps,
+      scale,
+      sampler: resolvedSampler,
+      negative_prompt: negativePrompt,
+      // align with novelai-bot defaults
+      ucPreset: 2,
+      qualityToggle,
+    };
+
+    if (mode === "img2img") {
+      const imageBase64 = String(req?.sourceImageBase64 || "").trim();
+      if (!imageBase64) {
+        throw new Error("img2img 缺少源图片（sourceImageBase64）");
+      }
+      const strength = Number.isFinite(req?.strength) ? Number(req.strength) : 0.7;
+      const noise = Number.isFinite(req?.noise) ? Number(req.noise) : 0.2;
+      parameters.image = imageBase64;
+      parameters.strength = strength;
+      parameters.noise = noise;
+    }
+
+    if (isNAI3 || isNAI4) {
+      parameters.params_version = 3;
+      parameters.legacy = false;
+      parameters.legacy_v3_extend = false;
+      parameters.noise_schedule = noiseSchedule;
+
+      if (isNAI4) {
+        const cfgRescale = Number.isFinite(req?.cfgRescale) ? Number(req.cfgRescale) : 0;
+        const charCenters = [];
+        const charCaptionsPositive = v4Chars.map((item) => {
+          const center = {
+            x: clamp01(item?.centerX, 0.5),
+            y: clamp01(item?.centerY, 0.5),
+          };
+          charCenters.push(center);
+          return {
+            char_caption: String(item?.prompt || ""),
+            centers: [center],
+          };
+        });
+        const charCaptionsNegative = v4Chars.map((item, idx) => {
+          const center = charCenters[idx] || { x: 0.5, y: 0.5 };
+          return {
+            char_caption: String(item?.negativePrompt || ""),
+            centers: [center],
+          };
+        });
+
+        parameters.add_original_image = true;
+        parameters.cfg_rescale = cfgRescale;
+        parameters.characterPrompts = [];
+        parameters.controlnet_strength = 1;
+        parameters.deliberate_euler_ancestral_bug = false;
+        parameters.prefer_brownian = true;
+        parameters.reference_image_multiple = [];
+        parameters.reference_information_extracted_multiple = [];
+        parameters.reference_strength_multiple = [];
+        parameters.skip_cfg_above_sigma = null;
+        parameters.use_coords = v4UseCoords;
+        parameters.v4_prompt = {
+          caption: {
+            base_caption: prompt,
+            char_captions: charCaptionsPositive,
+          },
+          use_coords: parameters.use_coords,
+          use_order: v4UseOrder,
+        };
+        parameters.v4_negative_prompt = {
+          caption: {
+            base_caption: negativePrompt,
+            char_captions: charCaptionsNegative,
+          },
+        };
+      }
+      else if (isNAI3) {
+        const smea = Boolean(req?.smea);
+        const smeaDyn = Boolean(req?.smeaDyn);
+        parameters.sm_dyn = smeaDyn;
+        parameters.sm = smea || smeaDyn;
+
+        if (
+          (resolvedSampler === "k_euler_ancestral" || resolvedSampler === "k_dpmpp_2s_ancestral")
+          && noiseSchedule === "karras"
+        ) {
+          parameters.noise_schedule = "native";
+        }
+        if (resolvedSampler === "ddim_v3") {
+          parameters.sm = false;
+          parameters.sm_dyn = false;
+          delete parameters.noise_schedule;
+        }
+        if (Number.isFinite(parameters.scale) && parameters.scale > 10) {
+          parameters.scale = parameters.scale / 2;
+        }
+      }
+    }
+
+    const payload = {
+      model,
+      input: prompt,
+      action: "generate",
+      parameters,
+    };
+
+    const url = `${endpoint}/ai/generate-image`;
+    const fetchImpl = globalThis.fetch;
+    if (typeof fetchImpl !== "function") {
+      throw new TypeError("当前 Electron/Node 环境缺少 fetch 实现，无法请求 NovelAI");
+    }
+
+    const res = await fetchImpl(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "referer": "https://novelai.net/",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`NovelAI 请求失败：${res.status} ${res.statusText}${text ? ` - ${text.slice(0, 300)}` : ""}`);
+    }
+
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+    const disposition = (res.headers.get("content-disposition") || "").toLowerCase();
+    const buffer = new Uint8Array(await res.arrayBuffer());
+
+    const isZip = contentType.includes("zip") || disposition.includes(".zip") || looksLikeZip(buffer);
+
+    let dataUrl = detectBinaryDataUrl(buffer);
+    if (isZip) {
+      dataUrl = firstImageFromZip(buffer);
+    }
+    else if (contentType.startsWith("image/")) {
+      dataUrl = base64DataUrl(contentType.split(";")[0] || "image/png", buffer);
+    }
+    else if (!dataUrl) {
+      try {
+        const text = new TextDecoder().decode(buffer);
+        const maybeDataUrl = /data:\s*(data:\S+;base64,[A-Za-z0-9+/=]+)/.exec(text)?.[1];
+        if (maybeDataUrl) {
+          dataUrl = maybeDataUrl;
+        }
+        else {
+          const maybeBase64 = /data:\s*([A-Za-z0-9+/=]+)\s*$/m.exec(text)?.[1];
+          if (maybeBase64) {
+            dataUrl = `data:image/png;base64,${maybeBase64}`;
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    if (!dataUrl) {
+      throw new Error(`NovelAI 返回了未知格式：content-type=${contentType || "unknown"}`);
+    }
+
+    return {
+      dataUrl,
+      seed,
+      width,
+      height,
+      model,
+    };
+  });
 
   app.on("activate", () => {
     // 通常在 macOS 上，当点击 dock 中的应用程序图标时，如果没有其他

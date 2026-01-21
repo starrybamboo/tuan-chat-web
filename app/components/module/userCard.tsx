@@ -1,5 +1,5 @@
-import UserAvatarComponent from "@/components/common/userAvatar";
 import { useNavigate } from "react-router";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "../globalContextProvider";
 
 function UserCard({ className }: { className?: string }) {
@@ -64,11 +64,13 @@ function UserCard({ className }: { className?: string }) {
           onClick={() => {
             navigate("/module/create");
           }}
+          type="button"
         >
           创建模组
         </button>
         <button
           className="btn btn-warning"
+          type="button"
         >
           查看模组
         </button>

@@ -1,6 +1,6 @@
-import type { Route } from "./+types/home";
-import Topbar from "@/components/topbanner/Topbanner";
+import type { Route } from "./+types/dashBoard";
 import { Outlet } from "react-router";
+import Topbar from "@/components/topbanner/Topbanner";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -11,9 +11,11 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function DashBoard() {
   return (
-    <div className="h-dvh w-screen grid grid-rows-[auto_1fr] overflow-auto">
+    <div className="h-dvh w-full min-w-0 grid grid-rows-[auto_1fr]">
       <Topbar></Topbar>
-      <Outlet></Outlet>
+      <div className="min-h-0 min-w-0 overflow-y-auto">
+        <Outlet></Outlet>
+      </div>
     </div>
   );
 }

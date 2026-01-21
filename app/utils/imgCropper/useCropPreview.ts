@@ -26,6 +26,12 @@ type UseCropPreviewOptions = {
   mode: CropMode | (() => CropMode);
   /** 防抖延迟，默认 100ms */
   debounceMs?: number;
+  /**
+   * 是否将首次预览绘制延后到下一帧（requestAnimationFrame）。
+   * 用于“图片切换时需要先提交外部状态（如 transform）再绘制 canvas”的场景，避免出现中间帧闪烁。
+   * 默认 false（保持原行为：图片加载后立即绘制）。
+   */
+  deferInitialPreviewDraw?: boolean;
   /** 预览更新回调（每次 canvas 更新时调用） */
   onPreviewUpdate?: (dataUrl: string) => void;
   /** 图片加载后的扩展逻辑（在默认处理之后调用） */
@@ -79,6 +85,7 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   const {
     mode,
     debounceMs = 100,
+    deferInitialPreviewDraw = false,
     onPreviewUpdate,
     onImageLoadExtend,
     imgRef: externalImgRef,
@@ -121,20 +128,22 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
     setCrop(newCrop);
     setCompletedCrop(pixelCrop);
 
-    // 立即绘制初始预览
-    if (imgRef.current && previewCanvasRef.current) {
-      canvasPreview(imgRef.current, previewCanvasRef.current, pixelCrop, 1, 0, { previewMode: true });
-      // 使用 toBlob 异步生成预览 URL（比 toDataURL 更高效）
-      previewCanvasRef.current.toBlob(
-        (blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            handlePreviewUpdate(url);
-          }
-        },
-        "image/png",
-      );
-    }
+    const drawInitialPreview = () => {
+      // 立即绘制初始预览
+      if (imgRef.current && previewCanvasRef.current) {
+        canvasPreview(imgRef.current, previewCanvasRef.current, pixelCrop, 1, 0, { previewMode: true });
+        // 使用 toBlob 异步生成预览 URL（比 toDataURL 更高效）
+        previewCanvasRef.current.toBlob(
+          (blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              handlePreviewUpdate(url);
+            }
+          },
+          "image/png",
+        );
+      }
+    };
 
     // 调用扩展逻辑
     onImageLoadExtend?.(e, {
@@ -143,7 +152,14 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
       crop: newCrop,
       pixelCrop,
     });
-  }, [getMode, imgRef, previewCanvasRef, handlePreviewUpdate, onImageLoadExtend]);
+
+    if (deferInitialPreviewDraw) {
+      requestAnimationFrame(drawInitialPreview);
+    }
+    else {
+      drawInitialPreview();
+    }
+  }, [getMode, imgRef, previewCanvasRef, handlePreviewUpdate, onImageLoadExtend, deferInitialPreviewDraw]);
 
   // 裁剪区域变化（拖拽过程中）
   const onCropChange = useCallback((_: Crop, percentCrop: Crop) => {

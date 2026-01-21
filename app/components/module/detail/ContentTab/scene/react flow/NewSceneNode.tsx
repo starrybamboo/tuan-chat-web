@@ -17,6 +17,7 @@ interface SceneNodeProps {
     moduleSceneName?: string;
     children?: React.ReactNode;
     isMobile?: boolean; // 新增移动端标识
+    isStart?: boolean;
   };
   selected?: boolean;
 }
@@ -98,9 +99,13 @@ function SceneNode({ data, selected }: SceneNodeProps) {
         onDrop={handleDrop}
       >
         <div
-          className={`relative rounded-md ${selected ? "border-2 border-primary" : "border border-base-content"} ${
-            isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""
-          }`}
+          className={`relative rounded-md ${
+            data.isStart
+              ? "border-[3px] border-error"
+              : selected
+                ? "border-2 border-primary"
+                : "border border-base-content"
+          } ${isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""}`}
           onClick={handleNodeClick}
         >
           {/* 背景图片（覆盖整个节点，降低透明度） */}

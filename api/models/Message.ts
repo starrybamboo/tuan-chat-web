@@ -26,7 +26,7 @@ export type Message = {
     /**
      * 角色id
      */
-    roleId: number;
+    roleId?: number;
     /**
      * 内容
      */
@@ -34,7 +34,7 @@ export type Message = {
     /**
      * 说话人的这个时候的立绘
      */
-    avatarId: number;
+    avatarId?: number;
     /**
      * webgal相关的演出设置
      */
@@ -51,6 +51,10 @@ export type Message = {
      * 消息类型
      */
     messageType: number;
+    /**
+     * thread id（用于消息线程聚合）；为空表示主消息流
+     */
+    threadId?: number;
     /**
      * 位置
      */

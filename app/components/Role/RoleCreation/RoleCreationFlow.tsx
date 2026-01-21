@@ -13,9 +13,10 @@ import {
   useCreateRoleMutation,
   useUpdateRoleWithLocalMutation,
   useUploadAvatarMutation,
-} from "api/queryHooks";
+} from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import RulesSection from "../rules/RulesSection";
 import { UNIFIED_STEPS } from "./constants";
 import RoleCreationLayout from "./RoleCreationLayout";
@@ -100,6 +101,9 @@ export default function RoleCreationFlow({
       return;
     if (!characterData.name.trim() || !characterData.description.trim() || characterData.ruleId <= 0)
       return;
+
+    // 初始化属性别名映射（封装在 aliasRegistry），确保表达式计算前已完成一次性初始化
+    initAliasMapOnce();
 
     setIsSaving(true);
     try {

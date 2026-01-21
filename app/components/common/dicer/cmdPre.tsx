@@ -1,38 +1,34 @@
-import type { RoomContextType } from "@/components/chat/roomContext";
-import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
-import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
-import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
-import executorFu from "@/components/common/dicer/cmdExe/cmdExeFu";
-import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
-import UTILS from "@/components/common/dicer/utils/utils";
+import type { RoomContextType } from "@/components/chat/core/roomContext";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
+import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
+import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
+import UTILS from "@/components/common/dicer/utils/utils";
 import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../api/instance";
-import { useGetRoleQuery } from "../../../../api/queryHooks";
 
-const RULES: Map<number, RuleNameSpace> = new Map();
-RULES.set(1, executorCoc); // CoC规则
-RULES.set(2, executorDnd); // DnD规则
-RULES.set(3, executorFu); // 最终物语规则
-
-const ALIAS_MAP_SET: { [key: string]: Map<string, string> } = {
-  1: executorCoc.aliasMap,
-  2: executorDnd.aliasMap,
-  3: executorFu.aliasMap,
-};
-
-UTILS.initAliasMap(ALIAS_MAP_SET);
+initAliasMapOnce();
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
-  return (trimmed.startsWith(".") || trimmed.startsWith("。"));
+  // 仅当以单个前缀符号开头且紧随其后为字母时，才视为指令
+  if (!(trimmed.startsWith(".") || trimmed.startsWith("。") || trimmed.startsWith("/"))) {
+    return false;
+  }
+  // 多个符号开头（如 "。。ff"、"..."、"//"）不视为指令
+  const secondChar = trimmed.charAt(1);
+  if (secondChar === "." || secondChar === "。" || secondChar === "/" || secondChar === "%") {
+    return false;
+  }
+  // 前缀后需以英文字母开始（命令名约定为字母），否则不视为指令
+  return /^[.。/][A-Z].*/i.test(trimmed);
 }
 
 export function getCommandList(ruleId: number): Map<string, CommandInfo> {
@@ -266,6 +262,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         content: executorProp.originMessage,
         roleId: curRoleId,
         avatarId: curAvatarId,
+        threadId: executorProp.threadId,
+        replayMessageId: executorProp.replyMessageId,
         extra: {},
       };
       const optMsgRes = await sendMessageMutation.mutateAsync(messageRequest);
@@ -345,6 +343,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         roleId: dicerRoleId,
         avatarId: chosenAvatarId,
         content: "",
+        threadId: executorProp.threadId,
         replayMessageId: optMsgRes.data?.messageId ?? undefined,
         extra: {},
       };

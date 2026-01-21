@@ -1,10 +1,10 @@
+import { useCreateRoomMutation, useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import React, { useEffect, useState } from "react";
 import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useCreateRoomMutation, useGetSpaceMembersQuery } from "api/hooks/chatQueryHooks";
-import { useGetUserInfoQuery } from "api/queryHooks";
-import React, { useEffect, useState } from "react";
 
 interface CreateRoomWindowProps {
   spaceId: number;
@@ -23,7 +23,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
   // 创建房间的头像
   const [roomAvatar, setRoomAvatar] = useState<string>(spaceAvatar || "");
   // 创建房间的名称
-  const [roomName, setRoomName] = useState<string>(`${String(userInfo?.username)}的房间`);
+  const [roomName, setRoomName] = useState<string>(() => `${String(userInfo?.username)}的房间`);
 
   // 房间头像文字颜色
   const [roomAvatarTextColor, setRoomAvatarTextColor] = useState("text-black");
@@ -36,7 +36,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
   // 已选择邀请的用户
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(() => new Set());
 
   // 监听头像变化，自动调整文字颜色
   useEffect(() => {
@@ -91,10 +91,12 @@ export default function CreateRoomWindow({ spaceId, spaceAvatar, onSuccess }: Cr
             setRoomAvatar(url);
           }}
           fileName={`new-room-avatar-${Date.now()}`}
+          aspect={1}
         >
           <div className="relative group overflow-hidden rounded-lg">
             <img
               src={roomAvatar}
+              alt="room avatar"
               className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
             />
             <div

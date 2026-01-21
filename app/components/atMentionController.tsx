@@ -1,17 +1,17 @@
-import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
 import type {
   RefObject,
 } from "react";
 import type { UserRole } from "../../api";
-import { Mounter } from "@/components/common/mounter";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
   useState,
 } from "react";
+import { Mounter } from "@/components/common/mounter";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 
 // 定义 props 类型
 interface AtMentionProps {
@@ -104,9 +104,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
       setSearchKey(keyWord ?? ""); // 如果 keyWord 是 null/undefined，则设置为空字符串
       // 注意：这里我们不设置 setShowDialog(true)，因为那应该由 onKeyUp 触发
       // 修正：为了支持移动端，如果检测到有效的 @ 模式，也应该尝试打开对话框
-      if (!showDialog) {
-        setShowDialog(true);
-      }
+      setShowDialog(true);
     }
     else {
       setShowDialog(false);

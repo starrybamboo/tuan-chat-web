@@ -1,446 +1,301 @@
-import { SpaceContext } from "@/components/chat/spaceContext";
-import checkBack from "@/components/common/autoContrastText";
-import ConfirmModal from "@/components/common/comfirmModel";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import MemberInfoComponent from "@/components/common/memberInfo";
-import { PopWindow } from "@/components/common/popWindow";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import {
-  useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
-  useGetSpaceMembersQuery,
-  useTransferLeader,
-  useUpdateSpaceArchiveStatusMutation,
+  useGetUserSpacesQuery,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
-import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "api/queryHooks";
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
-import { tuanchat } from "../../../../api/instance";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
-  const navigate = useNavigate();
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId);
-  const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
-  const space = getSpaceInfoQuery.data?.data;
   const setActiveSpaceId = spaceContext.setActiveSpaceId;
 
-  // 控制成员列表弹窗打开
-  const [isMembersListHandleOpen, setIsMembersListHandleOpen] = useSearchParamsState<boolean>("memberListPop", false);
+  const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
+  const space = getSpaceInfoQuery.data?.data;
 
-  // 获取规则列表
-  const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
-  const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+  const userSpacesQuery = useGetUserSpacesQuery();
+  const userSpaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
 
-  // 获取空间非主持人成员
-  const getSpaceMembersQuery = useGetSpaceMembersQuery(spaceId);
-  const allMembers = getSpaceMembersQuery.data?.data ?? [];
-  const members = allMembers?.filter(member => member.memberType !== 1) ?? [];
+  const cloneSourceId = space?.parentCommitId;
+  const cloneSourceSpace = useMemo(() => {
+    if (!cloneSourceId)
+      return undefined;
+    return userSpaces.find(s => s.spaceId === cloneSourceId);
+  }, [cloneSourceId, userSpaces]);
 
-  // 处理用户uid
-  const [inputUserId, setInputUserId] = useState<number>(-1);
-
-  // 空间归档状态
-  const [isArchived, setIsArchived] = useState(space?.status === 2);
-
-  // 设置归档状态
-  const updateAchiveStatusMutation = useUpdateSpaceArchiveStatusMutation();
-
-  // 用于强制重置上传组件
-  const [uploaderKey, setUploaderKey] = useState(0);
-
-  // 使用状态管理表单数据
+  // 表单数据
   const [formData, setFormData] = useState({
-    name: space?.name || "",
-    description: space?.description || "",
-    avatar: space?.avatar || "",
-    ruleId: space?.ruleId || 1,
+    name: "",
+    description: "",
+    avatar: "",
   });
 
-  // 使用骰娘id数据
-  const extra = JSON.parse(space?.extra ?? "{}");
-  const [diceRollerId, setDiceRollerId] = useState(extra?.dicerRoleId || 2);
+  // 自动保存状态管理（防抖 + 并发合并 + 失败重试）
+  const lastSavedSnapshotRef = useRef<string>("");
+  const dirtyRef = useRef(false);
+  const saveDebounceTimerRef = useRef<number | null>(null);
+  const retryTimerRef = useRef<number | null>(null);
+  const retryDelayMsRef = useRef(2000);
+  const isSavingRef = useRef(false);
+  const saveQueuedRef = useRef(false);
+  const lastFailureToastAtRef = useRef(0);
 
-  // 骰娘关联弹窗状态
-  const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false);
+  const buildSnapshot = useCallback((data: typeof formData) => {
+    // JSON.stringify 在这里足够；字段量很少。
+    return JSON.stringify({
+      name: data.name,
+      description: data.description,
+      avatar: data.avatar,
+    });
+  }, []);
 
-  // 查询当前骰娘信息
-  const currentDicerId = useMemo(() => {
-    const id = Number(diceRollerId);
-    return (Number.isNaN(id) || id <= 0) ? undefined : id;
-  }, [diceRollerId]);
-
-  const { data: linkedDicerData } = useGetRoleQuery(currentDicerId || 0);
-
-  // 查询骰娘头像
-  const dicerAvatarId = linkedDicerData?.data?.avatarId;
-  const { data: dicerAvatarData } = useGetRoleAvatarQuery(dicerAvatarId || 0);
-  const dicerAvatarUrl = dicerAvatarData?.data?.avatarUrl || "/favicon.ico";
-
-  // 验证骰娘是否有效
-  const dicerRoleError = useMemo(() => {
-    if (!currentDicerId)
-      return null;
-    const roleData = linkedDicerData?.data;
-    if (!roleData)
-      return "骰娘角色不存在";
-    if (roleData.type !== 1)
-      return "关联的角色不是骰娘类型";
-    return null;
-  }, [currentDicerId, linkedDicerData]);
-
-  // 头像文字颜色
-  const [avatarTextColor, setAvatarTextColor] = useState("text-black");
-
-  // 监听头像变化，自动调整文字颜色
+  // 让卸载时的自动保存拿到最新值（避免闭包捕获初始 state）
+  const latestFormDataRef = useRef(formData);
   useEffect(() => {
-    if (formData.avatar) {
-      checkBack(formData.avatar).then(() => {
-        const computedColor = getComputedStyle(document.documentElement)
-          .getPropertyValue("--text-color")
-          .trim();
-        setAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
-      });
-    }
-  }, [formData.avatar]);
+    latestFormDataRef.current = formData;
+  }, [formData]);
 
-  const handleAvatarUpdate = (url: string) => {
-    setFormData(prev => ({ ...prev, avatar: url }));
-    // 上传完成后强制重置上传组件
-    setUploaderKey(prev => prev + 1);
-  };
+  // 初始化表单（仅一次）
+  const didInitFormRef = useRef(false);
+  useEffect(() => {
+    if (!space || didInitFormRef.current)
+      return;
 
-  // 转让空间
-  const transferLeader = useTransferLeader();
-
-  // 当space数据加载时初始化formData
-  if (space && formData.name === "" && formData.description === "" && formData.avatar === "") {
     setFormData({
       name: space.name || "",
       description: space.description || "",
       avatar: space.avatar || "",
-      ruleId: space.ruleId || 1,
     });
-  }
+    didInitFormRef.current = true;
 
-  const dissolveSpaceMutation = useDissolveSpaceMutation();
+    // 初始化后同步 lastSavedSnapshot，避免首次渲染触发自动保存。
+    lastSavedSnapshotRef.current = buildSnapshot({
+      name: space.name || "",
+      description: space.description || "",
+      avatar: space.avatar || "",
+    });
+    dirtyRef.current = false;
+  }, [space, buildSnapshot]);
+
+  const handleBlocksuiteHeaderChange = useCallback((header: { title: string; imageUrl: string }) => {
+    setFormData((prev) => {
+      const nextName = header.title;
+      const nextAvatar = header.imageUrl;
+      if (prev.name === nextName && prev.avatar === nextAvatar) {
+        return prev;
+      }
+      return { ...prev, name: nextName, avatar: nextAvatar };
+    });
+  }, []);
+
   const updateSpaceMutation = useUpdateSpaceMutation();
 
-  // 处理骰娘关联确认
-  const handleDiceMaidenLinkConfirm = (dicerRoleId: number) => {
-    setDiceRollerId(dicerRoleId);
-  };
+  const saveNow = async (params?: { data?: typeof formData }) => {
+    if (!Number.isFinite(spaceId) || spaceId <= 0)
+      return;
 
-  // 保存数据函数
-  const handleSave = () => {
-    updateSpaceMutation.mutate({
-      spaceId,
-      name: formData.name,
-      description: formData.description,
-      avatar: formData.avatar,
-      ruleId: formData.ruleId,
-    }, {
-      onSuccess: () => {
-        onClose();
-      },
+    // 未初始化表单时不触发保存，避免覆盖后端已有数据
+    if (!didInitFormRef.current)
+      return;
+
+    const data = params?.data ?? latestFormDataRef.current;
+
+    const snapshot = buildSnapshot(data);
+    if (snapshot === lastSavedSnapshotRef.current) {
+      dirtyRef.current = false;
+      return;
+    }
+
+    const updatePromise = new Promise<void>((resolve, reject) => {
+      updateSpaceMutation.mutate({
+        spaceId,
+        name: data.name,
+        description: data.description,
+        avatar: data.avatar,
+      }, {
+        onSuccess: () => resolve(),
+        onError: err => reject(err),
+      });
     });
-    tuanchat.spaceController.setSpaceExtra({
-      spaceId,
-      key: "dicerRoleId",
-      value: String(diceRollerId),
-    });
+    await updatePromise;
+
+    lastSavedSnapshotRef.current = snapshot;
+    dirtyRef.current = false;
+    retryDelayMsRef.current = 2000;
   };
 
-  // 退出时自动保存
-  const handleClose = () => {
-    handleSave();
+  const flushAutoSave = async () => {
+    if (isSavingRef.current) {
+      saveQueuedRef.current = true;
+      return;
+    }
+    if (!dirtyRef.current)
+      return;
+
+    isSavingRef.current = true;
+    try {
+      await saveNow();
+    }
+    catch {
+      // 失败提示（节流，避免疯狂刷 toast）
+      const now = Date.now();
+      if (now - lastFailureToastAtRef.current > 3000) {
+        toast.error("空间设置自动保存失败，将自动重试");
+        lastFailureToastAtRef.current = now;
+      }
+
+      dirtyRef.current = true;
+      if (retryTimerRef.current) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+
+      const delay = retryDelayMsRef.current;
+      retryDelayMsRef.current = Math.min(Math.floor(retryDelayMsRef.current * 1.6), 30000);
+      retryTimerRef.current = window.setTimeout(() => {
+        retryTimerRef.current = null;
+        flushAutoSave();
+      }, delay);
+    }
+    finally {
+      isSavingRef.current = false;
+      if (saveQueuedRef.current) {
+        saveQueuedRef.current = false;
+        // 如果在保存期间有新改动，立刻再 flush 一次。
+        if (dirtyRef.current) {
+          void flushAutoSave();
+        }
+      }
+    }
   };
 
-  // 控制更新归档状态的确认弹窗显示
-  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
-  // 控制删除空间的确认弹窗显示
-  const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
-  // 控制转让空间的确认弹窗显示
-  const [isTransferOwnerConfirmOpen, setIsTransferOwnerConfirmOpen] = useState(false);
-  // 转让的用户Id
-  const [transfereeId, setTransfereeId] = useState(-1);
+  const scheduleAutoSave = () => {
+    if (!didInitFormRef.current)
+      return;
+
+    // 标记 dirty
+    dirtyRef.current = buildSnapshot(latestFormDataRef.current) !== lastSavedSnapshotRef.current;
+    if (!dirtyRef.current)
+      return;
+
+    if (saveDebounceTimerRef.current) {
+      window.clearTimeout(saveDebounceTimerRef.current);
+      saveDebounceTimerRef.current = null;
+    }
+    saveDebounceTimerRef.current = window.setTimeout(() => {
+      saveDebounceTimerRef.current = null;
+      void flushAutoSave();
+    }, 800);
+  };
+
+  // 监听变更：自动保存
+  useEffect(() => {
+    if (!didInitFormRef.current)
+      return;
+    scheduleAutoSave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData]);
+
+  // 离开空间资料时自动保存（兜底）
+  useEffect(() => {
+    return () => {
+      if (saveDebounceTimerRef.current) {
+        window.clearTimeout(saveDebounceTimerRef.current);
+        saveDebounceTimerRef.current = null;
+      }
+      if (retryTimerRef.current) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+
+      // 直接保存一次（不防抖），确保关闭时尽量落库。
+      // 这里不 await，避免阻塞卸载流程。
+      void saveNow();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="w-full p-4 min-w-[40vw] max-h-[80vh]">
-      {space && (
-        <div>
-          <div className="flex justify-center">
-            <ImgUploaderWithCopper
-              key={uploaderKey}
-              setCopperedDownloadUrl={handleAvatarUpdate}
-              fileName={`spaceId-${space.spaceId}`}
-            >
-              <div className="relative group overflow-hidden rounded-lg">
-                <img
-                  src={formData.avatar || space.avatar}
-                  alt={formData.name}
-                  className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
-                    更新头像
-                  </span>
-                </div>
-              </div>
-            </ImgUploaderWithCopper>
-          </div>
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间名称</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              className="input input-bordered w-full"
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, name: e.target.value }));
-              }}
-              placeholder="请输入空间名称..."
-            />
-          </div>
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间描述</span>
-            </label>
-            <textarea
-              value={formData.description}
-              className="textarea w-full min-h-[100px]"
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, description: e.target.value }));
-              }}
-              rows={4}
-              placeholder="请输入空间描述..."
-            />
-          </div>
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间规则</span>
-            </label>
-            <div className="dropdown w-full">
-              <label tabIndex={0} className="btn btn-outline w-full justify-start">
-                {rules.find(rule => rule.ruleId === formData.ruleId)?.ruleName ?? "未找到规则"}
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </label>
-              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
-                {rules.map(rule => (
-                  <li key={rule.ruleId}>
-                    <button
-                      type="button"
-                      className="w-full text-left"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, ruleId: Number(rule.ruleId) }));
-                        if (document.activeElement instanceof HTMLElement) {
-                          document.activeElement.blur();
-                        }
-                      }}
-                    >
-                      {rule.ruleName}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">空间骰娘</span>
-            </label>
-            <div
-              className="card bg-base-200 cursor-pointer hover:bg-base-300 transition-all duration-200"
-              onClick={() => setIsDiceMaidenLinkModalOpen(true)}
-            >
-              <div className="card-body p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* 骰娘头像 */}
-                    {currentDicerId && !dicerRoleError
-                      ? (
-                          <div className="avatar">
-                            <div className="w-10 h-10 rounded-full ring ring-accent ring-offset-base-100 ring-offset-2">
-                              <img src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
-                            </div>
-                          </div>
-                        )
-                      : (
-                          <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
-                              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
-                              <circle cx="7" cy="7" r="1.5" fill="currentColor" />
-                              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                              <circle cx="17" cy="17" r="1.5" fill="currentColor" />
-                              <circle cx="7" cy="17" r="1.5" fill="currentColor" />
-                              <circle cx="17" cy="7" r="1.5" fill="currentColor" />
-                            </svg>
-                          </div>
-                        )}
-                    <div>
-                      <h3 className="font-semibold text-sm">空间骰娘</h3>
-                      <p className={`font-medium text-sm ${
-                        dicerRoleError ? "text-error" : "text-accent"
-                      }`}
-                      >
-                        {currentDicerId
-                          ? dicerRoleError || linkedDicerData?.data?.roleName || `ID: ${currentDicerId}`
-                          : "选择使用的骰娘角色"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-base-content/50">
-                    <span className="text-xs">{currentDicerId ? "更改" : "设置"}</span>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-between items-center mt-16">
-            <button
-              type="button"
-              className="btn btn-error"
-              onClick={() => setIsDissolveConfirmOpen(true)} // 点击按钮打开删除群组的确认弹窗
-            >
-              解散空间
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary w-24"
-              onClick={() => setIsArchiveConfirmOpen(true)} // 点击按钮打开更新归档状态的确认弹窗
-            >
-              {isArchived ? "取消归档" : "归档"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-accent"
-              onClick={() => setIsMembersListHandleOpen(true)}
-            >
-              转让空间
-            </button>
-            <button
-              type="button"
-              className="btn btn-success"
-              onClick={handleClose}
-            >
-              保存并关闭
-            </button>
-          </div>
-          <PopWindow isOpen={isMembersListHandleOpen} onClose={() => setIsMembersListHandleOpen(false)}>
-            <div className="flex flex-col gap-y-2 pb-4 min-w-72">
-              <div>
-                <label className="label mb-2">
-                  <span className="label-text">搜索玩家Id</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="请输入要加入的玩家ID"
-                  className="input input-bordered w-full mb-2"
-                  onInput={e => setInputUserId(Number(e.currentTarget.value))}
-                />
-              </div>
-              <div className="flex flex-col gap-y-2 pb-4 max-h-[40vh] overflow-y-auto">
-                {(() => {
-                  if (members.length === 0) {
-                    return (
-                      <div className="text-center py-4 text-gray-500">
-                        当前空间内没有玩家哦
+    <div className="w-full min-w-0 h-full min-h-0 overflow-hidden">
+      {!space
+        ? (
+            <div className="flex items-center justify-center opacity-70">加载中...</div>
+          )
+        : (
+            <div className="h-full flex flex-col gap-4">
+              {/* 左侧：空间信息 */}
+              {cloneSourceId
+                ? (
+                    <div className="mb-4">
+                      <label className="label mb-2">
+                        <span className="label-text">克隆来源</span>
+                      </label>
+                      <div className="flex items-center justify-between gap-3 rounded border border-neutral-200 dark:border-neutral-700 px-3 py-2">
+                        <div className="text-sm text-neutral-600 dark:text-neutral-300">
+                          {cloneSourceSpace?.name
+                            ? (
+                                <>
+                                  {cloneSourceSpace.name}
+                                  <span className="ml-2 text-xs opacity-70">
+                                    (ID:
+                                    {cloneSourceId}
+                                    )
+                                  </span>
+                                </>
+                              )
+                            : (
+                                <>
+                                  来源ID:
+                                  {" "}
+                                  {cloneSourceId}
+                                  <span className="ml-2 text-xs opacity-70">(未在当前列表中找到空间名称)</span>
+                                </>
+                              )}
+                        </div>
+
+                        {cloneSourceSpace?.spaceId
+                          ? (
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => {
+                                  setActiveSpaceId(cloneSourceSpace.spaceId!);
+                                  onClose();
+                                }}
+                              >
+                                前往
+                              </button>
+                            )
+                          : null}
                       </div>
-                    );
-                  }
-
-                  const matchedMember = inputUserId > 0
-                    ? members.find(member => member.userId === inputUserId)
-                    : null;
-                  const memberToShow = matchedMember ? [matchedMember] : members;
-
-                  return memberToShow.map(member => (
-                    <div
-                      key={member.userId}
-                      className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full justify-between"
-                    >
-                      <MemberInfoComponent userId={member.userId ?? -1} />
-                      <button
-                        type="button"
-                        className="btn"
-                        onClick={() => {
-                          setIsTransferOwnerConfirmOpen(true);
-                          setTransfereeId(member.userId ?? -1);
-                          setIsMembersListHandleOpen(false);
-                        }}
-                      >
-                        转让
-                      </button>
                     </div>
-                  ));
-                })()}
+                  )
+                : null}
+
+              {/* 右侧：空间描述文档 */}
+              <div className="flex-1 min-w-0 min-h-0">
+                <BlocksuiteDescriptionEditor
+                  workspaceId={`space:${spaceId}`}
+                  spaceId={spaceId}
+                  docId={buildSpaceDocId({ kind: "space_description", spaceId })}
+                  mode="page"
+                  allowModeSwitch
+                  fullscreenEdgeless
+                  variant="full"
+                  className="h-full"
+                  tcHeader={{ enabled: true, fallbackTitle: space?.name ?? "", fallbackImageUrl: space?.avatar ?? "" }}
+                  onTcHeaderChange={({ header }) => {
+                    handleBlocksuiteHeaderChange({ title: header.title, imageUrl: header.imageUrl });
+                  }}
+                />
               </div>
             </div>
-          </PopWindow>
-          {/* 渲染更新归档状态的确认弹窗 */}
-          <ConfirmModal
-            isOpen={isArchiveConfirmOpen}
-            onClose={() => setIsArchiveConfirmOpen(false)}
-            title="确认更新归档状态"
-            message={`是否确定要${isArchived ? "取消归档" : "归档"}该空间？`}
-            onConfirm={() => {
-              updateAchiveStatusMutation.mutate({ spaceId, archived: !isArchived }, {
-                onSuccess: () => {
-                  setIsArchived(!isArchived);
-                  setIsArchiveConfirmOpen(false);
-                },
-              });
-            }}
-          />
-          {/* 渲染删除群组的确认弹窗 */}
-          <ConfirmModal
-            isOpen={isDissolveConfirmOpen}
-            onClose={() => setIsDissolveConfirmOpen(false)}
-            title="确认解散空间"
-            message="是否确定要解散该空间？此操作不可逆。"
-            onConfirm={() => {
-              dissolveSpaceMutation.mutate(spaceId, {
-                onSuccess: () => {
-                  onClose();
-                  if (typeof window !== "undefined") {
-                    localStorage.removeItem("storedChatIds");
-                  }
-                  navigate("/chat", { replace: true });
-                  setIsDissolveConfirmOpen(false);
-                  setActiveSpaceId(null);
-                },
-              });
-            }}
-          />
-          <ConfirmModal
-            isOpen={isTransferOwnerConfirmOpen}
-            onClose={() => setIsTransferOwnerConfirmOpen(false)}
-            title="确认转让空间"
-            message="是否确定转让空间给该用户？此操作不可逆。转让后会关闭设置窗口并自动保存数据"
-            onConfirm={() => {
-              transferLeader.mutate({ spaceId, newLeaderId: transfereeId });
-              handleClose();
-            }}
-          />
-        </div>
-      )}
+          )}
 
-      {/* 骰娘关联弹窗 */}
-      <DiceMaidenLinkModal
-        isOpen={isDiceMaidenLinkModalOpen}
-        onClose={() => setIsDiceMaidenLinkModalOpen(false)}
-        currentDicerRoleId={currentDicerId}
-        onConfirm={handleDiceMaidenLinkConfirm}
-      />
     </div>
   );
 }

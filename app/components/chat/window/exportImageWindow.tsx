@@ -1,10 +1,14 @@
 import type { ChatMessageResponse } from "../../../../api";
-import { ChatBubble } from "@/components/chat/chatBubble";
-import { RoomContext } from "@/components/chat/roomContext";
 import * as htmltoimage from "html-to-image";
-import QRCode from "qrcode";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { ChatBubble } from "@/components/chat/message/chatBubble";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+
+async function loadQRCode() {
+  const mod = await import("qrcode");
+  return (mod as any).default ?? mod;
+}
 
 interface ExportImageWindowProps {
   /** 选中的消息列表 */
@@ -28,11 +32,10 @@ function loadImage(imgUrl: string): Promise<HTMLImageElement> {
  * 导出聊天消息为图片的窗口组件
  */
 export default function ExportImageWindow({ selectedMessages, onClose }: ExportImageWindowProps) {
-  const roomContext = use(RoomContext);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showQRCode, setShowQRCode] = useState(true);
-  const [useBubbleStyle, setUseBubbleStyle] = useState(roomContext.useChatBubbleStyle);
+  const [useBubbleStyle, setUseBubbleStyle] = useState(() => useRoomPreferenceStore.getState().useChatBubbleStyle);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
 
   // 按消息位置排序
@@ -71,6 +74,10 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
   useEffect(() => {
     const generateQRCode = async () => {
       try {
+        if (typeof window === "undefined")
+          return;
+
+        const QRCode = await loadQRCode();
         const shareUrl = getShareUrl();
         const dataUrl = await QRCode.toDataURL(shareUrl, {
           width: 120,
@@ -155,6 +162,7 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
 
       // 如果启用二维码，生成并绘制
       if (showQRCode) {
+        const QRCode = await loadQRCode();
         const shareUrl = getShareUrl();
         const qrCodeDataUrl = await QRCode.toDataURL(shareUrl, {
           width: QR_SIZE,
@@ -252,16 +260,14 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
       {/* 预览区域 */}
       <div className="overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-white">
         <div ref={contentRef} className="p-4 bg-white text-black">
-          <RoomContext value={useMemo(() => ({ ...roomContext, useChatBubbleStyle: useBubbleStyle }), [roomContext, useBubbleStyle])}>
-            {sortedMessages.map(msg => (
-              <div key={msg.message.messageId} className="export-message-item">
-                <ChatBubble
-                  chatMessageResponse={msg}
-                  useChatBubbleStyle={useBubbleStyle}
-                />
-              </div>
-            ))}
-          </RoomContext>
+          {sortedMessages.map(msg => (
+            <div key={msg.message.messageId} className="export-message-item">
+              <ChatBubble
+                chatMessageResponse={msg}
+                useChatBubbleStyle={useBubbleStyle}
+              />
+            </div>
+          ))}
         </div>
 
         {/* 预览二维码区域 */}

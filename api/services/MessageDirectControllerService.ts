@@ -25,7 +25,7 @@ export class MessageDirectControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/message/direct/updateReadPosition',
+            url: '/message/direct/updateReadPosition',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -47,7 +47,7 @@ export class MessageDirectControllerService {
     ): CancelablePromise<ApiResultMessageDirectResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/message/direct/send',
+            url: '/message/direct/send',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -69,7 +69,7 @@ export class MessageDirectControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/message/direct/recall',
+            url: '/message/direct/recall',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -92,7 +92,7 @@ export class MessageDirectControllerService {
     ): CancelablePromise<ApiResultListMessageDirectResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/message/direct/inbox',
+            url: '/message/direct/inbox',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

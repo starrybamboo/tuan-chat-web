@@ -1,4 +1,4 @@
-import type { MessageDirectType } from "../Left​​ChatList​​";
+import type { MessageDirectType } from "../types/messageDirect";
 import { useMemo } from "react";
 import ChatItem from "./ChatItem";
 
@@ -29,7 +29,7 @@ export default function ChatListItem({
   }, [sortedRealTimeMessages]);
 
   return (
-    <div className="p-2 pt-4 flex flex-col gap-2 w-full">
+    <div className="flex flex-col gap-2 w-full px-1 py-2">
       {
         realTimeContacts.length === 0
           ? (

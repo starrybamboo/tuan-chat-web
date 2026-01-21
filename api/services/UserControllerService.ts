@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultUserInfoResponse } from '../models/ApiResultUserInfoResponse';
+import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { UserInfoResponse } from '../models/UserInfoResponse';
 import type { UserLoginRequest } from '../models/UserLoginRequest';
 import type { UserRegisterRequest } from '../models/UserRegisterRequest';
@@ -22,7 +23,7 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultUserInfoResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/user/info',
+            url: '/user/info',
             query: {
                 'userId': userId,
             },
@@ -45,7 +46,7 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultUserInfoResponse> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/user/info',
+            url: '/user/info',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -68,9 +69,26 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/register',
+            url: '/user/register',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 退出登录
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public logout(): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/user/logout',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -91,9 +109,32 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/login',
+            url: '/user/login',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 通过用户名获取用户信息
+     * @param username
+     * @returns ApiResultUserInfoResponse OK
+     * @throws ApiError
+     */
+    public getUserInfoByUsername(
+        username: string,
+    ): CancelablePromise<ApiResultUserInfoResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/user/info/by-username',
+            query: {
+                'username': username,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

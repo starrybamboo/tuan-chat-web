@@ -1,5 +1,5 @@
-import { Filter, Search } from "@/icons";
 import { useState } from "react";
+import { Filter, Search } from "@/icons";
 
 export default function CollectionSearchBar() {
   const [showFilters, setShowFilters] = useState(false);

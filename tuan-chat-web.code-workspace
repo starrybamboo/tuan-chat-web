@@ -1,0 +1,37 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../WebGAL_Terre"
+		},
+		{
+			"path": "../WebGAL_Doc"
+		},
+		{
+			"path": "../TuanChat"
+		},
+		{
+			"path": "../../software/WebGal_Terre/public/templates/潮汐"
+		},
+		{
+			"path": "../../software/WebGal_Terre/public/games/realtime_10387"
+		},
+		{
+			"path": "../zuul"
+		},
+		{
+			"path": "../blocksuite-examples"
+		},
+		{
+			"path": "../AFFiNE"
+		},
+		{
+			"path": "../blocksuite"
+		}
+	],
+	"settings": {
+		"vsicons.presets.nestjs": true
+	}
+}

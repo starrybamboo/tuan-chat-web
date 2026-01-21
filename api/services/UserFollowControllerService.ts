@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
-import type { ApiResultPageBaseRespUserFollowResponse } from '../models/ApiResultPageBaseRespUserFollowResponse';
+import type { ApiResultPageBaseRespFollowResponse } from '../models/ApiResultPageBaseRespFollowResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { PageBaseRequest } from '../models/PageBaseRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -15,16 +15,16 @@ export class UserFollowControllerService {
      * 获取某人关注列表接口
      * @param targetUserId
      * @param requestBody
-     * @returns ApiResultPageBaseRespUserFollowResponse OK
+     * @returns ApiResultPageBaseRespFollowResponse OK
      * @throws ApiError
      */
     public followings(
         targetUserId: number,
         requestBody: PageBaseRequest,
-    ): CancelablePromise<ApiResultPageBaseRespUserFollowResponse> {
+    ): CancelablePromise<ApiResultPageBaseRespFollowResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/{targetUserId}/followings/page',
+            url: '/user/{targetUserId}/followings/page',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -43,16 +43,16 @@ export class UserFollowControllerService {
      * 获取某人粉丝列表接口
      * @param targetUserId
      * @param requestBody
-     * @returns ApiResultPageBaseRespUserFollowResponse OK
+     * @returns ApiResultPageBaseRespFollowResponse OK
      * @throws ApiError
      */
     public followers(
         targetUserId: number,
         requestBody: PageBaseRequest,
-    ): CancelablePromise<ApiResultPageBaseRespUserFollowResponse> {
+    ): CancelablePromise<ApiResultPageBaseRespFollowResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/{targetUserId}/followers/page',
+            url: '/user/{targetUserId}/followers/page',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -78,7 +78,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/user/{targetUserId}/follow',
+            url: '/user/{targetUserId}/follow',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -102,7 +102,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/{targetUserId}/follow',
+            url: '/user/{targetUserId}/follow',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -126,7 +126,7 @@ export class UserFollowControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/user/{targetUserId}/follow',
+            url: '/user/{targetUserId}/follow',
             path: {
                 'targetUserId': targetUserId,
             },
@@ -142,15 +142,15 @@ export class UserFollowControllerService {
      * 获取我的好友列表
      * 获取当前用户的互相关注好友列表
      * @param requestBody
-     * @returns ApiResultPageBaseRespUserFollowResponse OK
+     * @returns ApiResultPageBaseRespFollowResponse OK
      * @throws ApiError
      */
     public friends(
         requestBody: PageBaseRequest,
-    ): CancelablePromise<ApiResultPageBaseRespUserFollowResponse> {
+    ): CancelablePromise<ApiResultPageBaseRespFollowResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/friends/page',
+            url: '/user/friends/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

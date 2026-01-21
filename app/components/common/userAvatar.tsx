@@ -1,15 +1,13 @@
-import { RoomContext } from "@/components/chat/roomContext";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { UserDetail } from "@/components/common/userDetail";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-
 import { useParams } from "react-router";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { UserDetail } from "@/components/common/userDetail";
+
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetSpaceMembersQuery } from "../../../api/hooks/chatQueryHooks";
-import {
-  useGetUserInfoQuery,
-} from "../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
 const sizeMap = {

@@ -57,7 +57,15 @@ export type Module = {
     /**
      * 从哪个模组fork来
      */
-    parent?: string;
+    parent?: number;
+    /**
+     * 所属fork网络的根模组ID(搜索折叠用)
+     */
+    rootModuleId?: number;
+    /**
+     * 最新提交id
+     */
+    commitId?: number;
     state?: number;
     /**
      * 创建时间

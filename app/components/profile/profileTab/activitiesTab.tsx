@@ -1,10 +1,10 @@
-import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import React, { useEffect, useRef } from "react";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import {
   useGetMomentFeedStatsQuery,
   useGetUserMomentFeedInfiniteQuery,
 } from "../../../../api/hooks/activitiesFeedQuerryHooks";
-import { useGetUserInfoQuery } from "../../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
 interface ActivitiesTabProps {
   userId: number;
@@ -82,7 +82,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
   const renderedCommentCount = allMoments.reduce((sum, m) => sum + (m.stats?.commentCount || 0), 0);
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className="min-h-screen bg-base-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 左侧用户信息栏 */}
@@ -174,8 +174,8 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                 ? (
               // 初次加载骨架屏
                     <div className="space-y-4">
-                      {[...Array.from({ length: RENDER_MIN })].map((_, index) => (
-                        <div key={index} className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
+                      {Array.from({ length: RENDER_MIN }, (_, i) => `skeleton-${i}`).map(key => (
+                        <div key={key} className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
                           <div className="flex items-center space-x-3 mb-4">
                             <div className="skeleton w-12 h-12 rounded-full"></div>
                             <div className="flex-1 space-y-2">

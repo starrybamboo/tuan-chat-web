@@ -2,7 +2,9 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
-import { checkGameExist, terreApis } from "@/webGAL/index";
+import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
+import { checkGameExist, getTerreApis } from "@/webGAL/index";
+import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
 /**
  * WebGAL 实时渲染管理器
@@ -234,10 +236,13 @@ export class RealtimeRenderer {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
-  private messageLineMap = new Map<string, number>(); // `${roomId}_${messageId}` -> lineNumber (消息在场景中的行号)
+  private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
 
   // 小头像相关
   private miniAvatarEnabled: boolean = false;
+
+  // 自动填充立绘相关（没有设置立绘时是否自动填充左侧立绘）
+  private autoFigureEnabled: boolean = true;
 
   // TTS 相关
   private ttsConfig: RealtimeTTSConfig = { enabled: false };
@@ -284,6 +289,14 @@ export class RealtimeRenderer {
   }
 
   /**
+   * 设置自动填充立绘是否启用
+   * @param enabled 是否启用自动填充立绘（没有设置立绘时自动填充左侧立绘）
+   */
+  public setAutoFigureEnabled(enabled: boolean): void {
+    this.autoFigureEnabled = enabled;
+  }
+
+  /**
    * 设置进度变化回调
    */
   public setProgressCallback(callback: (progress: InitProgress) => void): void {
@@ -323,30 +336,11 @@ export class RealtimeRenderer {
       // 创建游戏实例（如果不存在）
       if (!gameExists) {
         console.warn(`[RealtimeRenderer] 正在创建游戏: ${this.gameName}`);
-        try {
-          await terreApis.manageGameControllerCreateGame({
-            gameDir: this.gameName,
-            gameName: this.gameName,
-            templateDir: "WebGAL Black",
-          });
-          console.warn(`[RealtimeRenderer] 游戏创建成功`);
-        }
-        catch (createError) {
-          console.error(`[RealtimeRenderer] 使用模板创建游戏失败:`, createError);
-          // 如果创建失败，尝试不使用模板创建
-          console.warn(`[RealtimeRenderer] 尝试不使用模板创建游戏`);
-          try {
-            await terreApis.manageGameControllerCreateGame({
-              gameDir: this.gameName,
-              gameName: this.gameName,
-            });
-          }
-          catch {
-            console.warn(`[RealtimeRenderer] 无法通过 API 创建游戏，将手动创建目录结构`);
-            // 手动创建必要的目录结构
-            await this.createGameDirectories();
-          }
-        }
+        await getTerreApis().manageGameControllerCreateGame({
+          gameDir: this.gameName,
+          gameName: this.gameName,
+        });
+        console.warn(`[RealtimeRenderer] 游戏创建成功`);
       }
 
       // 初始化场景
@@ -420,56 +414,6 @@ export class RealtimeRenderer {
   }
 
   /**
-   * 手动创建游戏目录结构
-   */
-  private async createGameDirectories(): Promise<void> {
-    try {
-      // 创建 games/<gameName> 目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games`,
-        name: this.gameName,
-      });
-      console.warn(`[RealtimeRenderer] 创建游戏目录: ${this.gameName}`);
-
-      // 创建 game 子目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}`,
-        name: "game",
-      });
-
-      // 创建 scene 子目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}/game`,
-        name: "scene",
-      });
-
-      // 创建 figure 子目录（用于存放立绘）
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}/game`,
-        name: "figure",
-      });
-
-      // 创建 background 子目录
-      await terreApis.manageGameControllerMkDir({
-        source: `/public/games/${this.gameName}/game`,
-        name: "background",
-      });
-
-      // 创建基础的 config.txt
-      await terreApis.manageGameControllerEditTextFile({
-        path: `games/${this.gameName}/game/config.txt`,
-        textFile: `Game_name:${this.gameName};\nDescription:实时渲染预览;\nGame_key:;\nPackage_name:;\nTitle_img:;`,
-      });
-
-      console.warn(`[RealtimeRenderer] 游戏目录结构创建完成`);
-    }
-    catch (error) {
-      console.error(`[RealtimeRenderer] 创建目录结构失败:`, error);
-      throw error;
-    }
-  }
-
-  /**
    * 设置房间信息并创建对应的场景
    */
   public setRooms(rooms: Room[]): void {
@@ -485,7 +429,7 @@ export class RealtimeRenderer {
     const initialContent = "changeBg:none -next;\nchangeFigure:none -next;";
 
     try {
-      await terreApis.manageGameControllerEditTextFile({ path, textFile: initialContent });
+      await getTerreApis().manageGameControllerEditTextFile({ path, textFile: initialContent });
       this.sceneContextMap.set(roomId, { lineNumber: 2, text: initialContent });
       this.currentSpriteStateMap.set(roomId, new Set());
       console.warn(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
@@ -506,7 +450,7 @@ export class RealtimeRenderer {
       // 如果没有房间，创建一个默认场景
       console.warn(`[RealtimeRenderer] 没有房间信息，创建默认场景`);
       const path = `games/${this.gameName}/game/scene/start.txt`;
-      await terreApis.manageGameControllerEditTextFile({
+      await getTerreApis().manageGameControllerEditTextFile({
         path,
         textFile: "changeBg:none -next;\nchangeFigure:none -next;",
       });
@@ -544,7 +488,7 @@ export class RealtimeRenderer {
       ? `choose:${branchOptions};`
       : "changeBg:none;";
 
-    await terreApis.manageGameControllerEditTextFile({
+    await getTerreApis().manageGameControllerEditTextFile({
       path: `games/${this.gameName}/game/scene/start.txt`,
       textFile: startContent,
     });
@@ -573,9 +517,9 @@ export class RealtimeRenderer {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_TERRE_WS;
+    const wsUrl = getTerreWsUrl();
     if (!wsUrl) {
-      console.error("VITE_TERRE_WS 未配置");
+      console.error("WebGAL WebSocket 地址未配置");
       this.onStatusChange?.("error");
       return;
     }
@@ -675,6 +619,59 @@ export class RealtimeRenderer {
     }
   }
 
+  /**
+   * 替换指定房间场景中的指定行
+   * @param roomId 房间ID
+   * @param startLine 起始行号（1-based）
+   * @param endLine 结束行号（1-based，包含）
+   * @param newLines 新的内容行数组
+   * @param syncToFile 是否同步到文件
+   */
+  private async replaceLinesInContext(
+    roomId: number,
+    startLine: number,
+    endLine: number,
+    newLines: string[],
+    syncToFile: boolean = true,
+  ): Promise<void> {
+    const context = this.sceneContextMap.get(roomId);
+    if (!context) {
+      console.warn(`[RealtimeRenderer] 房间 ${roomId} 的场景上下文不存在`);
+      return;
+    }
+
+    // 将场景文本分割为行
+    const lines = context.text.split("\n");
+
+    // 替换指定范围的行（注意：lineNumber 是 1-based，数组索引是 0-based）
+    const before = lines.slice(0, startLine - 1);
+    const after = lines.slice(endLine);
+
+    // 合并新内容
+    const newContent = [...before, ...newLines, ...after];
+    context.text = newContent.join("\n");
+
+    // 更新行号（总行数变化）
+    const oldLineCount = endLine - startLine + 1;
+    const newLineCount = newLines.length;
+    const lineDiff = newLineCount - oldLineCount;
+    context.lineNumber += lineDiff;
+
+    // 更新所有在被替换区域之后的消息的行号
+    if (lineDiff !== 0) {
+      this.messageLineMap.forEach((range, key) => {
+        if (key.startsWith(`${roomId}_`) && range.startLine > endLine) {
+          range.startLine += lineDiff;
+          range.endLine += lineDiff;
+        }
+      });
+    }
+
+    if (syncToFile) {
+      await this.syncContextToFile(roomId);
+    }
+  }
+
   private async syncContextToFile(roomId: number): Promise<void> {
     const context = this.sceneContextMap.get(roomId);
     if (!context)
@@ -682,7 +679,7 @@ export class RealtimeRenderer {
 
     const sceneName = this.getSceneName(roomId);
     const path = `games/${this.gameName}/game/scene/${sceneName}.txt`;
-    await terreApis.manageGameControllerEditTextFile({
+    await getTerreApis().manageGameControllerEditTextFile({
       path,
       textFile: context.text,
     });
@@ -1137,13 +1134,26 @@ export class RealtimeRenderer {
 
     // 处理背景图片消息
     if (msg.messageType === 2) {
-      const imageMessage = msg.extra?.imageMessage || (msg.extra?.url ? msg.extra : null);
-      if (imageMessage && imageMessage.background) {
-        const bgFileName = await this.uploadBackground(imageMessage.url);
-        if (bgFileName) {
-          await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
-          if (syncToFile)
-            this.sendSyncMessage(targetRoomId);
+      const imageMessage = msg.extra?.imageMessage;
+      if (imageMessage) {
+        if (imageMessage.background) {
+          const bgFileName = await this.uploadBackground(imageMessage.url);
+          if (bgFileName) {
+            await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
+            if (syncToFile)
+              this.sendSyncMessage(targetRoomId);
+          }
+        }
+        // 处理解锁CG
+        const unlockCg = (msg.webgal as any)?.unlockCg;
+        if (unlockCg) {
+          const cgFileName = await this.uploadBackground(imageMessage.url);
+          if (cgFileName) {
+            const cgName = imageMessage.fileName ? imageMessage.fileName.split(".")[0] : "CG";
+            await this.appendLine(targetRoomId, `unlockCg:${cgFileName} -name=${cgName};`, syncToFile);
+            if (syncToFile)
+              this.sendSyncMessage(targetRoomId);
+          }
         }
       }
       return;
@@ -1161,8 +1171,8 @@ export class RealtimeRenderer {
         return;
 
       // 判断是 BGM 还是音效
-      const isMarkedBgm = (typeof msg.content === "string" && msg.content.includes("[播放BGM]")) || soundMsg.purpose === "bgm";
-      const isMarkedSE = (typeof msg.content === "string" && msg.content.includes("[播放音效]")) || soundMsg.purpose === "se";
+      const isMarkedBgm = msg.content.includes("[播放BGM]") || soundMsg.purpose === "bgm";
+      const isMarkedSE = msg.content.includes("[播放音效]") || soundMsg.purpose === "se";
 
       if (isMarkedBgm) {
         // 处理 BGM
@@ -1212,6 +1222,19 @@ export class RealtimeRenderer {
           // 清除特效：使用 pixiInit 初始化，消除所有已应用的效果
           command = "pixiInit -next;";
         }
+        else if (effectMessage.effectName === "clearBackground") {
+          // 清除背景
+          command = "changeBg:none -next;";
+        }
+        else if (effectMessage.effectName === "clearFigure") {
+          // 清除立绘：清除所有位置的立绘
+          await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+          await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+          await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+          if (syncToFile)
+            this.sendSyncMessage(targetRoomId);
+          return;
+        }
         else {
           // 应用特效：pixiPerform:rain -next;
           command = `pixiPerform:${effectMessage.effectName} -next;`;
@@ -1223,6 +1246,28 @@ export class RealtimeRenderer {
       return;
     }
 
+    // WebGAL 变量变更消息：转换为 setVar 并写入场景脚本（强制 -global 语义）
+    if ((msg.messageType as number) === 11) {
+      const payload = extractWebgalVarPayload(msg.extra);
+      if (!payload)
+        return;
+      await this.appendLine(targetRoomId, buildWebgalSetVarLine(payload), syncToFile);
+      if (syncToFile)
+        this.sendSyncMessage(targetRoomId);
+      return;
+    }
+
+    // WebGAL 指令消息：直接写入场景脚本
+    // 约定：msg.content 是一行完整的 WebGAL 脚本（可包含分号结尾）
+    if ((msg.messageType as number) === 10) {
+      if (!msg.content?.trim())
+        return;
+      await this.appendLine(targetRoomId, msg.content.trim(), syncToFile);
+      if (syncToFile)
+        this.sendSyncMessage(targetRoomId);
+      return;
+    }
+
     // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
     if (msg.messageType !== 1 && msg.messageType !== 9)
       return;
@@ -1231,32 +1276,30 @@ export class RealtimeRenderer {
     if (!msg.content?.trim())
       return;
 
-    // 跳过 WebGAL 指令消息（以 % 开头）
-    if (msg.content.startsWith("%")) {
-      await this.appendLine(targetRoomId, msg.content.slice(1), syncToFile);
-      if (syncToFile)
-        this.sendSyncMessage(targetRoomId);
-      return;
-    }
-
     // 判断消息类型：黑屏文字（messageType === 9）
     const isIntroText = (msg.messageType as number) === 9;
+    const roleId = msg.roleId ?? 0;
+    const avatarId = msg.avatarId ?? 0;
+
     // 判断是否为旁白：roleId <= 0
-    const isNarrator = msg.roleId <= 0;
+    const isNarrator = roleId <= 0;
 
     // 获取角色信息
-    const role = this.roleMap.get(msg.roleId);
+    const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
     // 优先使用自定义角色名
     const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
-    const roleName = customRoleName || role?.roleName || `角色${msg.roleId}`;
+    const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
-    const avatar = this.avatarMap.get(msg.avatarId);
+    const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
 
     // 获取立绘文件名
-    const spriteFileName = await this.getAndUploadSprite(msg.avatarId, msg.roleId);
+    const spriteFileName = (avatarId > 0 && roleId > 0)
+      ? await this.getAndUploadSprite(avatarId, roleId)
+      : null;
 
-    // 获取 voiceRenderSettings 中的立绘位置（默认为 left）
+    console.error(msg.content, msg.webgal?.voiceRenderSettings);
+    // 获取 voiceRenderSettings 中的立绘位置
     const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
       emotionVector?: number[];
       figurePosition?: string;
@@ -1264,25 +1307,39 @@ export class RealtimeRenderer {
       concat?: boolean;
       figureAnimation?: FigureAnimationSettings;
     } | undefined;
-    const figurePosition = voiceRenderSettings?.figurePosition || "left";
+
+    // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
+    // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
+    // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
+    const rawFigurePosition = voiceRenderSettings?.figurePosition;
+    console.error(msg.content, rawFigurePosition);
+
+    // 只有 "left", "center", "right" 才是有效的立绘位置
+    const isValidPosition = rawFigurePosition === "left" || rawFigurePosition === "center" || rawFigurePosition === "right";
+    const figurePosition = isValidPosition
+      ? rawFigurePosition
+      : (this.autoFigureEnabled ? "left" : undefined);
+
     const figureAnimation = voiceRenderSettings?.figureAnimation;
 
     // 获取黑屏文字的 -hold 设置
     const introHold = (msg.webgal as any)?.introHold as boolean ?? false;
 
-    // 旁白和黑屏文字不需要显示立绘和小头像
-    const shouldShowFigure = !isNarrator && !isIntroText;
+    // 旁白和黑屏文字不需要显示立绘
+    // 如果 figurePosition 为 undefined，也不显示立绘
+    const shouldShowFigure = !isNarrator && !isIntroText && !!figurePosition;
 
     // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
     if (shouldShowFigure && spriteFileName) {
-      // 如果不是回复消息，则清除之前的立绘（单人发言模式）
-      // 如果是回复消息，则保留之前的立绘（多人对话模式）
-      if (!msg.replyMessageId) {
-        // WebGAL 中不同位置的立绘是独立的，需要分别清除
-        await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-        await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-        await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
-      }
+      // 不再自动清除立绘，立绘需要手动清除
+      // // 如果不是回复消息，则清除之前的立绘（单人发言模式）
+      // // 如果是回复消息，则保留之前的立绘（多人对话模式）
+      // if (!msg.replyMessageId) {
+      //   // WebGAL 中不同位置的立绘是独立的，需要分别清除
+      //   await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      //   await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      //   await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // }
 
       const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
@@ -1305,16 +1362,25 @@ export class RealtimeRenderer {
       }
     }
     else if (isIntroText) {
-      // 黑屏文字需要清除立绘
-      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      // 黑屏文字不再自动清除立绘，立绘需要手动清除
+      // // 黑屏文字需要清除立绘
+      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+    }
+    else if (!isNarrator && !isIntroText) {
+      // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
+      // // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
+      // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
 
-    // 处理小头像（仅普通对话）
-    if (shouldShowFigure) {
+    // 处理小头像（普通角色对话，不管是否显示立绘）
+    const isNormalDialog = !isNarrator && !isIntroText;
+    if (isNormalDialog) {
       const miniAvatarFileName = this.miniAvatarEnabled
-        ? await this.getAndUploadMiniAvatar(msg.avatarId, msg.roleId)
+        ? (avatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(avatarId, roleId) : null)
         : null;
 
       if (miniAvatarFileName) {
@@ -1325,8 +1391,8 @@ export class RealtimeRenderer {
         await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
       }
     }
-    else if (isNarrator || isIntroText) {
-      // 旁白和黑屏文字清除小头像
+    else if ((isNarrator || isIntroText) && this.miniAvatarEnabled) {
+      // 旁白和黑屏文字清除小头像（仅在启用小头像功能时）
       await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
     }
 
@@ -1358,14 +1424,13 @@ export class RealtimeRenderer {
       // 生成语音（如果启用了 TTS）
       let vocalFileName: string | null = null;
       if (this.ttsConfig.enabled
-        && msg.roleId !== 0 // 跳过系统角色
-        && msg.roleId !== 2 // 跳过骰娘
+        && roleId !== 0 // 跳过系统角色
+        && roleId !== 2 // 跳过骰娘
         && !msg.content.startsWith(".") // 跳过指令
-        && !msg.content.startsWith("。")
-        && !msg.content.startsWith("%")) {
+        && !msg.content.startsWith("。")) {
         vocalFileName = await this.generateAndUploadVocal(
           processedContent,
-          msg.roleId,
+          roleId,
           avatar?.avatarTitle,
           customEmotionVector,
         );
@@ -1378,10 +1443,14 @@ export class RealtimeRenderer {
       await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart};`, syncToFile);
     }
 
-    // 记录消息 ID 和行号的映射（用于跳转）
+    // 记录消息 ID 和行号范围的映射（用于跳转和更新）
     const context = this.sceneContextMap.get(targetRoomId);
     if (context && msg.messageId) {
-      this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, context.lineNumber);
+      const endLine = context.lineNumber;
+      // 计算起始行号：如果已经有记录，使用已有的起始行；否则使用当前结束行
+      const existingRange = this.messageLineMap.get(`${targetRoomId}_${msg.messageId}`);
+      const startLine = existingRange?.startLine ?? endLine;
+      this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, { startLine, endLine });
     }
 
     // 发送同步消息到 WebGAL
@@ -1428,6 +1497,27 @@ export class RealtimeRenderer {
   }
 
   /**
+   * 清除指定房间的所有立绘
+   */
+  public async clearFigure(roomId?: number): Promise<void> {
+    const targetRoomId = roomId ?? this.currentRoomId;
+    if (!targetRoomId) {
+      console.warn("[RealtimeRenderer] 无法确定目标房间ID");
+      return;
+    }
+
+    // 确保该房间的场景已初始化
+    if (!this.sceneContextMap.has(targetRoomId)) {
+      await this.initRoomScene(targetRoomId);
+    }
+
+    await this.appendLine(targetRoomId, "changeFigure:none -left -next;", true);
+    await this.appendLine(targetRoomId, "changeFigure:none -center -next;", true);
+    await this.appendLine(targetRoomId, "changeFigure:none -right -next;", true);
+    this.sendSyncMessage(targetRoomId);
+  }
+
+  /**
    * 清空指定房间的场景并重新初始化
    */
   public async resetScene(roomId?: number): Promise<void> {
@@ -1447,7 +1537,7 @@ export class RealtimeRenderer {
    * 获取指定房间的预览 URL
    */
   public getPreviewUrl(roomId?: number): string {
-    const terreUrl = import.meta.env.VITE_TERRE_URL || "http://localhost:3001";
+    const terreUrl = getTerreBaseUrl();
     if (roomId) {
       const sceneName = this.getSceneName(roomId);
       return `${terreUrl}/games/${this.gameName}/index.html?scene=${sceneName}.txt`;
@@ -1498,7 +1588,8 @@ export class RealtimeRenderer {
         concat?: boolean;
       } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
-      const avatar = this.avatarMap.get(msg.avatarId);
+      const avatarId = msg.avatarId ?? 0;
+      const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
       const emotionVector = customEmotionVector && customEmotionVector.length > 0
         ? customEmotionVector
         : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);
@@ -1513,12 +1604,12 @@ export class RealtimeRenderer {
       }
     }
 
-    // 获取该消息对应的行号
+    // 获取该消息对应的行号范围
     const key = `${targetRoomId}_${msg.messageId}`;
-    const lineNumber = this.messageLineMap.get(key);
+    const lineRange = this.messageLineMap.get(key);
 
-    if (lineNumber === undefined) {
-      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将只渲染不跳转`);
+    if (!lineRange) {
+      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 模式`);
       await this.renderMessage(message, targetRoomId, true);
       return true;
     }
@@ -1530,8 +1621,40 @@ export class RealtimeRenderer {
       return false;
     }
 
-    // 重新渲染该消息（这会更新场景文件）
-    await this.renderMessage(message, targetRoomId, true);
+    // 保存当前的行号和文本状态
+    const savedLineNumber = context.lineNumber;
+    const savedText = context.text;
+
+    // 临时重置上下文，用于收集新渲染的内容
+    context.lineNumber = 0;
+    context.text = "";
+
+    // 重新渲染该消息（不同步到文件）
+    await this.renderMessage(message, targetRoomId, false);
+
+    // 获取新渲染的内容
+    const newContent = context.text;
+    const newLines = newContent.split("\n").filter(line => line.trim());
+
+    // 恢复上下文状态
+    context.lineNumber = savedLineNumber;
+    context.text = savedText;
+
+    // 使用替换方法更新指定行
+    await this.replaceLinesInContext(
+      targetRoomId,
+      lineRange.startLine,
+      lineRange.endLine,
+      newLines,
+      true,
+    );
+
+    // 更新消息的行号范围
+    const newEndLine = lineRange.startLine + newLines.length - 1;
+    this.messageLineMap.set(key, {
+      startLine: lineRange.startLine,
+      endLine: newEndLine,
+    });
 
     // 跳转到该消息
     return this.jumpToMessage(msg.messageId, targetRoomId);
@@ -1551,15 +1674,16 @@ export class RealtimeRenderer {
     }
 
     const key = `${targetRoomId}_${messageId}`;
-    const lineNumber = this.messageLineMap.get(key);
+    const lineRange = this.messageLineMap.get(key);
 
-    if (lineNumber === undefined) {
+    if (!lineRange) {
       console.warn(`[RealtimeRenderer] 消息 ${messageId} 未找到对应的行号`);
       return false;
     }
 
     const sceneName = this.getSceneName(targetRoomId);
-    const msg = getAsyncMsg(`${sceneName}.txt`, lineNumber);
+    // 跳转到消息的起始行
+    const msg = getAsyncMsg(`${sceneName}.txt`, lineRange.startLine);
     const msgStr = JSON.stringify(msg);
 
     if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {

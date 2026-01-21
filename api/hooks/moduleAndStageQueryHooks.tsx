@@ -1,13 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import type {ModulePageRequest} from "../models/ModulePageRequest";
-import type {ModuleCreateRequest} from "../models/ModuleCreateRequest";
 import type {ModuleUpdateRequest} from "../models/ModuleUpdateRequest";
-import type { StageRollbackRequest } from "api/models/StageRollbackRequest";
-import type { CommitRequest } from "api/models/CommitRequest";
-import type { RoleImportRequest } from "api/models/RoleImportRequest";
-import type { EntityAddRequest } from "api/models/EntityAddRequest";
 import type {ModulePageByUserRequest} from "../models/ModulePageByUserRequest";
+import type { StageEntityResponse } from "../deprecated/StageEntityResponse";
 // import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
 //========================module==================================
 
@@ -34,7 +30,10 @@ export function useUpdateModuleMutation() {
 export function useAddModuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ModuleCreateRequest) => tuanchat.moduleController.addModule(req),
+        // 后端已下线「创建模组」接口；保留占位避免旧页面类型报错。
+        mutationFn: async (_req: unknown) => {
+            throw new Error("创建模组接口已下线");
+        },
         mutationKey: ['addModule'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['moduleList'] });
@@ -49,7 +48,7 @@ export function useAddModuleMutation() {
 export function useModuleListQuery(requestBody: ModulePageRequest) {
     return useQuery({
         queryKey: ['moduleList', requestBody],
-        queryFn: () => tuanchat.moduleController.page(requestBody),
+        queryFn: () => tuanchat.moduleController.page1(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -68,7 +67,7 @@ export function useModuleListByUserQuery(requestBody: ModulePageByUserRequest) {
 export function useModuleIdQuery(moduleId: number) {
     return useQuery({
         queryKey: ['moduleId', moduleId],
-        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        queryFn: () => tuanchat.moduleController.getById1(moduleId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -76,11 +75,15 @@ export function useModuleIdQuery(moduleId: number) {
 
 
 /*====================stages=======================*/
+type DeprecatedStageResult<T> = { success: boolean; data: T };
+
 // 回退文件信息
 export function useStageRollbackMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: StageRollbackRequest) => tuanchat.stageController.rollback(req),
+        mutationFn: async (_req: unknown) => {
+            throw new Error("后端已下线 stage rollback 接口");
+        },
         mutationKey: ['rollback'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['staging'] });
@@ -92,7 +95,8 @@ export function useStageRollbackMutation() {
 export function useStagingQuery() {
     return useQuery({
         queryKey: ['staging'],
-        queryFn: () => tuanchat.stageController.staging(),
+        // 后端已下线 staging；返回空数据占位。
+        queryFn: async () => ({ success: true, data: [] } as any),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -101,7 +105,9 @@ export function useStagingQuery() {
 export function useCommitMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: CommitRequest) => tuanchat.stageController.commit(req),
+        mutationFn: async (_req: unknown) => {
+            throw new Error("后端已下线 stage commit 接口");
+        },
         mutationKey: ['commit'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['staging'] });
@@ -119,10 +125,11 @@ export function useCommitMutation() {
 // }
 
 // 查询所有的实体
-export function useQueryEntitiesQuery(stageId: number) {
+export function useQueryEntitiesQuery(spaceId: number) {
     return useQuery({
-        queryKey: ['queryEntities', stageId],
-        queryFn: () => tuanchat.stageController.queryEntities(stageId),
+        queryKey: ['queryEntities', spaceId],
+        // 后端已下线 stage entities；返回空列表占位，避免旧页面与类型报错。
+        queryFn: async () => ({ success: true, data: [] } as DeprecatedStageResult<StageEntityResponse[]>),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -131,7 +138,9 @@ export function useQueryEntitiesQuery(stageId: number) {
 export function useImportRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoleImportRequest) => tuanchat.stageController.importRole(req),
+        mutationFn: async (_req: unknown) => {
+            throw new Error("后端已下线 stage importRole 接口");
+        },
         mutationKey: ['importRole'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['staging'] });
@@ -155,11 +164,13 @@ export function useImportRoleMutation() {
 export function useAddMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: EntityAddRequest) => tuanchat.stageController.add(req),
+        mutationFn: async (_req: { spaceId: number; [key: string]: unknown }) => {
+            throw new Error("后端已下线 stage addEntity 接口");
+        },
         mutationKey: ['addEntity'],
-        onSuccess: (_, variables) => {
+        onSuccess: (_data, variables: { spaceId: number; [key: string]: unknown }) => {
             queryClient.invalidateQueries({ queryKey: ['staging'] });
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.spaceId] });
         }
     });
 }

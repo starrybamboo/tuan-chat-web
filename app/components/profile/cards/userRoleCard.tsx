@@ -1,8 +1,8 @@
+import React from "react";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
-import React from "react";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/queryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface UserRoleCardProps {
   roleId: number;

@@ -1,8 +1,8 @@
-import { XMarkICon } from "@/icons";
-import { getScreenSize } from "@/utils/getScreenSize";
-import { useGetUserInfoQuery } from "api/queryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useRef } from "react";
 import { useNavigate } from "react-router";
+import { XMarkICon } from "@/icons";
+import { getScreenSize } from "@/utils/getScreenSize";
 
 interface MessageDirectType {
   messageId?: number;

@@ -1,7 +1,7 @@
 import type { WebsocketUtils } from "../../api/useWebSocket";
 import type { ChatStatusEvent } from "../../api/wsModels";
-import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 import { createContext, use, useMemo } from "react";
+import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 import { useWebSocket } from "../../api/useWebSocket";
 
 interface GlobalContextType {
@@ -37,8 +37,9 @@ const GlobalContext = createContext<GlobalContextType>({
 // eslint-disable-next-line react-refresh/only-export-components
 export const useGlobalContext = () => use(GlobalContext);
 export function GlobalContextProvider({ children }: { children: React.ReactNode }) {
-  const token = getLocalStorageValue<string | null>("token", null);
-  const userId = Number(token);
+  // 注意：后端已切换到 Sa-Token，token 不再可反推出 userId。
+  // 这里使用登录后缓存的 uid。
+  const userId = getLocalStorageValue<number | null>("uid", null);
   const websocketUtils = useWebSocket();
   const roomContext: GlobalContextType = useMemo((): GlobalContextType => {
     return {

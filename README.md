@@ -25,8 +25,8 @@ Electron failed to install correctly,
 node node_modules/electron/install.js
 ```
 
-如果要执行electron-build
-请先把webgal-terre解压到extraResources下，并把terre.exe放在extraResources同级目录下。
+如果要执行 electron 打包（electron-builder）
+请先把 WebGAL_Terre 的 Windows 发行版（包含 `WebGAL_Terre.exe` 及其依赖文件）解压/拷贝到 `extraResources/` 目录下（`WebGAL_Terre.exe` 与该目录同级）。
 
 
 ### 配置环境
@@ -88,6 +88,9 @@ pnpm lint:fix
 ### useWebsocket.tsx
 
 websocket的utils
+
+- 已支持好友申请推送（WS `type=21`）的基础处理（缓存刷新钩子）。
+- 为了方便排查“还有哪些 WS 类型没处理”，会把已实现/未处理类型与最近消息记录到 `window.__TC_WS_DEBUG__`，并在首次遇到未知 `type` 时 `console.warn`。
 
 ### hooks/\*\* ，useQueryHooks.tsx
 

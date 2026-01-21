@@ -1,8 +1,5 @@
 import type { ModuleData } from "./constants";
 import type { ContentPermission } from "./ContentTab/ContentPermissionContext";
-import { PopWindow } from "@/components/common/popWindow";
-import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateSpaceMutation, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useModuleDetailByIdQuery, useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
@@ -10,6 +7,9 @@ import { useImportFromModuleMutation } from "api/hooks/spaceModuleHooks";
 import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { PopWindow } from "@/components/common/popWindow";
+import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import 教室图片 from "../home/images/教室.webp";
 import Author from "./author";
 import ContentTab from "./contentTab";
@@ -97,7 +97,7 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
       maxPeople: module.maxPeople,
       minTime: module.minTime,
       maxTime: module.maxTime,
-      parent: module.parent,
+      parent: module.parent === undefined || module.parent === null ? null : String(module.parent),
       readMe: module.readMe,
     } as ModuleData;
   }, [propModuleData, fetchedModuleData, RuleList.data]);
@@ -203,8 +203,9 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
       try {
         const roomsData = await tuanchat.roomController.getUserRooms(newSpaceId);
 
-        if (roomsData?.data && roomsData.data.length > 0) {
-          const firstRoomId = roomsData.data[0].roomId;
+        const rooms = roomsData?.data?.rooms;
+        if (rooms && rooms.length > 0) {
+          const firstRoomId = rooms[0].roomId;
           navigate(`/chat/${newSpaceId}/${firstRoomId}`);
         }
         else {

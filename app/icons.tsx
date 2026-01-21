@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import React from "react";
+import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, HouseIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索
@@ -8,8 +8,28 @@ import React from "react";
  * 我是建议在末尾加 Icon 方便区分正常组件
  */
 
-// 终端命令图标
-// 其他关键词：控制台，命令行，shell，terminal
+// Discord 图标（简化版）
+// 其他关键词：bug反馈，社区，群组，discord
+export function DiscordIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <DiscordLogoIcon {...props} />
+  );
+}
+
+// QQ 图标（简化版：双气泡）
+// 其他关键词：bug反馈，QQ群，二维码，qq
+export function QQIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <QrCodeIcon {...props} />
+  );
+}
+
+export function UserSwitchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <UserSwitch {...props} />
+  );
+}
+
 export function CommandSolid(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -50,9 +70,9 @@ export function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-// 损坏的图片图标
-// 其他关键词：破损图片，加载失败，图像错误，占位图
-export function GalleryBroken(props: SVGProps<SVGSVGElement>) {
+// 六面骰子图标（自绘）
+// 其他关键词：骰子，D6，桌游，跑团，随机
+export function DiceD6Icon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -61,20 +81,30 @@ export function GalleryBroken(props: SVGProps<SVGSVGElement>) {
       height="1em"
       {...props}
     >
-      <g fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="16" cy="8" r="2"></circle>
-        <path
-          strokeLinecap="round"
-          d="m2 12.5l1.752-1.533a2.3 2.3 0 0 1 3.14.105l4.29 4.29a2 2 0 0 0 2.564.222l.299-.21a3 3 0 0 1 3.731.225L21 18.5"
-        >
-        </path>
-        <path
-          strokeLinecap="round"
-          d="M22 12c0 4.714 0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464c.974.974 1.3 2.343 1.41 4.536"
-        >
-        </path>
-      </g>
+      <rect
+        x="4.5"
+        y="4.5"
+        width="15"
+        height="15"
+        rx="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="16" cy="16" r="1.2" fill="currentColor" />
+      <circle cx="16" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="8" cy="16" r="1.2" fill="currentColor" />
     </svg>
+  );
+}
+
+// 损坏的图片图标
+// 其他关键词：破损图片，加载失败，图像错误，占位图
+export function GalleryBroken(props: SVGProps<SVGSVGElement>) {
+  return (
+    <ImageIcon {...props} />
   );
 }
 
@@ -122,26 +152,9 @@ export function MoreMenu(props: SVGProps<SVGSVGElement>) {
 
 // 女孩头像图标
 // 其他关键词：女孩，女童，孩子，用户头像
-export function GirlIcon(props: SVGProps<SVGSVGElement>) {
+export function RoleListIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <g fill="currentColor">
-        <path d="M10 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0m5 1a1 1 0 1 0 0-2a1 1 0 0 0 0 2">
-        </path>
-        <path
-          fillRule="evenodd"
-          d="M12.024 2H12C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10c0-5.258-4.058-9.568-9.212-9.97v-.002A10 10 0 0 0 12.025 2M12 20a8 8 0 0 0 7.742-10.022a10.02 10.02 0 0 1-8.981-4.376a7.98 7.98 0 0 1-5.692 2.4A8 8 0 0 0 12 20m-.021-16h.045z"
-          clipRule="evenodd"
-        >
-        </path>
-      </g>
-    </svg>
+    <AddressBookIcon {...props} />
   );
 }
 
@@ -492,28 +505,7 @@ export function FoldDown(props: SVGProps<SVGSVGElement>) {
 
 // 用户组图标
 // 其他关键词：团队，群组，成员
-export function UsersIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      >
-        <path d="M12 4a3 3 0 1 0 0 6a3 3 0 0 0 0-6M8 12a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4M2 20h20">
-        </path>
-      </g>
-    </svg>
-  );
-}
+export { UsersIcon };
 
 // 指南针图标
 // 其他关键词：导航，方向，探索
@@ -544,24 +536,7 @@ export function CompassIcon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：首页，家，主页面
 export function HomeIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      >
-        <path d="M3 9l9-7l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path>
-        <path d="M9 22V12h6v10"></path>
-      </g>
-    </svg>
+    <HouseIcon {...props} />
   );
 }
 
@@ -598,19 +573,7 @@ export function XMarkICon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：用户，账户，个人资料
 export function MemberIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M5.5 7a3 3 0 1 1 6 0a3 3 0 0 1-6 0m3-5a5 5 0 1 0 0 10a5 5 0 0 0 0-10m7 0h-1v2h1a3 3 0 1 1 0 6h-1v2h1a5 5 0 0 0 0-10M0 19a5 5 0 0 1 5-5h7a5 5 0 0 1 5 5v2h-2v-2a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v2H0zm24 0a5 5 0 0 0-5-5h-1v2h1a3 3 0 0 1 3 3v2h2z"
-      >
-      </path>
-    </svg>
+    <UsersIcon {...props} />
   );
 }
 
@@ -640,19 +603,7 @@ export function SwordSwing(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：后退，上一步，返回
 export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M17.77 3.77L16 2L6 12l10 10l1.77-1.77L9.54 12z"
-      >
-      </path>
-    </svg>
+    <CaretLeftIcon weight="bold" {...props} />
   );
 }
 
@@ -749,19 +700,7 @@ export function ChevronRight(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：笑脸，emoji，表情，明色
 export function EmojiIconWhite(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 2048 2048"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M640 896q-27 0-50-10t-40-27t-28-41t-10-50q0-27 10-50t27-40t41-28t50-10q27 0 50 10t40 27t28 41t10 50q0 27-10 50t-27 40t-41 28t-50 10m768 0q-27 0-50-10t-40-27t-28-41t-10-50q0-27 10-50t27-40t41-28t50-10q27 0 50 10t40 27t28 41t10 50q0 27-10 50t-27 40t-41 28t-50 10M1024 0q141 0 272 36t245 103t207 160t160 208t103 245t37 272q0 141-36 272t-103 245t-160 207t-208 160t-245 103t-272 37q-141 0-272-36t-245-103t-207-160t-160-208t-103-244t-37-273q0-141 36-272t103-245t160-207t208-160T751 37t273-37m0 1920q123 0 237-32t214-90t182-141t140-181t91-214t32-238q0-123-32-237t-90-214t-141-182t-181-140t-214-91t-238-32q-123 0-237 32t-214 90t-182 141t-140 181t-91 214t-32 238q0 123 32 237t90 214t141 182t181 140t214 91t238 32m0-384q73 0 141-20t128-57t106-90t81-118l115 58q-41 81-101 147t-134 112t-159 71t-177 25t-177-25t-159-71t-134-112t-101-147l115-58q33 65 80 118t107 90t127 57t142 20"
-      >
-      </path>
-    </svg>
+    <SmileyIcon {...props} />
   );
 }
 
@@ -943,20 +882,7 @@ export function DraggableIcon(props: SVGProps<SVGSVGElement>) {
 // 其他关键词：展开，折叠，向下
 export function ChevronDown(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <polyline points="6,9 12,15 18,9"></polyline>
-    </svg>
+    <CaretDownIcon weight="bold" {...props} />
   );
 }
 
@@ -1303,23 +1229,31 @@ export function WebgalIcon(
       viewBox="0 0 512.000000 512.000000"
       preserveAspectRatio="xMidYMid meet"
     >
-      <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="currentColor" stroke="none">
-        <path
-          d="M0 2560 l0 -2560 898 0 897 1 -68 36 c-131 70 -230 208 -278 389 -27 101 -38 386 -19 502 28 177 119 349 234 444 112 94 239 138 396 138 159 0 286 -43 383 -131 l42 -38 -64 -64 -63 -65 -56 39 c-160 113 -382 102 -504 -24 -56 -57 -91 -123 -120 -222 -20 -71 -23 -101 -22 -270 0 -206 13 -292 57 -389 84 -183 279 -242 510 -156 l57 21 0 215 0 214 -134 0 -134 0 -11 63 c-6 35 -11 76 -11 90 l0 27 255 0 255 0 0 -360 0 -359 -32 -17 c-18 -10 -69 -32 -113 -50 l-80 -33 187 -1 187 0 29 93 c17 50 112 346 212 657 99 311 194 603 209 650 l28 85 137 0 138 0 78 -240 c43 -132 142 -438 220 -680 78 -242 150 -468 161 -503 l21 -62 149 0 149 0 2 743 3 742 110 0 110 0 3 -647 2 -648 328 0 c181 0 331 -2 333 -5 3 -2 0 -45 -6 -95 l-11 -90 33 0 33 0 -1 1053 c0 861 -3 1045 -13 1012 -18 -59 -33 -83 -85 -138 -52 -55 -143 -105 -241 -132 -53 -14 -119 -19 -352 -22 l-288 -5 0 747 0 747 278 -5 c221 -3 289 -7 337 -21 198 -56 289 -153 302 -318 12 -160 -71 -292 -214 -342 l-38 -13 68 -22 c37 -13 88 -37 114 -55 51 -35 107 -109 122 -160 6 -19 10 515 10 1382 l1 1412 -2560 0 -2560 0 0 -2560z m1593 658 c3 -24 34 -299 69 -611 34 -313 64 -565 65 -560 3 8 163 1031 163 1039 0 2 56 4 124 4 l124 0 6 -37 c9 -57 114 -771 133 -902 9 -63 18 -110 20 -105 1 5 34 263 73 574 39 311 73 582 77 603 l6 37 98 0 c80 0 99 -3 99 -14 0 -8 -45 -325 -100 -703 -55 -378 -103 -707 -107 -731 l-6 -43 -136 3 -136 3 -76 520 c-41 286 -77 526 -80 533 -2 7 -35 -203 -73 -465 -38 -263 -73 -504 -78 -535 l-10 -58 -138 0 -138 0 -6 38 c-4 20 -42 305 -86 632 -44 327 -86 644 -95 704 -8 60 -15 111 -15 113 0 2 49 3 109 3 l108 0 6 -42z m2182 -25 c-4 -37 -11 -77 -16 -90 l-9 -23 -305 0 -305 0 0 -230 0 -230 270 0 270 0 0 -90 0 -90 -270 0 -270 0 0 -245 0 -245 330 0 330 0 0 -90 0 -90 -445 0 -445 0 0 745 0 745 436 0 436 0 -7 -67z"
-        />
-        <path
-          d="M4360 2865 l0 -225 143 0 c78 0 158 5 178 10 99 28 149 100 149 215 -1 171 -86 225 -357 225 l-113 0 0 -225z"
-        />
-        <path
-          d="M4360 2204 l0 -256 168 4 c180 6 226 16 290 65 48 37 72 93 72 177 0 93 -17 143 -65 192 -59 59 -123 74 -313 74 l-152 0 0 -256z"
-        />
-        <path
-          d="M3147 917 c-59 -199 -108 -365 -107 -369 0 -5 99 -8 220 -8 121 0 220 3 220 8 1 14 -215 732 -220 732 -3 0 -54 -163 -113 -363z"
-        />
-        <path
-          d="M2928 188 l-54 -183 193 -3 c106 -1 280 -1 386 0 l193 3 -52 172 c-28 94 -55 176 -58 182 -5 8 -95 11 -280 11 l-273 0 -55 -182z"
-        />
+      {/* 在路径上绘制描边，使用 transform 保持与原来的比例与位置一致 */}
+      <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="none" stroke="currentColor" strokeWidth="40" strokeLinejoin="round" strokeLinecap="round">
+        <path d="M0 2560 l0 -2560 898 0 897 1 -68 36 c-131 70 -230 208 -278 389 -27 101 -38 386 -19 502 28 177 119 349 234 444 112 94 239 138 396 138 159 0 286 -43 383 -131 l42 -38 -64 -64 -63 -65 -56 39 c-160 113 -382 102 -504 -24 -56 -57 -91 -123 -120 -222 -20 -71 -23 -101 -22 -270 0 -206 13 -292 57 -389 84 -183 279 -242 510 -156 l57 21 0 215 0 214 -134 0 -134 0 -11 63 c-6 35 -11 76 -11 90 l0 27 255 0 255 0 0 -360 0 -359 -32 -17 c-18 -10 -69 -32 -113 -50 l-80 -33 187 -1 187 0 29 93 c17 50 112 346 212 657 99 311 194 603 209 650 l28 85 137 0 138 0 78 -240 c43 -132 142 -438 220 -680 78 -242 150 -468 161 -503 l21 -62 149 0 149 0 2 743 3 742 110 0 110 0 3 -647 2 -648 328 0 c181 0 331 -2 333 -5 3 -2 0 -45 -6 -95 l-11 -90 33 0 33 0 -1 1053 c0 861 -3 1045 -13 1012 -18 -59 -33 -83 -85 -138 -52 -55 -143 -105 -241 -132 -53 -14 -119 -19 -352 -22 l-288 -5 0 747 0 747 278 -5 c221 -3 289 -7 337 -21 198 -56 289 -153 302 -318 12 -160 -71 -292 -214 -342 l-38 -13 68 -22 c37 -13 88 -37 114 -55 51 -35 107 -109 122 -160 6 -19 10 515 10 1382 l1 1412 -2560 0 -2560 0 0 -2560z m1593 658 c3 -24 34 -299 69 -611 34 -313 64 -565 65 -560 3 8 163 1031 163 1039 0 2 56 4 124 4 l124 0 6 -37 c9 -57 114 -771 133 -902 9 -63 18 -110 20 -105 1 5 34 263 73 574 39 311 73 582 77 603 l6 37 98 0 c80 0 99 -3 99 -14 0 -8 -45 -325 -100 -703 -55 -378 -103 -707 -107 -731 l-6 -43 -136 3 -136 3 -76 520 c-41 286 -77 526 -80 533 -2 7 -35 -203 -73 -465 -38 -263 -73 -504 -78 -535 l-10 -58 -138 0 -138 0 -6 38 c-4 20 -42 305 -86 632 -44 327 -86 644 -95 704 -8 60 -15 111 -15 113 0 2 49 3 109 3 l108 0 6 -42z m2182 -25 c-4 -37 -11 -77 -16 -90 l-9 -23 -305 0 -305 0 0 -230 0 -230 270 0 270 0 0 -90 0 -90 -270 0 -270 0 0 -245 0 -245 330 0 330 0 0 -90 0 -90 -445 0 -445 0 0 745 0 745 436 0 436 0 -7 -67z" />
+        <path d="M4360 2865 l0 -225 143 0 c78 0 158 5 178 10 99 28 149 100 149 215 -1 171 -86 225 -357 225 l-113 0 0 -225z" />
+        <path d="M4360 2204 l0 -256 168 4 c180 6 226 16 290 65 48 37 72 93 72 177 0 93 -17 143 -65 192 -59 59 -123 74 -313 74 l-152 0 0 -256z" />
+        <path d="M3147 917 c-59 -199 -108 -365 -107 -369 0 -5 99 -8 220 -8 121 0 220 3 220 8 1 14 -215 732 -220 732 -3 0 -54 -163 -113 -363z" />
+        <path d="M2928 188 l-54 -183 193 -3 c106 -1 280 -1 386 0 l193 3 -52 172 c-28 94 -55 176 -58 182 -5 8 -95 11 -280 11 l-273 0 -55 -182z" />
       </g>
+      {/* 使用 mask 将原本填充的路径作为“孔”挖掉，从而实现透明/填充反转；同时在路径上绘制描边 */}
+      <defs>
+        <mask id="webgal-invert-mask">
+          <rect width="100%" height="100%" fill="white" />
+          <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="black" stroke="none">
+            <path d="M0 2560 l0 -2560 898 0 897 1 -68 36 c-131 70 -230 208 -278 389 -27 101 -38 386 -19 502 28 177 119 349 234 444 112 94 239 138 396 138 159 0 286 -43 383 -131 l42 -38 -64 -64 -63 -65 -56 39 c-160 113 -382 102 -504 -24 -56 -57 -91 -123 -120 -222 -20 -71 -23 -101 -22 -270 0 -206 13 -292 57 -389 84 -183 279 -242 510 -156 l57 21 0 215 0 214 -134 0 -134 0 -11 63 c-6 35 -11 76 -11 90 l0 27 255 0 255 0 0 -360 0 -359 -32 -17 c-18 -10 -69 -32 -113 -50 l-80 -33 187 -1 187 0 29 93 c17 50 112 346 212 657 99 311 194 603 209 650 l28 85 137 0 138 0 78 -240 c43 -132 142 -438 220 -680 78 -242 150 -468 161 -503 l21 -62 149 0 149 0 2 743 3 742 110 0 110 0 3 -647 2 -648 328 0 c181 0 331 -2 333 -5 3 -2 0 -45 -6 -95 l-11 -90 33 0 33 0 -1 1053 c0 861 -3 1045 -13 1012 -18 -59 -33 -83 -85 -138 -52 -55 -143 -105 -241 -132 -53 -14 -119 -19 -352 -22 l-288 -5 0 747 0 747 278 -5 c221 -3 289 -7 337 -21 198 -56 289 -153 302 -318 12 -160 -71 -292 -214 -342 l-38 -13 68 -22 c37 -13 88 -37 114 -55 51 -35 107 -109 122 -160 6 -19 10 515 10 1382 l1 1412 -2560 0 -2560 0 0 -2560z m1593 658 c3 -24 34 -299 69 -611 34 -313 64 -565 65 -560 3 8 163 1031 163 1039 0 2 56 4 124 4 l124 0 6 -37 c9 -57 114 -771 133 -902 9 -63 18 -110 20 -105 1 5 34 263 73 574 39 311 73 582 77 603 l6 37 98 0 c80 0 99 -3 99 -14 0 -8 -45 -325 -100 -703 -55 -378 -103 -707 -107 -731 l-6 -43 -136 3 -136 3 -76 520 c-41 286 -77 526 -80 533 -2 7 -35 -203 -73 -465 -38 -263 -73 -504 -78 -535 l-10 -58 -138 0 -138 0 -6 38 c-4 20 -42 305 -86 632 -44 327 -86 644 -95 704 -8 60 -15 111 -15 113 0 2 49 3 109 3 l108 0 6 -42z m2182 -25 c-4 -37 -11 -77 -16 -90 l-9 -23 -305 0 -305 0 0 -230 0 -230 270 0 270 0 0 -90 0 -90 -270 0 -270 0 0 -245 0 -245 330 0 330 0 0 -90 0 -90 -445 0 -445 0 0 745 0 745 436 0 436 0 -7 -67z" />
+            <path d="M4360 2865 l0 -225 143 0 c78 0 158 5 178 10 99 28 149 100 149 215 -1 171 -86 225 -357 225 l-113 0 0 -225z" />
+            <path d="M4360 2204 l0 -256 168 4 c180 6 226 16 290 65 48 37 72 93 72 177 0 93 -17 143 -65 192 -59 59 -123 74 -313 74 l-152 0 0 -256z" />
+            <path d="M3147 917 c-59 -199 -108 -365 -107 -369 0 -5 99 -8 220 -8 121 0 220 3 220 8 1 14 -215 732 -220 732 -3 0 -54 -163 -113 -363z" />
+            <path d="M2928 188 l-54 -183 193 -3 c106 -1 280 -1 386 0 l193 3 -52 172 c-28 94 -55 176 -58 182 -5 8 -95 11 -280 11 l-273 0 -55 -182z" />
+          </g>
+        </mask>
+      </defs>
+      {/* 背景使用当前颜色填充，mask 决定哪些区域被挖空（即原来填充的部分变为透明） */}
+      <rect width="100%" height="100%" fill="currentColor" mask="url(#webgal-invert-mask)" />
+      {/* 顶层矩形边框（不受 mask 影响），留出 8px 内边距 */}
+      <rect x="12" y="12" width="496" height="496" fill="none" stroke="currentColor" strokeWidth="24" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1402,20 +1336,7 @@ export function ConnectionIcon() {
 // 加号图标
 export function AddIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
+    <PlusIcon weight="bold" size={20} />
   );
 }
 
@@ -1754,19 +1675,7 @@ export function Edit2Outline(props: SVGProps<SVGSVGElement>) {
 // 垃圾桶图标
 export function BaselineDeleteOutline(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="1em"
-      height="1em"
-      {...props}
-    >
-      <path
-        fill="currentColor"
-        d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM8 9h8v10H8zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"
-      >
-      </path>
-    </svg>
+    <TrashSimpleIcon {...props} />
   );
 }
 // 任务提醒图标
@@ -1857,6 +1766,248 @@ export function PauseIcon(props: SVGProps<SVGSVGElement>) {
 // 音乐图标
 export function MusicNote(props: SVGProps<SVGSVGElement>) {
   return (
+    <MusicNotesIcon {...props} />
+  );
+}
+
+// 简易 Map 图标，占位用
+export function MapPlaceHolderIcon(props: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={props.className ?? "w-5 h-5"}
+    >
+      <path d="M9.5 4.5 3 6.75v12l6.5-2.25 6 2.25L21 16.5v-12l-5.5 2.25-6-2.25zM9.5 6.9v11.1L4.5 19.5V8.4l5-1.5zm1.5.45 5 1.875V20.1l-5-1.875V7.35zM19.5 6.6v10.95l-2.5 1v-11l2.5-0.95z" />
+    </svg>
+  );
+}
+
+// 复制图标
+// 其他关键词：复制，拷贝，duplicate，copy
+export function CopyIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+// 滑动条/设置图标
+// 其他关键词：设置，调节，配置，sliders，settings
+export function SlidersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+    </svg>
+  );
+}
+
+// 保存/勾选图标
+// 其他关键词：确认，保存，完成，check，save
+export function SaveIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
+// 编辑图标
+// 其他关键词：编辑，修改，笔，edit，pencil
+export function EditIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" />
+    </svg>
+  );
+}
+
+// 垃圾桶删除图标
+// 其他关键词：删除，移除，垃圾桶，delete，trash
+export function TrashIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}
+
+// 关闭/X图标
+// 其他关键词：关闭，取消，叉，close，x
+export function CloseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+// 星星收藏图标
+// 其他关键词：收藏，喜欢，星标，favorite，star
+export function StarIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+    </svg>
+  );
+}
+
+// 警告/提示图标
+// 其他关键词：警告，提醒，注意，warning，alert
+export function AlertIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  );
+}
+
+// 信息图标
+// 其他关键词：信息，详情，info，information
+export function InfoIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+// 右箭头图标
+// 其他关键词：箭头，向右，next，arrow right
+export function ChevronRightIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+// 麦克风图标
+// 其他关键词：麦克风，录音，语音，microphone，voice
+export function MicrophoneIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+    </svg>
+  );
+}
+
+// 骰子图标（五点）
+// 其他关键词：骰子，D6，游戏，dice
+export function DiceFiveIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
+      <circle cx="7" cy="7" r="1.5" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="17" cy="17" r="1.5" fill="currentColor" />
+      <circle cx="7" cy="17" r="1.5" fill="currentColor" />
+      <circle cx="17" cy="7" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+// 富文本编辑器的icon
+// 其他关键词：文本，编辑，文章，document，text
+export function BaselineAssignment(props: SVGProps<SVGSVGElement>) {
+  return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -1866,8 +2017,9 @@ export function MusicNote(props: SVGProps<SVGSVGElement>) {
     >
       <path
         fill="currentColor"
-        d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-      />
+        d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 0c.55 0 1 .45 1 1s-.45 1-1 1s-1-.45-1-1s.45-1 1-1m2 14H7v-2h7zm3-4H7v-2h10zm0-4H7V7h10z"
+      >
+      </path>
     </svg>
   );
 }

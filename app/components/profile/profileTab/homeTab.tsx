@@ -1,11 +1,11 @@
+import React from "react";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { PopWindow } from "@/components/common/popWindow";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
-import React from "react";
 
-import { useGetUserInfoQuery } from "../../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 import { FollowStats } from "./components/FollowStats";
 import { ProfileEditPanel } from "./components/ProfileEditPanel";
 import { UserActions } from "./components/UserActions";
@@ -30,7 +30,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-2 py-2 pl-3 md:pl-4 lg:pl-6 transition-all duration-300 md:flex">
-      <div className="w-full flex flex-col md:w-[30%] lg:w-[27%] py-4 md:py-8">
+      <div className="w-full flex flex-col md:w-[30%] lg:w-[27%]">
         {/* 移动端布局 */}
         <div className="md:hidden">
           {/* 小屏幕布局 - 顶部栏样式 */}
@@ -91,7 +91,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         </div>
 
         {/* 桌面端布局 */}
-        <div className="hidden md:flex flex-col items-start rounded-2xl md:pl-0 md:pr-2 p-2">
+        <div className="hidden md:flex flex-col items-start rounded-2xl py-4 px-16">
           {/* 头像 */}
           <UserAvatar
             user={user}
@@ -146,11 +146,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
       </div>
 
       <UserReadMe
-        user={user}
         userId={userId}
         loginUserId={loginUserId}
-        onSave={profileEditing.saveReadMe}
-        isSaving={profileEditing.isSaving}
       />
 
       <PopWindow

@@ -1,12 +1,31 @@
-import type { SpaceContextType } from "@/components/chat/spaceContext";
-import type { Room } from "../../../api";
-import ChatPageContextMenu from "@/components/chat/chatPageContextMenu";
-import RoomWindow from "@/components/chat/roomWindow";
-import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
-import RoomButton from "@/components/chat/smallComponents/roomButton";
-import SpaceButton from "@/components/chat/smallComponents/spaceButton";
-import { SpaceContext } from "@/components/chat/spaceContext";
-import SpaceContextMenu from "@/components/chat/spaceContextMenu";
+import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
+import {
+  useAddRoomMemberMutation,
+  useAddSpaceMemberMutation,
+  useGetSpaceMembersQuery,
+  useGetUserRoomsQuery,
+  useGetUserSpacesQuery,
+  useSetPlayerMutation,
+} from "api/hooks/chatQueryHooks";
+import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
+import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
+import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
+import RoomWindow from "@/components/chat/room/roomWindow";
+import { buildDefaultSidebarTree, extractDocMetasFromSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
+import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
+import SpaceDetailPanel from "@/components/chat/space/drawers/spaceDetailPanel";
+import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
+import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
+import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
@@ -17,48 +36,197 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import LeftChatList from "@/components/privateChat/Left​​ChatList​​";
+import FriendsPage from "@/components/privateChat/FriendsPage";
+import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
+import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
-import { AddIcon, Setting } from "@/icons";
-import {
-  useAddRoomMemberMutation,
-  useGetSpaceMembersQuery,
-  useGetUserRoomsQueries,
-  useGetUserRoomsQuery,
-  useGetUserSpacesQuery,
-} from "api/hooks/chatQueryHooks";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
 
 /**
  * chat板块的主组件
  */
 export default function ChatPage() {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
-  const activeRoomId = Number(urlRoomId) || null;
   const activeSpaceId = Number(urlSpaceId) || null;
-  const targetMessageId = Number(urlMessageId) || null;
-
-  const navigate = useNavigate();
   const [searchParam, _] = useSearchParams();
+  const navigate = useNavigate();
 
   const isPrivateChatMode = urlSpaceId === "private";
 
+  const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
+  const activeDocId = isDocRoute ? decodeURIComponent(urlMessageId as string) : null;
+
+  const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
+  const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
+
+  const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
+  const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg"))
+    ? urlRoomId
+    : null;
+  const isSpaceDetailRoute = spaceDetailRouteTab != null;
+
   const screenSize = useScreenSize();
+
+  useEffect(() => {
+    useEntityHeaderOverrideStore.getState().hydrateFromLocalStorage();
+    useDocHeaderOverrideStore.getState().hydrateFromLocalStorage();
+  }, []);
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
     !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (screenSize === "sm" && !isPrivateChatMode),
   );
 
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const className = "chat-lock-scroll";
+    const body = document.body;
+    if (screenSize === "sm") {
+      body.classList.add(className);
+    }
+    else {
+      body.classList.remove(className);
+    }
+    return () => {
+      body.classList.remove(className);
+    };
+  }, [screenSize]);
+
+  const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
+  const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
+
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
-  const rooms = useMemo(() => userRoomQuery.data?.data ?? [], [userRoomQuery.data?.data]);
+  const rooms = useMemo(() => userRoomQuery.data?.data?.rooms ?? [], [userRoomQuery.data?.data?.rooms]);
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
+
+  // 获取当前用户信息（需要在后续 effect / memo 中使用）
+  const globalContext = useGlobalContext();
+  const userId = globalContext.userId || -1;
+
+  // space 自定义排序（纯本地）
+  // 用一个固定 key 保存所有用户的排序，避免 useLocalStorage 不支持动态 key 的问题。
+  const [spaceOrderByUser, setSpaceOrderByUser] = useLocalStorage<Record<string, number[]>>("spaceOrderByUser", {});
+  // room 自定义排序（纯本地）
+  // key: userId -> spaceId -> roomIds
+  const [roomOrderByUserAndSpace, setRoomOrderByUserAndSpace] = useLocalStorage<Record<string, Record<string, number[]>>>(
+    "roomOrderByUserAndSpace",
+    {},
+  );
+  // 用于减少 /room/list 重复请求：缓存 space -> roomIds（按 user 分组）
+  const [spaceRoomIdsByUser, setSpaceRoomIdsByUser] = useLocalStorage<Record<string, Record<string, number[]>>>(
+    "spaceRoomIdsByUser",
+    {},
+  );
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
+  const activeSpaceIsArchived = activeSpace?.status === 2;
+  const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
+  const activeSpaceNameForUi = activeSpaceHeaderOverride?.title ?? activeSpace?.name;
+  const activeDocHeaderOverride = useDocHeaderOverrideStore(state => (activeDocId ? state.headers[activeDocId] : undefined));
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [{ ensureSpaceDocMeta, getOrCreateSpaceWorkspace }, { deleteSpaceDoc }] = await Promise.all([
+          import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+          import("@/components/chat/infra/blocksuite/deleteSpaceDoc"),
+        ]);
+
+        if (cancelled)
+          return;
+
+        // 1) Ensure business doc metas have business titles so `@`（Linked Doc）菜单默认就能显示房间/空间标题。
+        if (activeSpace?.name) {
+          ensureSpaceDocMeta({
+            spaceId: activeSpaceId,
+            docId: buildSpaceDocId({ kind: "space_description", spaceId: activeSpaceId }),
+            title: activeSpace.name,
+          });
+        }
+        for (const room of rooms) {
+          const roomId = room?.roomId;
+          if (typeof roomId !== "number" || !Number.isFinite(roomId) || roomId <= 0)
+            continue;
+          const title = String(room?.name ?? "").trim();
+          if (!title)
+            continue;
+          ensureSpaceDocMeta({
+            spaceId: activeSpaceId,
+            docId: buildSpaceDocId({ kind: "room_description", roomId }),
+            title,
+          });
+        }
+
+        // 2) Best-effort cleanup: if local workspace still has docs for rooms that no longer exist, purge them.
+        const ws = getOrCreateSpaceWorkspace(activeSpaceId) as any;
+        const metas = (ws?.meta?.docMetas ?? []) as any[];
+        if (!Array.isArray(metas) || metas.length === 0)
+          return;
+
+        const validRoomIds = new Set<number>();
+        for (const room of rooms) {
+          const roomId = room?.roomId;
+          if (typeof roomId === "number" && Number.isFinite(roomId) && roomId > 0) {
+            validRoomIds.add(roomId);
+          }
+        }
+
+        const staleDocIds: string[] = [];
+        for (const m of metas) {
+          const id = String((m as any)?.id ?? "");
+          if (!id)
+            continue;
+          const match = /^room:(\d+):description$/.exec(id);
+          if (!match)
+            continue;
+          const roomId = Number(match[1]);
+          if (!Number.isFinite(roomId) || roomId <= 0)
+            continue;
+          if (!validRoomIds.has(roomId)) {
+            staleDocIds.push(id);
+          }
+        }
+
+        if (staleDocIds.length > 0) {
+          await Promise.allSettled(staleDocIds.map(docId => deleteSpaceDoc({ spaceId: activeSpaceId, docId })));
+        }
+      }
+      catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSpace?.name, activeSpaceId, rooms]);
+
+  const spaceSidebarTreeQuery = useGetSpaceSidebarTreeQuery(activeSpaceId ?? -1);
+  const setSpaceSidebarTreeMutation = useSetSpaceSidebarTreeMutation();
+  const sidebarTreeVersion = spaceSidebarTreeQuery.data?.data?.version ?? 0;
+  const sidebarTree = useMemo(() => {
+    return parseSidebarTree(spaceSidebarTreeQuery.data?.data?.treeJson);
+  }, [spaceSidebarTreeQuery.data?.data?.treeJson]);
+
+  const handleSaveSidebarTree = useCallback((tree: SidebarTree) => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+    setSpaceSidebarTreeMutation.mutate({
+      spaceId: activeSpaceId,
+      expectedVersion: sidebarTreeVersion,
+      treeJson: JSON.stringify(tree),
+    });
+  }, [activeSpaceId, setSpaceSidebarTreeMutation, sidebarTreeVersion]);
 
   const setActiveSpaceId = useCallback((spaceId: number | null) => {
     setStoredChatIds({ spaceId, roomId: null });
@@ -66,16 +234,352 @@ export default function ChatPage() {
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
   }, [isOpenLeftDrawer, navigate, searchParam, setStoredChatIds, screenSize]);
-  const setActiveRoomId = useCallback((roomId: number | null) => {
+  const setActiveRoomId = useCallback((roomId: number | null, options?: { replace?: boolean }) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
     screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
-    navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${newSearchParams.toString()}`);
+    const nextRoomId = roomId ?? "";
+    navigate(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}?${newSearchParams.toString()}`, { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
+  // 主区域视图：不再用 URL 管理（避免 URL 变得过长/冲突）
+  type RoomSettingTab = "role" | "setting";
+  type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
+  const [mainView, setMainView] = useState<"chat" | "spaceDetail" | "roomSetting">("chat");
+  const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
+  const [roomSettingState, setRoomSettingState] = useState<{ roomId: number; tab: RoomSettingTab } | null>(null);
+
+  const isKPInSpace = useMemo(() => {
+    return Boolean(spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1));
+  }, [globalContext.userId, spaceMembersQuery.data?.data]);
+
+  const docMetasFromSidebarTree = useMemo(() => {
+    return extractDocMetasFromSidebarTree(sidebarTree);
+  }, [sidebarTree]);
+
+  const mergeDocMetas = useCallback((...sources: Array<MinimalDocMeta[] | null | undefined>): MinimalDocMeta[] => {
+    const map = new Map<string, MinimalDocMeta>();
+
+    for (const list of sources) {
+      for (const meta of list ?? []) {
+        const id = typeof meta?.id === "string" ? meta.id : "";
+        if (!id)
+          continue;
+        const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
+
+        const existing = map.get(id);
+        if (!existing) {
+          map.set(id, { id, title });
+          continue;
+        }
+        if (!existing.title && title) {
+          existing.title = title;
+        }
+      }
+    }
+
+    return [...map.values()];
+  }, []);
+
+  const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
+
+  const activeDocTitleForTcHeader = useMemo(() => {
+    if (!activeDocId)
+      return "";
+
+    const overrideTitle = typeof activeDocHeaderOverride?.title === "string" ? activeDocHeaderOverride.title.trim() : "";
+    if (overrideTitle)
+      return overrideTitle;
+
+    const fromState = (spaceDocMetas ?? []).find(m => m.id === activeDocId)?.title;
+    if (typeof fromState === "string" && fromState.trim().length > 0)
+      return fromState.trim();
+
+    const fromTree = (docMetasFromSidebarTree ?? []).find(m => m.id === activeDocId)?.title;
+    if (typeof fromTree === "string" && fromTree.trim().length > 0)
+      return fromTree.trim();
+
+    return "文档";
+  }, [activeDocHeaderOverride?.title, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
+
+  const handleDocTcHeaderChange = useCallback((payload: {
+    docId: string;
+    entityType?: unknown;
+    entityId?: number;
+    header: { title: string; imageUrl: string };
+  }) => {
+    const docId = typeof payload?.docId === "string" ? payload.docId : "";
+    if (!docId)
+      return;
+
+    const title = String(payload?.header?.title ?? "").trim();
+    const imageUrl = String(payload?.header?.imageUrl ?? "").trim();
+    useDocHeaderOverrideStore.getState().setHeader({ docId, header: { title, imageUrl } });
+
+    if (!title)
+      return;
+
+    setSpaceDocMetas((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0)
+        return prev;
+
+      const idx = prev.findIndex(m => m?.id === docId);
+      if (idx < 0)
+        return prev;
+
+      const currentTitle = typeof prev[idx]?.title === "string" ? prev[idx]!.title!.trim() : "";
+      if (currentTitle === title)
+        return prev;
+
+      const next = [...prev];
+      next[idx] = { ...next[idx], title };
+      return next;
+    });
+  }, []);
+
+  const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
+    if (typeof window === "undefined")
+      return [];
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return [];
+
+    try {
+      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+      const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
+      const metas = (ws?.meta?.docMetas ?? []) as any[];
+      const list = metas
+        .filter(m => typeof m?.id === "string" && m.id.length > 0)
+        .map((m) => {
+          return { id: String(m.id), title: typeof m?.title === "string" ? m.title : undefined } satisfies MinimalDocMeta;
+        });
+      return list;
+    }
+    catch {
+      return [];
+    }
+  }, [activeSpaceId]);
+
   useEffect(() => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      setSpaceDocMetas(null);
+      return;
+    }
+    if (!isKPInSpace) {
+      setSpaceDocMetas([]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const fromWorkspace = await loadSpaceDocMetas();
+      const merged = mergeDocMetas(fromWorkspace, docMetasFromSidebarTree);
+      if (cancelled)
+        return;
+      setSpaceDocMetas(merged);
+
+      // workspace meta 可能在刷新后为空：用 sidebarTree 中的 doc 节点回补，确保可见/可打开。
+      try {
+        const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+        for (const m of docMetasFromSidebarTree) {
+          if (typeof m?.id !== "string" || !m.id)
+            continue;
+          registry.ensureSpaceDocMeta({ spaceId: activeSpaceId, docId: m.id, title: m.title });
+        }
+      }
+      catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSpaceId, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas]);
+
+  const buildTreeBaseForWrite = useCallback((docMetas: MinimalDocMeta[]): SidebarTree => {
+    return sidebarTree ?? buildDefaultSidebarTree({
+      roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
+      docMetas,
+      includeDocs: true,
+    });
+  }, [activeSpaceId, rooms, sidebarTree]);
+
+  const resetSidebarTreeToDefault = useCallback(async () => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+
+    const docMetas = isKPInSpace
+      ? mergeDocMetas(
+          spaceDocMetas ?? [],
+          docMetasFromSidebarTree,
+          await loadSpaceDocMetas(),
+        )
+      : [];
+
+    if (isKPInSpace) {
+      setSpaceDocMetas(docMetas);
+    }
+
+    const defaultTree = buildDefaultSidebarTree({
+      roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
+      docMetas,
+      includeDocs: isKPInSpace,
+    });
+
+    setSpaceSidebarTreeMutation.mutate({
+      spaceId: activeSpaceId,
+      expectedVersion: sidebarTreeVersion,
+      treeJson: JSON.stringify(defaultTree),
+    });
+  }, [activeSpaceId, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, rooms, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+
+  const appendNodeToCategory = useCallback((params: {
+    tree: SidebarTree;
+    categoryId: string;
+    node: SidebarLeafNode;
+  }): SidebarTree => {
+    const next = JSON.parse(JSON.stringify(params.tree)) as SidebarTree;
+    const categories = Array.isArray(next.categories) ? next.categories : [];
+    const target = categories.find(c => c?.categoryId === params.categoryId) ?? categories[0];
+    if (!target)
+      return next;
+    target.items = Array.isArray(target.items) ? target.items : [];
+    if (target.items.some(i => i?.nodeId === params.node.nodeId))
+      return next;
+    target.items.push(params.node);
+    return next;
+  }, []);
+
+  const requestCreateDocInCategory = useCallback(async (categoryId: string, titleOverride?: string) => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+    if (!isKPInSpace)
+      return;
+
+    const title = (titleOverride ?? "新文档").trim() || "新文档";
+    const docKey = `${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
+    const docId = buildSpaceDocId({ kind: "independent", docId: docKey });
+
+    const baseDocMetas = mergeDocMetas(
+      spaceDocMetas ?? [],
+      docMetasFromSidebarTree,
+      await loadSpaceDocMetas(),
+    );
+    const nextDocMetas = baseDocMetas.some(m => m.id === docId)
+      ? baseDocMetas
+      : [...baseDocMetas, { id: docId, title }];
+
+    try {
+      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+      registry.ensureSpaceDocMeta({ spaceId: activeSpaceId, docId, title });
+      setSpaceDocMetas(nextDocMetas);
+    }
+    catch {
+      // ignore
+    }
+
+    const base = buildTreeBaseForWrite(nextDocMetas);
+    const next = appendNodeToCategory({
+      tree: base,
+      categoryId,
+      node: { nodeId: `doc:${docId}`, type: "doc", targetId: docId, fallbackTitle: title },
+    });
+    setSpaceSidebarTreeMutation.mutate({
+      spaceId: activeSpaceId,
+      expectedVersion: sidebarTreeVersion,
+      treeJson: JSON.stringify(next),
+    });
+
+    setMainView("chat");
+    navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, navigate, setMainView, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+
+  const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
+    if (roomId == null)
+      return;
+
+    if (activeSpaceId == null)
+      return;
+
+    const nextTab: RoomSettingTab = tab ?? "setting";
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+    navigate(`/chat/${activeSpaceId}/${roomId}/setting${qs ? `?${qs}` : ""}`);
+
+    setRoomSettingState({ roomId, tab: nextTab });
+    setMainView("roomSetting");
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, [activeSpaceId, navigate, searchParam]);
+
+  const closeRoomSettingPage = useCallback(() => {
+    setRoomSettingState(null);
+    setMainView("chat");
+
+    if (activeSpaceId == null || activeRoomId == null)
+      return;
+
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+    navigate(`/chat/${activeSpaceId}/${activeRoomId}${qs ? `?${qs}` : ""}`);
+  }, [activeRoomId, activeSpaceId, navigate, searchParam]);
+
+  const urlDrivenRoomSettingRef = useRef(false);
+  useEffect(() => {
+    if (isPrivateChatMode)
+      return;
+
+    if (isRoomSettingRoute) {
+      urlDrivenRoomSettingRef.current = true;
+      if (activeSpaceId == null || activeRoomId == null)
+        return;
+
+      const urlTab = searchParam.get("tab");
+      const nextTab: RoomSettingTab = urlTab === "role" || urlTab === "setting" ? urlTab : "setting";
+      setRoomSettingState({ roomId: activeRoomId, tab: nextTab });
+      setMainView("roomSetting");
+      return;
+    }
+
+    if (urlDrivenRoomSettingRef.current) {
+      urlDrivenRoomSettingRef.current = false;
+      setRoomSettingState(null);
+      setMainView("chat");
+    }
+  }, [activeRoomId, activeSpaceId, isPrivateChatMode, isRoomSettingRoute, searchParam]);
+
+  const urlDrivenSpaceDetailRef = useRef(false);
+  useEffect(() => {
+    if (isPrivateChatMode)
+      return;
+
+    if (isSpaceDetailRoute) {
+      urlDrivenSpaceDetailRef.current = true;
+      setRoomSettingState(null);
+
+      setSpaceDetailTab(spaceDetailRouteTab ?? "setting");
+      setMainView("spaceDetail");
+      return;
+    }
+
+    if (urlDrivenSpaceDetailRef.current) {
+      urlDrivenSpaceDetailRef.current = false;
+      // 从 spaceDetail 路由跳到 room setting 路由时，避免覆盖 roomSetting 的 mainView。
+      if (isRoomSettingRoute)
+        return;
+      setMainView("chat");
+    }
+  }, [isPrivateChatMode, isRoomSettingRoute, isSpaceDetailRoute, spaceDetailRouteTab]);
+
+  const hasInitPrivateChatRef = useRef(false);
+  useEffect(() => {
+    if (hasInitPrivateChatRef.current)
+      return;
     if (!isPrivateChatMode)
       return;
+    hasInitPrivateChatRef.current = true;
+
     // 恢复上次的激活空间和房间,否则恢复第一个房间
     const targetRoomId = storedIds.roomId ?? rooms[0]?.roomId;
     if (targetRoomId) {
@@ -85,40 +589,271 @@ export default function ChatPage() {
     if (targetSpaceId) {
       setActiveSpaceId(targetSpaceId);
     }
-  }, []);
+  }, [isPrivateChatMode, rooms, setActiveRoomId, setActiveSpaceId, storedIds.roomId, storedIds.spaceId]);
 
-  useLayoutEffect(() => {
-    // 在空间模式下，切换空间后默认选中第一个房间
-    (!isPrivateChatMode && rooms && !urlRoomId) && setActiveRoomId(rooms[0]?.roomId ?? null);
-  }, [isPrivateChatMode, rooms, setActiveRoomId, urlRoomId]);
-
-  // 当前激活的空间对应的房间列表
-  const userRoomQueries = useGetUserRoomsQueries(spaces);
-  // 空间对应的房间列表
-  const spaceIdToRooms = useMemo(() => {
-    const result: Record<number, Room[]> = {};
-    for (const space of spaces) {
-      const spaceId = space.spaceId ?? -1;
-      result[spaceId] = userRoomQueries.find(query => query.data?.data?.some(room => room.spaceId === space.spaceId))?.data?.data ?? [];
-    }
-    return result;
-  }, [spaces, userRoomQueries]);
+  // 当前 space 的 rooms 拉取后，更新本地 space->roomIds 映射，避免为了 space 未读数等需求进行批量请求。
+  useEffect(() => {
+    if (isPrivateChatMode)
+      return;
+    if (activeSpaceId == null)
+      return;
+    const roomIds = (rooms ?? [])
+      .map(r => r.roomId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+    const userKey = String(userId);
+    const spaceKey = String(activeSpaceId);
+    setSpaceRoomIdsByUser((prev) => {
+      const prevUserMap = prev[userKey] ?? {};
+      const prevRoomIds = prevUserMap[spaceKey] ?? [];
+      if (prevRoomIds.length === roomIds.length && prevRoomIds.every((v, i) => v === roomIds[i])) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [userKey]: {
+          ...prevUserMap,
+          [spaceKey]: roomIds,
+        },
+      };
+    });
+  }, [activeSpaceId, isPrivateChatMode, rooms, setSpaceRoomIdsByUser, userId]);
 
   // 创建空间弹窗是否打开
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
-  // 创建房间弹窗是否打开
-  const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
-  // 是否显示space详情
-  const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
-  // 房间设置窗口状态
-  const [activeRoomSettingId, setActiveRoomSettingId] = useState<number | null>(null);
+  const [isCreateInCategoryOpen, setIsCreateInCategoryOpen] = useSearchParamsState<boolean>("createInCategoryPop", false);
+
+  const [pendingCreateInCategoryId, setPendingCreateInCategoryId] = useState<string | null>(null);
+  const [createInCategoryMode, setCreateInCategoryMode] = useState<"room" | "doc">("room");
+  const [createDocTitle, setCreateDocTitle] = useState("新文档");
+
+  const openCreateInCategory = useCallback((categoryId: string) => {
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+    setPendingCreateInCategoryId(categoryId);
+    setCreateInCategoryMode("room");
+    setCreateDocTitle("新文档");
+    setIsCreateInCategoryOpen(true);
+  }, [activeSpaceId, setIsCreateInCategoryOpen]);
+
+  const closeCreateInCategory = useCallback(() => {
+    setIsCreateInCategoryOpen(false);
+    setPendingCreateInCategoryId(null);
+  }, [setIsCreateInCategoryOpen]);
+
+  const createDocInSelectedCategory = useCallback(async () => {
+    const categoryId = pendingCreateInCategoryId;
+    if (!categoryId)
+      return;
+    if (!isKPInSpace)
+      return;
+    await requestCreateDocInCategory(categoryId, createDocTitle);
+    closeCreateInCategory();
+  }, [closeCreateInCategory, createDocTitle, isKPInSpace, pendingCreateInCategoryId, requestCreateDocInCategory]);
+
+  const handleRoomCreated = useCallback((roomId?: number) => {
+    const categoryId = pendingCreateInCategoryId;
+    setPendingCreateInCategoryId(null);
+
+    if (roomId) {
+      setMainView("chat");
+      setActiveRoomId(roomId);
+    }
+
+    if (roomId && categoryId && activeSpaceId && activeSpaceId > 0) {
+      const base = buildTreeBaseForWrite(spaceDocMetas ?? []);
+      const next = appendNodeToCategory({
+        tree: base,
+        categoryId,
+        node: { nodeId: `room:${roomId}`, type: "room", targetId: roomId },
+      });
+      setSpaceSidebarTreeMutation.mutate({
+        spaceId: activeSpaceId,
+        expectedVersion: sidebarTreeVersion,
+        treeJson: JSON.stringify(next),
+      });
+    }
+
+    setIsCreateInCategoryOpen(false);
+  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, pendingCreateInCategoryId, setActiveRoomId, setIsCreateInCategoryOpen, setMainView, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+
+  const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab) => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return;
+
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+    navigate(`/chat/${activeSpaceId}/${tab}${qs ? `?${qs}` : ""}`);
+
+    setSpaceDetailTab(tab);
+    setRoomSettingState(null);
+    setMainView("spaceDetail");
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, [activeSpaceId, isPrivateChatMode, navigate, searchParam]);
+
+  const closeSpaceDetailPanel = useCallback(() => {
+    setMainView("chat");
+
+    if (activeSpaceId == null || isPrivateChatMode)
+      return;
+
+    const nextSearchParams = new URLSearchParams(searchParam);
+    nextSearchParams.delete("tab");
+    const qs = nextSearchParams.toString();
+
+    const fallbackRoomId = storedIds.spaceId === activeSpaceId ? storedIds.roomId : null;
+    const nextRoomId = (typeof fallbackRoomId === "number" && Number.isFinite(fallbackRoomId)) ? fallbackRoomId : "";
+    navigate(`/chat/${activeSpaceId}/${nextRoomId}${qs ? `?${qs}` : ""}`);
+  }, [activeSpaceId, isPrivateChatMode, navigate, searchParam, storedIds.roomId, storedIds.spaceId]);
+  // 空间成员邀请窗口状态
+  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
   // 房间邀请窗口状态
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
-  const [_sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
-  const [_isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
+  const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
-  // 获取当前用户信息
-  const globalContext = useGlobalContext();
+  const spaceOrder = useMemo(() => {
+    return spaceOrderByUser[String(userId)] ?? [];
+  }, [spaceOrderByUser, userId]);
+
+  const orderedSpaces = useMemo(() => {
+    if (!Array.isArray(spaces) || spaces.length <= 1) {
+      return spaces;
+    }
+
+    const orderIndex = new Map<number, number>();
+    for (let i = 0; i < spaceOrder.length; i++) {
+      orderIndex.set(spaceOrder[i]!, i);
+    }
+
+    return [...spaces]
+      .map((space, originalIndex) => {
+        const sid = space.spaceId ?? -1;
+        const order = orderIndex.get(sid);
+        return { space, originalIndex, order };
+      })
+      .sort((a, b) => {
+        const ao = a.order ?? Number.POSITIVE_INFINITY;
+        const bo = b.order ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo)
+          return ao - bo;
+        return a.originalIndex - b.originalIndex;
+      })
+      .map(x => x.space);
+  }, [spaces, spaceOrder]);
+
+  const orderedSpaceIds = useMemo(() => {
+    return orderedSpaces
+      .map(s => s.spaceId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  }, [orderedSpaces]);
+
+  const setUserSpaceOrder = useCallback((nextOrder: number[]) => {
+    setSpaceOrderByUser(prev => ({
+      ...prev,
+      [String(userId)]: nextOrder,
+    }));
+  }, [setSpaceOrderByUser, userId]);
+
+  const roomOrder = useMemo(() => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return [];
+    return roomOrderByUserAndSpace[String(userId)]?.[String(activeSpaceId)] ?? [];
+  }, [activeSpaceId, isPrivateChatMode, roomOrderByUserAndSpace, userId]);
+
+  const orderedRooms = useMemo(() => {
+    if (!Array.isArray(rooms) || rooms.length <= 1) {
+      return rooms;
+    }
+
+    const orderIndex = new Map<number, number>();
+    for (let i = 0; i < roomOrder.length; i++) {
+      orderIndex.set(roomOrder[i]!, i);
+    }
+
+    return [...rooms]
+      .map((room, originalIndex) => {
+        const rid = room.roomId ?? -1;
+        const order = orderIndex.get(rid);
+        return { room, originalIndex, order };
+      })
+      .sort((a, b) => {
+        const ao = a.order ?? Number.POSITIVE_INFINITY;
+        const bo = b.order ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo)
+          return ao - bo;
+        return a.originalIndex - b.originalIndex;
+      })
+      .map(x => x.room);
+  }, [rooms, roomOrder]);
+
+  useLayoutEffect(() => {
+    if (isPrivateChatMode)
+      return;
+    if (activeSpaceId == null)
+      return;
+
+    const isRoomIdMissingInUrl = !urlRoomId || urlRoomId === "null";
+    if (!isRoomIdMissingInUrl)
+      return;
+
+    const firstRoomId = orderedRooms[0]?.roomId;
+    if (typeof firstRoomId !== "number" || !Number.isFinite(firstRoomId))
+      return;
+
+    // 在空间模式下，URL roomId 缺失时，房间列表加载完成后默认选中自定义排序的第一个房间
+    setActiveRoomId(firstRoomId, { replace: true });
+  }, [activeSpaceId, isPrivateChatMode, orderedRooms, setActiveRoomId, urlRoomId]);
+
+  const orderedRoomIds = useMemo(() => {
+    return orderedRooms
+      .map(r => r.roomId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  }, [orderedRooms]);
+
+  const setUserRoomOrder = useCallback((nextOrder: number[]) => {
+    if (activeSpaceId == null || isPrivateChatMode)
+      return;
+    const userKey = String(userId);
+    const spaceKey = String(activeSpaceId);
+    setRoomOrderByUserAndSpace(prev => ({
+      ...prev,
+      [userKey]: {
+        ...(prev[userKey] ?? {}),
+        [spaceKey]: nextOrder,
+      },
+    }));
+  }, [activeSpaceId, isPrivateChatMode, setRoomOrderByUserAndSpace, userId]);
+
+  // 私聊未读消息：复用私聊列表现有计算逻辑（用于左侧“私信入口”角标）
+  const privateMessageList = usePrivateMessageList({ globalContext, userId });
+  const { unreadMessageNumbers: privateUnreadMessageNumbers } = useUnreadCount({
+    realTimeContacts: privateMessageList.realTimeContacts,
+    sortedRealTimeMessages: privateMessageList.sortedRealTimeMessages,
+    userId,
+    urlRoomId: isPrivateChatMode ? urlRoomId : undefined,
+  });
+  const privateTotalUnreadMessages = useMemo(() => {
+    return privateMessageList.realTimeContacts.reduce((sum, contactId) => {
+      // 当前正在看的私聊不再显示未读（与 ChatItem 逻辑一致）
+      if (isPrivateChatMode && activeRoomId === contactId) {
+        return sum;
+      }
+      return sum + (privateUnreadMessageNumbers[contactId] ?? 0);
+    }, 0);
+  }, [activeRoomId, isPrivateChatMode, privateMessageList.realTimeContacts, privateUnreadMessageNumbers]);
+
+  // 待处理好友申请数：合并到私信入口角标
+  const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 });
+  const pendingFriendRequestCount = useMemo(() => {
+    const list = friendRequestPageQuery.data?.data?.list ?? [];
+    if (!Array.isArray(list))
+      return 0;
+    return list.filter((r: any) => r?.type === "received" && r?.status === 1).length;
+  }, [friendRequestPageQuery.data?.data?.list]);
+
+  const privateEntryBadgeCount = useMemo(() => {
+    return privateTotalUnreadMessages + pendingFriendRequestCount;
+  }, [pendingFriendRequestCount, privateTotalUnreadMessages]);
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
@@ -148,7 +883,10 @@ export default function ChatPage() {
     const target = e.target as HTMLElement;
     // 向上查找包含data-space-id属性的父元素
     const spaceElement = target.closest("[data-space-id]");
-    setSpaceContextMenu({ x: e.clientX, y: e.clientY, spaceId: Number(spaceElement?.getAttribute("data-space-id")) });
+    const rawSpaceId = spaceElement?.getAttribute("data-space-id");
+    if (!rawSpaceId)
+      return;
+    setSpaceContextMenu({ x: e.clientX, y: e.clientY, spaceId: Number(rawSpaceId) });
   }
 
   // 处理点击外部关闭房间右键菜单的逻辑
@@ -196,7 +934,7 @@ export default function ChatPage() {
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
     return {
       spaceId: activeSpaceId ?? -1,
-      isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
+      isSpaceOwner: !!spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
       setActiveSpaceId,
       setActiveRoomId,
       toggleLeftDrawer: () => { setIsOpenLeftDrawer(!isOpenLeftDrawer); },
@@ -206,25 +944,28 @@ export default function ChatPage() {
   }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, setActiveRoomId, setActiveSpaceId, spaceMembersQuery.data?.data, spaces]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
+    const roomIds = spaceRoomIdsByUser[String(userId)]?.[String(spaceId)] ?? [];
     let result = 0;
-    for (const room of spaceIdToRooms[spaceId]) {
-      if (room.spaceId === spaceId && room.roomId && activeRoomId !== room.roomId) {
-        result += unreadMessagesNumber[room.roomId] ?? 0;
-      }
+    for (const roomId of roomIds) {
+      if (activeRoomId !== roomId)
+        result += unreadMessagesNumber[roomId] ?? 0;
     }
     return result;
   };
 
   // 添加房间成员的mutation
   const addRoomMemberMutation = useAddRoomMemberMutation();
+  // 添加空间成员的mutation
+  const addSpaceMemberMutation = useAddSpaceMemberMutation();
+  const setPlayerMutation = useSetPlayerMutation();
 
   // 处理邀请玩家
   const handleInvitePlayer = (roomId: number) => {
     setInviteRoomId(roomId);
   };
 
-  // 处理添加成员
-  const handleAddMember = (userId: number) => {
+  // 处理添加房间成员
+  const handleAddRoomMember = (userId: number) => {
     if (inviteRoomId) {
       addRoomMemberMutation.mutate({
         roomId: inviteRoomId,
@@ -237,160 +978,322 @@ export default function ChatPage() {
     }
   };
 
-  return (
-    <SpaceContext value={spaceContext}>
-      <div className="flex flex-row bg-base-100 flex-1 h-full relative">
-        {/* 只有小屏才允许收起侧边栏 */}
-        <OpenAbleDrawer isOpen={screenSize === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
-          <div className="h-full flex flex-row w-full md:w-max">
-            {/* 空间列表 */}
-            <div className="flex flex-col py-2 bg-base-300/40 h-full overflow-y-auto">
-              {/* 私信入口 */}
-              <div className="rounded w-10 relative mx-2">
-                <div
-                  className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
-                  }`}
-                />
-                <button
-                  className="tooltip tooltip-bottom w-10 btn btn-square"
-                  data-tip="私信"
-                  type="button"
-                  onClick={() => {
-                    setActiveSpaceId(null);
-                    setActiveRoomId(null);
-                    navigate("/chat/private");
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                  </svg>
-                </button>
-              </div>
+  // 处理添加空间成员
+  const handleAddSpaceMember = (userId: number) => {
+    if (activeSpaceId) {
+      addSpaceMemberMutation.mutate({
+        spaceId: activeSpaceId,
+        userIdList: [userId],
+      }, {
+        onSuccess: () => {
+          setIsMemberHandleOpen(false);
+        },
+      });
+    }
+  };
 
-              {/* 分隔线 */}
-              <div className="w-8 h-px bg-base-300 mx-3"></div>
+  const handleAddSpacePlayer = (userId: number) => {
+    if (!activeSpaceId)
+      return;
 
-              <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2" onContextMenu={handleSpaceContextMenu}>
-                {/* 全部空间列表 */}
-                {spaces.map(space => (
-                  <div key={space.spaceId} data-space-id={space.spaceId}>
-                    <SpaceButton
-                      space={space}
-                      unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
-                      onclick={() => {
-                        if (activeSpaceId !== space.spaceId) {
-                          setActiveSpaceId(space.spaceId ?? -1);
-                        }
-                      }}
-                      isActive={activeSpaceId === space.spaceId}
-                    >
-                    </SpaceButton>
-                  </div>
-                ))}
-              </div>
-              <button
-                className="tooltip tooltip-top btn btn-square btn-dash btn-info w-10 mx-2"
-                type="button"
-                data-tip="创建"
-                onClick={() => {
-                  setIsSpaceHandleOpen(true);
-                }}
-              >
-                <div className="avatar mask mask-squircle flex content-center">
-                  <AddIcon></AddIcon>
-                </div>
-              </button>
-            </div>
-            <div className="w-px bg-base-300"></div>
-            {/* 房间列表 */}
-            <div
-              className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0"
-              onContextMenu={handleContextMenu}
-            >
-              {isPrivateChatMode
-                ? (
-                    <LeftChatList
-                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                    />
-                  )
-                : (
-                    <>
-                      {
-                        activeSpaceId && (
-                          <div className="self-center font-bold flex gap-2">
-                            <span className="text-lg">{activeSpace?.name}</span>
-                            <Setting className="size-7 hover:bg-base-300 rounded cursor-pointer hover:text-info" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
-                          </div>
-                        )
-                      }
+    const isAlreadyMember = (spaceMembersQuery.data?.data ?? []).some(m => m.userId === userId);
 
-                      <div className="h-px bg-base-300"></div>
-                      <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
-                        {rooms.filter(room => room.spaceId === activeSpaceId).map(room => (
-                          <div className="flex items-center gap-1 group w-full" key={room.roomId} data-room-id={room.roomId}>
-                            <RoomButton
-                              room={room}
-                              unreadMessageNumber={unreadMessagesNumber[room.roomId ?? -1]}
-                              onclick={() => {
-                                setActiveRoomId(room.roomId ?? -1);
-                                setIsOpenLeftDrawer(false);
-                              }}
-                              isActive={activeRoomId === room.roomId}
-                            >
-                            </RoomButton>
-                            {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
-                            <div
-                              className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                              data-tip="房间设置"
-                            >
-                              <Setting
-                                className="size-6 cursor-pointer hover:text-info hover:bg-base-300 rounded"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // 仅传入真实 roomId，使用 null 表示关闭/未选择
-                                  setActiveRoomSettingId(room.roomId ?? null);
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {activeSpaceId !== null && spaceContext.isSpaceOwner && (
-                        <button
-                          className="btn btn-dash btn-info flex mx-2"
-                          type="button"
-                          onClick={() => {
-                            if (activeSpaceId) {
-                              setIsRoomHandleOpen(true);
-                            }
-                          }}
-                        >
-                          创建房间
-                        </button>
-                      )}
-                    </>
-                  )}
-            </div>
-          </div>
-        </OpenAbleDrawer>
-        {/* 聊天记录窗口，输入窗口，侧边栏 */}
-        {isPrivateChatMode
+    const grantPlayer = () => {
+      setPlayerMutation.mutate({
+        spaceId: activeSpaceId,
+        uidList: [userId],
+      }, {
+        onSettled: () => {
+          setIsMemberHandleOpen(false);
+        },
+      });
+    };
+
+    if (isAlreadyMember) {
+      grantPlayer();
+      return;
+    }
+
+    addSpaceMemberMutation.mutate({
+      spaceId: activeSpaceId,
+      userIdList: [userId],
+    }, {
+      onSuccess: () => {
+        grantPlayer();
+      },
+      onError: () => {
+        grantPlayer();
+      },
+    });
+  };
+
+  const mainContent = isPrivateChatMode
+    ? (
+        activeRoomId
           ? (
               <RightChatView
                 setIsOpenLeftDrawer={setIsOpenLeftDrawer}
               />
             )
           : (
-              <>
-                {
-                  activeSpaceId
-                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} targetMessageId={targetMessageId} />
-                    : (
-                        <div className="flex items-center justify-center w-full h-full font-bold">
-                          <span className="text-center lg:hidden">请从右侧选择房间</span>
+              <FriendsPage
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              />
+            )
+      )
+    : (
+        <>
+          {
+            activeSpaceId
+              ? (
+                  mainView === "spaceDetail"
+                    ? (
+                        <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                          <div className="w-full h-full overflow-auto flex justify-center p-2">
+                            <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
+                          </div>
                         </div>
                       )
-                }
+                    : (mainView === "roomSetting" && roomSettingState)
+                        ? (
+                            <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                              <div className="w-full h-full overflow-auto flex justify-center p-2">
+                                <RoomSettingWindow
+                                  roomId={roomSettingState.roomId}
+                                  onClose={closeRoomSettingPage}
+                                  defaultTab={roomSettingState.tab}
+                                />
+                              </div>
+                            </div>
+                          )
+                        : activeDocId
+                          ? (
+                              <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                <div className="w-full h-full overflow-hidden flex justify-center p-2">
+                                  {isKPInSpace
+                                    ? (
+                                        <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+                                          <BlocksuiteDescriptionEditor
+                                            workspaceId={`space:${activeSpaceId ?? -1}`}
+                                            spaceId={activeSpaceId ?? -1}
+                                            docId={activeDocId}
+                                            variant="full"
+                                            tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
+                                            onTcHeaderChange={handleDocTcHeaderChange}
+                                            allowModeSwitch
+                                            fullscreenEdgeless
+                                          />
+                                        </div>
+                                      )
+                                    : (
+                                        <div className="flex items-center justify-center w-full h-full font-bold">
+                                          <span className="text-center">仅KP可查看文档</span>
+                                        </div>
+                                      )}
+                                </div>
+                              </div>
+                            )
+                          : (
+                              <RoomWindow
+                                roomId={activeRoomId ?? -1}
+                                spaceId={activeSpaceId ?? -1}
+                                targetMessageId={targetMessageId}
+                              />
+                            )
+                )
+              : (
+                  <div className="flex items-center justify-center w-full h-full font-bold">
+                    <span className="text-center lg:hidden">请从右侧选择房间</span>
+                  </div>
+                )
+          }
+        </>
+      );
+
+  return (
+    <SpaceContext value={spaceContext}>
+      <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
+        {screenSize === "sm"
+          ? (
+              <>
+                {/* 只有小屏才允许收起侧边栏 */}
+                <OpenAbleDrawer
+                  isOpen={isOpenLeftDrawer}
+                  className="h-full z-10 w-full bg-base-200"
+                  initialWidth={chatLeftPanelWidth}
+                  minWidth={200}
+                  maxWidth={700}
+                  onWidthChange={setChatLeftPanelWidth}
+                  handlePosition="right"
+                >
+                  <div className="h-full flex flex-col w-full min-w-0 relative">
+                    <div className="flex flex-row w-full min-w-0 flex-1 min-h-0">
+                      {/* 空间列表 */}
+                      <ChatSpaceSidebar
+                        isPrivateChatMode={isPrivateChatMode}
+                        spaces={orderedSpaces}
+                        spaceOrderIds={orderedSpaceIds}
+                        onReorderSpaceIds={setUserSpaceOrder}
+                        activeSpaceId={activeSpaceId}
+                        getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+                        privateUnreadMessagesNumber={privateEntryBadgeCount}
+                        onOpenPrivate={() => {
+                          setActiveSpaceId(null);
+                          setActiveRoomId(null);
+                          navigate("/chat/private");
+                        }}
+                        onSelectSpace={(spaceId) => {
+                          setActiveSpaceId(spaceId);
+                        }}
+                        onCreateSpace={() => {
+                          setIsSpaceHandleOpen(true);
+                        }}
+                        onSpaceContextMenu={handleSpaceContextMenu}
+                      />
+                      {/* <div className="w-px bg-base-300"></div> */}
+                      {/* 房间列表 */}
+                      <ChatRoomListPanel
+                        isPrivateChatMode={isPrivateChatMode}
+                        currentUserId={userId}
+                        activeSpaceId={activeSpaceId}
+                        activeSpaceName={activeSpaceNameForUi}
+                        activeSpaceIsArchived={activeSpaceIsArchived}
+                        isSpaceOwner={!!spaceContext.isSpaceOwner}
+                        rooms={orderedRooms}
+                        roomOrderIds={orderedRoomIds}
+                        onReorderRoomIds={setUserRoomOrder}
+                        sidebarTree={sidebarTree}
+                        onSaveSidebarTree={handleSaveSidebarTree}
+                        onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                        docMetas={spaceDocMetas ?? []}
+                        onSelectDoc={(docId) => {
+                          if (!activeSpaceId || activeSpaceId <= 0)
+                            return;
+                          setMainView("chat");
+                          navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                        }}
+                        activeRoomId={activeRoomId}
+                        activeDocId={activeDocId}
+                        unreadMessagesNumber={unreadMessagesNumber}
+                        onContextMenu={handleContextMenu}
+                        onInviteMember={() => setIsMemberHandleOpen(true)}
+                        onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                        onSelectRoom={(roomId) => {
+                          setMainView("chat");
+                          setActiveRoomId(roomId);
+                        }}
+                        onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+                        onOpenRoomSetting={(roomId, tab) => {
+                          openRoomSettingPage(roomId, tab);
+                        }}
+                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        onOpenCreateInCategory={openCreateInCategory}
+                      />
+                    </div>
+                    <div
+                      id="chat-sidebar-user-card"
+                      className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                    />
+                  </div>
+                </OpenAbleDrawer>
+                {/* 聊天记录窗口，输入窗口，侧边栏 */}
+                <div
+                  className={`flex-1 min-h-0 min-w-0 transition-opacity ${isOpenLeftDrawer ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                  aria-hidden={isOpenLeftDrawer}
+                >
+                  {mainContent}
+                </div>
+              </>
+            )
+          : (
+              <>
+                {/* 桌面端：房间列表 + 右侧视图放在同一容器，并做左上圆角 */}
+                <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
+                  <div className="flex flex-col bg-base-200 h-full relative">
+                    <div className="flex flex-row flex-1 min-h-0">
+                      {/* 桌面端：空间列表不在圆角容器内 */}
+                      <div className="bg-base-200 h-full">
+                        <ChatSpaceSidebar
+                          isPrivateChatMode={isPrivateChatMode}
+                          spaces={orderedSpaces}
+                          spaceOrderIds={orderedSpaceIds}
+                          onReorderSpaceIds={setUserSpaceOrder}
+                          activeSpaceId={activeSpaceId}
+                          getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+                          privateUnreadMessagesNumber={privateEntryBadgeCount}
+                          onOpenPrivate={() => {
+                            setActiveSpaceId(null);
+                            setActiveRoomId(null);
+                            navigate("/chat/private");
+                          }}
+                          onSelectSpace={(spaceId) => {
+                            setActiveSpaceId(spaceId);
+                          }}
+                          onCreateSpace={() => {
+                            setIsSpaceHandleOpen(true);
+                          }}
+                          onSpaceContextMenu={handleSpaceContextMenu}
+                        />
+                      </div>
+
+                      <OpenAbleDrawer
+                        isOpen={true}
+                        className="h-full z-10 w-full bg-base-200"
+                        initialWidth={chatLeftPanelWidth}
+                        minWidth={200}
+                        maxWidth={700}
+                        onWidthChange={setChatLeftPanelWidth}
+                        handlePosition="right"
+                      >
+                        <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
+                          {/* 房间列表 */}
+                          <ChatRoomListPanel
+                            isPrivateChatMode={isPrivateChatMode}
+                            currentUserId={userId}
+                            activeSpaceId={activeSpaceId}
+                            activeSpaceName={activeSpaceNameForUi}
+                            activeSpaceIsArchived={activeSpaceIsArchived}
+                            isSpaceOwner={!!spaceContext.isSpaceOwner}
+                            rooms={orderedRooms}
+                            roomOrderIds={orderedRoomIds}
+                            onReorderRoomIds={setUserRoomOrder}
+                            sidebarTree={sidebarTree}
+                            onSaveSidebarTree={handleSaveSidebarTree}
+                            onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                            docMetas={spaceDocMetas ?? []}
+                            onSelectDoc={(docId) => {
+                              if (!activeSpaceId || activeSpaceId <= 0)
+                                return;
+                              setMainView("chat");
+                              navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                            }}
+                            activeRoomId={activeRoomId}
+                            activeDocId={activeDocId}
+                            unreadMessagesNumber={unreadMessagesNumber}
+                            onContextMenu={handleContextMenu}
+                            onInviteMember={() => setIsMemberHandleOpen(true)}
+                            onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                            onSelectRoom={(roomId) => {
+                              setMainView("chat");
+                              setActiveRoomId(roomId);
+                            }}
+                            onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+                            onOpenRoomSetting={(roomId, tab) => {
+                              openRoomSettingPage(roomId, tab);
+                            }}
+                            setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                            onOpenCreateInCategory={openCreateInCategory}
+                          />
+                        </div>
+                      </OpenAbleDrawer>
+                    </div>
+                    <div
+                      id="chat-sidebar-user-card"
+                      className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                    />
+                  </div>
+                  {mainContent}
+                </div>
               </>
             )}
 
@@ -401,41 +1304,83 @@ export default function ChatPage() {
           />
         </PopWindow>
         {/* 创建房间弹出窗口 */}
-        <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-          <CreateRoomWindow
-            spaceId={activeSpaceId || -1}
-            spaceAvatar={spaces.find(space => (space.spaceId === activeSpaceId))?.avatar}
-            onSuccess={(roomId) => {
-              if (roomId) {
-                setActiveRoomId(roomId);
-              }
-              setIsRoomHandleOpen(false);
-            }}
-          />
-        </PopWindow>
-        <PopWindow isOpen={isShowSpacePanel} onClose={() => setIsShowSpacePanel(false)}>
-          <SpaceDetailPanel></SpaceDetailPanel>
-        </PopWindow>
-        {/* 房间设置窗口 */}
         <PopWindow
-          isOpen={activeRoomSettingId !== null}
-          onClose={() => setActiveRoomSettingId(null)}
+          isOpen={isCreateInCategoryOpen}
+          onClose={closeCreateInCategory}
         >
-          {/* 严格判定，只有非 null（有效 id）才渲染窗口 */}
-          {activeRoomSettingId !== null && (
-            <RoomSettingWindow
-              roomId={activeRoomSettingId}
-              onClose={() => setActiveRoomSettingId(null)}
-              onShowMembers={() => {
-                setSideDrawerState("user");
-                setActiveRoomSettingId(null);
-              }}
-              onRenderDialog={() => {
-                setIsRenderWindowOpen(true);
-                setActiveRoomSettingId(null);
-              }}
-            />
-          )}
+          <div className="w-[min(720px,92vw)] p-6">
+            <div className="mb-3">
+              <div className="text-sm font-medium opacity-80 mb-2">创建类型</div>
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${createInCategoryMode === "room" ? "bg-base-200" : "bg-base-100"}`}
+                >
+                  <input
+                    type="radio"
+                    name="create_in_category_mode"
+                    className="radio radio-sm mt-1"
+                    checked={createInCategoryMode === "room"}
+                    onChange={() => setCreateInCategoryMode("room")}
+                    aria-label="创建房间"
+                  />
+                  <div className="min-w-0">
+                    <div className="font-medium">创建房间</div>
+                    <div className="text-xs opacity-70">创建后会自动加入当前分类</div>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 ${isKPInSpace ? "cursor-pointer" : "cursor-not-allowed opacity-50"} ${createInCategoryMode === "doc" ? "bg-base-200" : "bg-base-100"}`}
+                >
+                  <input
+                    type="radio"
+                    name="create_in_category_mode"
+                    className="radio radio-sm mt-1"
+                    checked={createInCategoryMode === "doc"}
+                    disabled={!isKPInSpace}
+                    onChange={() => setCreateInCategoryMode("doc")}
+                    aria-label="创建文档"
+                  />
+                  <div className="min-w-0">
+                    <div className="font-medium">创建文档</div>
+                    <div className="text-xs opacity-70">仅 KP 可创建/编辑文档</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {createInCategoryMode === "doc"
+              ? (
+                  <div className="bg-base-200 p-4 rounded-lg">
+                    <div className="text-sm font-medium opacity-80 mb-2">文档标题</div>
+                    <input
+                      className="input input-bordered w-full mb-3"
+                      value={createDocTitle}
+                      onChange={(e) => {
+                        setCreateDocTitle(e.target.value);
+                      }}
+                      placeholder="新文档"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary w-full"
+                      disabled={!isKPInSpace || !pendingCreateInCategoryId}
+                      onClick={() => {
+                        void createDocInSelectedCategory();
+                      }}
+                    >
+                      创建文档
+                    </button>
+                  </div>
+                )
+              : (
+                  <CreateRoomWindow
+                    spaceId={activeSpaceId || -1}
+                    spaceAvatar={spaces.find(space => (space.spaceId === activeSpaceId))?.avatar}
+                    onSuccess={handleRoomCreated}
+                  />
+                )}
+          </div>
         </PopWindow>
         {/* 房间邀请玩家窗口 */}
         <PopWindow
@@ -443,8 +1388,20 @@ export default function ChatPage() {
           onClose={() => setInviteRoomId(null)}
         >
           <AddMemberWindow
-            handleAddMember={handleAddMember}
+            handleAddMember={handleAddRoomMember}
             showSpace={true}
+          />
+        </PopWindow>
+        {/* 空间成员邀请窗口 */}
+        <PopWindow
+          isOpen={isMemberHandleOpen}
+          onClose={() => {
+            setIsMemberHandleOpen(false);
+          }}
+        >
+          <SpaceInvitePanel
+            onAddSpectator={handleAddSpaceMember}
+            onAddPlayer={handleAddSpacePlayer}
           />
         </PopWindow>
       </div>
@@ -452,8 +1409,10 @@ export default function ChatPage() {
       <ChatPageContextMenu
         contextMenu={contextMenu}
         unreadMessagesNumber={unreadMessagesNumber}
+        activeRoomId={activeRoomId}
         onClose={closeContextMenu}
         onInvitePlayer={handleInvitePlayer}
+        onOpenRoomSetting={openRoomSettingPage}
       />
 
       <SpaceContextMenu
@@ -461,6 +1420,11 @@ export default function ChatPage() {
         isSpaceOwner={
           spaceContextMenu
             ? spaces.find(space => space.spaceId === spaceContextMenu.spaceId)?.userId === globalContext.userId
+            : false
+        }
+        isArchived={
+          spaceContextMenu
+            ? spaces.find(space => space.spaceId === spaceContextMenu.spaceId)?.status === 2
             : false
         }
         onClose={closeSpaceContextMenu}

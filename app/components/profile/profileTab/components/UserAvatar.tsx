@@ -1,8 +1,8 @@
 import type { UserInfoResponse } from "../../../../../api";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-
-import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import React, { useState } from "react";
+
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
+import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 
 interface UserAvatarProps {
   user: UserInfoResponse | undefined;
@@ -128,6 +128,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
               <ImgUploaderWithCopper
                 setCopperedDownloadUrl={onAvatarUpdate}
                 fileName={`userId-${user?.userId}`}
+                aspect={1}
               >
                 <div className={`w-full h-full cursor-pointer ${
                   size === "lg" ? "" : "w-16 h-16"

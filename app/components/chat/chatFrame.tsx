@@ -5,32 +5,39 @@ import type {
   ImageMessage,
   Message,
 } from "../../../api";
-import { ChatBubble } from "@/components/chat/chatBubble";
-import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
-import { RoomContext } from "@/components/chat/roomContext";
-import PixiOverlay from "@/components/chat/smallComponents/pixiOverlay";
-import { SpaceContext } from "@/components/chat/spaceContext";
-import ExportImageWindow from "@/components/chat/window/exportImageWindow";
-import ForwardWindow from "@/components/chat/window/forwardWindow";
-import { PopWindow } from "@/components/common/popWindow";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { DraggableIcon } from "@/icons";
-import { getImageSize } from "@/utils/getImgSize";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import RoleChooser from "@/components/chat/input/roleChooser";
+import { ChatBubble } from "@/components/chat/message/chatBubble";
+import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import ExportImageWindow from "@/components/chat/window/exportImageWindow";
+import ForwardWindow from "@/components/chat/window/forwardWindow";
+import { PopWindow } from "@/components/common/popWindow";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { DraggableIcon } from "@/icons";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { getImageSize } from "@/utils/getImgSize";
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
+import { tuanchat } from "../../../api/instance";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
+
 function Header() {
   return (
-    <div className="text-center p-3">
-      已经到顶了~(,,・ω・,,)
+    <div className="py-2">
+      <div className="divider text-xs text-base-content/50 m-0">到顶</div>
     </div>
   );
 }
@@ -38,19 +45,49 @@ function Header() {
 /**
  * 聊天框（不带输入部分）
  * @param props 组件参数
- * @param props.useChatBubbleStyle 是否使用气泡样式
- * @param props.setUseChatBubbleStyle 设置气泡样式的函数
  * @param props.virtuosoRef 虚拟列表的 ref
  */
-function ChatFrame(props: {
-  useChatBubbleStyle: boolean;
-  setUseChatBubbleStyle: (value: boolean | ((prev: boolean) => boolean)) => void;
+interface ChatFrameProps {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
-}) {
-  const { useChatBubbleStyle, setUseChatBubbleStyle, virtuosoRef } = props;
+  messagesOverride?: ChatMessageResponse[];
+  enableWsSync?: boolean;
+  enableEffects?: boolean;
+  enableUnreadIndicator?: boolean;
+  isMessageMovable?: (message: Message) => boolean;
+  onBackgroundUrlChange?: (url: string | null) => void;
+  onEffectChange?: (effectName: string | null) => void;
+  onExecuteCommandRequest?: (payload: {
+    command: string;
+    threadId?: number;
+    requestMessageId: number;
+  }) => void;
+}
+
+interface ThreadHintMeta {
+  rootId: number;
+  title: string;
+  replyCount: number;
+}
+
+function ChatFrame(props: ChatFrameProps) {
+  const {
+    virtuosoRef,
+    messagesOverride,
+    enableWsSync = true,
+    enableEffects = true,
+    enableUnreadIndicator = true,
+    isMessageMovable,
+    onBackgroundUrlChange,
+    onEffectChange,
+    onExecuteCommandRequest,
+  } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
+  const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
+  const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
+  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const roomId = roomContext.roomId ?? -1;
   const curRoleId = roomContext.curRoleId ?? -1;
   const curAvatarId = roomContext.curAvatarId ?? -1;
@@ -64,6 +101,70 @@ function ChatFrame(props: {
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
+  const updateMessageMutation = useUpdateMessageMutation();
+
+  const handleToggleNarrator = useCallback((messageId: number) => {
+    if (!spaceContext.isSpaceOwner) {
+      toast.error("只有KP可以切换旁白");
+      return;
+    }
+    const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
+    if (!message)
+      return;
+
+    const isNarrator = !message.roleId || message.roleId <= 0;
+
+    if (isNarrator) {
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  const newMessage = {
+                    ...message,
+                    roleId: role.roleId,
+                    avatarId: roomContext.roomRolesThatUserOwn.find(r => r.roleId === role.roleId)?.avatarId ?? -1,
+                  };
+                  updateMessageMutation.mutate(newMessage, {
+                    onSuccess: (response) => {
+                      if (response?.data && roomContext.chatHistory) {
+                        const updatedChatMessageResponse = {
+                          ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
+                          message: response.data,
+                        };
+                        roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+                      }
+                    },
+                  });
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
+    }
+    else {
+      const newMessage = {
+        ...message,
+        roleId: -1,
+      };
+      updateMessageMutation.mutate(newMessage, {
+        onSuccess: (response) => {
+          if (response?.data && roomContext.chatHistory) {
+            const updatedChatMessageResponse = {
+              ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
+              message: response.data,
+            };
+            roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+          }
+        },
+      });
+    }
+  }, [roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -86,6 +187,9 @@ function ChatFrame(props: {
   // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
   const lastLengthMapRef = useRef<Record<number, number>>({});
   useEffect(() => {
+    if (!enableWsSync) {
+      return;
+    }
     // 将wsUtils中缓存的消息存到indexDB中，这里需要轮询等待indexDB初始化完成。
     // 如果在初始化之前就调用了这个函数，会出现初始消息无法加载的错误。
     let isCancelled = false;
@@ -115,7 +219,32 @@ function ChatFrame(props: {
         return;
       const lastLength = lastLengthMapRef.current[roomId] ?? 0;
       if (lastLength < receivedMessages.length) {
-        await chatHistory.addOrUpdateMessages(receivedMessages.slice(lastLength));
+        const newMessages = receivedMessages.slice(lastLength);
+
+        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连续
+        const historyMsgs = chatHistory.messages;
+        if (historyMsgs.length > 0 && newMessages.length > 0) {
+          const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
+          const firstNewMsg = newMessages[0];
+
+          if (firstNewMsg.message.syncId > lastHistoryMsg.message.syncId + 1) {
+            console.warn(`[ChatFrame] Detected gap between history (${lastHistoryMsg.message.syncId}) and new messages (${firstNewMsg.message.syncId}). Fetching missing messages...`);
+            try {
+              const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
+                roomId,
+                syncId: lastHistoryMsg.message.syncId + 1,
+              });
+              if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
+                await chatHistory.addOrUpdateMessages(missingMessagesRes.data);
+              }
+            }
+            catch (e) {
+              console.error("[ChatFrame] Failed to fetch missing messages:", e);
+            }
+          }
+        }
+
+        await chatHistory.addOrUpdateMessages(newMessages);
         lastLengthMapRef.current[roomId] = receivedMessages.length;
       }
     }
@@ -130,10 +259,69 @@ function ChatFrame(props: {
         timeoutId = null;
       }
     };
-  }, [chatHistory, receivedMessages, roomId]);
+  }, [chatHistory, enableWsSync, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return roomContext.chatHistory?.messages ?? [];
+    if (messagesOverride) {
+      return messagesOverride;
+    }
+    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
+    // - root：threadId === messageId（显示）
+    // - reply：threadId !== messageId（隐藏）
+    return (roomContext.chatHistory?.messages ?? []).filter((m) => {
+      // Thread Root（10001）不在主消息流中单独显示：改为挂在“原消息”下方的提示条
+      if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
+        return false;
+      }
+      const { threadId, messageId } = m.message;
+      if (!threadId) {
+        return true;
+      }
+      return threadId === messageId;
+    });
+  }, [messagesOverride, roomContext.chatHistory?.messages]);
+
+  const threadHintMetaByMessageId = useMemo(() => {
+    // key: parentMessageId（被创建子区的那条原消息）
+    const metaMap = new Map<number, ThreadHintMeta>();
+    const all = roomContext.chatHistory?.messages ?? [];
+    if (all.length === 0) {
+      return metaMap;
+    }
+
+    // rootId -> replyCount
+    const replyCountByRootId = new Map<number, number>();
+    for (const item of all) {
+      const { threadId, messageId } = item.message;
+      if (threadId && threadId !== messageId) {
+        replyCountByRootId.set(threadId, (replyCountByRootId.get(threadId) ?? 0) + 1);
+      }
+    }
+
+    // parentMessageId -> latest root
+    for (const item of all) {
+      const mm = item.message;
+      const isRoot = mm.messageType === MESSAGE_TYPE.THREAD_ROOT && mm.threadId === mm.messageId;
+      const parentId = mm.replyMessageId;
+      if (!isRoot || !parentId) {
+        continue;
+      }
+
+      const title = (mm.extra as any)?.title || mm.content;
+      const next: ThreadHintMeta = {
+        rootId: mm.messageId,
+        title,
+        replyCount: replyCountByRootId.get(mm.messageId) ?? 0,
+      };
+
+      const prev = metaMap.get(parentId);
+      // 极端情况下可能存在多个 root：取 messageId 更新的那个
+      if (!prev || next.rootId > prev.rootId) {
+        metaMap.set(parentId, next);
+      }
+    }
+
+    return metaMap;
   }, [roomContext.chatHistory?.messages]);
 
   // 删除消息（逻辑删除：更新本地消息状态为已删除）
@@ -165,28 +353,35 @@ function ChatFrame(props: {
   const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
     // return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
     return virtuosoIndex;
-  }, [historyMessages.length]);
+  }, []);
   const messageIndexToVirtuosoIndex = useCallback((messageIndex: number) => {
     return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
   }, [historyMessages.length]);
   /**
    * 新消息提醒
    */
-  const unreadMessageNumber = webSocketUtils.unreadMessagesNumber[roomId] ?? 0;
+  const unreadMessageNumber = enableUnreadIndicator
+    ? (webSocketUtils.unreadMessagesNumber[roomId] ?? 0)
+    : 0;
   const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
   // 监听新消息，如果在底部，则设置群聊消息为已读；
   useEffect(() => {
+    if (!enableUnreadIndicator) {
+      return;
+    }
     if (isAtBottomRef.current) {
       updateLastReadSyncId(roomId);
     }
-  }, [historyMessages, roomId, updateLastReadSyncId]);
+  }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
   /**
    * scroll相关
    */
   const scrollToBottom = useCallback(() => {
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
-    updateLastReadSyncId(roomId);
-  }, [historyMessages.length, messageIndexToVirtuosoIndex, roomId, updateLastReadSyncId, virtuosoRef]);
+    if (enableUnreadIndicator) {
+      updateLastReadSyncId(roomId);
+    }
+  }, [enableUnreadIndicator, historyMessages.length, messageIndexToVirtuosoIndex, roomId, updateLastReadSyncId, virtuosoRef]);
   useEffect(() => {
     let timer = null;
     if (chatHistory?.loading) {
@@ -205,49 +400,80 @@ function ChatFrame(props: {
    * 注意：已删除的消息（status === 1）不应该显示背景图片
    */
   const imgNode = useMemo(() => {
+    if (!enableEffects) {
+      return [];
+    }
     return historyMessages
       .map((msg, index) => {
         return { index, imageMessage: msg.message.extra?.imageMessage, status: msg.message.status };
       })
       .filter(item => item.imageMessage && item.imageMessage.background && item.status !== 1);
-  }, [historyMessages]);
+  }, [enableEffects, historyMessages]);
 
   /**
    * 特效随聊天记录而改变
    * 注意：已删除的消息（status === 1）不应该显示特效
    */
   const effectNode = useMemo(() => {
+    if (!enableEffects) {
+      return [];
+    }
     return historyMessages
       .map((msg, index) => {
         return { index, effectMessage: msg.message.extra?.effectMessage, status: msg.message.status };
       })
       .filter(item => item.effectMessage && item.effectMessage.effectName && item.status !== 1);
-  }, [historyMessages]);
+  }, [enableEffects, historyMessages]);
 
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    onBackgroundUrlChange?.(enableEffects ? currentBackgroundUrl : null);
+  }, [currentBackgroundUrl, enableEffects, onBackgroundUrlChange]);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   useEffect(() => {
+    onEffectChange?.(enableEffects ? currentEffect : null);
+  }, [currentEffect, enableEffects, onEffectChange]);
+
+  useEffect(() => {
+    if (!enableEffects) {
+      return;
+    }
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
 
     // Update Background URL
     let newBgUrl: string | null = null;
+
+    // 找到最后一个清除背景的位置
+    let lastClearIndex = -1;
+    for (const effect of effectNode) {
+      if (effect.index <= currentMessageIndex && effect.effectMessage?.effectName === "clearBackground") {
+        lastClearIndex = effect.index;
+      }
+    }
+
+    // 从清除背景之后（或从头）开始找最新的背景图片
     for (const bg of imgNode) {
-      if (bg.index <= currentMessageIndex) {
+      if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
         newBgUrl = bg.imageMessage?.url ?? null;
       }
-      else {
+      else if (bg.index > currentMessageIndex) {
         break;
       }
     }
+
     if (newBgUrl !== currentBackgroundUrl) {
       const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
       return () => clearTimeout(id);
     }
-  }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+  }, [enableEffects, currentVirtuosoIndex, imgNode, effectNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
   useEffect(() => {
+    if (!enableEffects) {
+      return;
+    }
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
 
     // Update Effect
@@ -263,9 +489,8 @@ function ChatFrame(props: {
     if (newEffect !== currentEffect) {
       setCurrentEffect(newEffect);
     }
-  }, [currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
+  }, [enableEffects, currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
 
-  const updateMessageMutation = useUpdateMessageMutation();
   const updateMessage = useCallback((message: Message) => {
     updateMessageMutation.mutate(message);
     // 从 historyMessages 中找到完整的 ChatMessageResponse，保留 messageMark 等字段
@@ -295,18 +520,12 @@ function ChatFrame(props: {
    * 但我们故意不更新 displayedBgUrl！它依然保持着 url_A 的值。
    * 结果就是：背景图层虽然要变透明了，但它的 backgroundImage 样式里依然是上一张图片。这样，动画就有了可以“操作”的视觉内容，能够平滑地将这张图片淡出，直到完全透明。
    */
-  const [displayedBgUrl, setDisplayedBgUrl] = useState(currentBackgroundUrl);
-  useEffect(() => {
-    if (currentBackgroundUrl) {
-      const id = setTimeout(() => setDisplayedBgUrl(currentBackgroundUrl), 0);
-      return () => clearTimeout(id);
-    }
-  }, [currentBackgroundUrl]);
+  // 背景图渲染已提升到 RoomWindow，此处仅负责计算并通过 onBackgroundUrlChange 上报。
 
   /**
    * 消息选择
    */
-  const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(new Set());
+  const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const isSelecting = selectedMessageIds.size > 0;
 
   const toggleMessageSelection = useCallback((messageId: number) => {
@@ -353,10 +572,28 @@ function ChatFrame(props: {
     updateMessage({
       ...message,
       extra: {
+        ...message.extra,
         imageMessage: {
           ...message.extra.imageMessage,
           background: !message.extra.imageMessage.background,
         },
+      },
+    });
+  }
+
+  function toggleUnlockCg(messageId: number) {
+    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
+    if (!message || message.messageType !== 2)
+      return;
+
+    const currentWebgal = message.webgal || {};
+    const isUnlocked = !!currentWebgal.unlockCg;
+
+    updateMessage({
+      ...message,
+      webgal: {
+        ...currentWebgal,
+        unlockCg: !isUnlocked,
       },
     });
   }
@@ -416,6 +653,8 @@ function ChatFrame(props: {
   const dragStartMessageIdRef = useRef(-1);
   const isDragging = dragStartMessageIdRef.current >= 0;
   const indicatorRef = useRef<HTMLDivElement | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const pendingDragCheckRef = useRef<{ target: HTMLDivElement; clientY: number } | null>(null);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
@@ -428,8 +667,22 @@ function ChatFrame(props: {
     targetIndex: number,
     messageIds: number[],
   ) => {
-    const messageIdSet = new Set(messageIds);
-    const selectedMessages = Array.from(messageIds)
+    const movableMessageIds = isMessageMovable
+      ? messageIds.filter((id) => {
+          const msg = historyMessages.find(m => m.message.messageId === id)?.message;
+          return msg ? isMessageMovable(msg) : false;
+        })
+      : messageIds;
+
+    if (movableMessageIds.length !== messageIds.length) {
+      toast.error("部分消息不支持移动");
+    }
+    if (movableMessageIds.length === 0) {
+      return;
+    }
+
+    const messageIdSet = new Set(movableMessageIds);
+    const selectedMessages = Array.from(movableMessageIds)
       .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
       .filter((msg): msg is Message => msg !== undefined)
       .sort((a, b) => a.position - b.position);
@@ -454,35 +707,67 @@ function ChatFrame(props: {
         position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
       });
     }
-  }, [historyMessages, updateMessage]);
+  }, [historyMessages, isMessageMovable, updateMessage]);
+  const cleanupDragIndicator = useCallback(() => {
+    pendingDragCheckRef.current = null;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    indicatorRef.current?.remove();
+    curDragOverMessageRef.current = null;
+    dropPositionRef.current = "before";
+  }, []);
+
   /**
-   * 检查拖拽的位置
+   * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
    */
-  const checkPosition = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const scheduleCheckPosition = useCallback((target: HTMLDivElement, clientY: number) => {
     if (dragStartMessageIdRef.current === -1) {
       return;
     }
-    const target = e.currentTarget;
-    curDragOverMessageRef.current = target;
-    const rect = target.getBoundingClientRect();
-    const relativeY = e.clientY - rect.top;
+    pendingDragCheckRef.current = { target, clientY };
+    if (rafIdRef.current !== null) {
+      return;
+    }
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const pending = pendingDragCheckRef.current;
+      pendingDragCheckRef.current = null;
+      if (!pending || dragStartMessageIdRef.current === -1) {
+        return;
+      }
 
-    const indicator = document.createElement("div");
-    indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
-    indicator.style.zIndex = "50";
-    if (relativeY < rect.height / 2) {
-      indicator.style.top = "-1px";
-      indicator.style.bottom = "auto";
-      dropPositionRef.current = "before";
-    }
-    else {
-      indicator.style.top = "auto";
-      indicator.style.bottom = "-1px";
-      dropPositionRef.current = "after";
-    }
-    indicatorRef.current?.remove();
-    curDragOverMessageRef.current?.appendChild(indicator);
-    indicatorRef.current = indicator;
+      const { target, clientY } = pending;
+      curDragOverMessageRef.current = target;
+
+      const rect = target.getBoundingClientRect();
+      const relativeY = clientY - rect.top;
+      const nextPosition: "before" | "after" = relativeY < rect.height / 2 ? "before" : "after";
+
+      let indicator = indicatorRef.current;
+      if (!indicator) {
+        indicator = document.createElement("div");
+        indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
+        indicator.style.zIndex = "50";
+        indicatorRef.current = indicator;
+      }
+
+      if (indicator.parentElement !== target) {
+        indicator.remove();
+        target.appendChild(indicator);
+      }
+
+      dropPositionRef.current = nextPosition;
+      if (nextPosition === "before") {
+        indicator.style.top = "-1px";
+        indicator.style.bottom = "auto";
+      }
+      else {
+        indicator.style.top = "auto";
+        indicator.style.bottom = "-1px";
+      }
+    });
   }, []);
   /**
    * 拖拽起始化
@@ -492,21 +777,16 @@ function ChatFrame(props: {
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageId;
     // 设置拖动预览图像
-    const parent = e.currentTarget.parentElement!;
-    let clone: HTMLElement;
-    // 创建拖拽预览元素
-    if (isSelecting && selectedMessageIds.size > 0) {
-      clone = document.createElement("div");
-      clone.className = "p-2 bg-info text-info-content rounded";
-      clone.textContent = `移动${selectedMessageIds.size}条消息`;
-    }
-    else {
-      clone = parent.cloneNode(true) as HTMLElement;
-    }
-    clone.style.width = `${e.currentTarget.offsetWidth}px`;
+    // 创建轻量拖拽预览元素（避免 clone 大块复杂 DOM 造成拖拽卡顿）
+    const clone = document.createElement("div");
+    clone.className = "p-2 bg-info text-info-content rounded shadow";
+    clone.textContent = isSelecting && selectedMessageIds.size > 0
+      ? `移动${selectedMessageIds.size}条消息`
+      : "移动消息";
+
     clone.style.position = "fixed";
     clone.style.top = "-9999px";
-    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
+    clone.style.width = `${Math.min(320, e.currentTarget.offsetWidth)}px`;
     clone.style.opacity = "0.5";
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
@@ -514,9 +794,18 @@ function ChatFrame(props: {
   }, [historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (isFileDrag(e.dataTransfer)) {
+      e.dataTransfer.dropEffect = "copy";
+      return;
+    }
     e.dataTransfer.dropEffect = "move";
-    checkPosition(e);
-  }, [checkPosition]);
+    scheduleCheckPosition(e.currentTarget, e.clientY);
+  }, [scheduleCheckPosition]);
+
+  const handleDragEnd = useCallback(() => {
+    dragStartMessageIdRef.current = -1;
+    cleanupDragIndicator();
+  }, [cleanupDragIndicator]);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -527,6 +816,13 @@ function ChatFrame(props: {
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
     curDragOverMessageRef.current = null;
+
+    // 拖拽上传（图片/音频）：优先处理文件拖拽，避免触发现有的“消息拖拽排序”
+    if (isFileDrag(e.dataTransfer)) {
+      e.stopPropagation();
+      addDroppedFilesToComposer(e.dataTransfer);
+      return;
+    }
 
     const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex - 1;
 
@@ -539,8 +835,8 @@ function ChatFrame(props: {
     }
 
     dragStartMessageIdRef.current = -1;
-    indicatorRef.current?.remove();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages]);
+    cleanupDragIndicator();
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator]);
 
   /**
    * 右键菜单
@@ -595,13 +891,13 @@ function ChatFrame(props: {
 
   // 切换消息样式
   function toggleChatBubbleStyle() {
-    setUseChatBubbleStyle(prev => !prev);
+    toggleUseChatBubbleStyle();
     closeContextMenu();
   }
 
   // 处理回复消息
   function handleReply(message: Message) {
-    roomContext.setReplyMessage && roomContext.setReplyMessage(message);
+    setReplyMessage(message);
   }
 
   /**
@@ -610,9 +906,11 @@ function ChatFrame(props: {
    */
   const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
-    const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
+    const baseDraggable = (roomContext.curMember?.memberType ?? 3) < 3;
+    const movable = baseDraggable && (!isMessageMovable || isMessageMovable(chatMessageResponse.message));
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
+    const threadHintMeta = threadHintMetaByMessageId.get(chatMessageResponse.message.messageId);
     return ((
       <div
         key={chatMessageResponse.message.messageId}
@@ -635,27 +933,35 @@ function ChatFrame(props: {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={e => handleDrop(e, indexInHistoryMessages)}
-        draggable={isSelecting && draggable}
+        draggable={isSelecting && movable}
         onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
+        onDragEnd={handleDragEnd}
       >
         {
-          draggable
+          movable
           && (
             <div
               className={`absolute left-0 ${useChatBubbleStyle ? "top-[12px]" : "top-[30px]"}
                       opacity-0 transition-opacity flex items-center pr-2 cursor-move
                       group-hover:opacity-100 z-100`}
-              draggable={draggable}
+              draggable={movable}
               onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
+              onDragEnd={handleDragEnd}
             >
               <DraggableIcon className="size-6 "></DraggableIcon>
             </div>
           )
         }
-        <ChatBubble chatMessageResponse={chatMessageResponse} />
+        <ChatBubble
+          chatMessageResponse={chatMessageResponse}
+          useChatBubbleStyle={useChatBubbleStyle}
+          threadHintMeta={threadHintMeta}
+          onExecuteCommandRequest={onExecuteCommandRequest}
+        />
       </div>
     )
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedMessageIds,
     roomContext.curMember?.memberType,
@@ -669,6 +975,9 @@ function ChatFrame(props: {
     handleDragLeave,
     handleDrop,
     handleDragStart,
+    handleDragEnd,
+    isMessageMovable,
+    threadHintMetaByMessageId,
   ]);
 
   if (chatHistory?.loading) {
@@ -691,28 +1000,22 @@ function ChatFrame(props: {
    */
   return (
     <div className="h-full relative">
-      {/* Background Image Layer */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
-        style={{
-          backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
-          opacity: currentBackgroundUrl ? 1 : 0,
-        }}
-      />
-      {/* Overlay for tint and blur */}
-      <div
-        className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
-        style={{
-          opacity: currentBackgroundUrl ? 1 : 0,
-        }}
-      />
-
-      {/* Pixi Overlay */}
-      <PixiOverlay effectName={currentEffect} />
-
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
+        onDragOver={(e) => {
+          if (isFileDrag(e.dataTransfer)) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }
+        }}
+        onDrop={(e) => {
+          if (!isFileDrag(e.dataTransfer))
+            return;
+          e.preventDefault();
+          e.stopPropagation();
+          addDroppedFilesToComposer(e.dataTransfer);
+        }}
       >
         {selectedMessageIds.size > 0 && (
           <div
@@ -773,7 +1076,9 @@ function ChatFrame(props: {
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
-              atBottom && updateLastReadSyncId(roomId);
+              if (enableUnreadIndicator) {
+                atBottom && updateLastReadSyncId(roomId);
+              }
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {
@@ -787,7 +1092,7 @@ function ChatFrame(props: {
           />
         </div>
         {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
-        {(unreadMessageNumber > 0 && historyMessages.length > 2 && !isAtBottomRef.current) && (
+        {(enableUnreadIndicator && unreadMessageNumber > 0 && historyMessages.length > 2 && !isAtBottomRef.current) && (
           <div
             className="absolute bottom-4 self-end z-50 cursor-pointer"
             onClick={() => {
@@ -835,7 +1140,12 @@ function ChatFrame(props: {
         onToggleChatBubbleStyle={toggleChatBubbleStyle}
         onEditMessage={handleEditMessage}
         onToggleBackground={toggleBackground}
+        onUnlockCg={toggleUnlockCg}
         onAddEmoji={handleAddEmoji}
+        onInsertAfter={(messageId) => {
+          setInsertAfterMessageId(messageId);
+        }}
+        onToggleNarrator={handleToggleNarrator}
       />
     </div>
   );

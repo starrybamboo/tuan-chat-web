@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessageResponse';
 import type { ApiResultCursorPageBaseResponseChatMessageResponse } from '../models/ApiResultCursorPageBaseResponseChatMessageResponse';
-import type { ApiResultListChatMessageResponse } from '../models/ApiResultListChatMessageResponse';
 import type { ApiResultListMessage } from '../models/ApiResultListMessage';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
@@ -29,7 +28,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultListMessage> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/chat/messages/batch',
+            url: '/chat/messages/batch',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -52,7 +51,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultChatMessageResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             query: {
                 'messageId': messageId,
             },
@@ -76,7 +75,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -99,7 +98,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -122,7 +121,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/chat/message',
+            url: '/chat/message',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -145,7 +144,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultChatMessageResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message/sync',
+            url: '/chat/message/sync',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -168,7 +167,7 @@ export class ChatControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponseChatMessageResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message/page',
+            url: '/chat/message/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -181,40 +180,17 @@ export class ChatControllerService {
     }
     /**
      * 获取历史消息
-     * 返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息
+     * 返回房间下syncId大于等于请求中syncId的消息，返回gzip压缩的数据
      * @param requestBody
-     * @returns ApiResultListChatMessageResponse OK
+     * @returns any OK
      * @throws ApiError
      */
     public getHistoryMessages(
         requestBody: HistoryMessageRequest,
-    ): CancelablePromise<ApiResultListChatMessageResponse> {
+    ): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/chat/message/history',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 发送消息（备用）,骰娘回复
-     * 从设计上是为了弱网环境的处理，但实际上没怎么用
-     * @param requestBody
-     * @returns ApiResultMessage OK
-     * @throws ApiError
-     */
-    public sendMessageAiResponse(
-        requestBody: ChatMessageRequest,
-    ): CancelablePromise<ApiResultMessage> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/chat/message/ai',
+            url: '/chat/message/history',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -227,17 +203,17 @@ export class ChatControllerService {
     }
     /**
      * 获取一个群的所有消息
-     * 根据 position 降序排序
+     * 根据 position 降序排序，返回gzip压缩的数据
      * @param roomId
-     * @returns ApiResultListChatMessageResponse OK
+     * @returns any OK
      * @throws ApiError
      */
     public getAllMessage(
         roomId: number,
-    ): CancelablePromise<ApiResultListChatMessageResponse> {
+    ): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/chat/message/all',
+            url: '/chat/message/all',
             query: {
                 'roomId': roomId,
             },

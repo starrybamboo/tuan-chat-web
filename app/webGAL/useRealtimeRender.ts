@@ -40,6 +40,8 @@ type UseRealtimeRenderOptions = {
   miniAvatarEnabled?: boolean;
   /** 角色参考音频文件映射 (roleId -> File) */
   voiceFiles?: Map<number, File>;
+  /** 自动填充立绘是否启用（没有设置立绘时自动填充左侧立绘） */
+  autoFigureEnabled?: boolean;
 };
 
 type UseRealtimeRenderReturn = {
@@ -63,6 +65,8 @@ type UseRealtimeRenderReturn = {
   resetScene: (roomId?: number) => Promise<void>;
   /** 清除背景 */
   clearBackground: (roomId?: number) => Promise<void>;
+  /** 清除立绘 */
+  clearFigure: (roomId?: number) => Promise<void>;
   /** 切换当前房间 */
   switchRoom: (roomId: number) => Promise<void>;
   /** 获取指定房间的预览 URL */
@@ -94,6 +98,7 @@ export function useRealtimeRender({
   ttsConfig,
   miniAvatarEnabled = false,
   voiceFiles,
+  autoFigureEnabled = true,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
   const [initProgress, setInitProgress] = useState<InitProgress | null>(null);
@@ -123,6 +128,12 @@ export function useRealtimeRender({
       rendererRef.current.setMiniAvatarEnabled(miniAvatarEnabled);
     }
   }, [miniAvatarEnabled]);
+
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setAutoFigureEnabled(autoFigureEnabled);
+    }
+  }, [autoFigureEnabled]);
 
   useEffect(() => {
     voiceFilesRef.current = voiceFiles;
@@ -176,6 +187,9 @@ export function useRealtimeRender({
 
       // 设置小头像配置
       renderer.setMiniAvatarEnabled(miniAvatarEnabled);
+
+      // 设置自动填充立绘配置
+      renderer.setAutoFigureEnabled(autoFigureEnabled);
 
       // 设置进度回调
       renderer.setProgressCallback((progress) => {
@@ -307,7 +321,7 @@ export function useRealtimeRender({
       setInitProgress(null);
       return false;
     }
-  }, [spaceId, status, roles, avatars, queryClient]);
+  }, [spaceId, status, roles, avatars, queryClient, miniAvatarEnabled, autoFigureEnabled]);
 
   // 停止实时渲染
   const stop = useCallback(() => {
@@ -418,6 +432,14 @@ export function useRealtimeRender({
       return;
     }
     await rendererRef.current.clearBackground(roomId);
+  }, []);
+
+  // 清除立绘
+  const clearFigure = useCallback(async (roomId?: number): Promise<void> => {
+    if (!rendererRef.current) {
+      return;
+    }
+    await rendererRef.current.clearFigure(roomId);
   }, []);
 
   // 切换当前房间
@@ -558,6 +580,7 @@ export function useRealtimeRender({
     renderHistory,
     resetScene,
     clearBackground,
+    clearFigure,
     switchRoom,
     getRoomPreviewUrl,
     updateRoleCache,

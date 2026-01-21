@@ -8,6 +8,10 @@ export type ChatMessageRequest = {
      */
     roomId: number;
     /**
+     * thread id（用于消息线程聚合）；为空表示主消息流，非空表示属于该 thread
+     */
+    threadId?: number;
+    /**
      * 消息类型
      */
     messageType: number;

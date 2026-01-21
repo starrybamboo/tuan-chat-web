@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/settings";
 import SettingsPage from "@/components/settings/settingsPage";
 
 export function meta(_args: Route.MetaArgs) {

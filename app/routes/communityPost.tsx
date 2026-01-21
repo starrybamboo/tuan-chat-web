@@ -1,5 +1,5 @@
-import CommunityPostDetail from "@/components/community/communitPostDetail";
 import { useNavigate, useParams } from "react-router";
+import CommunityPostDetail from "@/components/community/communitPostDetail";
 import { useGetCommunityInfoQuery } from "../../api/hooks/communityQueryHooks";
 
 export function meta() {

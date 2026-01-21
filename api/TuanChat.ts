@@ -9,22 +9,24 @@ import { AbilityControllerService } from './services/AbilityControllerService';
 import { AiReportControllerService } from './services/AiReportControllerService';
 import { AiWritingControllerService } from './services/AiWritingControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
+import { BlocksuiteDocControllerService } from './services/BlocksuiteDocControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
 import { ClassificationControllerService } from './services/ClassificationControllerService';
 import { CollectionControllerService } from './services/CollectionControllerService';
 import { CollectionListControllerService } from './services/CollectionListControllerService';
 import { CollectionListItemControllerService } from './services/CollectionListItemControllerService';
 import { CommentControllerService } from './services/CommentControllerService';
-import { CommitControllerService } from './services/CommitControllerService';
 import { CommunityService } from './services/CommunityService';
 import { CommunityPostControllerService } from './services/CommunityPostControllerService';
 import { CounterService } from './services/CounterService';
+import { DatabaseBackupService } from './services/DatabaseBackupService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
 import { DistributedTaskService } from './services/DistributedTaskService';
 import { DistributedTaskSchedulerService } from './services/DistributedTaskSchedulerService';
 import { DistributedWsService } from './services/DistributedWsService';
 import { EmojiControllerService } from './services/EmojiControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
+import { FriendControllerService } from './services/FriendControllerService';
 import { ImageGenerationControllerService } from './services/ImageGenerationControllerService';
 import { ItemControllerService } from './services/ItemControllerService';
 import { LikeRecordControllerService } from './services/LikeRecordControllerService';
@@ -47,7 +49,7 @@ import { SpaceClueService } from './services/SpaceClueService';
 import { SpaceControllerService } from './services/SpaceControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
 import { SpaceModuleControllerService } from './services/SpaceModuleControllerService';
-import { StageControllerService } from './services/StageControllerService';
+import { SpaceSidebarTreeControllerService } from './services/SpaceSidebarTreeControllerService';
 import { TagControllerService } from './services/TagControllerService';
 import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
@@ -61,22 +63,24 @@ export class TuanChat {
     public readonly aiReportController: AiReportControllerService;
     public readonly aiWritingController: AiWritingControllerService;
     public readonly avatarController: AvatarControllerService;
+    public readonly blocksuiteDocController: BlocksuiteDocControllerService;
     public readonly chatController: ChatControllerService;
     public readonly classificationController: ClassificationControllerService;
     public readonly collectionController: CollectionControllerService;
     public readonly collectionListController: CollectionListControllerService;
     public readonly collectionListItemController: CollectionListItemControllerService;
     public readonly commentController: CommentControllerService;
-    public readonly commitController: CommitControllerService;
     public readonly community: CommunityService;
     public readonly communityPostController: CommunityPostControllerService;
     public readonly counter: CounterService;
+    public readonly databaseBackup: DatabaseBackupService;
     public readonly diceCommentController: DiceCommentControllerService;
     public readonly distributedTask: DistributedTaskService;
     public readonly distributedTaskScheduler: DistributedTaskSchedulerService;
     public readonly distributedWs: DistributedWsService;
     public readonly emojiController: EmojiControllerService;
     public readonly feedController: FeedControllerService;
+    public readonly friendController: FriendControllerService;
     public readonly imageGenerationController: ImageGenerationControllerService;
     public readonly itemController: ItemControllerService;
     public readonly likeRecordController: LikeRecordControllerService;
@@ -99,7 +103,7 @@ export class TuanChat {
     public readonly spaceController: SpaceControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
     public readonly spaceModuleController: SpaceModuleControllerService;
-    public readonly stageController: StageControllerService;
+    public readonly spaceSidebarTreeController: SpaceSidebarTreeControllerService;
     public readonly tagController: TagControllerService;
     public readonly ttsController: TtsControllerService;
     public readonly userController: UserControllerService;
@@ -110,7 +114,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://101.126.143.129:8081',
+            BASE: config?.BASE ?? 'http://localhost:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -124,22 +128,24 @@ export class TuanChat {
         this.aiReportController = new AiReportControllerService(this.request);
         this.aiWritingController = new AiWritingControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
+        this.blocksuiteDocController = new BlocksuiteDocControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
         this.classificationController = new ClassificationControllerService(this.request);
         this.collectionController = new CollectionControllerService(this.request);
         this.collectionListController = new CollectionListControllerService(this.request);
         this.collectionListItemController = new CollectionListItemControllerService(this.request);
         this.commentController = new CommentControllerService(this.request);
-        this.commitController = new CommitControllerService(this.request);
         this.community = new CommunityService(this.request);
         this.communityPostController = new CommunityPostControllerService(this.request);
         this.counter = new CounterService(this.request);
+        this.databaseBackup = new DatabaseBackupService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
         this.distributedTask = new DistributedTaskService(this.request);
         this.distributedTaskScheduler = new DistributedTaskSchedulerService(this.request);
         this.distributedWs = new DistributedWsService(this.request);
         this.emojiController = new EmojiControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
+        this.friendController = new FriendControllerService(this.request);
         this.imageGenerationController = new ImageGenerationControllerService(this.request);
         this.itemController = new ItemControllerService(this.request);
         this.likeRecordController = new LikeRecordControllerService(this.request);
@@ -162,7 +168,7 @@ export class TuanChat {
         this.spaceController = new SpaceControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
         this.spaceModuleController = new SpaceModuleControllerService(this.request);
-        this.stageController = new StageControllerService(this.request);
+        this.spaceSidebarTreeController = new SpaceSidebarTreeControllerService(this.request);
         this.tagController = new TagControllerService(this.request);
         this.ttsController = new TtsControllerService(this.request);
         this.userController = new UserControllerService(this.request);

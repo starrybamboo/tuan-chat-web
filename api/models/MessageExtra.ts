@@ -3,7 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ClueMessage } from './ClueMessage';
+import type { CommandRequestExtra } from './CommandRequestExtra';
 import type { DiceResult } from './DiceResult';
+import type { EffectMessage } from './EffectMessage';
 import type { FileMessage } from './FileMessage';
 import type { ForwardMessage } from './ForwardMessage';
 import type { ImageMessage } from './ImageMessage';
@@ -18,5 +20,7 @@ export type MessageExtra = {
     forwardMessage?: ForwardMessage;
     soundMessage?: SoundMessage;
     clueMessage?: ClueMessage;
+    effectMessage?: EffectMessage;
+    commandRequest?: CommandRequestExtra;
 };
 

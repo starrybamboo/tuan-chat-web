@@ -1,10 +1,10 @@
-import Pagination from "@/components/common/pagination";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import 教室图片 from "@/components/module/home/images/教室.webp";
-
-import { ContentCard } from "@/components/module/home/Modulehome";
 import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
+import Pagination from "@/components/common/pagination";
+
+import { useGlobalContext } from "@/components/globalContextProvider";
+import 教室图片 from "@/components/module/home/images/教室.webp";
+import { ContentCard } from "@/components/module/home/Modulehome";
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useRuleListQuery } from "../../../../api/hooks/ruleQueryHooks";
 
@@ -73,8 +73,8 @@ export const UserModulesList: React.FC<UserModulesListProps> = ({
   if (isLoading || moduleListQuery.isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={`skeleton-${index}`} className="animate-pulse">
+        {Array.from({ length: 8 }, (_, i) => `skeleton-${i}`).map(key => (
+          <div key={key} className="animate-pulse">
             <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
             <div className="h-4 bg-base-300 rounded mb-2"></div>
             <div className="h-3 bg-base-300 rounded mb-1"></div>

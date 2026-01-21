@@ -1,8 +1,8 @@
+import React from "react";
+import { Link } from "react-router";
 import Pagination from "@/components/common/pagination";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import UserRoleCard from "@/components/profile/cards/userRoleCard";
-import React from "react";
-import { Link } from "react-router";
 
 interface UserRolesListProps {
   userId: number;
@@ -31,9 +31,9 @@ export const RolesList: React.FC<UserRolesListProps> = ({
     return (
       <>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {Array.from({ length: 10 }).map((_, index) => (
+          {Array.from({ length: 10 }, (_, i) => `skeleton-${i}`).map(key => (
             <div
-              key={`skeleton-${index}`}
+              key={key}
               className="card bg-base-100 shadow-md animate-pulse w-full"
             >
               <div className="relative aspect-square bg-base-200 rounded-t-2xl">

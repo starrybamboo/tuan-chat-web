@@ -1,10 +1,10 @@
+import { Link } from "react-router";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
-import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/UserFollower";
 import { PopWindow } from "./popWindow";

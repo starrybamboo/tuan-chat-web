@@ -1,6 +1,6 @@
 import type { CommunityResponse } from "../../../api/models/CommunityResponse";
-import { PopWindow } from "@/components/common/popWindow";
 import React, { useState } from "react";
+import { PopWindow } from "@/components/common/popWindow";
 
 interface CommunitySelectorProps {
   /** 社区列表数据 */

@@ -1,11 +1,11 @@
-import { RoomContext } from "@/components/chat/roomContext";
+import React, { use, useMemo } from "react";
+import { useNavigate } from "react-router";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
-import React, { use, useMemo } from "react";
-import { useNavigate } from "react-router";
 import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
-import { useGetUserRolesQuery } from "../../../../api/queryHooks";
+import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export function AddRoleWindow({
   handleAddRole,
@@ -70,8 +70,4 @@ export function AddRoleWindow({
       </div>
     </div>
   );
-}
-
-export function toastAddRoleWindow() {
-
 }

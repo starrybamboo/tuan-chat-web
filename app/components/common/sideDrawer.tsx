@@ -1,7 +1,7 @@
-import { Mounter } from "@/components/common/mounter";
-import { isLgScreen } from "@/utils/getScreenSize";
 // 检测屏幕尺寸
 import React from "react";
+import { Mounter } from "@/components/common/mounter";
+import { isLgScreen } from "@/utils/getScreenSize";
 
 /**
  * 侧边抽屉组件
@@ -64,30 +64,6 @@ export function SideDrawerToggle({
       htmlFor={htmlFor}
       className={className}
     >
-      {children}
-    </label>
-  );
-}
-
-export function sideDrawerToggle(sideDrawerId: string) {
-  const checkbox = document.getElementById(sideDrawerId) as HTMLInputElement;
-  if (checkbox) {
-    checkbox.checked = !checkbox.checked;
-  }
-}
-
-export function sideDrawerOpener({
-  sideDrawerId,
-  children,
-}: {
-  sideDrawerId: string;
-  children: React.ReactNode;
-}) {
-  if (isLgScreen()) {
-    return null;
-  }
-  return (
-    <label htmlFor={sideDrawerId} className="btn btn-primary drawer-button">
       {children}
     </label>
   );

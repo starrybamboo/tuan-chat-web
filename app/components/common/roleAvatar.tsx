@@ -1,13 +1,13 @@
-import { RoomContext } from "@/components/chat/roomContext";
+import { use } from "react";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { use } from "react";
 import {
   useGetRoleAvatarQuery,
-} from "../../../api/queryHooks";
+} from "../../../api/hooks/RoleAndAvatarHooks";
 
 const sizeMap = {
   6: "w-6 h-6", // 24px
@@ -61,6 +61,7 @@ export default function RoleAvatarComponent({
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const roleAvatar = avatarQuery.data?.data;
   const roleIdTrue = roleId ?? roleAvatar?.roleId;
+  const hasAvatar = Boolean(roleAvatar?.avatarUrl);
 
   // 控制角色详情的popWindow
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleIdTrue}`, false);
@@ -72,10 +73,10 @@ export default function RoleAvatarComponent({
     <div className="flex flex-col items-center">
       <div className="avatar">
         <div
-          className={`${sizeMap[width]} rounded${isRounded && roleAvatar?.avatarUrl ? "-full" : ""} text-center flex content-center`}
+          className={`${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
           onClick={() => { !stopPopWindow && setIsOpen(true); }}
         >
-          {!roleAvatar?.avatarUrl
+          {!hasAvatar
             ? (
                 <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
               )

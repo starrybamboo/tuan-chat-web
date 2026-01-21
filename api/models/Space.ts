@@ -35,12 +35,15 @@ export type Space = {
      */
     status?: number;
     moduleId?: number;
-    stageId?: number;
+    /**
+     * fork来源ID（克隆来源归档快照引用；直接克隆时写入原spaceId，与commitId语义一致）
+     */
+    parentCommitId?: number;
     /**
      * 骰子角色id
      */
     dicerRoleId?: number;
-    roomMap?: Record<string, Array<number>>;
+    roomMap?: Record<string, Array<string>>;
     /**
      * 其他信息
      */
