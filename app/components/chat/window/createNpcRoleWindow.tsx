@@ -119,6 +119,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
             onComplete={handleCreateNpcComplete}
             roleCreateDefaults={{ type: 2, spaceId: spaceId > 0 ? spaceId : undefined }}
             initialCharacterData={initialCharacterData}
+            hideRuleSelection={ruleId > 0}
           />
         </div>
       )}
