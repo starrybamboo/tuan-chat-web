@@ -8,6 +8,8 @@ const root = process.cwd();
 const stylesDir = path.resolve(root, "app/assets/ai-image/styles");
 const maxWidth = Number(process.env.AI_STYLE_MAX_WIDTH ?? "256");
 const quality = Number(process.env.AI_STYLE_QUALITY ?? "75");
+const retryableErrorCodes = new Set(["EBUSY", "EPERM", "EACCES"]);
+const retryDelayMs = [100, 200, 400, 800, 1200];
 
 async function pathExists(targetPath) {
   try {
@@ -17,6 +19,27 @@ async function pathExists(targetPath) {
   catch {
     return false;
   }
+}
+
+async function withRetry(op, label) {
+  let lastError;
+  for (let i = 0; i < retryDelayMs.length; i += 1) {
+    try {
+      return await op();
+    }
+    catch (error) {
+      const code = error?.code;
+      lastError = error;
+      if (!retryableErrorCodes.has(code)) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs[i]));
+    }
+  }
+  if (label) {
+    console.warn(`[optimize-ai-style-images] ${label} failed after retries`, lastError);
+  }
+  throw lastError;
 }
 
 if (!(await pathExists(stylesDir))) {
@@ -37,17 +60,27 @@ for (const file of files) {
 
   const output = path.join(dir, `${base}.webp`);
   const tempOutput = `${output}.tmp`;
+  try {
+    await sharp(file)
+      .rotate()
+      .resize({ width: maxWidth, withoutEnlargement: true })
+      .webp({ quality, effort: 6 })
+      .toFile(tempOutput);
 
-  await sharp(file)
-    .rotate()
-    .resize({ width: maxWidth, withoutEnlargement: true })
-    .webp({ quality, effort: 6 })
-    .toFile(tempOutput);
+    await withRetry(() => fs.rm(output, { force: true }), "remove output");
+    await withRetry(() => fs.rename(tempOutput, output), "rename temp output");
 
-  await fs.rm(output, { force: true });
-  await fs.rename(tempOutput, output);
-
-  if (file !== output) {
-    await fs.rm(file, { force: true });
+    if (file !== output) {
+      await withRetry(() => fs.rm(file, { force: true }), "remove source");
+    }
+  }
+  catch (error) {
+    console.warn(`[optimize-ai-style-images] skip ${file}`, error);
+    try {
+      await fs.rm(tempOutput, { force: true });
+    }
+    catch {
+      // ignore cleanup errors
+    }
   }
 }
