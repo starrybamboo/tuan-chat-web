@@ -460,20 +460,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
     (async () => {
-      const remoteSnapshotPromise = (async () => {
-        try {
-          const key = parseDescriptionDocId(docId);
-          if (!key) {
-            return null;
-          }
-          return await getRemoteSnapshot(key);
-        }
-        catch (e) {
-          console.error("[BlocksuiteDescriptionEditor] Failed to fetch remote snapshot", e);
-          return null;
-        }
-      })();
-
       // 在 blocksuite 初始化前确保运行时 CSS 已经注入（并做作用域重写），避免加载期间污染全局样式。
       try {
         await ensureBlocksuiteRuntimeStyles();
@@ -519,12 +505,15 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       // a duplicate/conflicting default page, which results in a blank view.
       if (!abort.signal.aborted) {
         try {
-          const remote = await remoteSnapshotPromise;
-          if (remote?.updateB64) {
-            const update = base64ToUint8Array(remote.updateB64);
-            const runtimeWs = workspace as any;
-            if (typeof runtimeWs.restoreDocFromUpdate === "function") {
-              runtimeWs.restoreDocFromUpdate({ docId, update });
+          const key = parseDescriptionDocId(docId);
+          if (key) {
+            const remote = await getRemoteSnapshot(key);
+            if (remote?.updateB64) {
+              const update = base64ToUint8Array(remote.updateB64);
+              const runtimeWs = workspace as any;
+              if (typeof runtimeWs.restoreDocFromUpdate === "function") {
+                runtimeWs.restoreDocFromUpdate({ docId, update });
+              }
             }
           }
         }
