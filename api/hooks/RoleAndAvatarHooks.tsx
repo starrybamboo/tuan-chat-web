@@ -18,6 +18,7 @@ import type { UserLoginRequest } from '../models/UserLoginRequest';
 import type { UserRegisterRequest } from '../models/UserRegisterRequest';
 import type { RolePageQueryRequest } from '../models/RolePageQueryRequest'
 import type { Transform } from '../../app/components/Role/sprite/TransformControl';
+import type { UserRole } from '../models/UserRole';
 
 import {
   type ApiResultRoleAbility,
@@ -1094,6 +1095,32 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
 }
 
 // ==================== 用户角色查询 ====================
+async function fetchUserRolesByTypes(userId: number, types: number[]): Promise<UserRole[]> {
+  const validTypes = types.filter(t => typeof t === "number" && !Number.isNaN(t));
+  const uniqueTypes = Array.from(new Set(validTypes));
+
+  const results = await Promise.all(
+    uniqueTypes.map(async (type) => {
+      const res = await tuanchat.roleController.getUserRolesByType(userId, type);
+      if (!res.success) {
+        throw new Error(res.errMsg || "获取用户角色失败");
+      }
+      return res.data ?? [];
+    }),
+  );
+
+  const roleMap = new Map<number, UserRole>();
+  for (const list of results) {
+    for (const role of list) {
+      if (typeof role.roleId === "number") {
+        roleMap.set(role.roleId, role);
+      }
+    }
+  }
+
+  return Array.from(roleMap.values()).sort((a, b) => (b.roleId ?? 0) - (a.roleId ?? 0));
+}
+
 /**
  * 获取用户所有角色
  * @param userId 用户ID
@@ -1101,7 +1128,13 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
 export function useGetUserRolesQuery(userId: number) {
   return useQuery({
     queryKey: ['getUserRoles', userId],
-    queryFn: () => tuanchat.roleController.getUserRoles(userId),
+    queryFn: async () => {
+      const data = await fetchUserRolesByTypes(userId, [0, 1]);
+      return {
+        success: true,
+        data,
+      };
+    },
     staleTime: 600000, // 10分钟缓存
     enabled: typeof userId === 'number' && !isNaN(userId) && userId > 0
   });
@@ -1117,12 +1150,34 @@ export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
 
 export function useGetInfiniteUserRolesQuery(userId: number) {
   const PAGE_SIZE = 15;
+  const queryClient = useQueryClient();
   return useInfiniteQuery({
     queryKey: ["roleInfinite", userId],
     queryFn: async ({ pageParam }: { pageParam: RolePageQueryRequest }) => {
-      const res = await tuanchat.roleController.getRolesByPage(pageParam);
-      console.log(res);
-      return res;
+      const pageNo = pageParam.pageNo ?? 1;
+      const pageSize = pageParam.pageSize ?? PAGE_SIZE;
+
+      const allRoles = await queryClient.fetchQuery({
+        queryKey: ["getUserRolesByTypes", userId, 0, 1],
+        queryFn: () => fetchUserRolesByTypes(userId, [0, 1]),
+        staleTime: 600000, // 10分钟缓存
+      });
+
+      const start = (pageNo - 1) * pageSize;
+      const list = allRoles.slice(start, start + pageSize);
+      const totalRecords = allRoles.length;
+      const isLast = start + pageSize >= totalRecords;
+
+      return {
+        success: true,
+        data: {
+          pageNo,
+          pageSize,
+          totalRecords,
+          isLast,
+          list,
+        },
+      };
     },
     initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE, userId: userId ?? -1 },
     getNextPageParam: (lastPage) => {
