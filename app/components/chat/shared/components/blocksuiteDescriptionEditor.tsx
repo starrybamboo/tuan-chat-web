@@ -33,31 +33,6 @@ async function loadBlocksuiteRuntime() {
   };
 }
 
-let runtimePromise: Promise<Awaited<ReturnType<typeof loadBlocksuiteRuntime>>> | null = null;
-let runtimeStylesPromise: Promise<void> | null = null;
-let coreElementsPromise: Promise<void> | null = null;
-
-function getBlocksuiteRuntimePromise() {
-  if (!runtimePromise) {
-    runtimePromise = loadBlocksuiteRuntime();
-  }
-  return runtimePromise;
-}
-
-function ensureBlocksuiteRuntimeStylesOnce() {
-  if (!runtimeStylesPromise) {
-    runtimeStylesPromise = ensureBlocksuiteRuntimeStyles();
-  }
-  return runtimeStylesPromise;
-}
-
-function ensureBlocksuiteCoreElementsOnce(runtime: Awaited<ReturnType<typeof loadBlocksuiteRuntime>>) {
-  if (!coreElementsPromise) {
-    coreElementsPromise = runtime.ensureBlocksuiteCoreElementsDefined();
-  }
-  return coreElementsPromise;
-}
-
 interface BlocksuiteDescriptionEditorProps {
   /** Blocksuite workspaceId，比如 `space:123` / `user:1` */
   workspaceId: string;
@@ -485,35 +460,20 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     // Hydrate first (restore semantics), then render editor.
     // This avoids binding the UI to an empty initialized root.
     (async () => {
-      const remoteSnapshotPromise = (async () => {
-        try {
-          const key = parseDescriptionDocId(docId);
-          if (!key) {
-            return null;
-          }
-          return await getRemoteSnapshot(key);
-        }
-        catch (e) {
-          console.error("[BlocksuiteDescriptionEditor] Failed to fetch remote snapshot", e);
-          return null;
-        }
-      })();
-
       // 在 blocksuite 初始化前确保运行时 CSS 已经注入（并做作用域重写），避免加载期间污染全局样式。
-      const runtimePromise = getBlocksuiteRuntimePromise();
       try {
-        await ensureBlocksuiteRuntimeStylesOnce();
+        await ensureBlocksuiteRuntimeStyles();
       }
       catch {
         // ignore
       }
 
-      const runtime = await runtimePromise;
+      const runtime = await loadBlocksuiteRuntime();
       runtimeRef.current = runtime;
       if (abort.signal.aborted)
         return;
 
-      const coreElementsReady = ensureBlocksuiteCoreElementsOnce(runtime);
+      await runtime.ensureBlocksuiteCoreElementsDefined();
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
 
@@ -545,13 +505,15 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       // a duplicate/conflicting default page, which results in a blank view.
       if (!abort.signal.aborted) {
         try {
-          await coreElementsReady;
-          const remote = await remoteSnapshotPromise;
-          if (remote?.updateB64) {
-            const update = base64ToUint8Array(remote.updateB64);
-            const runtimeWs = workspace as any;
-            if (typeof runtimeWs.restoreDocFromUpdate === "function") {
-              runtimeWs.restoreDocFromUpdate({ docId, update });
+          const key = parseDescriptionDocId(docId);
+          if (key) {
+            const remote = await getRemoteSnapshot(key);
+            if (remote?.updateB64) {
+              const update = base64ToUint8Array(remote.updateB64);
+              const runtimeWs = workspace as any;
+              if (typeof runtimeWs.restoreDocFromUpdate === "function") {
+                runtimeWs.restoreDocFromUpdate({ docId, update });
+              }
             }
           }
         }
