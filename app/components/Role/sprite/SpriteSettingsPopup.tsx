@@ -24,6 +24,7 @@ import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
+import { getEffectiveSpriteUrl } from "./utils";
 
 export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library";
 
@@ -93,7 +94,7 @@ export function SpriteSettingsPopup({
   }, [spritesAvatars, internalIndex]);
 
   // 当前选中的立绘 URL
-  const currentSpriteUrl = currentAvatar?.spriteUrl || null;
+  const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
 
   // ========== 上传和删除功能 ==========
   const { mutate: uploadAvatar } = useUploadAvatarMutation();
