@@ -3,12 +3,14 @@ import type { UserRole } from "../../../../api";
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
+import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 export interface ResolvedImportChatMessage {
   lineNumber: number;
   speakerName: string;
   roleId: number;
   content: string;
+  figurePosition?: Exclude<FigurePosition, undefined>;
 }
 
 export interface ImportChatMessagesWindowProps {
@@ -29,6 +31,7 @@ export default function ImportChatMessagesWindow({
   const [rawText, setRawText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [mapping, setMapping] = useState<Record<string, number | null>>({});
+  const [figurePositionMap, setFigurePositionMap] = useState<Record<string, Exclude<FigurePosition, undefined> | null>>({});
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState<{ sent: number; total: number } | null>(null);
 
@@ -85,6 +88,22 @@ export default function ImportChatMessagesWindow({
       next[speaker] = candidates.length === 1 ? candidates[0] : null;
     }
     setMapping(next);
+    setFigurePositionMap((prev) => {
+      const nextFigurePosition: Record<string, Exclude<FigurePosition, undefined> | null> = {};
+      for (const speaker of speakers) {
+        const normalized = normalizeSpeakerName(speaker);
+        if (isKP && (normalized === "旁白" || normalized.toLowerCase() === "narrator")) {
+          nextFigurePosition[speaker] = null;
+          continue;
+        }
+        if (isDicerSpeakerName(normalized)) {
+          nextFigurePosition[speaker] = null;
+          continue;
+        }
+        nextFigurePosition[speaker] = prev[speaker] ?? null;
+      }
+      return nextFigurePosition;
+    });
   }, [availableRoles, isKP, speakers]);
 
   const handlePickFile = async (file: File | null) => {
@@ -127,6 +146,7 @@ export default function ImportChatMessagesWindow({
       speakerName: m.speakerName,
       roleId: mapping[m.speakerName] as number,
       content: m.content,
+      figurePosition: (figurePositionMap[m.speakerName] ?? undefined) ?? undefined,
     }));
 
     setIsImporting(true);
@@ -238,6 +258,7 @@ export default function ImportChatMessagesWindow({
             <div className="space-y-2">
               {speakers.map((speaker) => {
                 const value = mapping[speaker];
+                const figurePosition = figurePositionMap[speaker] ?? null;
                 return (
                   <div key={speaker} className="flex flex-wrap items-center gap-2">
                     <div className="w-40 min-w-0 truncate text-sm">
@@ -260,6 +281,22 @@ export default function ImportChatMessagesWindow({
                       {roleOptions.map(o => (
                         <option key={o.roleId} value={String(o.roleId)}>{o.label}</option>
                       ))}
+                    </select>
+
+                    <select
+                      className="select select-sm select-bordered w-28"
+                      value={figurePosition ?? ""}
+                      onChange={(e) => {
+                        const pos = e.target.value as Exclude<FigurePosition, undefined> | "";
+                        setFigurePositionMap(prev => ({ ...prev, [speaker]: pos ? pos : null }));
+                      }}
+                      disabled={isImporting || value == null || value <= 0}
+                      title={value != null && value > 0 ? "设置该发言人的立绘位置" : "旁白/系统消息不显示立绘"}
+                    >
+                      <option value="">不设置</option>
+                      <option value="left">左</option>
+                      <option value="center">中</option>
+                      <option value="right">右</option>
                     </select>
                   </div>
                 );
