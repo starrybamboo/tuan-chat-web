@@ -77,13 +77,8 @@
 | 202601201451 | blocksuite_mention_user_profile | 修复 | 已完成 | [2026-01/202601201451_blocksuite_mention_user_profile/](2026-01/202601201451_blocksuite_mention_user_profile/) |
 | 202601201551 | blocksuite_mention_inline_avatar | 修复 | 已完成 | [2026-01/202601201551_blocksuite_mention_inline_avatar/](2026-01/202601201551_blocksuite_mention_inline_avatar/) |
 | 202601201622 | blocksuite_mention_remove_at | 优化 | 已完成 | [2026-01/202601201622_blocksuite_mention_remove_at/](2026-01/202601201622_blocksuite_mention_remove_at/) |
-| 202601201628 | ai_image_simple_style_picker_early | 修复 | 已完成（待确认） | [2026-01/202601201628_ai_image_simple_style_picker_early/](2026-01/202601201628_ai_image_simple_style_picker_early/) |
-| 202601201952 | ai_image_simple_nl_tag_generate_buttons | 优化 | 已完成（待确认） | [2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/](2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/) |
-| 202601211450 | chat-npc-create-reuse-role | 优化 | 已完成 | [2026-01/202601211450_chat-npc-create-reuse-role/](2026-01/202601211450_chat-npc-create-reuse-role/) |
-| 202601211511 | role_avatar_as_sprite | 优化 | 已完成 | [2026-01/202601211511_role_avatar_as_sprite/](2026-01/202601211511_role_avatar_as_sprite/) |
-| 202601211542 | space_trpg_setting | 修复 | 已完成 | [2026-01/202601211542_space_trpg_setting/](2026-01/202601211542_space_trpg_setting/) |
-| 202601211552 | webgal_role_avatar_id_fallback | 优化 | 已完成 | [2026-01/202601211552_webgal_role_avatar_id_fallback/](2026-01/202601211552_webgal_role_avatar_id_fallback/) |
-| 202601211630 | npc-ui-reuse-role | 重构 | 已完成 | [2026-01/202601211630_npc-ui-reuse-role/](2026-01/202601211630_npc-ui-reuse-role/) |
+| 202601201638 | blocksuite_disable_debug_logs | 优化 | 已完成 | [2026-01/202601201638_blocksuite_disable_debug_logs/](2026-01/202601201638_blocksuite_disable_debug_logs/) |
+| 202601211600 | blocksuite_mention_profile_popover | 功能 | 已完成 | [2026-01/202601211600_blocksuite_mention_profile_popover/](2026-01/202601211600_blocksuite_mention_profile_popover/) |
 
 ---
 
@@ -91,13 +86,8 @@
 
 ### 2026-01
 
-- [202601211630_npc-ui-reuse-role](2026-01/202601211630_npc-ui-reuse-role/) - NPC 创建/详情弹窗全面复用角色创建与角色详情页面（CharacterDetail）
-- [202601211552_webgal_role_avatar_id_fallback](2026-01/202601211552_webgal_role_avatar_id_fallback/) - WebGAL 渲染：消息未携带 `avatarId` 时回退到角色的 `avatarId`
-- [202601211542_space_trpg_setting](2026-01/202601211542_space_trpg_setting/) - 修复空间抽屉面板“跑团设置”打开后空白（渲染 SpaceTrpgSettingWindow）
-- [202601211511_role_avatar_as_sprite](2026-01/202601211511_role_avatar_as_sprite/) - 无立绘（`spriteUrl` 为空）的头像默认使用 `avatarUrl` 作为立绘来源
-- [202601211450_chat-npc-create-reuse-role](2026-01/202601211450_chat-npc-create-reuse-role/) - 房间角色：创建 NPC 复用创建角色（`type=2 + spaceId` 绑定空间）
-- [202601201952_ai_image_simple_nl_tag_generate_buttons](2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/) - AI 生图：普通模式一键出图（自然语言）+ 按 tag 出图
-- [202601201628_ai_image_simple_style_picker_early](2026-01/202601201628_ai_image_simple_style_picker_early/) - AI 生图：普通模式“画风”选择前置展示（无需先点击生成）
+- [202601211600_blocksuite_mention_profile_popover](2026-01/202601211600_blocksuite_mention_profile_popover/) - Blocksuite 文档内用户 mention 支持点击跳转个人主页 + 悬浮预览个人主页
+- [202601201638_blocksuite_disable_debug_logs](2026-01/202601201638_blocksuite_disable_debug_logs/) - Blocksuite 默认关闭 debug 控制台输出（需显式开启）
 - [202601201622_blocksuite_mention_remove_at](2026-01/202601201622_blocksuite_mention_remove_at/) - Blocksuite 文档内 mention 节点移除 `@` 前缀（头像+用户名已足够）
 - [202601201551_blocksuite_mention_inline_avatar](2026-01/202601201551_blocksuite_mention_inline_avatar/) - Blocksuite 文档内 `@mention` 展示头像与用户名（自定义 `<affine-mention />`）
 - [202601201451_blocksuite_mention_user_profile](2026-01/202601201451_blocksuite_mention_user_profile/) - Blocksuite `@` 弹窗用户候选显示头像与用户名（基于 `/user/info` 缓存）
@@ -166,4 +156,3 @@
 - [202601172026_ai_image_v4_params](2026-01/202601172026_ai_image_v4_params/) - 修复 NAI v4/v4.5 出图 500：对齐 `params_version=3` 与 `v4_prompt` 参数结构
 - [202601172100_ai_image_char_bg_layout](2026-01/202601172100_ai_image_char_bg_layout/) - AI 生图支持 v4/v4.5 “背景/角色”分区（`char_captions`）并对齐普通/专业模式三栏布局
 - [202601172234_tc_header_upload_and_doc_lazy](2026-01/202601172234_tc_header_upload_and_doc_lazy/) - 修复 tc_header 头像上传（iframe 裁剪弹窗）并优化空间文档懒加载（不全量 load / pull 不写回）
-- [202601211509_blocksuite-canvas-fullscreen](2026-01/202601211509_blocksuite-canvas-fullscreen/) - Blocksuite 描述文档画布新增全屏按钮（Fullscreen API）
