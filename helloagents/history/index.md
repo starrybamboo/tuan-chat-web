@@ -81,6 +81,7 @@
 | 202601201952 | ai_image_simple_nl_tag_generate_buttons | 优化 | 已完成（待确认） | [2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/](2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/) |
 | 202601211450 | chat-npc-create-reuse-role | 优化 | 已完成 | [2026-01/202601211450_chat-npc-create-reuse-role/](2026-01/202601211450_chat-npc-create-reuse-role/) |
 | 202601211511 | role_avatar_as_sprite | 优化 | 已完成 | [2026-01/202601211511_role_avatar_as_sprite/](2026-01/202601211511_role_avatar_as_sprite/) |
+| 202601211630 | npc-ui-reuse-role | 重构 | 已完成 | [2026-01/202601211630_npc-ui-reuse-role/](2026-01/202601211630_npc-ui-reuse-role/) |
 
 ---
 
@@ -88,6 +89,7 @@
 
 ### 2026-01
 
+- [202601211630_npc-ui-reuse-role](2026-01/202601211630_npc-ui-reuse-role/) - NPC 创建/详情弹窗全面复用角色创建与角色详情页面（CharacterDetail）
 - [202601211511_role_avatar_as_sprite](2026-01/202601211511_role_avatar_as_sprite/) - 无立绘（`spriteUrl` 为空）的头像默认使用 `avatarUrl` 作为立绘来源
 - [202601211450_chat-npc-create-reuse-role](2026-01/202601211450_chat-npc-create-reuse-role/) - 房间角色：创建 NPC 复用创建角色（`type=2 + spaceId` 绑定空间）
 - [202601201952_ai_image_simple_nl_tag_generate_buttons](2026-01/202601201952_ai_image_simple_nl_tag_generate_buttons/) - AI 生图：普通模式一键出图（自然语言）+ 按 tag 出图
