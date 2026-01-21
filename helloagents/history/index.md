@@ -91,6 +91,7 @@
 
 - [202601211915_use-user-roles-by-type](2026-01/202601211915_use-user-roles-by-type/) - 获取“我的角色”改用 `GET /role/user/type`（type=0/1 合并），避免取回 NPC
 - [202601211740_room-role-delete-filter-npc](2026-01/202601211740_room-role-delete-filter-npc/) - 房间角色支持移除 NPC；角色页（/role）隐藏 NPC；导入我的角色过滤 NPC
+- [202601211700_chat_import_ui_refine](2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口
 - [202601211623_chat_import_figure_position](2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）
 - [202601211600_blocksuite_mention_profile_popover](2026-01/202601211600_blocksuite_mention_profile_popover/) - Blocksuite 文档内用户 mention 支持点击跳转个人主页 + 悬浮预览个人主页
 - [202601201638_blocksuite_disable_debug_logs](2026-01/202601201638_blocksuite_disable_debug_logs/) - Blocksuite 默认关闭 debug 控制台输出（需显式开启）
