@@ -1,4 +1,4 @@
-import { ArchiveBoxIcon, ChatsIcon, GearSixIcon, IdentificationCardIcon, ImageIcon, SignOutIcon, TreasureChestIcon, UserIcon } from "@phosphor-icons/react";
+import { ChatsIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, TreasureChestIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -117,11 +117,10 @@ export default function Topbar() {
   };
 
   const navItems = [
-    { to: "/chat", label: "聊天", icon: ChatsIcon },
+    { to: "/chat/private", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
     { to: "/module", label: "模组", icon: TreasureChestIcon },
-    { to: "/doc-test", label: "文档测试", icon: ArchiveBoxIcon },
-    { to: "/ai-image", label: "AI生图", icon: ImageIcon },
+    { to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon },
   ];
 
   return (
@@ -130,7 +129,7 @@ export default function Topbar() {
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
           <div className="hidden md:flex">
-            <Link to="/chat" className="flex items-center">
+            <Link to="/chat/private" className="flex items-center">
               <img
                 src="http://47.119.147.6/tuan/favicon.ico"
                 alt="Logo"
@@ -144,16 +143,15 @@ export default function Topbar() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.to} className="tooltip tooltip-bottom" data-tip={item.label}>
-                    <Link
-                      to={item.to}
-                      className="btn btn-ghost btn-sm gap-1 px-2 hover:bg-base-200"
-                      aria-label={item.label}
-                    >
-                      <Icon className="size-6 opacity-80" />
-                      <span className="text-sm whitespace-nowrap">{item.label}</span>
-                    </Link>
-                  </div>
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="btn btn-ghost btn-sm gap-1 px-2 hover:bg-base-200"
+                    aria-label={item.label}
+                  >
+                    <Icon className="size-6 opacity-80" />
+                    <span className="text-sm whitespace-nowrap">{item.label}</span>
+                  </Link>
                 );
               })}
             </div>
@@ -168,15 +166,14 @@ export default function Topbar() {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <div key={item.to} className="tooltip tooltip-bottom" data-tip={item.label}>
-                      <Link
-                        to={item.to}
-                        className="btn btn-ghost btn-square btn-sm hover:bg-base-200"
-                        aria-label={item.label}
-                      >
-                        <Icon className="size-6 opacity-80" />
-                      </Link>
-                    </div>
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="btn btn-ghost btn-square btn-sm hover:bg-base-200"
+                      aria-label={item.label}
+                    >
+                      <Icon className="size-6 opacity-80" />
+                    </Link>
                   );
                 })}
               </div>

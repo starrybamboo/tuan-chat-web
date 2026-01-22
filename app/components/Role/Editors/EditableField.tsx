@@ -5,11 +5,13 @@ interface EditableFieldProps {
   value: string;
   isEditing: boolean;
   onValueChange: (key: string, value: string) => void;
+  onValueCommit?: (key: string, value: string) => void;
   onDelete: (key: string) => void;
   onRename: (oldKey: string, newKey: string) => void;
   className?: string;
   valueInputClassName?: string;
   showDeleteButton?: boolean;
+  size?: "default" | "compact";
 }
 
 /**
@@ -21,14 +23,20 @@ export default function EditableField({
   value,
   isEditing,
   onValueChange,
+  onValueCommit,
   onDelete,
   onRename,
   className = "",
-  valueInputClassName = "grow focus:outline-none border-none outline-none",
+  valueInputClassName,
   showDeleteButton = true,
+  size = "default",
 }: EditableFieldProps) {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [tempFieldKey, setTempFieldKey] = useState("");
+  const isCompact = size === "compact";
+  const resolvedValueInputClassName
+    = valueInputClassName
+      || `${isCompact ? "text-xs" : ""} grow focus:outline-none border-none outline-none`;
 
   const handleRename = (newKey: string) => {
     if (!newKey.trim() || newKey === fieldKey) {
@@ -39,9 +47,14 @@ export default function EditableField({
 
   if (!isEditing) {
     return (
-      <div className="flex items-center justify-between p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap border-base-content/10">
-        <span className="font-medium text-sm md:text-base flex-shrink-0 md:mr-4">{fieldKey}</span>
-        <span className="badge text-sm md:text-base flex-shrink-0 badge-ghost">
+      <div className={`flex items-center justify-between rounded-lg border bg-base-100/50 whitespace-nowrap border-base-content/10 ${
+        isCompact ? "px-2 py-1" : "p-2 md:p-3"
+      }`}
+      >
+        <span className={`font-medium shrink-0 md:mr-4 ${isCompact ? "text-xs" : "text-sm md:text-base"}`}>
+          {fieldKey}
+        </span>
+        <span className={`badge shrink-0 badge-ghost ${isCompact ? "badge-xs" : "text-sm md:text-base"}`}>
           {String(value)}
         </span>
       </div>
@@ -50,7 +63,10 @@ export default function EditableField({
 
   return (
     <div className={`form-control ${className}`}>
-      <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
+      <label className={`input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none ${
+        isCompact ? "input" : ""
+      }`}
+      >
         {/* 字段名编辑 */}
         {editingFieldKey === fieldKey
           ? (
@@ -72,13 +88,13 @@ export default function EditableField({
                     setEditingFieldKey(null);
                   }
                 }}
-                className="text-sm font-medium whitespace-nowrap bg-transparent border-none focus:outline-none outline-none flex-shrink-0"
+                className={`${isCompact ? "text-xs" : "text-sm"} font-medium whitespace-nowrap bg-transparent border-none focus:outline-none outline-none shrink-0`}
                 autoFocus
               />
             )
           : (
               <span
-                className="text-sm font-medium whitespace-nowrap cursor-pointer hover:text-primary flex-shrink-0 text-left"
+                className={`${isCompact ? "text-xs" : "text-sm"} font-medium whitespace-nowrap cursor-pointer hover:text-primary shrink-0 text-left`}
                 onClick={() => {
                   setEditingFieldKey(fieldKey);
                   setTempFieldKey(fieldKey);
@@ -96,7 +112,18 @@ export default function EditableField({
           type="text"
           value={String(value)}
           onChange={e => onValueChange(fieldKey, e.target.value)}
-          className={valueInputClassName}
+          onBlur={e => onValueCommit?.(fieldKey, e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (!onValueCommit)
+              return;
+            if (e.key !== "Enter")
+              return;
+            if (e.nativeEvent.isComposing)
+              return;
+            e.preventDefault();
+            onValueCommit?.(fieldKey, (e.target as HTMLInputElement).value);
+          }}
+          className={resolvedValueInputClassName}
         />
 
         {/* 删除按钮 */}
@@ -104,7 +131,7 @@ export default function EditableField({
           <button
             type="button"
             onClick={() => onDelete(fieldKey)}
-            className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+            className={`btn btn-ghost ${isCompact ? "btn-xs" : "btn-xs"} text-error hover:bg-error/10`}
             title="删除字段"
           >
             ✕

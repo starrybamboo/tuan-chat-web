@@ -127,7 +127,7 @@ export default function RoomUserList({ type}: { type: string }) {
       <div className="divider w-full" />
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-visible w-full flex justify-center "
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full flex flex-col items-center gap-2"
       >
         {isRole
           ? (

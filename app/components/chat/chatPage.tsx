@@ -40,6 +40,7 @@ import FriendsPage from "@/components/privateChat/FriendsPage";
 import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
+import { SidebarSimpleIcon } from "@/icons";
 
 /**
  * chat板块的主组件
@@ -71,9 +72,21 @@ export default function ChatPage() {
     useDocHeaderOverrideStore.getState().hydrateFromLocalStorage();
   }, []);
 
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
-    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (screenSize === "sm" && !isPrivateChatMode),
-  );
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(() => {
+    if (screenSize !== "sm") {
+      return true;
+    }
+    return !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || !isPrivateChatMode;
+  });
+
+  const toggleLeftDrawer = useCallback(() => {
+    setIsOpenLeftDrawer(prev => !prev);
+  }, []);
+  const closeLeftDrawer = useCallback(() => {
+    if (screenSize === "sm") {
+      setIsOpenLeftDrawer(false);
+    }
+  }, [screenSize]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -937,11 +950,11 @@ export default function ChatPage() {
       isSpaceOwner: !!spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
       setActiveSpaceId,
       setActiveRoomId,
-      toggleLeftDrawer: () => { setIsOpenLeftDrawer(!isOpenLeftDrawer); },
+      toggleLeftDrawer,
       ruleId: spaces.find(space => space.spaceId === activeSpaceId)?.ruleId,
       spaceMembers: spaceMembersQuery.data?.data ?? [],
     };
-  }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, setActiveRoomId, setActiveSpaceId, spaceMembersQuery.data?.data, spaces]);
+  }, [activeSpaceId, globalContext.userId, setActiveRoomId, setActiveSpaceId, spaceMembersQuery.data?.data, spaces, toggleLeftDrawer]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
     const roomIds = spaceRoomIdsByUser[String(userId)]?.[String(spaceId)] ?? [];
@@ -1049,7 +1062,7 @@ export default function ChatPage() {
                   mainView === "spaceDetail"
                     ? (
                         <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                          <div className="w-full h-full overflow-auto flex justify-center p-2">
+                          <div className="w-full h-full overflow-auto flex justify-center">
                             <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
                           </div>
                         </div>
@@ -1057,7 +1070,7 @@ export default function ChatPage() {
                     : (mainView === "roomSetting" && roomSettingState)
                         ? (
                             <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                              <div className="w-full h-full overflow-auto flex justify-center p-2">
+                              <div className="w-full h-full overflow-auto flex justify-center ">
                                 <RoomSettingWindow
                                   roomId={roomSettingState.roomId}
                                   onClose={closeRoomSettingPage}
@@ -1069,7 +1082,7 @@ export default function ChatPage() {
                         : activeDocId
                           ? (
                               <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                <div className="w-full h-full overflow-hidden flex justify-center p-2">
+                                <div className="w-full h-full overflow-hidden flex justify-center">
                                   {isKPInSpace
                                     ? (
                                         <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
@@ -1110,9 +1123,25 @@ export default function ChatPage() {
         </>
       );
 
+  const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
+  const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
+
   return (
     <SpaceContext value={spaceContext}>
       <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
+        {shouldShowLeftDrawerToggle && (
+          <div className="tooltip tooltip-right absolute left-2 top-2 z-50" data-tip={leftDrawerToggleLabel}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square bg-base-100/80"
+              onClick={toggleLeftDrawer}
+              aria-label={leftDrawerToggleLabel}
+              aria-pressed={Boolean(isOpenLeftDrawer)}
+            >
+              <SidebarSimpleIcon />
+            </button>
+          </div>
+        )}
         {screenSize === "sm"
           ? (
               <>
@@ -1142,6 +1171,8 @@ export default function ChatPage() {
                           setActiveRoomId(null);
                           navigate("/chat/private");
                         }}
+                        onToggleLeftDrawer={toggleLeftDrawer}
+                        isLeftDrawerOpen={isOpenLeftDrawer}
                         onSelectSpace={(spaceId) => {
                           setActiveSpaceId(spaceId);
                         }}
@@ -1182,7 +1213,9 @@ export default function ChatPage() {
                           setMainView("chat");
                           setActiveRoomId(roomId);
                         }}
-                        onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+                        onCloseLeftDrawer={closeLeftDrawer}
+                        onToggleLeftDrawer={toggleLeftDrawer}
+                        isLeftDrawerOpen={isOpenLeftDrawer}
                         onOpenRoomSetting={(roomId, tab) => {
                           openRoomSettingPage(roomId, tab);
                         }}
@@ -1226,6 +1259,8 @@ export default function ChatPage() {
                             setActiveRoomId(null);
                             navigate("/chat/private");
                           }}
+                          onToggleLeftDrawer={toggleLeftDrawer}
+                          isLeftDrawerOpen={isOpenLeftDrawer}
                           onSelectSpace={(spaceId) => {
                             setActiveSpaceId(spaceId);
                           }}
@@ -1237,7 +1272,7 @@ export default function ChatPage() {
                       </div>
 
                       <OpenAbleDrawer
-                        isOpen={true}
+                        isOpen={isOpenLeftDrawer}
                         className="h-full z-10 w-full bg-base-200"
                         initialWidth={chatLeftPanelWidth}
                         minWidth={200}
@@ -1277,7 +1312,9 @@ export default function ChatPage() {
                               setMainView("chat");
                               setActiveRoomId(roomId);
                             }}
-                            onCloseLeftDrawer={() => setIsOpenLeftDrawer(false)}
+                            onCloseLeftDrawer={closeLeftDrawer}
+                            onToggleLeftDrawer={toggleLeftDrawer}
+                            isLeftDrawerOpen={isOpenLeftDrawer}
                             onOpenRoomSetting={(roomId, tab) => {
                               openRoomSettingPage(roomId, tab);
                             }}

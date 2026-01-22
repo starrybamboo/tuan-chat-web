@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, HouseIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
+import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索
@@ -155,6 +155,14 @@ export function MoreMenu(props: SVGProps<SVGSVGElement>) {
 export function RoleListIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <AddressBookIcon {...props} />
+  );
+}
+
+// 身份卡图标
+// 其他关键词：角色详情，名片，信息卡
+export function IdentificationCardIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IdentificationCard {...props} />
   );
 }
 
@@ -1330,6 +1338,12 @@ export function ConnectionIcon() {
       <circle cx="20" cy="4" r="2" />
       <circle cx="4" cy="20" r="2" />
     </svg>
+  );
+}
+
+export function SidebarSimpleIcon() {
+  return (
+    <PhosphorSidebarSimpleIcon weight="bold" size={20} />
   );
 }
 

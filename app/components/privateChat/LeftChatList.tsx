@@ -1,6 +1,7 @@
 import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
 import { useNavigate, useParams } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { SidebarSimpleIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import ChatList from "./components/ChatList";
 import ContextMenuCommon from "./components/ContextMenuCommon";
@@ -78,6 +79,17 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square"
+              aria-label="收起侧边栏"
+              title="收起侧边栏"
+              onClick={() => {
+                setIsOpenLeftDrawer(false);
+              }}
+            >
+              <SidebarSimpleIcon />
+            </button>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-square"

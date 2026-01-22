@@ -22,19 +22,21 @@ interface CharacterDetailProps {
   onSave: (updatedRole: Role) => void;
   selectedRuleId: number;
   onRuleChange: (newRuleId: number) => void;
+  className?: string;
 }
 
-export default function CharacterDetail(props: CharacterDetailProps) {
-  return <CharacterDetailInner key={props.role.id} {...props} />;
+export default function CharacterDetailCard(props: CharacterDetailProps) {
+  return <CharacterDetailCardInner key={props.role.id} {...props} />;
 }
 /**
- * 角色详情组件
+ * 角色详情卡片组件
  */
-function CharacterDetailInner({
+function CharacterDetailCardInner({
   role,
   onSave,
   selectedRuleId,
   onRuleChange,
+  className,
 }: CharacterDetailProps) {
   // 从 Outlet Context 获取 setRoles 用于手动更新角色列表
   const context = useOutletContext<{ setRoles?: React.Dispatch<React.SetStateAction<Role[]>> }>();
@@ -419,63 +421,61 @@ function CharacterDetailInner({
   };
 
   return (
-    <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
-    }`}
+    <div
+      className={`bg-base-100 border border-base-200 rounded-xl shadow-sm p-3 sm:p-4 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}${className ? ` ${className}` : ""}`}
     >
-
-      {/* 桌面端显示的头部区域 */}
-      <div className="hidden md:flex items-center justify-between gap-3">
-        <div className="flex items-center gap-4">
-          <Link to="/role" type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4">
-            ← 返回
-          </Link>
-          <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">
-              {localRole.name || "未命名角色"}
-            </h1>
-            <p className="text-base-content/60">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold truncate min-w-0">
+                {localRole.name || "未命名角色"}
+              </h1>
+              <span className="badge badge-outline badge-xs font-mono">
+                ID
+                {" "}
+                {localRole.id}
+              </span>
+            </div>
+            <p className="text-xs text-base-content/60">
               {isDiceMaiden ? "骰娘展示" : "角色展示"}
               {" "}
               ·
+              {" "}
               {currentRuleData?.ruleName || "未选择规则"}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速配置角色数据">
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <Link to="/role" type="button" className="btn btn-ghost btn-xs">
+              角色页
+            </Link>
+            {!isDiceMaiden && (
               <button
                 type="button"
                 onClick={() => setIsStImportModalOpen(true)}
-                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+                className="btn btn-secondary btn-xs"
               >
-                <span className="flex items-center gap-1">
-                  ST指令
-                </span>
+                ST导入
               </button>
-            </div>
-          )}
-          {isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="查看和导出骰娘文案配置的JSON格式">
+            )}
+            {isDiceMaiden && (
               <button
                 type="button"
                 onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+                className="btn btn-info btn-xs"
               >
                 <span className="flex items-center gap-1">
-                  <SlidersIcon className="w-4 h-4" />
+                  <SlidersIcon className="w-3.5 h-3.5" />
                   配置
                 </span>
               </button>
-            </div>
-          )}
-          {isEditing
-            ? (
-                <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
+            )}
+            {isEditing
+              ? (
                   <button
                     type="button"
                     onClick={handleSave}
-                    className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
+                    className={`btn btn-primary btn-xs ${isTransitioning ? "scale-95" : ""}`}
                     disabled={isTransitioning}
                   >
                     {isTransitioning
@@ -484,328 +484,177 @@ function CharacterDetailInner({
                         )
                       : (
                           <span className="flex items-center gap-1">
-                            <SaveIcon className="w-4 h-4" />
+                            <SaveIcon className="w-3.5 h-3.5" />
                             保存
                           </span>
                         )}
                   </button>
-                </div>
-              )
-            : (
-                <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
-                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
+                )
+              : (
+                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-xs">
                     <span className="flex items-center gap-1">
-                      <EditIcon className="w-4 h-4" />
+                      <EditIcon className="w-3.5 h-3.5" />
                       编辑
                     </span>
                   </button>
-                </div>
-              )}
-        </div>
-      </div>
-
-      <div className="max-md:hidden divider"></div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* 左侧：立绘与简介、规则选择（固定） */}
-        <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
-          {/* 立绘与简介卡片 */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-            <div className="card-body p-4 max-h-168">
-              {/* 移动端显示的头部区域 */}
-              <div className="md:hidden mb-4 pl-4 pr-4">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div>
-                    <h1 className="font-semibold text-xl max-w-32 truncate">
-                      {localRole.name || "未命名角色"}
-                    </h1>
-                    <p className="text-base-content/60 text-sm">
-                      {isDiceMaiden ? "骰娘展示" : "角色展示"}
-                      {" "}
-                      ·
-                      {currentRuleData?.ruleName || "未选择规则"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isEditing
-                      ? (
-                          <button
-                            type="button"
-                            onClick={handleSave}
-                            className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
-                            disabled={isTransitioning}
-                          >
-                            {isTransitioning
-                              ? (
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                )
-                              : (
-                                  <span className="flex items-center gap-1">
-                                    <SaveIcon className="w-4 h-4" />
-                                    保存
-                                  </span>
-                                )}
-                          </button>
-                        )
-                      : (
-                          <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
-                            <span className="flex items-center gap-1">
-                              <EditIcon className="w-4 h-4" />
-                              编辑
-                            </span>
-                          </button>
-                        )}
-
-                    {!isDiceMaiden && (
-                      <button
-                        type="button"
-                        onClick={() => setIsStImportModalOpen(true)}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <span className="flex items-center gap-1">
-                          ST导入
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="divider my-0" />
-              </div>
-
-              <div className="flex justify-center mt-6 mb-2">
-                {isQueryLoading
-                  ? (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="skeleton w-24 h-24 rounded-full"></div>
-                        <div className="skeleton h-4 w-20"></div>
-                      </div>
-                    )
-                  : (
-                      <CharacterAvatar
-                        role={localRole} // 当前角色基本信息
-                        roleAvatars={roleAvatars} // 当前角色的头像列表
-                        selectedAvatarId={selectedAvatarId} // 选中的头像ID
-                        selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL
-                        selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL
-                        onchange={handleAvatarChange}// 头像变化的回调
-                        onAvatarSelect={handleAvatarSelect} // 头像选择的回调
-                        onAvatarDelete={handleAvatarDelete} // 头像删除的回调
-                        onAvatarUpload={handleAvatarUpload} // 头像上传的回调
-                      />
-                    )}
-              </div>
-              {!isEditing && (
-                <div className="divider font-bold text-center text-xl flex">
-                  <span className="shrink-0 lg:max-w-48 truncate">
-                    {localRole.name}
-                  </span>
-                </div>
-              )}
-              {isEditing && <div className="divider my-0" />}
-              {/* 基础信息与编辑（已移至左侧） */}
-              <div>
-                {isEditing
-                  ? (
-                      <div>
-                        <label className="input rounded-md w-full">
-                          <input
-                            type="text"
-                            value={localRole.name}
-                            onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="角色名称"
-                          />
-                        </label>
-                        <textarea
-                          value={localRole.description}
-                          onChange={(e) => {
-                            setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                          }}
-                          placeholder="角色描述"
-                          className="textarea textarea-sm w-full h-24 resize-none mt-4 rounded-md"
-                        />
-                        <div className="text-right mt-1">
-                          <span className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
-                          }`}
-                          >
-                            {charCount}
-                            /
-                            {MAX_DESCRIPTION_LENGTH}
-                            {charCount > MAX_DESCRIPTION_LENGTH && (
-                              <span className="ml-2">(已超出描述字数上限)</span>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  : (
-                      <>
-                        <p className="text-base wrap-break-words max-w-full text-center line-clamp-6 overflow-hidden text-ellipsis">
-                          {localRole.description || "暂无描述"}
-                        </p>
-                      </>
-                    )}
-                {/* 顶部已提供编辑/保存按钮 */}
-
-              </div>
-
-            </div>
-
-            <p className="text-center text-xs text-base-content/60">
-              角色ID号：
-              {localRole.id}
-            </p>
-            <div className="divider p-4 my-0" />
-
-            <div>
-
-              <div
-                className="card bg-base-100 rounded-xl cursor-pointer transition-all duration-200"
-                onClick={handleOpenRuleModal}
-              >
-                <div className="card-body p-4 hover:bg-base-300">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <GearOutline className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm">当前规则</h3>
-                        <p className="text-primary font-medium text-sm">
-                          {currentRuleData?.ruleName || "未选择规则"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-base-content/50">
-                      <span className="text-xs">切换</span>
-                      <ChevronRightIcon className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="divider p-4 my-0" />
-
-              {/* 音频上传卡片 */}
-              <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
-                <div className="card-body p-4">
-                  <div
-                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
-                    onClick={handleOpenAudioModal}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
-                        <MicrophoneIcon className="w-4 h-4 text-secondary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm">上传音频</h3>
-                        <p className="text-secondary font-medium text-sm">
-                          {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-base-content/50">
-                      <span className="text-xs">上传</span>
-                      <ChevronRightIcon className="w-4 h-4" />
-                    </div>
-                  </div>
-
-                  {/* 音频播放器 */}
-                  <AudioPlayer
-                    role={localRole}
-                    onRoleUpdate={(updatedRole) => {
-                      setLocalRole(updatedRole);
-                      // 调用后端API更新
-                      updateRole(updatedRole);
-                    }}
-                    onDelete={() => {
-                      const updatedRole = { ...localRole, voiceUrl: undefined };
-                      setLocalRole(updatedRole);
-                      // 调用后端API更新
-                      updateRole(updatedRole);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* 关联骰娘卡片 */}
-              <div className="card bg-base-100 rounded-xl transition-all duration-200 mb-4">
-                <div className="card-body p-4">
-                  <div
-                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-xl p-2 -m-2"
-                    onClick={handleOpenDiceMaidenLinkModal}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                        <DiceFiveIcon className="w-4 h-4 text-accent" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm">关联骰娘</h3>
-                        <p className={`font-medium text-sm ${
-                          dicerRoleError ? "text-error" : "text-accent"
-                        }`}
-                        >
-                          {currentDicerRoleId
-                            ? dicerRoleError || linkedDicerRoleData?.data?.roleName || `ID: ${currentDicerRoleId}`
-                            : "选择使用的骰娘角色"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-base-content/50">
-                      <span className="text-xs">{currentDicerRoleId ? "更改" : "设置"}</span>
-                      <ChevronRightIcon className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
+                )}
           </div>
         </div>
 
-        {/* 右侧：编辑信息、预览、扩展模块 */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 rounded-lg border border-base-200 bg-base-100 p-2 sm:p-3">
+            <div className="flex justify-center">
+              {isQueryLoading
+                ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="skeleton w-20 h-20 rounded-full"></div>
+                      <div className="skeleton h-3 w-16"></div>
+                    </div>
+                  )
+                : (
+                    <CharacterAvatar
+                      role={localRole} // 当前角色基本信息
+                      roleAvatars={roleAvatars} // 当前角色的头像列表
+                      selectedAvatarId={selectedAvatarId} // 选中的头像ID
+                      selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL
+                      selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL
+                      avatarSizeClassName="w-36"
+                      onchange={handleAvatarChange}// 头像变化的回调
+                      onAvatarSelect={handleAvatarSelect} // 头像选择的回调
+                      onAvatarDelete={handleAvatarDelete} // 头像删除的回调
+                      onAvatarUpload={handleAvatarUpload} // 头像上传的回调
+                      useUrlState={false}
+                    />
+                  )}
+            </div>
+          </div>
 
-          {/* 扩展模块（右侧） */}
+          <div className="flex flex-1 min-w-0 flex-col gap-2">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg border border-base-200 bg-base-100 px-3 py-2 text-left hover:bg-base-200 transition-colors"
+              onClick={handleOpenRuleModal}
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <GearOutline className="w-4 h-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold">当前规则</h3>
+                <p className="text-primary font-medium text-[11px] truncate max-w-35">
+                  {currentRuleData?.ruleName || "未选择规则"}
+                </p>
+              </div>
+              <ChevronRightIcon className="w-4 h-4 text-base-content/50 ml-auto" />
+            </button>
+
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg border border-base-200 bg-base-100 px-3 py-2 text-left hover:bg-base-200 transition-colors"
+              onClick={handleOpenAudioModal}
+            >
+              <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                <MicrophoneIcon className="w-4 h-4 text-secondary" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold">上传音频</h3>
+                <p className="text-secondary font-medium text-[11px]">
+                  {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
+                </p>
+              </div>
+              <ChevronRightIcon className="w-4 h-4 text-base-content/50 ml-auto" />
+            </button>
+
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg border border-base-200 bg-base-100 px-3 py-2 text-left hover:bg-base-200 transition-colors"
+              onClick={handleOpenDiceMaidenLinkModal}
+            >
+              <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                <DiceFiveIcon className="w-4 h-4 text-accent" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold">关联骰娘</h3>
+                <p className={`font-medium text-[11px] ${
+                  dicerRoleError ? "text-error" : "text-accent"
+                }`}
+                >
+                  {currentDicerRoleId
+                    ? dicerRoleError || linkedDicerRoleData?.data?.roleName || `ID: ${currentDicerRoleId}`
+                    : "选择使用的骰娘角色"}
+                </p>
+              </div>
+              <ChevronRightIcon className="w-4 h-4 text-base-content/50 ml-auto" />
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-base-200 bg-base-100 p-2">
+          {isEditing
+            ? (
+                <div>
+                  <label className="input input-sm rounded-md w-full">
+                    <input
+                      type="text"
+                      value={localRole.name}
+                      onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="角色名称"
+                    />
+                  </label>
+                  <textarea
+                    value={localRole.description}
+                    onChange={(e) => {
+                      setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                    }}
+                    placeholder="角色描述"
+                    className="textarea textarea-sm w-full h-20 resize-none mt-3 rounded-md"
+                  />
+                  <div className="text-right mt-1">
+                    <span className={`text-xs font-semibold ${charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
+                    }`}
+                    >
+                      {charCount}
+                      /
+                      {MAX_DESCRIPTION_LENGTH}
+                      {charCount > MAX_DESCRIPTION_LENGTH && (
+                        <span className="ml-2">(已超出描述字数上限)</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )
+            : (
+                <p className="text-sm text-base-content/80 wrap-break-words line-clamp-5">
+                  {localRole.description || "暂无描述"}
+                </p>
+              )}
+        </div>
+
+        <div className="rounded-lg border border-base-200 bg-base-100 p-2">
+          <AudioPlayer
+            size="compact"
+            role={localRole}
+            onRoleUpdate={(updatedRole) => {
+              setLocalRole(updatedRole);
+              updateRole(updatedRole);
+            }}
+            onDelete={() => {
+              const updatedRole = { ...localRole, voiceUrl: undefined };
+              setLocalRole(updatedRole);
+              updateRole(updatedRole);
+            }}
+          />
+        </div>
+
+        <div className="rounded-lg border border-base-200 bg-base-100 p-2">
           {isQueryLoading
             ? (
-                <div className="space-y-6">
-                  {/* 骨架屏 - 模拟扩展模块 */}
+                <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
-                    <div className="skeleton h-10 w-20 rounded-lg"></div>
+                    <div className="skeleton h-8 w-16 rounded-lg"></div>
+                    <div className="skeleton h-8 w-16 rounded-lg"></div>
+                    <div className="skeleton h-8 w-16 rounded-lg"></div>
                   </div>
-                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
-                    <div className="card-body">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="skeleton h-6 w-32"></div>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="skeleton h-10 w-full"></div>
-                          <div className="skeleton h-10 w-full"></div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="skeleton h-10 w-full"></div>
-                          <div className="skeleton h-10 w-full"></div>
-                        </div>
-                        <div className="skeleton h-20 w-full"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
-                    <div className="card-body">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="skeleton h-6 w-40"></div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="skeleton h-8 w-full"></div>
-                        <div className="skeleton h-8 w-full"></div>
-                        <div className="skeleton h-8 w-full"></div>
-                        <div className="skeleton h-12 w-full"></div>
-                      </div>
-                    </div>
-                  </div> */}
+                  <div className="skeleton h-24 w-full rounded-lg"></div>
                 </div>
               )
             : (
@@ -814,6 +663,7 @@ function CharacterDetailInner({
                   ruleId={selectedRuleId}
                   isStImportModalOpen={isStImportModalOpen}
                   onStImportModalClose={() => setIsStImportModalOpen(false)}
+                  size="small"
                 />
               )}
         </div>
