@@ -8,7 +8,7 @@
 
 - **职责:** Chat 页面与布局、房间列表与分类、消息渲染与发送、房间资料与文档入口、跑团相关交互
 - **状态:** ?开发中
-- **最后更新:** 2026-01-20
+- **最后更新:** 2026-01-22
 
 
 ## 入口与目录
@@ -64,6 +64,12 @@
 - 删除房间角色：KP 可在角色头像详情中将 NPC/角色从当前房间移除
 - 获取“我的角色”：前端改用 `GET /role/user/type`（分别取 type=0/1），不再从 `/role/user` 拉取后再前端过滤
 
+### 6) 房间头像显示兜底
+
+- 房间列表展示头像时，优先使用本地覆盖（Blocksuite `tc_header` / header override）中的 `imageUrl`
+- 若后端 `room.avatar` 缺失或为空，兜底使用 `/favicon.ico`
+- 头像 URL 加载失败时（`img onError`），自动回退到 `/favicon.ico`，避免破图
+
 ## 相关文档
 
 - 项目概览：[overview](../overview.md)
@@ -77,3 +83,4 @@
 - [202601201620_chat_import_dicer](../../history/2026-01/202601201620_chat_import_dicer/) - 文本导入支持“骰娘”发言：按骰娘角色发送并使用 `DICE(6)` 类型
 - [202601211623_chat_import_figure_position](../../history/2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）
 - [202601211700_chat_import_ui_refine](../../history/2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口
+- [202601222021_room_avatar_fallback](../../history/2026-01/202601222021_room_avatar_fallback/) - 修复房间初次导入无头像：头像缺失/加载失败时回退到默认头像

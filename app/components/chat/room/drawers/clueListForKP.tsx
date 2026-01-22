@@ -91,7 +91,17 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
                       aria-controls={`clue-drawer-${room.roomId}`}
                     >
                       <div className="avatar mask mask-circle w-8 flex-shrink-0">
-                        <img src={room.avatar} alt={room.name} />
+                        <img
+                          src={room.avatar || "/favicon.ico"}
+                          alt={room.name}
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            if (img.dataset.fallbackApplied)
+                              return;
+                            img.dataset.fallbackApplied = "1";
+                            img.src = "/favicon.ico";
+                          }}
+                        />
                       </div>
                       <span className="truncate flex-1 text-left font-medium">
                         {room.name}
