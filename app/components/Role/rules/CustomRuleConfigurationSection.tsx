@@ -1,0 +1,39 @@
+import Section from "../Editors/Section";
+import CustomRuleNumericalEditor from "./CustomRuleNumericalEditor";
+
+export function CustomRuleConfigurationSection({
+  customLabel,
+  localEdits,
+  onDataChange,
+  cloneVersion,
+}: {
+  customLabel: string;
+  localEdits?: Record<string, any>;
+  onDataChange: (newData: Record<string, any>) => void;
+  cloneVersion: number;
+}) {
+  const fieldCount = Object.keys(localEdits ?? {}).length;
+  return (
+    <Section
+      className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+      collapsible={false}
+    >
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <h4 className="text-lg font-semibold">
+            ⚡
+            {customLabel}
+            模版
+          </h4>
+          <div className="badge badge-info badge-sm">{fieldCount}</div>
+        </div>
+        <CustomRuleNumericalEditor
+          title={customLabel}
+          data={localEdits ?? {}}
+          onSave={onDataChange}
+          cloneVersion={cloneVersion}
+        />
+      </div>
+    </Section>
+  );
+}

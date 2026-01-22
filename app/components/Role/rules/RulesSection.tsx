@@ -1,12 +1,15 @@
 // RulesSection.tsx
 
+import { Plus } from "@phosphor-icons/react";
 import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 interface RulesSectionProps {
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
   large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）
+  autoSelectFirst?: boolean; // 默认 true：首次加载时自动选中第一个规则
 }
 
 /**
@@ -18,6 +21,7 @@ export default function RulesSection({
   currentRuleId,
   onRuleChange,
   large = false,
+  autoSelectFirst = true,
 }: RulesSectionProps) {
   // 内部状态管理 - 完全自治
   const [pageNum, setPageNum] = useState(1);
@@ -34,10 +38,10 @@ export default function RulesSection({
 
   // 当首次有数据且未选择规则时，默认选中第一个
   useEffect(() => {
-    if (!currentRuleId && rules.length > 0) {
+    if (autoSelectFirst && !currentRuleId && rules.length > 0) {
       onRuleChange(rules[0].ruleId || 0);
     }
-  }, [rules, currentRuleId, onRuleChange]);
+  }, [rules, currentRuleId, onRuleChange, autoSelectFirst]);
 
   // 处理搜索输入
   const handleSearchInput = (value: string) => {
@@ -103,7 +107,13 @@ export default function RulesSection({
       <div className="space-y-6">
         <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
           <div className="card-body">
-            <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
+            <div className="flex justify-between">
+              <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
+              <Link to="/role?type=rule" className="btn btn-sm btn-primary">
+                <Plus className="size-4" weight="bold" />
+                自定义规则
+              </Link>
+            </div>
             <div className="mt-4 space-y-4">
               {searchBar}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -116,7 +126,7 @@ export default function RulesSection({
                     }`}
                     onClick={() => onRuleChange(rule.ruleId || 0)}
                   >
-                    <div className="card-body p-5 md:p-6 min-h-[128px]">
+                    <div className="card-body p-5 md:p-6 min-h-32">
                       <div className="flex h-full items-center justify-between gap-4 md:gap-6">
                         <div>
                           <h4 className="font-medium text-base">{rule.ruleName}</h4>
