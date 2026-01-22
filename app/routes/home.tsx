@@ -13,7 +13,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate("/chat", { replace: true });
+    navigate("/chat/private", { replace: true });
   }, [navigate]);
 
   return null;

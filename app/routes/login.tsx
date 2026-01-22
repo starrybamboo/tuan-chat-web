@@ -12,7 +12,7 @@ export function meta() {
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/chat";
+  const redirect = searchParams.get("redirect") || "/chat/private";
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {

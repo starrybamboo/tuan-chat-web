@@ -268,14 +268,6 @@ export default function DNDMap() {
     return roomRoles.filter(role => !stampPositions[role.roleId]);
   }, [roomRoles, stampPositions]);
 
-  const unplacedRoleRows = useMemo(() => {
-    const rows: UserRole[][] = [];
-    for (let i = 0; i < unplacedRoles.length; i += 5) {
-      rows.push(unplacedRoles.slice(i, i + 5));
-    }
-    return rows;
-  }, [unplacedRoles]);
-
   // --- 事件处理 ---
   const handleUpdateMapImg = useCallback(async (img: File) => {
     const imgUrl = await uploadUtil.uploadImg(img);
@@ -593,16 +585,12 @@ export default function DNDMap() {
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full bg-base-200 ${
-        isCompactMode ? "flex flex-col overflow-hidden" : "flex overflow-auto"
-      }`}
+      className="w-full h-full bg-base-200 flex flex-col overflow-hidden"
     >
       {/* 主地图区域 */}
       <div
         ref={mapContainerRef}
-        className={`relative overflow-hidden cursor-move ${
-          isCompactMode ? "flex-1 w-full" : "flex-grow h-full"
-        }`}
+        className="relative overflow-hidden cursor-move flex-1 w-full min-h-0"
         onMouseDown={handlePointerDown}
         onMouseMove={handlePointerMove}
         onMouseUp={handlePointerUpOrLeave}
@@ -665,8 +653,8 @@ export default function DNDMap() {
 
       {/* 控制面板 */}
       <div
-        className={`p-4 flex flex-col shadow-lg bg-base-100 ${
-          isCompactMode ? "w-full flex-1 overflow-y-auto" : "w-64 h-full"
+        className={`p-4 flex flex-col shadow-lg bg-base-100 border-t border-base-300 ${
+          isCompactMode ? "w-full flex-1 overflow-y-auto" : "w-full max-h-[45%] overflow-y-auto"
         }`}
         onDragOver={handleDragOver}
         onDrop={handleDropOnPanel}
@@ -683,8 +671,11 @@ export default function DNDMap() {
         </div>
         <div className={`flex flex-col flex-1 ${isCompactMode ? "" : "overflow-auto"}`}>
           {/* 网格设置区域 */}
-          <div className={`${isCompactMode ? "grid grid-cols-2 gap-3 flex-shrink-0" : "flex flex-col gap-2"}`}>
-            <label className="input bg-base-200 rounded-md w-full border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300">
+          <div className={`${isCompactMode ? "grid grid-cols-2 gap-3 flex-shrink-0" : "flex items-center gap-3 flex-shrink-0"}`}>
+            <label className={`input bg-base-200 rounded-md border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300 ${
+              isCompactMode ? "w-full" : "w-40"
+            }`}
+            >
               <span className="text-xs text-base-content/60">行数</span>
               <span aria-hidden className="mx-1 h-4 w-px bg-base-content/20" />
               <input
@@ -700,7 +691,10 @@ export default function DNDMap() {
                 className="grow bg-transparent rounded-md outline-none ring-0"
               />
             </label>
-            <label className="input bg-base-200 rounded-md w-full border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300">
+            <label className={`input bg-base-200 rounded-md border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300 ${
+              isCompactMode ? "w-full" : "w-40"
+            }`}
+            >
               <span className="text-xs text-base-content/60">列数</span>
               <span aria-hidden className="mx-1 h-4 w-px bg-base-content/20" />
               <input
@@ -717,7 +711,10 @@ export default function DNDMap() {
               />
             </label>
 
-            <div className={`flex flex-col items-center gap-2 rounded-md ${isCompactMode ? "col-span-2" : ""}`}>
+            <div className={`rounded-md ${
+              isCompactMode ? "col-span-2 flex flex-col items-center gap-2" : "flex items-center gap-2"
+            }`}
+            >
               <span className="text-xs text-base-content/60">网格线</span>
               <div className="flex items-center gap-1.5">
                 {GRID_COLOR_OPTIONS.map((option) => {
@@ -749,34 +746,30 @@ export default function DNDMap() {
               isCompactMode ? "min-w-0" : ""
             }`}
             >
-              <div className="flex flex-col gap-4">
-                {unplacedRoleRows.map(row => (
-                  <div key={row.map(r => r.roleId).join("-")} className="flex items-center">
-                    {row.map((role, index) => {
-                      const isHovered = hoveredRoleId === role.roleId;
-                      return (
-                        <div
-                          key={role.roleId}
-                          className="transition-transform"
-                          style={{
-                            marginLeft: index === 0 ? 0 : -avatarOverlap,
-                            zIndex: isHovered ? 50 : row.length - index,
-                            transform: isHovered ? "translateY(-6px)" : undefined,
-                          }}
-                          onMouseEnter={() => setHoveredRoleId(role.roleId)}
-                          onMouseLeave={() => setHoveredRoleId(null)}
-                        >
-                          <RoleStamp
-                            role={role}
-                            onDragStart={handleDragStart}
-                            onTouchDrop={handleTouchDrop}
-                            size={defaultRoleStampSize}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+              <div className="flex items-center flex-nowrap overflow-x-auto pb-2">
+                {unplacedRoles.map((role, index) => {
+                  const isHovered = hoveredRoleId === role.roleId;
+                  return (
+                    <div
+                      key={role.roleId}
+                      className="transition-transform"
+                      style={{
+                        marginLeft: index === 0 ? 0 : -avatarOverlap,
+                        zIndex: isHovered ? 50 : unplacedRoles.length - index,
+                        transform: isHovered ? "translateY(-6px)" : undefined,
+                      }}
+                      onMouseEnter={() => setHoveredRoleId(role.roleId)}
+                      onMouseLeave={() => setHoveredRoleId(null)}
+                    >
+                      <RoleStamp
+                        role={role}
+                        onDragStart={handleDragStart}
+                        onTouchDrop={handleTouchDrop}
+                        size={defaultRoleStampSize}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

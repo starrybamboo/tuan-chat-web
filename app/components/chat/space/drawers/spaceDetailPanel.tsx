@@ -100,7 +100,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   };
   return (
     <div className="h-full w-full overflow-hidden">
-      <div className="flex items-center gap-2 px-2 py-1 border-b border-base-300 bg-base-100">
+      <div className="flex items-center gap-2 h-10 px-2 border-t border-b border-gray-300 dark:border-gray-700 bg-base-100">
         <button
           type="button"
           className="btn btn-ghost btn-sm btn-square"
@@ -116,12 +116,6 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       </div>
       {resolvedTab === "members" && (
         <div className="h-full space-y-2 p-4 overflow-y-auto">
-          <div className="flex flex-row justify-center items-center gap-2 px-4">
-            <p>
-              空间成员-
-              {spaceMembers.length}
-            </p>
-          </div>
           <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
       )}
