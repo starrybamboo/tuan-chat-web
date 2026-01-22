@@ -17,7 +17,8 @@ export default function RoomButton({
 }) {
   const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${room.roomId}`]);
   const displayName = headerOverride?.title || room.name;
-  const displayAvatar = headerOverride?.imageUrl || room.avatar;
+  const fallbackAvatar = "/favicon.ico";
+  const displayAvatar = headerOverride?.imageUrl || room.avatar || fallbackAvatar;
 
   return (
     <div
@@ -49,6 +50,13 @@ export default function RoomButton({
           <img
             src={displayAvatar}
             alt={displayName}
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (img.dataset.fallbackApplied)
+                return;
+              img.dataset.fallbackApplied = "1";
+              img.src = fallbackAvatar;
+            }}
           />
         </div>
       </div>
