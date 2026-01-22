@@ -1,6 +1,6 @@
 import { HouseIcon } from "@phosphor-icons/react";
 import React from "react";
-import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
+import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
 
 export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 
@@ -10,9 +10,13 @@ export interface SpaceHeaderBarProps {
   isSpaceOwner: boolean;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
   onInviteMember: () => void;
+  onToggleLeftDrawer?: () => void;
+  isLeftDrawerOpen?: boolean;
 }
 
-export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember }: SpaceHeaderBarProps) {
+export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember, onToggleLeftDrawer, isLeftDrawerOpen }: SpaceHeaderBarProps) {
+  const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
+
   return (
     <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
       <div className="dropdown dropdown-bottom min-w-0">
@@ -85,6 +89,19 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
         </ul>
       </div>
       <div className="flex gap-2 shrink-0 mr-2">
+        {onToggleLeftDrawer && (
+          <div className="tooltip tooltip-bottom" data-tip={leftDrawerLabel}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square hover:text-info"
+              onClick={onToggleLeftDrawer}
+              aria-label={leftDrawerLabel}
+              aria-pressed={Boolean(isLeftDrawerOpen)}
+            >
+              <SidebarSimpleIcon />
+            </button>
+          </div>
+        )}
         <div className="tooltip tooltip-bottom" data-tip="邀请成员">
           <button
             type="button"

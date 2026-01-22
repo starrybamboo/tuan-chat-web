@@ -47,6 +47,8 @@ export interface ChatRoomListPanelProps {
 
   onSelectRoom: (roomId: number) => void;
   onCloseLeftDrawer: () => void;
+  onToggleLeftDrawer?: () => void;
+  isLeftDrawerOpen?: boolean;
 
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 
@@ -75,6 +77,8 @@ export default function ChatRoomListPanel({
   onOpenSpaceDetailPanel,
   onSelectRoom,
   onCloseLeftDrawer,
+  onToggleLeftDrawer,
+  isLeftDrawerOpen,
   setIsOpenLeftDrawer,
   onOpenCreateInCategory,
 }: ChatRoomListPanelProps) {
@@ -478,6 +482,8 @@ export default function ChatRoomListPanel({
                     isSpaceOwner={isSpaceOwner}
                     onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
                     onInviteMember={onInviteMember}
+                    onToggleLeftDrawer={onToggleLeftDrawer}
+                    isLeftDrawerOpen={isLeftDrawerOpen}
                   />
                   {/* <div className="h-px bg-base-300"></div> */}
                 </>

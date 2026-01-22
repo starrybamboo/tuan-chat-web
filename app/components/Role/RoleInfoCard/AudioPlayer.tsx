@@ -4,6 +4,7 @@ import WaveSurfer from "wavesurfer.js";
 
 interface AudioPlayerProps {
   role: Role;
+  size?: "default" | "compact";
   onRoleUpdate?: (updatedRole: Role) => void;
   onDelete?: () => void;
 }
@@ -11,13 +12,15 @@ interface AudioPlayerProps {
 /**
  * 音频播放器组件 - 使用 WaveSurfer.js 进行波形可视化
  */
-export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlayerProps) {
+export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDelete }: AudioPlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const isCompact = size === "compact";
+  const waveHeight = isCompact ? 40 : 60;
 
   // 初始化 WaveSurfer
   useEffect(() => {
@@ -40,9 +43,9 @@ export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlaye
         waveColor: "#94a3b8", // 波形颜色 - slate-400
         progressColor: "#3b82f6", // 播放进度颜色 - blue-500
         cursorColor: "#ef4444", // 播放指针颜色 - red-500
-        barWidth: 2,
+        barWidth: isCompact ? 1 : 2,
         barGap: 1,
-        height: 60,
+        height: waveHeight,
         normalize: true,
         backend: "WebAudio",
       });
@@ -96,7 +99,7 @@ export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlaye
         wavesurferRef.current = null;
       }
     };
-  }, [role.voiceUrl]);
+  }, [role.voiceUrl, isCompact, waveHeight]);
 
   // 播放/暂停控制
   const togglePlayPause = (e: React.MouseEvent) => {
@@ -143,14 +146,14 @@ export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlaye
   }
 
   return (
-    <div className="mt-3 pt-3 border-t border-base-content/10">
-      <div className="space-y-3">
+    <div className={isCompact ? "mt-2 pt-2" : "mt-3 pt-3 border-t border-base-content/10"}>
+      <div className={isCompact ? "space-y-2" : "space-y-3"}>
         {/* 波形容器 */}
-        <div className="w-full bg-base-200 rounded-lg p-3">
+        <div className={`w-full bg-base-200 rounded-lg ${isCompact ? "p-2" : "p-3"}`}>
           {isLoading && (
-            <div className="flex items-center justify-center h-[60px]">
+            <div className={`flex items-center justify-center ${isCompact ? "h-[40px]" : "h-[60px]"}`}>
               <span className="loading loading-spinner loading-sm"></span>
-              <span className="ml-2 text-sm">加载音频中...</span>
+              <span className={`ml-2 ${isCompact ? "text-xs" : "text-sm"}`}>加载音频中...</span>
             </div>
           )}
           <div
@@ -162,11 +165,11 @@ export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlaye
 
         {/* 控制栏 */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center ${isCompact ? "gap-1" : "gap-2"}`}>
             {/* 播放/暂停按钮 */}
             <button
               type="button"
-              className={`btn btn-sm ${isLoading ? "btn-disabled" : "btn-primary"}`}
+              className={`btn ${isCompact ? "btn-xs" : "btn-sm"} ${isLoading ? "btn-disabled" : "btn-primary"}`}
               onClick={togglePlayPause}
               disabled={isLoading}
               title={isPlaying ? "暂停" : "播放"}
@@ -177,12 +180,12 @@ export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlaye
                   )
                 : isPlaying
                   ? (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} fill="currentColor" viewBox="0 0 24 24">
                         <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
                       </svg>
                     )
                   : (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     )}
@@ -191,18 +194,18 @@ export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlaye
             {/* 停止按钮 */}
             <button
               type="button"
-              className={`btn btn-sm btn-outline ${isLoading ? "btn-disabled" : ""}`}
+              className={`btn ${isCompact ? "btn-xs" : "btn-sm"} btn-outline ${isLoading ? "btn-disabled" : ""}`}
               onClick={stop}
               disabled={isLoading}
               title="停止"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <svg className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 6h12v12H6z" />
               </svg>
             </button>
 
             {/* 时间显示 */}
-            <span className="text-sm text-base-content/70 ml-2">
+            <span className={`${isCompact ? "text-xs" : "text-sm"} text-base-content/70 ml-2`}>
               {formatTime(currentTime)}
               {" "}
               /
@@ -213,11 +216,11 @@ export default function AudioPlayer({ role, onRoleUpdate, onDelete }: AudioPlaye
           {/* 删除按钮 */}
           <button
             type="button"
-            className="btn btn-sm btn-ghost btn-circle text-error hover:bg-error/10"
+            className={`btn ${isCompact ? "btn-xs" : "btn-sm"} btn-ghost btn-circle text-error hover:bg-error/10`}
             onClick={handleDeleteAudio}
             title="删除音频"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
