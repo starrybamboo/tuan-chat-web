@@ -402,7 +402,7 @@ export function PreviewTab({
         {previewMode === "render" && (
           spriteUrl
             ? (
-                <div className="w-full h-full p-4 flex items-center justify-center relative">
+                <div className="w-full h-full p-4 flex items-center justify-center">
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
@@ -411,24 +411,6 @@ export function PreviewTab({
                       dialogContent="这是一段示例对话内容。"
                     />
                   </div>
-                  {currentAvatar?.avatarId && (
-                    <div className="absolute left-4 bottom-4">
-                      <CharacterCopper
-                        fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
-                        scene={3}
-                        mutate={handleReplaceAvatar}
-                        stateKey={replaceStateKey}
-                      >
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-primary"
-                          disabled={isReplacing}
-                        >
-                          {isReplacing ? "修改中..." : "修改头像"}
-                        </button>
-                      </CharacterCopper>
-                    </div>
-                  )}
                 </div>
               )
             : (
@@ -447,6 +429,22 @@ export function PreviewTab({
 
       {/* 操作按钮 */}
       <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
+        {previewMode === "render" && currentAvatar?.avatarId && (
+          <CharacterCopper
+            fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
+            scene={3}
+            mutate={handleReplaceAvatar}
+            stateKey={replaceStateKey}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={isReplacing}
+            >
+              {isReplacing ? "修改中..." : "修改头像"}
+            </button>
+          </CharacterCopper>
+        )}
         <button
           type="button"
           className="btn btn-secondary"
