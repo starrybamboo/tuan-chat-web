@@ -8,6 +8,7 @@ import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useGetRoleAvatarQuery,
+  useGetRoleAvatarsQuery,
 } from "../../../api/hooks/RoleAndAvatarHooks";
 
 const sizeMap = {
@@ -62,10 +63,16 @@ export default function RoleAvatarComponent({
   hoverToScale?: boolean;
   detailVariant?: "simple" | "page";
 }) {
-  const avatarQuery = useGetRoleAvatarQuery(avatarId);
+  const hasExplicitAvatarId = typeof avatarId === "number" && avatarId > 0;
+  const safeAvatarId = hasExplicitAvatarId ? avatarId : 0;
+  const avatarQuery = useGetRoleAvatarQuery(safeAvatarId);
   const roleAvatar = avatarQuery.data?.data;
-  const roleIdTrue = roleId ?? roleAvatar?.roleId;
-  const hasAvatar = Boolean(roleAvatar?.avatarUrl);
+  const shouldUseFallback = !hasExplicitAvatarId && typeof roleId === "number" && roleId > 0;
+  const fallbackAvatarsQuery = useGetRoleAvatarsQuery(roleId ?? -1, { enabled: shouldUseFallback });
+  const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
+  const displayAvatarUrl = hasExplicitAvatarId ? roleAvatar?.avatarUrl : fallbackAvatar?.avatarUrl;
+  const roleIdTrue = roleId ?? roleAvatar?.roleId ?? fallbackAvatar?.roleId;
+  const hasAvatar = Boolean(displayAvatarUrl);
 
   // 控制角色详情的popWindow
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleIdTrue}`, false);
@@ -87,7 +94,7 @@ export default function RoleAvatarComponent({
             : (
                 <ImgWithHoverToScale
                   enableScale={hoverToScale}
-                  src={roleAvatar?.avatarUrl}
+                  src={displayAvatarUrl}
                   alt={alt}
                   className={`${!stopPopWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
                 />
