@@ -1,3 +1,6 @@
+/**
+ * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
+ */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
@@ -237,6 +240,8 @@ export class RealtimeRenderer {
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
   private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
+  // 自动跳转已永久关闭，避免新增消息打断当前预览位置
+  private readonly autoJumpEnabled = false;
 
   // 小头像相关
   private miniAvatarEnabled: boolean = false;
@@ -574,9 +579,12 @@ export class RealtimeRenderer {
   }
 
   /**
-   * 发送同步消息到指定房间的场景
+   * 发送同步消息到指定房间的场景（自动跳转关闭时不发送）
    */
   private sendSyncMessage(roomId: number): void {
+    if (!this.autoJumpEnabled) {
+      return;
+    }
     const sceneName = this.getSceneName(roomId);
     const context = this.sceneContextMap.get(roomId);
     if (!context) {
@@ -1458,7 +1466,7 @@ export class RealtimeRenderer {
       this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, { startLine, endLine });
     }
 
-    // 发送同步消息到 WebGAL
+    // 自动跳转已关闭，保留写入但不主动跳转
     if (syncToFile) {
       this.sendSyncMessage(targetRoomId);
     }
@@ -1477,7 +1485,7 @@ export class RealtimeRenderer {
       await this.renderMessage(message, targetRoomId, false);
     }
 
-    // 最后统一同步文件和发送 WebSocket 指令
+    // 最后统一同步文件（自动跳转关闭时不会主动跳转）
     await this.syncContextToFile(targetRoomId);
     this.sendSyncMessage(targetRoomId);
   }
