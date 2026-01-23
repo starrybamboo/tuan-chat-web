@@ -43,7 +43,7 @@ export function PreviewTab({
   currentAvatar,
   characterName,
   onAvatarChange,
-  onPreview,
+  // onPreview,
   onApply,
 }: PreviewTabProps) {
   // 预览模式: 'sprite' | 'avatar' | 'render'
@@ -256,11 +256,11 @@ export function PreviewTab({
     return "立绘";
   };
 
-  // 处理展示预览（同步外部索引并关闭弹窗）
-  const handlePreview = () => {
-    onPreview?.();
-    onApply?.();
-  };
+  // // 处理展示预览（同步外部索引并关闭弹窗）
+  // const handlePreview = () => {
+  //   onPreview?.();
+  //   onApply?.();
+  // };
 
   // 处理应用头像（真正更改角色头像）
   const handleApplyAvatar = () => {
@@ -273,7 +273,7 @@ export function PreviewTab({
   return (
     <div className="h-full flex flex-col">
       {/* 预览标题和切换按钮 */}
-      <div className="flex justify-between items-center mb-2 flex-shrink-0">
+      <div className="flex justify-between items-center mb-2 shrink-0">
         <h3 className="text-lg font-semibold">
           {getPreviewModeLabel()}
         </h3>
@@ -375,18 +375,18 @@ export function PreviewTab({
       </div>
 
       {/* 操作按钮 */}
-      <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
-        <button
+      <div className="mt-4 flex justify-end gap-2 shrink-0">
+        {/* <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-secondary rounded-md"
           onClick={handlePreview}
           disabled={!currentAvatar}
         >
           展示预览
-        </button>
+        </button> */}
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary rounded-md"
           onClick={handleApplyAvatar}
           disabled={!currentAvatar}
         >
