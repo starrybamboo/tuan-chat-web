@@ -1,7 +1,11 @@
 import type { RoleAvatar } from "api";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { Transform } from "../TransformControl";
+import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
+import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { withOssResizeProcess } from "@/utils/ossImageProcess";
 import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
@@ -13,6 +17,13 @@ interface RenderTransform {
   alpha: number;
   rotation: number;
 }
+
+type ReplaceAvatarPayload = {
+  avatarUrl: string;
+  spriteUrl: string;
+  originUrl?: string;
+  transform?: Transform;
+};
 
 const DEFAULT_TRANSFORM: RenderTransform = {
   scale: 1,
@@ -79,6 +90,12 @@ export function PreviewTab({
       ? (parseTransformFromAvatar(currentAvatar) as RenderTransform)
       : DEFAULT_TRANSFORM;
   }, [currentAvatar]);
+  const roleIdForMutation = currentAvatar?.roleId ?? 0;
+  const { mutateAsync: updateAvatar, isPending: isReplacing } = useUpdateRoleAvatarMutation(roleIdForMutation);
+  const replaceStateKey = useMemo(
+    () => `roleAvatarReplacePreview-${currentAvatar?.avatarId ?? "unknown"}`,
+    [currentAvatar?.avatarId],
+  );
 
   // Render preview should avoid showing: old image + new transform (or vice versa).
   // So we only update the transform after the new sprite image is ready to draw.
@@ -256,6 +273,42 @@ export function PreviewTab({
     return "立绘";
   };
 
+  const handleReplaceAvatar = useCallback(async (payload: ReplaceAvatarPayload) => {
+    if (!currentAvatar?.avatarId || !roleIdForMutation) {
+      toast.error("当前头像信息缺失，无法修改");
+      return;
+    }
+
+    const nextTransform = payload.transform ?? {
+      scale: currentAvatar.spriteScale ?? 1,
+      positionX: currentAvatar.spriteXPosition ?? 0,
+      positionY: currentAvatar.spriteYPosition ?? 0,
+      alpha: currentAvatar.spriteTransparency ?? 1,
+      rotation: currentAvatar.spriteRotation ?? 0,
+    };
+
+    try {
+      await updateAvatar({
+        ...currentAvatar,
+        roleId: roleIdForMutation,
+        avatarId: currentAvatar.avatarId,
+        avatarUrl: payload.avatarUrl || currentAvatar.avatarUrl || "",
+        spriteUrl: payload.spriteUrl || currentAvatar.spriteUrl || "",
+        originUrl: payload.originUrl ?? currentAvatar.originUrl,
+        spriteXPosition: nextTransform.positionX,
+        spriteYPosition: nextTransform.positionY,
+        spriteScale: nextTransform.scale,
+        spriteTransparency: nextTransform.alpha,
+        spriteRotation: nextTransform.rotation,
+      });
+      toast.success("头像已修改");
+    }
+    catch (error) {
+      console.error("修改头像失败:", error);
+      toast.error("修改失败，请稍后重试");
+    }
+  }, [currentAvatar, roleIdForMutation, updateAvatar]);
+
   // 处理展示预览（同步外部索引并关闭弹窗）
   const handlePreview = () => {
     onPreview?.();
@@ -349,7 +402,7 @@ export function PreviewTab({
         {previewMode === "render" && (
           spriteUrl
             ? (
-                <div className="w-full h-full p-4 flex items-center justify-center">
+                <div className="w-full h-full p-4 flex items-center justify-center relative">
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
@@ -358,6 +411,24 @@ export function PreviewTab({
                       dialogContent="这是一段示例对话内容。"
                     />
                   </div>
+                  {currentAvatar?.avatarId && (
+                    <div className="absolute right-4 bottom-4">
+                      <CharacterCopper
+                        fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
+                        scene={3}
+                        mutate={handleReplaceAvatar}
+                        stateKey={replaceStateKey}
+                      >
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          disabled={isReplacing}
+                        >
+                          {isReplacing ? "修改中..." : "修改头像"}
+                        </button>
+                      </CharacterCopper>
+                    </div>
+                  )}
                 </div>
               )
             : (

@@ -7,7 +7,7 @@
 ## [Unreleased]
 
 ### 新增
-- 角色页面头像设置支持替换已有头像（基于 avatarId 更新头像内容，不新增 avatarId）
+- 角色页面渲染预览支持修改已有头像（基于 avatarId 更新头像内容，不新增 avatarId）
 - Blocksuite 描述文档支持自定义“图片 + 标题”头部（`tc_header`），并禁用 blocksuite 内置 `doc-title`；宿主侧支持乐观显示 room/space 标题与头像覆盖值
 - Blocksuite 描述文档 `tcHeader` 新增“重置内置标题”按钮：一键清空 blocksuite 内置页面标题（用于修复历史文档的双标题/标题不一致）
 - Blocksuite 描述文档画布（edgeless）新增“全屏/退出全屏”按钮（浏览器 Fullscreen API）
