@@ -1,4 +1,4 @@
-import type { VirtuosoHandle } from "react-virtuoso";
+﻿import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessageRequest,
   ChatMessageResponse,
@@ -1019,6 +1019,21 @@ function ChatFrame(props: ChatFrameProps) {
         pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
+          const selection = window.getSelection();
+          if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+            const container = e.currentTarget;
+            let hasRangeInContainer = false;
+            for (let i = 0; i < selection.rangeCount; i += 1) {
+              const range = selection.getRangeAt(i);
+              if (range.intersectsNode(container)) {
+                hasRangeInContainer = true;
+                break;
+              }
+            }
+            if (hasRangeInContainer) {
+              return;
+            }
+          }
           // 检查点击目标是否是按钮或其子元素，如果是则不触发跳转
           const target = e.target as HTMLElement;
           const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
@@ -1256,3 +1271,4 @@ function ChatFrame(props: ChatFrameProps) {
 }
 
 export default memo(ChatFrame);
+
