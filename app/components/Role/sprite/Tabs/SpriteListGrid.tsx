@@ -133,12 +133,81 @@ export function SpriteListGrid({
   const canDelete = avatars.length > 1;
   if (avatars.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 text-base-content/70">
-        <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-          <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <p>暂无立绘</p>
+      <div
+        className={`flex flex-col ${className}`}
+        onDragOver={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+          setIsDragActive(true);
+        }}
+        onDragLeave={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget as Node)) {
+            return;
+          }
+          setIsDragActive(false);
+        }}
+        onDrop={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDragActive(false);
+          const files = Array.from(event.dataTransfer.files ?? []);
+          if (files.length === 0) {
+            return;
+          }
+          setDroppedFiles(files);
+          setDroppedBatchId(Date.now());
+        }}
+      >
+        <div className={`flex flex-col items-center justify-center flex-1 text-base-content/70 ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}>
+          <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+            <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <p className="mb-3">暂无立绘</p>
+          {showUpload && (
+            <div className="w-24 h-24">
+              <CharacterCopper
+                setDownloadUrl={() => { }}
+                setCopperedDownloadUrl={() => { }}
+                fileName={fileName ?? `avatar-upload-${Date.now()}`}
+                scene={3}
+                externalFiles={droppedFiles}
+                externalFilesBatchId={droppedBatchId ?? undefined}
+                onExternalFilesHandled={() => {
+                  setDroppedFiles(null);
+                  setDroppedBatchId(null);
+                }}
+                mutate={(data) => {
+                  try {
+                    onUpload?.(data);
+                  }
+                  catch (e) {
+                    console.error("onUpload 回调执行失败", e);
+                  }
+                }}
+              >
+                <button
+                  type="button"
+                  className="w-full h-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group overflow-hidden"
+                  title="上传新头像"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </CharacterCopper>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
