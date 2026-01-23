@@ -51,6 +51,8 @@ interface ImgUploaderWithCopperProps {
   externalFilesBatchId?: number;
   // 外部文件处理完成回调（用于清理）
   onExternalFilesHandled?: () => void;
+  // 使用独立的弹窗状态 key，避免多入口冲突
+  stateKey?: string;
 }
 
 /**
@@ -69,6 +71,7 @@ export function CharacterCopper({
   externalFiles,
   externalFilesBatchId,
   onExternalFilesHandled,
+  stateKey,
 }: ImgUploaderWithCopperProps) {
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,7 +79,8 @@ export function CharacterCopper({
   const uploadUtilsRef = useRef(new UploadUtils());
   const uploadUtils = uploadUtilsRef.current;
   // 控制弹窗的显示状态
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`characterCopperPop`, false);
+  const searchKey = stateKey ?? "characterCopperPop";
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(searchKey, false);
 
   // 图片相关状态
   const [imgSrc, setImgSrc] = useState("");

@@ -1,11 +1,13 @@
 import type { RoleAvatar } from "api";
 import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
+import type { Transform } from "../TransformControl";
 import { UserCircle } from "@phosphor-icons/react";
 import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
 import MoodRegulator from "@/components/common/MoodRegulator";
+import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 
 interface AvatarSettingsTabProps {
   /** 有立绘的头像列表 */
@@ -17,6 +19,13 @@ interface AvatarSettingsTabProps {
   /** 应用完成后的回调（用于关闭弹窗等） */
   onApply?: () => void;
 }
+
+type ReplaceAvatarPayload = {
+  avatarUrl: string;
+  spriteUrl: string;
+  originUrl?: string;
+  transform?: Transform;
+};
 
 /**
  * 情感设定 Tab 内容组件
@@ -47,6 +56,10 @@ export function AvatarSettingsTab({
     }
     return currentAvatar.avatarTitle as Record<string, string>;
   }, [currentAvatar]);
+  const replaceStateKey = useMemo(
+    () => `roleAvatarReplacePop-${currentAvatar?.avatarId ?? "unknown"}`,
+    [currentAvatar?.avatarId],
+  );
 
   // 情绪调节器兜底标签
   const DEFAULT_MOOD_LABELS = useMemo(
@@ -114,6 +127,42 @@ export function AvatarSettingsTab({
     }
   }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, updateAvatar, avatarTitleRecord, moodLabels]);
 
+  const handleReplaceAvatar = useCallback(async (payload: ReplaceAvatarPayload) => {
+    if (!currentAvatar?.avatarId || !roleIdForMutation) {
+      toast.error("当前头像信息缺失，无法替换");
+      return;
+    }
+
+    const nextTransform = payload.transform ?? {
+      scale: currentAvatar.spriteScale ?? 1,
+      positionX: currentAvatar.spriteXPosition ?? 0,
+      positionY: currentAvatar.spriteYPosition ?? 0,
+      alpha: currentAvatar.spriteTransparency ?? 1,
+      rotation: currentAvatar.spriteRotation ?? 0,
+    };
+
+    try {
+      await updateAvatar({
+        ...currentAvatar,
+        roleId: roleIdForMutation,
+        avatarId: currentAvatar.avatarId,
+        avatarUrl: payload.avatarUrl || currentAvatar.avatarUrl || "",
+        spriteUrl: payload.spriteUrl || currentAvatar.spriteUrl || "",
+        originUrl: payload.originUrl ?? currentAvatar.originUrl,
+        spriteXPosition: nextTransform.positionX,
+        spriteYPosition: nextTransform.positionY,
+        spriteScale: nextTransform.scale,
+        spriteTransparency: nextTransform.alpha,
+        spriteRotation: nextTransform.rotation,
+      });
+      toast.success("头像已替换");
+    }
+    catch (error) {
+      console.error("替换头像失败:", error);
+      toast.error("替换失败，请稍后重试");
+    }
+  }, [currentAvatar, roleIdForMutation, updateAvatar]);
+
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
       return "";
@@ -169,6 +218,22 @@ export function AvatarSettingsTab({
                       <div className="text-xs font-mono text-base-content/70 mt-auto">
                         头像ID：
                         <span className="text-xs font-mono">{currentAvatar.avatarId ?? "-"}</span>
+                      </div>
+                      <div className="flex flex-col gap-2 text-xs text-base-content/70">
+                        <CharacterCopper
+                          fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
+                          scene={3}
+                          mutate={handleReplaceAvatar}
+                          stateKey={replaceStateKey}
+                        >
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline"
+                          >
+                            替换头像
+                          </button>
+                        </CharacterCopper>
+                        <span>替换会覆盖当前头像内容，不会新增 avatarId</span>
                       </div>
                     </div>
                   </div>
