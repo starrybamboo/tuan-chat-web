@@ -63,6 +63,7 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
+- 拖拽移动聊天消息时靠近顶部自动上滚，便于移动到更早位置
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
