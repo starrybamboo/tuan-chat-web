@@ -3,7 +3,7 @@ import type { Space } from "../../../../api";
 import { ChatCircleIcon } from "@phosphor-icons/react";
 import React, { useMemo, useRef, useState } from "react";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
-import { AddIcon } from "@/icons";
+import { AddIcon, SidebarSimpleIcon } from "@/icons";
 
 export interface ChatSpaceSidebarProps {
   isPrivateChatMode: boolean;
@@ -17,6 +17,8 @@ export interface ChatSpaceSidebarProps {
   onSelectSpace: (spaceId: number) => void;
   onCreateSpace: () => void;
   onSpaceContextMenu: (e: React.MouseEvent) => void;
+  onToggleLeftDrawer?: () => void;
+  isLeftDrawerOpen?: boolean;
 }
 
 export default function ChatSpaceSidebar({
@@ -31,10 +33,13 @@ export default function ChatSpaceSidebar({
   onSelectSpace,
   onCreateSpace,
   onSpaceContextMenu,
+  onToggleLeftDrawer,
+  isLeftDrawerOpen,
 }: ChatSpaceSidebarProps) {
   const isDraggingRef = useRef(false);
   const [draggingSpaceId, setDraggingSpaceId] = useState<number | null>(null);
   const [draftOrderIds, setDraftOrderIds] = useState<number[] | null>(null);
+  const showCollapsedToggle = onToggleLeftDrawer && isLeftDrawerOpen === false;
 
   const currentIds = useMemo(() => {
     if (Array.isArray(spaceOrderIds) && spaceOrderIds.length > 0) {
@@ -93,7 +98,20 @@ export default function ChatSpaceSidebar({
   };
 
   return (
-    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto">
+    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-hidden">
+      {showCollapsedToggle && (
+        <div className="rounded w-10 relative mx-2 mt-1 mb-1">
+          <button
+            className="tooltip tooltip-bottom w-10 btn btn-square"
+            data-tip="展开侧边栏"
+            type="button"
+            aria-label="展开侧边栏"
+            onClick={onToggleLeftDrawer}
+          >
+            <SidebarSimpleIcon />
+          </button>
+        </div>
+      )}
       {/* 私信入口 */}
       <div className="rounded w-10 relative mx-2">
         <div

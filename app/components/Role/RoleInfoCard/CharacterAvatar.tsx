@@ -1,6 +1,7 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "../types";
 
+import { useState } from "react";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { SpriteSettingsPopup } from "../sprite/SpriteSettingsPopup";
 
@@ -11,10 +12,12 @@ interface CharacterAvatarProps {
   selectedAvatarUrl: string;
   selectedSpriteUrl: string | null;
   isLoading?: boolean;
+  avatarSizeClassName?: string;
   onchange: (avatarUrl: string, avatarId: number) => void;
   onAvatarSelect: (avatarId: number) => void;
   onAvatarDelete: (avatarId: number) => void;
   onAvatarUpload: (data: any) => void;
+  useUrlState?: boolean;
 }
 
 export default function CharacterAvatar({
@@ -24,9 +27,13 @@ export default function CharacterAvatar({
   selectedAvatarUrl,
   onchange,
   onAvatarSelect,
+  avatarSizeClassName = "w-[50%] md:w-48",
+  useUrlState = true,
 }: CharacterAvatarProps) {
-  // 弹窗的打开和关闭
-  const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
+  const [changeAvatarConfirmOpenUrl, setChangeAvatarConfirmOpenUrl] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
+  const [changeAvatarConfirmOpenLocal, setChangeAvatarConfirmOpenLocal] = useState(false);
+  const changeAvatarConfirmOpen = useUrlState ? changeAvatarConfirmOpenUrl : changeAvatarConfirmOpenLocal;
+  const setChangeAvatarConfirmOpen = useUrlState ? setChangeAvatarConfirmOpenUrl : setChangeAvatarConfirmOpenLocal;
 
   // Find selected index from selectedAvatarId
   const selectedIndex = roleAvatars.findIndex(a => a.avatarId === selectedAvatarId);
@@ -41,8 +48,8 @@ export default function CharacterAvatar({
   };
 
   return (
-    <div className="w-2xs flex justify-center">
-      <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+    <div className="flex justify-center">
+      <div className={`avatar cursor-pointer group flex items-center justify-center ${avatarSizeClassName}`} onClick={() => { setChangeAvatarConfirmOpen(true); }}>
         <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
           <img

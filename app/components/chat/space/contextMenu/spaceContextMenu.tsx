@@ -145,7 +145,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
                 spaceContext.setActiveRoomId?.(null);
               }
 
-              navigate("/chat", { replace: true });
+              navigate("/chat/private", { replace: true });
             },
           });
         }}
