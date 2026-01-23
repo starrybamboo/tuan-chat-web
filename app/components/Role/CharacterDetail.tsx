@@ -590,6 +590,7 @@ function CharacterDetailInner({
                         onAvatarSelect={handleAvatarSelect} // 头像选择的回调
                         onAvatarDelete={handleAvatarDelete} // 头像删除的回调
                         onAvatarUpload={handleAvatarUpload} // 头像上传的回调
+                        useUrlState={false}
                       />
                     )}
               </div>

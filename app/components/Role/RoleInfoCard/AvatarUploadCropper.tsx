@@ -466,7 +466,7 @@ export function CharacterCopper({
         }}
         fullScreen={isMobileScreen()}
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="w-[56rem] max-w-full min-h-[75vh] mx-auto flex flex-col">
           <div className="flex items-center gap-8">
             <div className="w-full flex items-center">
               <h1 className="text-xl md:text-2xl font-bold w-64">
@@ -499,7 +499,7 @@ export function CharacterCopper({
             )}
           </div>
           <div className="divider my-0"></div>
-          <div className="flex flex-col md:flex-row gap-8 justify-center">
+          <div className="flex flex-col md:flex-row gap-8 justify-center flex-1 min-h-0">
             {/* 原始图片裁剪区域 */}
             <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
               {!!imgSrc && (

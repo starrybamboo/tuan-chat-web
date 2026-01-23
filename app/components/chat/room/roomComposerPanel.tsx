@@ -255,6 +255,10 @@ function RoomComposerPanelImpl({
       if (avatarPopoverRef.current?.contains(target)) {
         return;
       }
+      const modalRoot = document.getElementById("modal-root");
+      if (modalRoot?.contains(target)) {
+        return;
+      }
       setIsAvatarPopoverOpen(false);
     };
     document.addEventListener("pointerdown", handlePointerDown);
