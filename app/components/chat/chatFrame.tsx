@@ -725,7 +725,7 @@ function ChatFrame(props: ChatFrameProps) {
     indicatorRef.current?.remove();
     curDragOverMessageRef.current = null;
     dropPositionRef.current = "before";
-  }, [startAutoScroll]);
+  }, []);
 
   const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
     if (dragScrollDirectionRef.current === direction) {
