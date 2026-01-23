@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 本文件记录项目所有重要变更。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
@@ -65,6 +65,7 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
+- 拖拽移动聊天消息时靠近顶部/底部自动滚动，便于移动到更早或更晚位置
 - 修复房间角色导入后 avatarId 为空导致头像不显示：前端兜底为该角色头像列表首个头像
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
@@ -143,3 +144,4 @@
 
 ### 新增
 - 初始化前端项目知识库（`helloagents/`）
+

@@ -1,4 +1,4 @@
-# 变更历史索引
+﻿# 变更历史索引
 
 本文件记录所有已完成变更的索引，便于追溯和查询。
 
@@ -8,6 +8,8 @@
 
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
+
+| 202601231857 | chat_drag_auto_scroll | 修复 | 已完成 | [2026-01/202601231857_chat-drag-auto-scroll/](2026-01/202601231857_chat-drag-auto-scroll/) |
 
 | 202601231852 | role_avatar_replace | 功能 | 已完成 | [2026-01/202601231852_role-avatar-replace/](2026-01/202601231852_role-avatar-replace/) |
 | 202601231851 | role_avatar_fallback | 修复 | 已完成 | [2026-01/202601231851_role_avatar_fallback/](2026-01/202601231851_role_avatar_fallback/) |
@@ -92,6 +94,8 @@
 
 ### 2026-01
 
+- [202601231857_chat-drag-auto-scroll](2026-01/202601231857_chat-drag-auto-scroll/) - 拖拽移动消息时支持顶部/底部自动滚动
+
 - [202601231852_role-avatar-replace](2026-01/202601231852_role-avatar-replace/) - 角色页面支持替换已有头像（保持 avatarId）
 - [202601231851_role_avatar_fallback](2026-01/202601231851_role_avatar_fallback/) - 房间角色导入头像兜底显示（avatarId 为空时取首个头像）
 - [202601231830_webgal_disable_autojump](2026-01/202601231830_webgal_disable_autojump/) - WebGAL 实时渲染消息写入不再自动跳转预览
@@ -170,3 +174,4 @@
 - [202601172100_ai_image_char_bg_layout](2026-01/202601172100_ai_image_char_bg_layout/) - AI 生图支持 v4/v4.5 “背景/角色”分区（`char_captions`）并对齐普通/专业模式三栏布局
 - [202601172234_tc_header_upload_and_doc_lazy](2026-01/202601172234_tc_header_upload_and_doc_lazy/) - 修复 tc_header 头像上传（iframe 裁剪弹窗）并优化空间文档懒加载（不全量 load / pull 不写回）
 - [202601211604_auth_401_handling](2026-01/202601211604_auth_401_handling/) - 认证：HTTP 401 自动清理登录态并跳转登录页；WS token 失效（type=100）同样引导重新登录
+

@@ -725,7 +725,63 @@ function ChatFrame(props: ChatFrameProps) {
     indicatorRef.current?.remove();
     curDragOverMessageRef.current = null;
     dropPositionRef.current = "before";
-  }, []);
+  }, [startAutoScroll]);
+
+  const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
+    if (dragScrollDirectionRef.current === direction) {
+      return;
+    }
+    dragScrollDirectionRef.current = direction;
+
+    if (direction === 0) {
+      if (dragScrollRafRef.current !== null) {
+        cancelAnimationFrame(dragScrollRafRef.current);
+        dragScrollRafRef.current = null;
+      }
+      return;
+    }
+
+    if (dragScrollRafRef.current !== null) {
+      return;
+    }
+
+    const step = () => {
+      const currentDirection = dragScrollDirectionRef.current;
+      if (currentDirection === 0) {
+        dragScrollRafRef.current = null;
+        return;
+      }
+      virtuosoRef.current?.scrollBy({ top: currentDirection * 18, behavior: "auto" });
+      dragScrollRafRef.current = requestAnimationFrame(step);
+    };
+
+    dragScrollRafRef.current = requestAnimationFrame(step);
+  }, [virtuosoRef]);
+
+  const updateAutoScroll = useCallback((clientY: number) => {
+    if (dragStartMessageIdRef.current === -1) {
+      startAutoScroll(0);
+      return;
+    }
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      startAutoScroll(0);
+      return;
+    }
+    const rect = scroller.getBoundingClientRect();
+    const topDistance = clientY - rect.top;
+    const bottomDistance = rect.bottom - clientY;
+    const threshold = 80;
+    if (topDistance <= threshold) {
+      startAutoScroll(-1);
+      return;
+    }
+    if (bottomDistance <= threshold) {
+      startAutoScroll(1);
+      return;
+    }
+    startAutoScroll(0);
+  }, [startAutoScroll]);
 
   const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
     if (dragScrollDirectionRef.current === direction) {
@@ -867,6 +923,7 @@ function ChatFrame(props: ChatFrameProps) {
     e.preventDefault();
     e.stopPropagation();
     curDragOverMessageRef.current = null;
+    startAutoScroll(0);
   }, []);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
@@ -875,6 +932,7 @@ function ChatFrame(props: ChatFrameProps) {
 
     // 拖拽上传（图片/音频）：优先处理文件拖拽，避免触发现有的“消息拖拽排序”
     if (isFileDrag(e.dataTransfer)) {
+      startAutoScroll(0);
       e.stopPropagation();
       addDroppedFilesToComposer(e.dataTransfer);
       return;
@@ -892,7 +950,7 @@ function ChatFrame(props: ChatFrameProps) {
 
     dragStartMessageIdRef.current = -1;
     cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator]);
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, startAutoScroll]);
 
   /**
    * 右键菜单
