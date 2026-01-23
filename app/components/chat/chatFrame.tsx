@@ -658,6 +658,7 @@ function ChatFrame(props: ChatFrameProps) {
   const dragScrollRafRef = useRef<number | null>(null);
   const dragScrollDirectionRef = useRef<-1 | 0 | 1>(0);
   const scrollerRef = useRef<HTMLElement | null>(null);
+  const windowDragOverListeningRef = useRef(false);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
@@ -783,6 +784,29 @@ function ChatFrame(props: ChatFrameProps) {
     startAutoScroll(0);
   }, [startAutoScroll]);
 
+  const handleWindowDragOver = useCallback((event: DragEvent) => {
+    if (dragStartMessageIdRef.current === -1) {
+      return;
+    }
+    updateAutoScroll(event.clientY);
+  }, [updateAutoScroll]);
+
+  const attachWindowDragOver = useCallback(() => {
+    if (windowDragOverListeningRef.current) {
+      return;
+    }
+    window.addEventListener("dragover", handleWindowDragOver, true);
+    windowDragOverListeningRef.current = true;
+  }, [handleWindowDragOver]);
+
+  const detachWindowDragOver = useCallback(() => {
+    if (!windowDragOverListeningRef.current) {
+      return;
+    }
+    window.removeEventListener("dragover", handleWindowDragOver, true);
+    windowDragOverListeningRef.current = false;
+  }, [handleWindowDragOver]);
+
   /**
    * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
    */
@@ -840,6 +864,7 @@ function ChatFrame(props: ChatFrameProps) {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageId;
+    attachWindowDragOver();
     // 设置拖动预览图像
     // 创建轻量拖拽预览元素（避免 clone 大块复杂 DOM 造成拖拽卡顿）
     const clone = document.createElement("div");
@@ -855,7 +880,7 @@ function ChatFrame(props: ChatFrameProps) {
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
-  }, [historyMessages, isSelecting, selectedMessageIds.size]);
+  }, [attachWindowDragOver, historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (isFileDrag(e.dataTransfer)) {
@@ -870,8 +895,9 @@ function ChatFrame(props: ChatFrameProps) {
 
   const handleDragEnd = useCallback(() => {
     dragStartMessageIdRef.current = -1;
+    detachWindowDragOver();
     cleanupDragIndicator();
-  }, [cleanupDragIndicator]);
+  }, [cleanupDragIndicator, detachWindowDragOver]);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -903,8 +929,15 @@ function ChatFrame(props: ChatFrameProps) {
     }
 
     dragStartMessageIdRef.current = -1;
+    detachWindowDragOver();
     cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, startAutoScroll]);
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, startAutoScroll, detachWindowDragOver]);
+
+  useEffect(() => {
+    return () => {
+      detachWindowDragOver();
+    };
+  }, [detachWindowDragOver]);
 
   /**
    * 右键菜单
