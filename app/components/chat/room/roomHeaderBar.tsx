@@ -1,4 +1,4 @@
-import { ExportIcon } from "@phosphor-icons/react";
+import { ArrowSquareIn, ExportIcon } from "@phosphor-icons/react";
 import React, { useEffect, useRef, useState } from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
@@ -80,12 +80,26 @@ function RoomHeaderBarImpl({
         </div>
         <div className="flex gap-2 items-center overflow-visible">
           <div
+            className="tooltip tooltip-bottom hover:text-info relative z-50"
+            data-tip="导入记录"
+            onClick={() => {
+              closeThreadPane();
+              if (sideDrawerState === "export") {
+                setSideDrawerState("none");
+              }
+              setIsExportOpen(false);
+              setIsImportChatTextOpen(true);
+            }}
+          >
+            <ArrowSquareIn className="size-6 mt-2" />
+          </div>
+          <div
             ref={exportDropdownRef}
             className={`dropdown dropdown-bottom dropdown-end ${isExportOpen ? "dropdown-open" : ""}`}
           >
             <div
               className="tooltip tooltip-bottom hover:text-info relative z-50"
-              data-tip="聊天记录"
+              data-tip="导出记录"
               onClick={() => {
                 closeThreadPane();
                 if (sideDrawerState === "export") {
@@ -97,18 +111,6 @@ function RoomHeaderBarImpl({
               <ExportIcon className="size-6 mt-2" />
             </div>
             <div className="dropdown-content z-9999 shadow bg-base-100 rounded-box w-80 mt-2 max-h-[70vh] overflow-y-auto">
-              <div className="p-3 border-b border-base-200">
-                <button
-                  type="button"
-                  className="btn btn-sm w-full"
-                  onClick={() => {
-                    setIsExportOpen(false);
-                    setIsImportChatTextOpen(true);
-                  }}
-                >
-                  导入聊天记录
-                </button>
-              </div>
               <ExportChatDrawer />
             </div>
           </div>
