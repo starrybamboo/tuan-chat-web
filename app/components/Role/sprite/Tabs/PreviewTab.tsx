@@ -412,7 +412,7 @@ export function PreviewTab({
                     />
                   </div>
                   {currentAvatar?.avatarId && (
-                    <div className="absolute right-4 bottom-4">
+                    <div className="absolute left-4 bottom-4">
                       <CharacterCopper
                         fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
                         scene={3}
