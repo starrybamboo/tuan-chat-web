@@ -88,6 +88,7 @@
 
 ## 变更历史
 
+- 2026-01-23 修复拖拽自动滚动重复声明导致构建失败
 - [202601231857_chat-drag-auto-scroll](../../history/2026-01/202601231857_chat-drag-auto-scroll/) - 拖拽移动消息时支持顶部/底部自动滚动
 
 - [202601231851_role_avatar_fallback](../../history/2026-01/202601231851_role_avatar_fallback/) - 房间角色导入头像兜底显示（avatarId 为空时取首个头像）

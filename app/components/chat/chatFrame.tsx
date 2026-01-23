@@ -783,52 +783,6 @@ function ChatFrame(props: ChatFrameProps) {
     startAutoScroll(0);
   }, [startAutoScroll]);
 
-  const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
-    if (dragScrollDirectionRef.current === direction) {
-      return;
-    }
-    dragScrollDirectionRef.current = direction;
-
-    if (direction === 0) {
-      if (dragScrollRafRef.current !== null) {
-        cancelAnimationFrame(dragScrollRafRef.current);
-        dragScrollRafRef.current = null;
-      }
-      return;
-    }
-
-    if (dragScrollRafRef.current !== null) {
-      return;
-    }
-
-    const step = () => {
-      const currentDirection = dragScrollDirectionRef.current;
-      if (currentDirection === 0) {
-        dragScrollRafRef.current = null;
-        return;
-      }
-      virtuosoRef.current?.scrollBy({ top: currentDirection * 18, behavior: "auto" });
-      dragScrollRafRef.current = requestAnimationFrame(step);
-    };
-
-    dragScrollRafRef.current = requestAnimationFrame(step);
-  }, [virtuosoRef]);
-
-  const updateAutoScroll = useCallback((clientY: number) => {
-    if (dragStartMessageIdRef.current === -1) {
-      startAutoScroll(0);
-      return;
-    }
-    const scroller = scrollerRef.current;
-    if (!scroller) {
-      startAutoScroll(0);
-      return;
-    }
-    const rect = scroller.getBoundingClientRect();
-    const isNearTop = clientY - rect.top <= 80;
-    startAutoScroll(isNearTop ? -1 : 0);
-  }, [startAutoScroll]);
-
   /**
    * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
    */
