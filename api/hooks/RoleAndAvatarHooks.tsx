@@ -336,11 +336,17 @@ export function useRegisterMutation(onSuccess?: () => void) {
  * 获取角色所有头像
  * @param roleId 角色ID
  */
-export function useGetRoleAvatarsQuery(roleId: number) {
+type RoleAvatarQueryOptions = {
+  enabled?: boolean;
+};
+
+export function useGetRoleAvatarsQuery(roleId: number, options?: RoleAvatarQueryOptions) {
+  const enabled = (options?.enabled ?? true) && typeof roleId === "number" && roleId > 0;
   return useQuery({
     queryKey: ['getRoleAvatars', roleId],
     queryFn: () => tuanchat.avatarController.getRoleAvatars(roleId),
-    staleTime: 86400000 // 24小时缓存
+    staleTime: 86400000, // 24小时缓存
+    enabled,
   });
 }
 
@@ -366,8 +372,12 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
   return useMutation({
     mutationFn: (req: RoleAvatar) => tuanchat.avatarController.updateRoleAvatar(req),
     mutationKey: ['updateRoleAvatar'],
-    onSuccess: () => {
+    onSuccess: (_res, variables) => {
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
+      if (variables?.avatarId) {
+        queryClient.invalidateQueries({ queryKey: ['getRoleAvatar', variables.avatarId] });
+        queryClient.invalidateQueries({ queryKey: ['avatar', variables.avatarId] });
+      }
     }
   });
 }

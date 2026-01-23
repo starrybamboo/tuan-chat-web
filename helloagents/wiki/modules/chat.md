@@ -61,6 +61,7 @@
 - KP 在“角色列表”点击 `NPC+` 打开“创建NPC”弹窗（复用角色创建流程），创建完成后自动加入当前房间
 - 创建时通过 `type=2 + spaceId` 绑定空间，后端会自动将其纳入“空间 NPC 库”，方便后续在其它房间复用（也可从 NPC 库导入）
 - 点击角色头像弹窗：默认复用角色页面详情（CharacterDetail）；在房间上下文中保留“踢出角色”等权限操作
+- 角色列表头像展示：优先使用角色 avatarId；缺失时取该角色头像列表首个头像作为展示兜底（仅前端显示）
 - 删除房间角色：KP 可在角色头像详情中将 NPC/角色从当前房间移除
 - 获取“我的角色”：前端改用 `GET /role/user/type`（分别取 type=0/1），不再从 `/role/user` 拉取后再前端过滤
 
@@ -73,6 +74,7 @@
 
 ## 变更历史
 
+- [202601231851_role_avatar_fallback](../../history/2026-01/202601231851_role_avatar_fallback/) - 房间角色导入头像兜底显示（avatarId 为空时取首个头像）
 - [202601201337_chat_import_text](../../history/2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
 - [202601201620_chat_import_dicer](../../history/2026-01/202601201620_chat_import_dicer/) - 文本导入支持“骰娘”发言：按骰娘角色发送并使用 `DICE(6)` 类型
 - [202601211623_chat_import_figure_position](../../history/2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）

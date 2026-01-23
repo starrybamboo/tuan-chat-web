@@ -9,6 +9,8 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601231852 | role_avatar_replace | 功能 | 已完成 | [2026-01/202601231852_role-avatar-replace/](2026-01/202601231852_role-avatar-replace/) |
+| 202601231851 | role_avatar_fallback | 修复 | 已完成 | [2026-01/202601231851_role_avatar_fallback/](2026-01/202601231851_role_avatar_fallback/) |
 | 202601231830 | webgal_disable_autojump | 变更 | 已完成 | [2026-01/202601231830_webgal_disable_autojump/](2026-01/202601231830_webgal_disable_autojump/) |
 | 202601070338 | blocksuite_docs | 功能 | 已完成 | [2026-01/202601070338_blocksuite_docs/](2026-01/202601070338_blocksuite_docs/) |
 | 202601070431 | blocksuite_docs_0_22_4 | 文档 | 已跳过 | [2026-01/202601070431_blocksuite_docs_0_22_4/](2026-01/202601070431_blocksuite_docs_0_22_4/) |
@@ -90,6 +92,8 @@
 
 ### 2026-01
 
+- [202601231852_role-avatar-replace](2026-01/202601231852_role-avatar-replace/) - 角色页面支持替换已有头像（保持 avatarId）
+- [202601231851_role_avatar_fallback](2026-01/202601231851_role_avatar_fallback/) - 房间角色导入头像兜底显示（avatarId 为空时取首个头像）
 - [202601231830_webgal_disable_autojump](2026-01/202601231830_webgal_disable_autojump/) - WebGAL 实时渲染消息写入不再自动跳转预览
 - [202601211915_use-user-roles-by-type](2026-01/202601211915_use-user-roles-by-type/) - 获取“我的角色”改用 `GET /role/user/type`（type=0/1 合并），避免取回 NPC
 - [202601211740_room-role-delete-filter-npc](2026-01/202601211740_room-role-delete-filter-npc/) - 房间角色支持移除 NPC；角色页（/role）隐藏 NPC；导入我的角色过滤 NPC
