@@ -68,6 +68,9 @@ export function SpriteListGrid({
   // 删除确认对话框状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [avatarToDelete, setAvatarToDelete] = useState<number | null>(null);
+  const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
+  const [droppedBatchId, setDroppedBatchId] = useState<number | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   // 当前选中的头像
   const currentAvatar = avatars[selectedIndex] || null;
@@ -142,9 +145,42 @@ export function SpriteListGrid({
 
   return (
     <>
-      <div className={`flex flex-col ${className}`}>
+      <div
+        className={`flex flex-col ${className}`}
+        onDragOver={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+          setIsDragActive(true);
+        }}
+        onDragLeave={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget as Node)) {
+            return;
+          }
+          setIsDragActive(false);
+        }}
+        onDrop={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDragActive(false);
+          const files = Array.from(event.dataTransfer.files ?? []);
+          if (files.length === 0) {
+            return;
+          }
+          setDroppedFiles(files);
+          setDroppedBatchId(Date.now());
+        }}
+      >
 
-        <div className={`grid ${gridCols} gap-2 overflow-auto content-start`}>
+        <div className={`grid ${gridCols} gap-2 overflow-auto content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}>
           {avatars.map((avatar, index) => {
             const avatarName = getAvatarName(avatar, index);
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
@@ -257,6 +293,12 @@ export function SpriteListGrid({
               setCopperedDownloadUrl={() => { }}
               fileName={fileName ?? `avatar-upload-${Date.now()}`}
               scene={3}
+              externalFiles={droppedFiles}
+              externalFilesBatchId={droppedBatchId ?? undefined}
+              onExternalFilesHandled={() => {
+                setDroppedFiles(null);
+                setDroppedBatchId(null);
+              }}
               mutate={(data) => {
                 try {
                   onUpload?.(data);
@@ -279,7 +321,7 @@ export function SpriteListGrid({
             </CharacterCopper>
           )}
         </div>
-        <div className="text-sm text-center mt-3 text-base-content/70 flex-shrink-0">
+        <div className="text-sm text-center mt-3 text-base-content/70 shrink-0">
           当前选中:
           {" "}
           {selectedIndex + 1}

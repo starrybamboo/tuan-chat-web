@@ -3,16 +3,27 @@ import type { Transform } from "../sprite/TransformControl";
 import type { CropMode } from "@/utils/imgCropper/useCropPreview";
 
 import React, { useCallback, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { useCropPreview } from "@/utils/imgCropper";
+import { canvasPreview, createCenteredSquareCrop, createFullImageCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { AvatarPreview } from "../Preview/AvatarPreview";
 import { RenderPreview } from "../Preview/RenderPreview";
 import { TransformControl } from "../sprite/TransformControl";
 import "react-image-crop/dist/ReactCrop.css";
+
+function createDefaultTransform(): Transform {
+  return {
+    scale: 1,
+    positionX: 0,
+    positionY: 0,
+    alpha: 1,
+    rotation: 0,
+  };
+}
 
 /**
  * 图片上传器组件的属性接口
@@ -34,17 +45,36 @@ interface ImgUploaderWithCopperProps {
   wrapperClassName?: string;
   // 内层div的className
   triggerClassName?: string;
+  // 外部传入的文件（用于拖拽上传）
+  externalFiles?: File[] | null;
+  // 外部文件批次标识（用于防止重复处理）
+  externalFilesBatchId?: number;
+  // 外部文件处理完成回调（用于清理）
+  onExternalFilesHandled?: () => void;
 }
 
 /**
  * 带裁剪功能的图片上传组件
  * 支持图片上传、预览、裁剪和保存功能
  */
-export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, scene, mutate, triggerClassName, wrapperClassName }: ImgUploaderWithCopperProps) {
+export function CharacterCopper({
+  setDownloadUrl,
+  setCopperedDownloadUrl,
+  children,
+  fileName,
+  scene,
+  mutate,
+  triggerClassName,
+  wrapperClassName,
+  externalFiles,
+  externalFilesBatchId,
+  onExternalFilesHandled,
+}: ImgUploaderWithCopperProps) {
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 上传工具实例
-  const uploadUtils = new UploadUtils();
+  const uploadUtilsRef = useRef(new UploadUtils());
+  const uploadUtils = uploadUtilsRef.current;
   // 控制弹窗的显示状态
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`characterCopperPop`, false);
 
@@ -66,13 +96,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   const [currentStep, setCurrentStep] = useState(1);
 
   // Transform控制状态
-  const [transform, setTransform] = useState<Transform>({
-    scale: 1,
-    positionX: 0,
-    positionY: 0,
-    alpha: 1,
-    rotation: 0,
-  });
+  const [transform, setTransform] = useState<Transform>(createDefaultTransform);
 
   // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
   const getCropMode = useCallback((): CropMode => {
@@ -120,7 +144,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     setisSubmiting(false);
     setPreviewRenderKey(0);
     // 重置Transform状态
-    setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 });
+    setTransform(createDefaultTransform());
     // 重置裁剪状态
     resetCropState();
     // 清除图片引用
@@ -146,9 +170,25 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
    * 处理文件选择变化
    * 验证文件类型并预览图片
    */
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    // 判断文件类型
+  const loadImageFromFile = useCallback((file: File): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        img.width = img.naturalWidth;
+        img.height = img.naturalHeight;
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("图片加载失败"));
+      };
+      img.src = url;
+    });
+  }, []);
+
+  const handleSingleFile = useCallback(async (file: File) => {
     if (!file || !file.type.startsWith("image/")) {
       return;
     }
@@ -176,7 +216,116 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     reader.addEventListener("load", () =>
       setImgSrc(reader.result?.toString() || ""));
     reader.readAsDataURL(file);
+  }, [scene, setIsOpen, setCrop, uploadUtils]);
+
+  const uploadFileWithDefaults = useCallback(async (file: File, index: number, total: number, baseName: string, toastId: string) => {
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+
+    toast.loading(`正在上传头像 (${index + 1}/${total})...`, { id: toastId });
+
+    const img = await loadImageFromFile(file);
+    const fileBaseName = total > 1 ? `${baseName}-${index + 1}` : baseName;
+    const { pixelCrop: spritePixelCrop } = createFullImageCrop(img.naturalWidth, img.naturalHeight);
+    const spriteCanvas = document.createElement("canvas");
+    await canvasPreview(img, spriteCanvas, spritePixelCrop, 1, 0, { previewMode: false });
+    const spriteFile = await getCroppedImageFile(spriteCanvas, `${fileBaseName}.png`);
+
+    const { pixelCrop: avatarPixelCrop } = createCenteredSquareCrop(img.naturalWidth, img.naturalHeight);
+    const avatarCanvas = document.createElement("canvas");
+    await canvasPreview(img, avatarCanvas, avatarPixelCrop, 1, 0, { previewMode: false });
+    const avatarFile = await getCroppedImageFile(avatarCanvas, `${fileBaseName}-cropped.png`);
+
+    let originUrl = "";
+    try {
+      originUrl = await uploadUtils.uploadImg(file, scene);
+    }
+    catch (error) {
+      console.error("originUrl 上传失败:", error);
+    }
+
+    const [spriteUrl, avatarUrl] = await Promise.all([
+      uploadUtils.uploadImg(spriteFile, scene),
+      uploadUtils.uploadImg(avatarFile, scene, 60, 512),
+    ]);
+
+    mutate?.({
+      avatarUrl,
+      spriteUrl,
+      originUrl: originUrl || undefined,
+      transform: createDefaultTransform(),
+    });
+  }, [loadImageFromFile, mutate, scene, uploadUtils]);
+
+  const handleFiles = useCallback(async (files: File[]) => {
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      return;
+    }
+    if (imageFiles.length === 1) {
+      await handleSingleFile(imageFiles[0]);
+      return;
+    }
+
+    const baseName = fileName || `avatar-upload-${Date.now()}`;
+    const toastId = `avatar-batch-upload-${Date.now()}`;
+    setisSubmiting(true);
+    try {
+      let hasError = false;
+      for (let i = 0; i < imageFiles.length; i += 1) {
+        try {
+          await uploadFileWithDefaults(imageFiles[i], i, imageFiles.length, baseName, toastId);
+        }
+        catch (error) {
+          hasError = true;
+          console.error("批量上传失败:", error);
+        }
+      }
+      if (hasError) {
+        toast.error("部分头像上传失败，请重试", { id: toastId });
+      }
+      else {
+        toast.success("头像上传完成", { id: toastId });
+      }
+    }
+    catch (error) {
+      console.error("批量上传失败:", error);
+      toast.error("头像上传失败，请重试", { id: toastId });
+    }
+    finally {
+      setisSubmiting(false);
+    }
+  }, [fileName, handleSingleFile, uploadFileWithDefaults]);
+
+  const externalFilesHandledRef = useRef<number | null>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+    void handleFiles(files);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
+
+  React.useEffect(() => {
+    if (!externalFiles || externalFiles.length === 0) {
+      return;
+    }
+    if (!externalFilesBatchId) {
+      return;
+    }
+    if (externalFilesHandledRef.current === externalFilesBatchId) {
+      return;
+    }
+    externalFilesHandledRef.current = externalFilesBatchId;
+    void handleFiles(externalFiles).finally(() => {
+      onExternalFilesHandled?.();
+    });
+  }, [externalFiles, externalFilesBatchId, handleFiles, onExternalFilesHandled]);
 
   /**
    * 处理提交操作
@@ -186,6 +335,11 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     setisSubmiting(true);
     if (!imgFile.current) {
       return;
+    }
+
+    const toastId = currentStep === 2 ? `avatar-upload-${Date.now()}` : null;
+    if (toastId) {
+      toast.loading("正在上传头像...", { id: toastId });
     }
 
     const originalFile = imgFile.current;
@@ -248,6 +402,9 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
             transform,
           });
         }
+        if (toastId) {
+          toast.success("头像上传成功", { id: toastId });
+        }
         // 延迟关闭弹窗和重置状态，避免抖动
         setTimeout(() => {
           resetAllStates();
@@ -257,6 +414,9 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     }
     catch (error) {
       console.error("上传失败:", error);
+      if (toastId) {
+        toast.error("头像上传失败，请重试", { id: toastId });
+      }
     }
     finally {
       setisSubmiting(false);
@@ -290,6 +450,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         onChange={handleFileChange}
         className="hidden"
         accept="image/*"
+        multiple
       />
       {/* 触发文件选择的容器 */}
       <div className={triggerClassName || ""} onClick={() => fileInputRef.current?.click()}>
@@ -318,7 +479,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
             </div>
             {/* 桌面端按钮组 */}
             {!!completedCrop && (
-              <div className="flex-shrink-0 hidden md:block">
+              <div className="shrink-0 hidden md:block">
                 {isSubmiting
                   ? (
                       <button className="btn btn-md loading" disabled={true} type="button"></button>
