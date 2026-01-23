@@ -205,7 +205,7 @@ export function AvatarSettingsTab({
       <div className="mt-4 flex justify-end gap-2 shrink-0">
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary rounded-md"
           onClick={handleApplyMood}
           disabled={!currentAvatar || isSaving}
         >

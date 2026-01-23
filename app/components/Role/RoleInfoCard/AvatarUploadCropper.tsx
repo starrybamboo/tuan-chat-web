@@ -97,6 +97,7 @@ export function CharacterCopper({
 
   // Transform控制状态
   const [transform, setTransform] = useState<Transform>(createDefaultTransform);
+  const [anchorPosition, setAnchorPosition] = useState<"left" | "center" | "right">("center");
 
   // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
   const getCropMode = useCallback((): CropMode => {
@@ -549,6 +550,7 @@ export function CharacterCopper({
                             <RenderPreview
                               previewCanvasRef={previewCanvasRef}
                               transform={transform}
+                              anchorPosition={anchorPosition}
                               characterName="角色名"
                               dialogContent="对话内容"
                             />
@@ -556,6 +558,8 @@ export function CharacterCopper({
                               transform={transform}
                               setTransform={setTransform}
                               previewCanvasRef={previewCanvasRef}
+                              anchorPosition={anchorPosition}
+                              onAnchorPositionChange={setAnchorPosition}
                             />
                           </div>
                         </>
