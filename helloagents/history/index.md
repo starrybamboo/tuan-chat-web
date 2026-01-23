@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601231822 | chat_drag_scroll | 修复 | 已完成 | [2026-01/202601231822_chat-drag-scroll/](2026-01/202601231822_chat-drag-scroll/) |
 | 202601070338 | blocksuite_docs | 功能 | 已完成 | [2026-01/202601070338_blocksuite_docs/](2026-01/202601070338_blocksuite_docs/) |
 | 202601070431 | blocksuite_docs_0_22_4 | 文档 | 已跳过 | [2026-01/202601070431_blocksuite_docs_0_22_4/](2026-01/202601070431_blocksuite_docs_0_22_4/) |
 | 202601070539 | blocksuite_docs_0224 | 文档 | 已跳过 | [2026-01/202601070539_blocksuite_docs_0224/](2026-01/202601070539_blocksuite_docs_0224/) |
@@ -89,6 +90,7 @@
 
 ### 2026-01
 
+- [202601231822_chat-drag-scroll](2026-01/202601231822_chat-drag-scroll/) - 拖拽移动消息时靠近顶部自动上滚
 - [202601211915_use-user-roles-by-type](2026-01/202601211915_use-user-roles-by-type/) - 获取“我的角色”改用 `GET /role/user/type`（type=0/1 合并），避免取回 NPC
 - [202601211740_room-role-delete-filter-npc](2026-01/202601211740_room-role-delete-filter-npc/) - 房间角色支持移除 NPC；角色页（/role）隐藏 NPC；导入我的角色过滤 NPC
 - [202601211700_chat_import_ui_refine](2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口

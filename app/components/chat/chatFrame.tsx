@@ -655,6 +655,9 @@ function ChatFrame(props: ChatFrameProps) {
   const indicatorRef = useRef<HTMLDivElement | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const pendingDragCheckRef = useRef<{ target: HTMLDivElement; clientY: number } | null>(null);
+  const dragScrollRafRef = useRef<number | null>(null);
+  const dragScrollDirectionRef = useRef<-1 | 0 | 1>(0);
+  const scrollerRef = useRef<HTMLElement | null>(null);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
@@ -714,10 +717,61 @@ function ChatFrame(props: ChatFrameProps) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
+    if (dragScrollRafRef.current !== null) {
+      cancelAnimationFrame(dragScrollRafRef.current);
+      dragScrollRafRef.current = null;
+    }
+    dragScrollDirectionRef.current = 0;
     indicatorRef.current?.remove();
     curDragOverMessageRef.current = null;
     dropPositionRef.current = "before";
   }, []);
+
+  const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
+    if (dragScrollDirectionRef.current === direction) {
+      return;
+    }
+    dragScrollDirectionRef.current = direction;
+
+    if (direction === 0) {
+      if (dragScrollRafRef.current !== null) {
+        cancelAnimationFrame(dragScrollRafRef.current);
+        dragScrollRafRef.current = null;
+      }
+      return;
+    }
+
+    if (dragScrollRafRef.current !== null) {
+      return;
+    }
+
+    const step = () => {
+      const currentDirection = dragScrollDirectionRef.current;
+      if (currentDirection === 0) {
+        dragScrollRafRef.current = null;
+        return;
+      }
+      virtuosoRef.current?.scrollBy({ top: currentDirection * 18, behavior: "auto" });
+      dragScrollRafRef.current = requestAnimationFrame(step);
+    };
+
+    dragScrollRafRef.current = requestAnimationFrame(step);
+  }, [virtuosoRef]);
+
+  const updateAutoScroll = useCallback((clientY: number) => {
+    if (dragStartMessageIdRef.current === -1) {
+      startAutoScroll(0);
+      return;
+    }
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      startAutoScroll(0);
+      return;
+    }
+    const rect = scroller.getBoundingClientRect();
+    const isNearTop = clientY - rect.top <= 80;
+    startAutoScroll(isNearTop ? -1 : 0);
+  }, [startAutoScroll]);
 
   /**
    * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
@@ -796,11 +850,13 @@ function ChatFrame(props: ChatFrameProps) {
     e.preventDefault();
     if (isFileDrag(e.dataTransfer)) {
       e.dataTransfer.dropEffect = "copy";
+      startAutoScroll(0);
       return;
     }
     e.dataTransfer.dropEffect = "move";
+    updateAutoScroll(e.clientY);
     scheduleCheckPosition(e.currentTarget, e.clientY);
-  }, [scheduleCheckPosition]);
+  }, [scheduleCheckPosition, startAutoScroll, updateAutoScroll]);
 
   const handleDragEnd = useCallback(() => {
     dragStartMessageIdRef.current = -1;
@@ -1067,6 +1123,9 @@ function ChatFrame(props: ChatFrameProps) {
             followOutput={true}
             overscan={10} // 不要设得太大，会导致rangeChange更新不及时
             ref={virtuosoRef}
+            scrollerRef={(ref) => {
+              scrollerRef.current = ref instanceof HTMLElement ? ref : null;
+            }}
             context={{
               isAtTopRef,
             }}
