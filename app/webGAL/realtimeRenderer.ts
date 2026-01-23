@@ -716,6 +716,11 @@ export class RealtimeRenderer {
     });
   }
 
+  public invalidateAvatarCaches(avatarId: number): void {
+    this.uploadedSpritesMap.delete(avatarId);
+    this.uploadedMiniAvatarsMap.delete(avatarId);
+  }
+
   /**
    * 设置 TTS 配置
    */

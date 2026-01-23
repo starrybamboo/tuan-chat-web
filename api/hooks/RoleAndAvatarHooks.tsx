@@ -20,6 +20,8 @@ import type { RolePageQueryRequest } from '../models/RolePageQueryRequest'
 import type { Transform } from '../../app/components/Role/sprite/TransformControl';
 import type { UserRole } from '../models/UserRole';
 
+import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
+
 import {
   type ApiResultRoleAbility,
   type ApiResultRoleAvatar,
@@ -372,11 +374,14 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
   return useMutation({
     mutationFn: (req: RoleAvatar) => tuanchat.avatarController.updateRoleAvatar(req),
     mutationKey: ['updateRoleAvatar'],
-    onSuccess: (_res, variables) => {
+    onSuccess: (res, variables) => {
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
-      if (variables?.avatarId) {
-        queryClient.invalidateQueries({ queryKey: ['getRoleAvatar', variables.avatarId] });
-        queryClient.invalidateQueries({ queryKey: ['avatar', variables.avatarId] });
+      const nextAvatar = res?.data ?? variables;
+      if (nextAvatar?.avatarId) {
+        queryClient.setQueryData(["getRoleAvatar", nextAvatar.avatarId], { data: nextAvatar });
+        emitWebgalAvatarUpdated({ avatarId: nextAvatar.avatarId, avatar: nextAvatar });
+        queryClient.invalidateQueries({ queryKey: ['getRoleAvatar', nextAvatar.avatarId] });
+        queryClient.invalidateQueries({ queryKey: ['avatar', nextAvatar.avatarId] });
       }
     }
   });
