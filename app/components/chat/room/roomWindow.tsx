@@ -1415,7 +1415,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onClearBackground={handleClearBackground}
                   onClearFigure={handleClearFigure}
                   onSetWebgalVar={handleSetWebgalVar}
-                  onOpenImportChatText={() => setIsImportChatTextOpen(true)}
                   isKP={spaceContext.isSpaceOwner}
                   onStopBgmForAll={handleStopBgmForAll}
                   noRole={noRole}
