@@ -878,7 +878,7 @@ function ChatFrame(props: ChatFrameProps) {
     e.stopPropagation();
     curDragOverMessageRef.current = null;
     startAutoScroll(0);
-  }, []);
+  }, [startAutoScroll]);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
