@@ -9,6 +9,8 @@ interface Props {
 export default function RoomSideDrawerGuards({ spaceId }: Props) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const subDrawerState = useSideDrawerStore(state => state.subState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
 
@@ -30,11 +32,14 @@ export default function RoomSideDrawerGuards({ spaceId }: Props) {
 
   // 关闭跑团模式时，自动关闭跑团相关侧边栏
   useEffect(() => {
-    const runModeDrawers: Array<typeof sideDrawerState> = ["clue", "initiative", "map"];
+    const runModeDrawers: Array<typeof sideDrawerState> = ["clue", "initiative"];
     if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
       setSideDrawerState("none");
     }
-  }, [runModeEnabled, setSideDrawerState, sideDrawerState]);
+    if (!runModeEnabled && subDrawerState === "map") {
+      setSubDrawerState("none");
+    }
+  }, [runModeEnabled, setSideDrawerState, sideDrawerState, setSubDrawerState, subDrawerState]);
 
   return null;
 }

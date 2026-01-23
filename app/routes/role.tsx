@@ -81,8 +81,8 @@ export default function RoleLayout() {
       >
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/40 lg:hidden" />
-          <Drawer.Content className="z-100 bg-transparent flex flex-col fixed h-full w-80 left-0 top-0 lg:hidden">
-            <div className="flex-1 overflow-y-auto">
+          <Drawer.Content className="z-100 bg-base-300 flex flex-col fixed h-full w-80 left-0 top-0 lg:hidden">
+            <div className="flex-1 overflow-y-auto ">
               <Sidebar
                 roles={roles}
                 setRoles={setRoles}
@@ -94,7 +94,7 @@ export default function RoleLayout() {
       </Drawer.Root>
 
       {/* 主内容区域 */}
-      <div className="flex-1 bg-base-100 md:bg-base-200 overflow-y-auto min-h-0">
+      <div className="flex-1 bg-base-100 md:bg-base-200 overflow-y-auto min-h-0 border-t border-gray-300 dark:border-gray-700">
         <div className="md:p-6 max-w-7xl mx-auto min-h-0">
           {/* Outlet 是子路由的渲染位置 */}
           {/* 通过 context 将状态传递给子路由 */}

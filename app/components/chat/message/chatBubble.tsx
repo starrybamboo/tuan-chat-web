@@ -61,6 +61,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
@@ -89,7 +90,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setComposerTarget("thread");
     // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
     setSideDrawerState("none");
-  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
+    setSubDrawerState("none");
+  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   const threadHintNode = shouldShowThreadHint
     ? (
@@ -150,7 +152,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setComposerTarget("thread");
     // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
     setSideDrawerState("none");
-  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
+    setSubDrawerState("none");
+  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);

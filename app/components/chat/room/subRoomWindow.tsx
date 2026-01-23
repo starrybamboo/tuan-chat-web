@@ -20,11 +20,13 @@ type SubPane = "map" | "clue" | "initiative" | "webgal";
 
 function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const subDrawerState = useSideDrawerStore(state => state.subState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
   const subRoomWindowWidth = useDrawerPreferenceStore(state => state.subRoomWindowWidth);
   const setSubRoomWindowWidth = useDrawerPreferenceStore(state => state.setSubRoomWindowWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
+  const roomSidebarWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [activePane, setActivePane] = React.useState<SubPane>("map");
@@ -33,28 +35,27 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
 
   React.useEffect(() => {
-    if (sideDrawerState === "map") {
+    if (subDrawerState === "map") {
       setIsOpen(true);
       setActivePane("map");
     }
-    if (sideDrawerState === "webgal") {
+    if (subDrawerState === "webgal") {
       setIsOpen(true);
       setActivePane("webgal");
     }
-  }, [sideDrawerState]);
+  }, [subDrawerState]);
 
   // 预留左侧聊天区的“最小可用宽度”。当左侧已经无法继续缩小时，SubRoomWindow 也不允许继续拖宽，避免整体溢出。
   // 这里额外考虑了 RoomSideDrawers（user/role/export）可能占据的固定宽度。
   const minRemainingWidth = React.useMemo(() => {
     const baseMinChatWidth = 520;
-    const fixedMemberDrawerWidth = 270;
-    const lightDrawerWidth = (sideDrawerState === "user" || sideDrawerState === "role")
-      ? fixedMemberDrawerWidth
-      : (sideDrawerState === "export")
-          ? exportDrawerWidth
+    const lightDrawerWidth = sideDrawerState === "export"
+      ? exportDrawerWidth
+      : (sideDrawerState === "user" || sideDrawerState === "role" || sideDrawerState === "clue" || sideDrawerState === "initiative")
+          ? roomSidebarWidth
           : 0;
     return baseMinChatWidth + lightDrawerWidth;
-  }, [exportDrawerWidth, sideDrawerState]);
+  }, [exportDrawerWidth, roomSidebarWidth, sideDrawerState]);
 
   const { minWidth, maxWidth } = React.useMemo(() => {
     const w = typeof window === "undefined" ? 1200 : window.innerWidth;
@@ -89,10 +90,10 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
 
   const close = React.useCallback(() => {
     setIsOpen(false);
-    if (sideDrawerState === "map" || sideDrawerState === "webgal") {
-      setSideDrawerState("none");
+    if (subDrawerState === "map" || subDrawerState === "webgal") {
+      setSubDrawerState("none");
     }
-  }, [setSideDrawerState, sideDrawerState]);
+  }, [setSubDrawerState, subDrawerState]);
 
   return (
     <OpenAbleDrawer

@@ -14,6 +14,8 @@ interface RenderPreviewProps {
   previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   // Transform状态
   transform: Transform;
+  // 位置锚点（left/center/right）
+  anchorPosition?: "left" | "center" | "right";
   // 角色名称，用于遮罩中的显示
   characterName?: string;
   // 对话内容，用于遮罩中的显示
@@ -27,6 +29,7 @@ interface RenderPreviewProps {
 function RenderPreviewComponent({
   previewCanvasRef,
   transform,
+  anchorPosition = "center",
   characterName = "角色名",
   dialogContent = "对话内容",
 }: RenderPreviewProps) {
@@ -68,14 +71,32 @@ function RenderPreviewComponent({
       return transform;
     }
 
+    const canvas = previewCanvasRef.current;
+    const spriteWidthRef = canvas && canvas.height
+      ? (REFERENCE_HEIGHT * (canvas.width / canvas.height))
+      : REFERENCE_WIDTH;
+    const scaledSpriteWidthRef = spriteWidthRef * transform.scale;
+
+    let anchorOffsetXRef = 0;
+    if (anchorPosition === "center") {
+      anchorOffsetXRef = (REFERENCE_WIDTH - spriteWidthRef) / 2;
+    }
+    else if (anchorPosition === "right") {
+      anchorOffsetXRef = REFERENCE_WIDTH - ((scaledSpriteWidthRef + spriteWidthRef) / 2);
+    }
+    else {
+      // left: compensate scale so the left edge stays anchored
+      anchorOffsetXRef = (scaledSpriteWidthRef - spriteWidthRef) / 2;
+    }
+
     // 返回一个新的 transform 对象，其中位置信息已被缩放
     // 注意：scale, rotation, alpha 保持不变，因为它们本身就是相对值
     return {
       ...transform,
-      positionX: transform.positionX * scaleX,
+      positionX: (transform.positionX + anchorOffsetXRef) * scaleX,
       positionY: transform.positionY * scaleY,
     };
-  }, [transform, containerSize, scaleX, scaleY]); // 当 transform 或 containerSize 变化时重新计算
+  }, [transform, containerSize, scaleX, scaleY, anchorPosition, previewCanvasRef]); // 当 transform 或 containerSize 变化时重新计算
 
   return (
     <>
