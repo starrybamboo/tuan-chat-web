@@ -16,6 +16,7 @@ import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { tuanchat } from "../../api/instance";
 import { RealtimeRenderer } from "./realtimeRenderer";
+import { onWebgalAvatarUpdated } from "./avatarSync";
 
 export type { RealtimeTTSConfig };
 
@@ -159,6 +160,19 @@ export function useRealtimeRender({
       });
     }
   }, [avatars, queryClient]);
+
+  useEffect(() => {
+    return onWebgalAvatarUpdated(({ avatarId, avatar }) => {
+      if (!avatarId || !avatar) {
+        return;
+      }
+      queryClient.setQueryData(["getRoleAvatar", avatarId], { data: avatar });
+      if (rendererRef.current) {
+        rendererRef.current.setAvatarCache([avatar]);
+        rendererRef.current.invalidateAvatarCaches(avatarId);
+      }
+    });
+  }, [queryClient]);
 
   // 更新房间信息缓存
   useEffect(() => {

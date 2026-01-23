@@ -37,6 +37,7 @@
 | 202601140238 | webgal_space_vars | 功能 | 已完成 | [2026-01/202601140238_webgal_space_vars/](2026-01/202601140238_webgal_space_vars/) |
 | 202601140247 | doc_meta_restore | 修复 | 已完成 | [2026-01/202601140247_doc_meta_restore/](2026-01/202601140247_doc_meta_restore/) |
 | 202601140302 | clue_detail_ui_refactor | 优化 | 已完成 | [2026-01/202601140302_clue_detail_ui_refactor/](2026-01/202601140302_clue_detail_ui_refactor/) |
+| 202601140300 | novelai_openapi_codegen | 功能 | 已完成 | [2026-01/202601140300_novelai_openapi_codegen/](2026-01/202601140300_novelai_openapi_codegen/) |
 | 202601140410 | ai_image_novelapi_proxy | 功能 | 已完成 | [2026-01/202601140410_ai_image_novelapi_proxy/](2026-01/202601140410_ai_image_novelapi_proxy/) |
 | 202601140425 | blocksuite_header_title_style | 优化 | 已完成 | [2026-01/202601140425_blocksuite_header_title_style/](2026-01/202601140425_blocksuite_header_title_style/) |
 | 202601140543 | open-first-room | 修复 | 已完成 | [2026-01/202601140543_open-first-room/](2026-01/202601140543_open-first-room/) |
@@ -96,6 +97,8 @@
 
 ### 2026-01
 
+- [202601232105_webgal_avatar_realtime_sync](2026-01/202601232105_webgal_avatar_realtime_sync/) - WebGAL ????????
+
 - [202601232052_chat_import_preserve_speaker_name](2026-01/202601232052_chat_import_preserve_speaker_name/) - 聊天导入保留原发言人名
 - [202601232052_chat_text_selection](2026-01/202601232052_chat_text_selection/) - 聊天气泡文本选区保持
 - [202601231857_chat-drag-auto-scroll](2026-01/202601231857_chat-drag-auto-scroll/) - 拖拽移动消息时支持顶部/底部自动滚动
@@ -138,6 +141,7 @@
 - [202601140238_webgal_space_vars](2026-01/202601140238_webgal_space_vars/) - WebGAL 空间变量系统：导演控制台设置变量 + WEBGAL_VAR 消息类型
 - [202601140247_doc_meta_restore](2026-01/202601140247_doc_meta_restore/) - 修复文档刷新后侧边栏丢失/重置默认无效（基于 sidebarTree 回补 doc metas）
 - [202601140302_clue_detail_ui_refactor](2026-01/202601140302_clue_detail_ui_refactor/) - 线索详情弹窗 UI 重构（全屏 + 顶部固定 + 大视口文档）
+- [202601140300_novelai_openapi_codegen](2026-01/202601140300_novelai_openapi_codegen/) - NovelAI OpenAPI 导出与 TS 客户端生成
 - [202601140410_ai_image_novelapi_proxy](2026-01/202601140410_ai_image_novelapi_proxy/) - AI 生图页接入 /api/novelapi 同源代理，新增 img2img 与本地历史/下载
 - [202601140425_blocksuite_header_title_style](2026-01/202601140425_blocksuite_header_title_style/) - Blocksuite 描述文档 tcHeader 标题样式对齐原生 doc-title，并加固禁用内置标题逻辑
 - [202601140543_open-first-room](2026-01/202601140543_open-first-room/) - 修复空间模式首次进入跳到 `/chat/<spaceId>/null`（按自定义排序进入首个房间）
@@ -179,3 +183,9 @@
 - [202601172234_tc_header_upload_and_doc_lazy](2026-01/202601172234_tc_header_upload_and_doc_lazy/) - 修复 tc_header 头像上传（iframe 裁剪弹窗）并优化空间文档懒加载（不全量 load / pull 不写回）
 - [202601211604_auth_401_handling](2026-01/202601211604_auth_401_handling/) - 认证：HTTP 401 自动清理登录态并跳转登录页；WS token 失效（type=100）同样引导重新登录
 
+
+## ??
+
+| ??? | ???? | ?? | ?? | ????? |
+|--------|----------|------|------|------------|
+| 202601232105 | WebGAL ???????? | ?? | ???? | [??](2026-01/202601232105_webgal_avatar_realtime_sync/) |
