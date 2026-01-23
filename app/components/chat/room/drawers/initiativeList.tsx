@@ -1,9 +1,8 @@
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { EditableField } from "@/components/common/editableField";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
@@ -63,6 +62,9 @@ export default function InitiativeList() {
     source: InitiativeParam["source"];
     attrKey: string;
   }>({ key: "", label: "", source: "manual", attrKey: "" });
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const editingInputRef = useRef<HTMLInputElement | null>(null);
   const [isImportPopupOpen, setIsImportPopupOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("value");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -101,11 +103,50 @@ export default function InitiativeList() {
 
   const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(r => r.roleId));
 
-  const calcChWidth = (value: string, placeholder: string, min = 8, max = 18, pad = 4) => {
-    const valLen = value?.length ?? 0;
-    const base = Math.max(valLen, placeholder.length);
-    return Math.min(max, Math.max(min, base + pad));
+  const parseNullableNumber = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed)
+      return null;
+    const num = Number(trimmed);
+    return Number.isFinite(num) ? num : null;
   };
+
+  const parseNumberOrZero = (value: string) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  };
+
+  const startEditing = (key: string, value: string) => {
+    setEditingKey(key);
+    setEditingValue(value);
+  };
+
+  const stopEditing = () => {
+    setEditingKey(null);
+    setEditingValue("");
+  };
+
+  const commitEditing = (key: string, apply: (value: string) => void) => {
+    if (editingKey !== key)
+      return;
+    apply(editingValue);
+    stopEditing();
+  };
+
+  const getEditingRef = (key: string) => (node: HTMLInputElement | null) => {
+    if (editingKey === key) {
+      editingInputRef.current = node;
+    }
+  };
+
+  useEffect(() => {
+    if (!editingKey)
+      return;
+    if (!editingInputRef.current)
+      return;
+    editingInputRef.current.focus();
+    editingInputRef.current.select();
+  }, [editingKey]);
 
   const extractAgilityFromQuery = (query: ReturnType<typeof useGetRolesAbilitiesQueries>[number] | undefined): number | null => {
     const res = query?.data;
@@ -450,6 +491,12 @@ export default function InitiativeList() {
     );
   };
 
+  const updateItem = (item: Initiative, patch: Partial<Initiative>) => {
+    handleUpdate(
+      initiativeList.map(i => (i.name === item.name ? { ...i, ...patch } : i)),
+    );
+  };
+
   const resolveField = (item: Initiative, key: SortKey): number | string | null => {
     if (key === "name")
       return item.name ?? "";
@@ -515,9 +562,9 @@ export default function InitiativeList() {
         <div className="rounded-xl border border-base-300 bg-base-300 shadow-none">
           {/* 头部：标题 + 统计 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-base-200">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-base-content">先攻列表</span>
-              <span className="text-xs text-base-content/60">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-semibold text-base-content truncate">先攻列表</span>
+              <span className="text-xs text-base-content/60 truncate">
                 共
                 {" "}
                 {initiativeList.length}
@@ -533,7 +580,7 @@ export default function InitiativeList() {
                   className="btn btn-xs btn-outline"
                   onClick={() => setIsImportPopupOpen(true)}
                 >
-                  导入角色先攻
+                  导入先攻
                 </button>
               )}
               {spaceOwner && (
@@ -552,7 +599,7 @@ export default function InitiativeList() {
           {/* 内容区 */}
           <div className="px-4 py-3 space-y-3">
             {showParamEditor && spaceOwner && (
-              <div className="rounded-lg border border-base-200 bg-base-100 p-3 space-y-2">
+              <div className="rounded-md border border-base-200 bg-base-100 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-base-content">自定义参数</span>
                   <span className="text-[11px] text-base-content/60">影响当前房间的列</span>
@@ -568,7 +615,7 @@ export default function InitiativeList() {
                       const nextKey = makeUniqueKey(baseKey, params);
                       setNewParam({ ...newParam, label: nextLabel, key: nextKey });
                     }}
-                    className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg min-w-32"
+                    className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md min-w-32"
                   />
                   <span className="text-xs text-base-content/60 px-2">
                     键名：
@@ -588,7 +635,7 @@ export default function InitiativeList() {
                       placeholder="角色属性键 (必填)"
                       value={newParam.attrKey}
                       onChange={e => setNewParam({ ...newParam, attrKey: e.target.value })}
-                      className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg min-w-28"
+                      className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md min-w-28"
                     />
                   )}
                   <button
@@ -600,12 +647,12 @@ export default function InitiativeList() {
                     添加
                   </button>
                 </div>
-                <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-1">
                   {params.length === 0 && (
                     <div className="text-xs text-base-content/60">暂无自定义参数。</div>
                   )}
                   {params.map(param => (
-                    <div key={param.key} className="flex items-center justify-between px-3 py-2 rounded-lg bg-base-200">
+                    <div key={param.key} className="flex items-center justify-between px-3 py-2 rounded-md bg-base-200">
                       <div className="flex flex-col text-sm">
                         <span className="font-medium text-base-content">{param.label || param.key}</span>
                         <span className="text-[11px] text-base-content/60">
@@ -630,41 +677,38 @@ export default function InitiativeList() {
             )}
 
             {/* 添加表单 */}
-            <div className="flex flex-col gap-2">
-              <div className="relative flex flex-nowrap gap-2 overflow-x-auto pb-1 pr-8">
+            <div className="flex flex-col gap-1">
+              <div className="relative flex flex-wrap gap-2">
                 <input
                   type="text"
                   placeholder="角色名"
                   value={newItem.name}
                   onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg shrink-0"
-                  style={{ width: `${calcChWidth(newItem.name, "角色名", 10, 22, 4)}ch` }}
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
                 />
                 {/* 当前 HP / 最大 HP / 先攻 输入顺序 */}
+                <input
+                  type="text"
+                  placeholder="先攻"
+                  value={newItem.value}
+                  onChange={e => setNewItem({ ...newItem, value: e.target.value })}
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
+                />
                 <input
                   type="text"
                   placeholder="当前HP"
                   value={newItem.hp}
                   onChange={e => setNewItem({ ...newItem, hp: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg shrink-0"
-                  style={{ width: `${calcChWidth(newItem.hp, "当前HP", 10, 18, 4)}ch` }}
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
                 />
                 <input
                   type="text"
                   placeholder="最大HP"
                   value={newItem.maxHp}
                   onChange={e => setNewItem({ ...newItem, maxHp: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg shrink-0"
-                  style={{ width: `${calcChWidth(newItem.maxHp, "最大HP", 10, 18, 4)}ch` }}
+                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px] "
                 />
-                <input
-                  type="text"
-                  placeholder="先攻"
-                  value={newItem.value}
-                  onChange={e => setNewItem({ ...newItem, value: e.target.value })}
-                  className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg shrink-0"
-                  style={{ width: `${calcChWidth(newItem.value, "先攻", 8, 14, 4)}ch` }}
-                />
+
                 {params.map(param => (
                   <input
                     key={param.key}
@@ -672,8 +716,7 @@ export default function InitiativeList() {
                     placeholder={param.label}
                     value={newExtras[param.key] ?? ""}
                     onChange={e => setNewExtras({ ...newExtras, [param.key]: e.target.value })}
-                    className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg shrink-0"
-                    style={{ width: `${calcChWidth(newExtras[param.key] ?? "", param.label, 8, 18, 4)}ch` }}
+                    className="input input-md bg-base-100 border border-base-400 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md flex-[1_1_80px]"
                     disabled={param.source === "roleAttr"}
                   />
                 ))}
@@ -694,7 +737,7 @@ export default function InitiativeList() {
 
             {/* 排序控制（仅空间主持人可用） */}
             {spaceOwner && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <div className="flex flex-wrap items-center gap-2 p-2">
                 {[{ key: "name" as SortKey, label: "名称" }, { key: "hp" as SortKey, label: "当前HP" }, { key: "maxHp" as SortKey, label: "最大HP" }, { key: "value" as SortKey, label: "先攻" }, ...params.map(p => ({ key: { paramKey: p.key } as SortKey, label: p.label }))].map((entry) => {
                   const active = (typeof entry.key === "string" && entry.key === sortKey)
                     || (typeof entry.key === "object" && typeof sortKey === "object" && entry.key.paramKey === sortKey.paramKey);
@@ -732,130 +775,237 @@ export default function InitiativeList() {
             </div>
 
             {/* 列表 */}
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {initiativeList.length === 0 && (
-                <div className="text-xs text-base-content/50 text-center py-4">
-                  暂无先攻记录，添加一个吧。
-                </div>
-              )}
+            <div className="overflow-x-auto">
+              <table className="table table-sm">
+                <thead>
+                  <tr>
+                    <th className="text-xs font-semibold text-base-content/70">角色名</th>
+                    <th className="text-xs font-semibold text-base-content/70">HP</th>
+                    <th className="text-xs font-semibold text-base-content/70">先攻</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {initiativeList.length === 0
+                    ? (
+                        <tr>
+                          <td colSpan={3} className="text-xs text-base-content/50 text-center py-4">
+                            暂无先攻记录，添加一个吧。
+                          </td>
+                        </tr>
+                      )
+                    : (
+                        sortedList.map((item, _index) => {
+                          const hp = item.hp ?? null;
+                          const maxHp = item.maxHp ?? null;
+                          const rowKey = item.name || `${_index}`;
+                          const nameEditKey = `${rowKey}:name`;
+                          const hpEditKey = `${rowKey}:hp`;
+                          const maxHpEditKey = `${rowKey}:maxHp`;
+                          const valueEditKey = `${rowKey}:value`;
 
-              {sortedList.map((item, _index) => {
-                const hp = item.hp ?? null;
-                const maxHp = item.maxHp ?? null;
+                          return (
+                            <tr key={item.name} className="group hover">
+                              <td className="align-top">
+                                {editingKey === nameEditKey
+                                  ? (
+                                      <input
+                                        ref={getEditingRef(nameEditKey)}
+                                        type="text"
+                                        value={editingValue}
+                                        onChange={e => setEditingValue(e.target.value)}
+                                        onBlur={() => {
+                                          commitEditing(nameEditKey, val => updateItem(item, { name: val }));
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            commitEditing(nameEditKey, val => updateItem(item, { name: val }));
+                                          }
+                                          if (e.key === "Escape") {
+                                            e.preventDefault();
+                                            stopEditing();
+                                          }
+                                        }}
+                                        className="input input-xs bg-base-100 border border-base-300 text-sm font-medium text-base-content w-full min-h-6 leading-6 min-w-0"
+                                      />
+                                    )
+                                  : (
+                                      <button
+                                        type="button"
+                                        className="text-left text-sm font-medium text-base-content w-full min-h-6 leading-6 truncate px-1 min-w-0"
+                                        onDoubleClick={() => startEditing(nameEditKey, item.name)}
+                                        title="双击编辑"
+                                      >
+                                        {item.name}
+                                      </button>
+                                    )}
+                              </td>
+                              <td className="align-top">
+                                <div className="flex items-center gap-0.5 text-xs text-base-content/70 leading-5">
+                                  {editingKey === hpEditKey
+                                    ? (
+                                        <input
+                                          ref={getEditingRef(hpEditKey)}
+                                          type="number"
+                                          value={editingValue}
+                                          onChange={e => setEditingValue(e.target.value)}
+                                          onBlur={() => {
+                                            commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              e.preventDefault();
+                                              commitEditing(hpEditKey, val => updateItem(item, { hp: parseNullableNumber(val) }));
+                                            }
+                                            if (e.key === "Escape") {
+                                              e.preventDefault();
+                                              stopEditing();
+                                            }
+                                          }}
+                                          className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                        />
+                                      )
+                                    : (
+                                        <button
+                                          type="button"
+                                          className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                          onDoubleClick={() => startEditing(hpEditKey, hp != null ? String(hp) : "")}
+                                          title="双击编辑"
+                                        >
+                                          {hp != null ? String(hp) : "--"}
+                                        </button>
+                                      )}
+                                  <span className="px-1">/</span>
+                                  {editingKey === maxHpEditKey
+                                    ? (
+                                        <input
+                                          ref={getEditingRef(maxHpEditKey)}
+                                          type="number"
+                                          value={editingValue}
+                                          onChange={e => setEditingValue(e.target.value)}
+                                          onBlur={() => {
+                                            commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              e.preventDefault();
+                                              commitEditing(maxHpEditKey, val => updateItem(item, { maxHp: parseNullableNumber(val) }));
+                                            }
+                                            if (e.key === "Escape") {
+                                              e.preventDefault();
+                                              stopEditing();
+                                            }
+                                          }}
+                                          className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                        />
+                                      )
+                                    : (
+                                        <button
+                                          type="button"
+                                          className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                          onDoubleClick={() => startEditing(maxHpEditKey, maxHp != null ? String(maxHp) : "")}
+                                          title="双击编辑"
+                                        >
+                                          {maxHp != null ? String(maxHp) : "--"}
+                                        </button>
+                                      )}
+                                </div>
 
-                return (
-                  <div
-                    key={item.name}
-                    className="flex flex-nowrap items-center gap-3 px-4 py-3 rounded-lg bg-base-100 border border-base-200 hover:border-base-300 hover:bg-base-100/80 transition-colors group overflow-x-auto"
-                  >
-                    <EditableField
-                      content={item.name}
-                      handleContentUpdate={(newName) => {
-                        handleUpdate(
-                          initiativeList.map(i =>
-                            i.name === item.name ? { ...i, name: newName } : i,
-                          ),
-                        );
-                      }}
-                      className="font-medium text-sm text-base-content truncate w-28 min-h-6 leading-6 inline-flex items-center shrink-0"
-                      usingInput
-                    >
-                    </EditableField>
+                                {params.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap items-center gap-0.5 text-xs text-base-content/70 leading-5">
+                                    {params.map(param => (
+                                      <div key={param.key} className="flex items-center gap-0.5">
+                                        <span className="whitespace-nowrap" title={param.label}>{param.label}</span>
+                                        {editingKey === `${rowKey}:extra:${param.key}`
+                                          ? (
+                                              <input
+                                                ref={getEditingRef(`${rowKey}:extra:${param.key}`)}
+                                                type="text"
+                                                value={editingValue}
+                                                onChange={e => setEditingValue(e.target.value)}
+                                                onBlur={() => {
+                                                  commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
+                                                }}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
+                                                  }
+                                                  if (e.key === "Escape") {
+                                                    e.preventDefault();
+                                                    stopEditing();
+                                                  }
+                                                }}
+                                                className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                              />
+                                            )
+                                          : (
+                                              <button
+                                                type="button"
+                                                className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                                onDoubleClick={() => startEditing(`${rowKey}:extra:${param.key}`, (item.extras?.[param.key] ?? "").toString())}
+                                                title="双击编辑"
+                                              >
+                                                {(item.extras?.[param.key] ?? "--").toString()}
+                                              </button>
+                                            )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="align-top">
+                                <div className="flex items-center gap-2 text-xs text-base-content/70 leading-6">
+                                  {editingKey === valueEditKey
+                                    ? (
+                                        <input
+                                          ref={getEditingRef(valueEditKey)}
+                                          type="number"
+                                          value={editingValue}
+                                          onChange={e => setEditingValue(e.target.value)}
+                                          onBlur={() => {
+                                            commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              e.preventDefault();
+                                              commitEditing(valueEditKey, val => updateItem(item, { value: parseNumberOrZero(val) }));
+                                            }
+                                            if (e.key === "Escape") {
+                                              e.preventDefault();
+                                              stopEditing();
+                                            }
+                                          }}
+                                          className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
+                                        />
+                                      )
+                                    : (
+                                        <button
+                                          type="button"
+                                          className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
+                                          onDoubleClick={() => startEditing(valueEditKey, item.value.toString())}
+                                          title="双击编辑"
+                                        >
+                                          {item.value.toString()}
+                                        </button>
+                                      )}
 
-                    <div className="flex items-center gap-1 text-xs text-base-content/70 leading-5 shrink-0">
-                      <span className="whitespace-nowrap">HP</span>
-                      <EditableField
-                        content={hp != null ? String(hp) : ""}
-                        handleContentUpdate={(newHp) => {
-                          const parsed = newHp.trim() === "" ? null : Number(newHp);
-                          handleUpdate(
-                            initiativeList.map(i =>
-                              i.name === item.name
-                                ? { ...i, hp: Number.isNaN(parsed) ? null : parsed }
-                                : i,
-                            ),
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(item.name)}
+                                    className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/5 border-none px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="删除"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
                           );
-                        }}
-                        className="text-right tabular-nums min-h-6 leading-6 px-2 rounded-md border border-base-300 bg-base-100 inline-flex items-center justify-end"
-                        autoWidth
-                        minCh={6}
-                        maxCh={14}
-                        padCh={4}
-                        usingInput
-                        type="number"
-                      />
-                      <span className="px-1">/</span>
-                      <EditableField
-                        content={maxHp != null ? String(maxHp) : ""}
-                        handleContentUpdate={(newMaxHp) => {
-                          const parsed = newMaxHp.trim() === "" ? null : Number(newMaxHp);
-                          handleUpdate(
-                            initiativeList.map(i =>
-                              i.name === item.name
-                                ? { ...i, maxHp: Number.isNaN(parsed) ? null : parsed }
-                                : i,
-                            ),
-                          );
-                        }}
-                        className="text-right tabular-nums min-h-6 leading-6 px-2 rounded-md border border-base-300 bg-base-100 inline-flex items-center justify-end"
-                        autoWidth
-                        minCh={6}
-                        maxCh={14}
-                        padCh={4}
-                        usingInput
-                        type="number"
-                      />
-                    </div>
-
-                    {params.map(param => (
-                      <div key={param.key} className="flex items-center gap-1 text-xs text-base-content/70 leading-5 shrink-0">
-                        <span className="whitespace-nowrap" title={param.label}>{param.label}</span>
-                        <EditableField
-                          content={(item.extras?.[param.key] ?? "").toString()}
-                          handleContentUpdate={val => updateItemExtras(item, param.key, val)}
-                          className="text-right tabular-nums min-h-6 leading-6 px-2 rounded-md border border-base-300 bg-base-100 inline-flex items-center justify-end"
-                          autoWidth
-                          minCh={4}
-                          maxCh={16}
-                          padCh={4}
-                          usingInput
-                        />
-                      </div>
-                    ))}
-
-                    <div className="flex items-center gap-1 text-xs text-base-content/70 leading-5 ml-auto shrink-0">
-                      <span className="whitespace-nowrap">先攻</span>
-                      <EditableField
-                        content={item.value.toString()}
-                        handleContentUpdate={(newValue) => {
-                          handleUpdate(
-                            initiativeList.map(i =>
-                              i.name === item.name ? { ...i, value: Number(newValue) } : i,
-                            ),
-                          );
-                        }}
-                        className="text-right tabular-nums min-h-6 leading-6 px-2 rounded-md border border-base-300 bg-base-100 inline-flex items-center justify-end"
-                        autoWidth
-                        minCh={4}
-                        maxCh={12}
-                        padCh={4}
-                        usingInput
-                        type="number"
-                      >
-                      </EditableField>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(item.name)}
-                        className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/5 border-none px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="删除"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                        })
+                      )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -875,7 +1025,7 @@ export default function InitiativeList() {
           <p className="text-xs text-base-content/60">
             选择一个角色，从其当前规则的能力/基础属性中自动识别“敏捷”等字段并填入先攻列表。
           </p>
-          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-2">
             {importableRoles.map((role, idx) => {
               const q = abilityQueries[idx];
               const loading = q.isLoading;
@@ -883,7 +1033,7 @@ export default function InitiativeList() {
               return (
                 <div
                   key={role.roleId}
-                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-base-100 border border-base-200"
+                  className="flex items-center justify-between gap-2 rounded-md px-3 py-2 bg-base-100 border border-base-200"
                 >
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
