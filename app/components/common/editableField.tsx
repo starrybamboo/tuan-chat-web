@@ -98,7 +98,14 @@ export function EditableField({
   }, [isEditing, usingInput, cursorPosition]);
 
   const saveCursorPosition = (e: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setCursorPosition(e.currentTarget.selectionStart);
+    const { selectionStart, selectionEnd } = e.currentTarget;
+    if (selectionStart === null || selectionEnd === null) {
+      return;
+    }
+    if (selectionStart !== selectionEnd) {
+      return;
+    }
+    setCursorPosition(selectionStart);
   };
 
   // 使用回调函数来调整高度,避免在每次 editContent 变化时触发 effect
