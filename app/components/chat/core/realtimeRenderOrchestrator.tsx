@@ -121,6 +121,7 @@ export default function RealtimeRenderOrchestrator({
   }, [historyMessages]);
 
   const prevHistoryOrderIdsRef = useRef<number[] | null>(null);
+  const prevHistoryUpdateTimeMapRef = useRef<Map<number, string | undefined>>(new Map());
   const pendingFullRerenderRef = useRef<ChatMessageResponse[] | null>(null);
   const fullRerenderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const renderHistoryMessages = useCallback(async () => {
@@ -148,6 +149,7 @@ export default function RealtimeRenderOrchestrator({
       }
       hasRenderedHistoryRef.current = true;
       prevHistoryOrderIdsRef.current = messagesToRender.map(m => m.message.messageId);
+      prevHistoryUpdateTimeMapRef.current = new Map(messagesToRender.map(m => [m.message.messageId, m.message.updateTime]));
       toast.success(`历史消息渲染完成`, { id: "webgal-history" });
       console.warn(`[RealtimeRender] 历史消息渲染完成`);
     }
@@ -174,6 +176,7 @@ export default function RealtimeRenderOrchestrator({
       isRenderingHistoryRef.current = false;
       lastBackgroundMessageIdRef.current = null;
       prevHistoryOrderIdsRef.current = null;
+      prevHistoryUpdateTimeMapRef.current = new Map();
       pendingFullRerenderRef.current = null;
       if (fullRerenderTimerRef.current) {
         clearTimeout(fullRerenderTimerRef.current);
@@ -209,6 +212,7 @@ export default function RealtimeRenderOrchestrator({
     isRenderingHistoryRef.current = false;
     lastBackgroundMessageIdRef.current = null;
     prevHistoryOrderIdsRef.current = null;
+    prevHistoryUpdateTimeMapRef.current = new Map();
     pendingFullRerenderRef.current = null;
     if (fullRerenderTimerRef.current) {
       clearTimeout(fullRerenderTimerRef.current);
@@ -375,6 +379,7 @@ export default function RealtimeRenderOrchestrator({
 
       hasRenderedHistoryRef.current = true;
       prevHistoryOrderIdsRef.current = messagesToRender.map(m => m.message.messageId);
+      prevHistoryUpdateTimeMapRef.current = new Map(messagesToRender.map(m => [m.message.messageId, m.message.updateTime]));
       toast.success("WebGAL 顺序已同步", { id: "webgal-rerender-history" });
       return true;
     }
@@ -429,37 +434,56 @@ export default function RealtimeRenderOrchestrator({
 
     const currentIds = orderedHistoryMessages.map(m => m.message.messageId);
     const prevIds = prevHistoryOrderIdsRef.current;
+    const currentUpdateTimeMap = new Map(orderedHistoryMessages.map(m => [m.message.messageId, m.message.updateTime]));
+    const prevUpdateTimeMap = prevHistoryUpdateTimeMapRef.current;
 
     if (!prevIds || prevIds.length === 0) {
       prevHistoryOrderIdsRef.current = currentIds;
-      return;
-    }
-
-    const isPrefix = prevIds.length <= currentIds.length
-      && prevIds.every((id, index) => currentIds[index] === id);
-
-    if (isPrefix) {
-      if (currentIds.length > prevIds.length) {
-        const appendedMessages = orderedHistoryMessages.slice(prevIds.length);
-        appendedMessages.forEach((message) => {
-          void realtimeRender.renderMessage(message, roomId);
-        });
-        const lastAppended = appendedMessages[appendedMessages.length - 1];
-        if (lastAppended) {
-          lastRenderedMessageIdRef.current = lastAppended.message.messageId;
-        }
-      }
-      prevHistoryOrderIdsRef.current = currentIds;
+      prevHistoryUpdateTimeMapRef.current = currentUpdateTimeMap;
       return;
     }
 
     const isSameOrder = prevIds.length === currentIds.length
       && prevIds.every((id, index) => currentIds[index] === id);
 
-    prevHistoryOrderIdsRef.current = currentIds;
     if (isSameOrder) {
+      prevHistoryOrderIdsRef.current = currentIds;
+      prevHistoryUpdateTimeMapRef.current = currentUpdateTimeMap;
+
+      // 顺序不变但消息发生更新（例如插入模式 position 计算后更新、编辑内容等）：统一走全量重建，避免“只更新最后一条”导致的不同步
+      let hasAnyMessageChanged = false;
+      for (const [messageId, updateTime] of currentUpdateTimeMap.entries()) {
+        if (prevUpdateTimeMap.get(messageId) !== updateTime) {
+          hasAnyMessageChanged = true;
+          break;
+        }
+      }
+      if (hasAnyMessageChanged) {
+        scheduleFullRerender(orderedHistoryMessages);
+      }
       return;
     }
+
+    // 增量追加：如果只是尾部追加消息，则逐条追加渲染，避免每次都全量重建
+    const isStrictPrefix = prevIds.length < currentIds.length
+      && prevIds.every((id, index) => currentIds[index] === id);
+
+    if (isStrictPrefix) {
+      const appendedMessages = orderedHistoryMessages.slice(prevIds.length);
+      appendedMessages.forEach((message) => {
+        void realtimeRender.renderMessage(message, roomId);
+      });
+      const lastAppended = appendedMessages[appendedMessages.length - 1];
+      if (lastAppended) {
+        lastRenderedMessageIdRef.current = lastAppended.message.messageId;
+      }
+      prevHistoryOrderIdsRef.current = currentIds;
+      prevHistoryUpdateTimeMapRef.current = currentUpdateTimeMap;
+      return;
+    }
+
+    prevHistoryOrderIdsRef.current = currentIds;
+    prevHistoryUpdateTimeMapRef.current = currentUpdateTimeMap;
 
     // 非追加场景（插入/删除/移动/重排）：统一按全量重建处理，确保脚本行顺序与跳转映射一致
     scheduleFullRerender(orderedHistoryMessages);
