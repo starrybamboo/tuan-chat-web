@@ -132,11 +132,11 @@ function RoomComposerPanelImpl({
     const atAllRole: UserRole = {
       userId: -1,
       roleId: -9999,
-      roleName: "All",
+      roleName: "检定请求",
       avatarId: -1,
       type: 0,
       extra: {
-        mentionNote: "检定请求",
+        mentionNote: "发送检定按钮",
       },
     };
     return [atAllRole, ...roomRoles];

@@ -29,7 +29,7 @@ export interface AtMentionHandle {
   onInput: () => void; // 处理输入事件
 }
 
-function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
+const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({ chatInputRef, allRoles }, ref) => {
   // 1. 将所有 @ 相关的状态移动到这里
   const [showDialog, setShowDialog] = useState(false);
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
@@ -230,42 +230,74 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
   return (
     <Mounter targetId="modal-root">
       <div
-        className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2 z-20 max-h-[30vh] overflow-auto"
+        className="absolute z-50 max-h-[40vh] overflow-y-auto overflow-x-hidden min-w-[220px]"
         style={{
-          top: dialogPosition.y - 5,
+          top: dialogPosition.y - 8,
           left: dialogPosition.x,
           transform: "translateY(-100%)",
         }}
+        onMouseDown={e => e.preventDefault()}
       >
-        {filteredRoles.map((role, index) => {
-          const roleNote = role.extra?.mentionNote;
-          return (
-            <div
-              className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${
-                index === selectedIndex ? "bg-base-300" : ""
-              }`}
-              key={role.roleId}
-              onClick={() => {
-                handleSelectRole(role);
-              }}
-              onMouseDown={e => e.preventDefault()} // ???????????????
-            >
-              <RoleAvatarComponent
-                avatarId={role.avatarId ?? -1}
-                width={8}
-                isRounded={true}
-                stopPopWindow={true}
-              />
-              <div className="flex flex-col">
-                <span>{role.roleName}</span>
-                {roleNote ? <span className="text-xs text-base-content/60">{roleNote}</span> : null}
-              </div>
-            </div>
-          );
-        })}
+        <ul className="menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1 menu-sm sm:menu-md">
+          {filteredRoles.map((role, index) => {
+            const roleNote = role.extra?.mentionNote;
+            const isAtAll = role.roleId === -9999;
+            const isSelected = index === selectedIndex;
+
+            if (isAtAll) {
+              return (
+                <li key={role.roleId} className="mb-1">
+                  <a
+                    className={`flex-col items-center justify-center py-2 bg-base-200/50 border border-base-300/50 ${isSelected ? "active !bg-primary !border-primary" : ""}`}
+                    onClick={() => handleSelectRole(role)}
+                  >
+                    <span className="font-bold">{role.roleName}</span>
+                    {roleNote && (
+                      <span
+                        className={`text-xs ${
+                          isSelected ? "text-primary-content/80" : "text-base-content/60"
+                        }`}
+                      >
+                        {roleNote}
+                      </span>
+                    )}
+                  </a>
+                </li>
+              );
+            }
+
+            return (
+              <li key={role.roleId}>
+                <a
+                  className={`gap-3 py-2 ${isSelected ? "active" : ""}`}
+                  onClick={() => handleSelectRole(role)}
+                >
+                  <RoleAvatarComponent
+                    avatarId={role.avatarId ?? -1}
+                    width={8}
+                    isRounded={true}
+                    stopPopWindow={true}
+                  />
+                  <div className="flex flex-col gap-0.5 items-start flex-1 min-w-0">
+                    <span className="font-medium truncate w-full">{role.roleName}</span>
+                    {roleNote && (
+                      <span
+                        className={`text-xs truncate w-full ${
+                          isSelected ? "text-primary-content/90" : "text-base-content"
+                        }`}
+                      >
+                        {roleNote}
+                      </span>
+                    )}
+                  </div>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </Mounter>
   );
-}
+});
 
 export default AtMentionController;
