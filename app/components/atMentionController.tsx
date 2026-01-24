@@ -94,10 +94,10 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
 
     editorEl.addEventListener("blur", handleBlur);
 
-    editorEl.addEventListener('keydown', handleMentionKeyDown);
+    editorEl.addEventListener('keydown', handleMentionKeyDown, true);
     return () => {
       editorEl.removeEventListener("blur", handleBlur);
-      editorEl.removeEventListener('keydown', handleMentionKeyDown);
+      editorEl.removeEventListener('keydown', handleMentionKeyDown, true);
     };
   }, [chatInputRef]);
 
