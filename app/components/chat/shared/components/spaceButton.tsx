@@ -14,7 +14,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 
   return (
     <div
-      className="group relative w-10 my-1 rounded"
+      className="group relative z-20 w-10 my-1 rounded"
       key={space.spaceId}
     >
       <div
