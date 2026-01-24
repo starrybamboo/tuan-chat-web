@@ -83,7 +83,6 @@ function ChatFrame(props: ChatFrameProps) {
   } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
-  const rerenderHistoryInWebGAL = roomContext.rerenderHistoryInWebGAL;
   const spaceContext = use(SpaceContext);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
@@ -705,38 +704,15 @@ function ChatFrame(props: ChatFrameProps) {
     const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
       ?? historyMessages[historyMessages.length - 1].message.position + 1;
 
-    const newPositionByMessageId = new Map<number, number>();
     const step = (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1);
     selectedMessages.forEach((selectedMessage, index) => {
       const nextPosition = step * (index + 1) + topMessagePosition;
-      newPositionByMessageId.set(selectedMessage.messageId, nextPosition);
       updateMessage({
         ...selectedMessage,
         position: nextPosition,
       });
     });
-
-    // WebGAL：消息“重排”会改变脚本行顺序，必须全量重建历史才能让跳转/相对顺序一致
-    if (rerenderHistoryInWebGAL) {
-      const nextHistoryMessages = [...historyMessages]
-        .map((m) => {
-          const nextPosition = newPositionByMessageId.get(m.message.messageId);
-          if (nextPosition == null) {
-            return m;
-          }
-          return {
-            ...m,
-            message: {
-              ...m.message,
-              position: nextPosition,
-            },
-          };
-        })
-        .sort((a, b) => a.message.position - b.message.position);
-
-      void rerenderHistoryInWebGAL(nextHistoryMessages);
-    }
-  }, [historyMessages, isMessageMovable, rerenderHistoryInWebGAL, updateMessage]);
+  }, [historyMessages, isMessageMovable, updateMessage]);
   const cleanupDragIndicator = useCallback(() => {
     pendingDragCheckRef.current = null;
     if (rafIdRef.current !== null) {

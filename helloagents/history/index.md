@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601242150 | webgal_realtime_resync | 修复 | 已完成 | [2026-01/202601242150_webgal_realtime_resync/](2026-01/202601242150_webgal_realtime_resync/) |
 | 202601241705 | chat-mention-all | 变更 | 已完成 | [2026-01/202601241705_chat-mention-all/](2026-01/202601241705_chat-mention-all/) |
 | 202601242230 | chat_avatar_runtime_default | 修复 | 已完成 | [2026-01/202601242230_chat_avatar_runtime_default/](2026-01/202601242230_chat_avatar_runtime_default/) |
 | 202601242032 | chat_import_fill_avatar_map | 修复 | 已完成（已被后续方案覆盖） | [2026-01/202601242032_chat_import_fill_avatar_map/](2026-01/202601242032_chat_import_fill_avatar_map/) |
