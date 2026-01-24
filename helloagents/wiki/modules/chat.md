@@ -80,6 +80,8 @@
 - 导入消息会写入 `message.webgal.customRoleName`，显示时保留导入文本中的发言人名
 - KP 可选择“旁白（roleId=-1）”作为导入目标
 - 若发言人映射为“骰娘（系统）”，发送时会解析实际骰娘角色并按 `DICE(6)` 类型发送（`extra.result=content`）
+- 导入/发送会在运行时为相关角色解析 `avatarId`：优先使用 `curAvatarIdMap`（用户选择），否则回退 `role.avatarId`，再回退头像列表“默认”标签/首个头像（不强制持久化）
+- 消息头像渲染：当 `avatarId<=0` 且无法找到可用头像时，不再回退到 `/favicon.ico`（显示为空占位）
 - 立绘位置：可为每个发言人选择左/中/右位置，导入发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
 - 若当前房间无可用角色（非KP），导入弹窗提供“创建/导入角色”快捷入口
 - 导入弹窗 UI：双栏卡片分区、消息预览、缺失角色高亮与快捷引导
@@ -107,6 +109,8 @@
 - 2026-01-23 修复拖拽离开消息列表时无法继续自动滚动的问题
 - 2026-01-23 修复拖拽自动滚动回调依赖顺序导致运行时报错
 - 2026-01-23 修复拖拽自动滚动重复声明导致构建失败
+- [202601242230_chat_avatar_runtime_default](../../history/2026-01/202601242230_chat_avatar_runtime_default/) - 房间加载/导入/发送时运行时解析 avatarId（不强制持久化），缺失时显示为空占位
+- [202601242032_chat_import_fill_avatar_map](../../history/2026-01/202601242032_chat_import_fill_avatar_map/) - 聊天导入头像选择兜底（已被 202601242230 覆盖）
 - [202601232052_chat_import_preserve_speaker_name](../../history/2026-01/202601232052_chat_import_preserve_speaker_name/) - 聊天导入保留原发言人名
 - [202601232052_chat_text_selection](../../history/2026-01/202601232052_chat_text_selection/) - 聊天气泡文本选区保持
 - [202601231857_chat-drag-auto-scroll](../../history/2026-01/202601231857_chat-drag-auto-scroll/) - 拖拽移动消息时支持顶部/底部自动滚动
