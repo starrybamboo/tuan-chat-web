@@ -24,9 +24,9 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       >
       </div>
       <button
-        className="w-10 btn btn-square relative"
+        className="tooltip tooltip-bottom w-10 btn btn-square relative"
         type="button"
-        title={displayName}
+        data-tip={displayName}
         aria-label={displayName}
         onClick={onclick}
       >
