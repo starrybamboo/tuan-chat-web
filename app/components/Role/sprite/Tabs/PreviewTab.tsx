@@ -429,7 +429,7 @@ export function PreviewTab({
 
       {/* 操作按钮 */}
       <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
-        {previewMode === "render" && currentAvatar?.avatarId && (
+        {currentAvatar?.avatarId && (
           <CharacterCopper
             fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
             scene={3}
@@ -441,7 +441,7 @@ export function PreviewTab({
               className="btn btn-secondary"
               disabled={isReplacing}
             >
-              {isReplacing ? "修改中..." : "修改头像"}
+              {isReplacing ? "替换中..." : "替换头像"}
             </button>
           </CharacterCopper>
         )}
