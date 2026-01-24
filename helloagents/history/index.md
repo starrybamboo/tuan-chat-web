@@ -195,4 +195,5 @@
 | 202601232105 | WebGAL ???????? | ?? | ???? | [??](2026-01/202601232105_webgal_avatar_realtime_sync/) |
 
 ## 2026-01
+- 202601241857_chat-avatar-default
 - 202601241838_chat-avatar-fallback

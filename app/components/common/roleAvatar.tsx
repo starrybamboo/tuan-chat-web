@@ -70,7 +70,8 @@ export default function RoleAvatarComponent({
   const shouldUseFallback = !hasExplicitAvatarId && typeof roleId === "number" && roleId > 0;
   const fallbackAvatarsQuery = useGetRoleAvatarsQuery(roleId ?? -1, { enabled: shouldUseFallback });
   const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
-  const displayAvatarUrl = hasExplicitAvatarId ? roleAvatar?.avatarUrl : fallbackAvatar?.avatarUrl;
+  const defaultAvatarUrl = "/favicon.ico";
+  const displayAvatarUrl = (hasExplicitAvatarId ? roleAvatar?.avatarUrl : fallbackAvatar?.avatarUrl) || defaultAvatarUrl;
   const roleIdTrue = roleId ?? roleAvatar?.roleId ?? fallbackAvatar?.roleId;
   const hasAvatar = Boolean(displayAvatarUrl);
 
