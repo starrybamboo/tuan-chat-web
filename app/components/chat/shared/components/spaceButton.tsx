@@ -23,7 +23,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
     const rect = button.getBoundingClientRect();
     setTooltipPoint({
       x: rect.left + rect.width / 2,
-      y: rect.bottom,
+      y: rect.bottom + 6,
     });
   }, []);
 
@@ -79,18 +79,18 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       </button>
       {(tooltipPoint && tooltipText && typeof document !== "undefined")
         ? createPortal(
-            <span
-              className="tooltip tooltip-bottom tooltip-open fixed pointer-events-none z-[9999]"
-              data-tip={tooltipText}
-              style={{
-                left: tooltipPoint.x,
-                top: tooltipPoint.y,
-                width: 0,
-                height: 0,
-                transform: "translateX(-50%)",
-              }}
+            <div
+              className="fixed pointer-events-none z-[9999]"
+              style={{ left: tooltipPoint.x, top: tooltipPoint.y }}
               aria-hidden="true"
-            />,
+            >
+              <div className="relative -translate-x-1/2">
+                <div className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-neutral shadow" />
+                <div className="max-w-[240px] rounded px-2 py-1 text-xs bg-neutral text-neutral-content shadow whitespace-normal break-words">
+                  {tooltipText}
+                </div>
+              </div>
+            </div>,
             document.body,
           )
         : null}
