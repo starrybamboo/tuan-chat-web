@@ -375,8 +375,36 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
     mutationFn: (req: RoleAvatar) => tuanchat.avatarController.updateRoleAvatar(req),
     mutationKey: ['updateRoleAvatar'],
     onSuccess: (res, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
       const nextAvatar = res?.data ?? variables;
+      const resolvedRoleId = nextAvatar?.roleId ?? roleId;
+      if (resolvedRoleId) {
+        queryClient.setQueryData(["getRoleAvatars", resolvedRoleId], (old: any) => {
+          if (!old || !nextAvatar?.avatarId) {
+            return old;
+          }
+
+          const replaceAvatar = (list: RoleAvatar[]) => list.map((avatar) => {
+            if (avatar.avatarId === nextAvatar.avatarId) {
+              return { ...avatar, ...nextAvatar };
+            }
+            return avatar;
+          });
+
+          if (Array.isArray(old)) {
+            return replaceAvatar(old);
+          }
+
+          if (Array.isArray(old.data)) {
+            return {
+              ...old,
+              data: replaceAvatar(old.data),
+            };
+          }
+
+          return old;
+        });
+        queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', resolvedRoleId] });
+      }
       if (nextAvatar?.avatarId) {
         queryClient.setQueryData(["getRoleAvatar", nextAvatar.avatarId], { data: nextAvatar });
         emitWebgalAvatarUpdated({ avatarId: nextAvatar.avatarId, avatar: nextAvatar });

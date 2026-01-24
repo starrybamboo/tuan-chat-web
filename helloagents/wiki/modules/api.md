@@ -30,6 +30,7 @@
 ### React Query hooks
 
 约定：新增 hooks 前先全局搜索避免重复；mutation 后记得 invalidate 对应查询（以现有代码模式为准）。
+- 角色头像更新会先同步替换 `getRoleAvatars` 缓存并触发失效刷新，避免列表显示旧头像。
 
 ### WebSocket
 
