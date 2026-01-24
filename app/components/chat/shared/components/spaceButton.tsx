@@ -26,6 +26,8 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       <button
         className="w-10 btn btn-square relative"
         type="button"
+        title={displayName}
+        aria-label={displayName}
         onClick={onclick}
       >
         <div className="indicator">
