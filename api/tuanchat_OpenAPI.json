@@ -21537,6 +21537,12 @@
             "type": "string",
             "description": "搜索关键词（可选）TODO",
             "example": "克苏鲁"
+          },
+          "authorId": {
+            "type": "integer",
+            "description": "??ID????",
+            "format": "int64",
+            "example": 10001
           }
         },
         "description": "规则分页查询请求"
@@ -21602,6 +21608,10 @@
         "type": "object",
         "properties": {
           "ruleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "authorId": {
             "type": "integer",
             "format": "int64"
           },
@@ -21717,6 +21727,10 @@
         "type": "object",
         "properties": {
           "ruleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "authorId": {
             "type": "integer",
             "format": "int64"
           },
