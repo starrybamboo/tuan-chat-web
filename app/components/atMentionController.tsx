@@ -38,6 +38,31 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
 
   // 2. 派生状态
   const filteredRoles = showDialog
+  const handleMentionKeyDown = (e: { key: string; preventDefault: () => void }) => {
+
+    if (!showDialog)
+      return false;
+
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        if (filteredRoles[selectedIndex]) {
+          handleSelectRole(filteredRoles[selectedIndex]);
+        }
+        return true;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex(prev => Math.max(prev - 1, 0));
+        return true;
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
+        return true;
+      default:
+        return false; // 未处理此键
+    }
+
+  };
     ? allRoles.filter(r => (r.roleName ?? "").includes(searchKey))
     : [];
 
@@ -68,8 +93,11 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     };
 
     editorEl.addEventListener("blur", handleBlur);
+
+    editorEl.addEventListener('keydown', handleMentionKeyDown);
     return () => {
       editorEl.removeEventListener("blur", handleBlur);
+      editorEl.removeEventListener('keydown', handleMentionKeyDown);
     };
   }, [chatInputRef]);
 
@@ -168,29 +196,7 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     isDialogOpen: () => showDialog,
 
     /** 处理按键导航。如果事件被消耗（例如按下了回车或箭头键），则返回 true。 */
-    onKeyDown: (e: React.KeyboardEvent): boolean => {
-      if (!showDialog)
-        return false;
-
-      switch (e.key) {
-        case "Enter":
-          e.preventDefault();
-          if (filteredRoles[selectedIndex]) {
-            handleSelectRole(filteredRoles[selectedIndex]);
-          }
-          return true;
-        case "ArrowUp":
-          e.preventDefault();
-          setSelectedIndex(prev => Math.max(prev - 1, 0));
-          return true;
-        case "ArrowDown":
-          e.preventDefault();
-          setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
-          return true;
-        default:
-          return false; // 未处理此键
-      }
-    },
+    onKeyDown: handleMentionKeyDown,
 
     /** 处理按键释放，用于触发和更新对话框。 */
     onKeyUp: (e: React.KeyboardEvent) => {
