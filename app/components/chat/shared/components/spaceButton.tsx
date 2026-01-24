@@ -1,6 +1,5 @@
 import type { Space } from "../../../../../api";
-import React, { useCallback, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import React from "react";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
@@ -12,45 +11,11 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
   const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`space:${space.spaceId}`]);
   const displayName = headerOverride?.title || space.name;
   const displayAvatar = headerOverride?.imageUrl || space.avatar;
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const [tooltipPoint, setTooltipPoint] = useState<{ x: number; y: number } | null>(null);
-  const tooltipText = displayName?.trim();
-
-  const updateTooltipPoint = useCallback((clientX?: number, clientY?: number) => {
-    const button = buttonRef.current;
-    if (button) {
-      const rect = button.getBoundingClientRect();
-      setTooltipPoint({
-        x: rect.left + rect.width / 2,
-        y: rect.bottom + 6,
-      });
-      return;
-    }
-    if (typeof clientX === "number" && typeof clientY === "number") {
-      setTooltipPoint({
-        x: clientX,
-        y: clientY + 12,
-      });
-    }
-  }, []);
-
-  const showTooltip = useCallback((e?: React.MouseEvent | React.PointerEvent) => {
-    if (!tooltipText)
-      return;
-    updateTooltipPoint(e?.clientX, e?.clientY);
-  }, [tooltipText, updateTooltipPoint]);
-
-  const hideTooltip = useCallback(() => {
-    setTooltipPoint(null);
-  }, []);
 
   return (
     <div
       className="group relative z-20 hover:z-50 w-10 my-1 rounded"
       key={space.spaceId}
-      onPointerEnter={showTooltip}
-      onPointerMove={showTooltip}
-      onPointerLeave={hideTooltip}
     >
       <div
         className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
@@ -59,19 +24,10 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       >
       </div>
       <button
-        ref={buttonRef}
-        className="w-10 btn btn-square relative"
+        className="tooltip tooltip-bottom w-10 btn btn-square relative"
         type="button"
+        data-tip={displayName}
         aria-label={displayName}
-        title={displayName}
-        onMouseEnter={showTooltip}
-        onMouseMove={showTooltip}
-        onMouseLeave={hideTooltip}
-        onPointerEnter={showTooltip}
-        onPointerMove={showTooltip}
-        onPointerLeave={hideTooltip}
-        onFocus={showTooltip}
-        onBlur={hideTooltip}
         onClick={onclick}
       >
         <div className="indicator">
@@ -92,37 +48,6 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
           </div>
         </div>
       </button>
-      {(tooltipPoint && tooltipText && typeof document !== "undefined")
-        ? createPortal(
-            <div
-              className="fixed pointer-events-none z-[9999]"
-              style={{
-                left: tooltipPoint.x,
-                top: tooltipPoint.y,
-                transform: "translate(-50%, 0)",
-              }}
-              aria-hidden="true"
-            >
-              <div
-                style={{
-                  maxWidth: "240px",
-                  borderRadius: "6px",
-                  padding: "4px 8px",
-                  fontSize: "12px",
-                  lineHeight: "1.4",
-                  backgroundColor: "var(--color-neutral, #1f2937)",
-                  color: "var(--color-neutral-content, #ffffff)",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                  whiteSpace: "normal",
-                  wordBreak: "break-word",
-                }}
-              >
-                {tooltipText}
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
     </div>
   );
 }
