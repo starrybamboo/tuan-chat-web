@@ -125,6 +125,22 @@ function RoomComposerPanelImpl({
   const screenSize = useScreenSize();
   const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
+  const mentionRoles = React.useMemo(() => {
+    if (!isKP) {
+      return roomRoles;
+    }
+    const atAllRole: UserRole = {
+      userId: -1,
+      roleId: -1,
+      roleName: "All",
+      avatarId: -1,
+      type: 0,
+      extra: {
+        mentionNote: "检定请求",
+      },
+    };
+    return [atAllRole, ...roomRoles];
+  }, [isKP, roomRoles]);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -658,7 +674,7 @@ function RoomComposerPanelImpl({
             <AtMentionController
               ref={atMentionRef}
               chatInputRef={chatInputRef as any}
-              allRoles={roomRoles}
+              allRoles={mentionRoles}
             >
             </AtMentionController>
           </div>

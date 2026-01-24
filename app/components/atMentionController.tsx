@@ -237,26 +237,32 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
           transform: "translateY(-100%)",
         }}
       >
-        {filteredRoles.map((role, index) => (
-          <div
-            className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${
-              index === selectedIndex ? "bg-base-300" : ""
-            }`}
-            key={role.roleId}
-            onClick={() => {
-              handleSelectRole(role);
-            }}
-            onMouseDown={e => e.preventDefault()} // 关键：防止点击选项时输入框失焦
-          >
-            <RoleAvatarComponent
-              avatarId={role.avatarId ?? -1}
-              width={8}
-              isRounded={true}
-              stopPopWindow={true}
-            />
-            {role.roleName}
-          </div>
-        ))}
+        {filteredRoles.map((role, index) => {
+          const roleNote = role.extra?.mentionNote;
+          return (
+            <div
+              className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${
+                index === selectedIndex ? "bg-base-300" : ""
+              }`}
+              key={role.roleId}
+              onClick={() => {
+                handleSelectRole(role);
+              }}
+              onMouseDown={e => e.preventDefault()} // ???????????????
+            >
+              <RoleAvatarComponent
+                avatarId={role.avatarId ?? -1}
+                width={8}
+                isRounded={true}
+                stopPopWindow={true}
+              />
+              <div className="flex flex-col">
+                <span>{role.roleName}</span>
+                {roleNote ? <span className="text-xs text-base-content/60">{roleNote}</span> : null}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Mounter>
   );
