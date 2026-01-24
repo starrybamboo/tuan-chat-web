@@ -38,6 +38,9 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
 
   // 2. 派生状态
   const filteredRoles = showDialog
+    ? allRoles.filter(r => (r.roleName ?? "").includes(searchKey))
+    : [];
+
   const handleMentionKeyDown = (e: { key: string; preventDefault: () => void }) => {
 
     if (!showDialog)
@@ -63,8 +66,6 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     }
 
   };
-    ? allRoles.filter(r => (r.roleName ?? "").includes(searchKey))
-    : [];
 
   // 3. 相关的 Effects
   useEffect(() => {
