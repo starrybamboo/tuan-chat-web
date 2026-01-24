@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601241705 | chat-mention-all | 变更 | 已完成 | [2026-01/202601241705_chat-mention-all/](2026-01/202601241705_chat-mention-all/) |
 | 202601232244 | role_avatar_render_edit | 变更 | 已完成 | [2026-01/202601232244_role-avatar-render-edit/](2026-01/202601232244_role-avatar-render-edit/) |
 | 202601232052 | chat_import_preserve_speaker_name | 变更 | 已完成 | [2026-01/202601232052_chat_import_preserve_speaker_name/](2026-01/202601232052_chat_import_preserve_speaker_name/) |
 | 202601232052 | chat_text_selection | 修复 | 已完成 | [2026-01/202601232052_chat_text_selection/](2026-01/202601232052_chat_text_selection/) |
@@ -98,6 +99,7 @@
 
 ### 2026-01
 
+- [202601241705_chat-mention-all](2026-01/202601241705_chat-mention-all/) - 聊天 @ 提及列表新增 @All（检定请求）
 - [202601232244_role-avatar-render-edit](2026-01/202601232244_role-avatar-render-edit/) - 角色页面渲染预览内支持修改已有头像
 - [202601232105_webgal_avatar_realtime_sync](2026-01/202601232105_webgal_avatar_realtime_sync/) - WebGAL ????????
 
