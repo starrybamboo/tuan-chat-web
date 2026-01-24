@@ -112,4 +112,5 @@ $12026-01-19
 
 ## 变更历史
 
-（从 `helloagents/history/` 自动补全）
+- 2026-01-24 移除 `app/utils/transformStageEntityToUserRole.ts`（已确认保留删除）
+- （从 `helloagents/history/` 自动补全）
