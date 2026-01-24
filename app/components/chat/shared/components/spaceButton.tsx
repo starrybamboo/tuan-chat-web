@@ -41,6 +41,9 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
     <div
       className="group relative z-20 hover:z-50 w-10 my-1 rounded"
       key={space.spaceId}
+      onPointerEnter={showTooltip}
+      onPointerMove={showTooltip}
+      onPointerLeave={hideTooltip}
     >
       <div
         className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
@@ -53,6 +56,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
         className="w-10 btn btn-square relative"
         type="button"
         aria-label={displayName}
+        title={displayName}
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
         onFocus={showTooltip}
