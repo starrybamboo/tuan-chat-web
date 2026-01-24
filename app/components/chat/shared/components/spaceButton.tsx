@@ -1,5 +1,6 @@
 import type { Space } from "../../../../../api";
-import React from "react";
+import React, { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
@@ -11,6 +12,30 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
   const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`space:${space.spaceId}`]);
   const displayName = headerOverride?.title || space.name;
   const displayAvatar = headerOverride?.imageUrl || space.avatar;
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [tooltipPoint, setTooltipPoint] = useState<{ x: number; y: number } | null>(null);
+  const tooltipText = displayName?.trim();
+
+  const updateTooltipPoint = useCallback(() => {
+    const button = buttonRef.current;
+    if (!button)
+      return;
+    const rect = button.getBoundingClientRect();
+    setTooltipPoint({
+      x: rect.left + rect.width / 2,
+      y: rect.bottom,
+    });
+  }, []);
+
+  const showTooltip = useCallback(() => {
+    if (!tooltipText)
+      return;
+    updateTooltipPoint();
+  }, [tooltipText, updateTooltipPoint]);
+
+  const hideTooltip = useCallback(() => {
+    setTooltipPoint(null);
+  }, []);
 
   return (
     <div
@@ -24,10 +49,14 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       >
       </div>
       <button
-        className="tooltip tooltip-bottom w-10 btn btn-square relative"
+        ref={buttonRef}
+        className="w-10 btn btn-square relative"
         type="button"
-        data-tip={displayName}
         aria-label={displayName}
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
         onClick={onclick}
       >
         <div className="indicator">
@@ -48,6 +77,23 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
           </div>
         </div>
       </button>
+      {(tooltipPoint && tooltipText && typeof document !== "undefined")
+        ? createPortal(
+            <span
+              className="tooltip tooltip-bottom tooltip-open fixed pointer-events-none z-[9999]"
+              data-tip={tooltipText}
+              style={{
+                left: tooltipPoint.x,
+                top: tooltipPoint.y,
+                width: 0,
+                height: 0,
+                transform: "translateX(-50%)",
+              }}
+              aria-hidden="true"
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

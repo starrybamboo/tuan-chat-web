@@ -403,6 +403,7 @@ function RoomComposerPanelImpl({
                             : (
                                 <RoleAvatarComponent
                                   avatarId={curAvatarId}
+                                  roleId={curRoleId}
                                   width={8}
                                   isRounded={true}
                                   withTitle={false}
