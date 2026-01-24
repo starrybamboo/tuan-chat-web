@@ -8,6 +8,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Mounter } from "@/components/common/mounter";
@@ -36,6 +37,7 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [searchKey, setSearchKey] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const listRef = useRef<HTMLUListElement | null>(null);
 
   const closeDialog = useCallback(() => {
     setShowDialog(false);
@@ -185,6 +187,16 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     }
   }, [showDialog, searchKey]);
 
+  useEffect(() => {
+    if (!showDialog)
+      return;
+    const listEl = listRef.current;
+    if (!listEl)
+      return;
+    const selectedEl = listEl.querySelector<HTMLElement>(`[data-at-mention-index="${selectedIndex}"]`);
+    selectedEl?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex, showDialog]);
+
   // 监听输入框的焦点状态，如果失焦，则关闭@选项框
   useEffect(() => {
     const editorEl = chatInputRef.current?.getRawElement();
@@ -258,7 +270,7 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
         }}
         onMouseDown={e => e.preventDefault()}
       >
-        <ul className="menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1 menu-sm sm:menu-md">
+        <ul ref={listRef} className="menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1 menu-sm sm:menu-md">
           {filteredRoles.map((role, index) => {
             const roleNote = role.extra?.mentionNote;
             const isAtAll = role.roleId === -9999;
@@ -268,7 +280,9 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
               return (
                 <li key={role.roleId} className="mb-1">
                   <a
-                    className={`flex-col items-center justify-center py-2 bg-base-200/50 border border-base-300/50 ${isSelected ? "active !bg-primary !border-primary" : ""}`}
+                    data-at-mention-index={index}
+                    aria-selected={isSelected}
+                    className={`flex-col items-center justify-center py-2 bg-base-200/50 border border-base-300/50 ${isSelected ? "active !bg-primary !border-primary !text-primary-content" : ""}`}
                     onClick={() => handleSelectRole(role)}
                   >
                     <span className="font-bold">{role.roleName}</span>
@@ -289,7 +303,9 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
             return (
               <li key={role.roleId}>
                 <a
-                  className={`gap-3 py-2 ${isSelected ? "active" : ""}`}
+                  data-at-mention-index={index}
+                  aria-selected={isSelected}
+                  className={`gap-3 py-2 ${isSelected ? "active !bg-primary !text-primary-content" : ""}`}
                   onClick={() => handleSelectRole(role)}
                 >
                   <RoleAvatarComponent
