@@ -16,6 +16,7 @@ export interface RealtimeRenderOrchestratorApi {
   stopRealtimeRender: () => void;
   jumpToMessage: (messageId: number) => boolean;
   updateAndRerenderMessage: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
+  rerenderHistory: (messages?: ChatMessageResponse[]) => Promise<boolean>;
   clearFigure: () => void;
   clearBackground: () => void;
 }
@@ -321,6 +322,54 @@ export default function RealtimeRenderOrchestrator({
     return realtimeRender.updateAndRerenderMessage(message, roomId, regenerateTTS);
   }, [realtimeRender, roomId]);
 
+  const rerenderHistoryInWebGAL = useCallback(async (
+    messages?: ChatMessageResponse[],
+  ): Promise<boolean> => {
+    if (!realtimeRender.isActive || realtimeRender.status !== "connected") {
+      return false;
+    }
+    if (isRenderingHistoryRef.current) {
+      return false;
+    }
+
+    const messagesToRender = messages ?? historyMessages;
+    if (!messagesToRender || messagesToRender.length === 0) {
+      return true;
+    }
+
+    isRenderingHistoryRef.current = true;
+    try {
+      toast.loading("正在同步 WebGAL 顺序...", { id: "webgal-rerender-history" });
+
+      hasRenderedHistoryRef.current = false;
+      lastRenderedMessageIdRef.current = null;
+      lastBackgroundMessageIdRef.current = null;
+
+      await realtimeRender.resetScene(roomId);
+      await realtimeRender.renderHistory(messagesToRender, roomId);
+
+      const lastMessage = messagesToRender[messagesToRender.length - 1];
+      if (lastMessage) {
+        lastRenderedMessageIdRef.current = lastMessage.message.messageId;
+      }
+      const backgroundMessages = messagesToRender
+        .filter(msg => msg.message.messageType === 2 && msg.message.extra?.imageMessage?.background);
+      lastBackgroundMessageIdRef.current = backgroundMessages[backgroundMessages.length - 1]?.message.messageId ?? null;
+
+      hasRenderedHistoryRef.current = true;
+      toast.success("WebGAL 顺序已同步", { id: "webgal-rerender-history" });
+      return true;
+    }
+    catch (error) {
+      console.error("[RealtimeRender] 同步 WebGAL 顺序失败:", error);
+      toast.error("WebGAL 顺序同步失败", { id: "webgal-rerender-history" });
+      return false;
+    }
+    finally {
+      isRenderingHistoryRef.current = false;
+    }
+  }, [historyMessages, realtimeRender, roomId]);
+
   const clearFigure = useCallback(() => {
     if (!realtimeRender.isActive) {
       return;
@@ -341,10 +390,11 @@ export default function RealtimeRenderOrchestrator({
       stopRealtimeRender,
       jumpToMessage: jumpToMessageInWebGAL,
       updateAndRerenderMessage: updateAndRerenderMessageInWebGAL,
+      rerenderHistory: rerenderHistoryInWebGAL,
       clearFigure,
       clearBackground,
     };
-  }, [clearBackground, clearFigure, handleToggleRealtimeRender, jumpToMessageInWebGAL, stopRealtimeRender, updateAndRerenderMessageInWebGAL]);
+  }, [clearBackground, clearFigure, handleToggleRealtimeRender, jumpToMessageInWebGAL, rerenderHistoryInWebGAL, stopRealtimeRender, updateAndRerenderMessageInWebGAL]);
 
   useEffect(() => {
     onApiChange(api);

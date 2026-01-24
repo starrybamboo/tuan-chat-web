@@ -295,6 +295,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     return await realtimeRenderApiRef.current?.updateAndRerenderMessage(message, regenerateTTS) ?? false;
   }, []);
 
+  // WebGAL 全量重建历史消息（用于消息重排导致相对顺序变化的场景）
+  const rerenderHistoryInWebGAL = useCallback(async (
+    messages?: ChatMessageResponse[],
+  ): Promise<boolean> => {
+    return await realtimeRenderApiRef.current?.rerenderHistory(messages) ?? false;
+  }, []);
+
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
       roomId,
@@ -310,8 +317,10 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       jumpToMessageInWebGAL: isRealtimeRenderActive ? jumpToMessageInWebGAL : undefined,
       // WebGAL 更新渲染并跳转 - 只有在实时渲染激活时才启用
       updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
+      // WebGAL 按顺序重建历史 - 只有在实时渲染激活时才启用
+      rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, spaceId, chatHistory, scrollToGivenMessage, isRealtimeRenderActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, spaceId, chatHistory, scrollToGivenMessage, isRealtimeRenderActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, rerenderHistoryInWebGAL]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   // 判断是否是观战成员 (memberType >= 3)
