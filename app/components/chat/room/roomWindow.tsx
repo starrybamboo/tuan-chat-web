@@ -493,13 +493,14 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
   const containsCommandRequestAllToken = useCallback((text: string) => {
     const raw = String(text ?? "");
-    return /@all\b/i.test(raw) || raw.includes("@全员");
+    return /@all\b/i.test(raw) || raw.includes("@全员") || raw.includes("@检定请求");
   }, []);
 
   const stripCommandRequestAllToken = useCallback((text: string) => {
     return String(text ?? "")
       .replace(/@all\b/gi, " ")
       .replace(/@全员/g, " ")
+      .replace(/@检定请求/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   }, []);
