@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useState,
 } from "react";
 import { Mounter } from "@/components/common/mounter";
@@ -36,72 +37,12 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
   const [searchKey, setSearchKey] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // 2. 派生状态
-  const filteredRoles = showDialog
-    ? allRoles.filter(r => r.roleId === -9999 || (r.roleName ?? "").includes(searchKey))
-    : [];
-  const handleMentionKeyDown = (e: { key: string; preventDefault: () => void }) => {
+  const closeDialog = useCallback(() => {
+    setShowDialog(false);
+    setSearchKey("");
+  }, []);
 
-    if (!showDialog)
-      return false;
-
-    switch (e.key) {
-      case "Enter":
-        e.preventDefault();
-        if (filteredRoles[selectedIndex]) {
-          handleSelectRole(filteredRoles[selectedIndex]);
-        }
-        return true;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, 0));
-        return true;
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
-        return true;
-      default:
-        return false; // 未处理此键
-    }
-
-  };
-
-  // 3. 相关的 Effects
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [showDialog, searchKey]); // searchKey 依赖是必要的，以便在过滤列表更改时重置
-
-  useEffect(() => {
-    if (showDialog) {
-      const { x: cursorX, y: cursorY } = getSelectionCoords();
-      setDialogPosition({
-        x: Math.min(cursorX, screen.width - 100),
-        y: cursorY,
-      });
-    }
-  }, [showDialog, searchKey]);
-
-  // 监听输入框的焦点状态，如果失焦，则关闭@选项框
-  useEffect(() => {
-    const editorEl = chatInputRef.current?.getRawElement();
-    if (!editorEl)
-      return;
-
-    const handleBlur = () => {
-      setShowDialog(false);
-      setSearchKey("");
-    };
-
-    editorEl.addEventListener("blur", handleBlur);
-
-    editorEl.addEventListener('keydown', handleMentionKeyDown, true);
-    return () => {
-      editorEl.removeEventListener("blur", handleBlur);
-      editorEl.removeEventListener('keydown', handleMentionKeyDown, true);
-    };
-  }, [chatInputRef]);
-
-  // 4. 所有内部逻辑函数
+  // 2. 所有内部逻辑函数
   const checkDialogTrigger = useCallback(() => {
     const editorEl = chatInputRef.current?.getRawElement();
     const rangeInfo = getEditorRange(editorEl);
@@ -111,8 +52,7 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
 
     const curNode = rangeInfo.range.endContainer;
     if (!curNode.textContent?.includes("@")) {
-      setShowDialog(false);
-      setSearchKey("");
+      closeDialog();
       return;
     }
 
@@ -125,8 +65,7 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     if (keywords) {
       const keyWord = keywords[1];
       if (keyWord != null && keyWord.length > 20) {
-        setShowDialog(false);
-        setSearchKey("");
+        closeDialog();
         return;
       }
       setSearchKey(keyWord ?? ""); // 如果 keyWord 是 null/undefined，则设置为空字符串
@@ -137,7 +76,7 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     else {
       setShowDialog(false);
     }
-  }, [chatInputRef]);
+  }, [chatInputRef, closeDialog]);
 
   const handleSelectRole = useCallback((role: UserRole) => {
     const sel = window.getSelection();
@@ -190,13 +129,91 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     }, 0); // 0 毫秒延迟将其推到事件循环的末尾
   }, [chatInputRef]);
 
+  // 3. 派生状态
+  const filteredRoles = useMemo(() => {
+    if (!showDialog)
+      return [];
+    return allRoles.filter(r => r.roleId === -9999 || (r.roleName ?? "").includes(searchKey));
+  }, [allRoles, searchKey, showDialog]);
+
+  const handleMentionKeyDown = useCallback((e: Pick<KeyboardEvent, "key" | "preventDefault" | "stopPropagation">) => {
+    if (!showDialog || filteredRoles.length === 0)
+      return false;
+
+    switch (e.key) {
+      case "Escape":
+        e.preventDefault();
+        e.stopPropagation();
+        closeDialog();
+        return true;
+      case "Enter":
+        e.preventDefault();
+        e.stopPropagation();
+        if (filteredRoles[selectedIndex]) {
+          handleSelectRole(filteredRoles[selectedIndex]);
+        }
+        return true;
+      case "ArrowUp":
+      case "Up":
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex(prev => Math.max(prev - 1, 0));
+        return true;
+      case "ArrowDown":
+      case "Down":
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
+        return true;
+      default:
+        return false;
+    }
+  }, [closeDialog, filteredRoles, handleSelectRole, selectedIndex, showDialog]);
+
+  // 4. 相关的 Effects
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [showDialog, searchKey]); // searchKey 依赖是必要的，以便在过滤列表更改时重置
+
+  useEffect(() => {
+    if (showDialog) {
+      const { x: cursorX, y: cursorY } = getSelectionCoords();
+      setDialogPosition({
+        x: Math.min(cursorX, screen.width - 100),
+        y: cursorY,
+      });
+    }
+  }, [showDialog, searchKey]);
+
+  // 监听输入框的焦点状态，如果失焦，则关闭@选项框
+  useEffect(() => {
+    const editorEl = chatInputRef.current?.getRawElement();
+    if (!editorEl)
+      return;
+
+    const handleBlur = () => {
+      closeDialog();
+    };
+
+    const handleNativeKeyDown = (ev: KeyboardEvent) => {
+      handleMentionKeyDown(ev);
+    };
+
+    editorEl.addEventListener("blur", handleBlur);
+    editorEl.addEventListener("keydown", handleNativeKeyDown, true);
+    return () => {
+      editorEl.removeEventListener("blur", handleBlur);
+      editorEl.removeEventListener("keydown", handleNativeKeyDown, true);
+    };
+  }, [chatInputRef, closeDialog, handleMentionKeyDown]);
+
   // 5. 使用 useImperativeHandle 暴露 API
   useImperativeHandle(ref, () => ({
     /** 返回当前对话框是否打开 */
     isDialogOpen: () => showDialog,
 
     /** 处理按键导航。如果事件被消耗（例如按下了回车或箭头键），则返回 true。 */
-    onKeyDown: handleMentionKeyDown,
+    onKeyDown: (e: React.KeyboardEvent) => handleMentionKeyDown(e.nativeEvent),
 
     /** 处理按键释放，用于触发和更新对话框。 */
     onKeyUp: (e: React.KeyboardEvent) => {
@@ -217,16 +234,13 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
     },
 
     /** 关闭对话框 */
-    closeDialog: () => {
-      setShowDialog(false);
-      setSearchKey("");
-    },
+    closeDialog,
 
     /** 处理输入事件 */
     onInput: () => {
       checkDialogTrigger();
     },
-  }));
+  }), [checkDialogTrigger, closeDialog, handleMentionKeyDown, showDialog]);
 
   // 6. 渲染 JSX（弹出窗口）
   if (!showDialog || dialogPosition.x <= 0 || filteredRoles.length === 0) {
