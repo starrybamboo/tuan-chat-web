@@ -852,10 +852,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             <div className="flex items-center gap-2 rounded-md bg-base-100/70 border border-base-300 px-2 py-0.5 sm:py-1">
               <RoleAvatarComponent
                 avatarId={message.avatarId ?? 0}
+                roleId={message.roleId ?? undefined}
                 width={6}
                 isRounded={true}
                 withTitle={false}
                 stopPopWindow={true}
+                useDefaultAvatarFallback={false}
               />
               <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
                 {threadTitle}
@@ -884,10 +886,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
                   avatarId={message.avatarId ?? 0}
+                  roleId={message.roleId ?? undefined}
                   width={isMobile ? 10 : 12}
                   isRounded={true}
                   withTitle={false}
                   stopPopWindow={true}
+                  useDefaultAvatarFallback={false}
                 />
               </div>
               <div className="flex flex-col items-start">
@@ -962,10 +966,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 <div className="w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId ?? 0}
+                    roleId={message.roleId ?? undefined}
                     width={isMobile ? 10 : 20}
                     isRounded={false}
                     withTitle={false}
                     stopPopWindow={true}
+                    useDefaultAvatarFallback={false}
                   >
                   </RoleAvatarComponent>
                 </div>

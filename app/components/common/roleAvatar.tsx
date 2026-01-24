@@ -48,6 +48,7 @@ export default function RoleAvatarComponent({
   withTitle = false,
   stopPopWindow = false,
   alt = "avatar",
+  useDefaultAvatarFallback = true,
   allowKickOut = true,
   hoverToScale = false,
   detailVariant = "page",
@@ -59,6 +60,8 @@ export default function RoleAvatarComponent({
   withTitle?: boolean; // 是否在下方显示标题
   stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
   alt?: string;
+  /** 当 avatarId <= 0 且无法从 roleId 找到可用头像时，是否回退到默认图标（/favicon.ico） */
+  useDefaultAvatarFallback?: boolean;
   allowKickOut?: boolean;
   hoverToScale?: boolean;
   detailVariant?: "simple" | "page";
@@ -70,7 +73,7 @@ export default function RoleAvatarComponent({
   const shouldUseFallback = !hasExplicitAvatarId && typeof roleId === "number" && roleId > 0;
   const fallbackAvatarsQuery = useGetRoleAvatarsQuery(roleId ?? -1, { enabled: shouldUseFallback });
   const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
-  const defaultAvatarUrl = "/favicon.ico";
+  const defaultAvatarUrl = (hasExplicitAvatarId || useDefaultAvatarFallback) ? "/favicon.ico" : "";
   const displayAvatarUrl = (hasExplicitAvatarId ? roleAvatar?.avatarUrl : fallbackAvatar?.avatarUrl) || defaultAvatarUrl;
   const roleIdTrue = roleId ?? roleAvatar?.roleId ?? fallbackAvatar?.roleId;
   const hasAvatar = Boolean(displayAvatarUrl);

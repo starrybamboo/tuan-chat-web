@@ -162,6 +162,98 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
 
+  // 运行时头像兜底（不持久化）：用于在 curAvatarIdMap 缺失时保证“可读”的 avatarId（优先 role.avatarId）
+  const [runtimeAvatarIdMap, setRuntimeAvatarIdMap] = useState<Record<number, number>>({});
+  const runtimeAvatarIdMapRef = useRef(runtimeAvatarIdMap);
+  useEffect(() => {
+    runtimeAvatarIdMapRef.current = runtimeAvatarIdMap;
+  }, [runtimeAvatarIdMap]);
+
+  const roleDefaultAvatarIdMap = useMemo(() => {
+    const out: Record<number, number> = {};
+    for (const role of roomRolesThatUserOwn) {
+      out[role.roleId] = role.avatarId ?? -1;
+    }
+    return out;
+  }, [roomRolesThatUserOwn]);
+
+  useEffect(() => {
+    setRuntimeAvatarIdMap((prev) => {
+      const next: Record<number, number> = { ...prev };
+      for (const role of roomRolesThatUserOwn) {
+        const roleId = role.roleId;
+        const stored = useRoomRoleSelectionStore.getState().curAvatarIdMap[roleId] ?? -1;
+        if (stored > 0) {
+          continue;
+        }
+        const fallback = role.avatarId ?? -1;
+        const existing = next[roleId];
+        if (existing == null || (existing <= 0 && fallback > 0)) {
+          next[roleId] = fallback;
+        }
+      }
+      return next;
+    });
+  }, [roomRolesThatUserOwn]);
+
+  const pickDefaultAvatarId = useCallback((avatars: any[]): number => {
+    const defaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") ?? null;
+    return defaultLabelAvatar?.avatarId ?? (avatars[0]?.avatarId ?? -1);
+  }, []);
+
+  const ensureRuntimeAvatarIdForRole = useCallback(async (roleId: number): Promise<number> => {
+    if (roleId <= 0) {
+      return -1;
+    }
+
+    const stored = useRoomRoleSelectionStore.getState().curAvatarIdMap[roleId] ?? -1;
+    if (stored > 0) {
+      return stored;
+    }
+
+    const runtime = runtimeAvatarIdMapRef.current[roleId] ?? -1;
+    if (runtime > 0) {
+      return runtime;
+    }
+
+    const roleDefault = roleDefaultAvatarIdMap[roleId] ?? -1;
+    if (roleDefault > 0) {
+      setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: roleDefault }));
+      return roleDefault;
+    }
+
+    try {
+      const avatars = (await tuanchat.avatarController.getRoleAvatars(roleId))?.data ?? [];
+      const picked = pickDefaultAvatarId(avatars);
+      if (picked > 0) {
+        setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: picked }));
+        return picked;
+      }
+    }
+    catch {
+      // ignore：发送/导入流程不应因头像列表拉取失败而中断
+    }
+
+    setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: -1 }));
+    return -1;
+  }, [pickDefaultAvatarId, roleDefaultAvatarIdMap]);
+
+  const getEffectiveAvatarIdForRole = useCallback((roleId: number): number => {
+    if (roleId <= 0) {
+      return -1;
+    }
+    const stored = curAvatarIdMap[roleId] ?? -1;
+    if (stored > 0) {
+      return stored;
+    }
+    const runtime = runtimeAvatarIdMap[roleId] ?? -1;
+    if (runtime > 0) {
+      return runtime;
+    }
+    const roleDefault = roleDefaultAvatarIdMap[roleId] ?? -1;
+    return roleDefault;
+  }, [curAvatarIdMap, roleDefaultAvatarIdMap, runtimeAvatarIdMap]);
+
   const storedRoleId = curRoleIdMap[roomId];
   const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? -1;
   const curRoleId = (storedRoleId == null)
@@ -177,7 +269,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     setCurRoleIdForRoom(roomId, roleId);
   }, [roomId, setCurRoleIdForRoom, spaceContext.isSpaceOwner]);
 
-  const curAvatarId = curAvatarIdMap[curRoleId] ?? -1;
+  const curAvatarId = getEffectiveAvatarIdForRole(curRoleId);
   const setCurAvatarId = useCallback((_avatarId: number) => {
     setCurAvatarIdForRole(curRoleId, _avatarId);
   }, [curRoleId, setCurAvatarIdForRole]);
@@ -653,10 +745,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     webgalVarSendingRef.current = true;
     try {
+      const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
       const varMsg: ChatMessageRequest = {
         roomId,
         roleId: curRoleId,
-        avatarId: curAvatarId,
+        avatarId: resolvedAvatarId,
         content: "",
         messageType: MessageType.WEBGAL_VAR,
         extra: {
@@ -782,6 +875,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     setIsSubmitting(true);
     try {
       const uploadedImages: any[] = [];
+      const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
       // 1. 上传图片
       for (let i = 0; i < imgFiles.length; i++) {
@@ -824,7 +918,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         const fields: Partial<ChatMessageRequest> = {
           roomId,
           roleId: curRoleId,
-          avatarId: curAvatarId,
+          avatarId: resolvedAvatarId,
         };
 
         // Thread 模式：给本次发送的消息挂上 threadId（root messageId）
@@ -1064,51 +1158,74 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     setIsSubmitting(true);
     try {
-      const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
-      const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
-      const avatarMap = useRoomRoleSelectionStore.getState().curAvatarIdMap;
+       const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
 
-      let dicerRoleId: number | null = null;
-      let dicerAvatarId: number | null = null;
+       const resolvedAvatarIdByRole = new Map<number, number>();
+       const ensureAvatarIdForRole = async (roleId: number): Promise<number> => {
+         if (roleId <= 0) {
+           return -1;
+         }
+         const cached = resolvedAvatarIdByRole.get(roleId);
+         if (cached != null) {
+           return cached;
+         }
 
-      const ensureDicerSender = async () => {
-        if (dicerRoleId != null && dicerAvatarId != null) {
-          return;
-        }
-        dicerRoleId = await UTILS.getDicerRoleId(roomContext);
+         const ensured = await ensureRuntimeAvatarIdForRole(roleId);
+         resolvedAvatarIdByRole.set(roleId, ensured);
+         return ensured;
+       };
 
-        const cachedAvatarId = avatarMap[dicerRoleId] ?? null;
-        if (cachedAvatarId != null && cachedAvatarId > 0) {
-          dicerAvatarId = cachedAvatarId;
-          return;
-        }
+       let dicerRoleId: number | null = null;
+       let dicerAvatarId: number | null = null;
 
-        const avatars = (await tuanchat.avatarController.getRoleAvatars(dicerRoleId))?.data ?? [];
-        const defaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") ?? null;
-        dicerAvatarId = defaultLabelAvatar?.avatarId ?? (avatars[0]?.avatarId ?? 0);
-      };
+       const ensureDicerSender = async () => {
+         if (dicerRoleId != null && dicerAvatarId != null) {
+           return;
+         }
+         const resolvedDicerRoleId = await UTILS.getDicerRoleId(roomContext);
+         dicerRoleId = resolvedDicerRoleId;
+         const ensured = await ensureAvatarIdForRole(resolvedDicerRoleId);
+         dicerAvatarId = ensured > 0 ? ensured : 0;
+       };
 
-      const total = messages.length;
-      for (let i = 0; i < messages.length; i++) {
-        const msg = messages[i];
-        let roleId = msg.roleId;
-        let avatarId = roleId <= 0 ? -1 : (avatarMap[roleId] ?? -1);
-        let messageType = MessageType.TEXT;
-        let extra: any = {};
-        const figurePosition = msg.figurePosition;
+       const uniqueRoleIds = Array.from(new Set(
+         messages
+           .map(m => m.roleId)
+           .filter(roleId => roleId > 0),
+       ));
+       for (const roleId of uniqueRoleIds) {
+         await ensureAvatarIdForRole(roleId);
+       }
 
-        // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
-        if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
-          await ensureDicerSender();
-          roleId = dicerRoleId ?? roleId;
-          avatarId = dicerAvatarId ?? 0;
-          messageType = MessageType.DICE;
-          extra = { result: msg.content };
-        }
+       if (messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
+         await ensureDicerSender();
+       }
 
-        const request: ChatMessageRequest = {
-          roomId,
-          roleId,
+       const total = messages.length;
+       for (let i = 0; i < messages.length; i++) {
+         const msg = messages[i];
+         let roleId = msg.roleId;
+         let avatarId = -1;
+         let messageType = MessageType.TEXT;
+         let extra: any = {};
+         const figurePosition = msg.figurePosition;
+
+         // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
+         if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
+           await ensureDicerSender();
+           roleId = dicerRoleId ?? roleId;
+           avatarId = dicerAvatarId ?? 0;
+           messageType = MessageType.DICE;
+           extra = { result: msg.content };
+         }
+         else {
+           avatarId = roleId <= 0 ? -1 : await ensureAvatarIdForRole(roleId);
+         }
+
+         const request: ChatMessageRequest = {
+           roomId,
+           roleId,
           avatarId,
           content: msg.content,
           messageType,
@@ -1159,16 +1276,17 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       useRoomUiStore.getState().setReplyMessage(prevReply);
       setIsSubmitting(false);
     }
-  }, [isSubmitting, notMember, roomContext, roomId, sendMessageWithInsert]);
+  }, [ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomContext, roomId, sendMessageWithInsert]);
 
   // 线索消息发送
-  const handleClueSend = (clue: ClueMessage) => {
+  const handleClueSend = async (clue: ClueMessage) => {
+    const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
     const clueMessage: ChatMessageRequest = {
       roomId,
       roleId: curRoleId,
       messageType: 1000,
       content: "",
-      avatarId: curAvatarId,
+      avatarId: resolvedAvatarId,
       extra: {
         img: clue.img,
         name: clue.name,
