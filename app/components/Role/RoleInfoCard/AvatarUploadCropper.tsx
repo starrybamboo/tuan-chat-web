@@ -356,6 +356,9 @@ export function CharacterCopper({
       },
     );
 
+    const shouldUploadSprite = Boolean(setDownloadUrl || mutate);
+    const shouldUploadAvatar = Boolean(setCopperedDownloadUrl || mutate);
+
     try {
       let downloadUrl = "";
       let copperedDownloadUrl = "";
@@ -373,14 +376,14 @@ export function CharacterCopper({
       }
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
-        if (setDownloadUrl) {
+        if (shouldUploadSprite) {
           downloadUrl = await uploadUtils.uploadImg(fileWithNewName, scene);
-          setDownloadUrl(downloadUrl);
+          setDownloadUrl?.(downloadUrl);
         }
-        if (setCopperedDownloadUrl) {
+        if (shouldUploadAvatar) {
           const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
           copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
-          setCopperedDownloadUrl(copperedDownloadUrl);
+          setCopperedDownloadUrl?.(copperedDownloadUrl);
         }
 
         // 确保 originUrl 已经上传完成（若用户很快提交，这里会等待）
