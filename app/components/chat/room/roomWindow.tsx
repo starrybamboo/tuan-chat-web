@@ -805,7 +805,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           audio.onloadedmetadata = () => resolve(null);
         });
         const duration = audio.duration;
-        const url = await uploadUtils.uploadAudio(audioFile, 1, 6000);
+        const url = await uploadUtils.uploadAudio(audioFile, 1, 6000); // 最长6000秒
         soundMessageData = {
           url,
           second: Math.round(duration),
