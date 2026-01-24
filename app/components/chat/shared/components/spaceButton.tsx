@@ -16,21 +16,28 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
   const [tooltipPoint, setTooltipPoint] = useState<{ x: number; y: number } | null>(null);
   const tooltipText = displayName?.trim();
 
-  const updateTooltipPoint = useCallback(() => {
+  const updateTooltipPoint = useCallback((clientX?: number, clientY?: number) => {
     const button = buttonRef.current;
-    if (!button)
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      setTooltipPoint({
+        x: rect.left + rect.width / 2,
+        y: rect.bottom + 6,
+      });
       return;
-    const rect = button.getBoundingClientRect();
-    setTooltipPoint({
-      x: rect.left + rect.width / 2,
-      y: rect.bottom + 6,
-    });
+    }
+    if (typeof clientX === "number" && typeof clientY === "number") {
+      setTooltipPoint({
+        x: clientX,
+        y: clientY + 12,
+      });
+    }
   }, []);
 
-  const showTooltip = useCallback(() => {
+  const showTooltip = useCallback((e?: React.MouseEvent | React.PointerEvent) => {
     if (!tooltipText)
       return;
-    updateTooltipPoint();
+    updateTooltipPoint(e?.clientX, e?.clientY);
   }, [tooltipText, updateTooltipPoint]);
 
   const hideTooltip = useCallback(() => {
@@ -58,7 +65,11 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
         aria-label={displayName}
         title={displayName}
         onMouseEnter={showTooltip}
+        onMouseMove={showTooltip}
         onMouseLeave={hideTooltip}
+        onPointerEnter={showTooltip}
+        onPointerMove={showTooltip}
+        onPointerLeave={hideTooltip}
         onFocus={showTooltip}
         onBlur={hideTooltip}
         onClick={onclick}
@@ -85,14 +96,28 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
         ? createPortal(
             <div
               className="fixed pointer-events-none z-[9999]"
-              style={{ left: tooltipPoint.x, top: tooltipPoint.y }}
+              style={{
+                left: tooltipPoint.x,
+                top: tooltipPoint.y,
+                transform: "translate(-50%, 0)",
+              }}
               aria-hidden="true"
             >
-              <div className="relative -translate-x-1/2">
-                <div className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-neutral shadow" />
-                <div className="max-w-[240px] rounded px-2 py-1 text-xs bg-neutral text-neutral-content shadow whitespace-normal break-words">
-                  {tooltipText}
-                </div>
+              <div
+                style={{
+                  maxWidth: "240px",
+                  borderRadius: "6px",
+                  padding: "4px 8px",
+                  fontSize: "12px",
+                  lineHeight: "1.4",
+                  backgroundColor: "var(--color-neutral, #1f2937)",
+                  color: "var(--color-neutral-content, #ffffff)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                  whiteSpace: "normal",
+                  wordBreak: "break-word",
+                }}
+              >
+                {tooltipText}
               </div>
             </div>,
             document.body,
