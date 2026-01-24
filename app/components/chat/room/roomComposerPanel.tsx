@@ -131,7 +131,7 @@ function RoomComposerPanelImpl({
     }
     const atAllRole: UserRole = {
       userId: -1,
-      roleId: -1,
+      roleId: -9999,
       roleName: "All",
       avatarId: -1,
       type: 0,

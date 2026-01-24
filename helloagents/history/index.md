@@ -99,7 +99,7 @@
 
 ### 2026-01
 
-- [202601241705_chat-mention-all](2026-01/202601241705_chat-mention-all/) - 聊天 @ 提及列表新增 @All（检定请求）
+- [202601241705_chat-mention-all](2026-01/202601241705_chat-mention-all/) - KP 聊天 @ 提及列表新增 @All（检定请求）
 - [202601232244_role-avatar-render-edit](2026-01/202601232244_role-avatar-render-edit/) - 角色页面渲染预览内支持修改已有头像
 - [202601232105_webgal_avatar_realtime_sync](2026-01/202601232105_webgal_avatar_realtime_sync/) - WebGAL ????????
 
