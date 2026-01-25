@@ -129,6 +129,7 @@ export default function RulesSection({
                     <div className="card-body p-5 md:p-6 min-h-32">
                       <div className="flex h-full items-center justify-between gap-4 md:gap-6">
                         <div>
+                          <p className="text-sm text-base-content/70 line-clamp-2">{`#${rule.ruleId}`}</p>
                           <h4 className="font-medium text-base">{rule.ruleName}</h4>
                           <p className="text-sm text-base-content/70 line-clamp-2">{rule.ruleDescription}</p>
                         </div>
@@ -164,6 +165,7 @@ export default function RulesSection({
             }`}
             onClick={() => onRuleChange(rule.ruleId || 0)}
           >
+            <p className="text-xs text-base-content/60 line-clamp-2">{`#${rule.ruleId}`}</p>
             <h3 className="font-medium text-sm mb-1">{rule.ruleName}</h3>
             <p className="text-xs text-base-content/60 line-clamp-2">{rule.ruleDescription}</p>
           </div>

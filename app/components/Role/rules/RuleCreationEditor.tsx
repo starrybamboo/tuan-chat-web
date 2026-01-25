@@ -1,4 +1,5 @@
 import type { Rule } from "api/models/Rule";
+import { ApiError } from "api/core/ApiError";
 import { useCreateRuleMutation, useDeleteRuleMutation, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -144,6 +145,7 @@ export default function RuleCreationEditor({
       };
     });
     setCloneVersion(prev => prev + 1);
+    toast.success("规则导入成功");
   }
 
   async function handleSave() {
@@ -236,8 +238,8 @@ export default function RuleCreationEditor({
       }
     }
     catch (err) {
-      const msg = err instanceof Error ? err.message : "请求失败";
-      toast.error(msg);
+      const msg = err instanceof ApiError ? err.body?.errMsg : undefined;
+      toast.error(msg || (mode === "edit" ? "保存失败" : "创建失败"));
     }
     finally {
       setIsSavingRule(false);
@@ -274,11 +276,12 @@ export default function RuleCreationEditor({
         onBack ? onBack() : navigate("/role", { replace: true });
       }
       else {
-        toast.error("规则删除失败");
+        toast.error(res?.errMsg || "规则删除失败");
       }
     }
-    catch {
-      toast.error("规则删除失败");
+    catch (err) {
+      const msg = err instanceof ApiError ? err.body?.errMsg : undefined;
+      toast.error(msg || "规则删除失败");
     }
     finally {
       setIsDeletingRule(false);

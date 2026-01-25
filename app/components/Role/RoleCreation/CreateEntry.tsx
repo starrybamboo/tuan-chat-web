@@ -90,7 +90,7 @@ export default function CreateEntry({
             </p>
           </button>
 
-          {/* 占位符 */}
+          {/* 占位符
           <div className="bg-base-100 rounded-xl p-6 shadow-sm border-2 border-dashed border-base-300 h-auto md:h-100">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-base-300 bg-base-200/30 text-base-content/40 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
@@ -102,6 +102,7 @@ export default function CreateEntry({
               敬请期待
             </p>
           </div>
+          */}
         </div>
 
         <p className="mt-10 text-xs text-base-content/70 text-center">

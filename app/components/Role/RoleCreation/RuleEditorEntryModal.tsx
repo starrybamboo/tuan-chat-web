@@ -64,7 +64,7 @@ export default function RuleEditorEntryModal({
           onClose();
       }}
     >
-      <div className="modal-box max-w-2xl">
+      <div className="modal-box max-w-2xl p-4">
         <form method="dialog">
           <button
             type="button"
@@ -77,7 +77,7 @@ export default function RuleEditorEntryModal({
 
         <h3 className="font-bold text-lg">规则编辑器</h3>
 
-        <div className="mt-5 space-y-7">
+        <div className="mt-4 space-y-5">
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold">新建</h4>
