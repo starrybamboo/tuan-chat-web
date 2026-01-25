@@ -808,6 +808,12 @@ export default function ChatRoomListPanel({
                                             }
                                             dropHandledRef.current = false;
                                             e.dataTransfer.effectAllowed = "move";
+
+                                            const docId = String(node.targetId);
+                                            // 给聊天室 drop 识别用的自定义数据
+                                            e.dataTransfer.setData("application/x-tuanchat-doc-id", docId);
+
+                                            // 侧边栏内部拖拽用 nodeId
                                             e.dataTransfer.setData("text/plain", String(node.nodeId));
                                             setDragging({
                                               kind: "node",

@@ -61,6 +61,9 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+
+  // 当用户把文档拖进聊天室时，交给外层转为 clueMessage 发送
+  onDropDocToClue?: (payload: { docId: string }) => void;
 }
 
 interface ThreadHintMeta {
@@ -80,6 +83,7 @@ function ChatFrame(props: ChatFrameProps) {
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
+    onDropDocToClue,
   } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -1002,6 +1006,20 @@ function ChatFrame(props: ChatFrameProps) {
     setReplyMessage(message);
   }
 
+  const tryExtractDocIdFromDataTransfer = useCallback((dt: DataTransfer): string | null => {
+    // 1) 优先：如果 Sidebar/Doc 侧实现了自定义 mime（可逐步对接，不影响现有功能）
+    const explicit = dt.getData("application/x-tuanchat-doc-id") || dt.getData("application/x-tuanchat-docid");
+    if (explicit && explicit.trim())
+      return explicit.trim();
+
+    // 2) 兜底：从 text/plain 或 text/uri-list 推断 docId
+    const text = (dt.getData("text/plain") || dt.getData("text/uri-list") || "").trim();
+    if (!text)
+      return null;
+
+    return text;
+  }, []);
+
   /**
    * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
    * @param chatMessageResponse
@@ -1127,11 +1145,20 @@ function ChatFrame(props: ChatFrameProps) {
           }
         }}
         onDrop={(e) => {
-          if (!isFileDrag(e.dataTransfer))
+          if (isFileDrag(e.dataTransfer)) {
+            e.preventDefault();
+            e.stopPropagation();
+            addDroppedFilesToComposer(e.dataTransfer);
             return;
-          e.preventDefault();
-          e.stopPropagation();
-          addDroppedFilesToComposer(e.dataTransfer);
+          }
+
+          // 文档拖拽：转 clueMessage
+          const docId = tryExtractDocIdFromDataTransfer(e.dataTransfer);
+          if (docId) {
+            e.preventDefault();
+            e.stopPropagation();
+            onDropDocToClue?.({ docId });
+          }
         }}
       >
         {selectedMessageIds.size > 0 && (
