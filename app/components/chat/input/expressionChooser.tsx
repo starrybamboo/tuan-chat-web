@@ -1,5 +1,5 @@
 import type { UserRole } from "../../../../api";
-import { use, useEffect, useRef } from "react";
+import { use, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -24,20 +24,7 @@ export function ExpressionChooser({
 }) {
   const roomContext = use(RoomContext);
   const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
-  const [roleDetailRoleId, setRoleDetailRoleId] = useSearchParamsState<number>("roleDetailPop", -1);
-  const roleDetailRoleIdRef = useRef(roleDetailRoleId);
-
-  useEffect(() => {
-    roleDetailRoleIdRef.current = roleDetailRoleId;
-  }, [roleDetailRoleId]);
-
-  useEffect(() => {
-    return () => {
-      if (roleDetailRoleIdRef.current > 0) {
-        setRoleDetailRoleId(-1);
-      }
-    };
-  }, [setRoleDetailRoleId]);
+  const [roleDetailRoleId, setRoleDetailRoleId] = useState<number>(-1);
 
   const isKP = (roomContext.curMember?.memberType ?? -1) === 1;
 
