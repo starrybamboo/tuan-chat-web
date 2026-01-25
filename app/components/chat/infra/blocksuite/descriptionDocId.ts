@@ -1,4 +1,4 @@
-export type DescriptionEntityType = "space" | "room" | "space_clue" | "user";
+export type DescriptionEntityType = "space" | "room" | "space_clue" | "user" | "space_user_doc";
 export type DescriptionDocType = "description" | "readme";
 
 export type DescriptionDocId = string;
@@ -24,6 +24,9 @@ export function buildDescriptionDocId(params: {
   if (params.entityType === "user")
     return `user:${params.entityId}:${params.docType}`;
 
+  if (params.entityType === "space_user_doc")
+    return `udoc:${params.entityId}:${params.docType}`;
+
   // space_clue
   return `clue:${params.entityId}:${params.docType}`;
 }
@@ -35,7 +38,7 @@ export function parseDescriptionDocId(docId: string): {
 } | null {
   const parts = docId.split(":");
 
-  // space:<spaceId>:description | room:<roomId>:description | clue:<clueId>:description | user:<userId>:readme
+  // space:<spaceId>:description | room:<roomId>:description | clue:<clueId>:description | user:<userId>:readme | udoc:<docId>:description
   if (parts.length === 3 && (parts[2] === "description" || parts[2] === "readme")) {
     const [prefix, rawId] = parts;
     const entityId = Number(rawId);
@@ -58,6 +61,10 @@ export function parseDescriptionDocId(docId: string): {
 
     if (prefix === "user") {
       return { entityType: "user", entityId, docType };
+    }
+
+    if (prefix === "udoc") {
+      return { entityType: "space_user_doc", entityId, docType };
     }
 
     return null;
