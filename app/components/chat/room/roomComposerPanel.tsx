@@ -21,6 +21,7 @@ import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/d
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
+import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export interface RoomComposerPanelProps {
   roomId: number;
@@ -207,12 +208,16 @@ function RoomComposerPanelImpl({
     return roomRoles.find(role => role.roleId === curRoleId);
   }, [curRoleId, roomRoles]);
 
+  const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1);
+  const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
+  const hasRoleAvatarsLoaded = Boolean(roleAvatarsQuery.data);
+
   const displayRoleName = React.useMemo(() => {
     if (isSpectator) {
       return "观战";
     }
     if (curRoleId <= 0) {
-      return "旁白";
+      return "未选择角色";
     }
     const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
     return draftName || currentRole?.roleName || "未选择角色";
@@ -242,6 +247,38 @@ function RoomComposerPanelImpl({
       setIsAvatarPopoverOpen(false);
     }
   }, [isSpectator]);
+
+  React.useEffect(() => {
+    if (isSpectator || curRoleId <= 0) {
+      return;
+    }
+    if (!hasRoleAvatarsLoaded && !currentRole?.avatarId) {
+      return;
+    }
+
+    const avatarIds = roleAvatars
+      .map(avatar => avatar.avatarId ?? -1)
+      .filter(avatarId => avatarId > 0);
+    const hasValidAvatar = curAvatarId > 0
+      && (avatarIds.length === 0 || avatarIds.includes(curAvatarId));
+
+    if (hasValidAvatar) {
+      return;
+    }
+
+    const fallbackAvatarId = avatarIds[0] ?? currentRole?.avatarId ?? -1;
+    if (fallbackAvatarId > 0 && fallbackAvatarId !== curAvatarId) {
+      setCurAvatarId(fallbackAvatarId);
+    }
+  }, [
+    curAvatarId,
+    curRoleId,
+    currentRole?.avatarId,
+    hasRoleAvatarsLoaded,
+    isSpectator,
+    roleAvatars,
+    setCurAvatarId,
+  ]);
 
   React.useEffect(() => {
     if (!isAvatarPopoverOpen) {

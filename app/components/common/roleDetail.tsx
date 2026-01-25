@@ -2,7 +2,6 @@ import { use, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
@@ -18,10 +17,12 @@ export function RoleDetail({
   roleId,
   allowKickOut = true,
   showAbilities = true,
+  onClose,
 }: {
   roleId: number;
   allowKickOut?: boolean;
   showAbilities?: boolean;
+  onClose?: () => void;
 }) {
   const roleQuery = useGetRoleQuery(roleId);
   const role = roleQuery.data?.data;
@@ -36,8 +37,6 @@ export function RoleDetail({
   const spaceContext = use(SpaceContext);
   const roomId = roomContext?.roomId;
   const ruleId = spaceContext.ruleId;
-  // 控制角色详情的popWindow
-  const [_, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleId}`, false);
   // 是否是群主
   function isManager() {
     return roomContext.curMember?.memberType === 1;
@@ -54,7 +53,7 @@ export function RoleDetail({
       { roomId, roleIdList: [roleId] },
       {
         onSettled: () => {
-          setIsOpen(false);
+          onClose?.();
           setIsKickConfirmOpen(false);
         },
       },
