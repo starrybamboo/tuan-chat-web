@@ -26,6 +26,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
+import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
   command: string;
@@ -491,6 +492,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     else if (message.messageType === 1000) {
       return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
+    }
+    else if (message.messageType === MESSAGE_TYPE.DOC_CARD) {
+      return <DocCardMessage messageResponse={chatMessageResponse}></DocCardMessage>;
     }
     else if (message.messageType === MESSAGE_TYPE.WEBGAL_VAR) {
       const payload = extractWebgalVarPayload(message.extra);

@@ -18,6 +18,8 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import type { DocRefDragPayload } from "@/components/chat/utils/dndDocRef";
+import { getDocRefDragData } from "@/components/chat/utils/dndDocRef";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
@@ -56,6 +58,9 @@ export interface RoomComposerPanelProps {
   isSubmitting: boolean;
 
   placeholderText: string;
+
+  /** 拖拽投放文档引用后直接发送文档卡片消息 */
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
 
   curRoleId: number;
   curAvatarId: number;
@@ -103,6 +108,7 @@ function RoomComposerPanelImpl({
   notMember,
   isSubmitting,
   placeholderText,
+  onSendDocCard,
   curRoleId,
   curAvatarId,
   setCurRoleId,
@@ -312,12 +318,27 @@ function RoomComposerPanelImpl({
         <div
           className="flex flex-col gap-2 rounded-md"
           onDragOver={(e) => {
+            const docRef = getDocRefDragData(e.dataTransfer);
+            if (docRef) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              return;
+            }
+
             if (isFileDrag(e.dataTransfer)) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
             }
           }}
           onDrop={(e) => {
+            const docRef = getDocRefDragData(e.dataTransfer);
+            if (docRef) {
+              e.preventDefault();
+              e.stopPropagation();
+              void onSendDocCard?.(docRef);
+              return;
+            }
+
             if (!isFileDrag(e.dataTransfer))
               return;
             e.preventDefault();

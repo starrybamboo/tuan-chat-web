@@ -34,6 +34,7 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import type { DocRefDragPayload } from "@/components/chat/utils/dndDocRef";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
@@ -44,6 +45,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
 import { parseWebgalVarCommand } from "@/types/webgalVar";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -60,6 +62,7 @@ import {
 import { tuanchat } from "../../../../api/instance";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
@@ -1306,6 +1309,70 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     send(clueMessage);
   };
 
+  const handleSendDocCard = useCallback(async (payload: DocRefDragPayload) => {
+    const docId = String(payload?.docId ?? "").trim();
+    if (!docId) {
+      toast.error("未检测到可用文档");
+      return;
+    }
+
+    if (!parseDescriptionDocId(docId)) {
+      toast.error("仅支持发送空间文档（我的文档/描述文档）");
+      return;
+    }
+
+    if (!spaceId || spaceId <= 0) {
+      toast.error("当前不在空间中，无法发送文档");
+      return;
+    }
+
+    if (payload?.spaceId && payload.spaceId !== spaceId) {
+      toast.error("仅支持在同一空间分享文档");
+      return;
+    }
+
+    const isKP = spaceContext.isSpaceOwner;
+    const isNarrator = curRoleId <= 0;
+
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isNarrator && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("正在发送中，请稍等");
+      return;
+    }
+
+    const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
+
+    const request: ChatMessageRequest = {
+      roomId,
+      roleId: curRoleId,
+      avatarId: resolvedAvatarId,
+      content: "",
+      messageType: MESSAGE_TYPE.DOC_CARD,
+      extra: {
+        docCard: {
+          docId,
+          spaceId,
+          ...(payload?.title ? { title: payload.title } : {}),
+          ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
+        },
+      } as any,
+    };
+
+    const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+    if (composerTarget === "thread" && threadRootMessageId) {
+      request.threadId = threadRootMessageId;
+    }
+
+    await sendMessageWithInsert(request);
+  }, [curRoleId, ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomId, sendMessageWithInsert, spaceContext.isSpaceOwner, spaceId]);
+
   // *** 新增: onPasteFiles 的回调处理器 ***
   const handlePasteFiles = (files: File[]) => {
     useChatComposerStore.getState().updateImgFiles((draft) => {
@@ -1532,6 +1599,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                     onBackgroundUrlChange={setBackgroundUrl}
                     onEffectChange={setCurrentEffect}
                     onExecuteCommandRequest={handleExecuteCommandRequest}
+                    onSendDocCard={handleSendDocCard}
                   >
                   </ChatFrame>
                 </div>
@@ -1559,6 +1627,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   notMember={notMember}
                   isSubmitting={isSubmitting}
                   placeholderText={placeholderText}
+                  onSendDocCard={handleSendDocCard}
                   curRoleId={curRoleId}
                   curAvatarId={curAvatarId}
                   setCurRoleId={setCurRoleId}

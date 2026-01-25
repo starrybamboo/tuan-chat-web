@@ -11,6 +11,7 @@ import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId 
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
+import { setDocRefDragData } from "@/components/chat/utils/dndDocRef";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
@@ -807,8 +808,14 @@ export default function ChatRoomListPanel({
                                               return;
                                             }
                                             dropHandledRef.current = false;
-                                            e.dataTransfer.effectAllowed = "move";
+                                            e.dataTransfer.effectAllowed = "copyMove";
                                             e.dataTransfer.setData("text/plain", String(node.nodeId));
+                                            setDocRefDragData(e.dataTransfer, {
+                                              docId: String(node.targetId),
+                                              ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
+                                              ...(title ? { title } : {}),
+                                              ...(docOverrideImageUrl ? { imageUrl: docOverrideImageUrl } : {}),
+                                            });
                                             setDragging({
                                               kind: "node",
                                               nodeId: String(node.nodeId),
