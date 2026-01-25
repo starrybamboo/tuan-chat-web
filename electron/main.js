@@ -1,22 +1,50 @@
-/* eslint-disable no-console */
-const { Buffer } = require("node:buffer");
-const { spawn } = require("node:child_process"); // 用于创建子进程
-const fs = require("node:fs");
-const path = require("node:path");
-const process = require("node:process");
-const detectPort = require("detect-port").default; // 用于检测端口占用
+/* eslint-disable node/no-process-env */
+import { app, BrowserWindow, ipcMain, Menu, protocol } from "electron";
+import fs from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
 
-// 控制应用生命周期和创建原生浏览器窗口的模组
-const { app, BrowserWindow, protocol, ipcMain, Menu } = require("electron");
-const { unzipSync } = require("fflate");
+import { base64DataUrl, detectBinaryDataUrl, firstImageFromZip, looksLikeZip } from "./utils/binaryDataUrl.js";
+import { buildCandidatePorts, resolveDevServerUrl } from "./utils/devServerUrl.js";
+import { clampToMultipleOf64 } from "./utils/numberUtils.js";
+import { registerWebGalIpc, stopWebGAL } from "./utils/webgal.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // // --- 忽略证书错误以解决 SSL handshake failed 问题 ---
 // app.commandLine.appendSwitch("ignore-certificate-errors");
 
-// 用于管理 WebGAL 子进程和窗口 ---
-let webgalProcess = null; // 存放 WebGAL 子进程的引用
-let webgalWindow = null; // 存放 WebGAL 窗口的引用
-const WebGAL_EXE_NAME = "WebGAL_Terre.exe";
-const WebGAL_PORT = 3001;
+let mainWindow = null; // 主窗口需要全局引用，避免被 GC 导致闪退/白屏
+
+let resolvedDevServerUrl = "";
+
+// 避免开发态出现“两个窗口/两个实例”抢占 cache/userData 导致的异常（例如 cache_util_win.cc Access Denied）。
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+}
+else {
+  app.on("second-instance", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized())
+        mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+// 开发态使用独立 userData，避免与生产/其它实例共享缓存目录。
+if (!app.isPackaged) {
+  try {
+    app.setPath("userData", path.join(app.getPath("userData"), "dev"));
+  }
+  catch {
+    // ignore
+  }
+}
 
 // 在 app ready 之前注册自定义协议
 // 这使得我们能像处理 http 请求一样处理应用内的文件请求
@@ -31,167 +59,122 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-function createWindow() {
+async function createWindow() {
   // 创建浏览器窗口
-  const mainWindow = new BrowserWindow({
-    width: 1200,
+  mainWindow = new BrowserWindow({
+    width: 1400,
     height: 800,
+    sandbox: false, // 关闭沙盒模式
     webPreferences: {
       // 书写渲染进程中的配置
-      contextIsolation: true, // 可以使用require方法
-      enableRemoteModule: true, // 可以使用remote方法
+      contextIsolation: true, // 注意：这会隔离上下文，不等于“可以使用 require”
+      enableRemoteModule: true,
       preload: path.join(__dirname, "preload.js"), // 指定 preload 脚本
     },
   });
 
   Menu.setApplicationMenu(null);
 
-  const env = "pro2";
-  // 配置热更新
-  if (env === "pro") {
-    const elePath = path.join(__dirname, "../node_modules/electron");
-    require("electron-reload")("../", {
-      electron: require(elePath),
+  const isDev = !app.isPackaged;
+  const preferredDevServerUrl = String(
+    process.env.ELECTRON_START_URL
+    || process.env.VITE_DEV_SERVER_URL
+    || "",
+  ).trim();
+
+  // Cache last successful dev server URL to avoid scanning every time.
+  const devServerCachePath = path.join(app.getPath("userData"), "devserver.json");
+  let cachedDevServerUrl = "";
+  try {
+    const raw = fs.readFileSync(devServerCachePath, "utf8");
+    const json = JSON.parse(raw);
+    if (json && typeof json.url === "string")
+      cachedDevServerUrl = String(json.url).trim();
+  }
+  catch {
+    // ignore
+  }
+
+  const defaultPortRaw = Number(process.env.PORT || process.env.VITE_PORT || 5177);
+  const defaultPort = Number.isFinite(defaultPortRaw) && defaultPortRaw > 0 ? defaultPortRaw : 5177;
+
+  if (isDev) {
+    // 开发环境：必须加载 dev server（否则 app://./ 会指向 build/client，而 dev 并不存在该目录）
+    try {
+      // electron-reload 仅用于开发态；依赖不存在时直接跳过。
+      const require = createRequire(import.meta.url);
+      const elePath = path.join(__dirname, "../node_modules/electron");
+      require("electron-reload")("../", {
+        electron: require(elePath),
+      });
+    }
+    catch {
+      // ignore
+    }
+
+    mainWindow.webContents.on("did-fail-load", (_e, errorCode, errorDescription, validatedURL) => {
+      console.error("[mainWindow] did-fail-load", { errorCode, errorDescription, validatedURL });
     });
-    // 热更新监听窗口
-    mainWindow.loadURL("http://localhost:5173");
-    mainWindow.webContents.openDevTools();
+    mainWindow.webContents.on("render-process-gone", (_e, details) => {
+      console.error("[mainWindow] render-process-gone", details);
+    });
+
+    const candidatePorts = buildCandidatePorts({
+      preferredPorts: [process.env.PORT, process.env.VITE_PORT].filter(Boolean),
+      defaultPort,
+      scanRange: 25,
+    });
+
+    resolvedDevServerUrl = await resolveDevServerUrl({
+      preferredUrl: preferredDevServerUrl || cachedDevServerUrl || (defaultPort ? `http://localhost:${defaultPort}` : ""),
+      host: "localhost",
+      ports: candidatePorts,
+      timeoutMs: 500,
+      concurrency: 10,
+    });
+
+    if (!resolvedDevServerUrl) {
+      const msg = `未能连接到前端 dev server。\n\n你可以：\n1) 先运行 pnpm dev\n2) 或设置环境变量 VITE_DEV_SERVER_URL / ELECTRON_START_URL\n\n尝试过的端口范围：${candidatePorts[0]}-${candidatePorts[candidatePorts.length - 1]}`;
+      console.error("[electron] dev server not reachable", { preferredDevServerUrl, defaultPort, candidatePorts });
+      await mainWindow.loadURL(`data:text/plain;charset=utf-8,${encodeURIComponent(msg)}`);
+      return;
+    }
+
+    await mainWindow.loadURL(resolvedDevServerUrl);
+
+    try {
+      fs.writeFileSync(devServerCachePath, JSON.stringify({ url: resolvedDevServerUrl, ts: Date.now() }, null, 2), "utf8");
+    }
+    catch {
+      // ignore
+    }
+    // DevTools 默认是 detach（单独开一个窗口）；这里改为 dock，避免看起来像“两个 BrowserWindow”。
+    // mainWindow.webContents.openDevTools({ mode: "bottom" });
   }
   else {
-    // 生产环境中要加载文件，打包的版本
-    // Menu.setApplicationMenu(null)
-    // 使用自定义协议加载应用的根目录，而不是具体的 index.html 文件
-    mainWindow.loadURL("app://./");
-  }
-}
-
-function clampToMultipleOf64(value, fallback) {
-  const num = Number(value);
-  if (!Number.isFinite(num) || num <= 0)
-    return fallback;
-  return Math.max(64, Math.round(num / 64) * 64);
-}
-
-function base64DataUrl(mime, bytes) {
-  const b64 = Buffer.from(bytes).toString("base64");
-  return `data:${mime};base64,${b64}`;
-}
-
-function mimeFromFilename(name) {
-  const lower = String(name || "").toLowerCase();
-  if (lower.endsWith(".png"))
-    return "image/png";
-  if (lower.endsWith(".webp"))
-    return "image/webp";
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
-    return "image/jpeg";
-  return "application/octet-stream";
-}
-
-function firstImageFromZip(zipBytes) {
-  const files = unzipSync(zipBytes);
-  const names = Object.keys(files);
-  if (!names.length)
-    throw new Error("ZIP 解包失败：未找到任何文件");
-
-  const preferred = names.find(n => /\.(?:png|webp|jpe?g)$/i.test(n)) || names[0];
-  const mime = mimeFromFilename(preferred);
-  return base64DataUrl(mime, files[preferred]);
-}
-
-function startsWithBytes(bytes, prefix) {
-  if (!bytes || bytes.length < prefix.length)
-    return false;
-  return prefix.every((b, i) => bytes[i] === b);
-}
-
-function looksLikeZip(bytes) {
-  if (!bytes || bytes.length < 4)
-    return false;
-  return (
-    bytes[0] === 0x50
-    && bytes[1] === 0x4B
-    && (
-      (bytes[2] === 0x03 && bytes[3] === 0x04)
-      || (bytes[2] === 0x05 && bytes[3] === 0x06)
-      || (bytes[2] === 0x07 && bytes[3] === 0x08)
-    )
-  );
-}
-
-function detectBinaryDataUrl(bytes) {
-  if (startsWithBytes(bytes, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
-    return base64DataUrl("image/png", bytes);
-  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)
-    return base64DataUrl("image/jpeg", bytes);
-  if (
-    bytes.length >= 12
-    && bytes[0] === 0x52
-    && bytes[1] === 0x49
-    && bytes[2] === 0x46
-    && bytes[3] === 0x46
-    && bytes[8] === 0x57
-    && bytes[9] === 0x45
-    && bytes[10] === 0x42
-    && bytes[11] === 0x50
-  ) {
-    return base64DataUrl("image/webp", bytes);
-  }
-  return "";
-}
-
-// 区分开发环境和生产（打包后）环境
-function getWebGALPath() {
-  // 在生产环境中，extraResources 被放在应用根目录的 resources 文件夹下
-  if (app.isPackaged) {
-    // process.resourcesPath 指向 .../app.asar 所在的目录
-    return path.join(process.resourcesPath, "extraResources", WebGAL_EXE_NAME);
-  }
-  // 在开发环境中，直接指向项目根目录下的 extraResources 文件夹
-  // __dirname 是 electron/main.cjs 所在的目录，所以需要回退一级
-  return path.join(__dirname, "..", "extraResources", WebGAL_EXE_NAME);
-}
-
-// 启动 WebGAL 子进程的函数 ---
-// 在 electron/main.cjs 文件中
-
-function startWebGAL() {
-  const webgalPath = getWebGALPath();
-
-  if (webgalProcess) {
-    console.log("WebGAL 进程已在运行中。");
-    return;
+    // 生产环境：使用自定义协议加载 build/client 目录（模拟 Nginx try_files）
+    await mainWindow.loadURL("app://./");
   }
 
-  console.log(`正在从以下路径启动 WebGAL: ${webgalPath}`);
-  const webgalDir = path.dirname(webgalPath);
-
-  // 使用 spawn 启动子进程。
-  // cwd (current working directory) 设置为 .exe 所在目录，以确保它可以正确找到资源文件
-  webgalProcess = spawn(webgalPath, [], {
-    cwd: webgalDir,
-  });
-
-  // 捕获启动失败
-  webgalProcess.on("error", (err) => {
-    console.error("启动 WebGAL 子进程失败!", err);
-  });
-
-  // 监听子进程输出
-  webgalProcess.stdout.on("data", (data) => {
-    console.log(`[WebGAL stdout]: ${data}`);
-  });
-  webgalProcess.stderr.on("data", (data) => {
-    console.error(`[WebGAL stderr]: ${data}`);
-  });
-  webgalProcess.on("close", (code) => {
-    console.log(`WebGAL 进程已退出，退出码: ${code}`);
-    webgalProcess = null;
+  mainWindow.on("closed", () => {
+    mainWindow = null;
   });
 }
 
 // 这段程序将会在 Electron 结束初始化和创建浏览器窗口的时候调用
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  ipcMain.handle("electron:get-dev-server-url", () => resolvedDevServerUrl);
+  ipcMain.handle("electron:get-dev-port", () => {
+    try {
+      if (!resolvedDevServerUrl)
+        return "";
+      return new URL(resolvedDevServerUrl).port || "";
+    }
+    catch {
+      return "";
+    }
+  });
+
   // 实现自定义协议的具体逻辑
   protocol.registerFileProtocol("app", (request, callback) => {
     // 从请求 URL 中解析出需要加载的文件路径
@@ -200,8 +183,8 @@ app.whenReady().then(() => {
 
     fs.stat(filePath, (err, stats) => {
       if (err) {
-        // 如果文件或目录不存在 (err 不为 null), 说明这是一个前端路由的虚拟路径
-        // 此时, 我们就返回根目录的 index.html, 这完美复刻了 Nginx 的 try_files 逻辑
+        // 如果文件或目录不存在，说明这是一个前端路由的虚拟路径
+        // 此时返回根目录的 index.html，复刻 Nginx try_files 逻辑
         const indexPath = path.join(__dirname, "../build/client", "index.html");
         callback({ path: indexPath });
         return;
@@ -209,18 +192,16 @@ app.whenReady().then(() => {
 
       // 如果请求的是一个目录 (例如初始加载 'app://./')
       if (stats.isDirectory()) {
-        // 加载该目录下的 index.html
         const indexPath = path.join(filePath, "index.html");
         callback({ path: indexPath });
       }
       else {
-        // 如果请求的是一个文件 (例如 an asset like main.js or style.css), 直接返回该文件
         callback({ path: filePath });
       }
     });
   });
 
-  createWindow();
+  await createWindow();
 
   ipcMain.handle("novelai:get-clientsettings", async (_event, req) => {
     const token = String(req?.token || "").trim();
@@ -488,86 +469,18 @@ app.whenReady().then(() => {
   });
 
   app.on("activate", () => {
-    // 通常在 macOS 上，当点击 dock 中的应用程序图标时，如果没有其他
-    // 打开的窗口，那么程序会重新创建一个窗口。
     if (BrowserWindow.getAllWindows().length === 0)
-      createWindow();
+      void createWindow();
   });
 
-  // 设置 IPC 监听器，用于从渲染进程接收启动命令 ---
-  ipcMain.on("launch-webgal", async () => {
-    const port = WebGAL_PORT;
-
-    // 检查 WebGAL 窗口是否已经打开，如果已打开则聚焦它
-    if (webgalWindow && !webgalWindow.isDestroyed()) {
-      webgalWindow.focus();
-      return;
-    }
-
-    const openWebGALWindowWithRetry = (retries = 5) => {
-      if (retries <= 0) {
-        console.error("无法连接到 WebGAL 服务器。请检查其是否正常运行或被其他程序占用。");
-        // 在这里可以添加一个对话框提示用户连接失败
-        // dialog.showErrorBox('连接失败', '无法连接到 WebGAL 服务器。');
-        return;
-      }
-
-      webgalWindow = new BrowserWindow({
-        width: 1280,
-        height: 720,
-        title: "WebGAL",
-      });
-
-      // 尝试加载 URL，如果失败，则进入 catch 块
-      webgalWindow.loadURL(`http://localhost:${port}`).catch(() => {
-        console.log(`连接失败，1秒后重试... (剩余 ${retries - 1} 次)`);
-        if (webgalWindow && !webgalWindow.isDestroyed()) {
-          webgalWindow.close();
-        }
-        webgalWindow = null;
-        // 等待1秒后再次调用自己，并减少重试次数
-        setTimeout(() => openWebGALWindowWithRetry(retries - 1), 1000);
-      });
-
-      webgalWindow.on("closed", () => {
-        webgalWindow = null;
-      });
-    };
-
-    try {
-      // 使用 detectPort 检查 3001 端口是否被占用
-      const occupiedPort = await detectPort(port);
-
-      if (port === occupiedPort) {
-        // 端口未被占用，说明 WebGAL 没有运行
-        console.log(`端口 ${port} 未被占用，正在启动 WebGAL...`);
-        startWebGAL();
-
-        setTimeout(openWebGALWindowWithRetry, 3000);
-      }
-      else {
-        // 端口已被占用，我们假设就是 WebGAL 在运行
-        console.log(`端口 ${port} 已被占用，直接打开窗口。`);
-        openWebGALWindowWithRetry();
-      }
-    }
-    catch (err) {
-      console.error("检查端口或启动 WebGAL 时出错:", err);
-    }
-  });
+  registerWebGalIpc({ ipcMain, app });
 });
 
-// 除了 macOS 外，当所有窗口都被关闭的时候退出程序。 因此，通常对程序和它们在
-// 任务栏上的图标来说，应当保持活跃状态，直到用户使用 Cmd + Q 退出。
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin")
     app.quit();
 });
 
-// 在应用退出时，确保 WebGAL 子进程也被关闭 ---
 app.on("will-quit", () => {
-  if (webgalProcess) {
-    console.log("正在关闭 WebGAL 进程...");
-    webgalProcess.kill(); // 强制关闭子进程
-  }
+  stopWebGAL();
 });

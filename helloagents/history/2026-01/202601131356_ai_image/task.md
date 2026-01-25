@@ -10,7 +10,7 @@
 
 ## 2. Electron 代理（electron）
 - [√] 2.1 新增 IPC：`window.electronAPI.novelaiGenerateImage(...)`（`tuan-chat-web/electron/preload.js`）
-- [√] 2.2 主进程实现 NovelAI 请求与 ZIP 解包：`tuan-chat-web/electron/main.cjs`
+- [√] 2.2 主进程实现 NovelAI 请求与 ZIP 解包：`tuan-chat-web/electron/main.js`
 - [√] 2.3 补齐 TS 类型声明：`tuan-chat-web/app/electron.d.ts`
 
 ## 3. 依赖与配置

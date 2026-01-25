@@ -23,7 +23,7 @@
   - `app/routes/aiImage.tsx`
   - `app/utils/aiImageHistoryDb.ts`（复用/必要时微调）
   - `app/electron.d.ts`
-  - `electron/main.cjs`
+  - `electron/main.js`
   - `electron/preload.js`
   - `vite.config.ts` / `scripts/start.mjs`（如需扩展代理允许的 NovelAI host）
 

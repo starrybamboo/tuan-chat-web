@@ -23,7 +23,7 @@
   - `AiImageHistoryRow` 增加可选 v4 字段（不升级 IndexedDB schema）
   - 保存生成时的角色/背景结构，点击历史可回填到编辑器
 - Electron 同步：
-  - `electron/main.cjs` 的生成请求同样写入 `v4_prompt` / `v4_negative_prompt` 的 `char_captions`
+  - `electron/main.js` 的生成请求同样写入 `v4_prompt` / `v4_negative_prompt` 的 `char_captions`
 
 ## 测试与验证
 - `pnpm -s typecheck`
