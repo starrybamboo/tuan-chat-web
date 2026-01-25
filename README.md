@@ -28,6 +28,17 @@ node node_modules/electron/install.js
 如果要执行 electron 打包（electron-builder）
 请先把 WebGAL_Terre 的 Windows 发行版（包含 `WebGAL_Terre.exe` 及其依赖文件）解压/拷贝到 `extraResources/` 目录下（`WebGAL_Terre.exe` 与该目录同级）。
 
+#### electron-builder 工具下载不稳定（Windows）
+
+Windows 下 `nsis` / `winCodeSign` 等工具会在首次构建时由 electron-builder 自动下载到本机缓存；如果网络波动导致下载失败，建议：
+
+- 先只构建 zip：`pnpm electron:build:win:zip`
+- 再单独构建 nsis：`pnpm electron:build:win:nsis`
+- 固定缓存目录（可选）：设置环境变量 `ELECTRON_BUILDER_CACHE` 指向一个稳定路径（例如 `D:\cache\electron-builder`），避免系统盘空间/权限/清理工具影响
+- 使用镜像（可选，网络环境需要时）：设置 `ELECTRON_BUILDER_BINARIES_MIRROR` 指向可用镜像源
+
+这些设置只影响构建时下载工具，不影响应用运行。
+
 
 ### 配置环境
 
