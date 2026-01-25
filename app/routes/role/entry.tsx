@@ -40,6 +40,10 @@ export default function RoleCreationPage() {
     else if (typeParam === "rule") {
       setMode("rule");
     }
+    else {
+      // 当 query 被清理/无效时，回退到入口
+      setMode("entry");
+    }
   }, [searchParams]);
 
   // 当一个角色被创建并保存后，导航到它的详情页

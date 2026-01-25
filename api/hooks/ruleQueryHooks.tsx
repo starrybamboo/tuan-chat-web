@@ -121,6 +121,10 @@ export function useDeleteRuleMutation() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getRulePage'] });
             queryClient.invalidateQueries({ queryKey: ['getRuleDetail'] });
+      // 兼容规则选择/列表等其它 queryKey
+      queryClient.invalidateQueries({ queryKey: ['rules'] });
+      queryClient.invalidateQueries({ queryKey: ['ruleList'] });
+      queryClient.invalidateQueries({ queryKey: ['ruleDetail'] });
         }
     });
 }

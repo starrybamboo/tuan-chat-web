@@ -44,8 +44,8 @@ export default function RuleEditorPage({ onBack }: RuleEditorPageProps) {
     didFallbackRef.current = true;
 
     toast.error(`无效的 ruleId 参数：${parsed.invalidParam}`);
-    navigate("/role", { replace: true });
-  }, [navigate, parsed.invalidParam]);
+    onBack ? onBack() : navigate("/role", { replace: true });
+  }, [navigate, onBack, parsed.invalidParam]);
 
   const ruleDetailQuery = useGetRuleDetailQuery(parsed.mode === "edit" ? parsed.ruleId ?? 0 : 0);
 
@@ -69,7 +69,7 @@ export default function RuleEditorPage({ onBack }: RuleEditorPageProps) {
         toast.error(`获取规则失败：${msg}`);
       }
 
-      navigate("/role", { replace: true });
+      onBack ? onBack() : navigate("/role", { replace: true });
       return;
     }
 
@@ -83,10 +83,10 @@ export default function RuleEditorPage({ onBack }: RuleEditorPageProps) {
         const code = typeof res?.errCode === "number" ? res.errCode : 200;
         const msg = res?.errMsg || "找不到对应的规则";
         toast.error(`找不到规则（${code}）：${msg}`);
-        navigate("/role", { replace: true });
+        onBack ? onBack() : navigate("/role", { replace: true });
       }
     }
-  }, [navigate, parsed.mode, ruleDetailQuery.data, ruleDetailQuery.error, ruleDetailQuery.isError, ruleDetailQuery.isSuccess]);
+  }, [navigate, onBack, parsed.mode, ruleDetailQuery.data, ruleDetailQuery.error, ruleDetailQuery.isError, ruleDetailQuery.isSuccess]);
 
   if (parsed.invalidParam)
     return null;

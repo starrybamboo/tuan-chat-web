@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SpaceSidebarTreeSetRequest = {
+export type SpaceUserDocFolderTreeSetRequest = {
     /**
      * 空间ID
      */
@@ -12,7 +12,7 @@ export type SpaceSidebarTreeSetRequest = {
      */
     expectedVersion: number;
     /**
-     * 频道树JSON
+     * 文档夹树JSON
      */
     treeJson: string;
 };

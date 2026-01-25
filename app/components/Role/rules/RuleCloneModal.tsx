@@ -64,7 +64,7 @@ export default function RuleCloneModal({
           </button>
         </form>
 
-        <h3 className="font-bold text-lg mb-2">克隆/导入规则</h3>
+        <h3 className="font-bold text-lg mb-2">导入规则</h3>
         <p className="text-sm text-base-content/70 mb-4">
           输入规则ID后会拉取对应规则，并在确认后覆盖当前编辑内容。
         </p>

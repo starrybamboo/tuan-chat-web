@@ -1,10 +1,15 @@
 import type { Rule } from "api/models/Rule";
+import { useCreateRuleMutation, useDeleteRuleMutation, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
-import { SaveIcon } from "@/icons";
+import toast from "react-hot-toast";
+import { Link, useNavigate } from "react-router";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { SaveIcon, TrashIcon } from "@/icons";
 import Section from "../Editors/Section";
 import CustomRuleExpansionModule from "./CustomRuleExpansionModule";
 import RuleCloneModal from "./RuleCloneModal";
+import RuleDeleteModal from "./RuleDeleteModal";
+import RuleTextInfoEditor from "./RuleTextInfoEditor";
 
 type RuleEditorMode = "create" | "edit";
 
@@ -77,15 +82,38 @@ export default function RuleCreationEditor({
   ruleDetail,
   onBack,
 }: RuleCreationEditorProps) {
+  const navigate = useNavigate();
+  const { userId } = useGlobalContext();
+  const createRuleMutation = useCreateRuleMutation();
+  const updateRuleMutation = useUpdateRuleMutation();
+  const deleteRuleMutation = useDeleteRuleMutation();
   const [ruleEdit, setRuleEdit] = useState<Rule>({});
   const [loadedRuleId, setLoadedRuleId] = useState<number | null>(null);
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingRule, setIsDeletingRule] = useState(false);
   const [cloneVersion, setCloneVersion] = useState(0); // 用于克隆时重置编辑内容
+
+  const displayRuleId = ruleEdit.ruleId;
+  const displayAuthorId = mode === "edit" ? (ruleDetail?.authorId ?? ruleEdit.authorId) : userId;
+  const authorIdText = typeof displayAuthorId === "number" && displayAuthorId > 0 ? `#${displayAuthorId}` : (mode === "create" ? "未登录" : "#");
+  const ruleIdText = typeof displayRuleId === "number" && displayRuleId > 0 ? `#${displayRuleId}` : "#";
+
+  // 干净的文本
+  const cleanText = (text: string) => {
+    if (!text)
+      return "";
+    return text
+      .replace(/\r\n/g, "\n") // 替换Windows换行符为Unix换行符
+      .replace(/ {2,}/g, " ") // 压缩多个空格为单个空格
+      .replace(/\n{2,}/g, "\n") // 压缩多个换行为单个换行
+      .replace(/\s+$/g, ""); // 移除末尾空格
+  };
 
   function applyClonedRule(rule: Rule) {
     // 仅导入数据作为本地编辑初始值：不保留源规则 id
-    // 但在 edit 模式下，必须保留“当前正在编辑的规则 id”，否则保存时会变成 ruleId 为空
-    const { ruleId: _sourceRuleId, ...rest } = rule as any;
+    // 但在 edit 模式下，保留当前正在编辑的规则 id 以及 authorId
+    const { ruleId: _sourceRuleId, authorId: _sourceAuthorId, ...rest } = rule as any;
 
     setRuleEdit((prev) => {
       if (mode !== "edit") {
@@ -93,12 +121,125 @@ export default function RuleCreationEditor({
       }
 
       const currentRuleId = prev.ruleId ?? ruleId;
+      const currentAuthorId = prev.authorId ?? ruleDetail?.authorId;
       return {
         ...(rest as Rule),
         ...(typeof currentRuleId === "number" && currentRuleId > 0 ? { ruleId: currentRuleId } : {}),
+        ...(typeof currentAuthorId === "number" && currentAuthorId > 0 ? { authorId: currentAuthorId } : {}),
       };
     });
     setCloneVersion(prev => prev + 1);
+  }
+
+  async function handleSave() {
+    try {
+      const cleanedRuleName = typeof ruleEdit.ruleName === "string" ? cleanText(ruleEdit.ruleName) : ruleEdit.ruleName;
+      const cleanedRuleDescription = typeof ruleEdit.ruleDescription === "string" ? cleanText(ruleEdit.ruleDescription) : ruleEdit.ruleDescription;
+
+      if (mode === "edit") {
+        const currentRuleId = ruleEdit.ruleId ?? ruleId;
+        if (typeof currentRuleId !== "number" || currentRuleId <= 0) {
+          toast.error("规则ID无效，无法保存");
+          return;
+        }
+
+        const authorId = ruleEdit.authorId ?? ruleDetail?.authorId;
+        if (typeof authorId === "number" && authorId > 0) {
+          const loginUserId = userId ?? -1;
+          if (loginUserId <= 0) {
+            toast.error("未登录，无法修改规则");
+            return;
+          }
+          if (loginUserId !== authorId) {
+            toast.error("只有规则作者可以修改该规则");
+            return;
+          }
+        }
+
+        const res = await updateRuleMutation.mutateAsync({
+          ruleId: currentRuleId,
+          ruleName: cleanedRuleName,
+          ruleDescription: cleanedRuleDescription,
+          actTemplate: ruleEdit.actTemplate,
+          abilityFormula: ruleEdit.abilityFormula,
+          skillDefault: ruleEdit.skillDefault,
+          basicDefault: ruleEdit.basicDefault,
+          dicerConfig: ruleEdit.dicerConfig,
+        });
+
+        if (res?.success) {
+          toast.success("规则已保存");
+          onBack ? onBack() : navigate("/role", { replace: true });
+        }
+        else {
+          toast.error(res?.errMsg || "保存失败");
+        }
+        return;
+      }
+
+      const res = await createRuleMutation.mutateAsync({
+        ruleName: cleanedRuleName,
+        ruleDescription: cleanedRuleDescription,
+        actTemplate: ruleEdit.actTemplate,
+        abilityFormula: ruleEdit.abilityFormula,
+        skillDefault: ruleEdit.skillDefault,
+        basicDefault: ruleEdit.basicDefault,
+        dicerConfig: ruleEdit.dicerConfig,
+      });
+
+      if (res?.success) {
+        toast.success("规则已创建");
+        onBack ? onBack() : navigate("/role", { replace: true });
+      }
+      else {
+        toast.error(res?.errMsg || "创建失败");
+      }
+    }
+    catch (err) {
+      const msg = err instanceof Error ? err.message : "请求失败";
+      toast.error(msg);
+    }
+  }
+
+  async function handleDeleteRule() {
+    try {
+      const currentRuleId = ruleEdit.ruleId ?? ruleId;
+      if (typeof currentRuleId !== "number" || currentRuleId <= 0) {
+        toast.error("规则ID无效，无法删除");
+        return;
+      }
+
+      // 前端做基础作者校验（若能拿到 authorId），避免误删；最终权限仍由后端判定
+      const authorId = ruleEdit.authorId ?? ruleDetail?.authorId;
+      if (typeof authorId === "number" && authorId > 0) {
+        const loginUserId = userId ?? -1;
+        if (loginUserId <= 0) {
+          toast.error("未登录，无法删除规则");
+          return;
+        }
+        if (loginUserId !== authorId) {
+          toast.error("只有规则作者可以删除该规则");
+          return;
+        }
+      }
+
+      setIsDeletingRule(true);
+      const res = await deleteRuleMutation.mutateAsync(currentRuleId);
+      if (res?.success) {
+        setIsDeleteModalOpen(false);
+        toast.success("规则删除成功");
+        onBack ? onBack() : navigate("/role", { replace: true });
+      }
+      else {
+        toast.error("规则删除失败");
+      }
+    }
+    catch {
+      toast.error("规则删除失败");
+    }
+    finally {
+      setIsDeletingRule(false);
+    }
   }
 
   useEffect(() => {
@@ -158,24 +299,57 @@ export default function RuleCreationEditor({
             <p className="text-base-content/60">
               规则ID
               {" "}
-              {`#${ruleEdit.ruleId || ""}`}
+              {ruleIdText}
+              <span className="mx-1">·</span>
+              作者ID
+              {" "}
+              {authorIdText}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {mode === "edit" && (
+            <div className="tooltip tooltip-bottom" data-tip="删除该规则（不可恢复）">
+              <button
+                type="button"
+                className="btn btn-error btn-sm md:btn-lg rounded-lg"
+                onClick={() => setIsDeleteModalOpen(true)}
+              >
+                <span className="flex items-center gap-1">
+                  <TrashIcon className="w-4 h-4" />
+                  删除
+                </span>
+              </button>
+            </div>
+          )}
           <div className="tooltip tooltip-bottom" data-tip="从已有规则导入并覆盖当前编辑">
             <button
               type="button"
               className="btn btn-secondary btn-sm md:btn-lg rounded-lg"
               onClick={() => setIsCloneModalOpen(true)}
             >
-              克隆
+              <span className="flex items-center gap-1">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 1024 1024"
+                  className="w-4 h-4"
+                >
+                  <path
+                    fill="currentColor"
+                    fillRule="evenodd"
+                    d="M880 912H144c-17.7 0-32-14.3-32-32V144c0-17.7 14.3-32 32-32h360c4.4 0 8 3.6 8 8v56c0 4.4-3.6 8-8 8H184v656h656V520c0-4.4 3.6-8 8-8h56c4.4 0 8 3.6 8 8v360c0 17.7-14.3 32-32 32M653.3 424.6l52.2 52.2c4.7 4.7 1.9 12.8-4.7 13.6l-179.4 21c-5.1.6-9.5-3.7-8.9-8.9l21-179.4c.8-6.6 8.9-9.4 13.6-4.7l52.4 52.4l256.2-256.2c3.1-3.1 8.2-3.1 11.3 0l42.4 42.4c3.1 3.1 3.1 8.2 0 11.3z"
+                  >
+                  </path>
+                </svg>
+                导入
+              </span>
             </button>
           </div>
           <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
             <button
               type="button"
               className="btn btn-primary btn-sm md:btn-lg rounded-lg"
+              onClick={handleSave}
             >
               <span className="flex items-center gap-1">
                 <SaveIcon className="w-4 h-4" />
@@ -202,25 +376,57 @@ export default function RuleCreationEditor({
                       {ruleEdit.ruleName || "未命名规则"}
                     </h1>
                     <p className="text-base-content/60 text-sm">
+                      作者ID
+                      {" "}
+                      {authorIdText}
+                      {" "}
+                      <span className="mx-1">·</span>
                       规则ID
                       {" "}
-                      {`#${ruleEdit.ruleId || ""}`}
+                      {ruleIdText}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {mode === "edit" && (
+                      <div className="tooltip tooltip-bottom" data-tip="删除该规则（不可恢复）">
+                        <button
+                          type="button"
+                          className="btn btn-error btn-sm md:btn-lg rounded-lg"
+                          onClick={() => setIsDeleteModalOpen(true)}
+                        >
+                          <span className="flex items-center gap-1">
+                            <TrashIcon className="w-4 h-4" />
+                            删除
+                          </span>
+                        </button>
+                      </div>
+                    )}
                     <div className="tooltip tooltip-bottom" data-tip="从已有规则导入并覆盖当前编辑">
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm md:btn-lg rounded-lg"
                         onClick={() => setIsCloneModalOpen(true)}
                       >
-                        克隆
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 1024 1024"
+                          className="w-4 h-4"
+                        >
+                          <path
+                            fill="currentColor"
+                            fillRule="evenodd"
+                            d="M880 912H144c-17.7 0-32-14.3-32-32V144c0-17.7 14.3-32 32-32h360c4.4 0 8 3.6 8 8v56c0 4.4-3.6 8-8 8H184v656h656V520c0-4.4 3.6-8 8-8h56c4.4 0 8 3.6 8 8v360c0 17.7-14.3 32-32 32M653.3 424.6l52.2 52.2c4.7 4.7 1.9 12.8-4.7 13.6l-179.4 21c-5.1.6-9.5-3.7-8.9-8.9l21-179.4c.8-6.6 8.9-9.4 13.6-4.7l52.4 52.4l256.2-256.2c3.1-3.1 8.2-3.1 11.3 0l42.4 42.4c3.1 3.1 3.1 8.2 0 11.3z"
+                          >
+                          </path>
+                        </svg>
+                        导入
                       </button>
                     </div>
                     <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
                       <button
                         type="button"
                         className="btn btn-primary btn-sm md:btn-lg rounded-lg"
+                        onClick={handleSave}
                       >
                         <span className="flex items-center gap-1">
                           <SaveIcon className="w-4 h-4" />
@@ -232,34 +438,18 @@ export default function RuleCreationEditor({
                 </div>
                 <div className="divider my-0" />
               </div>
-              {/* 基础文本信息：纵向布局 */}
-              <div className="space-y-6">
-                {/* 角色名 */}
-                <div className="form-control">
-                  <div className="flex gap-2 mb-2 items-center font-semibold">
-                    <span>规则名称</span>
-                  </div>
-                  <input
-                    type="text"
-                    className="input input-bordered bg-base-100 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    placeholder="输入规则名称"
-                    value={ruleEdit.ruleName ?? ""}
-                    onChange={e => setRuleEdit({ ...ruleEdit, ruleName: e.target.value })}
-                  />
-                </div>
-                {/* 规则描述 */}
-                <div className="form-control">
-                  <div className="flex gap-2 mb-2 items-center font-semibold">
-                    <span>规则描述</span>
-                  </div>
-                  <textarea
-                    className="textarea textarea-bordered bg-base-100 rounded-md min-h-30 resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    placeholder="输入规则描述"
-                    value={ruleEdit.ruleDescription ?? ""}
-                    onChange={e => setRuleEdit({ ...ruleEdit, ruleDescription: e.target.value })}
-                  />
-                </div>
-              </div>
+              <RuleTextInfoEditor
+                ruleName={ruleEdit.ruleName ?? ""}
+                ruleDescription={ruleEdit.ruleDescription ?? ""}
+                cloneVersion={cloneVersion}
+                onApply={({ ruleName, ruleDescription }) => {
+                  setRuleEdit(prev => ({
+                    ...prev,
+                    ruleName,
+                    ruleDescription,
+                  }));
+                }}
+              />
             </div>
           </div>
         </div>
@@ -273,6 +463,19 @@ export default function RuleCreationEditor({
         isOpen={isCloneModalOpen}
         onClose={() => setIsCloneModalOpen(false)}
         onConfirm={applyClonedRule}
+      />
+
+      <RuleDeleteModal
+        isOpen={isDeleteModalOpen}
+        isDeleting={isDeletingRule}
+        ruleName={ruleEdit.ruleName ?? ruleDetail?.ruleName}
+        ruleId={ruleEdit.ruleId ?? ruleId}
+        onCancel={() => {
+          if (isDeletingRule)
+            return;
+          setIsDeleteModalOpen(false);
+        }}
+        onConfirm={handleDeleteRule}
       />
     </div>
   );
