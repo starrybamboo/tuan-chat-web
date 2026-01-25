@@ -184,9 +184,9 @@
 ## 12) electron（`/electron`）
 
 ### 发现的问题（按优先级）
-- P1：存在子进程启动（`spawn`）用于 WebGAL（`electron/main.cjs`），需要重点审计：可执行路径来源、参数拼接、工作目录、以及异常退出时的回收策略（避免僵尸进程）。
+- P1：存在子进程启动（`spawn`）用于 WebGAL（`electron/main.js`），需要重点审计：可执行路径来源、参数拼接、工作目录、以及异常退出时的回收策略（避免僵尸进程）。
 - P1：`BrowserWindow` 的 `contextIsolation` 已启用（是正向项）；仍建议复核 preload 暴露的 API 边界与 IPC 白名单，避免渲染进程拿到过多系统权限。
-- P2：存在一定数量 `console.*`（`electron/main.cjs`），建议生产环境改为文件日志/上报并分级。
+- P2：存在一定数量 `console.*`（`electron/main.js`），建议生产环境改为文件日志/上报并分级。
 
 ### 修复建议
 - 进程安全：明确 webgalPath 的来源必须是受信目录；参数必须严格白名单；为 spawn 增加超时/退出处理，并在 app quit 时保证 kill。
