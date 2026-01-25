@@ -11,6 +11,8 @@ import { base64DataUrl, detectBinaryDataUrl, firstImageFromZip, looksLikeZip } f
 import { buildCandidatePorts, resolveDevServerUrl } from "./utils/devServerUrl.js";
 import { clampToMultipleOf64 } from "./utils/numberUtils.js";
 import { registerWebGalIpc, stopWebGAL } from "./utils/webgal.js";
+// @ganyudedog electron-updater 使用 autoUpdater 来管理更新
+// @entropy622构建electron
 
 const { autoUpdater } = electronUpdater;
 
