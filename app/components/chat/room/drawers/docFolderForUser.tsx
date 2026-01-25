@@ -13,6 +13,7 @@ import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "r
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { setDocRefDragData } from "@/components/chat/utils/dndDocRef";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { PopWindow } from "@/components/common/popWindow";
@@ -640,6 +641,16 @@ export default function DocFolderForUser() {
                                         tabIndex={0}
                                         aria-pressed={isActive}
                                         title={tooltip}
+                                        draggable
+                                        onDragStart={(e) => {
+                                          const blocksuiteId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: node.targetId, docType: "description" });
+                                          e.dataTransfer.effectAllowed = "copy";
+                                          setDocRefDragData(e.dataTransfer, {
+                                            docId: blocksuiteId,
+                                            ...(spaceId > 0 ? { spaceId } : {}),
+                                            ...(title ? { title } : {}),
+                                          });
+                                        }}
                                         onClick={() => setOpenDocId(node.targetId)}
                                         onKeyDown={(e) => {
                                           if (e.key === "Enter" || e.key === " ") {

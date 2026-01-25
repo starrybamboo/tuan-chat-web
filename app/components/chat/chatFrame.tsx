@@ -15,6 +15,8 @@ import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import type { DocRefDragPayload } from "@/components/chat/utils/dndDocRef";
+import { getDocRefDragData } from "@/components/chat/utils/dndDocRef";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
@@ -23,6 +25,7 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getImageSize } from "@/utils/getImgSize";
 import {
   useDeleteMessageMutation,
@@ -56,6 +59,7 @@ interface ChatFrameProps {
   isMessageMovable?: (message: Message) => boolean;
   onBackgroundUrlChange?: (url: string | null) => void;
   onEffectChange?: (effectName: string | null) => void;
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
@@ -79,6 +83,7 @@ function ChatFrame(props: ChatFrameProps) {
     isMessageMovable,
     onBackgroundUrlChange,
     onEffectChange,
+    onSendDocCard,
     onExecuteCommandRequest,
   } = props;
   const globalContext = useGlobalContext();
@@ -662,6 +667,72 @@ function ChatFrame(props: ChatFrameProps) {
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
+
+  const sendDocCardFromDrop = useCallback(async (payload: DocRefDragPayload) => {
+    if (onSendDocCard) {
+      try {
+        await onSendDocCard(payload);
+      }
+      catch {
+        toast.error("发送文档失败");
+      }
+      return;
+    }
+
+    const docId = String(payload?.docId ?? "").trim();
+    if (!docId) {
+      toast.error("未检测到可用文档");
+      return;
+    }
+
+    if (!parseDescriptionDocId(docId)) {
+      toast.error("仅支持发送空间文档（我的文档/描述文档）");
+      return;
+    }
+
+    const currentSpaceId = roomContext.spaceId ?? -1;
+    if (payload?.spaceId && payload.spaceId !== currentSpaceId) {
+      toast.error("仅支持在同一空间分享文档");
+      return;
+    }
+
+    const notMember = (roomContext.curMember?.memberType ?? 3) >= 3;
+    const isKP = spaceContext.isSpaceOwner;
+    const curRoleId = roomContext.curRoleId ?? -1;
+    const isNarrator = curRoleId <= 0;
+
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isNarrator && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      return;
+    }
+
+    const request: ChatMessageRequest = {
+      roomId,
+      roleId: curRoleId,
+      avatarId: roomContext.curAvatarId ?? -1,
+      content: "",
+      messageType: MESSAGE_TYPE.DOC_CARD,
+      extra: {
+        docCard: {
+          docId,
+          ...(currentSpaceId > 0 ? { spaceId: currentSpaceId } : {}),
+          ...(payload?.title ? { title: payload.title } : {}),
+          ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
+        },
+      } as any,
+    };
+
+    const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+    if (composerTarget === "thread" && threadRootMessageId) {
+      request.threadId = threadRootMessageId;
+    }
+
+    send(request);
+  }, [onSendDocCard, roomContext.curAvatarId, roomContext.curMember?.memberType, roomContext.curRoleId, roomContext.spaceId, roomId, send, spaceContext.isSpaceOwner]);
   /**
    * 通用的消息拖拽消息函数
    * @param targetIndex 将被移动到targetIndex对应的消息的下方
@@ -884,6 +955,11 @@ function ChatFrame(props: ChatFrameProps) {
   }, [attachWindowDragOver, historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (getDocRefDragData(e.dataTransfer)) {
+      e.dataTransfer.dropEffect = "copy";
+      startAutoScroll(0);
+      return;
+    }
     if (isFileDrag(e.dataTransfer)) {
       e.dataTransfer.dropEffect = "copy";
       startAutoScroll(0);
@@ -911,6 +987,17 @@ function ChatFrame(props: ChatFrameProps) {
     e.preventDefault();
     curDragOverMessageRef.current = null;
 
+    const docRef = getDocRefDragData(e.dataTransfer);
+    if (docRef) {
+      startAutoScroll(0);
+      e.stopPropagation();
+      await sendDocCardFromDrop(docRef);
+      dragStartMessageIdRef.current = -1;
+      detachWindowDragOver();
+      cleanupDragIndicator();
+      return;
+    }
+
     // 拖拽上传（图片/音频）：优先处理文件拖拽，避免触发现有的“消息拖拽排序”
     if (isFileDrag(e.dataTransfer)) {
       startAutoScroll(0);
@@ -932,7 +1019,7 @@ function ChatFrame(props: ChatFrameProps) {
     dragStartMessageIdRef.current = -1;
     detachWindowDragOver();
     cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, startAutoScroll, detachWindowDragOver]);
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, sendDocCardFromDrop, startAutoScroll, detachWindowDragOver]);
 
   useEffect(() => {
     return () => {
@@ -1121,12 +1208,25 @@ function ChatFrame(props: ChatFrameProps) {
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
         onDragOver={(e) => {
+          if (getDocRefDragData(e.dataTransfer)) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            return;
+          }
           if (isFileDrag(e.dataTransfer)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = "copy";
           }
         }}
         onDrop={(e) => {
+          const docRef = getDocRefDragData(e.dataTransfer);
+          if (docRef) {
+            e.preventDefault();
+            e.stopPropagation();
+            void sendDocCardFromDrop(docRef);
+            return;
+          }
+
           if (!isFileDrag(e.dataTransfer))
             return;
           e.preventDefault();

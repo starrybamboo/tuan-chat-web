@@ -132,3 +132,29 @@
 - 抽屉：右侧轻量抽屉 `sideDrawerState="docFolder"`（`VaulSideDrawer`）
 - 能力：文件夹/文档列表、新建文件夹、新建文档、重命名、删除、点击打开 Blocksuite 编辑
 - 数据：对接 `/space/docFolder/*`（树 JSON + version 乐观锁；文档列表与元数据）
+
+---
+
+### 需求: 文档卡片消息（Blocksuite Doc Card）
+**模块:** chat
+在同一 space 内，支持把 Blocksuite 文档以“卡片消息”形式发送到聊天室，并提供弹窗只读预览。
+
+#### 场景: 从文档树拖拽到聊天室发送
+前置条件：文档为可远端读取的 Blocksuite docId（`parseDescriptionDocId` 可解析，如 `udoc:*:description`）。
+- 将文档从“我的文档/文档树”拖拽到消息列表或输入框区域后，直接发送一条文档卡片消息
+- 拖拽语义为“复制引用”，不改变文档树结构
+
+#### 场景: 点击卡片弹窗只读预览
+- 卡片展示：标题、封面（tcHeader imageUrl）、内容摘要（段落提取）
+- 点击卡片：弹窗打开 Blocksuite 只读预览（iframe 隔离）
+
+#### 协议: DOC_CARD
+- `messageType`: `MESSAGE_TYPE.DOC_CARD`（当前为 1002）
+- `extra.docCard`:
+  - `docId: string`（Blocksuite docId）
+  - `spaceId: number`（用于同一 space 校验/降级）
+  - `title?: string`（发送时兜底标题）
+  - `imageUrl?: string`（发送时兜底封面）
+
+#### 约束
+- 仅支持同一 space 分享/预览；跨 space 将阻止发送或展示降级提示
