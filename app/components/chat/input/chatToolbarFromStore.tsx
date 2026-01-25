@@ -33,8 +33,8 @@ export default function ChatToolbarFromStore({
 
   const disableSendMessage = React.useMemo(() => {
     const noInput = !(plainText.trim() || hasAttachments);
-    return (noRole && !isKP) || notMember || noInput || isSubmitting;
-  }, [plainText, hasAttachments, isKP, noRole, notMember, isSubmitting]);
+    return noRole || notMember || noInput || isSubmitting;
+  }, [plainText, hasAttachments, noRole, notMember, isSubmitting]);
 
   const disableImportChatText = React.useMemo(() => {
     return notMember || isSubmitting;

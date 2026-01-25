@@ -32,10 +32,17 @@ export function ExpressionChooser({
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
   const roleAvatars = roleAvatarsQuery.data?.data || [];
 
-  const availableRoles = roomContext.roomRolesThatUserOwn;
+  const currentUserId = roomContext.curMember?.userId;
+  const availableRoles = currentUserId
+    ? roomContext.roomRolesThatUserOwn.filter(role => role.userId === currentUserId)
+    : roomContext.roomRolesThatUserOwn;
 
   // 判断当前是否为旁白模式
   const isNarratorMode = selectedRoleId <= 0;
+  const narratorTitle = showNarratorOption ? "旁白模式" : "未选择角色";
+  const narratorDescription = showNarratorOption
+    ? "旁白消息没有角色头像和表情"
+    : "请选择你的角色后再发送消息";
 
   const handleRoleSelect = (role: UserRole) => {
     handleRoleChange(role.roleId);
@@ -143,8 +150,8 @@ export function ExpressionChooser({
             ? (
                 <div className="text-center text-gray-500">
                   <NarratorIcon className="size-16 mx-auto text-base-content/30" />
-                  <div className="text-sm mb-2">旁白模式</div>
-                  <div className="text-xs text-base-content/50">旁白消息没有角色头像和表情</div>
+                  <div className="text-sm mb-2">{narratorTitle}</div>
+                  <div className="text-xs text-base-content/50">{narratorDescription}</div>
                 </div>
               )
             : roleAvatars && roleAvatars.length > 0

@@ -217,7 +217,7 @@ function RoomComposerPanelImpl({
       return "观战";
     }
     if (curRoleId <= 0) {
-      return "旁白";
+      return "未选择角色";
     }
     const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
     return draftName || currentRole?.roleName || "未选择角色";
