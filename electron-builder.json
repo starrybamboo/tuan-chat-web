@@ -2,6 +2,13 @@
   "appId": "com.tuanchat.tuanchat",
   "productName": "团剧共创",
   "copyright": "Copyright © 2025 ${tuan-chat}",
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "starrybamboo",
+      "repo": "tuan-chat-web"
+    }
+  ],
   "files": ["./electron", "./build"],
   "extraResources": [
     {
@@ -13,10 +20,10 @@
     "output": "./release"
   },
   "win": {
-    "target": "nsis"
+    "target": ["nsis", "zip"]
   },
   "mac": {
-    "target": "dmg"
+    "target": ["dmg", "zip"]
   },
   "linux": {
     "target": "AppImage"
