@@ -34,7 +34,7 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import type { DocRefDragPayload } from "@/components/chat/utils/dndDocRef";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";

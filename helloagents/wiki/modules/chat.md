@@ -143,6 +143,7 @@
 前置条件：文档为可远端读取的 Blocksuite docId（`parseDescriptionDocId` 可解析，如 `udoc:*:description`）。
 - 将文档从“我的文档/文档树”拖拽到消息列表或输入框区域后，直接发送一条文档卡片消息
 - 拖拽语义为“复制引用”，不改变文档树结构
+- 拖拽数据协议与解析工具：`app/components/chat/utils/docRef.ts`
 
 #### 场景: 点击卡片弹窗只读预览
 - 卡片展示：标题、封面（tcHeader imageUrl）、内容摘要（段落提取）

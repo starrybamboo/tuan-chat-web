@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601252218 | docref_rename | 变更 | 已完成 | [2026-01/202601252218_docref_rename/](2026-01/202601252218_docref_rename/) |
 | 202601252021 | doc_message_card | 功能 | 已完成 | [2026-01/202601252021_doc_message_card/](2026-01/202601252021_doc_message_card/) |
 | 202601251900 | chat-docfolder-ui | 功能 | 已完成 | [2026-01/202601251900_chat-docfolder-ui/](2026-01/202601251900_chat-docfolder-ui/) |
 | 202601242150 | webgal_realtime_resync | 修复 | 已完成 | [2026-01/202601242150_webgal_realtime_resync/](2026-01/202601242150_webgal_realtime_resync/) |
@@ -104,6 +105,7 @@
 
 ### 2026-01
 
+- [202601252218_docref_rename](2026-01/202601252218_docref_rename/) - Chat 文档拖拽引用工具重命名：`dndDocRef` → `docRef`
 - [202601241705_chat-mention-all](2026-01/202601241705_chat-mention-all/) - KP 聊天 @ 提及列表新增 @All（检定请求）
 - [202601242230_chat_avatar_runtime_default](2026-01/202601242230_chat_avatar_runtime_default/) - 房间加载/导入/发送时运行时解析 avatarId（不强制持久化），缺失时显示为空占位
 - [202601242032_chat_import_fill_avatar_map](2026-01/202601242032_chat_import_fill_avatar_map/) - 聊天导入头像选择兜底（已被 202601242230 覆盖）

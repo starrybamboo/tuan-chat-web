@@ -13,7 +13,7 @@ import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "r
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
-import { setDocRefDragData } from "@/components/chat/utils/dndDocRef";
+import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { PopWindow } from "@/components/common/popWindow";
