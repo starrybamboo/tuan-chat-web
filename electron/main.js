@@ -1,5 +1,6 @@
 /* eslint-disable node/no-process-env */
 import { app, BrowserWindow, ipcMain, Menu, protocol } from "electron";
+import { autoUpdater } from "electron-updater";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -161,8 +162,27 @@ async function createWindow() {
   });
 }
 
+autoUpdater.on("update-available", info => console.warn("发现新版本:", info.version));
+
+autoUpdater.on("downloadProgress", p => console.warn(`下载进度: ${Math.round(p.percent)}%`));
+autoUpdater.on("update-downloaded", () => autoUpdater.quitAndInstall());
+
+autoUpdater.on("error", (err) => {
+  console.error("[autoUpdater] error", err);
+});
+
 // 这段程序将会在 Electron 结束初始化和创建浏览器窗口的时候调用
 app.whenReady().then(async () => {
+  // 检测自动更新：只在打包环境启用（避免开发态缺少 update config 导致报错/卡顿）。
+  // 如需在开发态验证更新流程，可设置 FORCE_AUTO_UPDATE=1。
+  const shouldCheckUpdates = app.isPackaged || process.env.FORCE_AUTO_UPDATE === "1";
+  if (shouldCheckUpdates) {
+    // 默认为 true，这里显式设置，避免被外部修改导致不自动下载。
+    autoUpdater.autoDownload = true;
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.error("[autoUpdater] checkForUpdatesAndNotify failed", err);
+    });
+  }
   ipcMain.handle("electron:get-dev-server-url", () => resolvedDevServerUrl);
   ipcMain.handle("electron:get-dev-port", () => {
     try {

@@ -18,7 +18,8 @@
     "optimize:ai-style-images": "node ./scripts/optimize-ai-style-images.mjs",
     "prepare": "husky",
     "openapi": "openapi --input ./api/tuanchat_OpenAPI.json --output ./api --client fetch --name TuanChat",
-    "electron:dev": "electron .",
+    "electron:dev": "node ./scripts/electron-dev.mjs",
+    "electron:dev:only": "electron .",
     "electron:build": "electron-builder build --config electron-builder.json"
   },
   "build": {
@@ -33,11 +34,11 @@
       "electron/**/*"
     ],
     "win": {
-      "target": "nsis",
+      "target": ["nsis", "zip"],
       "icon": "electron/icons/icon.ico"
     },
     "mac": {
-      "target": "dmg",
+      "target": ["dmg", "zip"],
       "icon": "electron/icons/icon.icns"
     },
     "linux": {
@@ -82,6 +83,7 @@
     "detect-port": "^2.1.0",
     "dom-to-image": "^2.6.0",
     "electron-dl": "^4.0.0",
+    "electron-updater": "^6.7.3",
     "extract-zip": "^2.0.1",
     "fflate": "0.8.2",
     "html-to-image": "^1.11.13",
