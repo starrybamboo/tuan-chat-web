@@ -96,7 +96,12 @@ export function isDocRefDrag(dataTransfer: DataTransfer | null | undefined): boo
   if (!dataTransfer)
     return false;
   try {
-    return Array.from(dataTransfer.types || []).includes(DOC_REF_MIME);
+    const types = Array.from(dataTransfer.types || []);
+    if (types.includes(DOC_REF_MIME))
+      return true;
+    // `text/uri-list` 兜底：用于在 dragover 阶段也能可靠 detect（某些环境下无法读取自定义 MIME 的内容）。
+    // 注意：文件拖拽也可能带有 uri-list，因此需排除 Files。
+    return types.includes("text/uri-list") && !types.includes("Files");
   }
   catch {
     return false;

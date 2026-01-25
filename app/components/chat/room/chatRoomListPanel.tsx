@@ -11,7 +11,7 @@ import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId 
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
-import { setDocRefDragData } from "@/components/chat/utils/dndDocRef";
+import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";

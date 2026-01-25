@@ -18,8 +18,8 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
-import type { DocRefDragPayload } from "@/components/chat/utils/dndDocRef";
-import { getDocRefDragData } from "@/components/chat/utils/dndDocRef";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
+import { getDocRefDragData } from "@/components/chat/utils/docRef";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
