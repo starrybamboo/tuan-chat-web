@@ -30,6 +30,7 @@
 - 聊天室文本导入：当房间无可用角色时提供“创建/导入角色”快捷入口
 - 聊天室文本导入：支持发言人为“骰娘”时按 `DICE(6)` 类型发送（`extra.result=content`）
 - 聊天室文本导入：支持为发言人设置立绘位置（左/中/右），发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
+- Chat：聊天输入区新增“我的文档”入口（线索按钮左侧），打开 Space 用户文档夹抽屉，支持创建/重命名/删除/打开 Blocksuite 文档（对接 `/space/docFolder/*`）
 
 ### 变更
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
