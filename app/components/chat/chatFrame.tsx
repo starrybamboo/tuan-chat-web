@@ -16,7 +16,7 @@ import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameCo
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import { getDocRefDragData } from "@/components/chat/utils/docRef";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
@@ -955,7 +955,7 @@ function ChatFrame(props: ChatFrameProps) {
   }, [attachWindowDragOver, historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (getDocRefDragData(e.dataTransfer)) {
+    if (isDocRefDrag(e.dataTransfer)) {
       e.dataTransfer.dropEffect = "copy";
       startAutoScroll(0);
       return;
@@ -1208,7 +1208,7 @@ function ChatFrame(props: ChatFrameProps) {
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
         onDragOver={(e) => {
-          if (getDocRefDragData(e.dataTransfer)) {
+          if (isDocRefDrag(e.dataTransfer)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = "copy";
             return;
