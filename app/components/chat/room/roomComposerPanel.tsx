@@ -19,7 +19,7 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import { getDocRefDragData } from "@/components/chat/utils/docRef";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
@@ -318,8 +318,10 @@ function RoomComposerPanelImpl({
         <div
           className="flex flex-col gap-2 rounded-md"
           onDragOver={(e) => {
-            const docRef = getDocRefDragData(e.dataTransfer);
-            if (docRef) {
+            // 注意：部分浏览器在 dragover 阶段无法读取 getData 的自定义 MIME 内容。
+            // 因此这里仅基于 types 判定并 preventDefault，让 drop 一定能触发；
+            // 具体 payload 在 onDrop 再读取。
+            if (isDocRefDrag(e.dataTransfer)) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
               return;
