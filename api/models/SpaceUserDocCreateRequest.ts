@@ -2,18 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SpaceSidebarTreeSetRequest = {
+export type SpaceUserDocCreateRequest = {
     /**
      * 空间ID
      */
     spaceId: number;
     /**
-     * 期望版本号（乐观锁）
+     * 文档标题（可选）
      */
-    expectedVersion: number;
-    /**
-     * 频道树JSON
-     */
-    treeJson: string;
+    title?: string;
 };
 

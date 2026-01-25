@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { SchedulerStatistics } from './SchedulerStatistics';
+import type { SpaceUserDocFolderTreeResponse } from './SpaceUserDocFolderTreeResponse';
 /**
  * 基础返回体
  */
-export type ApiResultSchedulerStatistics = {
+export type ApiResultSpaceUserDocFolderTreeResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultSchedulerStatistics = {
      * 错误消息
      */
     errMsg?: string;
-    data?: SchedulerStatistics;
+    data?: SpaceUserDocFolderTreeResponse;
 };
 

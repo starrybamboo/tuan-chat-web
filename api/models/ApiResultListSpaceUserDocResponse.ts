@@ -2,10 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SpaceUserDocResponse } from './SpaceUserDocResponse';
 /**
  * 基础返回体
  */
-export type ApiResultMapStringObject = {
+export type ApiResultListSpaceUserDocResponse = {
     /**
      * 成功标识true or false
      */
@@ -21,6 +22,6 @@ export type ApiResultMapStringObject = {
     /**
      * 返回对象
      */
-    data?: Record<string, Record<string, any>>;
+    data?: Array<SpaceUserDocResponse>;
 };
 
