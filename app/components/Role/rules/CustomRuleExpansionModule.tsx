@@ -8,10 +8,12 @@ export default function CustomRuleExpansionModule({
   localRule,
   onRuleChange,
   cloneVersion,
+  onModuleEditingChange,
 }: {
   localRule: Rule;
   onRuleChange: React.Dispatch<React.SetStateAction<Rule>>;
   cloneVersion: number;
+  onModuleEditingChange?: (moduleKey: string, editing: boolean) => void;
 }) {
   const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
 
@@ -45,6 +47,7 @@ export default function CustomRuleExpansionModule({
           localEdits={localRule.basicDefault}
           onDataChange={handleBasicChange}
           cloneVersion={cloneVersion}
+          onEditingChange={editing => onModuleEditingChange?.("basic", editing)}
         />
       );
     }
@@ -56,6 +59,7 @@ export default function CustomRuleExpansionModule({
           localEdits={localRule.abilityFormula}
           onDataChange={handleAbilityChange}
           cloneVersion={cloneVersion}
+          onEditingChange={editing => onModuleEditingChange?.("ability", editing)}
         />
       );
     }
@@ -67,6 +71,7 @@ export default function CustomRuleExpansionModule({
           localEdits={localRule.skillDefault}
           onDataChange={handleSkillChange}
           cloneVersion={cloneVersion}
+          onEditingChange={editing => onModuleEditingChange?.("skill", editing)}
         />
       );
     }
@@ -89,6 +94,7 @@ export default function CustomRuleExpansionModule({
             data={localRule.actTemplate}
             onSave={handleActTemplateChange}
             cloneVersion={cloneVersion}
+            onEditingChange={editing => onModuleEditingChange?.("act", editing)}
           />
         </div>
       </Section>

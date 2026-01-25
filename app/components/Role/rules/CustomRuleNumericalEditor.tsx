@@ -9,6 +9,7 @@ interface CustomRuleNumericalEditorProps {
   data?: NumericalData;
   onSave?: (data: NumericalData) => void;
   cloneVersion: number;
+  onEditingChange?: (editing: boolean) => void;
 }
 
 // Reducer actions
@@ -57,6 +58,7 @@ export default function CustomRuleNumericalEditor({
   data,
   onSave,
   cloneVersion,
+  onEditingChange,
 }: CustomRuleNumericalEditorProps) {
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   const [isEditing, setIsEditing] = useState(false);
@@ -80,6 +82,18 @@ export default function CustomRuleNumericalEditor({
     dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     setIsEditing(false);
   }, [cloneVersion, data]);
+
+  // 将编辑态变化上报给父组件，用于保存前校验
+  useEffect(() => {
+    onEditingChange?.(isEditing);
+  }, [isEditing, onEditingChange]);
+
+  // 组件卸载时清理编辑态（例如切换 Tab/页面时避免残留）
+  useEffect(() => {
+    return () => {
+      onEditingChange?.(false);
+    };
+  }, [onEditingChange]);
 
   const isEmpty = !localData || Object.keys(localData).length === 0;
 

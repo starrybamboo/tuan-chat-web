@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 
+const RULE_NAME_MAX_LENGTH = 20;
+const RULE_DESCRIPTION_MAX_LENGTH = 200;
+
 export default function RuleTextInfoEditor({
   ruleName,
   ruleDescription,
   onApply,
   cloneVersion,
+  onEditingChange,
 }: {
   ruleName?: string;
   ruleDescription?: string;
   onApply: (next: { ruleName: string; ruleDescription: string }) => void;
   cloneVersion: number;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [localName, setLocalName] = useState(ruleName ?? "");
@@ -23,6 +28,18 @@ export default function RuleTextInfoEditor({
       setLocalDescription(ruleDescription ?? "");
     }
   }, [isEditing, ruleDescription, ruleName]);
+
+  // 将编辑态变化上报给父组件，用于保存前校验
+  useEffect(() => {
+    onEditingChange?.(isEditing);
+  }, [isEditing, onEditingChange]);
+
+  // 组件卸载时清理编辑态（例如切换 Tab/页面时避免残留）
+  useEffect(() => {
+    return () => {
+      onEditingChange?.(false);
+    };
+  }, [onEditingChange]);
 
   // 导入（cloneVersion 变化）时：重置本地编辑内容，并退出编辑态（与右侧模块一致）
   useEffect(() => {
@@ -52,6 +69,11 @@ export default function RuleTextInfoEditor({
     onApply({ ruleName: localName, ruleDescription: localDescription });
     setIsEditing(false);
   };
+
+  const nameLength = localName.length;
+  const descriptionLength = localDescription.length;
+  const nameCounterClass = nameLength >= RULE_NAME_MAX_LENGTH ? "text-error" : "text-base-content/50";
+  const descriptionCounterClass = descriptionLength >= RULE_DESCRIPTION_MAX_LENGTH ? "text-error" : "text-base-content/50";
 
   return (
     <div className="space-y-6">
@@ -106,27 +128,43 @@ export default function RuleTextInfoEditor({
           // 编辑态：表单控件
             <div className="space-y-6">
               <div className="form-control">
-                <div className="flex gap-2 mb-2 items-center font-semibold">
+                <div className="flex gap-2 mb-2 items-center font-semibold justify-between">
                   <span>规则名称</span>
+                  <span className={`text-xs font-normal ${nameCounterClass}`}>
+                    {nameLength}
+                    /
+                    {RULE_NAME_MAX_LENGTH}
+                  </span>
                 </div>
                 <input
                   type="text"
                   className="input input-bordered bg-base-100 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   placeholder="输入规则名称"
                   value={localName}
-                  onChange={e => setLocalName(e.target.value)}
+                  maxLength={RULE_NAME_MAX_LENGTH}
+                  onChange={(e) => {
+                    setLocalName(e.target.value);
+                  }}
                 />
               </div>
 
               <div className="form-control">
-                <div className="flex gap-2 mb-2 items-center font-semibold">
+                <div className="flex gap-2 mb-2 items-center font-semibold justify-between">
                   <span>规则描述</span>
+                  <span className={`text-xs font-normal ${descriptionCounterClass}`}>
+                    {descriptionLength}
+                    /
+                    {RULE_DESCRIPTION_MAX_LENGTH}
+                  </span>
                 </div>
                 <textarea
                   className="textarea textarea-bordered bg-base-100 rounded-md h-40 overflow-y-auto resize-none w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   placeholder="输入规则描述"
                   value={localDescription}
-                  onChange={e => setLocalDescription(e.target.value)}
+                  maxLength={RULE_DESCRIPTION_MAX_LENGTH}
+                  onChange={(e) => {
+                    setLocalDescription(e.target.value);
+                  }}
                 />
               </div>
             </div>

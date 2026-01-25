@@ -6,11 +6,13 @@ export function CustomRuleConfigurationSection({
   localEdits,
   onDataChange,
   cloneVersion,
+  onEditingChange,
 }: {
   customLabel: string;
   localEdits?: Record<string, any>;
   onDataChange: (newData: Record<string, any>) => void;
   cloneVersion: number;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const fieldCount = Object.keys(localEdits ?? {}).length;
   return (
@@ -32,6 +34,7 @@ export function CustomRuleConfigurationSection({
           data={localEdits ?? {}}
           onSave={onDataChange}
           cloneVersion={cloneVersion}
+          onEditingChange={onEditingChange}
         />
       </div>
     </Section>
