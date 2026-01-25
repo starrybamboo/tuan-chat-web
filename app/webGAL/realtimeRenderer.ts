@@ -1540,6 +1540,12 @@ export class RealtimeRenderer {
    */
   public async resetScene(roomId?: number): Promise<void> {
     if (roomId) {
+      // 重置房间场景时，必须清理该房间的消息行号映射，否则后续跳转/更新会基于旧行号导致顺序错乱
+      for (const key of Array.from(this.messageLineMap.keys())) {
+        if (key.startsWith(`${roomId}_`)) {
+          this.messageLineMap.delete(key);
+        }
+      }
       await this.initRoomScene(roomId);
       this.currentSpriteStateMap.set(roomId, new Set());
       this.sendSyncMessage(roomId);
@@ -1548,6 +1554,7 @@ export class RealtimeRenderer {
       // 重置所有房间
       await this.initScene();
       this.currentSpriteStateMap.clear();
+      this.messageLineMap.clear();
     }
   }
 

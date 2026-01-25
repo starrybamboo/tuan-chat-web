@@ -1,4 +1,4 @@
-﻿import type { VirtuosoHandle } from "react-virtuoso";
+import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessageRequest,
   ChatMessageResponse,
@@ -704,13 +704,14 @@ function ChatFrame(props: ChatFrameProps) {
     const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
       ?? historyMessages[historyMessages.length - 1].message.position + 1;
 
-    for (const selectedMessage of selectedMessages) {
-      const index = selectedMessages.indexOf(selectedMessage);
+    const step = (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1);
+    selectedMessages.forEach((selectedMessage, index) => {
+      const nextPosition = step * (index + 1) + topMessagePosition;
       updateMessage({
         ...selectedMessage,
-        position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
+        position: nextPosition,
       });
-    }
+    });
   }, [historyMessages, isMessageMovable, updateMessage]);
   const cleanupDragIndicator = useCallback(() => {
     pendingDragCheckRef.current = null;
@@ -1271,4 +1272,3 @@ function ChatFrame(props: ChatFrameProps) {
 }
 
 export default memo(ChatFrame);
-

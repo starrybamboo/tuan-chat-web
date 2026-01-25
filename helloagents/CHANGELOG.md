@@ -5,6 +5,8 @@
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+- ??????????????
+- ??????????????????????????
 
 ### 新增
 - 角色页面渲染预览支持修改已有头像（基于 avatarId 更新头像内容，不新增 avatarId）
@@ -15,6 +17,7 @@
 - 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
 - 新增 Quill 引用统计审计报告：`helloagents/wiki/reports/2026-01-14_quill_reference_audit.md`
 - 跑团指令支持“检定请求按钮消息”：使用独立消息类型 `COMMAND_REQUEST(12)`；KP 发送包含 `@All` 的指令会生成可点击按钮，成员点击后以自身角色一键发送并在原 thread 执行
+- KP 聊天输入框 @ 提及列表新增 `@All` 入口，并标注“检定请求”
 - WebGAL 实时预览设置支持配置 Terre 端口，并将 TTS/WebGAL 设置改为 IndexedDB 持久化
 - WebGAL 空间变量系统：导演控制台支持“设置变量”发送 `WEBGAL_VAR(11)` 结构化消息（也支持 `/var set a=1` 快捷方式），变量持久化到 `space.extra.webgalVars` 并在实时渲染中转换为 `setVar:* -global;`
 - Chat 房间列表：分类标题右侧新增“+”创建入口，可创建房间/文档并自动加入分类（持久化到 `/space/sidebarTree`）
@@ -70,6 +73,8 @@
 - 修复聊天拖拽自动滚动重复声明导致的构建失败
 - 拖拽移动聊天消息时靠近顶部/底部自动滚动，便于移动到更早或更晚位置
 - 修复房间角色导入后 avatarId 为空导致头像不显示：前端兜底为该角色头像列表首个头像
+- 修复聊天导入/发送时未选择立绘导致消息头像回退默认图标：运行时解析 `avatarId`（不强制持久化），仍缺失时显示为空占位
+- 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
@@ -139,6 +144,7 @@
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
 
 ### ??
+- ?? API ???? authorId ?????? RulePageRequest ???????
 - WebGAL ?????????????????????
 - ?? @???? Deleted doc?workspace ???
 - ?? @????? Deleted doc

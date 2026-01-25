@@ -9,6 +9,10 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601242150 | webgal_realtime_resync | 修复 | 已完成 | [2026-01/202601242150_webgal_realtime_resync/](2026-01/202601242150_webgal_realtime_resync/) |
+| 202601241705 | chat-mention-all | 变更 | 已完成 | [2026-01/202601241705_chat-mention-all/](2026-01/202601241705_chat-mention-all/) |
+| 202601242230 | chat_avatar_runtime_default | 修复 | 已完成 | [2026-01/202601242230_chat_avatar_runtime_default/](2026-01/202601242230_chat_avatar_runtime_default/) |
+| 202601242032 | chat_import_fill_avatar_map | 修复 | 已完成（已被后续方案覆盖） | [2026-01/202601242032_chat_import_fill_avatar_map/](2026-01/202601242032_chat_import_fill_avatar_map/) |
 | 202601232244 | role_avatar_render_edit | 变更 | 已完成 | [2026-01/202601232244_role-avatar-render-edit/](2026-01/202601232244_role-avatar-render-edit/) |
 | 202601232052 | chat_import_preserve_speaker_name | 变更 | 已完成 | [2026-01/202601232052_chat_import_preserve_speaker_name/](2026-01/202601232052_chat_import_preserve_speaker_name/) |
 | 202601232052 | chat_text_selection | 修复 | 已完成 | [2026-01/202601232052_chat_text_selection/](2026-01/202601232052_chat_text_selection/) |
@@ -98,6 +102,9 @@
 
 ### 2026-01
 
+- [202601241705_chat-mention-all](2026-01/202601241705_chat-mention-all/) - KP 聊天 @ 提及列表新增 @All（检定请求）
+- [202601242230_chat_avatar_runtime_default](2026-01/202601242230_chat_avatar_runtime_default/) - 房间加载/导入/发送时运行时解析 avatarId（不强制持久化），缺失时显示为空占位
+- [202601242032_chat_import_fill_avatar_map](2026-01/202601242032_chat_import_fill_avatar_map/) - 聊天导入头像选择兜底（已被 202601242230 覆盖）
 - [202601232244_role-avatar-render-edit](2026-01/202601232244_role-avatar-render-edit/) - 角色页面渲染预览内支持修改已有头像
 - [202601232105_webgal_avatar_realtime_sync](2026-01/202601232105_webgal_avatar_realtime_sync/) - WebGAL ????????
 
@@ -191,3 +198,7 @@
 | ??? | ???? | ?? | ?? | ????? |
 |--------|----------|------|------|------------|
 | 202601232105 | WebGAL ???????? | ?? | ???? | [??](2026-01/202601232105_webgal_avatar_realtime_sync/) |
+
+## 2026-01
+- 202601241857_chat-avatar-default
+- 202601241838_chat-avatar-fallback

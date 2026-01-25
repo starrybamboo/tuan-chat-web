@@ -7,6 +7,7 @@
  */
 export type Rule = {
     ruleId?: number;
+    authorId?: number;
     ruleName?: string;
     ruleDescription?: string;
     actTemplate?: Record<string, string>;
