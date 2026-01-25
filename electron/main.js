@@ -1,6 +1,6 @@
 /* eslint-disable node/no-process-env */
 import { app, BrowserWindow, ipcMain, Menu, protocol } from "electron";
-import { autoUpdater } from "electron-updater";
+import electronUpdater from "electron-updater";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -11,6 +11,10 @@ import { base64DataUrl, detectBinaryDataUrl, firstImageFromZip, looksLikeZip } f
 import { buildCandidatePorts, resolveDevServerUrl } from "./utils/devServerUrl.js";
 import { clampToMultipleOf64 } from "./utils/numberUtils.js";
 import { registerWebGalIpc, stopWebGAL } from "./utils/webgal.js";
+// @ganyudedog electron-updater 使用 autoUpdater 来管理更新
+// @entropy622构建electron
+
+const { autoUpdater } = electronUpdater;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -154,6 +158,19 @@ async function createWindow() {
   }
   else {
     // 生产环境：使用自定义协议加载 build/client 目录（模拟 Nginx try_files）
+    const indexPath = path.join(__dirname, "../build/client", "index.html");
+    try {
+      if (!fs.existsSync(indexPath)) {
+        const msg = `未找到前端构建产物：\n${indexPath}\n\n这通常表示打包前没有先执行前端构建。\n\n请在项目根目录执行：\n- pnpm build\n然后再执行：\n- pnpm electron:build:win:zip（或 nsis）`;
+        console.error("[electron] missing build artifacts", { indexPath });
+        await mainWindow.loadURL(`data:text/plain;charset=utf-8,${encodeURIComponent(msg)}`);
+        return;
+      }
+    }
+    catch (err) {
+      console.error("[electron] failed to validate build artifacts", err);
+    }
+
     await mainWindow.loadURL("app://./");
   }
 
