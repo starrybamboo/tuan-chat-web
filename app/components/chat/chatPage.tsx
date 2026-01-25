@@ -70,9 +70,34 @@ export default function ChatPage() {
       }
     }
 
-    // 兼容直接传完整 docId（如 sdoc:<id>:description / udoc:<id>:description 等）
+    // 不兼容旧的 sdoc:<id>:description（应使用纯数字 URL）
+    const parsed = parseSpaceDocId(decoded);
+    if (parsed?.kind === "independent") {
+      return null;
+    }
+
+    // 其它 docId（如 udoc:<id>:description）仍允许通过 URL 直达
     return decoded;
   })();
+
+  useEffect(() => {
+    if (!isDocRoute)
+      return;
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+
+    try {
+      const decoded = decodeURIComponent(urlMessageId as string);
+      const parsed = parseSpaceDocId(decoded);
+      if (parsed?.kind === "independent") {
+        toast.error("旧文档链接已失效，请使用纯数字链接");
+        navigate(`/chat/${activeSpaceId}`);
+      }
+    }
+    catch {
+      // ignore
+    }
+  }, [activeSpaceId, isDocRoute, navigate, urlMessageId]);
 
   const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
   const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
