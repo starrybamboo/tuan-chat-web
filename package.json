@@ -6,7 +6,7 @@
   "packageManager": "pnpm@9.6.0",
   "description": "Tuan Chat",
   "author": "Tuan Chat",
-  "main": "electron/main.cjs",
+  "main": "electron/main.js",
   "scripts": {
     "build": "react-router build",
     "dev": "node ./scripts/dev.mjs",

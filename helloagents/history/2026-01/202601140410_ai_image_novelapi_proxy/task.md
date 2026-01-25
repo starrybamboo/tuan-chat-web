@@ -14,7 +14,7 @@
 - [√] 2.3 新增本地历史存储模块（IndexedDB）并在 `app/routes/aiImage.tsx` 接入历史/下载/清理，验证 why.md#需求-支持-img2img历史保存与下载-场景-保存历史并下载，依赖任务2.2
 
 ## 3. Electron 代理与类型同步
-- [√] 3.1 在 `electron/main.cjs` 中补齐 img2img 参数转发与 ZIP/图片格式识别兜底，验证 why.md#需求-electron-环境保持可出图且解析-zip图片-场景-electron-内点击生成
+- [√] 3.1 在 `electron/main.js` 中补齐 img2img 参数转发与 ZIP/图片格式识别兜底，验证 why.md#需求-electron-环境保持可出图且解析-zip图片-场景-electron-内点击生成
 - [√] 3.2 在 `app/electron.d.ts` 中同步 IPC payload 类型（img2img/strength/noise 等），依赖任务3.1
 
 ## 4. 安全检查

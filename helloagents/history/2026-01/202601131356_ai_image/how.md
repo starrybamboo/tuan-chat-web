@@ -13,7 +13,7 @@
 
 - **前端**：`app/routes/aiImage.tsx` 提供表单输入（token/prompt/negative/steps/scale/分辨率等），并展示生成结果与下载按钮。
 - **通信**：`electron/preload.js` 暴露 `window.electronAPI.novelaiGenerateImage`，由渲染进程调用。
-- **主进程代理**：`electron/main.cjs` 发起请求并处理 zip 响应，统一返回 `{ dataUrl, seed, width, height, model }`。
+- **主进程代理**：`electron/main.js` 发起请求并处理 zip 响应，统一返回 `{ dataUrl, seed, width, height, model }`。
 - **兼容性**：在 Web 环境下仅提示，不尝试直连 NovelAI（浏览器无法自定义 `referer` 且容易触发 CORS）。
 
 ## API设计（IPC）
