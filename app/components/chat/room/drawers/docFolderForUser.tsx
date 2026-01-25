@@ -1,6 +1,6 @@
 import type { SpaceUserDocResponse } from "../../../../../api/models/SpaceUserDocResponse";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import { DotsThreeVerticalIcon, FolderPlusIcon, PlusIcon } from "@phosphor-icons/react";
+import { DotsThreeVerticalIcon, FileTextIcon, FolderPlusIcon } from "@phosphor-icons/react";
 import {
   useCreateSpaceUserDocMutation,
   useDeleteSpaceUserDocMutation,
@@ -17,6 +17,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blo
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { AddIcon, ChevronDown } from "@/icons";
 
 interface DocFolderDocNode {
   nodeId: string;
@@ -525,14 +526,14 @@ export default function DocFolderForUser() {
           </button>
           <button
             type="button"
-            className="btn btn-primary btn-xs"
+            className="btn btn-ghost btn-xs"
             onClick={() => {
               setNewDocCategoryId(tree.categories[0]?.categoryId ?? "cat:docs");
               setCreateDocOpen(true);
             }}
             title="新建文档"
           >
-            <PlusIcon className="size-4" />
+            <AddIcon />
             新建
           </button>
           <button
@@ -571,17 +572,31 @@ export default function DocFolderForUser() {
                   {tree.categories.map((cat) => {
                     const isCollapsed = Boolean(cat.collapsed);
                     return (
-                      <div key={cat.categoryId} className="rounded-lg border border-base-300 bg-base-100 overflow-hidden">
-                        <div className="flex items-center justify-between px-2 py-2 bg-base-200">
+                      <div key={cat.categoryId} className="px-1">
+                        <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium opacity-80 select-none rounded-lg hover:bg-base-300/40">
                           <button
                             type="button"
-                            className="btn btn-ghost btn-xs min-w-0 flex-1 justify-start"
+                            className="btn btn-ghost btn-xs"
                             onClick={() => void toggleCategory(cat.categoryId)}
+                            title={isCollapsed ? "展开" : "折叠"}
                           >
-                            <span className="truncate">{cat.name}</span>
-                            <span className="ml-2 text-xs opacity-60">
-                              {cat.items.length}
-                            </span>
+                            <ChevronDown className={`size-4 opacity-80 ${isCollapsed ? "-rotate-90" : ""}`} />
+                          </button>
+
+                          <span className="flex-1 truncate">{cat.name}</span>
+
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs"
+                            title="创建文档…"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setNewDocCategoryId(cat.categoryId);
+                              setCreateDocOpen(true);
+                            }}
+                          >
+                            <AddIcon />
                           </button>
 
                           <div className="dropdown dropdown-end">
@@ -590,6 +605,9 @@ export default function DocFolderForUser() {
                               tabIndex={0}
                               className="btn btn-ghost btn-xs"
                               aria-label="文件夹操作"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
                             >
                               <DotsThreeVerticalIcon className="size-4" />
                             </button>
@@ -601,53 +619,60 @@ export default function DocFolderForUser() {
                         </div>
 
                         {!isCollapsed && (
-                          <div className="divide-y divide-base-200">
+                          <div className="rounded-lg border border-base-300 px-1 py-1">
                             {cat.items.length === 0
                               ? (
-                                  <div className="px-3 py-3 text-xs opacity-60">空文件夹</div>
+                                  <div className="px-2 py-2 text-xs opacity-60">空文件夹</div>
                                 )
                               : (
                                   cat.items.map((node) => {
                                     const meta = docById.get(node.targetId);
                                     const title = (meta?.title ?? "").trim() || `文档 #${node.targetId}`;
                                     const updateTime = formatDateTime(meta?.updateTime);
+                                    const isActive = openDocId === node.targetId;
+                                    const tooltip = updateTime ? `${title}（更新于 ${updateTime}）` : title;
 
                                     return (
                                       <div
                                         key={node.nodeId}
-                                        className="flex items-center justify-between gap-2 px-2 py-2 hover:bg-base-200"
+                                        className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-pressed={isActive}
+                                        title={tooltip}
+                                        onClick={() => setOpenDocId(node.targetId)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setOpenDocId(node.targetId);
+                                          }
+                                        }}
                                       >
-                                        <button
-                                          type="button"
-                                          className="btn btn-ghost btn-sm flex-1 min-w-0 justify-start"
-                                          onClick={() => setOpenDocId(node.targetId)}
-                                          title="打开文档"
-                                        >
-                                          <div className="min-w-0 text-left">
-                                            <div className="truncate text-sm">{title}</div>
-                                            {updateTime && (
-                                              <div className="truncate text-xs opacity-60">
-                                                更新于
-                                                {" "}
-                                                {updateTime}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </button>
+                                        <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center">
+                                          <FileTextIcon className="size-4 opacity-70" />
+                                        </div>
+                                        <span className="flex-1 min-w-0 truncate text-left">{title}</span>
 
-                                        <div className="dropdown dropdown-end">
-                                          <button
-                                            type="button"
-                                            tabIndex={0}
-                                            className="btn btn-ghost btn-xs"
-                                            aria-label="文档操作"
-                                          >
-                                            <DotsThreeVerticalIcon className="size-4" />
-                                          </button>
-                                          <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-44">
-                                            <li><a onClick={() => requestRenameDoc(node.targetId)}>重命名</a></li>
-                                            <li><a onClick={() => requestDeleteDoc(node.targetId)}>删除</a></li>
-                                          </ul>
+                                        <div
+                                          className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                          }}
+                                        >
+                                          <div className="dropdown dropdown-end">
+                                            <button
+                                              type="button"
+                                              tabIndex={0}
+                                              className="btn btn-ghost btn-xs"
+                                              aria-label="文档操作"
+                                            >
+                                              <DotsThreeVerticalIcon className="size-4" />
+                                            </button>
+                                            <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-44">
+                                              <li><a onClick={() => requestRenameDoc(node.targetId)}>重命名</a></li>
+                                              <li><a onClick={() => requestDeleteDoc(node.targetId)}>删除</a></li>
+                                            </ul>
+                                          </div>
                                         </div>
                                       </div>
                                     );
