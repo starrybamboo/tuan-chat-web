@@ -12,7 +12,7 @@ export type SideDrawerState
     | "export"
     | "webgal";
 
-export type SubRoomDrawerState = "none" | "map" | "webgal";
+export type SubRoomDrawerState = "none" | "map" | "webgal" | "doc";
 
 type SideDrawerStore = {
   state: SideDrawerState;

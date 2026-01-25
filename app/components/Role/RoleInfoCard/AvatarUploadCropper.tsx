@@ -5,7 +5,6 @@ import type { CropMode } from "@/utils/imgCropper/useCropPreview";
 import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createCenteredSquareCrop, createFullImageCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
@@ -76,7 +75,7 @@ export function CharacterCopper({
   const uploadUtilsRef = useRef(new UploadUtils());
   const uploadUtils = uploadUtilsRef.current;
   // 控制弹窗的显示状态
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`characterCopperPop`, false);
+  const [isOpen, setIsOpen] = useState(false);
 
   // 图片相关状态
   const [imgSrc, setImgSrc] = useState("");
