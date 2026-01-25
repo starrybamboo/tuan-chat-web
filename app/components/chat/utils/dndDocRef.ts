@@ -1,4 +1,5 @@
 export const DOC_REF_MIME = "application/x-tc-doc-ref";
+const DOC_REF_FALLBACK_PREFIX = "tc-doc-ref:";
 
 export type DocRefDragPayload = {
   docId: string;
@@ -39,11 +40,11 @@ export function setDocRefDragData(dataTransfer: DataTransfer, payload: DocRefDra
     // ignore
   }
 
-  // 兜底：某些环境下自定义 MIME 可能不可用，用 text/plain 留个标记。
+  // 兜底：某些环境下自定义 MIME 可能不可用。
+  // - `text/uri-list` 在不少环境里比自定义 MIME 更稳定
+  // - 不覆写现有的 `text/plain`（侧边栏节点移动/排序依赖它）
   try {
-    if (!dataTransfer.getData("text/plain")) {
-      dataTransfer.setData("text/plain", `tc-doc-ref:${payload.docId}`);
-    }
+    dataTransfer.setData("text/uri-list", `${DOC_REF_FALLBACK_PREFIX}${payload.docId}`);
   }
   catch {
     // ignore
@@ -62,12 +63,25 @@ export function getDocRefDragData(dataTransfer: DataTransfer | null | undefined)
     return normalizePayload(parsed);
   }
   catch {
+    // 兜底 1：尝试从 text/uri-list 读取 `tc-doc-ref:<docId>`
+    try {
+      const uriList = dataTransfer.getData("text/uri-list") || "";
+      const first = uriList.split(/\r?\n/).map(s => s.trim()).find(Boolean) || "";
+      if (first.startsWith(DOC_REF_FALLBACK_PREFIX)) {
+        const docId = first.slice(DOC_REF_FALLBACK_PREFIX.length).trim();
+        return docId ? { docId } : null;
+      }
+    }
+    catch {
+      // ignore
+    }
+
     // 兜底：尝试从 text/plain 读取 `tc-doc-ref:<docId>`
     try {
       const plain = dataTransfer.getData("text/plain") || "";
       const trimmed = plain.trim();
-      if (trimmed.startsWith("tc-doc-ref:")) {
-        const docId = trimmed.slice("tc-doc-ref:".length).trim();
+      if (trimmed.startsWith(DOC_REF_FALLBACK_PREFIX)) {
+        const docId = trimmed.slice(DOC_REF_FALLBACK_PREFIX.length).trim();
         return docId ? { docId } : null;
       }
     }
