@@ -13,7 +13,7 @@ import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import RoomWindow from "@/components/chat/room/roomWindow";
@@ -41,6 +41,8 @@ import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivate
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
 import { SidebarSimpleIcon } from "@/icons";
+import toast from "react-hot-toast";
+import { tuanchat } from "api/instance";
 
 /**
  * chat板块的主组件
@@ -267,7 +269,11 @@ export default function ChatPage() {
   }, [globalContext.userId, spaceMembersQuery.data?.data]);
 
   const docMetasFromSidebarTree = useMemo(() => {
-    return extractDocMetasFromSidebarTree(sidebarTree);
+    // 不做历史兼容：仅保留能解析的“空间内独立文档”（sdoc:<docId>:description）。
+    return extractDocMetasFromSidebarTree(sidebarTree).filter((m) => {
+      const parsed = parseSpaceDocId(m.id);
+      return parsed?.kind === "independent";
+    });
   }, [sidebarTree]);
 
   const mergeDocMetas = useCallback((...sources: Array<MinimalDocMeta[] | null | undefined>): MinimalDocMeta[] => {
@@ -295,6 +301,18 @@ export default function ChatPage() {
   }, []);
 
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
+
+  // Space 共享文档（space_doc）：tcHeader 改名时做一次轻量节流同步，避免每次输入都打后端。
+  const spaceDocTitleSyncTimerRef = useRef<number | null>(null);
+  const spaceDocTitleSyncPendingRef = useRef<{ docId: number; title: string } | null>(null);
+  const spaceDocTitleSyncLastRef = useRef<{ docId: number; title: string } | null>(null);
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && spaceDocTitleSyncTimerRef.current != null) {
+        window.clearTimeout(spaceDocTitleSyncTimerRef.current);
+      }
+    };
+  }, []);
 
   const activeDocTitleForTcHeader = useMemo(() => {
     if (!activeDocId)
@@ -348,6 +366,45 @@ export default function ChatPage() {
       next[idx] = { ...next[idx], title };
       return next;
     });
+
+    // space_doc：把标题同步到后端（节流）。
+    if (typeof window !== "undefined") {
+      try {
+        void (async () => {
+          const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+          const key = parseDescriptionDocId(docId);
+          if (!key || key.entityType !== "space_doc")
+            return;
+
+          spaceDocTitleSyncPendingRef.current = { docId: key.entityId, title };
+          if (spaceDocTitleSyncTimerRef.current != null) {
+            window.clearTimeout(spaceDocTitleSyncTimerRef.current);
+          }
+          spaceDocTitleSyncTimerRef.current = window.setTimeout(() => {
+            const pending = spaceDocTitleSyncPendingRef.current;
+            if (!pending)
+              return;
+            const last = spaceDocTitleSyncLastRef.current;
+            if (last && last.docId === pending.docId && last.title === pending.title)
+              return;
+
+            void tuanchat.request.request<any>({
+              method: "PUT",
+              url: "/space/doc/title",
+              body: { docId: pending.docId, title: pending.title },
+              mediaType: "application/json",
+            }).then(() => {
+              spaceDocTitleSyncLastRef.current = pending;
+            }).catch(() => {
+              // ignore
+            });
+          }, 800);
+        })();
+      }
+      catch {
+        // ignore
+      }
+    }
   }, []);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
@@ -470,8 +527,30 @@ export default function ChatPage() {
       return;
 
     const title = (titleOverride ?? "新文档").trim() || "新文档";
-    const docKey = `${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
-    const docId = buildSpaceDocId({ kind: "independent", docId: docKey });
+
+    let createdDocId: number | null = null;
+    try {
+      const resp = await tuanchat.request.request<any>({
+        method: "POST",
+        url: "/space/doc",
+        body: { spaceId: activeSpaceId, title },
+        mediaType: "application/json",
+      });
+      const id = Number((resp as any)?.data?.docId);
+      if (Number.isFinite(id) && id > 0) {
+        createdDocId = id;
+      }
+    }
+    catch (err) {
+      console.error("[SpaceDoc] create failed", err);
+    }
+
+    if (!createdDocId) {
+      toast.error("创建文档失败");
+      return;
+    }
+
+    const docId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
 
     const baseDocMetas = mergeDocMetas(
       spaceDocMetas ?? [],

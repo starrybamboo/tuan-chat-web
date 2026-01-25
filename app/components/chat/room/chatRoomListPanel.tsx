@@ -101,7 +101,7 @@ export default function ChatRoomListPanel({
   }, [activeSpaceId, rooms]);
 
   // 侧边栏仅展示“空间内独立文档”，不展示 space/room/clue 绑定的 description 文档。
-  // 独立文档的 docId 规范：`doc:<key>`（parseSpaceDocId.kind === 'independent'）
+  // 独立文档的 docId 规范：`sdoc:<docId>:description`（parseSpaceDocId.kind === 'independent'）
   const visibleDocMetas = useMemo(() => {
     if (!isSpaceOwner)
       return [] as MinimalDocMeta[];
