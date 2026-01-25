@@ -56,7 +56,23 @@ export default function ChatPage() {
   const isPrivateChatMode = urlSpaceId === "private";
 
   const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
-  const activeDocId = isDocRoute ? decodeURIComponent(urlMessageId as string) : null;
+  const activeDocId = (() => {
+    if (!isDocRoute)
+      return null;
+
+    const decoded = decodeURIComponent(urlMessageId as string);
+
+    // URL 传纯数字 docId：内部映射为 blocksuite docId（sdoc:<id>:description）。
+    if (/^\d+$/.test(decoded)) {
+      const id = Number(decoded);
+      if (Number.isFinite(id) && id > 0) {
+        return buildSpaceDocId({ kind: "independent", docId: id });
+      }
+    }
+
+    // 兼容直接传完整 docId（如 sdoc:<id>:description / udoc:<id>:description 等）
+    return decoded;
+  })();
 
   const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
   const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
@@ -583,7 +599,7 @@ export default function ChatPage() {
     });
 
     setMainView("chat");
-    navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+    navigate(`/chat/${activeSpaceId}/doc/${createdDocId}`);
   }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, navigate, setMainView, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
 
   const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
@@ -1280,6 +1296,11 @@ export default function ChatPage() {
                           if (!activeSpaceId || activeSpaceId <= 0)
                             return;
                           setMainView("chat");
+                          const parsed = parseSpaceDocId(docId);
+                          if (parsed?.kind === "independent") {
+                            navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
+                            return;
+                          }
                           navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
                         }}
                         activeRoomId={activeRoomId}
@@ -1379,6 +1400,11 @@ export default function ChatPage() {
                               if (!activeSpaceId || activeSpaceId <= 0)
                                 return;
                               setMainView("chat");
+                              const parsed = parseSpaceDocId(docId);
+                              if (parsed?.kind === "independent") {
+                                navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
+                                return;
+                              }
                               navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
                             }}
                             activeRoomId={activeRoomId}
