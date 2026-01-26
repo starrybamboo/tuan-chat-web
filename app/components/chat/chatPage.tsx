@@ -326,14 +326,18 @@ export default function ChatPage() {
         if (!id)
           continue;
         const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
+        const imageUrl = typeof meta?.imageUrl === "string" && meta.imageUrl.trim().length > 0 ? meta.imageUrl : undefined;
 
         const existing = map.get(id);
         if (!existing) {
-          map.set(id, { id, title });
+          map.set(id, { id, title, imageUrl });
           continue;
         }
         if (!existing.title && title) {
           existing.title = title;
+        }
+        if (!existing.imageUrl && imageUrl) {
+          existing.imageUrl = imageUrl;
         }
       }
     }
@@ -458,10 +462,14 @@ export default function ChatPage() {
       const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
       const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
       const metas = (ws?.meta?.docMetas ?? []) as any[];
+      const headerOverrides = useDocHeaderOverrideStore.getState().headers;
       const list = metas
         .filter(m => typeof m?.id === "string" && m.id.length > 0)
         .map((m) => {
-          return { id: String(m.id), title: typeof m?.title === "string" ? m.title : undefined } satisfies MinimalDocMeta;
+          const id = String(m.id);
+          const title = typeof m?.title === "string" ? m.title : undefined;
+          const imageUrl = typeof headerOverrides?.[id]?.imageUrl === "string" ? headerOverrides[id]!.imageUrl : undefined;
+          return { id, title, imageUrl } satisfies MinimalDocMeta;
         });
       return list;
     }
