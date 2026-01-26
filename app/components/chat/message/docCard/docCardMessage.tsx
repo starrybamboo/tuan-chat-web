@@ -239,6 +239,9 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             if (isDisabled || !payload)
               return;
 
+            // 防止被聊天消息“拖拽移动”逻辑接管（会把 effectAllowed 改成 move，导致侧边栏无法以 copy 接收）。
+            e.stopPropagation();
+
             const spaceId = typeof payload.spaceId === "number" && payload.spaceId > 0
               ? payload.spaceId
               : (typeof currentSpaceId === "number" && currentSpaceId > 0 ? currentSpaceId : undefined);
