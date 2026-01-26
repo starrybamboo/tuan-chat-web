@@ -3,6 +3,7 @@
  */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
@@ -232,7 +233,7 @@ export class RealtimeRenderer {
   private uploadedBgmsMap = new Map<string, string>(); // url -> fileName
   private uploadedMiniAvatarsMap = new Map<number, string>(); // avatarId -> fileName
   private roleMap = new Map<number, UserRole>();
-  private avatarMap = new Map<number, RoleAvatar>();
+  private queryClient: QueryClient | null = null;
   private roomMap = new Map<number, Room>(); // roomId -> Room
   private onStatusChange?: (status: "connected" | "disconnected" | "error") => void;
   private onProgressChange?: (progress: InitProgress) => void;
@@ -371,7 +372,18 @@ export class RealtimeRenderer {
    * 全量预加载所有角色的立绘资源
    */
   private async preloadSprites(): Promise<void> {
-    const avatars = Array.from(this.avatarMap.values());
+    const avatars: RoleAvatar[] = [];
+    const seenAvatarIds = new Set<number>();
+    for (const role of this.roleMap.values()) {
+      const avatarId = Number(role.avatarId ?? 0);
+      if (avatarId > 0 && !seenAvatarIds.has(avatarId)) {
+        const avatar = this.getCachedRoleAvatar(avatarId);
+        if (avatar) {
+          avatars.push(avatar);
+          seenAvatarIds.add(avatarId);
+        }
+      }
+    }
     if (avatars.length === 0) {
       console.warn("[RealtimeRenderer] 没有头像需要预加载");
       return;
@@ -708,17 +720,52 @@ export class RealtimeRenderer {
   /**
    * 设置头像信息缓存
    */
-  public setAvatarCache(avatars: RoleAvatar[]): void {
-    avatars.forEach((avatar) => {
-      if (avatar.avatarId) {
-        this.avatarMap.set(avatar.avatarId, avatar);
-      }
-    });
+  public setQueryClient(queryClient: QueryClient): void {
+    this.queryClient = queryClient;
   }
 
   public invalidateAvatarCaches(avatarId: number): void {
     this.uploadedSpritesMap.delete(avatarId);
     this.uploadedMiniAvatarsMap.delete(avatarId);
+  }
+
+  private getCachedRoleAvatar(avatarId: number): RoleAvatar | undefined {
+    if (!this.queryClient || !avatarId) {
+      return undefined;
+    }
+
+    const cached = this.queryClient.getQueryData<any>(["getRoleAvatar", avatarId]);
+    const candidate = cached?.data ?? cached?.data?.data ?? cached;
+    if (candidate && typeof candidate === "object" && "avatarId" in candidate) {
+      return candidate as RoleAvatar;
+    }
+
+    return undefined;
+  }
+
+  private getAllCachedRoleAvatars(): RoleAvatar[] {
+    if (!this.queryClient) {
+      return [];
+    }
+
+    const queries = this.queryClient.getQueryCache().findAll({ queryKey: ["getRoleAvatar"] });
+    const avatars: RoleAvatar[] = [];
+
+    for (const query of queries) {
+      const data: any = query.state.data;
+      const candidate = data?.data ?? data?.data?.data ?? data;
+      if (candidate && typeof candidate === "object" && candidate.avatarId) {
+        avatars.push(candidate as RoleAvatar);
+      }
+    }
+
+    const deduped = new Map<number, RoleAvatar>();
+    for (const avatar of avatars) {
+      if (avatar.avatarId) {
+        deduped.set(avatar.avatarId, avatar);
+      }
+    }
+    return Array.from(deduped.values());
   }
 
   /**
@@ -1068,9 +1115,9 @@ export class RealtimeRenderer {
     }
 
     // 获取头像信息
-    const avatar = this.avatarMap.get(avatarId);
+    const avatar = this.getCachedRoleAvatar(avatarId);
     if (!avatar) {
-      console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}, avatarMap 中有 ${this.avatarMap.size} 个头像`);
+      console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}`);
       return null;
     }
 
@@ -1093,7 +1140,7 @@ export class RealtimeRenderer {
     }
 
     // 获取头像信息
-    const avatar = this.avatarMap.get(avatarId);
+    const avatar = this.getCachedRoleAvatar(avatarId);
     if (!avatar) {
       return null;
     }
@@ -1309,7 +1356,7 @@ export class RealtimeRenderer {
     const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
-    const avatar = effectiveAvatarId > 0 ? this.avatarMap.get(effectiveAvatarId) : undefined;
+    const avatar = effectiveAvatarId > 0 ? this.getCachedRoleAvatar(effectiveAvatarId) : undefined;
 
     // 获取立绘文件名
     const spriteFileName = (effectiveAvatarId > 0 && roleId > 0)
@@ -1620,7 +1667,7 @@ export class RealtimeRenderer {
       const effectiveAvatarId = messageAvatarId > 0
         ? messageAvatarId
         : (roleAvatarId > 0 ? roleAvatarId : 0);
-      const avatar = effectiveAvatarId > 0 ? this.avatarMap.get(effectiveAvatarId) : undefined;
+      const avatar = effectiveAvatarId > 0 ? this.getCachedRoleAvatar(effectiveAvatarId) : undefined;
       const emotionVector = customEmotionVector && customEmotionVector.length > 0
         ? customEmotionVector
         : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);
