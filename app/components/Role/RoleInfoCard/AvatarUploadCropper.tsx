@@ -465,7 +465,7 @@ export function CharacterCopper({
         }}
         fullScreen={isMobileScreen()}
       >
-        <div className="w-[56rem] max-w-full min-h-[75vh] mx-auto flex flex-col">
+        <div className="w-4xl max-w-full min-h-[75vh] mx-auto flex flex-col">
           <div className="flex items-center gap-8">
             <div className="w-full flex items-center">
               <h1 className="text-xl md:text-2xl font-bold w-64">
