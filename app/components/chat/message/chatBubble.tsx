@@ -933,7 +933,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                           className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
                         >
                           {displayRoleName}
-                          {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
                         </span>
                       )}
                   <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
@@ -1018,7 +1017,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         >
                           <div className="truncate">
                             {`【${displayRoleName}】`}
-                            {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
                           </div>
                         </div>
                       )}
