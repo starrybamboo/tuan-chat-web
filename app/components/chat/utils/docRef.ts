@@ -49,6 +49,18 @@ export function setDocRefDragData(dataTransfer: DataTransfer, payload: DocRefDra
   catch {
     // ignore
   }
+
+  // 兜底：有些环境下 `text/uri-list` 的非 URL 内容会被吞掉；`text/plain` 通常更可靠。
+  // 注意：侧边栏节点移动/排序依赖 `text/plain`，因此仅在当前为空时才写入。
+  try {
+    const existingPlain = dataTransfer.getData("text/plain") || "";
+    if (!existingPlain.trim()) {
+      dataTransfer.setData("text/plain", `${DOC_REF_FALLBACK_PREFIX}${payload.docId}`);
+    }
+  }
+  catch {
+    // ignore
+  }
 }
 
 export function getDocRefDragData(dataTransfer: DataTransfer | null | undefined): DocRefDragPayload | null {
