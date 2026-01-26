@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601261854 | doc_message_copy | 功能 | 已完成 | [2026-01/202601261854_doc_message_copy/](2026-01/202601261854_doc_message_copy/) |
 | 202601261703 | sidebar_tree_doc_cache | 优化 | 已完成 | [2026-01/202601261703_sidebar_tree_doc_cache/](2026-01/202601261703_sidebar_tree_doc_cache/) |
 | 202601261150 | doccard_render_fix | 修复 | 已完成 | [2026-01/202601261150_doccard_render_fix/](2026-01/202601261150_doccard_render_fix/) |
 | 202601261131 | docref_drag_hint | 优化 | 已完成 | [2026-01/202601261131_docref_drag_hint/](2026-01/202601261131_docref_drag_hint/) |
@@ -109,6 +110,7 @@
 
 ### 2026-01
 
+- [202601261854_doc_message_copy](2026-01/202601261854_doc_message_copy/) - 文档卡片消息右键菜单支持复制为副本（我的文档/空间侧边栏）
 - [202601261703_sidebar_tree_doc_cache](2026-01/202601261703_sidebar_tree_doc_cache/) - sidebarTree 文档节点首屏缓存展示（标题/封面）
 - [202601261150_doccard_render_fix](2026-01/202601261150_doccard_render_fix/) - 修复文档卡片消息在消息列表不显示（extra 兼容渲染）
 - [202601261131_docref_drag_hint](2026-01/202601261131_docref_drag_hint/) - 文档拖拽到聊天区域时展示投放提示
