@@ -486,6 +486,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const requestAllowAll = Boolean(commandRequest?.allowAll);
     const requestAllowedRoleIds = Array.isArray(commandRequest?.allowedRoleIds) ? commandRequest?.allowedRoleIds : null;
 
+    const extraAny = message.extra as any;
+    // 兼容：部分后端/历史消息可能未写入 messageType=DOC_CARD，但 extra 里已经包含 docCard 数据
+    const isDocCardLikeMessage = message.messageType === MESSAGE_TYPE.DOC_CARD
+      || typeof extraAny?.docCard?.docId === "string"
+      || typeof extraAny?.docId === "string";
+
     // 1. 特殊类型消息（独占显示）
     if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
@@ -493,7 +499,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     else if (message.messageType === 1000) {
       return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
     }
-    else if (message.messageType === MESSAGE_TYPE.DOC_CARD) {
+    else if (isDocCardLikeMessage) {
       return <DocCardMessage messageResponse={chatMessageResponse}></DocCardMessage>;
     }
     else if (message.messageType === MESSAGE_TYPE.WEBGAL_VAR) {
