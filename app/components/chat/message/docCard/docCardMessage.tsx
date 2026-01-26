@@ -265,7 +265,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             <div className="relative w-24 h-20 rounded-lg overflow-hidden border border-base-300 bg-base-200 flex-shrink-0">
               {coverUrl
                 ? (
-                    <img src={coverUrl} alt={title} className="w-full h-full object-cover" />
+                    <img src={coverUrl} alt={title} draggable={false} className="w-full h-full object-cover" />
                   )
                 : (
                     <div className="w-full h-full flex items-center justify-center">

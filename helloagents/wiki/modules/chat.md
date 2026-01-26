@@ -73,6 +73,7 @@
   - 空间限制：不允许跨 space
   - 交互反馈：hover 分类区域会出现“松开复制到侧边栏 / 仅KP可复制到侧边栏”提示；drop 后会 toast 提示成功/失败
   - 兼容性：部分环境 dragover 阶段 `DataTransfer.types` 可能不暴露自定义 MIME，需同时兼容 `text/uri-list` / `text/plain` 兜底，并确保 dragover 阶段 `preventDefault` 以触发 drop
+  - 易用性：文档卡片封面图片禁用浏览器默认“拖拽图片”行为，避免拖拽命中封面时变成图片拖拽而导致侧边栏无法识别 docRef
 
 ### 2) 房间资料 / 文档入口
 
