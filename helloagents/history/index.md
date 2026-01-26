@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601270013 | docref_sidebar_drop_fix | 修复 | 已完成 | [2026-01/202601270013_docref_sidebar_drop_fix/](2026-01/202601270013_docref_sidebar_drop_fix/) |
 | 202601262156 | doc_message_drag_copy_to_sidebar | 功能 | 已完成 | [2026-01/202601262156_doc_message_drag_copy_to_sidebar/](2026-01/202601262156_doc_message_drag_copy_to_sidebar/) |
 | 202601262104 | doc_copy_content_fix | 修复 | 已完成 | [2026-01/202601262104_doc_copy_content_fix/](2026-01/202601262104_doc_copy_content_fix/) |
 | 202601261943 | doc_copy_snapshot | 修复 | 已完成 | [2026-01/202601261943_doc_copy_snapshot/](2026-01/202601261943_doc_copy_snapshot/) |
@@ -114,6 +115,7 @@
 
 ### 2026-01
 
+- [202601270013_docref_sidebar_drop_fix](2026-01/202601270013_docref_sidebar_drop_fix/) - 修复：聊天文档卡片拖拽到侧边栏无响应（docRef 兜底 + drop 可触发）
 - [202601262156_doc_message_drag_copy_to_sidebar](2026-01/202601262156_doc_message_drag_copy_to_sidebar/) - 功能：聊天列表的文档卡片支持拖拽复制到 sidebarTree（KP）
 - [202601262104_doc_copy_content_fix](2026-01/202601262104_doc_copy_content_fix/) - 修复：复制文档时从源 doc 导出 full update 并 restore 到目标 doc，避免正文丢失
 - [202601261943_doc_copy_snapshot](2026-01/202601261943_doc_copy_snapshot/) - 修复：复制文档时强制校验源快照可读，并写入 `tc_header` 防止副本标题/封面被覆盖

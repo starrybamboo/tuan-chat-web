@@ -49,6 +49,18 @@ export function setDocRefDragData(dataTransfer: DataTransfer, payload: DocRefDra
   catch {
     // ignore
   }
+
+  // 兜底：有些环境下 `text/uri-list` 的非 URL 内容会被吞掉；`text/plain` 通常更可靠。
+  // 注意：侧边栏节点移动/排序依赖 `text/plain`，因此仅在当前为空时才写入。
+  try {
+    const existingPlain = dataTransfer.getData("text/plain") || "";
+    if (!existingPlain.trim()) {
+      dataTransfer.setData("text/plain", `${DOC_REF_FALLBACK_PREFIX}${payload.docId}`);
+    }
+  }
+  catch {
+    // ignore
+  }
 }
 
 export function getDocRefDragData(dataTransfer: DataTransfer | null | undefined): DocRefDragPayload | null {
@@ -101,7 +113,15 @@ export function isDocRefDrag(dataTransfer: DataTransfer | null | undefined): boo
       return true;
     // `text/uri-list` 兜底：用于在 dragover 阶段也能可靠 detect（某些环境下无法读取自定义 MIME 的内容）。
     // 注意：文件拖拽也可能带有 uri-list，因此需排除 Files。
-    return types.includes("text/uri-list") && !types.includes("Files");
+    if (types.includes("text/uri-list") && !types.includes("Files"))
+      return true;
+
+    // 兜底：某些环境下只会暴露 `text/plain` 类型（但 getData 仍可读到 `tc-doc-ref:*` 前缀）。
+    if (types.includes("text/plain") && !types.includes("Files"))
+      return true;
+
+    // 兜底：部分环境 dragover 时 types 可能为空或不可靠，尝试用 payload 识别。
+    return Boolean(getDocRefDragData(dataTransfer));
   }
   catch {
     return false;

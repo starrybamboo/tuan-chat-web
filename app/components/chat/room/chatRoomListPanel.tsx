@@ -651,7 +651,51 @@ export default function ChatRoomListPanel({
                 </>
               )}
 
-              <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full ">
+              <div
+                className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full "
+                onDragOverCapture={(e) => {
+                  if (dragging)
+                    return;
+                  if (!activeSpaceId || activeSpaceId <= 0)
+                    return;
+                  if (!isDocRefDrag(e.dataTransfer))
+                    return;
+
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = isSpaceOwner ? "copy" : "none";
+
+                  const targetEl = e.target as HTMLElement | null;
+                  const catEl = targetEl?.closest?.("[data-tc-sidebar-category]") as HTMLElement | null;
+                  const cid = catEl?.getAttribute?.("data-tc-sidebar-category") || "";
+                  if (cid && cid !== docCopyDropCategoryId) {
+                    setDocCopyDropCategoryId(cid);
+                  }
+                }}
+                onDropCapture={(e) => {
+                  if (dragging)
+                    return;
+                  if (!activeSpaceId || activeSpaceId <= 0)
+                    return;
+                  if (!isDocRefDrag(e.dataTransfer))
+                    return;
+
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  const docRef = getDocRefDragData(e.dataTransfer);
+                  if (!docRef) {
+                    toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                    return;
+                  }
+
+                  const targetEl = e.target as HTMLElement | null;
+                  const catEl = targetEl?.closest?.("[data-tc-sidebar-category]") as HTMLElement | null;
+                  const cid = catEl?.getAttribute?.("data-tc-sidebar-category") || "";
+                  const categoryId = cid || docCopyDropCategoryId || treeToRender.categories[0]?.categoryId || "cat:docs";
+                  setDocCopyDropCategoryId(null);
+                  void handleDropDocRefToCategory({ categoryId, docRef });
+                }}
+              >
                 {canEdit && (
                   <div className="flex items-center gap-2 px-2">
                     <button
@@ -688,12 +732,15 @@ export default function ChatRoomListPanel({
                   return (
                     <div
                       key={cat.categoryId}
+                      data-tc-sidebar-category={cat.categoryId}
                       className={`px-1 relative ${docCopyDropCategoryId === cat.categoryId ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
                       onDragOver={(e) => {
-                        if (!canEdit)
-                          return;
                         if (dragging)
                           return;
+                        if (!activeSpaceId || activeSpaceId <= 0)
+                          return;
+                        // 始终 preventDefault，确保 drop 能触发（部分环境 dragover 阶段 types 不可靠）。
+                        e.preventDefault();
                         if (!isDocRefDrag(e.dataTransfer)) {
                           if (docCopyDropCategoryId === cat.categoryId) {
                             setDocCopyDropCategoryId(null);
@@ -701,8 +748,7 @@ export default function ChatRoomListPanel({
                           return;
                         }
                         setDocCopyDropCategoryId(cat.categoryId);
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "copy";
+                        e.dataTransfer.dropEffect = isSpaceOwner ? "copy" : "none";
                       }}
                       onDragLeave={() => {
                         if (docCopyDropCategoryId === cat.categoryId) {
@@ -710,16 +756,20 @@ export default function ChatRoomListPanel({
                         }
                       }}
                       onDrop={(e) => {
-                        if (!canEdit)
-                          return;
                         if (dragging)
                           return;
-                        setDocCopyDropCategoryId(null);
-                        const docRef = getDocRefDragData(e.dataTransfer);
-                        if (!docRef)
+                        if (!activeSpaceId || activeSpaceId <= 0)
                           return;
+                        setDocCopyDropCategoryId(null);
                         e.preventDefault();
                         e.stopPropagation();
+                        const docRef = getDocRefDragData(e.dataTransfer);
+                        if (!docRef) {
+                          if (isDocRefDrag(e.dataTransfer)) {
+                            toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                          }
+                          return;
+                        }
                         void handleDropDocRefToCategory({ categoryId: cat.categoryId, docRef });
                       }}
                     >
@@ -730,7 +780,7 @@ export default function ChatRoomListPanel({
                       {docCopyDropCategoryId === cat.categoryId && (
                         <div className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
                           <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs font-medium text-primary shadow-sm">
-                            松开复制到侧边栏
+                            {isSpaceOwner ? "松开复制到侧边栏" : "仅KP可复制到侧边栏"}
                           </div>
                         </div>
                       )}
