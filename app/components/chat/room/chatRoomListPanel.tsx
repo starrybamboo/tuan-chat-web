@@ -279,11 +279,51 @@ export default function ChatRoomListPanel({
       docMetas: visibleDocMetas,
       includeDocs: isSpaceOwner,
     });
-    setLocalTree(normalized);
+
+    // 文档缓存：把 title/cover 写入 sidebarTree 节点（持久化到后端），让首屏优先展示缓存，而不是等待 meta/网络加载。
+    const normalizedWithCache = (() => {
+      const base = JSON.parse(JSON.stringify(normalized)) as SidebarTree;
+      for (const cat of base.categories ?? []) {
+        for (const node of cat.items ?? []) {
+          if (node?.type !== "doc")
+            continue;
+
+          const docId = typeof node.targetId === "string" ? node.targetId : "";
+          if (!docId)
+            continue;
+
+          const meta = docMetaMap.get(docId);
+          const override = docHeaderOverrides[docId];
+
+          const overrideTitle = typeof override?.title === "string" ? override.title.trim() : "";
+          const overrideImageUrl = typeof override?.imageUrl === "string" ? override.imageUrl.trim() : "";
+
+          const metaTitle = typeof meta?.title === "string" ? meta.title.trim() : "";
+          const metaImageUrl = typeof meta?.imageUrl === "string" ? meta.imageUrl.trim() : "";
+
+          const currentFallbackTitle = typeof (node as any)?.fallbackTitle === "string" ? String((node as any).fallbackTitle).trim() : "";
+          const currentFallbackImageUrl = typeof (node as any)?.fallbackImageUrl === "string" ? String((node as any).fallbackImageUrl).trim() : "";
+
+          const nextTitle = overrideTitle || metaTitle || currentFallbackTitle || docId;
+          const nextImageUrl = overrideImageUrl || metaImageUrl || currentFallbackImageUrl;
+
+          (node as any).fallbackTitle = nextTitle;
+          if (nextImageUrl) {
+            (node as any).fallbackImageUrl = nextImageUrl;
+          }
+          else {
+            delete (node as any).fallbackImageUrl;
+          }
+        }
+      }
+      return base;
+    })();
+
+    setLocalTree(normalizedWithCache);
     if (save) {
-      onSaveSidebarTree?.(normalized);
+      onSaveSidebarTree?.(normalizedWithCache);
     }
-  }, [fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas]);
+  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas]);
 
   const moveNode = useCallback((fromCategoryId: string, fromIndex: number, toCategoryId: string, insertIndex: number, save: boolean) => {
     const base = treeToRender;
@@ -662,10 +702,15 @@ export default function ChatRoomListPanel({
                               const docOverride = !isRoom ? docHeaderOverrides[docId] : undefined;
                               const docOverrideTitle = typeof docOverride?.title === "string" ? docOverride.title.trim() : "";
                               const docOverrideImageUrl = typeof docOverride?.imageUrl === "string" ? docOverride.imageUrl.trim() : "";
+                              const docFallbackImageUrl = !isRoom && typeof (node as any)?.fallbackImageUrl === "string"
+                                ? String((node as any).fallbackImageUrl).trim()
+                                : "";
 
                               const title = isRoom
                                 ? (roomById.get(Number((node as any).targetId))?.name ?? (node as any)?.fallbackTitle ?? String((node as any).targetId))
                                 : (docOverrideTitle || (docMetaMap.get(docId)?.title ?? (node as any)?.fallbackTitle ?? docId));
+
+                              const coverUrl = !isRoom ? (docOverrideImageUrl || docFallbackImageUrl) : "";
 
                               const showInsertBefore = canEdit
                                 && dragging?.kind === "node"
@@ -814,7 +859,7 @@ export default function ChatRoomListPanel({
                                               docId: String(node.targetId),
                                               ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
                                               ...(title ? { title } : {}),
-                                              ...(docOverrideImageUrl ? { imageUrl: docOverrideImageUrl } : {}),
+                                              ...(coverUrl ? { imageUrl: coverUrl } : {}),
                                             });
                                             setDragging({
                                               kind: "node",
@@ -831,11 +876,11 @@ export default function ChatRoomListPanel({
                                           }}
                                         >
                                           <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center relative overflow-hidden">
-                                            {docOverrideImageUrl
+                                            {coverUrl
                                               ? (
                                                   <>
                                                     <img
-                                                      src={docOverrideImageUrl}
+                                                      src={coverUrl}
                                                       alt={title || "doc"}
                                                       className="w-full h-full object-cover"
                                                     />

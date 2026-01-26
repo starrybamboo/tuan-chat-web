@@ -62,6 +62,7 @@
 - 后端持久化：`/space/sidebarTree`（带 `version` 的乐观锁写入）
 - UI 状态（展开/折叠）：仅本地 IndexedDB 保存，不回写后端树结构
 - 文档元信息（doc metas）回补：当 Blocksuite workspace 的 docMetas 不足时，从 sidebarTree 的 doc 节点回补，确保文档节点可见/可打开
+- 首屏缓存展示：doc 节点在 treeJson 中缓存 `fallbackTitle/fallbackImageUrl`，并在 docMetas 仍未加载时优先用缓存渲染（避免文档列表“晚出现/空白”）
 
 ### 2) 房间资料 / 文档入口
 
