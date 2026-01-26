@@ -692,9 +692,9 @@ export default function ChatRoomListPanel({
                       key={cat.categoryId}
                       className={`px-1 relative ${docCopyDropCategoryId === cat.categoryId ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
                       onDragOver={(e) => {
-                        if (!canEdit)
-                          return;
                         if (dragging)
+                          return;
+                        if (!activeSpaceId || activeSpaceId <= 0)
                           return;
                         // 始终 preventDefault，确保 drop 能触发（部分环境 dragover 阶段 types 不可靠）。
                         e.preventDefault();
@@ -705,7 +705,7 @@ export default function ChatRoomListPanel({
                           return;
                         }
                         setDocCopyDropCategoryId(cat.categoryId);
-                        e.dataTransfer.dropEffect = "copy";
+                        e.dataTransfer.dropEffect = isKPInSpace ? "copy" : "none";
                       }}
                       onDragLeave={() => {
                         if (docCopyDropCategoryId === cat.categoryId) {
@@ -713,9 +713,9 @@ export default function ChatRoomListPanel({
                         }
                       }}
                       onDrop={(e) => {
-                        if (!canEdit)
-                          return;
                         if (dragging)
+                          return;
+                        if (!activeSpaceId || activeSpaceId <= 0)
                           return;
                         setDocCopyDropCategoryId(null);
                         e.preventDefault();
@@ -733,7 +733,7 @@ export default function ChatRoomListPanel({
                       {docCopyDropCategoryId === cat.categoryId && (
                         <div className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
                           <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs font-medium text-primary shadow-sm">
-                            松开复制到侧边栏
+                            {isKPInSpace ? "松开复制到侧边栏" : "仅KP可复制到侧边栏"}
                           </div>
                         </div>
                       )}
