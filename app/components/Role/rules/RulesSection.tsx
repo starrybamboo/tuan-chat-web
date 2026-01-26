@@ -30,7 +30,7 @@ export default function RulesSection({
   // 每页大小（分页展示固定 8，两列布局）
   const pageSize = 8;
   // 使用 Suspense 版本的查询，自动处理加载状态
-  const { data: rules } = useRulePageSuspenseQuery(
+  const { data: rules, meta } = useRulePageSuspenseQuery(
     pageNum,
     keyword,
     pageSize,
@@ -51,7 +51,7 @@ export default function RulesSection({
 
   // 提取搜索与分页控件（两种模式共用）
   const searchBar = (
-    (rules.length || keyword.trim()) && (
+    (rules.length || keyword.trim() || pageNum > 1) && (
       <div className="flex justify-between items-center gap-3">
         <div className="relative flex-1">
           <input
@@ -90,7 +90,7 @@ export default function RulesSection({
           <button
             type="button"
             onClick={() => setPageNum(pageNum + 1)}
-            disabled={rules.length < pageSize}
+            disabled={meta?.isLast ?? (rules.length < pageSize)}
             className="join-item btn btn-ghost btn-sm disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
