@@ -168,6 +168,6 @@
 
 - 入口：消息右键菜单（文档卡片消息）
   - `复制到我的文档`：创建一份新的“Space 用户文档（udoc）”并复制内容快照
-  - `复制到空间侧边栏`：仅 KP 可见；创建副本文档后追加到 `sidebarTree(cat:docs)`，并写入 `fallbackTitle/fallbackImageUrl` 以便首屏快速展示
+  - `复制到空间侧边栏`：仅 KP 可见；创建一份新的“Space 共享文档（space_doc / sdoc）”并追加到 `sidebarTree(cat:docs)`，同时写入 `fallbackTitle/fallbackImageUrl` 以便首屏快速展示
 - 复制语义：真正 copy（副本可编辑），与“发送 DOC_CARD（引用 + 只读预览）”不同
 - 约束：不允许跨 space 复制
