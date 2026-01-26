@@ -128,6 +128,14 @@ function RoomComposerPanelImpl({
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const composerRootRef = React.useRef<HTMLDivElement | null>(null);
+  const [isDocRefDragOver, setIsDocRefDragOver] = React.useState(false);
+  const isDocRefDragOverRef = React.useRef(false);
+  const updateDocRefDragOver = React.useCallback((next: boolean) => {
+    if (isDocRefDragOverRef.current === next)
+      return;
+    isDocRefDragOverRef.current = next;
+    setIsDocRefDragOver(next);
+  }, []);
   const screenSize = useScreenSize();
   const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
@@ -316,23 +324,29 @@ function RoomComposerPanelImpl({
         />
 
         <div
-          className="flex flex-col gap-2 rounded-md"
+          className="relative flex flex-col gap-2 rounded-md"
           onDragOver={(e) => {
             // 注意：部分浏览器在 dragover 阶段无法读取 getData 的自定义 MIME 内容。
             // 因此这里仅基于 types 判定并 preventDefault，让 drop 一定能触发；
             // 具体 payload 在 onDrop 再读取。
             if (isDocRefDrag(e.dataTransfer)) {
+              updateDocRefDragOver(true);
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
               return;
             }
+            updateDocRefDragOver(false);
 
             if (isFileDrag(e.dataTransfer)) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
             }
           }}
+          onDragLeave={() => {
+            updateDocRefDragOver(false);
+          }}
           onDrop={(e) => {
+            updateDocRefDragOver(false);
             const docRef = getDocRefDragData(e.dataTransfer);
             if (docRef) {
               e.preventDefault();
@@ -348,6 +362,13 @@ function RoomComposerPanelImpl({
             addDroppedFilesToComposer(e.dataTransfer);
           }}
         >
+          {isDocRefDragOver && (
+            <div className="pointer-events-none absolute inset-0 z-20 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
+              <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
+                松开发送文档卡片
+              </div>
+            </div>
+          )}
           <ChatAttachmentsPreviewFromStore />
 
           {replyMessage && (
