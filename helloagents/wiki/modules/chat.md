@@ -171,4 +171,5 @@
   - `复制到空间侧边栏`：仅 KP 可见；创建一份新的“Space 共享文档（space_doc / sdoc）”并追加到 `sidebarTree(cat:docs)`，同时写入 `fallbackTitle/fallbackImageUrl` 以便首屏快速展示
 - 复制语义：真正 copy（副本可编辑），与“发送 DOC_CARD（引用 + 只读预览）”不同
 - 约束：不允许跨 space 复制
-- 约束：源文档必须存在可读取的远端快照（`/blocksuite/doc`）；否则复制会失败并提示（避免生成空白副本）
+- 数据来源：复制以 Blocksuite “full update”为准——优先把源文档的远端快照 restore 到本地 workspace，再导出 full update；若远端不可用则回退本地 IndexedDB 内容
+- 远端落库：复制后会将目标文档的 full update 写入 `/blocksuite/doc`，供其它端恢复/预览
