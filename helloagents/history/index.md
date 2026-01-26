@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601261943 | doc_copy_snapshot | 修复 | 已完成 | [2026-01/202601261943_doc_copy_snapshot/](2026-01/202601261943_doc_copy_snapshot/) |
 | 202601261920 | doc_message_copy_space_doc_fix | 修复 | 已完成 | [2026-01/202601261920_doc_message_copy_space_doc_fix/](2026-01/202601261920_doc_message_copy_space_doc_fix/) |
 | 202601261854 | doc_message_copy | 功能 | 已完成 | [2026-01/202601261854_doc_message_copy/](2026-01/202601261854_doc_message_copy/) |
 | 202601261703 | sidebar_tree_doc_cache | 优化 | 已完成 | [2026-01/202601261703_sidebar_tree_doc_cache/](2026-01/202601261703_sidebar_tree_doc_cache/) |
@@ -111,6 +112,7 @@
 
 ### 2026-01
 
+- [202601261943_doc_copy_snapshot](2026-01/202601261943_doc_copy_snapshot/) - 修复：复制文档时强制校验源快照可读，并写入 `tc_header` 防止副本标题/封面被覆盖
 - [202601261920_doc_message_copy_space_doc_fix](2026-01/202601261920_doc_message_copy_space_doc_fix/) - 修复：文档消息“复制到空间侧边栏”按 `space_doc(sdoc)` 创建并写入 sidebarTree 引用
 - [202601261854_doc_message_copy](2026-01/202601261854_doc_message_copy/) - 文档卡片消息右键菜单支持复制为副本（我的文档/空间侧边栏）
 - [202601261703_sidebar_tree_doc_cache](2026-01/202601261703_sidebar_tree_doc_cache/) - sidebarTree 文档节点首屏缓存展示（标题/封面）
