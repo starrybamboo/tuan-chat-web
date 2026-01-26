@@ -188,7 +188,6 @@ export default function ChatFrameContextMenu({
     sourceDocId: string;
     title?: string;
     imageUrl?: string;
-    addToKpSidebarTree: boolean;
   }) => {
     const createTitle = (params.title ?? "").trim();
     const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
@@ -238,83 +237,163 @@ export default function ChatFrameContextMenu({
       }
     }
 
-    if (params.addToKpSidebarTree) {
-      const { parseSidebarTree } = await import("@/components/chat/room/sidebarTree");
-      const getRes = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
-      if (!getRes?.success) {
-        throw new Error(getRes?.errMsg ?? "获取侧边栏失败");
-      }
-
-      const version = getRes.data?.version ?? 0;
-      const parsed = parseSidebarTree(getRes.data?.treeJson ?? null);
-      const base: any = parsed ?? { schemaVersion: 2, categories: [{ categoryId: "cat:docs", name: "文档", items: [] }] };
-
-      const next: any = JSON.parse(JSON.stringify(base));
-      const categories: any[] = Array.isArray(next.categories) ? next.categories : [];
-      let target: any = categories.find(c => c?.categoryId === "cat:docs");
-      if (!target) {
-        target = { categoryId: "cat:docs", name: "文档", items: [] };
-        categories.push(target);
-        next.categories = categories;
-      }
-      target.items = Array.isArray(target.items) ? target.items : [];
-      const nodeId = `doc:${newDocId}`;
-      if (!target.items.some((i: any) => i?.nodeId === nodeId)) {
-        target.items.push({
-          nodeId,
-          type: "doc",
-          targetId: newDocId,
-          fallbackTitle: title,
-          ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
-        });
-      }
-
-      const setReq = { spaceId: params.spaceId, expectedVersion: version, treeJson: JSON.stringify(next) };
-      const setRes = await tuanchat.spaceSidebarTreeController.setSidebarTree(setReq);
-      if (!setRes?.success) {
-        // 版本冲突：重试一次
-        const retryGet = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
-        if (!retryGet?.success) {
-          throw new Error(retryGet?.errMsg ?? "获取侧边栏失败（重试）");
-        }
-        const retryVersion = retryGet.data?.version ?? (version + 1);
-        const retryParsed: any = parseSidebarTree(retryGet.data?.treeJson ?? null) ?? base;
-        const retryNext: any = JSON.parse(JSON.stringify(retryParsed));
-        const retryCats: any[] = Array.isArray(retryNext.categories) ? retryNext.categories : [];
-        let retryTarget: any = retryCats.find(c => c?.categoryId === "cat:docs");
-        if (!retryTarget) {
-          retryTarget = { categoryId: "cat:docs", name: "文档", items: [] };
-          retryCats.push(retryTarget);
-          retryNext.categories = retryCats;
-        }
-        retryTarget.items = Array.isArray(retryTarget.items) ? retryTarget.items : [];
-        if (!retryTarget.items.some((i: any) => i?.nodeId === nodeId)) {
-          retryTarget.items.push({
-            nodeId,
-            type: "doc",
-            targetId: newDocId,
-            fallbackTitle: title,
-            ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
-          });
-        }
-
-        const retrySet = await tuanchat.spaceSidebarTreeController.setSidebarTree({
-          spaceId: params.spaceId,
-          expectedVersion: retryVersion,
-          treeJson: JSON.stringify(retryNext),
-        });
-        if (!retrySet?.success) {
-          throw new Error(retrySet?.errMsg ?? "写入侧边栏失败（可能存在并发修改）");
-        }
-      }
-    }
-
     queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
     queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
-    queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", params.spaceId] });
 
     return { newDocEntityId: newEntityId, newDocId, title };
   }, [queryClient]);
+
+  const copyToSpaceDoc = useCallback(async (params: {
+    spaceId: number;
+    sourceDocId: string;
+    title?: string;
+    imageUrl?: string;
+  }) => {
+    const createTitle = (params.title ?? "").trim();
+    const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
+
+    let createdDocId: number | null = null;
+    try {
+      const resp = await tuanchat.request.request<any>({
+        method: "POST",
+        url: "/space/doc",
+        body: { spaceId: params.spaceId, title },
+        mediaType: "application/json",
+      });
+      const id = Number((resp as any)?.data?.docId);
+      if (Number.isFinite(id) && id > 0) {
+        createdDocId = id;
+      }
+    }
+    catch (err) {
+      console.error("[SpaceDoc] create failed", err);
+    }
+
+    if (!createdDocId) {
+      throw new Error("创建文档失败");
+    }
+
+    const { buildSpaceDocId } = await import("@/components/chat/infra/blocksuite/spaceDocId");
+    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+    const { getRemoteSnapshot, setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
+
+    const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
+
+    const sourceKey = parseDescriptionDocId(params.sourceDocId);
+    const sourceSnapshot = sourceKey ? await getRemoteSnapshot(sourceKey) : null;
+    if (sourceSnapshot?.updateB64) {
+      await setRemoteSnapshot({
+        entityType: "space_doc",
+        entityId: createdDocId,
+        docType: "description",
+        snapshot: { ...sourceSnapshot, updatedAt: Date.now() },
+      });
+    }
+
+    // Best-effort：补齐本地 meta，确保可在 Workspace 里打开/展示。
+    try {
+      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+      registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
+    }
+    catch {
+      // ignore
+    }
+
+    // Best-effort：写入 doc header 缓存（仅用于本地展示/首屏）
+    if (typeof window !== "undefined" && params.imageUrl) {
+      try {
+        const { useDocHeaderOverrideStore } = await import("@/components/chat/stores/docHeaderOverrideStore");
+        useDocHeaderOverrideStore.getState().setHeader({
+          docId: newDocId,
+          header: { title, imageUrl: params.imageUrl },
+        });
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    return { newDocEntityId: createdDocId, newDocId, title };
+  }, []);
+
+  const appendDocToSidebarTree = useCallback(async (params: {
+    spaceId: number;
+    docId: string;
+    title: string;
+    imageUrl?: string;
+  }) => {
+    const { parseSidebarTree } = await import("@/components/chat/room/sidebarTree");
+    const getRes = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
+    if (!getRes?.success) {
+      throw new Error(getRes?.errMsg ?? "获取侧边栏失败");
+    }
+
+    const version = getRes.data?.version ?? 0;
+    const parsed = parseSidebarTree(getRes.data?.treeJson ?? null);
+    const base: any = parsed ?? { schemaVersion: 2, categories: [{ categoryId: "cat:docs", name: "文档", items: [] }] };
+
+    const nodeId = `doc:${params.docId}`;
+
+    const next: any = JSON.parse(JSON.stringify(base));
+    const categories: any[] = Array.isArray(next.categories) ? next.categories : [];
+    let target: any = categories.find(c => c?.categoryId === "cat:docs");
+    if (!target) {
+      target = { categoryId: "cat:docs", name: "文档", items: [] };
+      categories.push(target);
+      next.categories = categories;
+    }
+    target.items = Array.isArray(target.items) ? target.items : [];
+    if (!target.items.some((i: any) => i?.nodeId === nodeId)) {
+      target.items.push({
+        nodeId,
+        type: "doc",
+        targetId: params.docId,
+        fallbackTitle: params.title,
+        ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
+      });
+    }
+
+    const setReq = { spaceId: params.spaceId, expectedVersion: version, treeJson: JSON.stringify(next) };
+    const setRes = await tuanchat.spaceSidebarTreeController.setSidebarTree(setReq);
+    if (setRes?.success) {
+      return;
+    }
+
+    // 版本冲突：重试一次
+    const retryGet = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
+    if (!retryGet?.success) {
+      throw new Error(retryGet?.errMsg ?? "获取侧边栏失败（重试）");
+    }
+    const retryVersion = retryGet.data?.version ?? (version + 1);
+    const retryParsed: any = parseSidebarTree(retryGet.data?.treeJson ?? null) ?? base;
+    const retryNext: any = JSON.parse(JSON.stringify(retryParsed));
+    const retryCats: any[] = Array.isArray(retryNext.categories) ? retryNext.categories : [];
+    let retryTarget: any = retryCats.find(c => c?.categoryId === "cat:docs");
+    if (!retryTarget) {
+      retryTarget = { categoryId: "cat:docs", name: "文档", items: [] };
+      retryCats.push(retryTarget);
+      retryNext.categories = retryCats;
+    }
+    retryTarget.items = Array.isArray(retryTarget.items) ? retryTarget.items : [];
+    if (!retryTarget.items.some((i: any) => i?.nodeId === nodeId)) {
+      retryTarget.items.push({
+        nodeId,
+        type: "doc",
+        targetId: params.docId,
+        fallbackTitle: params.title,
+        ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
+      });
+    }
+
+    const retrySet = await tuanchat.spaceSidebarTreeController.setSidebarTree({
+      spaceId: params.spaceId,
+      expectedVersion: retryVersion,
+      treeJson: JSON.stringify(retryNext),
+    });
+    if (!retrySet?.success) {
+      throw new Error(retrySet?.errMsg ?? "写入侧边栏失败（可能存在并发修改）");
+    }
+  }, []);
 
   const handleCopyToMyDocs = useCallback(async () => {
     const ok = await ensureCanCopyDoc();
@@ -328,7 +407,6 @@ export default function ChatFrameContextMenu({
         sourceDocId: ok.sourceDocId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
-        addToKpSidebarTree: false,
       });
       toast.success("已复制到我的文档", { id: toastId });
       setSideDrawerState("docFolder");
@@ -351,21 +429,27 @@ export default function ChatFrameContextMenu({
 
     const toastId = toast.loading("正在复制到空间侧边栏…");
     try {
-      const res = await copyToSpaceUserDoc({
+      const res = await copyToSpaceDoc({
         spaceId: ok.spaceId,
         sourceDocId: ok.sourceDocId,
         title: docCard?.title,
         imageUrl: docCard?.imageUrl,
-        addToKpSidebarTree: true,
       });
+      await appendDocToSidebarTree({
+        spaceId: ok.spaceId,
+        docId: res.newDocId,
+        title: res.title,
+        imageUrl: docCard?.imageUrl,
+      });
+      queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", ok.spaceId] });
       toast.success("已复制到空间侧边栏", { id: toastId });
-      navigate(`/chat/${ok.spaceId}/doc/${encodeURIComponent(res.newDocId)}`);
+      navigate(`/chat/${ok.spaceId}/doc/${res.newDocEntityId}`);
     }
     catch (err) {
       console.error("[DocCopy] copyToKpSidebarTree failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [copyToSpaceUserDoc, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, navigate, spaceContext.isSpaceOwner]);
+  }, [appendDocToSidebarTree, copyToSpaceDoc, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, navigate, queryClient, spaceContext.isSpaceOwner]);
   const clueMessage = message?.message.extra?.clueMessage;
 
   const threadMeta = useMemo(() => {
