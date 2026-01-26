@@ -20,6 +20,7 @@ import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddIcon, ChevronDown } from "@/icons";
+import { tuanchat } from "../../../../../api/instance";
 
 interface DocFolderDocNode {
   nodeId: string;
@@ -285,29 +286,62 @@ export default function DocFolderForUser() {
         imageUrl: params.docRef.imageUrl,
       });
 
-      const baseTree = tree;
-      const nextTree = JSON.parse(JSON.stringify(baseTree)) as DocFolderTree;
-      const cat = nextTree.categories.find(c => c.categoryId === params.categoryId) ?? nextTree.categories[0];
-      if (!cat) {
-        toast.error("文件夹不存在", { id: toastId });
-        return;
-      }
-      cat.items = Array.isArray(cat.items) ? cat.items : [];
-      if (!cat.items.some(n => n.targetId === res.newDocEntityId)) {
-        cat.items.push(buildDocNode(res.newDocEntityId));
-      }
+      const newDocEntityId = res.newDocEntityId;
 
+      const applyAppend = (base: DocFolderTree): DocFolderTree => {
+        const next = JSON.parse(JSON.stringify(base)) as DocFolderTree;
+        const cat = next.categories.find(c => c.categoryId === params.categoryId) ?? next.categories[0];
+        if (!cat)
+          return next;
+        cat.items = Array.isArray(cat.items) ? cat.items : [];
+        if (!cat.items.some(n => n.targetId === newDocEntityId)) {
+          cat.items.push(buildDocNode(newDocEntityId));
+        }
+        return next;
+      };
+
+      // 使用后端最新 version 写入，避免用户操作期间产生的版本冲突；冲突时自动重试一次。
+      const tryPersistByFetchingLatest = async (): Promise<DocFolderTree> => {
+        let lastErrMsg = "";
+        for (let i = 0; i < 2; i += 1) {
+          const getRes = await tuanchat.spaceUserDocFolderController.getTree(spaceId);
+          if (!getRes?.success) {
+            throw new Error(getRes?.errMsg ?? "获取文档夹失败");
+          }
+          const expectedVersion = getRes.data?.version ?? 0;
+          const parsed = tryParseTree(getRes.data?.treeJson ?? null) ?? buildDefaultTree();
+          const nextTree = applyAppend(parsed);
+
+          const setRes = await setTreeMutation.mutateAsync({
+            spaceId,
+            expectedVersion,
+            treeJson: JSON.stringify(nextTree),
+          });
+
+          if (setRes?.success) {
+            versionRef.current = setRes.data?.version ?? expectedVersion + 1;
+            return nextTree;
+          }
+
+          lastErrMsg = setRes?.errMsg ?? "保存文档夹失败";
+          if (!lastErrMsg.includes("版本冲突")) {
+            throw new Error(lastErrMsg);
+          }
+        }
+        throw new Error(lastErrMsg || "docFolderTree版本冲突，请刷新后重试");
+      };
+
+      const nextTree = await tryPersistByFetchingLatest();
       setTree(nextTree);
-      setOpenDocId(res.newDocEntityId);
-      await persistTree(nextTree);
-      docsQuery.refetch();
+      setOpenDocId(newDocEntityId);
+      void docsQuery.refetch();
       toast.success("已复制到我的文档", { id: toastId });
     }
     catch (err) {
       console.error("[DocFolderForUser] drop copy failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [docsQuery, persistTree, spaceId, tree]);
+  }, [docsQuery, setTreeMutation, spaceId]);
 
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
