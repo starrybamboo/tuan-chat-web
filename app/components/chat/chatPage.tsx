@@ -10,7 +10,9 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
+import { tuanchat } from "api/instance";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -41,8 +43,6 @@ import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivate
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
 import { SidebarSimpleIcon } from "@/icons";
-import toast from "react-hot-toast";
-import { tuanchat } from "api/instance";
 
 /**
  * chat板块的主组件
@@ -1318,6 +1318,7 @@ export default function ChatPage() {
                         activeSpaceName={activeSpaceNameForUi}
                         activeSpaceIsArchived={activeSpaceIsArchived}
                         isSpaceOwner={!!spaceContext.isSpaceOwner}
+                        isKPInSpace={isKPInSpace}
                         rooms={orderedRooms}
                         roomOrderIds={orderedRoomIds}
                         onReorderRoomIds={setUserRoomOrder}
@@ -1422,6 +1423,7 @@ export default function ChatPage() {
                             activeSpaceName={activeSpaceNameForUi}
                             activeSpaceIsArchived={activeSpaceIsArchived}
                             isSpaceOwner={!!spaceContext.isSpaceOwner}
+                            isKPInSpace={isKPInSpace}
                             rooms={orderedRooms}
                             roomOrderIds={orderedRoomIds}
                             onReorderRoomIds={setUserRoomOrder}
