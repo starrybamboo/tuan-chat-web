@@ -1,5 +1,5 @@
 import type { Rule } from "api/models/Rule";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Section from "../Editors/Section";
 import { CustomRuleConfigurationSection } from "./CustomRuleConfigurationSection";
 import CustomRulePerformanceEditor from "./CustomRulePerformanceEditor";
@@ -16,6 +16,26 @@ export default function CustomRuleExpansionModule({
   onModuleEditingChange?: (moduleKey: string, editing: boolean) => void;
 }) {
   const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
+
+  const handleBasicEditingChange = useCallback(
+    (editing: boolean) => onModuleEditingChange?.("basic", editing),
+    [onModuleEditingChange],
+  );
+
+  const handleAbilityEditingChange = useCallback(
+    (editing: boolean) => onModuleEditingChange?.("ability", editing),
+    [onModuleEditingChange],
+  );
+
+  const handleSkillEditingChange = useCallback(
+    (editing: boolean) => onModuleEditingChange?.("skill", editing),
+    [onModuleEditingChange],
+  );
+
+  const handleActEditingChange = useCallback(
+    (editing: boolean) => onModuleEditingChange?.("act", editing),
+    [onModuleEditingChange],
+  );
 
   // 处理基础属性变更
   const handleBasicChange = (newData: Record<string, any>) => {
@@ -47,7 +67,7 @@ export default function CustomRuleExpansionModule({
           localEdits={localRule.basicDefault}
           onDataChange={handleBasicChange}
           cloneVersion={cloneVersion}
-          onEditingChange={editing => onModuleEditingChange?.("basic", editing)}
+          onEditingChange={handleBasicEditingChange}
         />
       );
     }
@@ -59,7 +79,7 @@ export default function CustomRuleExpansionModule({
           localEdits={localRule.abilityFormula}
           onDataChange={handleAbilityChange}
           cloneVersion={cloneVersion}
-          onEditingChange={editing => onModuleEditingChange?.("ability", editing)}
+          onEditingChange={handleAbilityEditingChange}
         />
       );
     }
@@ -71,7 +91,7 @@ export default function CustomRuleExpansionModule({
           localEdits={localRule.skillDefault}
           onDataChange={handleSkillChange}
           cloneVersion={cloneVersion}
-          onEditingChange={editing => onModuleEditingChange?.("skill", editing)}
+          onEditingChange={handleSkillEditingChange}
         />
       );
     }
@@ -94,7 +114,7 @@ export default function CustomRuleExpansionModule({
             data={localRule.actTemplate}
             onSave={handleActTemplateChange}
             cloneVersion={cloneVersion}
-            onEditingChange={editing => onModuleEditingChange?.("act", editing)}
+            onEditingChange={handleActEditingChange}
           />
         </div>
       </Section>

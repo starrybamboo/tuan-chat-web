@@ -109,6 +109,11 @@ export default function RuleCreationEditor({
     });
   }, []);
 
+  const handleTextInfoEditingChange = useCallback(
+    (editing: boolean) => setModuleEditing("textInfo", editing),
+    [setModuleEditing],
+  );
+
   const handleBack = useCallback(() => {
     if (isSavingRule)
       return;
@@ -487,7 +492,7 @@ export default function RuleCreationEditor({
                 ruleName={ruleEdit.ruleName ?? ""}
                 ruleDescription={ruleEdit.ruleDescription ?? ""}
                 cloneVersion={cloneVersion}
-                onEditingChange={editing => setModuleEditing("textInfo", editing)}
+                onEditingChange={handleTextInfoEditingChange}
                 onApply={({ ruleName, ruleDescription }) => {
                   setRuleEdit(prev => ({
                     ...prev,
