@@ -8,7 +8,7 @@
 
 - **职责:** Chat 页面与布局、房间列表与分类、消息渲染与发送、房间资料与文档入口、跑团相关交互
 - **状态:** ?开发中
-- **最后更新:** 2026-01-24
+- **最后更新:** 2026-01-26
 
 
 ## 入口与目录
@@ -63,6 +63,14 @@
 - UI 状态（展开/折叠）：仅本地 IndexedDB 保存，不回写后端树结构
 - 文档元信息（doc metas）回补：当 Blocksuite workspace 的 docMetas 不足时，从 sidebarTree 的 doc 节点回补，确保文档节点可见/可打开
 - 首屏缓存展示：doc 节点在 treeJson 中缓存 `fallbackTitle/fallbackImageUrl`，并在 docMetas 仍未加载时优先用缓存渲染（避免文档列表“晚出现/空白”）
+- 文档拖拽协议：`docRef`（`application/x-tc-doc-ref`，兜底 `text/uri-list` / `text/plain`），用于“文档节点 → 聊天发送”与“聊天文档卡片 → 侧边栏复制”
+
+### 1.1) 聊天文档卡片（DOC_CARD）与复制
+
+- 文档卡片消息：发送的是“引用 + 只读预览”，打开弹窗内嵌 Blocksuite 只读编辑器
+- 拖拽复制：将聊天列表内的文档卡片拖到 sidebarTree 分类区域，松开后会创建新的 `space_doc` 并复制正文快照，然后把新文档节点追加到 treeJson
+  - 权限：仅 KP 可写侧边栏
+  - 空间限制：不允许跨 space
 
 ### 2) 房间资料 / 文档入口
 

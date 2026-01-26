@@ -1,22 +1,23 @@
-import type { ChatMessageResponse } from "../../../../../api";
 import type * as Y from "yjs";
+import type { ChatMessageResponse } from "../../../../../api";
 
+import { FileTextIcon } from "@phosphor-icons/react";
 import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { FileTextIcon } from "@phosphor-icons/react";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { PopWindow } from "@/components/common/popWindow";
 
-type DocCardPayload = {
+interface DocCardPayload {
   docId: string;
   spaceId?: number;
   title?: string;
   imageUrl?: string;
-};
+}
 
 function extractDocCardPayload(extra: unknown): DocCardPayload | null {
   const raw = (extra as any)?.docCard ?? null;
@@ -108,6 +109,26 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
     let excerptTimer: number | null = null;
     let ydoc: Y.Doc | null = null;
 
+    const scheduleExcerpt = (store: any) => {
+      if (excerptTimer != null)
+        window.clearTimeout(excerptTimer);
+      excerptTimer = window.setTimeout(() => {
+        if (disposedRef.current)
+          return;
+        const excerpt = extractExcerptFromStore(store);
+        if (!excerpt)
+          return;
+        setPreview(prev => (prev.excerpt === excerpt ? prev : { ...prev, excerpt }));
+      }, 120);
+    };
+
+    const onYUpdate = () => {
+      const store = storeRef.current;
+      if (!store)
+        return;
+      scheduleExcerpt(store);
+    };
+
     const cleanup = () => {
       try {
         unsubHeader?.();
@@ -131,26 +152,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         window.clearTimeout(excerptTimer);
         excerptTimer = null;
       }
-    };
-
-    const scheduleExcerpt = (store: any) => {
-      if (excerptTimer != null)
-        window.clearTimeout(excerptTimer);
-      excerptTimer = window.setTimeout(() => {
-        if (disposedRef.current)
-          return;
-        const excerpt = extractExcerptFromStore(store);
-        if (!excerpt)
-          return;
-        setPreview(prev => (prev.excerpt === excerpt ? prev : { ...prev, excerpt }));
-      }, 120);
-    };
-
-    const onYUpdate = () => {
-      const store = storeRef.current;
-      if (!store)
-        return;
-      scheduleExcerpt(store);
     };
 
     (async () => {
@@ -233,8 +234,32 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             isDisabled ? "opacity-70 cursor-not-allowed" : ""
           }`}
           onClick={openPreview}
+          draggable={!isDisabled}
+          onDragStart={(e) => {
+            if (isDisabled || !payload)
+              return;
+
+            const spaceId = typeof payload.spaceId === "number" && payload.spaceId > 0
+              ? payload.spaceId
+              : (typeof currentSpaceId === "number" && currentSpaceId > 0 ? currentSpaceId : undefined);
+
+            e.dataTransfer.effectAllowed = "copy";
+            try {
+              e.dataTransfer.setData("text/plain", `tc-doc-ref:${payload.docId}`);
+            }
+            catch {
+              // ignore
+            }
+
+            setDocRefDragData(e.dataTransfer, {
+              docId: payload.docId,
+              ...(spaceId ? { spaceId } : {}),
+              ...(title ? { title } : {}),
+              ...(coverUrl ? { imageUrl: coverUrl } : {}),
+            });
+          }}
           aria-disabled={isDisabled}
-          title={isDisabled ? disabledReason : "点击打开只读预览"}
+          title={isDisabled ? disabledReason : "点击打开只读预览；支持拖拽复制到侧边栏/再次发送"}
         >
           <div className="flex gap-3 p-3">
             <div className="relative w-24 h-20 rounded-lg overflow-hidden border border-base-300 bg-base-200 flex-shrink-0">

@@ -1,12 +1,13 @@
 import type { ChatMessageResponse, ImageMessage, Message } from "../../../../../api";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { copyDocToSpaceDoc, getDocUpdateForCopy } from "@/components/chat/utils/docCopy";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
@@ -183,52 +184,6 @@ export default function ChatFrameContextMenu({
     return { spaceId, sourceDocId: docCard.docId };
   }, [docCard?.docId, docCard?.spaceId, spaceContext.spaceId]);
 
-  const getDocUpdateForCopy = useCallback(async (params: {
-    spaceId: number;
-    docId: string;
-  }): Promise<Uint8Array> => {
-    const [registry, { parseDescriptionDocId }, { getRemoteSnapshot }, { base64ToUint8Array }] = await Promise.all([
-      import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
-      import("@/components/chat/infra/blocksuite/descriptionDocId"),
-      import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
-      import("@/components/chat/infra/blocksuite/base64"),
-    ]);
-
-    const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
-
-    // 优先尝试把“源文档的远端快照”恢复到本地 workspace，确保跨端/跨用户复制可用。
-    try {
-      const key = parseDescriptionDocId(params.docId);
-      if (key) {
-        const remote = await getRemoteSnapshot(key);
-        if (remote?.updateB64) {
-          const update = base64ToUint8Array(remote.updateB64);
-          if (typeof ws?.restoreDocFromUpdate === "function") {
-            ws.restoreDocFromUpdate({ docId: params.docId, update });
-          }
-        }
-      }
-    }
-    catch {
-      // ignore: 仍可能从本地 IndexedDB 拿到内容
-    }
-
-    // 确保 doc 在本地 workspace 里已 load，避免 encode 只拿到空初始化状态
-    try {
-      const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: params.docId }) as any;
-      (store as any)?.load?.();
-    }
-    catch {
-      // ignore
-    }
-
-    if (typeof ws?.encodeDocAsUpdate !== "function") {
-      throw new Error("Blocksuite workspace 不支持导出文档快照");
-    }
-
-    return ws.encodeDocAsUpdate(params.docId) as Uint8Array;
-  }, []);
-
   const copyToSpaceUserDoc = useCallback(async (params: {
     spaceId: number;
     sourceDocId: string;
@@ -289,79 +244,7 @@ export default function ChatFrameContextMenu({
     queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
 
     return { newDocEntityId: newEntityId, newDocId, title };
-  }, [getDocUpdateForCopy, queryClient]);
-
-  const copyToSpaceDoc = useCallback(async (params: {
-    spaceId: number;
-    sourceDocId: string;
-    title?: string;
-    imageUrl?: string;
-  }) => {
-    const createTitle = (params.title ?? "").trim();
-    const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-    const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
-
-    let createdDocId: number | null = null;
-    try {
-      const resp = await tuanchat.request.request<any>({
-        method: "POST",
-        url: "/space/doc",
-        body: { spaceId: params.spaceId, title },
-        mediaType: "application/json",
-      });
-      const id = Number((resp as any)?.data?.docId);
-      if (Number.isFinite(id) && id > 0) {
-        createdDocId = id;
-      }
-    }
-    catch (err) {
-      console.error("[SpaceDoc] create failed", err);
-    }
-
-    if (!createdDocId) {
-      throw new Error("创建文档失败");
-    }
-
-    const [{ buildSpaceDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
-      import("@/components/chat/infra/blocksuite/spaceDocId"),
-      import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
-      import("@/components/chat/infra/blocksuite/base64"),
-      import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
-      import("@/components/chat/infra/blocksuite/docHeader"),
-    ]);
-
-    const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
-
-    const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
-    if (typeof ws?.restoreDocFromUpdate === "function") {
-      ws.restoreDocFromUpdate({ docId: newDocId, update: sourceUpdate });
-    }
-
-    try {
-      const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
-      (store as any)?.load?.();
-      setBlocksuiteDocHeader(store, { title, imageUrl: params.imageUrl });
-    }
-    catch {
-      // ignore
-    }
-
-    registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
-
-    const fullUpdate = typeof ws?.encodeDocAsUpdate === "function" ? (ws.encodeDocAsUpdate(newDocId) as Uint8Array) : sourceUpdate;
-    await setRemoteSnapshot({
-      entityType: "space_doc",
-      entityId: createdDocId,
-      docType: "description",
-      snapshot: {
-        v: 1,
-        updateB64: uint8ArrayToBase64(fullUpdate),
-        updatedAt: Date.now(),
-      },
-    });
-
-    return { newDocEntityId: createdDocId, newDocId, title };
-  }, [getDocUpdateForCopy]);
+  }, [queryClient]);
 
   const appendDocToSidebarTree = useCallback(async (params: {
     spaceId: number;
@@ -476,7 +359,7 @@ export default function ChatFrameContextMenu({
 
     const toastId = toast.loading("正在复制到空间侧边栏…");
     try {
-      const res = await copyToSpaceDoc({
+      const res = await copyDocToSpaceDoc({
         spaceId: ok.spaceId,
         sourceDocId: ok.sourceDocId,
         title: docCard?.title,
@@ -496,7 +379,7 @@ export default function ChatFrameContextMenu({
       console.error("[DocCopy] copyToKpSidebarTree failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [appendDocToSidebarTree, copyToSpaceDoc, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, navigate, queryClient, spaceContext.isSpaceOwner]);
+  }, [appendDocToSidebarTree, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, navigate, queryClient, spaceContext.isSpaceOwner]);
   const clueMessage = message?.message.extra?.clueMessage;
 
   const threadMeta = useMemo(() => {

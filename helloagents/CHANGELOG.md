@@ -33,6 +33,7 @@
 - Chat：聊天输入区新增“我的文档”入口（线索按钮左侧），打开 Space 用户文档夹抽屉；文档/文件夹样式对齐 sidebarTree，并支持创建/重命名/删除/打开 Blocksuite 文档（对接 `/space/docFolder/*`）
 - Chat：支持文档卡片消息 `DOC_CARD(1002)`，支持从文档树拖拽发送到消息列表/输入框，并点击卡片弹窗只读预览 Blocksuite 文档
 - Chat：文档卡片消息右键菜单新增“复制到我的文档 / 复制到空间侧边栏（KP）”，语义为真正复制副本（从源文档导出 Blocksuite full update 并 restore 到新 doc，再写入 `/blocksuite/doc`；空间侧边栏复制会创建 `space_doc(sdoc)` 并写入 sidebarTree 引用）
+- Chat：聊天列表中的文档卡片消息支持拖拽到 sidebarTree 进行复制（KP，copy 语义）
 
 ### 变更
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
