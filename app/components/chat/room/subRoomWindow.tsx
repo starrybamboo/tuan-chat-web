@@ -89,14 +89,14 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
       setSelectedRoomId(null);
       return;
     }
-    if (selectedRoomId && roomsInSpace.some(r => r.roomId === selectedRoomId)) {
-      return;
+    const resolvedRoomId = roomsInSpace.some(r => r.roomId === selectedRoomId)
+      ? selectedRoomId
+      : roomsInSpace.some(r => r.roomId === roomId)
+        ? roomId
+        : (roomsInSpace[0]?.roomId ?? null);
+    if (resolvedRoomId !== selectedRoomId) {
+      setSelectedRoomId(resolvedRoomId);
     }
-    if (roomId && roomsInSpace.some(r => r.roomId === roomId)) {
-      setSelectedRoomId(roomId);
-      return;
-    }
-    setSelectedRoomId(roomsInSpace[0]?.roomId ?? null);
   }, [docTarget, roomId, roomsInSpace, selectedRoomId]);
 
   const loadSpaceDocMetas = React.useCallback(async (): Promise<MinimalDocMeta[]> => {
@@ -146,10 +146,36 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
     if (docTarget !== "doc") {
       return;
     }
-    if (selectedDocId && docMetas.some(m => m.id === selectedDocId)) {
-      return;
+    const resolvedDocId = docMetas.some(m => m.id === selectedDocId) ? selectedDocId : (docMetas[0]?.id ?? null);
+    if (resolvedDocId !== selectedDocId) {
+      setSelectedDocId(resolvedDocId);
     }
-    setSelectedDocId(docMetas[0]?.id ?? null);
+  }, [docMetas, docTarget, selectedDocId]);
+
+  const resolvedRoomId = React.useMemo(() => {
+    if (docTarget !== "room") {
+      return null;
+    }
+    if (roomsInSpace.length === 0) {
+      return null;
+    }
+    if (selectedRoomId && roomsInSpace.some(r => r.roomId === selectedRoomId)) {
+      return selectedRoomId;
+    }
+    if (roomId && roomsInSpace.some(r => r.roomId === roomId)) {
+      return roomId;
+    }
+    return roomsInSpace[0]?.roomId ?? null;
+  }, [docTarget, roomId, roomsInSpace, selectedRoomId]);
+
+  const resolvedDocId = React.useMemo(() => {
+    if (docTarget !== "doc") {
+      return null;
+    }
+    if (selectedDocId && docMetas.some(m => m.id === selectedDocId)) {
+      return selectedDocId;
+    }
+    return docMetas[0]?.id ?? null;
   }, [docMetas, docTarget, selectedDocId]);
 
   const activeDocId = React.useMemo(() => {
@@ -160,14 +186,14 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
       return buildSpaceDocId({ kind: "space_description", spaceId });
     }
     if (docTarget === "room") {
-      const targetRoomId = selectedRoomId ?? roomId ?? -1;
+      const targetRoomId = resolvedRoomId ?? roomId ?? -1;
       if (!targetRoomId || targetRoomId <= 0) {
         return null;
       }
       return buildSpaceDocId({ kind: "room_description", roomId: targetRoomId });
     }
-    return selectedDocId;
-  }, [docTarget, roomId, selectedDocId, selectedRoomId, spaceId]);
+    return resolvedDocId;
+  }, [docTarget, resolvedDocId, resolvedRoomId, roomId, spaceId]);
 
   const handleDocHeaderChange = React.useCallback(({ docId, header }: { docId: string; header: { title: string } }) => {
     if (!docId) {
@@ -408,7 +434,7 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
                 {docTarget === "room" && (
                   <select
                     className="select select-bordered select-xs max-w-full"
-                    value={selectedRoomId ?? ""}
+                    value={resolvedRoomId ?? ""}
                     onChange={(e) => {
                       const next = Number(e.target.value);
                       setSelectedRoomId(Number.isFinite(next) && next > 0 ? next : null);
@@ -426,7 +452,7 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
                 {docTarget === "doc" && (
                   <select
                     className="select select-bordered select-xs max-w-full"
-                    value={selectedDocId ?? ""}
+                    value={resolvedDocId ?? ""}
                     onChange={e => setSelectedDocId(e.target.value || null)}
                     disabled={!isSpaceOwner || docMetas.length === 0}
                   >
@@ -444,7 +470,7 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
                   ? (
                       <div className="flex items-center justify-center h-full text-sm opacity-70">未选择空间</div>
                     )
-                  : docTarget === "room" && (!selectedRoomId || selectedRoomId <= 0)
+                  : docTarget === "room" && (!resolvedRoomId || resolvedRoomId <= 0)
                     ? (
                         <div className="flex items-center justify-center h-full text-sm opacity-70">未选择房间</div>
                       )
