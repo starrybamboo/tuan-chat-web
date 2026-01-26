@@ -721,8 +721,10 @@ export default function ChatRoomListPanel({
                         e.preventDefault();
                         e.stopPropagation();
                         const docRef = getDocRefDragData(e.dataTransfer);
-                        if (!docRef)
+                        if (!docRef) {
+                          toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
                           return;
+                        }
                         void handleDropDocRefToCategory({ categoryId: cat.categoryId, docRef });
                       }}
                     >
