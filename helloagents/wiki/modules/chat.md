@@ -145,6 +145,7 @@
 - 入口：聊天输入区 Dock 模式中，线索按钮左侧“我的文档”
 - 抽屉：右侧轻量抽屉 `sideDrawerState="docFolder"`（`VaulSideDrawer`）
 - 能力：文件夹/文档列表、新建文件夹、新建文档、重命名、删除、点击打开 Blocksuite 编辑
+- 拖拽复制：将“聊天消息列表的文档卡片消息”拖到“我的文档”抽屉的分类区域，松开后会创建一份 `space_user_doc` 副本并追加到目标分类
 - 数据：对接 `/space/docFolder/*`（树 JSON + version 乐观锁；文档列表与元数据）
 
 ---

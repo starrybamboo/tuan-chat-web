@@ -12,10 +12,11 @@ import {
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
-import { setDocRefDragData } from "@/components/chat/utils/docRef";
+import { buildDescriptionDocId, parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
+import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddIcon, ChevronDown } from "@/icons";
@@ -255,6 +256,59 @@ export default function DocFolderForUser() {
     }
   }, [setTreeMutation, spaceId, treeQuery]);
 
+  const [docCopyDropCategoryId, setDocCopyDropCategoryId] = useState<string | null>(null);
+  const [openDocId, setOpenDocId] = useState<number | null>(null);
+
+  const handleDropDocRefToCategory = useCallback(async (params: {
+    categoryId: string;
+    docRef: { docId: string; spaceId?: number; title?: string; imageUrl?: string };
+  }) => {
+    if (!spaceId || spaceId <= 0) {
+      toast.error("未选择空间");
+      return;
+    }
+    if (params.docRef.spaceId && params.docRef.spaceId !== spaceId) {
+      toast.error("不允许跨空间复制文档");
+      return;
+    }
+    if (!parseDescriptionDocId(params.docRef.docId)) {
+      toast.error("仅支持复制空间文档（描述文档/我的文档）");
+      return;
+    }
+
+    const toastId = toast.loading("正在复制到我的文档…");
+    try {
+      const res = await copyDocToSpaceUserDoc({
+        spaceId,
+        sourceDocId: params.docRef.docId,
+        title: params.docRef.title,
+        imageUrl: params.docRef.imageUrl,
+      });
+
+      const baseTree = tree;
+      const nextTree = JSON.parse(JSON.stringify(baseTree)) as DocFolderTree;
+      const cat = nextTree.categories.find(c => c.categoryId === params.categoryId) ?? nextTree.categories[0];
+      if (!cat) {
+        toast.error("文件夹不存在", { id: toastId });
+        return;
+      }
+      cat.items = Array.isArray(cat.items) ? cat.items : [];
+      if (!cat.items.some(n => n.targetId === res.newDocEntityId)) {
+        cat.items.push(buildDocNode(res.newDocEntityId));
+      }
+
+      setTree(nextTree);
+      setOpenDocId(res.newDocEntityId);
+      await persistTree(nextTree);
+      docsQuery.refetch();
+      toast.success("已复制到我的文档", { id: toastId });
+    }
+    catch (err) {
+      console.error("[DocFolderForUser] drop copy failed", err);
+      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
+    }
+  }, [docsQuery, persistTree, spaceId, tree]);
+
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
@@ -265,8 +319,6 @@ export default function DocFolderForUser() {
   const [renameDocOpen, setRenameDocOpen] = useState(false);
   const [renameDocId, setRenameDocId] = useState<number | null>(null);
   const [renameDocTitle, setRenameDocTitle] = useState("");
-
-  const [openDocId, setOpenDocId] = useState<number | null>(null);
 
   const openDocMeta = openDocId != null ? docById.get(openDocId) : null;
   const openDocBlocksuiteId = useMemo(() => {
@@ -569,11 +621,54 @@ export default function DocFolderForUser() {
             )
           : (
               <div className="flex-1 min-h-0 overflow-auto">
-                <div className="p-2 space-y-2">
+                <div
+                  className="p-2 space-y-2"
+                  onDragOverCapture={(e) => {
+                    if (!spaceId || spaceId <= 0)
+                      return;
+                    if (!isDocRefDrag(e.dataTransfer))
+                      return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "copy";
+
+                    const targetEl = e.target as HTMLElement | null;
+                    const catEl = targetEl?.closest?.("[data-tc-docfolder-category]") as HTMLElement | null;
+                    const cid = catEl?.getAttribute?.("data-tc-docfolder-category") || "";
+                    if (cid && cid !== docCopyDropCategoryId) {
+                      setDocCopyDropCategoryId(cid);
+                    }
+                  }}
+                  onDropCapture={(e) => {
+                    if (!spaceId || spaceId <= 0)
+                      return;
+                    if (!isDocRefDrag(e.dataTransfer))
+                      return;
+
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const docRef = getDocRefDragData(e.dataTransfer);
+                    if (!docRef) {
+                      toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                      return;
+                    }
+
+                    const targetEl = e.target as HTMLElement | null;
+                    const catEl = targetEl?.closest?.("[data-tc-docfolder-category]") as HTMLElement | null;
+                    const cid = catEl?.getAttribute?.("data-tc-docfolder-category") || "";
+                    const categoryId = cid || docCopyDropCategoryId || tree.categories[0]?.categoryId || "cat:docs";
+                    setDocCopyDropCategoryId(null);
+                    void handleDropDocRefToCategory({ categoryId, docRef });
+                  }}
+                >
                   {tree.categories.map((cat) => {
                     const isCollapsed = Boolean(cat.collapsed);
                     return (
-                      <div key={cat.categoryId} className="px-1">
+                      <div
+                        key={cat.categoryId}
+                        data-tc-docfolder-category={cat.categoryId}
+                        className={`px-1 ${docCopyDropCategoryId === cat.categoryId ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
+                      >
                         <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium opacity-80 select-none rounded-lg hover:bg-base-300/40">
                           <button
                             type="button"

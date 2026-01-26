@@ -7,7 +7,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { copyDocToSpaceDoc, getDocUpdateForCopy } from "@/components/chat/utils/docCopy";
+import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
@@ -190,60 +190,16 @@ export default function ChatFrameContextMenu({
     title?: string;
     imageUrl?: string;
   }) => {
-    const createTitle = (params.title ?? "").trim();
-    const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-    const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
-
-    const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
-    if (!createRes?.success || !createRes.data?.docId) {
-      throw new Error(createRes?.errMsg ?? "创建文档失败");
-    }
-    const newEntityId = createRes.data.docId;
-
-    const [{ buildDescriptionDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
-      import("@/components/chat/infra/blocksuite/descriptionDocId"),
-      import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
-      import("@/components/chat/infra/blocksuite/base64"),
-      import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
-      import("@/components/chat/infra/blocksuite/docHeader"),
-    ]);
-
-    const newDocId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: newEntityId, docType: "description" });
-
-    const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
-    if (typeof ws?.restoreDocFromUpdate === "function") {
-      ws.restoreDocFromUpdate({ docId: newDocId, update: sourceUpdate });
-    }
-
-    // 标题/封面：写入 Blocksuite doc 的 tc_header，避免打开时被默认值覆盖。
-    try {
-      const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
-      (store as any)?.load?.();
-      setBlocksuiteDocHeader(store, { title, imageUrl: params.imageUrl });
-    }
-    catch {
-      // ignore
-    }
-
-    registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
-
-    // 将“最终 full update”写入远端快照（供其它端恢复/预览）
-    const fullUpdate = typeof ws?.encodeDocAsUpdate === "function" ? (ws.encodeDocAsUpdate(newDocId) as Uint8Array) : sourceUpdate;
-    await setRemoteSnapshot({
-      entityType: "space_user_doc",
-      entityId: newEntityId,
-      docType: "description",
-      snapshot: {
-        v: 1,
-        updateB64: uint8ArrayToBase64(fullUpdate),
-        updatedAt: Date.now(),
-      },
+    const { newDocEntityId, newDocId, title } = await copyDocToSpaceUserDoc({
+      spaceId: params.spaceId,
+      sourceDocId: params.sourceDocId,
+      title: params.title,
+      imageUrl: params.imageUrl,
     });
-
     queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
     queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
 
-    return { newDocEntityId: newEntityId, newDocId, title };
+    return { newDocEntityId, newDocId, title };
   }, [queryClient]);
 
   const appendDocToSidebarTree = useCallback(async (params: {

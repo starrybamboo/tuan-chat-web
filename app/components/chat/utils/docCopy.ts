@@ -117,3 +117,60 @@ export async function copyDocToSpaceDoc(params: {
 
   return { newDocEntityId: createdDocId, newDocId, title };
 }
+
+export async function copyDocToSpaceUserDoc(params: {
+  spaceId: number;
+  sourceDocId: string;
+  title?: string;
+  imageUrl?: string;
+}): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
+  const createTitle = (params.title ?? "").trim();
+  const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
+  const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
+
+  const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
+  if (!createRes?.success || !createRes.data?.docId) {
+    throw new Error(createRes?.errMsg ?? "创建文档失败");
+  }
+  const newEntityId = createRes.data.docId;
+
+  const [{ buildDescriptionDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
+    import("@/components/chat/infra/blocksuite/descriptionDocId"),
+    import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
+    import("@/components/chat/infra/blocksuite/base64"),
+    import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+    import("@/components/chat/infra/blocksuite/docHeader"),
+  ]);
+
+  const newDocId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: newEntityId, docType: "description" });
+
+  const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
+  if (typeof ws?.restoreDocFromUpdate === "function") {
+    ws.restoreDocFromUpdate({ docId: newDocId, update: sourceUpdate });
+  }
+
+  try {
+    const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
+    (store as any)?.load?.();
+    setBlocksuiteDocHeader(store, { title, imageUrl: params.imageUrl });
+  }
+  catch {
+    // ignore
+  }
+
+  registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
+
+  const fullUpdate = typeof ws?.encodeDocAsUpdate === "function" ? (ws.encodeDocAsUpdate(newDocId) as Uint8Array) : sourceUpdate;
+  await setRemoteSnapshot({
+    entityType: "space_user_doc",
+    entityId: newEntityId,
+    docType: "description",
+    snapshot: {
+      v: 1,
+      updateB64: uint8ArrayToBase64(fullUpdate),
+      updatedAt: Date.now(),
+    },
+  });
+
+  return { newDocEntityId: newEntityId, newDocId, title };
+}
