@@ -10,6 +10,7 @@ interface RulesSectionProps {
   onRuleChange: (newRuleId: number) => void;
   large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）
   autoSelectFirst?: boolean; // 默认 true：首次加载时自动选中第一个规则
+  authorId?: number; // 可选：按作者ID过滤规则列表（用于“我的规则”等场景）
 }
 
 /**
@@ -22,6 +23,7 @@ export default function RulesSection({
   onRuleChange,
   large = false,
   autoSelectFirst = true,
+  authorId = undefined,
 }: RulesSectionProps) {
   // 内部状态管理 - 完全自治
   const [pageNum, setPageNum] = useState(1);
@@ -34,6 +36,7 @@ export default function RulesSection({
     pageNum,
     keyword,
     pageSize,
+    authorId,
   );
 
   // 当首次有数据且未选择规则时，默认选中第一个
@@ -141,9 +144,11 @@ export default function RulesSection({
                   </div>
                 ))}
               </div>
-              {rules.length === 0 && (
-                <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
-              )}
+              {rules.length === 0
+                ? authorId === undefined && (
+                  <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
+                )
+                : null}
             </div>
           </div>
         </div>
@@ -185,9 +190,11 @@ export default function RulesSection({
           </div>
         ))}
       </div>
-      {rules.length === 0 && (
-        <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
-      )}
+      {rules.length === 0
+        ? authorId === undefined && (
+          <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
+        )
+        : null}
     </div>
   );
 }

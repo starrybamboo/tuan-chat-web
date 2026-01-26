@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 
+import { useGlobalContext } from "@/components/globalContextProvider";
 import RulesSection from "@/components/Role/rules/RulesSection";
 
 export default function RuleEditorEntryModal({
@@ -11,6 +12,7 @@ export default function RuleEditorEntryModal({
   onClose: () => void;
 }) {
   const navigate = useNavigate();
+  const { userId } = useGlobalContext();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
@@ -110,6 +112,7 @@ export default function RuleEditorEntryModal({
                 large={false}
                 currentRuleId={0}
                 autoSelectFirst={false}
+                authorId={typeof userId === "number" && userId > 0 ? userId : undefined}
                 onRuleChange={handleEdit}
               />
             </Suspense>
