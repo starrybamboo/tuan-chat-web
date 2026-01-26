@@ -183,6 +183,80 @@ export default function ChatFrameContextMenu({
     return { spaceId, sourceDocId: docCard.docId };
   }, [docCard?.docId, docCard?.spaceId, spaceContext.spaceId]);
 
+  const ensureReadableSnapshot = useCallback(async (params: {
+    sourceDocId: string;
+  }) => {
+    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+    const key = parseDescriptionDocId(params.sourceDocId);
+    if (!key) {
+      throw new Error("仅支持复制空间文档（描述文档/我的文档）");
+    }
+
+    const { getRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
+    const snapshot = await getRemoteSnapshot(key);
+    if (snapshot?.updateB64) {
+      return snapshot;
+    }
+
+    // 尝试区分：无权限 vs 暂无内容（blocksuite/doc 返回 ApiResult 时 success=false）
+    try {
+      const res = await tuanchat.request.request<any>({
+        method: "GET",
+        url: "/blocksuite/doc",
+        query: {
+          entityType: key.entityType,
+          entityId: key.entityId,
+          docType: key.docType,
+        },
+      });
+      if ((res as any)?.success === false) {
+        throw new Error((res as any)?.errMsg ?? "无权限读取源文档");
+      }
+    }
+    catch (err) {
+      throw err instanceof Error ? err : new Error("无权限读取源文档");
+    }
+
+    throw new Error("源文档暂无可复制内容（请先打开并保存一次）");
+  }, []);
+
+  const patchSnapshotHeader = useCallback(async (params: {
+    snapshot: { v: 1; updateB64: string; updatedAt: number };
+    title: string;
+    imageUrl?: string;
+  }) => {
+    const title = params.title.trim();
+    const imageUrl = (params.imageUrl ?? "").trim();
+    if (!title && !imageUrl) {
+      return params.snapshot;
+    }
+
+    const [{ base64ToUint8Array, uint8ArrayToBase64 }, Y] = await Promise.all([
+      import("@/components/chat/infra/blocksuite/base64"),
+      import("yjs"),
+    ]);
+
+    const base = base64ToUint8Array(params.snapshot.updateB64);
+    const doc = new (Y as any).Doc();
+    (Y as any).applyUpdate(doc, base);
+
+    doc.transact(() => {
+      const map = doc.getMap("tc_header");
+      if (title)
+        map.set("title", title);
+      if (Object.prototype.hasOwnProperty.call(params, "imageUrl") && imageUrl) {
+        map.set("imageUrl", imageUrl);
+      }
+    }, "tc_copy:patch_header");
+
+    const next = (Y as any).encodeStateAsUpdate(doc) as Uint8Array;
+    return {
+      v: 1 as const,
+      updateB64: uint8ArrayToBase64(next),
+      updatedAt: Date.now(),
+    };
+  }, []);
+
   const copyToSpaceUserDoc = useCallback(async (params: {
     spaceId: number;
     sourceDocId: string;
@@ -192,6 +266,8 @@ export default function ChatFrameContextMenu({
     const createTitle = (params.title ?? "").trim();
     const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
 
+    const sourceSnapshot = await ensureReadableSnapshot({ sourceDocId: params.sourceDocId });
+
     const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
     if (!createRes?.success || !createRes.data?.docId) {
       throw new Error(createRes?.errMsg ?? "创建文档失败");
@@ -199,18 +275,19 @@ export default function ChatFrameContextMenu({
     const newEntityId = createRes.data.docId;
 
     const { buildDescriptionDocId, parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
-    const { getRemoteSnapshot, setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
+    const { setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
 
-    const sourceKey = parseDescriptionDocId(params.sourceDocId);
-    const sourceSnapshot = sourceKey ? await getRemoteSnapshot(sourceKey) : null;
-    if (sourceSnapshot?.updateB64) {
-      await setRemoteSnapshot({
-        entityType: "space_user_doc",
-        entityId: newEntityId,
-        docType: "description",
-        snapshot: { ...sourceSnapshot, updatedAt: Date.now() },
-      });
-    }
+    const patchedSnapshot = await patchSnapshotHeader({
+      snapshot: sourceSnapshot,
+      title,
+      imageUrl: params.imageUrl,
+    });
+    await setRemoteSnapshot({
+      entityType: "space_user_doc",
+      entityId: newEntityId,
+      docType: "description",
+      snapshot: patchedSnapshot,
+    });
 
     const newDocId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: newEntityId, docType: "description" });
 
@@ -241,7 +318,7 @@ export default function ChatFrameContextMenu({
     queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
 
     return { newDocEntityId: newEntityId, newDocId, title };
-  }, [queryClient]);
+  }, [ensureReadableSnapshot, patchSnapshotHeader, queryClient]);
 
   const copyToSpaceDoc = useCallback(async (params: {
     spaceId: number;
@@ -251,6 +328,8 @@ export default function ChatFrameContextMenu({
   }) => {
     const createTitle = (params.title ?? "").trim();
     const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
+
+    const sourceSnapshot = await ensureReadableSnapshot({ sourceDocId: params.sourceDocId });
 
     let createdDocId: number | null = null;
     try {
@@ -274,21 +353,21 @@ export default function ChatFrameContextMenu({
     }
 
     const { buildSpaceDocId } = await import("@/components/chat/infra/blocksuite/spaceDocId");
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
-    const { getRemoteSnapshot, setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
+    const { setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
 
     const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
 
-    const sourceKey = parseDescriptionDocId(params.sourceDocId);
-    const sourceSnapshot = sourceKey ? await getRemoteSnapshot(sourceKey) : null;
-    if (sourceSnapshot?.updateB64) {
-      await setRemoteSnapshot({
-        entityType: "space_doc",
-        entityId: createdDocId,
-        docType: "description",
-        snapshot: { ...sourceSnapshot, updatedAt: Date.now() },
-      });
-    }
+    const patchedSnapshot = await patchSnapshotHeader({
+      snapshot: sourceSnapshot,
+      title,
+      imageUrl: params.imageUrl,
+    });
+    await setRemoteSnapshot({
+      entityType: "space_doc",
+      entityId: createdDocId,
+      docType: "description",
+      snapshot: patchedSnapshot,
+    });
 
     // Best-effort：补齐本地 meta，确保可在 Workspace 里打开/展示。
     try {
@@ -314,7 +393,7 @@ export default function ChatFrameContextMenu({
     }
 
     return { newDocEntityId: createdDocId, newDocId, title };
-  }, []);
+  }, [ensureReadableSnapshot, patchSnapshotHeader]);
 
   const appendDocToSidebarTree = useCallback(async (params: {
     spaceId: number;
