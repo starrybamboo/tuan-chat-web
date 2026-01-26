@@ -13,8 +13,8 @@
   background-color: oklch(var(--b1) / 0.95) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
-  border-bottom: none !important;
-  box-shadow: 0 4px 20px -8px rgb(0 0 0 / 0.1) !important;
+  border-bottom: 1px solid oklch(var(--b3) / 0.6) !important;
+  box-shadow: none !important;
   transition: all 0.3s ease !important;
 }
 
