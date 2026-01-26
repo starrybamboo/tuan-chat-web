@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601261131 | docref_drag_hint | 优化 | 已完成 | [2026-01/202601261131_docref_drag_hint/](2026-01/202601261131_docref_drag_hint/) |
 | 202601252318 | docref_drag_drop_fix | 修复 | 已完成 | [2026-01/202601252318_docref_drag_drop_fix/](2026-01/202601252318_docref_drag_drop_fix/) |
 | 202601252218 | docref_rename | 变更 | 已完成 | [2026-01/202601252218_docref_rename/](2026-01/202601252218_docref_rename/) |
 | 202601252021 | doc_message_card | 功能 | 已完成 | [2026-01/202601252021_doc_message_card/](2026-01/202601252021_doc_message_card/) |
@@ -106,6 +107,7 @@
 
 ### 2026-01
 
+- [202601261131_docref_drag_hint](2026-01/202601261131_docref_drag_hint/) - 文档拖拽到聊天区域时展示投放提示
 - [202601252318_docref_drag_drop_fix](2026-01/202601252318_docref_drag_drop_fix/) - 修复文档引用拖拽到聊天输入框/消息列表无响应
 - [202601252218_docref_rename](2026-01/202601252218_docref_rename/) - Chat 文档拖拽引用工具重命名：`dndDocRef` → `docRef`
 - [202601241705_chat-mention-all](2026-01/202601241705_chat-mention-all/) - KP 聊天 @ 提及列表新增 @All（检定请求）

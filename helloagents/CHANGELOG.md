@@ -52,6 +52,7 @@
 - sidebarTree 文档节点样式对齐房间：字号一致，并在标题前插入文档 icon
 - sidebarTree 独立文档打开页启用 `tcHeader`（禁用 blocksuite 内置 `doc-title`），支持上传封面并在侧边栏文档节点展示缩略图（本地缓存 `docHeaderOverrideStore`）
 - Chat：重命名文档拖拽引用工具：`dndDocRef` → `docRef`
+- Chat：文档拖拽到聊天输入框/消息列表时展示投放提示（松开发送文档卡片）
 - WebGAL 空间变量设置入口支持“导演控制台 → 设置变量”，并保留 `/var set ...` 作为快捷方式
 - WebGAL 实时渲染：消息写入后不再自动跳转预览（保持手动跳转）
 - 跑团指令“检定请求按钮消息”：移除额外“一键发送”按钮，点击检定请求卡片本体即可发送执行（不可执行时提示原因）

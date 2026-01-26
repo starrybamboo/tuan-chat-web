@@ -667,6 +667,14 @@ function ChatFrame(props: ChatFrameProps) {
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
+  const [isDocRefDragOver, setIsDocRefDragOver] = useState(false);
+  const isDocRefDragOverRef = useRef(false);
+  const updateDocRefDragOver = useCallback((next: boolean) => {
+    if (isDocRefDragOverRef.current === next)
+      return;
+    isDocRefDragOverRef.current = next;
+    setIsDocRefDragOver(next);
+  }, []);
 
   const sendDocCardFromDrop = useCallback(async (payload: DocRefDragPayload) => {
     if (onSendDocCard) {
@@ -956,10 +964,12 @@ function ChatFrame(props: ChatFrameProps) {
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (isDocRefDrag(e.dataTransfer)) {
+      updateDocRefDragOver(true);
       e.dataTransfer.dropEffect = "copy";
       startAutoScroll(0);
       return;
     }
+    updateDocRefDragOver(false);
     if (isFileDrag(e.dataTransfer)) {
       e.dataTransfer.dropEffect = "copy";
       startAutoScroll(0);
@@ -968,7 +978,7 @@ function ChatFrame(props: ChatFrameProps) {
     e.dataTransfer.dropEffect = "move";
     updateAutoScroll(e.clientY);
     scheduleCheckPosition(e.currentTarget, e.clientY);
-  }, [scheduleCheckPosition, startAutoScroll, updateAutoScroll]);
+  }, [scheduleCheckPosition, startAutoScroll, updateAutoScroll, updateDocRefDragOver]);
 
   const handleDragEnd = useCallback(() => {
     dragStartMessageIdRef.current = -1;
@@ -979,12 +989,14 @@ function ChatFrame(props: ChatFrameProps) {
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    updateDocRefDragOver(false);
     curDragOverMessageRef.current = null;
     startAutoScroll(0);
-  }, [startAutoScroll]);
+  }, [startAutoScroll, updateDocRefDragOver]);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
+    updateDocRefDragOver(false);
     curDragOverMessageRef.current = null;
 
     const docRef = getDocRefDragData(e.dataTransfer);
@@ -1019,7 +1031,7 @@ function ChatFrame(props: ChatFrameProps) {
     dragStartMessageIdRef.current = -1;
     detachWindowDragOver();
     cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, sendDocCardFromDrop, startAutoScroll, detachWindowDragOver]);
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, sendDocCardFromDrop, startAutoScroll, detachWindowDragOver, updateDocRefDragOver]);
 
   useEffect(() => {
     return () => {
@@ -1204,21 +1216,34 @@ function ChatFrame(props: ChatFrameProps) {
    */
   return (
     <div className="h-full relative">
+      {isDocRefDragOver && (
+        <div className="pointer-events-none absolute inset-2 z-30 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
+          <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
+            松开发送文档卡片
+          </div>
+        </div>
+      )}
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
         onDragOver={(e) => {
           if (isDocRefDrag(e.dataTransfer)) {
+            updateDocRefDragOver(true);
             e.preventDefault();
             e.dataTransfer.dropEffect = "copy";
             return;
           }
+          updateDocRefDragOver(false);
           if (isFileDrag(e.dataTransfer)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = "copy";
           }
         }}
+        onDragLeave={() => {
+          updateDocRefDragOver(false);
+        }}
         onDrop={(e) => {
+          updateDocRefDragOver(false);
           const docRef = getDocRefDragData(e.dataTransfer);
           if (docRef) {
             e.preventDefault();

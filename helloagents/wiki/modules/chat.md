@@ -145,6 +145,7 @@
 - 拖拽语义为“复制引用”，不改变文档树结构
 - 拖拽数据协议与解析工具：`app/components/chat/utils/docRef.ts`
 - 兼容性：dragover 阶段仅用 `isDocRefDrag(dataTransfer)` 判定并 `preventDefault`，payload 在 drop 阶段再读取
+- 交互提示：投放区域在识别到文档引用拖拽后，会显示“松开发送文档卡片”提示
 
 #### 场景: 点击卡片弹窗只读预览
 - 卡片展示：标题、封面（tcHeader imageUrl）、内容摘要（段落提取）
