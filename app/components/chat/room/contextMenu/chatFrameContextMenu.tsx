@@ -183,78 +183,50 @@ export default function ChatFrameContextMenu({
     return { spaceId, sourceDocId: docCard.docId };
   }, [docCard?.docId, docCard?.spaceId, spaceContext.spaceId]);
 
-  const ensureReadableSnapshot = useCallback(async (params: {
-    sourceDocId: string;
-  }) => {
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
-    const key = parseDescriptionDocId(params.sourceDocId);
-    if (!key) {
-      throw new Error("仅支持复制空间文档（描述文档/我的文档）");
-    }
-
-    const { getRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
-    const snapshot = await getRemoteSnapshot(key);
-    if (snapshot?.updateB64) {
-      return snapshot;
-    }
-
-    // 尝试区分：无权限 vs 暂无内容（blocksuite/doc 返回 ApiResult 时 success=false）
-    try {
-      const res = await tuanchat.request.request<any>({
-        method: "GET",
-        url: "/blocksuite/doc",
-        query: {
-          entityType: key.entityType,
-          entityId: key.entityId,
-          docType: key.docType,
-        },
-      });
-      if ((res as any)?.success === false) {
-        throw new Error((res as any)?.errMsg ?? "无权限读取源文档");
-      }
-    }
-    catch (err) {
-      throw err instanceof Error ? err : new Error("无权限读取源文档");
-    }
-
-    throw new Error("源文档暂无可复制内容（请先打开并保存一次）");
-  }, []);
-
-  const patchSnapshotHeader = useCallback(async (params: {
-    snapshot: { v: 1; updateB64: string; updatedAt: number };
-    title: string;
-    imageUrl?: string;
-  }) => {
-    const title = params.title.trim();
-    const imageUrl = (params.imageUrl ?? "").trim();
-    if (!title && !imageUrl) {
-      return params.snapshot;
-    }
-
-    const [{ base64ToUint8Array, uint8ArrayToBase64 }, Y] = await Promise.all([
+  const getDocUpdateForCopy = useCallback(async (params: {
+    spaceId: number;
+    docId: string;
+  }): Promise<Uint8Array> => {
+    const [registry, { parseDescriptionDocId }, { getRemoteSnapshot }, { base64ToUint8Array }] = await Promise.all([
+      import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+      import("@/components/chat/infra/blocksuite/descriptionDocId"),
+      import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
       import("@/components/chat/infra/blocksuite/base64"),
-      import("yjs"),
     ]);
 
-    const base = base64ToUint8Array(params.snapshot.updateB64);
-    const doc = new (Y as any).Doc();
-    (Y as any).applyUpdate(doc, base);
+    const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
 
-    doc.transact(() => {
-      const map = doc.getMap("tc_header");
-      if (title)
-        map.set("title", title);
-      if (Object.prototype.hasOwnProperty.call(params, "imageUrl") && imageUrl) {
-        map.set("imageUrl", imageUrl);
+    // 优先尝试把“源文档的远端快照”恢复到本地 workspace，确保跨端/跨用户复制可用。
+    try {
+      const key = parseDescriptionDocId(params.docId);
+      if (key) {
+        const remote = await getRemoteSnapshot(key);
+        if (remote?.updateB64) {
+          const update = base64ToUint8Array(remote.updateB64);
+          if (typeof ws?.restoreDocFromUpdate === "function") {
+            ws.restoreDocFromUpdate({ docId: params.docId, update });
+          }
+        }
       }
-    }, "tc_copy:patch_header");
+    }
+    catch {
+      // ignore: 仍可能从本地 IndexedDB 拿到内容
+    }
 
-    const next = (Y as any).encodeStateAsUpdate(doc) as Uint8Array;
-    return {
-      v: 1 as const,
-      updateB64: uint8ArrayToBase64(next),
-      updatedAt: Date.now(),
-    };
+    // 确保 doc 在本地 workspace 里已 load，避免 encode 只拿到空初始化状态
+    try {
+      const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: params.docId }) as any;
+      (store as any)?.load?.();
+    }
+    catch {
+      // ignore
+    }
+
+    if (typeof ws?.encodeDocAsUpdate !== "function") {
+      throw new Error("Blocksuite workspace 不支持导出文档快照");
+    }
+
+    return ws.encodeDocAsUpdate(params.docId) as Uint8Array;
   }, []);
 
   const copyToSpaceUserDoc = useCallback(async (params: {
@@ -265,8 +237,7 @@ export default function ChatFrameContextMenu({
   }) => {
     const createTitle = (params.title ?? "").trim();
     const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-
-    const sourceSnapshot = await ensureReadableSnapshot({ sourceDocId: params.sourceDocId });
+    const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
 
     const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
     if (!createRes?.success || !createRes.data?.docId) {
@@ -274,51 +245,51 @@ export default function ChatFrameContextMenu({
     }
     const newEntityId = createRes.data.docId;
 
-    const { buildDescriptionDocId, parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
-    const { setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
-
-    const patchedSnapshot = await patchSnapshotHeader({
-      snapshot: sourceSnapshot,
-      title,
-      imageUrl: params.imageUrl,
-    });
-    await setRemoteSnapshot({
-      entityType: "space_user_doc",
-      entityId: newEntityId,
-      docType: "description",
-      snapshot: patchedSnapshot,
-    });
+    const [{ buildDescriptionDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
+      import("@/components/chat/infra/blocksuite/descriptionDocId"),
+      import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
+      import("@/components/chat/infra/blocksuite/base64"),
+      import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+      import("@/components/chat/infra/blocksuite/docHeader"),
+    ]);
 
     const newDocId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: newEntityId, docType: "description" });
 
-    // Best-effort：补齐本地 meta，确保可在 Workspace 里打开/展示。
+    const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
+    if (typeof ws?.restoreDocFromUpdate === "function") {
+      ws.restoreDocFromUpdate({ docId: newDocId, update: sourceUpdate });
+    }
+
+    // 标题/封面：写入 Blocksuite doc 的 tc_header，避免打开时被默认值覆盖。
     try {
-      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
-      registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
+      const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
+      (store as any)?.load?.();
+      setBlocksuiteDocHeader(store, { title, imageUrl: params.imageUrl });
     }
     catch {
       // ignore
     }
 
-    // Best-effort：写入 doc header 缓存（仅用于本地展示/首屏）
-    if (typeof window !== "undefined" && params.imageUrl) {
-      try {
-        const { useDocHeaderOverrideStore } = await import("@/components/chat/stores/docHeaderOverrideStore");
-        useDocHeaderOverrideStore.getState().setHeader({
-          docId: newDocId,
-          header: { title, imageUrl: params.imageUrl },
-        });
-      }
-      catch {
-        // ignore
-      }
-    }
+    registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
+
+    // 将“最终 full update”写入远端快照（供其它端恢复/预览）
+    const fullUpdate = typeof ws?.encodeDocAsUpdate === "function" ? (ws.encodeDocAsUpdate(newDocId) as Uint8Array) : sourceUpdate;
+    await setRemoteSnapshot({
+      entityType: "space_user_doc",
+      entityId: newEntityId,
+      docType: "description",
+      snapshot: {
+        v: 1,
+        updateB64: uint8ArrayToBase64(fullUpdate),
+        updatedAt: Date.now(),
+      },
+    });
 
     queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
     queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
 
     return { newDocEntityId: newEntityId, newDocId, title };
-  }, [ensureReadableSnapshot, patchSnapshotHeader, queryClient]);
+  }, [getDocUpdateForCopy, queryClient]);
 
   const copyToSpaceDoc = useCallback(async (params: {
     spaceId: number;
@@ -328,8 +299,7 @@ export default function ChatFrameContextMenu({
   }) => {
     const createTitle = (params.title ?? "").trim();
     const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-
-    const sourceSnapshot = await ensureReadableSnapshot({ sourceDocId: params.sourceDocId });
+    const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
 
     let createdDocId: number | null = null;
     try {
@@ -352,48 +322,46 @@ export default function ChatFrameContextMenu({
       throw new Error("创建文档失败");
     }
 
-    const { buildSpaceDocId } = await import("@/components/chat/infra/blocksuite/spaceDocId");
-    const { setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
+    const [{ buildSpaceDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
+      import("@/components/chat/infra/blocksuite/spaceDocId"),
+      import("@/components/chat/infra/blocksuite/descriptionDocRemote"),
+      import("@/components/chat/infra/blocksuite/base64"),
+      import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry"),
+      import("@/components/chat/infra/blocksuite/docHeader"),
+    ]);
 
     const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
 
-    const patchedSnapshot = await patchSnapshotHeader({
-      snapshot: sourceSnapshot,
-      title,
-      imageUrl: params.imageUrl,
-    });
-    await setRemoteSnapshot({
-      entityType: "space_doc",
-      entityId: createdDocId,
-      docType: "description",
-      snapshot: patchedSnapshot,
-    });
+    const ws = registry.getOrCreateSpaceWorkspace(params.spaceId) as any;
+    if (typeof ws?.restoreDocFromUpdate === "function") {
+      ws.restoreDocFromUpdate({ docId: newDocId, update: sourceUpdate });
+    }
 
-    // Best-effort：补齐本地 meta，确保可在 Workspace 里打开/展示。
     try {
-      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
-      registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
+      const store = registry.getOrCreateSpaceDoc({ spaceId: params.spaceId, docId: newDocId }) as any;
+      (store as any)?.load?.();
+      setBlocksuiteDocHeader(store, { title, imageUrl: params.imageUrl });
     }
     catch {
       // ignore
     }
 
-    // Best-effort：写入 doc header 缓存（仅用于本地展示/首屏）
-    if (typeof window !== "undefined" && params.imageUrl) {
-      try {
-        const { useDocHeaderOverrideStore } = await import("@/components/chat/stores/docHeaderOverrideStore");
-        useDocHeaderOverrideStore.getState().setHeader({
-          docId: newDocId,
-          header: { title, imageUrl: params.imageUrl },
-        });
-      }
-      catch {
-        // ignore
-      }
-    }
+    registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
+
+    const fullUpdate = typeof ws?.encodeDocAsUpdate === "function" ? (ws.encodeDocAsUpdate(newDocId) as Uint8Array) : sourceUpdate;
+    await setRemoteSnapshot({
+      entityType: "space_doc",
+      entityId: createdDocId,
+      docType: "description",
+      snapshot: {
+        v: 1,
+        updateB64: uint8ArrayToBase64(fullUpdate),
+        updatedAt: Date.now(),
+      },
+    });
 
     return { newDocEntityId: createdDocId, newDocId, title };
-  }, [ensureReadableSnapshot, patchSnapshotHeader]);
+  }, [getDocUpdateForCopy]);
 
   const appendDocToSidebarTree = useCallback(async (params: {
     spaceId: number;
