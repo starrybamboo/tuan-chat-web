@@ -32,6 +32,7 @@
 - 聊天室文本导入：支持为发言人设置立绘位置（左/中/右），发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
 - Chat：聊天输入区新增“我的文档”入口（线索按钮左侧），打开 Space 用户文档夹抽屉；文档/文件夹样式对齐 sidebarTree，并支持创建/重命名/删除/打开 Blocksuite 文档（对接 `/space/docFolder/*`）
 - Chat：支持文档卡片消息 `DOC_CARD(1002)`，支持从文档树拖拽发送到消息列表/输入框，并点击卡片弹窗只读预览 Blocksuite 文档
+- Chat：文档卡片消息右键菜单新增“复制到我的文档 / 复制到空间侧边栏（KP）”，语义为真正复制副本（复制 Blocksuite 远端快照）
 
 ### 变更
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）

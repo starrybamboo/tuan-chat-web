@@ -1,5 +1,7 @@
 import type { ChatMessageResponse, ImageMessage, Message } from "../../../../../api";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -9,6 +11,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { useAddCluesMutation, useGetMyClueStarsBySpaceQuery } from "../../../../../api/hooks/spaceClueHooks";
+import { tuanchat } from "../../../../../api/instance";
 
 interface ContextMenuProps {
   contextMenu: { x: number; y: number; messageId: number } | null;
@@ -53,6 +56,8 @@ export default function ChatFrameContextMenu({
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
   const roomContext = use(RoomContext);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
@@ -130,6 +135,237 @@ export default function ChatFrameContextMenu({
   const message = contextMenuMessageId
     ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
     : undefined;
+
+  const docCard = useMemo(() => {
+    const extraAny = (message?.message as any)?.extra ?? null;
+    const raw = (extraAny?.docCard ?? null) as any;
+    const candidate = raw && typeof raw === "object" ? raw : null;
+    const fallbackCandidate = !candidate && extraAny && typeof extraAny === "object" ? extraAny : null;
+
+    const maybe = candidate ?? fallbackCandidate;
+    const docId = typeof maybe?.docId === "string" ? maybe.docId : "";
+    if (!docId)
+      return null;
+
+    const spaceId = typeof maybe?.spaceId === "number" ? maybe.spaceId : undefined;
+    const title = typeof maybe?.title === "string" ? maybe.title : undefined;
+    const imageUrl = typeof maybe?.imageUrl === "string" ? maybe.imageUrl : undefined;
+    return { docId, spaceId, title, imageUrl };
+  }, [message?.message]);
+
+  const canCopyDoc = useMemo(() => {
+    return Boolean(docCard?.docId && spaceContext?.spaceId && spaceContext.spaceId > 0);
+  }, [docCard?.docId, spaceContext?.spaceId]);
+
+  const ensureCanCopyDoc = useCallback(async () => {
+    const spaceId = spaceContext.spaceId ?? -1;
+    if (!docCard?.docId) {
+      toast.error("未检测到可复制的文档");
+      return null;
+    }
+    if (!spaceId || spaceId <= 0) {
+      toast.error("未选择空间");
+      return null;
+    }
+
+    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+    const key = parseDescriptionDocId(docCard.docId);
+    if (!key) {
+      toast.error("仅支持复制空间文档（描述文档/我的文档）");
+      return null;
+    }
+
+    if (typeof docCard.spaceId === "number" && docCard.spaceId !== spaceId) {
+      toast.error("不允许跨空间复制文档");
+      return null;
+    }
+
+    return { spaceId, sourceDocId: docCard.docId };
+  }, [docCard?.docId, docCard?.spaceId, spaceContext.spaceId]);
+
+  const copyToSpaceUserDoc = useCallback(async (params: {
+    spaceId: number;
+    sourceDocId: string;
+    title?: string;
+    imageUrl?: string;
+    addToKpSidebarTree: boolean;
+  }) => {
+    const createTitle = (params.title ?? "").trim();
+    const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
+
+    const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
+    if (!createRes?.success || !createRes.data?.docId) {
+      throw new Error(createRes?.errMsg ?? "创建文档失败");
+    }
+    const newEntityId = createRes.data.docId;
+
+    const { buildDescriptionDocId, parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+    const { getRemoteSnapshot, setRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/descriptionDocRemote");
+
+    const sourceKey = parseDescriptionDocId(params.sourceDocId);
+    const sourceSnapshot = sourceKey ? await getRemoteSnapshot(sourceKey) : null;
+    if (sourceSnapshot?.updateB64) {
+      await setRemoteSnapshot({
+        entityType: "space_user_doc",
+        entityId: newEntityId,
+        docType: "description",
+        snapshot: { ...sourceSnapshot, updatedAt: Date.now() },
+      });
+    }
+
+    const newDocId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: newEntityId, docType: "description" });
+
+    // Best-effort：补齐本地 meta，确保可在 Workspace 里打开/展示。
+    try {
+      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+      registry.ensureSpaceDocMeta({ spaceId: params.spaceId, docId: newDocId, title });
+    }
+    catch {
+      // ignore
+    }
+
+    // Best-effort：写入 doc header 缓存（仅用于本地展示/首屏）
+    if (typeof window !== "undefined" && params.imageUrl) {
+      try {
+        const { useDocHeaderOverrideStore } = await import("@/components/chat/stores/docHeaderOverrideStore");
+        useDocHeaderOverrideStore.getState().setHeader({
+          docId: newDocId,
+          header: { title, imageUrl: params.imageUrl },
+        });
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    if (params.addToKpSidebarTree) {
+      const { parseSidebarTree } = await import("@/components/chat/room/sidebarTree");
+      const getRes = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
+      if (!getRes?.success) {
+        throw new Error(getRes?.errMsg ?? "获取侧边栏失败");
+      }
+
+      const version = getRes.data?.version ?? 0;
+      const parsed = parseSidebarTree(getRes.data?.treeJson ?? null);
+      const base: any = parsed ?? { schemaVersion: 2, categories: [{ categoryId: "cat:docs", name: "文档", items: [] }] };
+
+      const next: any = JSON.parse(JSON.stringify(base));
+      const categories: any[] = Array.isArray(next.categories) ? next.categories : [];
+      let target: any = categories.find(c => c?.categoryId === "cat:docs");
+      if (!target) {
+        target = { categoryId: "cat:docs", name: "文档", items: [] };
+        categories.push(target);
+        next.categories = categories;
+      }
+      target.items = Array.isArray(target.items) ? target.items : [];
+      const nodeId = `doc:${newDocId}`;
+      if (!target.items.some((i: any) => i?.nodeId === nodeId)) {
+        target.items.push({
+          nodeId,
+          type: "doc",
+          targetId: newDocId,
+          fallbackTitle: title,
+          ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
+        });
+      }
+
+      const setReq = { spaceId: params.spaceId, expectedVersion: version, treeJson: JSON.stringify(next) };
+      const setRes = await tuanchat.spaceSidebarTreeController.setSidebarTree(setReq);
+      if (!setRes?.success) {
+        // 版本冲突：重试一次
+        const retryGet = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
+        if (!retryGet?.success) {
+          throw new Error(retryGet?.errMsg ?? "获取侧边栏失败（重试）");
+        }
+        const retryVersion = retryGet.data?.version ?? (version + 1);
+        const retryParsed: any = parseSidebarTree(retryGet.data?.treeJson ?? null) ?? base;
+        const retryNext: any = JSON.parse(JSON.stringify(retryParsed));
+        const retryCats: any[] = Array.isArray(retryNext.categories) ? retryNext.categories : [];
+        let retryTarget: any = retryCats.find(c => c?.categoryId === "cat:docs");
+        if (!retryTarget) {
+          retryTarget = { categoryId: "cat:docs", name: "文档", items: [] };
+          retryCats.push(retryTarget);
+          retryNext.categories = retryCats;
+        }
+        retryTarget.items = Array.isArray(retryTarget.items) ? retryTarget.items : [];
+        if (!retryTarget.items.some((i: any) => i?.nodeId === nodeId)) {
+          retryTarget.items.push({
+            nodeId,
+            type: "doc",
+            targetId: newDocId,
+            fallbackTitle: title,
+            ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
+          });
+        }
+
+        const retrySet = await tuanchat.spaceSidebarTreeController.setSidebarTree({
+          spaceId: params.spaceId,
+          expectedVersion: retryVersion,
+          treeJson: JSON.stringify(retryNext),
+        });
+        if (!retrySet?.success) {
+          throw new Error(retrySet?.errMsg ?? "写入侧边栏失败（可能存在并发修改）");
+        }
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
+    queryClient.invalidateQueries({ queryKey: ["getSpaceUserDocFolderTree", params.spaceId] });
+    queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", params.spaceId] });
+
+    return { newDocEntityId: newEntityId, newDocId, title };
+  }, [queryClient]);
+
+  const handleCopyToMyDocs = useCallback(async () => {
+    const ok = await ensureCanCopyDoc();
+    if (!ok)
+      return;
+
+    const toastId = toast.loading("正在复制到我的文档…");
+    try {
+      await copyToSpaceUserDoc({
+        spaceId: ok.spaceId,
+        sourceDocId: ok.sourceDocId,
+        title: docCard?.title,
+        imageUrl: docCard?.imageUrl,
+        addToKpSidebarTree: false,
+      });
+      toast.success("已复制到我的文档", { id: toastId });
+      setSideDrawerState("docFolder");
+    }
+    catch (err) {
+      console.error("[DocCopy] copyToMyDocs failed", err);
+      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
+    }
+  }, [copyToSpaceUserDoc, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, setSideDrawerState]);
+
+  const handleCopyToKpSidebarTree = useCallback(async () => {
+    if (!spaceContext.isSpaceOwner) {
+      toast.error("仅KP可复制到空间侧边栏");
+      return;
+    }
+
+    const ok = await ensureCanCopyDoc();
+    if (!ok)
+      return;
+
+    const toastId = toast.loading("正在复制到空间侧边栏…");
+    try {
+      const res = await copyToSpaceUserDoc({
+        spaceId: ok.spaceId,
+        sourceDocId: ok.sourceDocId,
+        title: docCard?.title,
+        imageUrl: docCard?.imageUrl,
+        addToKpSidebarTree: true,
+      });
+      toast.success("已复制到空间侧边栏", { id: toastId });
+      navigate(`/chat/${ok.spaceId}/doc/${encodeURIComponent(res.newDocId)}`);
+    }
+    catch (err) {
+      console.error("[DocCopy] copyToKpSidebarTree failed", err);
+      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
+    }
+  }, [copyToSpaceUserDoc, docCard?.imageUrl, docCard?.title, ensureCanCopyDoc, navigate, spaceContext.isSpaceOwner]);
   const clueMessage = message?.message.extra?.clueMessage;
 
   const threadMeta = useMemo(() => {
@@ -346,6 +582,32 @@ export default function ChatFrameContextMenu({
             回复
           </a>
         </li>
+        {canCopyDoc && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                onClose();
+                void handleCopyToMyDocs();
+              }}
+            >
+              复制到我的文档
+            </a>
+          </li>
+        )}
+        {canCopyDoc && spaceContext.isSpaceOwner && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                onClose();
+                void handleCopyToKpSidebarTree();
+              }}
+            >
+              复制到空间侧边栏
+            </a>
+          </li>
+        )}
         <li>
           <a onClick={(e) => {
             e.preventDefault();
