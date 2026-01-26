@@ -8,7 +8,7 @@ import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
-import RuleEditorPage from "@/components/Role/rules/RuleEditorPage";
+import RuleEditorRoute from "@/components/Role/RuleEditor/RuleEditorRoute";
 import { setRoleRule } from "@/utils/roleRuleStorage";
 
 interface RoleContext {
@@ -86,7 +86,7 @@ export default function RoleCreationPage() {
     return <STCreateRole onBack={handleBackToEntry} onComplete={handleCreationComplete} />;
   }
   if (mode === "rule") {
-    return <RuleEditorPage onBack={handleBackToEntry} />;
+    return <RuleEditorRoute onBack={handleBackToEntry} />;
   }
 
   // 默认渲染创建入口

@@ -1,10 +1,10 @@
 import type { Rule } from "api/models/Rule";
 import { useCallback, useState } from "react";
 import Section from "../Editors/Section";
-import { CustomRuleConfigurationSection } from "./CustomRuleConfigurationSection";
-import CustomRulePerformanceEditor from "./CustomRulePerformanceEditor";
+import { RuleConfigurationSection } from "./RuleConfigurationSection";
+import RulePerformanceEditor from "./RulePerformanceEditor";
 
-export default function CustomRuleExpansionModule({
+export default function RuleExpansionModule({
   localRule,
   onRuleChange,
   cloneVersion,
@@ -61,7 +61,7 @@ export default function CustomRuleExpansionModule({
   const renderActiveTabContent = () => {
     if (activeTab === "basic") {
       return (
-        <CustomRuleConfigurationSection
+        <RuleConfigurationSection
           key="basic"
           customLabel="基础属性"
           localEdits={localRule.basicDefault}
@@ -73,7 +73,7 @@ export default function CustomRuleExpansionModule({
     }
     if (activeTab === "ability") {
       return (
-        <CustomRuleConfigurationSection
+        <RuleConfigurationSection
           key="ability"
           customLabel="能力"
           localEdits={localRule.abilityFormula}
@@ -85,7 +85,7 @@ export default function CustomRuleExpansionModule({
     }
     if (activeTab === "skill") {
       return (
-        <CustomRuleConfigurationSection
+        <RuleConfigurationSection
           key="skill"
           customLabel="技能"
           localEdits={localRule.skillDefault}
@@ -109,7 +109,7 @@ export default function CustomRuleExpansionModule({
             </h4>
             <div className="badge badge-info badge-sm">{Object.keys(localRule.actTemplate ?? {}).length}</div>
           </div>
-          <CustomRulePerformanceEditor
+          <RulePerformanceEditor
             title="表演"
             data={localRule.actTemplate}
             onSave={handleActTemplateChange}

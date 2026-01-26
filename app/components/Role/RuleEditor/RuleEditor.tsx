@@ -7,14 +7,14 @@ import { useNavigate } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { SaveIcon, TrashIcon } from "@/icons";
 import Section from "../Editors/Section";
-import CustomRuleExpansionModule from "./CustomRuleExpansionModule";
 import RuleCloneModal from "./RuleCloneModal";
 import RuleDeleteModal from "./RuleDeleteModal";
+import RuleExpansionModule from "./RuleExpansionModule";
 import RuleTextInfoEditor from "./RuleTextInfoEditor";
 
 type RuleEditorMode = "create" | "edit";
 
-interface RuleCreationEditorProps {
+interface RuleEditorProps {
   mode?: RuleEditorMode;
   isQueryLoading?: boolean;
   ruleId?: number;
@@ -22,7 +22,7 @@ interface RuleCreationEditorProps {
   onBack?: () => void;
 }
 
-function RuleCreationEditorSkeleton() {
+function RuleEditorSkeleton() {
   return (
     <div className="p-4 animate-pulse">
       <div className="hidden md:flex items-center justify-between gap-3">
@@ -76,13 +76,13 @@ function RuleCreationEditorSkeleton() {
   );
 }
 
-export default function RuleCreationEditor({
+export default function RuleEditor({
   mode = "create",
   isQueryLoading = false,
   ruleId,
   ruleDetail,
   onBack,
-}: RuleCreationEditorProps) {
+}: RuleEditorProps) {
   const navigate = useNavigate();
   const { userId } = useGlobalContext();
   const createRuleMutation = useCreateRuleMutation();
@@ -320,7 +320,7 @@ export default function RuleCreationEditor({
   }, [loadedRuleId, mode, ruleDetail, ruleId]);
 
   if (isQueryLoading) {
-    return <RuleCreationEditorSkeleton />;
+    return <RuleEditorSkeleton />;
   }
 
   return (
@@ -506,7 +506,7 @@ export default function RuleCreationEditor({
         </div>
         {/* 右侧：编辑信息模块 */}
         <div className="lg:col-span-3 space-y-6">
-          <CustomRuleExpansionModule
+          <RuleExpansionModule
             localRule={ruleEdit}
             onRuleChange={setRuleEdit}
             cloneVersion={cloneVersion}

@@ -4,7 +4,7 @@ import EditableField from "../Editors/EditableField";
 
 type NumericalData = Record<string, string>;
 
-interface CustomRuleNumericalEditorProps {
+interface RuleNumericalEditorProps {
   title?: string;
   data?: NumericalData;
   onSave?: (data: NumericalData) => void;
@@ -53,13 +53,13 @@ function dataReducer(state: NumericalData, action: DataAction): NumericalData {
   }
 }
 
-export default function CustomRuleNumericalEditor({
+export default function RuleNumericalEditor({
   title = "字段",
   data,
   onSave,
   cloneVersion,
   onEditingChange,
-}: CustomRuleNumericalEditorProps) {
+}: RuleNumericalEditorProps) {
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   const [isEditing, setIsEditing] = useState(false);
 

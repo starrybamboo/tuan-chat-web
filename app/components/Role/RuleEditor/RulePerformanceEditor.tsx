@@ -5,7 +5,7 @@ import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";
 
-interface CustomRulePerformanceEditorProps {
+interface RulePerformanceEditorProps {
   title?: string;
   data?: Record<string, string>;
   onSave?: (data: Record<string, string>) => void;
@@ -59,13 +59,13 @@ function dataReducer(state: Record<string, string>, action: DataAction): Record<
  * 负责管理角色的表演相关字段，如性别、年龄、背景故事等
  * 展示方式被划分为了 短字段、长字段和携带物品 三种不同的展示方式
  */
-export default function CustomRulePerformanceEditor({
+export default function RulePerformanceEditor({
   title,
   data,
   onSave,
   cloneVersion,
   onEditingChange,
-}: CustomRulePerformanceEditorProps) {
+}: RulePerformanceEditorProps) {
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   // 是否编辑
   const [isEditing, setIsEditing] = useState(false);

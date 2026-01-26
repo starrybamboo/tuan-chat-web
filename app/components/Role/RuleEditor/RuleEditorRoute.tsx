@@ -4,15 +4,15 @@ import { useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router";
 
-import RuleCreationEditor from "./RuleCreationEditor";
+import RuleEditor from "./RuleEditor";
 
 type RuleEditorMode = "create" | "edit";
 
-interface RuleEditorPageProps {
+interface RuleEditorRouteProps {
   onBack?: () => void;
 }
 
-export default function RuleEditorPage({ onBack }: RuleEditorPageProps) {
+export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -92,7 +92,7 @@ export default function RuleEditorPage({ onBack }: RuleEditorPageProps) {
     return null;
 
   return (
-    <RuleCreationEditor
+    <RuleEditor
       mode={parsed.mode}
       isQueryLoading={parsed.mode === "edit" ? ruleDetailQuery.isLoading : false}
       ruleId={parsed.mode === "edit" ? parsed.ruleId : undefined}

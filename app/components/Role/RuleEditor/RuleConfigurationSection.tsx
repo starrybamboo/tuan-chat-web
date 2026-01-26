@@ -1,7 +1,7 @@
 import Section from "../Editors/Section";
-import CustomRuleNumericalEditor from "./CustomRuleNumericalEditor";
+import RuleNumericalEditor from "./RuleNumericalEditor";
 
-export function CustomRuleConfigurationSection({
+export function RuleConfigurationSection({
   customLabel,
   localEdits,
   onDataChange,
@@ -29,7 +29,7 @@ export function CustomRuleConfigurationSection({
           </h4>
           <div className="badge badge-info badge-sm">{fieldCount}</div>
         </div>
-        <CustomRuleNumericalEditor
+        <RuleNumericalEditor
           title={customLabel}
           data={localEdits ?? {}}
           onSave={onDataChange}
