@@ -5,13 +5,15 @@ import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import { FileTextIcon } from "@phosphor-icons/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
-import { setDocRefDragData } from "@/components/chat/utils/docRef";
+import { copyDocToSpaceDoc } from "@/components/chat/utils/docCopy";
+import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
@@ -101,21 +103,44 @@ export default function ChatRoomListPanel({
     return rooms.filter(room => room.spaceId === activeSpaceId);
   }, [activeSpaceId, rooms]);
 
+  const [extraDocMetas, setExtraDocMetas] = useState<MinimalDocMeta[]>([]);
+  useEffect(() => {
+    setExtraDocMetas([]);
+  }, [activeSpaceId]);
+
   // 侧边栏仅展示“空间内独立文档”，不展示 space/room/clue 绑定的 description 文档。
   // 独立文档的 docId 规范：`sdoc:<docId>:description`（parseSpaceDocId.kind === 'independent'）
   const visibleDocMetas = useMemo(() => {
     if (!isSpaceOwner)
       return [] as MinimalDocMeta[];
 
-    const list = docMetas ?? [];
-    return list.filter((m) => {
-      const id = m?.id;
+    const merged = new Map<string, MinimalDocMeta>();
+    for (const m of [...(docMetas ?? []), ...(extraDocMetas ?? [])]) {
+      const id = typeof m?.id === "string" ? m.id : "";
       if (!id)
-        return false;
+        continue;
       const parsed = parseSpaceDocId(id);
-      return parsed?.kind === "independent";
-    });
-  }, [docMetas, isSpaceOwner]);
+      if (parsed?.kind !== "independent")
+        continue;
+
+      const title = typeof m?.title === "string" && m.title.trim().length > 0 ? m.title : undefined;
+      const imageUrl = typeof m?.imageUrl === "string" && m.imageUrl.trim().length > 0 ? m.imageUrl : undefined;
+
+      const existing = merged.get(id);
+      if (!existing) {
+        merged.set(id, { id, ...(title ? { title } : {}), ...(imageUrl ? { imageUrl } : {}) });
+        continue;
+      }
+      if (!existing.title && title) {
+        existing.title = title;
+      }
+      if (!existing.imageUrl && imageUrl) {
+        existing.imageUrl = imageUrl;
+      }
+    }
+
+    return [...merged.values()];
+  }, [docMetas, extraDocMetas, isSpaceOwner]);
 
   const docMetaMap = useMemo(() => {
     const map = new Map<string, MinimalDocMeta>();
@@ -272,11 +297,11 @@ export default function ChatRoomListPanel({
 
   const [contextMenu, setContextMenu] = useState<SidebarTreeContextMenuState>(null);
 
-  const normalizeAndSet = useCallback((next: SidebarTree, save: boolean) => {
+  const normalizeAndSet = useCallback((next: SidebarTree, save: boolean, options?: { docMetasOverride?: MinimalDocMeta[] }) => {
     const normalized = normalizeSidebarTree({
       tree: next,
       roomsInSpace: fallbackTextRooms,
-      docMetas: visibleDocMetas,
+      docMetas: options?.docMetasOverride ?? visibleDocMetas,
       includeDocs: isSpaceOwner,
     });
 
@@ -324,6 +349,102 @@ export default function ChatRoomListPanel({
       onSaveSidebarTree?.(normalizedWithCache);
     }
   }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas]);
+
+  const [docCopyDropCategoryId, setDocCopyDropCategoryId] = useState<string | null>(null);
+
+  const handleDropDocRefToCategory = useCallback(async (params: {
+    categoryId: string;
+    docRef: { docId: string; spaceId?: number; title?: string; imageUrl?: string };
+  }) => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      toast.error("未选择空间");
+      return;
+    }
+    if (!isSpaceOwner) {
+      toast.error("仅KP可复制到空间侧边栏");
+      return;
+    }
+    if (params.docRef.spaceId && params.docRef.spaceId !== activeSpaceId) {
+      toast.error("不允许跨空间复制文档");
+      return;
+    }
+
+    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+    const key = parseDescriptionDocId(params.docRef.docId);
+    if (!key) {
+      toast.error("仅支持复制空间文档（描述文档/我的文档）");
+      return;
+    }
+
+    const toastId = toast.loading("正在复制到空间侧边栏…");
+    try {
+      const res = await copyDocToSpaceDoc({
+        spaceId: activeSpaceId,
+        sourceDocId: params.docRef.docId,
+        title: params.docRef.title,
+        imageUrl: params.docRef.imageUrl,
+      });
+
+      const newMeta: MinimalDocMeta = {
+        id: res.newDocId,
+        title: res.title,
+        ...(params.docRef.imageUrl ? { imageUrl: params.docRef.imageUrl } : {}),
+      };
+      setExtraDocMetas((prev) => {
+        const base = [...(prev ?? [])];
+        if (base.some(m => m.id === newMeta.id))
+          return base;
+        return [...base, newMeta];
+      });
+
+      const baseTree = treeToRender;
+      const nextTree = JSON.parse(JSON.stringify(baseTree)) as SidebarTree;
+      const cat = nextTree.categories.find(c => c.categoryId === params.categoryId) ?? nextTree.categories[0];
+      if (!cat) {
+        toast.error("侧边栏分类不存在", { id: toastId });
+        return;
+      }
+      cat.items = Array.isArray(cat.items) ? cat.items : [];
+      const nodeId = `doc:${res.newDocId}`;
+      if (!cat.items.some(i => i?.nodeId === nodeId)) {
+        cat.items.push({
+          nodeId,
+          type: "doc",
+          targetId: res.newDocId,
+          fallbackTitle: res.title,
+          ...(params.docRef.imageUrl ? { fallbackImageUrl: params.docRef.imageUrl } : {}),
+        });
+      }
+
+      const docMetasOverride = (() => {
+        const map = new Map<string, MinimalDocMeta>();
+        for (const m of [...visibleDocMetas, newMeta]) {
+          const id = typeof m?.id === "string" ? m.id : "";
+          if (!id)
+            continue;
+          if (!map.has(id)) {
+            map.set(id, { ...m });
+            continue;
+          }
+          const existing = map.get(id)!;
+          if (!existing.title && m.title) {
+            existing.title = m.title;
+          }
+          if (!existing.imageUrl && m.imageUrl) {
+            existing.imageUrl = m.imageUrl;
+          }
+        }
+        return [...map.values()];
+      })();
+
+      normalizeAndSet(nextTree, true, { docMetasOverride });
+      toast.success("已复制到空间侧边栏", { id: toastId });
+    }
+    catch (err) {
+      console.error("[DocCopy] drop copy failed", err);
+      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
+    }
+  }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas]);
 
   const moveNode = useCallback((fromCategoryId: string, fromIndex: number, toCategoryId: string, insertIndex: number, save: boolean) => {
     const base = treeToRender;
@@ -565,9 +686,53 @@ export default function ChatRoomListPanel({
                     && dropTarget.insertIndex === categoryIndex;
 
                   return (
-                    <div key={cat.categoryId} className="px-1 relative">
+                    <div
+                      key={cat.categoryId}
+                      className={`px-1 relative ${docCopyDropCategoryId === cat.categoryId ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
+                      onDragOver={(e) => {
+                        if (!canEdit)
+                          return;
+                        if (dragging)
+                          return;
+                        if (!isDocRefDrag(e.dataTransfer)) {
+                          if (docCopyDropCategoryId === cat.categoryId) {
+                            setDocCopyDropCategoryId(null);
+                          }
+                          return;
+                        }
+                        setDocCopyDropCategoryId(cat.categoryId);
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "copy";
+                      }}
+                      onDragLeave={() => {
+                        if (docCopyDropCategoryId === cat.categoryId) {
+                          setDocCopyDropCategoryId(null);
+                        }
+                      }}
+                      onDrop={(e) => {
+                        if (!canEdit)
+                          return;
+                        if (dragging)
+                          return;
+                        setDocCopyDropCategoryId(null);
+                        const docRef = getDocRefDragData(e.dataTransfer);
+                        if (!docRef)
+                          return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void handleDropDocRefToCategory({ categoryId: cat.categoryId, docRef });
+                      }}
+                    >
                       {showCategoryInsertLine && (
                         <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
+                      )}
+
+                      {docCopyDropCategoryId === cat.categoryId && (
+                        <div className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
+                          <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs font-medium text-primary shadow-sm">
+                            松开复制到侧边栏
+                          </div>
+                        </div>
                       )}
 
                       <div
