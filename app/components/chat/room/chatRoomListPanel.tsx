@@ -28,7 +28,6 @@ export interface ChatRoomListPanelProps {
   activeSpaceName?: string;
   activeSpaceIsArchived?: boolean;
   isSpaceOwner: boolean;
-  isKPInSpace: boolean;
 
   rooms: Room[];
   roomOrderIds?: number[];
@@ -66,7 +65,6 @@ export default function ChatRoomListPanel({
   activeSpaceName,
   activeSpaceIsArchived,
   isSpaceOwner,
-  isKPInSpace,
   rooms,
   roomOrderIds,
   sidebarTree,
@@ -113,7 +111,7 @@ export default function ChatRoomListPanel({
   // 侧边栏仅展示“空间内独立文档”，不展示 space/room/clue 绑定的 description 文档。
   // 独立文档的 docId 规范：`sdoc:<docId>:description`（parseSpaceDocId.kind === 'independent'）
   const visibleDocMetas = useMemo(() => {
-    if (!isKPInSpace)
+    if (!isSpaceOwner)
       return [] as MinimalDocMeta[];
 
     const merged = new Map<string, MinimalDocMeta>();
@@ -142,7 +140,7 @@ export default function ChatRoomListPanel({
     }
 
     return [...merged.values()];
-  }, [docMetas, extraDocMetas, isKPInSpace]);
+  }, [docMetas, extraDocMetas, isSpaceOwner]);
 
   const docMetaMap = useMemo(() => {
     const map = new Map<string, MinimalDocMeta>();
@@ -195,16 +193,16 @@ export default function ChatRoomListPanel({
     return ordered;
   }, [orderedRoomIdsFallback, roomById, roomsInSpace]);
 
-  const canEdit = Boolean(activeSpaceId && isKPInSpace);
+  const canEdit = Boolean(activeSpaceId && isSpaceOwner);
 
   const displayTree = useMemo(() => {
     return normalizeSidebarTree({
       tree: sidebarTree ?? null,
       roomsInSpace: fallbackTextRooms,
       docMetas: visibleDocMetas,
-      includeDocs: isKPInSpace,
+      includeDocs: isSpaceOwner,
     });
-  }, [fallbackTextRooms, isKPInSpace, sidebarTree, visibleDocMetas]);
+  }, [fallbackTextRooms, isSpaceOwner, sidebarTree, visibleDocMetas]);
 
   // KP 直接拖拽/编辑：使用本地副本做乐观更新；drop/操作结束后再保存。
   const [localTree, setLocalTree] = useState<SidebarTree | null>(null);
@@ -304,7 +302,7 @@ export default function ChatRoomListPanel({
       tree: next,
       roomsInSpace: fallbackTextRooms,
       docMetas: options?.docMetasOverride ?? visibleDocMetas,
-      includeDocs: isKPInSpace,
+      includeDocs: isSpaceOwner,
     });
 
     // 文档缓存：把 title/cover 写入 sidebarTree 节点（持久化到后端），让首屏优先展示缓存，而不是等待 meta/网络加载。
@@ -350,7 +348,7 @@ export default function ChatRoomListPanel({
     if (save) {
       onSaveSidebarTree?.(normalizedWithCache);
     }
-  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isKPInSpace, onSaveSidebarTree, visibleDocMetas]);
+  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas]);
 
   const [docCopyDropCategoryId, setDocCopyDropCategoryId] = useState<string | null>(null);
 
@@ -362,7 +360,7 @@ export default function ChatRoomListPanel({
       toast.error("未选择空间");
       return;
     }
-    if (!isKPInSpace) {
+    if (!isSpaceOwner) {
       toast.error("仅KP可复制到空间侧边栏");
       return;
     }
@@ -446,7 +444,7 @@ export default function ChatRoomListPanel({
       console.error("[DocCopy] drop copy failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [activeSpaceId, isKPInSpace, normalizeAndSet, treeToRender, visibleDocMetas]);
+  }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas]);
 
   const moveNode = useCallback((fromCategoryId: string, fromIndex: number, toCategoryId: string, insertIndex: number, save: boolean) => {
     const base = treeToRender;
@@ -664,7 +662,7 @@ export default function ChatRoomListPanel({
                     return;
 
                   e.preventDefault();
-                  e.dataTransfer.dropEffect = isKPInSpace ? "copy" : "none";
+                  e.dataTransfer.dropEffect = isSpaceOwner ? "copy" : "none";
 
                   const targetEl = e.target as HTMLElement | null;
                   const catEl = targetEl?.closest?.("[data-tc-sidebar-category]") as HTMLElement | null;
@@ -750,7 +748,7 @@ export default function ChatRoomListPanel({
                           return;
                         }
                         setDocCopyDropCategoryId(cat.categoryId);
-                        e.dataTransfer.dropEffect = isKPInSpace ? "copy" : "none";
+                        e.dataTransfer.dropEffect = isSpaceOwner ? "copy" : "none";
                       }}
                       onDragLeave={() => {
                         if (docCopyDropCategoryId === cat.categoryId) {
@@ -767,7 +765,9 @@ export default function ChatRoomListPanel({
                         e.stopPropagation();
                         const docRef = getDocRefDragData(e.dataTransfer);
                         if (!docRef) {
-                          toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                          if (isDocRefDrag(e.dataTransfer)) {
+                            toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                          }
                           return;
                         }
                         void handleDropDocRefToCategory({ categoryId: cat.categoryId, docRef });
@@ -780,7 +780,7 @@ export default function ChatRoomListPanel({
                       {docCopyDropCategoryId === cat.categoryId && (
                         <div className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
                           <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs font-medium text-primary shadow-sm">
-                            {isKPInSpace ? "松开复制到侧边栏" : "仅KP可复制到侧边栏"}
+                            {isSpaceOwner ? "松开复制到侧边栏" : "仅KP可复制到侧边栏"}
                           </div>
                         </div>
                       )}
@@ -907,7 +907,7 @@ export default function ChatRoomListPanel({
                           {items
                             .filter((node) => {
                               // 非 KP：隐藏 doc 节点（目前 doc 路由也会 gate）
-                              if (!isKPInSpace && node.type === "doc")
+                              if (!isSpaceOwner && node.type === "doc")
                                 return false;
                               return true;
                             })
@@ -1156,7 +1156,7 @@ export default function ChatRoomListPanel({
                                 </button>
                               </div>
 
-                              {isKPInSpace && (
+                              {isSpaceOwner && (
                                 <div className="flex items-center gap-2 mt-2">
                                   <select
                                     className="select select-bordered select-xs flex-1"

@@ -117,7 +117,11 @@ export function isDocRefDrag(dataTransfer: DataTransfer | null | undefined): boo
       return true;
 
     // 兜底：某些环境下只会暴露 `text/plain` 类型（但 getData 仍可读到 `tc-doc-ref:*` 前缀）。
-    return types.includes("text/plain") && !types.includes("Files");
+    if (types.includes("text/plain") && !types.includes("Files"))
+      return true;
+
+    // 兜底：部分环境 dragover 时 types 可能为空或不可靠，尝试用 payload 识别。
+    return Boolean(getDocRefDragData(dataTransfer));
   }
   catch {
     return false;

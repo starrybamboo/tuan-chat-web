@@ -81,7 +81,7 @@
 - 修复聊天拖拽自动滚动重复声明导致的构建失败
 - 拖拽移动聊天消息时靠近顶部/底部自动滚动，便于移动到更早或更晚位置
 - 修复文档引用拖拽到聊天输入框/消息列表无响应：dragover 阶段基于 `dataTransfer.types` 判定并 `preventDefault`，确保 drop 可触发
-- 修复文档卡片拖拽复制到 sidebarTree 无响应：复制权限按“KP”而非“空间所有者”判定，并确保 dragover 阶段始终 `preventDefault`
+- 修复聊天文档卡片拖拽到侧边栏无响应：补齐 `docRef` 的 `text/plain` 兜底识别，并确保 sidebarTree dragover/drop 可触发
 - 修复文档卡片消息在消息列表不显示：当 `extra.docCard` 存在但 `messageType` 缺失/不匹配时，按文档卡片兜底渲染
 - 修复房间角色导入后 avatarId 为空导致头像不显示：前端兜底为该角色头像列表首个头像
 - 修复聊天导入/发送时未选择立绘导致消息头像回退默认图标：运行时解析 `avatarId`（不强制持久化），仍缺失时显示为空占位
