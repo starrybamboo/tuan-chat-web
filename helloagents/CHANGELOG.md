@@ -34,6 +34,7 @@
 - Chat：支持文档卡片消息 `DOC_CARD(1002)`，支持从文档树拖拽发送到消息列表/输入框，并点击卡片弹窗只读预览 Blocksuite 文档
 - Chat：文档卡片消息右键菜单新增“复制到我的文档 / 复制到空间侧边栏（KP）”，语义为真正复制副本（从源文档导出 Blocksuite full update 并 restore 到新 doc，再写入 `/blocksuite/doc`；空间侧边栏复制会创建 `space_doc(sdoc)` 并写入 sidebarTree 引用）
 - Chat：聊天列表中的文档卡片消息支持拖拽到 sidebarTree 进行复制（KP，copy 语义）
+- Chat：支持将聊天列表的文档卡片消息拖拽复制到“我的文档”（创建 `space_user_doc(udoc)` 副本并追加到 docFolder）
 
 ### 变更
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
