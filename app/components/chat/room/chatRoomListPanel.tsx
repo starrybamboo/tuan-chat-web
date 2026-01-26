@@ -653,7 +653,51 @@ export default function ChatRoomListPanel({
                 </>
               )}
 
-              <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full ">
+              <div
+                className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full "
+                onDragOverCapture={(e) => {
+                  if (dragging)
+                    return;
+                  if (!activeSpaceId || activeSpaceId <= 0)
+                    return;
+                  if (!isDocRefDrag(e.dataTransfer))
+                    return;
+
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = isKPInSpace ? "copy" : "none";
+
+                  const targetEl = e.target as HTMLElement | null;
+                  const catEl = targetEl?.closest?.("[data-tc-sidebar-category]") as HTMLElement | null;
+                  const cid = catEl?.getAttribute?.("data-tc-sidebar-category") || "";
+                  if (cid && cid !== docCopyDropCategoryId) {
+                    setDocCopyDropCategoryId(cid);
+                  }
+                }}
+                onDropCapture={(e) => {
+                  if (dragging)
+                    return;
+                  if (!activeSpaceId || activeSpaceId <= 0)
+                    return;
+                  if (!isDocRefDrag(e.dataTransfer))
+                    return;
+
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  const docRef = getDocRefDragData(e.dataTransfer);
+                  if (!docRef) {
+                    toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                    return;
+                  }
+
+                  const targetEl = e.target as HTMLElement | null;
+                  const catEl = targetEl?.closest?.("[data-tc-sidebar-category]") as HTMLElement | null;
+                  const cid = catEl?.getAttribute?.("data-tc-sidebar-category") || "";
+                  const categoryId = cid || docCopyDropCategoryId || treeToRender.categories[0]?.categoryId || "cat:docs";
+                  setDocCopyDropCategoryId(null);
+                  void handleDropDocRefToCategory({ categoryId, docRef });
+                }}
+              >
                 {canEdit && (
                   <div className="flex items-center gap-2 px-2">
                     <button
@@ -690,6 +734,7 @@ export default function ChatRoomListPanel({
                   return (
                     <div
                       key={cat.categoryId}
+                      data-tc-sidebar-category={cat.categoryId}
                       className={`px-1 relative ${docCopyDropCategoryId === cat.categoryId ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
                       onDragOver={(e) => {
                         if (dragging)
