@@ -802,7 +802,7 @@ export default function DocFolderForUser() {
                                         <span className="flex-1 min-w-0 truncate text-left">{title}</span>
 
                                         <div
-                                          className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100"
+                                          className="absolute right-1 top-1/2 z-50 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                           }}
