@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601272208 | audio_stream | 变更 | 已完成 | [2026-01/202601272208_audio-stream/](2026-01/202601272208_audio-stream/) |
 | 202601272047 | blocksuite_mention_overlay_v3 | 修复 | 已完成 | [2026-01/202601272047_blocksuite-mention-overlay-v3/](2026-01/202601272047_blocksuite-mention-overlay-v3/) |
 | 202601271925 | blocksuite_mention_overlay_v2 | 修复 | 已完成 | [2026-01/202601271925_blocksuite-mention-overlay-v2/](2026-01/202601271925_blocksuite-mention-overlay-v2/) |
 | 202601271841 | blocksuite_mention_overlay | 修复 | 已完成 | [2026-01/202601271841_blocksuite-mention-overlay/](2026-01/202601271841_blocksuite-mention-overlay/) |
@@ -120,6 +121,7 @@
 
 ### 2026-01
 
+- [202601272208_audio-stream](2026-01/202601272208_audio-stream/) - 变更：音频播放改为流式进度条组件
 - [202601272047_blocksuite-mention-overlay-v3](2026-01/202601272047_blocksuite-mention-overlay-v3/) - 修复：CSS 全屏下 @ 弹窗挂载策略兜底
 - [202601271925_blocksuite-mention-overlay-v2](2026-01/202601271925_blocksuite-mention-overlay-v2/) - 修复：全屏画布下 @ 弹窗挂载位置补充
 - [202601271841_blocksuite-mention-overlay](2026-01/202601271841_blocksuite-mention-overlay/) - 修复：Blocksuite 全屏画布下 @ 弹窗被遮挡

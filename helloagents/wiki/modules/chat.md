@@ -100,10 +100,11 @@
 - 若当前房间无可用角色（非KP），导入弹窗提供“创建/导入角色”快捷入口
 - 导入弹窗 UI：双栏布局与单层容器，避免双层滚动，缺失角色高亮与快捷引导
 
-### 4.1) 音频消息波形渲染（AudioMessage）
+### 4.1) 音频消息播放（AudioMessage）
 
-- 波形渲染使用 WaveSurfer；组件卸载或 url 切换时会触发请求中断
-- 中断产生的 `AbortError` 仅作静默处理，避免控制台误报
+- 播放组件改为 `react-h5-audio-player`（Media Element），支持流式加载与可拖动进度条
+- `preload="metadata"` 以避免全量预取；音频可边播边加载
+- 已移除 WaveSurfer 波形渲染逻辑
 
 ### 5) 房间角色：NPC+ 快速创建
 
