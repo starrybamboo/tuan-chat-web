@@ -11,7 +11,6 @@ export type DistributedTask = {
     taskType?: string;
     inputData?: string;
     status?: DistributedTask.status;
-    assignedVolunteerId?: string;
     createTime?: string;
     assignTime?: string;
     completeTime?: string;

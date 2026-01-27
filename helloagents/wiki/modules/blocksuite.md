@@ -96,3 +96,7 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - 202601191418_blocksuite_mention_ref_title_alias (../../history/2026-01/202601191418_blocksuite_mention_ref_title_alias/) - ??????????
 - 202601201346_blocksuite_mention_deleted_doc_fix (../../history/2026-01/202601201346_blocksuite_mention_deleted_doc_fix/) - ???????? Deleted doc
 - 202601201354_blocksuite_mention_deleted_doc_fix2 (../../history/2026-01/202601201354_blocksuite_mention_deleted_doc_fix2/) - ???????? Deleted doc?workspace ???
+## Space 用户文档（space_user_doc）
+
+- docId 规范：`udoc:<docId>:description`
+- 远端快照：`/blocksuite/doc`（`entityType="space_user_doc"`, `entityId=<docId>`, `docType="description"`）

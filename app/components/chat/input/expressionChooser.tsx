@@ -104,6 +104,7 @@ export function ExpressionChooser({
                 >
                   <RoleAvatarComponent
                     avatarId={role.avatarId ?? 0}
+                    roleId={role.roleId}
                     width={10}
                     isRounded={true}
                     withTitle={false}
@@ -167,6 +168,7 @@ export function ExpressionChooser({
                         >
                           <RoleAvatarComponent
                             avatarId={avatar.avatarId || -1}
+                            roleId={selectedRoleId}
                             width={12}
                             isRounded={false}
                             withTitle={false}

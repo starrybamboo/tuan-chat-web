@@ -63,6 +63,12 @@ export interface RoomContextType {
    */
   updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
 
+  /**
+   * 在 WebGAL 中按给定顺序重建历史消息（用于“移动消息/重排顺序”等需要改变脚本行顺序的场景）
+   * @param messages 可选，默认使用当前消息列表
+   * @returns Promise<是否操作成功>
+   */
+  rerenderHistoryInWebGAL?: (messages?: ChatMessageResponse[]) => Promise<boolean>;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -77,4 +83,5 @@ export const RoomContext = createContext<RoomContextType>({
   scrollToGivenMessage: undefined,
   jumpToMessageInWebGAL: undefined,
   updateAndRerenderMessageInWebGAL: undefined,
+  rerenderHistoryInWebGAL: undefined,
 });
