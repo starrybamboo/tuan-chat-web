@@ -234,6 +234,22 @@ sequenceDiagram
 - 若需回滚前端：后端新增接口/表可保留（向后兼容）
 - 若需回滚后端：前端的 WS/updates 路径会退化失败；不建议在生产直接回滚后端而保留新前端
 
+### 9.1 快速回滚（推荐用 revert，便于审计与二次前进）
+
+本次变更为“新增表/新增接口/新增协议”，数据库变更为增量，可保留不回滚。
+
+前端（仓库 `d:\A_collection\tuan-chat-web`，分支 `dev-jxc`）：
+
+- 回滚功能代码（合并提交）：`git revert -m 1 57541846`
+- 回滚设计文档提交：`git revert f8c72d76`
+
+后端（仓库 `d:\A_collection\TuanChat`，分支 `dev`）：
+
+- 回滚功能代码（合并提交）：`git revert -m 1 95eba94`
+- 回滚设计文档提交：`git revert 0018709`
+
+说明：如你的本地提交哈希不同，以 `git log --oneline` 为准找到对应 merge commit 再 revert。
+
 ---
 
 ## 10. 实现与参考入口（代码事实来源）
@@ -254,4 +270,3 @@ sequenceDiagram
 - `src/main/java/com/jxc/tuanchat/websocket/domain/enums/WSReqTypeEnum.java`
 - `src/main/java/com/jxc/tuanchat/websocket/domain/enums/WSRespTypeEnum.java`
 - `src/main/java/com/jxc/tuanchat/websocket/registry/BlocksuiteDocRoomRegistry.java`
-
