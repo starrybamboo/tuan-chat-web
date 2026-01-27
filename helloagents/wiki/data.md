@@ -13,6 +13,16 @@
 
 ---
 
+## Blocksuite（yjs）相关数据
+
+前端侧涉及三类数据：
+
+- **远端快照（cache）**：`/blocksuite/doc` 返回的 snapshot（JSON 字符串）
+  - v1：`{ v:1, updateB64, updatedAt }`
+  - v2：`{ v:2, updateB64, snapshotServerTime, stateVectorB64?, updatedAt }`
+- **远端增量日志（SSOT）**：`/blocksuite/doc_update`（后端表）中按 `serverTime` 追加的 updates
+- **离线队列（兜底）**：IndexedDB 中暂存的未发送 updates（WS 不可用时），实现见 `app/components/chat/infra/blocksuite/descriptionDocDb`
+
 ## 领域模型（待补充）
 
 建议在后续迭代中，基于 OpenAPI 与实际页面使用情况补全以下实体：
