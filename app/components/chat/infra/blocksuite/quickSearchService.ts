@@ -60,16 +60,6 @@ export function createBlocksuiteQuickSearchService(params: {
       let rootWin = window;
       let mountTarget: HTMLElement | null = document.body ?? document.documentElement;
 
-      try {
-        const topDoc = window.top?.document;
-        if (topDoc) {
-          rootDoc = topDoc;
-          rootWin = topDoc.defaultView ?? window;
-          mountTarget = topDoc.body ?? topDoc.documentElement;
-        }
-      }
-      catch {}
-
       const fullscreenElement = (() => {
         try {
           return rootDoc.fullscreenElement ?? null;

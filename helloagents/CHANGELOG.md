@@ -78,6 +78,7 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
+- 修复 Blocksuite 画布全屏（CSS 视口占满）下 @ 弹窗仍被遮挡：强制挂载在 iframe 文档
 - 修复 Blocksuite 全屏模式下 @ 弹窗仍被遮挡：根据 fullscreenElement 选择挂载目标
 - 修复 Blocksuite 全屏画布下 @ 快速搜索弹窗被遮挡：弹窗挂载到 top document 并提升 z-index
 - 修复聊天消息文本选区松开后丢失：存在选区时跳过消息点击逻辑

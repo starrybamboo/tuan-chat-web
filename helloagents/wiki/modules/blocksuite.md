@@ -49,6 +49,7 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - 文档内“用户 mention”的交互：点击 mention 跳转到 `/profile/:userId`；悬浮 mention 会在短延迟后显示个人主页悬浮窗，并基于 mention 位置居中对齐（宿主侧 portal 渲染，内容为个人主页 iframe）：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`、`app/components/chat/infra/blocksuite/mentionProfilePopover.tsx`、`app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
 - 全屏画布模式下的 `@` 快速搜索弹窗需挂载到 top document，并使用高层级 z-index，避免被 edgeless 全屏遮挡（实现位于 `app/components/chat/infra/blocksuite/quickSearchService.ts`）
 - 若进入 Fullscreen API，`@` 弹窗需挂载到 fullscreenElement 或对应 iframe 文档，确保可见性（`app/components/chat/infra/blocksuite/quickSearchService.ts`）
+- blocksuite-frame 的“全屏画布”仅为 CSS 视口占满（`h-screen w-screen`），`@` 弹窗需挂载在 iframe 文档内避免被宿主 iframe 层级遮挡
 
 ## 常见坑位（入口）
 
