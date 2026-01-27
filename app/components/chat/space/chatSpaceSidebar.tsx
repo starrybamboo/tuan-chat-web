@@ -99,7 +99,7 @@ export default function ChatSpaceSidebar({
   };
 
   return (
-    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-hidden">
+    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible">
       {showCollapsedToggle && (
         <div className="rounded w-10 relative mx-2 mt-1 mb-1">
           <button
@@ -156,7 +156,7 @@ export default function ChatSpaceSidebar({
       {/* 分隔线 */}
       <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-      <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2" onContextMenu={onSpaceContextMenu}>
+      <div className="hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2" onContextMenu={onSpaceContextMenu}>
         {/* 全部空间列表 */}
         {renderSpaces.map(space => (
           <div

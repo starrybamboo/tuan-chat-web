@@ -1,12 +1,15 @@
-# Changelog
+﻿# Changelog
 
 本文件记录项目所有重要变更。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+- ??????????????
+- ??????????????????????????
 
 ### 新增
+- 角色页面渲染预览支持修改已有头像（基于 avatarId 更新头像内容，不新增 avatarId）
 - Blocksuite 描述文档支持自定义“图片 + 标题”头部（`tc_header`），并禁用 blocksuite 内置 `doc-title`；宿主侧支持乐观显示 room/space 标题与头像覆盖值
 - Blocksuite 描述文档 `tcHeader` 新增“重置内置标题”按钮：一键清空 blocksuite 内置页面标题（用于修复历史文档的双标题/标题不一致）
 - Blocksuite 描述文档画布（edgeless）新增“全屏/退出全屏”按钮（浏览器 Fullscreen API）
@@ -14,6 +17,7 @@
 - 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
 - 新增 Quill 引用统计审计报告：`helloagents/wiki/reports/2026-01-14_quill_reference_audit.md`
 - 跑团指令支持“检定请求按钮消息”：使用独立消息类型 `COMMAND_REQUEST(12)`；KP 发送包含 `@All` 的指令会生成可点击按钮，成员点击后以自身角色一键发送并在原 thread 执行
+- KP 聊天输入框 @ 提及列表新增 `@All` 入口，并标注“检定请求”
 - WebGAL 实时预览设置支持配置 Terre 端口，并将 TTS/WebGAL 设置改为 IndexedDB 持久化
 - WebGAL 空间变量系统：导演控制台支持“设置变量”发送 `WEBGAL_VAR(11)` 结构化消息（也支持 `/var set a=1` 快捷方式），变量持久化到 `space.extra.webgalVars` 并在实时渲染中转换为 `setVar:* -global;`
 - Chat 房间列表：分类标题右侧新增“+”创建入口，可创建房间/文档并自动加入分类（持久化到 `/space/sidebarTree`）
@@ -26,8 +30,15 @@
 - 聊天室文本导入：当房间无可用角色时提供“创建/导入角色”快捷入口
 - 聊天室文本导入：支持发言人为“骰娘”时按 `DICE(6)` 类型发送（`extra.result=content`）
 - 聊天室文本导入：支持为发言人设置立绘位置（左/中/右），发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
+- Chat：聊天输入区新增“我的文档”入口（线索按钮左侧），打开 Space 用户文档夹抽屉；文档/文件夹样式对齐 sidebarTree，并支持创建/重命名/删除/打开 Blocksuite 文档（对接 `/space/docFolder/*`）
+- Chat：支持文档卡片消息 `DOC_CARD(1002)`，支持从文档树拖拽发送到消息列表/输入框，并点击卡片弹窗只读预览 Blocksuite 文档
+- Chat：文档卡片消息右键菜单新增“复制到我的文档 / 复制到空间侧边栏（KP）”，语义为真正复制副本（从源文档导出 Blocksuite full update 并 restore 到新 doc，再写入 `/blocksuite/doc`；空间侧边栏复制会创建 `space_doc(sdoc)` 并写入 sidebarTree 引用）
+- Chat：聊天列表中的文档卡片消息支持拖拽到 sidebarTree 进行复制（KP，copy 语义）
+- Chat：支持将聊天列表的文档卡片消息拖拽复制到“我的文档”（创建 `space_user_doc(udoc)` 副本并追加到 docFolder）
 
 ### 变更
+- 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
+- Chat：消息发言人名不再在“名称不一致/自定义名称”时显示 `*` 标记
 - 聊天室文本导入：导入弹窗 UI 重构（双栏分区、消息预览、缺失映射提示与快捷创建入口）
 - 合并冲突处理：启用仓库级 rerere，并使用自动策略完成冲突解决与提交
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
@@ -44,7 +55,11 @@
 - 文档查看统一使用 Chat 内主视图（`/chat/:spaceId/doc/:docId`），兼容入口 `/doc/:spaceId/:docId` 改为跳转到 Chat 布局（保留侧边栏并支持当前文档高亮）
 - sidebarTree 文档节点样式对齐房间：字号一致，并在标题前插入文档 icon
 - sidebarTree 独立文档打开页启用 `tcHeader`（禁用 blocksuite 内置 `doc-title`），支持上传封面并在侧边栏文档节点展示缩略图（本地缓存 `docHeaderOverrideStore`）
+- Chat：重命名文档拖拽引用工具：`dndDocRef` → `docRef`
+- Chat：文档拖拽到聊天输入框/消息列表时展示投放提示（松开发送文档卡片）
 - WebGAL 空间变量设置入口支持“导演控制台 → 设置变量”，并保留 `/var set ...` 作为快捷方式
+- Chat：sidebarTree 文档节点缓存 `fallbackTitle/fallbackImageUrl` 并在首屏优先展示缓存（避免等待 docMetas 加载）
+- WebGAL 实时渲染：消息写入后不再自动跳转预览（保持手动跳转）
 - 跑团指令“检定请求按钮消息”：移除额外“一键发送”按钮，点击检定请求卡片本体即可发送执行（不可执行时提示原因）
 - 跑团指令“检定请求按钮消息”：卡片增加“点击此进行检定”提示文案，并强化 hover/focus 视觉以提升可点击识别度
 - 线索（space_clue）正文改为使用 BlockSuite 文档入口，线索创建/详情不再编辑 `description/note`（`note` 保留为兼容字段）
@@ -63,7 +78,20 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
-- 修复房间初次导入无头像：房间头像缺失时用 `/favicon.ico` 兜底，并在头像加载失败时自动回退
+- 修复 Blocksuite 全屏画布下 @ 快速搜索弹窗被遮挡：弹窗挂载到 top document 并提升 z-index
+- 修复聊天消息文本选区松开后丢失：存在选区时跳过消息点击逻辑
+- 修复聊天拖拽自动滚动重复声明导致的构建失败
+- 拖拽移动聊天消息时靠近顶部/底部自动滚动，便于移动到更早或更晚位置
+- 修复文档引用拖拽到聊天输入框/消息列表无响应：dragover 阶段基于 `dataTransfer.types` 判定并 `preventDefault`，确保 drop 可触发
+- 修复聊天文档卡片拖拽到侧边栏无响应：补齐 `docRef` 的 `text/plain` 兜底识别，并确保 sidebarTree dragover/drop 可触发
+- 修复聊天文档卡片从封面图片拖拽导致侧边栏不响应：封面图片禁用默认图片拖拽，确保触发 docRef 拖拽
+- 修复聊天文档卡片拖拽被“消息拖拽移动”接管：dragstart 阻止冒泡，保持 `effectAllowed=copy`
+- 修复我的文档（docFolder）列表项“⋮”菜单被后续列表项遮挡：提升操作区 `z-index`
+- 调整我的文档（docFolder）文档重命名：移除列表侧重命名入口，标题在文档内修改并自动同步
+- 修复文档卡片消息在消息列表不显示：当 `extra.docCard` 存在但 `messageType` 缺失/不匹配时，按文档卡片兜底渲染
+- 修复房间角色导入后 avatarId 为空导致头像不显示：前端兜底为该角色头像列表首个头像
+- 修复聊天导入/发送时未选择立绘导致消息头像回退默认图标：运行时解析 `avatarId`（不强制持久化），仍缺失时显示为空占位
+- 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
@@ -133,6 +161,8 @@
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
 
 ### ??
+- ?? API ???? authorId ?????? RulePageRequest ???????
+- WebGAL ?????????????????????
 - ?? @???? Deleted doc?workspace ???
 - ?? @????? Deleted doc
 - ?? @????????????
@@ -141,3 +171,4 @@
 
 ### 新增
 - 初始化前端项目知识库（`helloagents/`）
+

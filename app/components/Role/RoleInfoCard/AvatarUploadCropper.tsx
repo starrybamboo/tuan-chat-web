@@ -5,6 +5,7 @@ import type { CropMode } from "@/utils/imgCropper/useCropPreview";
 import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createCenteredSquareCrop, createFullImageCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
@@ -50,6 +51,8 @@ interface ImgUploaderWithCopperProps {
   externalFilesBatchId?: number;
   // 外部文件处理完成回调（用于清理）
   onExternalFilesHandled?: () => void;
+  // 使用独立的弹窗状态 key，避免多入口冲突
+  stateKey?: string;
 }
 
 /**
@@ -68,6 +71,7 @@ export function CharacterCopper({
   externalFiles,
   externalFilesBatchId,
   onExternalFilesHandled,
+  stateKey,
 }: ImgUploaderWithCopperProps) {
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +79,8 @@ export function CharacterCopper({
   const uploadUtilsRef = useRef(new UploadUtils());
   const uploadUtils = uploadUtilsRef.current;
   // 控制弹窗的显示状态
-  const [isOpen, setIsOpen] = useState(false);
+  const searchKey = stateKey ?? "characterCopperPop";
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(searchKey, false);
 
   // 图片相关状态
   const [imgSrc, setImgSrc] = useState("");
@@ -96,7 +101,6 @@ export function CharacterCopper({
 
   // Transform控制状态
   const [transform, setTransform] = useState<Transform>(createDefaultTransform);
-  const [anchorPosition, setAnchorPosition] = useState<"left" | "center" | "right">("center");
 
   // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
   const getCropMode = useCallback((): CropMode => {
@@ -352,6 +356,9 @@ export function CharacterCopper({
       },
     );
 
+    const shouldUploadSprite = Boolean(setDownloadUrl || mutate);
+    const shouldUploadAvatar = Boolean(setCopperedDownloadUrl || mutate);
+
     try {
       let downloadUrl = "";
       let copperedDownloadUrl = "";
@@ -369,14 +376,14 @@ export function CharacterCopper({
       }
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
-        if (setDownloadUrl) {
+        if (shouldUploadSprite) {
           downloadUrl = await uploadUtils.uploadImg(fileWithNewName, scene);
-          setDownloadUrl(downloadUrl);
+          setDownloadUrl?.(downloadUrl);
         }
-        if (setCopperedDownloadUrl) {
+        if (shouldUploadAvatar) {
           const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
           copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
-          setCopperedDownloadUrl(copperedDownloadUrl);
+          setCopperedDownloadUrl?.(copperedDownloadUrl);
         }
 
         // 确保 originUrl 已经上传完成（若用户很快提交，这里会等待）
@@ -465,7 +472,7 @@ export function CharacterCopper({
         }}
         fullScreen={isMobileScreen()}
       >
-        <div className="w-4xl max-w-full min-h-[75vh] mx-auto flex flex-col">
+        <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-8">
             <div className="w-full flex items-center">
               <h1 className="text-xl md:text-2xl font-bold w-64">
@@ -498,7 +505,7 @@ export function CharacterCopper({
             )}
           </div>
           <div className="divider my-0"></div>
-          <div className="flex flex-col md:flex-row gap-8 justify-center flex-1 min-h-0">
+          <div className="flex flex-col md:flex-row gap-8 justify-center">
             {/* 原始图片裁剪区域 */}
             <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
               {!!imgSrc && (
@@ -549,7 +556,6 @@ export function CharacterCopper({
                             <RenderPreview
                               previewCanvasRef={previewCanvasRef}
                               transform={transform}
-                              anchorPosition={anchorPosition}
                               characterName="角色名"
                               dialogContent="对话内容"
                             />
@@ -557,8 +563,6 @@ export function CharacterCopper({
                               transform={transform}
                               setTransform={setTransform}
                               previewCanvasRef={previewCanvasRef}
-                              anchorPosition={anchorPosition}
-                              onAnchorPositionChange={setAnchorPosition}
                             />
                           </div>
                         </>

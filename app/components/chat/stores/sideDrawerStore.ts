@@ -9,6 +9,7 @@ export type SideDrawerState
     | "initiative"
     | "map"
     | "clue"
+    | "docFolder"
     | "export"
     | "webgal";
 

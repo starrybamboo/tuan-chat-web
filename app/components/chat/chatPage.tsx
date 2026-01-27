@@ -10,10 +10,12 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
+import { tuanchat } from "api/instance";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import RoomWindow from "@/components/chat/room/roomWindow";
@@ -36,13 +38,11 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import ModuleWithTabs from "@/components/module/ModuleWithTabs";
 import FriendsPage from "@/components/privateChat/FriendsPage";
 import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
 import { SidebarSimpleIcon } from "@/icons";
-import SpacePreview from "@/routes/spacePreview";
 
 /**
  * chat板块的主组件
@@ -54,16 +54,55 @@ export default function ChatPage() {
   const navigate = useNavigate();
 
   const isPrivateChatMode = urlSpaceId === "private";
-  const isDiscoverMode = urlSpaceId === "discover";
 
   const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
-  const activeDocId = isDocRoute ? decodeURIComponent(urlMessageId as string) : null;
+  const activeDocId = (() => {
+    if (!isDocRoute)
+      return null;
+
+    const decoded = decodeURIComponent(urlMessageId as string);
+
+    // URL 传纯数字 docId：内部映射为 blocksuite docId（sdoc:<id>:description）。
+    if (/^\d+$/.test(decoded)) {
+      const id = Number(decoded);
+      if (Number.isFinite(id) && id > 0) {
+        return buildSpaceDocId({ kind: "independent", docId: id });
+      }
+    }
+
+    // 不兼容旧的 sdoc:<id>:description（应使用纯数字 URL）
+    const parsed = parseSpaceDocId(decoded);
+    if (parsed?.kind === "independent") {
+      return null;
+    }
+
+    // 其它 docId（如 udoc:<id>:description）仍允许通过 URL 直达
+    return decoded;
+  })();
+
+  useEffect(() => {
+    if (!isDocRoute)
+      return;
+    if (!activeSpaceId || activeSpaceId <= 0)
+      return;
+
+    try {
+      const decoded = decodeURIComponent(urlMessageId as string);
+      const parsed = parseSpaceDocId(decoded);
+      if (parsed?.kind === "independent") {
+        toast.error("旧文档链接已失效，请使用纯数字链接");
+        navigate(`/chat/${activeSpaceId}`);
+      }
+    }
+    catch {
+      // ignore
+    }
+  }, [activeSpaceId, isDocRoute, navigate, urlMessageId]);
 
   const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
   const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
 
   const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
-  const isSpacePreviewRoute = !isPrivateChatMode && urlRoomId === "preview";
   const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg"))
     ? urlRoomId
     : null;
@@ -271,7 +310,11 @@ export default function ChatPage() {
   }, [globalContext.userId, spaceMembersQuery.data?.data]);
 
   const docMetasFromSidebarTree = useMemo(() => {
-    return extractDocMetasFromSidebarTree(sidebarTree);
+    // 不做历史兼容：仅保留能解析的“空间内独立文档”（sdoc:<docId>:description）。
+    return extractDocMetasFromSidebarTree(sidebarTree).filter((m) => {
+      const parsed = parseSpaceDocId(m.id);
+      return parsed?.kind === "independent";
+    });
   }, [sidebarTree]);
 
   const mergeDocMetas = useCallback((...sources: Array<MinimalDocMeta[] | null | undefined>): MinimalDocMeta[] => {
@@ -283,14 +326,18 @@ export default function ChatPage() {
         if (!id)
           continue;
         const title = typeof meta?.title === "string" && meta.title.trim().length > 0 ? meta.title : undefined;
+        const imageUrl = typeof meta?.imageUrl === "string" && meta.imageUrl.trim().length > 0 ? meta.imageUrl : undefined;
 
         const existing = map.get(id);
         if (!existing) {
-          map.set(id, { id, title });
+          map.set(id, { id, title, imageUrl });
           continue;
         }
         if (!existing.title && title) {
           existing.title = title;
+        }
+        if (!existing.imageUrl && imageUrl) {
+          existing.imageUrl = imageUrl;
         }
       }
     }
@@ -299,6 +346,18 @@ export default function ChatPage() {
   }, []);
 
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
+
+  // Space 共享文档（space_doc）：tcHeader 改名时做一次轻量节流同步，避免每次输入都打后端。
+  const spaceDocTitleSyncTimerRef = useRef<number | null>(null);
+  const spaceDocTitleSyncPendingRef = useRef<{ docId: number; title: string } | null>(null);
+  const spaceDocTitleSyncLastRef = useRef<{ docId: number; title: string } | null>(null);
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && spaceDocTitleSyncTimerRef.current != null) {
+        window.clearTimeout(spaceDocTitleSyncTimerRef.current);
+      }
+    };
+  }, []);
 
   const activeDocTitleForTcHeader = useMemo(() => {
     if (!activeDocId)
@@ -352,6 +411,45 @@ export default function ChatPage() {
       next[idx] = { ...next[idx], title };
       return next;
     });
+
+    // space_doc：把标题同步到后端（节流）。
+    if (typeof window !== "undefined") {
+      try {
+        void (async () => {
+          const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
+          const key = parseDescriptionDocId(docId);
+          if (!key || key.entityType !== "space_doc")
+            return;
+
+          spaceDocTitleSyncPendingRef.current = { docId: key.entityId, title };
+          if (spaceDocTitleSyncTimerRef.current != null) {
+            window.clearTimeout(spaceDocTitleSyncTimerRef.current);
+          }
+          spaceDocTitleSyncTimerRef.current = window.setTimeout(() => {
+            const pending = spaceDocTitleSyncPendingRef.current;
+            if (!pending)
+              return;
+            const last = spaceDocTitleSyncLastRef.current;
+            if (last && last.docId === pending.docId && last.title === pending.title)
+              return;
+
+            void tuanchat.request.request<any>({
+              method: "PUT",
+              url: "/space/doc/title",
+              body: { docId: pending.docId, title: pending.title },
+              mediaType: "application/json",
+            }).then(() => {
+              spaceDocTitleSyncLastRef.current = pending;
+            }).catch(() => {
+              // ignore
+            });
+          }, 800);
+        })();
+      }
+      catch {
+        // ignore
+      }
+    }
   }, []);
 
   const loadSpaceDocMetas = useCallback(async (): Promise<MinimalDocMeta[]> => {
@@ -364,10 +462,14 @@ export default function ChatPage() {
       const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
       const ws = registry.getOrCreateSpaceWorkspace(activeSpaceId) as any;
       const metas = (ws?.meta?.docMetas ?? []) as any[];
+      const headerOverrides = useDocHeaderOverrideStore.getState().headers;
       const list = metas
         .filter(m => typeof m?.id === "string" && m.id.length > 0)
         .map((m) => {
-          return { id: String(m.id), title: typeof m?.title === "string" ? m.title : undefined } satisfies MinimalDocMeta;
+          const id = String(m.id);
+          const title = typeof m?.title === "string" ? m.title : undefined;
+          const imageUrl = typeof headerOverrides?.[id]?.imageUrl === "string" ? headerOverrides[id]!.imageUrl : undefined;
+          return { id, title, imageUrl } satisfies MinimalDocMeta;
         });
       return list;
     }
@@ -474,8 +576,30 @@ export default function ChatPage() {
       return;
 
     const title = (titleOverride ?? "新文档").trim() || "新文档";
-    const docKey = `${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
-    const docId = buildSpaceDocId({ kind: "independent", docId: docKey });
+
+    let createdDocId: number | null = null;
+    try {
+      const resp = await tuanchat.request.request<any>({
+        method: "POST",
+        url: "/space/doc",
+        body: { spaceId: activeSpaceId, title },
+        mediaType: "application/json",
+      });
+      const id = Number((resp as any)?.data?.docId);
+      if (Number.isFinite(id) && id > 0) {
+        createdDocId = id;
+      }
+    }
+    catch (err) {
+      console.error("[SpaceDoc] create failed", err);
+    }
+
+    if (!createdDocId) {
+      toast.error("创建文档失败");
+      return;
+    }
+
+    const docId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
 
     const baseDocMetas = mergeDocMetas(
       spaceDocMetas ?? [],
@@ -508,7 +632,7 @@ export default function ChatPage() {
     });
 
     setMainView("chat");
-    navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+    navigate(`/chat/${activeSpaceId}/doc/${createdDocId}`);
   }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, navigate, setMainView, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
 
   const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
@@ -1044,100 +1168,88 @@ export default function ChatPage() {
     });
   };
 
-  const mainContent = isDiscoverMode
+  const mainContent = isPrivateChatMode
     ? (
-        <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-          <ModuleWithTabs />
-        </div>
+        activeRoomId
+          ? (
+              <RightChatView
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              />
+            )
+          : (
+              <FriendsPage
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              />
+            )
       )
-    : isPrivateChatMode
-      ? (
-          activeRoomId
-            ? (
-                <RightChatView
-                  setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                />
-              )
-            : (
-                <FriendsPage
-                  setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                />
-              )
-        )
-      : (
-          <>
-            {
-              activeSpaceId
-                ? (
-                    mainView === "spaceDetail"
-                      ? (
-                          <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                            <div className="w-full h-full overflow-auto flex justify-center">
-                              <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
-                            </div>
+    : (
+        <>
+          {
+            activeSpaceId
+              ? (
+                  mainView === "spaceDetail"
+                    ? (
+                        <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                          <div className="w-full h-full overflow-auto flex justify-center">
+                            <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
                           </div>
-                        )
-                      : isSpacePreviewRoute
+                        </div>
+                      )
+                    : (mainView === "roomSetting" && roomSettingState)
                         ? (
-                            <div className="flex w-full h-full min-h-0 min-w-0">
-                              <SpacePreview />
+                            <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                              <div className="w-full h-full overflow-auto flex justify-center ">
+                                <RoomSettingWindow
+                                  roomId={roomSettingState.roomId}
+                                  onClose={closeRoomSettingPage}
+                                  defaultTab={roomSettingState.tab}
+                                />
+                              </div>
                             </div>
                           )
-                        : (mainView === "roomSetting" && roomSettingState)
-                            ? (
-                                <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                  <div className="w-full h-full overflow-auto flex justify-center ">
-                                    <RoomSettingWindow
-                                      roomId={roomSettingState.roomId}
-                                      onClose={closeRoomSettingPage}
-                                      defaultTab={roomSettingState.tab}
-                                    />
-                                  </div>
+                        : activeDocId
+                          ? (
+                              <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                <div className="w-full h-full overflow-hidden flex justify-center">
+                                  {isKPInSpace
+                                    ? (
+                                        <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+                                          <BlocksuiteDescriptionEditor
+                                            workspaceId={`space:${activeSpaceId ?? -1}`}
+                                            spaceId={activeSpaceId ?? -1}
+                                            docId={activeDocId}
+                                            variant="full"
+                                            tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
+                                            onTcHeaderChange={handleDocTcHeaderChange}
+                                            allowModeSwitch
+                                            fullscreenEdgeless
+                                          />
+                                        </div>
+                                      )
+                                    : (
+                                        <div className="flex items-center justify-center w-full h-full font-bold">
+                                          <span className="text-center">仅KP可查看文档</span>
+                                        </div>
+                                      )}
                                 </div>
-                              )
-                            : activeDocId
-                              ? (
-                                  <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                    <div className="w-full h-full overflow-hidden flex justify-center">
-                                      {isKPInSpace
-                                        ? (
-                                            <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
-                                              <BlocksuiteDescriptionEditor
-                                                workspaceId={`space:${activeSpaceId ?? -1}`}
-                                                spaceId={activeSpaceId ?? -1}
-                                                docId={activeDocId}
-                                                variant="full"
-                                                tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
-                                                onTcHeaderChange={handleDocTcHeaderChange}
-                                                allowModeSwitch
-                                                fullscreenEdgeless
-                                              />
-                                            </div>
-                                          )
-                                        : (
-                                            <div className="flex items-center justify-center w-full h-full font-bold">
-                                              <span className="text-center">仅KP可查看文档</span>
-                                            </div>
-                                          )}
-                                    </div>
-                                  </div>
-                                )
-                              : (
-                                  <RoomWindow
-                                    roomId={activeRoomId ?? -1}
-                                    spaceId={activeSpaceId ?? -1}
-                                    targetMessageId={targetMessageId}
-                                  />
-                                )
-                  )
-                : (
-                    <div className="flex items-center justify-center w-full h-full font-bold">
-                      <span className="text-center lg:hidden">请从右侧选择房间</span>
-                    </div>
-                  )
-            }
-          </>
-        );
+                              </div>
+                            )
+                          : (
+                              <RoomWindow
+                                roomId={activeRoomId ?? -1}
+                                spaceId={activeSpaceId ?? -1}
+                                targetMessageId={targetMessageId}
+                              />
+                            )
+                )
+              : (
+                  <div className="flex items-center justify-center w-full h-full font-bold">
+                    <span className="text-center lg:hidden">请从右侧选择房间</span>
+                  </div>
+                )
+          }
+        </>
+      );
 
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
@@ -1199,47 +1311,51 @@ export default function ChatPage() {
                       />
                       {/* <div className="w-px bg-base-300"></div> */}
                       {/* 房间列表 */}
-                      {!isDiscoverMode && (
-                        <ChatRoomListPanel
-                          isPrivateChatMode={isPrivateChatMode}
-                          currentUserId={userId}
-                          activeSpaceId={activeSpaceId}
-                          activeSpaceName={activeSpaceNameForUi}
-                          activeSpaceIsArchived={activeSpaceIsArchived}
-                          isSpaceOwner={!!spaceContext.isSpaceOwner}
-                          rooms={orderedRooms}
-                          roomOrderIds={orderedRoomIds}
-                          onReorderRoomIds={setUserRoomOrder}
-                          sidebarTree={sidebarTree}
-                          onSaveSidebarTree={handleSaveSidebarTree}
-                          onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
-                          docMetas={spaceDocMetas ?? []}
-                          onSelectDoc={(docId) => {
-                            if (!activeSpaceId || activeSpaceId <= 0)
-                              return;
-                            setMainView("chat");
-                            navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
-                          }}
-                          activeRoomId={activeRoomId}
-                          activeDocId={activeDocId}
-                          unreadMessagesNumber={unreadMessagesNumber}
-                          onContextMenu={handleContextMenu}
-                          onInviteMember={() => setIsMemberHandleOpen(true)}
-                          onOpenSpaceDetailPanel={openSpaceDetailPanel}
-                          onSelectRoom={(roomId) => {
-                            setMainView("chat");
-                            setActiveRoomId(roomId);
-                          }}
-                          onCloseLeftDrawer={closeLeftDrawer}
-                          onToggleLeftDrawer={toggleLeftDrawer}
-                          isLeftDrawerOpen={isOpenLeftDrawer}
-                          onOpenRoomSetting={(roomId, tab) => {
-                            openRoomSettingPage(roomId, tab);
-                          }}
-                          setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                          onOpenCreateInCategory={openCreateInCategory}
-                        />
-                      )}
+                      <ChatRoomListPanel
+                        isPrivateChatMode={isPrivateChatMode}
+                        currentUserId={userId}
+                        activeSpaceId={activeSpaceId}
+                        activeSpaceName={activeSpaceNameForUi}
+                        activeSpaceIsArchived={activeSpaceIsArchived}
+                        isSpaceOwner={!!spaceContext.isSpaceOwner}
+                        isKPInSpace={isKPInSpace}
+                        rooms={orderedRooms}
+                        roomOrderIds={orderedRoomIds}
+                        onReorderRoomIds={setUserRoomOrder}
+                        sidebarTree={sidebarTree}
+                        onSaveSidebarTree={handleSaveSidebarTree}
+                        onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                        docMetas={spaceDocMetas ?? []}
+                        onSelectDoc={(docId) => {
+                          if (!activeSpaceId || activeSpaceId <= 0)
+                            return;
+                          setMainView("chat");
+                          const parsed = parseSpaceDocId(docId);
+                          if (parsed?.kind === "independent") {
+                            navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
+                            return;
+                          }
+                          navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                        }}
+                        activeRoomId={activeRoomId}
+                        activeDocId={activeDocId}
+                        unreadMessagesNumber={unreadMessagesNumber}
+                        onContextMenu={handleContextMenu}
+                        onInviteMember={() => setIsMemberHandleOpen(true)}
+                        onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                        onSelectRoom={(roomId) => {
+                          setMainView("chat");
+                          setActiveRoomId(roomId);
+                        }}
+                        onCloseLeftDrawer={closeLeftDrawer}
+                        onToggleLeftDrawer={toggleLeftDrawer}
+                        isLeftDrawerOpen={isOpenLeftDrawer}
+                        onOpenRoomSetting={(roomId, tab) => {
+                          openRoomSettingPage(roomId, tab);
+                        }}
+                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        onOpenCreateInCategory={openCreateInCategory}
+                      />
                     </div>
                     <div
                       id="chat-sidebar-user-card"
@@ -1289,60 +1405,64 @@ export default function ChatPage() {
                         />
                       </div>
 
-                      {!isDiscoverMode && (
-                        <OpenAbleDrawer
-                          isOpen={isOpenLeftDrawer}
-                          className="h-full z-10 w-full bg-base-200"
-                          initialWidth={chatLeftPanelWidth}
-                          minWidth={200}
-                          maxWidth={700}
-                          onWidthChange={setChatLeftPanelWidth}
-                          handlePosition="right"
-                        >
-                          <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
-                            {/* 房间列表 */}
-                            <ChatRoomListPanel
-                              isPrivateChatMode={isPrivateChatMode}
-                              currentUserId={userId}
-                              activeSpaceId={activeSpaceId}
-                              activeSpaceName={activeSpaceNameForUi}
-                              activeSpaceIsArchived={activeSpaceIsArchived}
-                              isSpaceOwner={!!spaceContext.isSpaceOwner}
-                              rooms={orderedRooms}
-                              roomOrderIds={orderedRoomIds}
-                              onReorderRoomIds={setUserRoomOrder}
-                              sidebarTree={sidebarTree}
-                              onSaveSidebarTree={handleSaveSidebarTree}
-                              onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
-                              docMetas={spaceDocMetas ?? []}
-                              onSelectDoc={(docId) => {
-                                if (!activeSpaceId || activeSpaceId <= 0)
-                                  return;
-                                setMainView("chat");
-                                navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
-                              }}
-                              activeRoomId={activeRoomId}
-                              activeDocId={activeDocId}
-                              unreadMessagesNumber={unreadMessagesNumber}
-                              onContextMenu={handleContextMenu}
-                              onInviteMember={() => setIsMemberHandleOpen(true)}
-                              onOpenSpaceDetailPanel={openSpaceDetailPanel}
-                              onSelectRoom={(roomId) => {
-                                setMainView("chat");
-                                setActiveRoomId(roomId);
-                              }}
-                              onCloseLeftDrawer={closeLeftDrawer}
-                              onToggleLeftDrawer={toggleLeftDrawer}
-                              isLeftDrawerOpen={isOpenLeftDrawer}
-                              onOpenRoomSetting={(roomId, tab) => {
-                                openRoomSettingPage(roomId, tab);
-                              }}
-                              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                              onOpenCreateInCategory={openCreateInCategory}
-                            />
-                          </div>
-                        </OpenAbleDrawer>
-                      )}
+                      <OpenAbleDrawer
+                        isOpen={isOpenLeftDrawer}
+                        className="h-full z-10 w-full bg-base-200"
+                        initialWidth={chatLeftPanelWidth}
+                        minWidth={200}
+                        maxWidth={700}
+                        onWidthChange={setChatLeftPanelWidth}
+                        handlePosition="right"
+                      >
+                        <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
+                          {/* 房间列表 */}
+                          <ChatRoomListPanel
+                            isPrivateChatMode={isPrivateChatMode}
+                            currentUserId={userId}
+                            activeSpaceId={activeSpaceId}
+                            activeSpaceName={activeSpaceNameForUi}
+                            activeSpaceIsArchived={activeSpaceIsArchived}
+                            isSpaceOwner={!!spaceContext.isSpaceOwner}
+                            isKPInSpace={isKPInSpace}
+                            rooms={orderedRooms}
+                            roomOrderIds={orderedRoomIds}
+                            onReorderRoomIds={setUserRoomOrder}
+                            sidebarTree={sidebarTree}
+                            onSaveSidebarTree={handleSaveSidebarTree}
+                            onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                            docMetas={spaceDocMetas ?? []}
+                            onSelectDoc={(docId) => {
+                              if (!activeSpaceId || activeSpaceId <= 0)
+                                return;
+                              setMainView("chat");
+                              const parsed = parseSpaceDocId(docId);
+                              if (parsed?.kind === "independent") {
+                                navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
+                                return;
+                              }
+                              navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                            }}
+                            activeRoomId={activeRoomId}
+                            activeDocId={activeDocId}
+                            unreadMessagesNumber={unreadMessagesNumber}
+                            onContextMenu={handleContextMenu}
+                            onInviteMember={() => setIsMemberHandleOpen(true)}
+                            onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                            onSelectRoom={(roomId) => {
+                              setMainView("chat");
+                              setActiveRoomId(roomId);
+                            }}
+                            onCloseLeftDrawer={closeLeftDrawer}
+                            onToggleLeftDrawer={toggleLeftDrawer}
+                            isLeftDrawerOpen={isOpenLeftDrawer}
+                            onOpenRoomSetting={(roomId, tab) => {
+                              openRoomSettingPage(roomId, tab);
+                            }}
+                            setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                            onOpenCreateInCategory={openCreateInCategory}
+                          />
+                        </div>
+                      </OpenAbleDrawer>
                     </div>
                     <div
                       id="chat-sidebar-user-card"
