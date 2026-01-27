@@ -1,3 +1,4 @@
+import { BookmarksIcon, ChatsCircleIcon, CompassIcon, PackageIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import CollectionPage from "@/components/common/collection/collectionPage";
 import ResourcePage from "@/components/resource/pages/resourcePage";
@@ -9,9 +10,9 @@ export default function ModuleWithTabs() {
   const [activeTab, setActiveTab] = useState<TabType>("module");
 
   const tabs = [
-    { key: "module" as const, label: "模组" },
-    { key: "resource" as const, label: "素材" },
-    { key: "collection" as const, label: "收藏" },
+    { key: "module" as const, label: "模组", icon: ChatsCircleIcon },
+    { key: "resource" as const, label: "素材", icon: PackageIcon },
+    { key: "collection" as const, label: "收藏", icon: BookmarksIcon },
   ];
 
   const renderContent = () => {
@@ -20,13 +21,13 @@ export default function ModuleWithTabs() {
         return <ModuleHome />;
       case "resource":
         return (
-          <div className="[&>div]:!bg-transparent [&>div]:!min-h-0 [&>div>div:first-child]:!hidden [&>div>div:nth-child(2)]:!p-0">
+          <div className="[&>div]:bg-transparent! [&>div]:min-h-0! [&>div>div:first-child]:hidden! [&>div>div:nth-child(2)]:p-0!">
             <ResourcePage />
           </div>
         );
       case "collection":
         return (
-          <div className="[&>div]:!bg-transparent [&>div]:!min-h-0 [&>div]:!p-0 [&>div>div:first-child]:!hidden [&>div>div:nth-child(2)]:!mt-0">
+          <div className="[&>div]:bg-transparent! [&>div]:min-h-0! [&>div]:p-0! [&>div>div:first-child]:hidden! [&>div>div:nth-child(2)]:mt-0!">
             <CollectionPage />
           </div>
         );
@@ -36,12 +37,13 @@ export default function ModuleWithTabs() {
   };
 
   return (
-    <div className="flex flex-row flex-1 min-h-0 min-w-0 bg-base-200 overflow-x-hidden">
-      <div className="flex flex-row flex-1 min-h-0 min-w-0 bg-base-200 rounded-tl-xl">
+    <div className="flex flex-row flex-1 min-h-0 min-w-0 h-full bg-base-200 overflow-x-hidden">
+      <div className="flex flex-row flex-1 min-h-0 min-w-0 bg-base-200 rounded-tl-xl h-full">
         {/* 左侧竖向标签栏 */}
-        <aside className="w-56 md:w-64 flex-shrink-0 bg-base-200 border-l border-t border-gray-300 dark:border-gray-700 rounded-tl-xl">
+        <aside className="w-56 md:w-64 shrink-0 bg-base-200 border-l border-t border-gray-300 dark:border-gray-700 rounded-tl-xl">
           <div className="sticky top-0">
-            <div className="flex items-center h-10 px-3 border-b border-gray-300 dark:border-gray-700 text-base font-bold">
+            <div className="flex items-center h-10 px-2 border-b border-gray-300 dark:border-gray-700 text-base font-bold">
+              <CompassIcon className="size-4 mr-2" weight="fill" />
               发现
             </div>
             <div className="flex flex-col gap-1 py-2 px-2">
@@ -56,7 +58,10 @@ export default function ModuleWithTabs() {
                       : "text-base-content/60 hover:text-base-content hover:bg-base-300/40"
                   }`}
                 >
-                  {tab.label}
+                  <span className="flex items-center gap-2">
+                    <tab.icon className="w-6 h-6 shrink-0" aria-hidden="true" />
+                    <span>{tab.label}</span>
+                  </span>
                 </button>
               ))}
             </div>
