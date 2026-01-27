@@ -634,6 +634,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
             return;
           }
 
+          if (parsed?.kind === "independent") {
+            go(`/chat/${spaceId}/doc/${parsed.docId}`);
+            return;
+          }
+
           go(`/chat/${spaceId}/doc/${encodeURIComponent(docId)}`);
         },
       });

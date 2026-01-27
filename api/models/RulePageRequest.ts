@@ -18,5 +18,9 @@ export type RulePageRequest = {
      * 搜索关键词（可选）TODO
      */
     keyword?: string;
+    /**
+     * 作者ID（可选）
+     */
+    authorId?: number;
 };
 

@@ -7,6 +7,8 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import { Mounter } from "@/components/common/mounter";
@@ -35,45 +37,14 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [searchKey, setSearchKey] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const listRef = useRef<HTMLUListElement | null>(null);
 
-  // 2. 派生状态
-  const filteredRoles = showDialog
-    ? allRoles.filter(r => (r.roleName ?? "").includes(searchKey))
-    : [];
+  const closeDialog = useCallback(() => {
+    setShowDialog(false);
+    setSearchKey("");
+  }, []);
 
-  // 3. 相关的 Effects
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [showDialog, searchKey]); // searchKey 依赖是必要的，以便在过滤列表更改时重置
-
-  useEffect(() => {
-    if (showDialog) {
-      const { x: cursorX, y: cursorY } = getSelectionCoords();
-      setDialogPosition({
-        x: Math.min(cursorX, screen.width - 100),
-        y: cursorY,
-      });
-    }
-  }, [showDialog, searchKey]);
-
-  // 监听输入框的焦点状态，如果失焦，则关闭@选项框
-  useEffect(() => {
-    const editorEl = chatInputRef.current?.getRawElement();
-    if (!editorEl)
-      return;
-
-    const handleBlur = () => {
-      setShowDialog(false);
-      setSearchKey("");
-    };
-
-    editorEl.addEventListener("blur", handleBlur);
-    return () => {
-      editorEl.removeEventListener("blur", handleBlur);
-    };
-  }, [chatInputRef]);
-
-  // 4. 所有内部逻辑函数
+  // 2. 所有内部逻辑函数
   const checkDialogTrigger = useCallback(() => {
     const editorEl = chatInputRef.current?.getRawElement();
     const rangeInfo = getEditorRange(editorEl);
@@ -83,8 +54,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
 
     const curNode = rangeInfo.range.endContainer;
     if (!curNode.textContent?.includes("@")) {
-      setShowDialog(false);
-      setSearchKey("");
+      closeDialog();
       return;
     }
 
@@ -97,8 +67,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
     if (keywords) {
       const keyWord = keywords[1];
       if (keyWord != null && keyWord.length > 20) {
-        setShowDialog(false);
-        setSearchKey("");
+        closeDialog();
         return;
       }
       setSearchKey(keyWord ?? ""); // 如果 keyWord 是 null/undefined，则设置为空字符串
@@ -109,7 +78,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
     else {
       setShowDialog(false);
     }
-  }, [chatInputRef]);
+  }, [chatInputRef, closeDialog]);
 
   const handleSelectRole = useCallback((role: UserRole) => {
     const sel = window.getSelection();
@@ -162,35 +131,101 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
     }, 0); // 0 毫秒延迟将其推到事件循环的末尾
   }, [chatInputRef]);
 
+  // 3. 派生状态
+  const filteredRoles = useMemo(() => {
+    if (!showDialog)
+      return [];
+    return allRoles.filter(r => r.roleId === -9999 || (r.roleName ?? "").includes(searchKey));
+  }, [allRoles, searchKey, showDialog]);
+
+  const handleMentionKeyDown = useCallback((e: Pick<KeyboardEvent, "key" | "preventDefault" | "stopPropagation">) => {
+    if (!showDialog || filteredRoles.length === 0)
+      return false;
+
+    switch (e.key) {
+      case "Escape":
+        e.preventDefault();
+        e.stopPropagation();
+        closeDialog();
+        return true;
+      case "Enter":
+        e.preventDefault();
+        e.stopPropagation();
+        if (filteredRoles[selectedIndex]) {
+          handleSelectRole(filteredRoles[selectedIndex]);
+        }
+        return true;
+      case "ArrowUp":
+      case "Up":
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex(prev => Math.max(prev - 1, 0));
+        return true;
+      case "ArrowDown":
+      case "Down":
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
+        return true;
+      default:
+        return false;
+    }
+  }, [closeDialog, filteredRoles, handleSelectRole, selectedIndex, showDialog]);
+
+  // 4. 相关的 Effects
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [showDialog, searchKey]); // searchKey 依赖是必要的，以便在过滤列表更改时重置
+
+  useEffect(() => {
+    if (showDialog) {
+      const { x: cursorX, y: cursorY } = getSelectionCoords();
+      setDialogPosition({
+        x: Math.min(cursorX, screen.width - 100),
+        y: cursorY,
+      });
+    }
+  }, [showDialog, searchKey]);
+
+  useEffect(() => {
+    if (!showDialog)
+      return;
+    const listEl = listRef.current;
+    if (!listEl)
+      return;
+    const selectedEl = listEl.querySelector<HTMLElement>(`[data-at-mention-index="${selectedIndex}"]`);
+    selectedEl?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex, showDialog]);
+
+  // 监听输入框的焦点状态，如果失焦，则关闭@选项框
+  useEffect(() => {
+    const editorEl = chatInputRef.current?.getRawElement();
+    if (!editorEl)
+      return;
+
+    const handleBlur = () => {
+      closeDialog();
+    };
+
+    const handleNativeKeyDown = (ev: KeyboardEvent) => {
+      handleMentionKeyDown(ev);
+    };
+
+    editorEl.addEventListener("blur", handleBlur);
+    editorEl.addEventListener("keydown", handleNativeKeyDown, true);
+    return () => {
+      editorEl.removeEventListener("blur", handleBlur);
+      editorEl.removeEventListener("keydown", handleNativeKeyDown, true);
+    };
+  }, [chatInputRef, closeDialog, handleMentionKeyDown]);
+
   // 5. 使用 useImperativeHandle 暴露 API
   useImperativeHandle(ref, () => ({
     /** 返回当前对话框是否打开 */
     isDialogOpen: () => showDialog,
 
     /** 处理按键导航。如果事件被消耗（例如按下了回车或箭头键），则返回 true。 */
-    onKeyDown: (e: React.KeyboardEvent): boolean => {
-      if (!showDialog)
-        return false;
-
-      switch (e.key) {
-        case "Enter":
-          e.preventDefault();
-          if (filteredRoles[selectedIndex]) {
-            handleSelectRole(filteredRoles[selectedIndex]);
-          }
-          return true;
-        case "ArrowUp":
-          e.preventDefault();
-          setSelectedIndex(prev => Math.max(prev - 1, 0));
-          return true;
-        case "ArrowDown":
-          e.preventDefault();
-          setSelectedIndex(prev => Math.min(prev + 1, filteredRoles.length - 1));
-          return true;
-        default:
-          return false; // 未处理此键
-      }
-    },
+    onKeyDown: (e: React.KeyboardEvent) => handleMentionKeyDown(e.nativeEvent),
 
     /** 处理按键释放，用于触发和更新对话框。 */
     onKeyUp: (e: React.KeyboardEvent) => {
@@ -211,16 +246,13 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
     },
 
     /** 关闭对话框 */
-    closeDialog: () => {
-      setShowDialog(false);
-      setSearchKey("");
-    },
+    closeDialog,
 
     /** 处理输入事件 */
     onInput: () => {
       checkDialogTrigger();
     },
-  }));
+  }), [checkDialogTrigger, closeDialog, handleMentionKeyDown, showDialog]);
 
   // 6. 渲染 JSX（弹出窗口）
   if (!showDialog || dialogPosition.x <= 0 || filteredRoles.length === 0) {
@@ -230,33 +262,75 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
   return (
     <Mounter targetId="modal-root">
       <div
-        className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2 z-20 max-h-[30vh] overflow-auto"
+        className="absolute z-50 max-h-[40vh] overflow-y-auto overflow-x-hidden min-w-[220px]"
         style={{
-          top: dialogPosition.y - 5,
+          top: dialogPosition.y - 8,
           left: dialogPosition.x,
           transform: "translateY(-100%)",
         }}
+        onMouseDown={e => e.preventDefault()}
       >
-        {filteredRoles.map((role, index) => (
-          <div
-            className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${
-              index === selectedIndex ? "bg-base-300" : ""
-            }`}
-            key={role.roleId}
-            onClick={() => {
-              handleSelectRole(role);
-            }}
-            onMouseDown={e => e.preventDefault()} // 关键：防止点击选项时输入框失焦
-          >
-            <RoleAvatarComponent
-              avatarId={role.avatarId ?? -1}
-              width={8}
-              isRounded={true}
-              stopPopWindow={true}
-            />
-            {role.roleName}
-          </div>
-        ))}
+        <ul ref={listRef} className="menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1 menu-sm sm:menu-md">
+          {filteredRoles.map((role, index) => {
+            const roleNote = role.extra?.mentionNote;
+            const isAtAll = role.roleId === -9999;
+            const isSelected = index === selectedIndex;
+
+            if (isAtAll) {
+              return (
+                <li key={role.roleId} className="mb-1">
+                  <a
+                    data-at-mention-index={index}
+                    aria-selected={isSelected}
+                    className={`flex-col items-center justify-center py-2 bg-base-200/50 border border-base-300/50 ${isSelected ? "active !bg-primary !border-primary !text-primary-content" : ""}`}
+                    onClick={() => handleSelectRole(role)}
+                  >
+                    <span className="font-bold">{role.roleName}</span>
+                    {roleNote && (
+                      <span
+                        className={`text-xs ${
+                          isSelected ? "text-primary-content/80" : "text-base-content/60"
+                        }`}
+                      >
+                        {roleNote}
+                      </span>
+                    )}
+                  </a>
+                </li>
+              );
+            }
+
+            return (
+              <li key={role.roleId}>
+                <a
+                  data-at-mention-index={index}
+                  aria-selected={isSelected}
+                  className={`gap-3 py-2 ${isSelected ? "active !bg-primary !text-primary-content" : ""}`}
+                  onClick={() => handleSelectRole(role)}
+                >
+                  <RoleAvatarComponent
+                    avatarId={role.avatarId ?? -1}
+                    width={8}
+                    isRounded={true}
+                    stopPopWindow={true}
+                  />
+                  <div className="flex flex-col gap-0.5 items-start flex-1 min-w-0">
+                    <span className="font-medium truncate w-full">{role.roleName}</span>
+                    {roleNote && (
+                      <span
+                        className={`text-xs truncate w-full ${
+                          isSelected ? "text-primary-content/90" : "text-base-content"
+                        }`}
+                      >
+                        {roleNote}
+                      </span>
+                    )}
+                  </div>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </Mounter>
   );

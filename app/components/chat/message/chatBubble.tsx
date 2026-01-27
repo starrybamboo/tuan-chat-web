@@ -26,6 +26,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
+import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
   command: string;
@@ -488,12 +489,21 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const requestAllowAll = Boolean(commandRequest?.allowAll);
     const requestAllowedRoleIds = Array.isArray(commandRequest?.allowedRoleIds) ? commandRequest?.allowedRoleIds : null;
 
+    const extraAny = message.extra as any;
+    // 兼容：部分后端/历史消息可能未写入 messageType=DOC_CARD，但 extra 里已经包含 docCard 数据
+    const isDocCardLikeMessage = message.messageType === MESSAGE_TYPE.DOC_CARD
+      || typeof extraAny?.docCard?.docId === "string"
+      || typeof extraAny?.docId === "string";
+
     // 1. 特殊类型消息（独占显示）
     if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
     }
     else if (message.messageType === 1000) {
       return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
+    }
+    else if (isDocCardLikeMessage) {
+      return <DocCardMessage messageResponse={chatMessageResponse}></DocCardMessage>;
     }
     else if (message.messageType === MESSAGE_TYPE.WEBGAL_VAR) {
       const payload = extractWebgalVarPayload(message.extra);
@@ -855,10 +865,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             <div className="flex items-center gap-2 rounded-md bg-base-100/70 border border-base-300 px-2 py-0.5 sm:py-1">
               <RoleAvatarComponent
                 avatarId={message.avatarId ?? 0}
+                roleId={message.roleId ?? undefined}
                 width={6}
                 isRounded={true}
                 withTitle={false}
                 stopPopWindow={true}
+                useDefaultAvatarFallback={false}
               />
               <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
                 {threadTitle}
@@ -887,10 +899,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               <div className="shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
                   avatarId={message.avatarId ?? 0}
+                  roleId={message.roleId ?? undefined}
                   width={isMobile ? 10 : 12}
                   isRounded={true}
                   withTitle={false}
                   stopPopWindow={true}
+                  useDefaultAvatarFallback={false}
                 />
               </div>
               <div className="flex flex-col items-start">
@@ -922,7 +936,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                           className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
                         >
                           {displayRoleName}
-                          {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
                         </span>
                       )}
                   <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
@@ -965,10 +978,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 <div className="w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId ?? 0}
+                    roleId={message.roleId ?? undefined}
                     width={isMobile ? 10 : 20}
                     isRounded={false}
                     withTitle={false}
                     stopPopWindow={true}
+                    useDefaultAvatarFallback={false}
                   >
                   </RoleAvatarComponent>
                 </div>
@@ -1005,7 +1020,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         >
                           <div className="truncate">
                             {`【${displayRoleName}】`}
-                            {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
                           </div>
                         </div>
                       )}

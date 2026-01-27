@@ -18,7 +18,7 @@ export class DistributedTaskService {
      * @returns ApiResultBoolean OK
      * @throws ApiError
      */
-    public cancelTask1(
+    public cancelTask(
         taskId: number,
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
@@ -108,7 +108,7 @@ export class DistributedTaskService {
      * @returns ApiResultTaskStatistics OK
      * @throws ApiError
      */
-    public getStatistics2(): CancelablePromise<ApiResultTaskStatistics> {
+    public getStatistics(): CancelablePromise<ApiResultTaskStatistics> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/distributed-task/statistics',

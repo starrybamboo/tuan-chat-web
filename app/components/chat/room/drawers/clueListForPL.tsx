@@ -1,13 +1,10 @@
-import type { SpaceClueCreateRequest } from "../../../../../api";
 import type { ClueMessage } from "../../../../../api/models/ClueMessage";
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { PopWindow } from "@/components/common/popWindow";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import {
-  useAddCluesMutation,
   useCreateClueStarsBatchMutation,
   useDeleteCluesMutation,
   useDeleteClueStarsMutation,
@@ -20,34 +17,33 @@ import DisplayOfItemDetail from "../../message/items/displayOfItemsDetail";
 export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) => void }) {
   const { spaceId } = use(RoomContext);
 
-  // 获取用户空间所有文件夹
   const getMyClueStarsBySpaceQuery = useGetMyClueStarsBySpaceQuery(spaceId ?? -1);
   const clueFolders = useMemo(() => getMyClueStarsBySpaceQuery.data?.data ?? [], [getMyClueStarsBySpaceQuery.data?.data]);
 
-  // 当前选中的线索夹（用于添加线索时选择）
   const [selectedFolderId, setSelectedFolderId] = useState<number>(-1);
 
-  // 获取当前选中线索夹下的线索
   const getCluesByClueStarsQuery = useGetCluesByClueStarsQuery(selectedFolderId > 0 ? selectedFolderId : -1);
-  const clues = useMemo(() => getCluesByClueStarsQuery.data?.data ?? [], [getCluesByClueStarsQuery.data?.data]);
+  const cluesFromQuery = useMemo(() => getCluesByClueStarsQuery.data?.data ?? [], [getCluesByClueStarsQuery.data?.data]);
 
-  // 添加线索
-  const addCluesMutation = useAddCluesMutation();
-  // 删除线索
+  const [clues, setClues] = useState<any[]>([]);
+  useEffect(() => {
+    setClues(cluesFromQuery as any[]);
+  }, [cluesFromQuery]);
+
   const deleteCluesMutation = useDeleteCluesMutation();
-  // 创建线索夹
   const createClueStarsBatchMutation = useCreateClueStarsBatchMutation(spaceId ?? -1);
-  // 删除线索夹
   const deleteClueStarsMutation = useDeleteClueStarsMutation(spaceId ?? -1);
-  // 更新线索夹
   const updateClueStarsMutation = useUpdateClueStarsMutation(spaceId ?? -1);
 
   const [selectedManualClue, setSelectedManualClue] = useState<any>(null);
+  const [isClueDetailOpen, setIsClueDetailOpen] = useState(false);
   const [clueToDelete, setClueToDelete] = useState<{ id: number; name: string } | null>(null);
   const [folderToDelete, setFolderToDelete] = useState<{ id: number; name: string } | null>(null);
 
   const [editingFolder, setEditingFolder] = useState<{ id: number; name: string } | null>(null);
   const [editFolderName, setEditFolderName] = useState("");
+
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
 
   const handleSend = (clue: ClueMessage) => {
     onSend(clue);
@@ -55,21 +51,8 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     toast("发送成功");
   };
 
-  const handleClueUpdate = () => {
-    getCluesByClueStarsQuery.refetch();
-    toast.success("线索更新成功");
-  };
-
-  // 添加线索表单状态
-  const [showAddClue, setShowAddClue] = useState(false);
   const [showFolderManager, setShowFolderManager] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-
-  const [newClue, setNewClue] = useState({
-    name: "",
-    image: "",
-    clueStarsId: selectedFolderId,
-  });
 
   const [openFolderId, setOpenFolderId] = useState<number | null>(null);
 
@@ -78,7 +61,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     setSelectedFolderId(prev => (prev === folderId ? -1 : folderId));
   };
 
-  // 编辑线索夹名称函数
   const handleStartEditFolder = (folderId: number, folderName: string) => {
     setEditingFolder({ id: folderId, name: folderName });
     setEditFolderName(folderName);
@@ -101,7 +83,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       return;
     }
 
-    // 检查名称是否重复
     if (clueFolders.some(folder => folder.name === editFolderName && folder.id !== editingFolder.id)) {
       toast.error("该名称的线索夹已存在");
       return;
@@ -125,52 +106,9 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     }
   };
 
-  // 处理查看线索详情
   const handleViewClue = (clue: any) => {
-    setSelectedManualClue({
-      id: clue.id,
-      name: clue.name,
-      description: clue.description,
-      image: clue.image,
-      note: clue.note,
-      clueStarsId: clue.clueStarsId,
-    });
-  };
-
-  const handleAddClue = async () => {
-    if (!newClue.name.trim()) {
-      toast.error("请输入线索名称");
-      return;
-    }
-
-    if (newClue.clueStarsId === -1) {
-      toast.error("请选择线索夹");
-      return;
-    }
-
-    try {
-      const request: Array<SpaceClueCreateRequest> = [
-        {
-          clueStarsId: newClue.clueStarsId,
-          name: newClue.name,
-          image: newClue.image,
-        },
-      ];
-
-      await addCluesMutation.mutateAsync(request);
-
-      toast.success("添加线索成功");
-      setShowAddClue(false);
-      setNewClue({
-        name: "",
-        image: "",
-        clueStarsId: selectedFolderId,
-      });
-      getCluesByClueStarsQuery.refetch();
-    }
-    catch {
-      toast.error("添加线索失败");
-    }
+    setSelectedManualClue(clue);
+    setIsClueDetailOpen(true);
   };
 
   const handleDeleteClue = async () => {
@@ -188,7 +126,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     }
   };
 
-  // 创建新线索夹
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
       toast.error("请输入线索夹名称");
@@ -225,7 +162,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     }
   };
 
-  // 删除线索夹
   const handleDeleteFolder = async () => {
     if (!folderToDelete)
       return;
@@ -257,13 +193,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
     setFolderToDelete(null);
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setNewClue(prev => ({
-      ...prev,
-      [field]: field === "clueStarsId" ? Number(value) : value,
-    }));
-  };
-
   const renderDetailComponent = () => {
     if (!selectedManualClue)
       return null;
@@ -273,17 +202,33 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
         manualData={selectedManualClue}
         spaceId={spaceId ?? undefined}
         onSend={handleSend}
-        onUpdate={handleClueUpdate}
+        onManualDataChange={(next) => {
+          setSelectedManualClue((prev: any) => ({ ...(prev ?? {}), ...(next ?? {}) }));
+
+          const id = (next as any)?.id;
+          if (typeof id !== "number" || !Number.isFinite(id))
+            return;
+
+          setClues((prev) => {
+            if (!Array.isArray(prev))
+              return prev;
+            const idx = prev.findIndex((c: any) => c?.id === id);
+            if (idx < 0)
+              return prev;
+            const updated = { ...prev[idx], ...(next ?? {}) };
+            const nextArr = [...prev];
+            nextArr[idx] = updated;
+            return nextArr;
+          });
+        }}
       />
     );
   };
 
-  // 初始化选中第一个文件夹
   useMemo(() => {
     if (clueFolders.length > 0 && selectedFolderId === -1) {
       const firstFolder = clueFolders[0];
       setSelectedFolderId(firstFolder.id!);
-      setNewClue(prev => ({ ...prev, clueStarsId: firstFolder.id! }));
     }
   }, [clueFolders, selectedFolderId]);
 
@@ -291,7 +236,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
 
   return (
     <div className="space-y-3 p-3 overflow-auto flex flex-col w-full items-stretch">
-      {/* 标题和操作按钮 */}
       <div className="flex justify-between items-center w-full gap-2">
         <span className="font-medium text-lg">持有线索</span>
         <div className="flex gap-1">
@@ -307,26 +251,35 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
           </button>
           <button
             type="button"
-            onClick={() => setShowAddClue(true)}
-            className="btn btn-primary btn-sm flex items-center gap-1"
+            onClick={() => setIsDeleteMode(prev => !prev)}
+            className={[
+              "btn btn-sm flex items-center gap-1 transition-colors",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              isDeleteMode
+                ? "btn-error text-error-content"
+                : "btn-ghost border border-base-300",
+            ].join(" ")}
             disabled={clueFolders.length === 0}
+            aria-pressed={isDeleteMode}
+            title={isDeleteMode ? "删除模式已开启：点击关闭" : "删除模式已关闭：点击开启"}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            添加线索
+            删除线索
           </button>
         </div>
       </div>
 
-      {/* 加载状态 */}
+      {isDeleteMode && (
+        <div className="rounded-md border border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200 px-3 py-2 text-sm">
+          删除模式已开启：点击每条线索的“删除”进行删除操作。
+        </div>
+      )}
+
       {isLoading && (
         <div className="w-full flex justify-center py-4">
           <div className="loading loading-spinner loading-md"></div>
         </div>
       )}
 
-      {/* 线索夹列表 */}
       <div className="w-full space-y-3">
         {!isLoading && clueFolders.length === 0
           ? (
@@ -352,7 +305,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
 
                 return (
                   <div key={folder.id} className="w-full">
-                    {/* 线索夹列表项 */}
                     <button
                       type="button"
                       onClick={() => toggleFolder(folder.id!)}
@@ -360,7 +312,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                       aria-expanded={openFolderId === folder.id}
                       aria-controls={`clue-drawer-${folder.id}`}
                     >
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0">
                         <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                         </svg>
@@ -370,7 +322,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                       </span>
                       <div className="flex items-center gap-2">
                         <svg
-                          className={`h-4 w-4 transform transition-transform flex-shrink-0 ${openFolderId === folder.id ? "rotate-180" : ""}`}
+                          className={`h-4 w-4 transform transition-transform shrink-0 ${openFolderId === folder.id ? "rotate-180" : ""}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -394,7 +346,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                           <div className="text-sm text-red-500 text-center">加载失败</div>
                         )}
 
-                        {/* 无线索提示 */}
                         {!hasClues && !getCluesByClueStarsQuery.isLoading && (
                           <div className="text-center py-4 text-gray-500">
                             <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,7 +355,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                           </div>
                         )}
 
-                        {/* 线索列表 */}
                         {hasClues && (
                           <div className="space-y-2 animate-fade-in">
                             {folderClues.map(clue => (
@@ -418,11 +368,11 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                                         <img
                                           src={clue.image}
                                           alt={clue.name}
-                                          className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                          className="w-6 h-6 rounded-full object-cover shrink-0"
                                         />
                                       )
                                     : (
-                                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0">
                                           <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                           </svg>
@@ -440,15 +390,42 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                                   >
                                     查看
                                   </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onClick={() => openDeleteConfirm(clue.id!, clue.name ?? "")}
-                                    disabled={deleteCluesMutation.isPending}
-                                    title="删除线索"
-                                  >
-                                    {deleteCluesMutation.isPending ? "删除中..." : "删除"}
-                                  </button>
+                                  {isDeleteMode
+                                    ? (
+                                        <button
+                                          type="button"
+                                          className="btn btn-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                          onClick={() => {
+                                            openDeleteConfirm(clue.id!, clue.name ?? "");
+                                          }}
+                                          disabled={deleteCluesMutation.isPending}
+                                        >
+                                          删除
+                                        </button>
+                                      )
+                                    : (
+                                        <button
+                                          type="button"
+                                          className="btn btn-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                          onClick={() => {
+                                            if (isDeleteMode) {
+                                              openDeleteConfirm(clue.id!, clue.name ?? "");
+                                              return;
+                                            }
+
+                                            const clueMessage: ClueMessage = {
+                                              img: clue.image ?? "",
+                                              name: clue.name ?? "未命名线索",
+                                              description: "（富文本线索）",
+                                            };
+                                            handleSend(clueMessage);
+                                            toast.success("已公布");
+                                          }}
+                                          disabled={deleteCluesMutation.isPending}
+                                        >
+                                          公布
+                                        </button>
+                                      )}
                                 </div>
                               </div>
                             ))}
@@ -462,130 +439,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             )}
       </div>
 
-      {/* 添加线索模态框 */}
-      <PopWindow
-        isOpen={showAddClue}
-        onClose={() => setShowAddClue(false)}
-      >
-        <div className="max-w-2xl w-full mx-auto bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
-          <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
-            <div className="flex items-center gap-4">
-              <ImgUploaderWithCopper
-                setCopperedDownloadUrl={(url) => {
-                  handleInputChange("image", url);
-                }}
-                fileName={`clue-image-${Date.now()}`}
-              >
-                <div className="relative group overflow-hidden rounded-lg w-16 h-16 cursor-pointer border-2 border-dashed border-neutral-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300">
-                  {newClue.image
-                    ? (
-                        <>
-                          <img
-                            src={newClue.image}
-                            alt="线索图片"
-                            className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
-                            <div className="text-center">
-                              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block">
-                                更换
-                              </span>
-                            </div>
-                          </div>
-                        </>
-                      )
-                    : (
-                        <div className="w-full h-full flex flex-col items-center justify-center transition-all duration-300 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
-                          <svg className="w-6 h-6 text-neutral-400 dark:text-neutral-500 group-hover:text-blue-400 dark:group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="text-xs text-neutral-500 dark:text-neutral-400 group-hover:text-blue-400 dark:group-hover:text-blue-500 transition-colors mt-1">
-                            上传
-                          </span>
-                        </div>
-                      )}
-                </div>
-              </ImgUploaderWithCopper>
-              <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 flex-grow">
-                添加新线索
-              </h2>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-                  线索名称 *
-                </label>
-                <input
-                  type="text"
-                  value={newClue.name}
-                  onChange={e => handleInputChange("name", e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入线索名称"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-                  线索夹
-                </label>
-                <select
-                  value={newClue.clueStarsId}
-                  onChange={e => handleInputChange("clueStarsId", e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={clueFolders.length === 0}
-                >
-                  {clueFolders.length === 0
-                    ? (
-                        <option value={-1}>暂无线索夹</option>
-                      )
-                    : (
-                        clueFolders.map(folder => (
-                          <option key={folder.id} value={folder.id}>
-                            {folder.name}
-                          </option>
-                        ))
-                      )}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">
-                线索内容（富文本）
-              </label>
-              <div className="text-sm text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-700 rounded-md p-3 border border-neutral-200 dark:border-neutral-600">
-                线索正文已改为在详情页使用 BlockSuite 文档编辑。创建后打开线索详情即可编辑。
-              </div>
-            </div>
-          </div>
-
-          <div className="p-5 border-t border-neutral-200 dark:border-neutral-700 flex justify-end gap-3">
-            <button
-              type="button"
-              className="btn btn-ghost px-4 py-2"
-              onClick={() => setShowAddClue(false)}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              className="btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
-              onClick={handleAddClue}
-              disabled={addCluesMutation.isPending || newClue.clueStarsId === -1}
-            >
-              {addCluesMutation.isPending ? "添加中..." : "确认添加"}
-            </button>
-          </div>
-        </div>
-      </PopWindow>
-
-      {/* 线索夹管理模态框 */}
       <PopWindow
         isOpen={showFolderManager}
         onClose={() => setShowFolderManager(false)}
@@ -629,7 +482,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                 >
                   {editingFolder?.id === folder.id
                     ? (
-                  // 编辑模式
                         <div className="flex items-center gap-2 flex-1">
                           <input
                             type="text"
@@ -666,7 +518,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                         </div>
                       )
                     : (
-                  // 查看模式
                         <>
                           <div className="flex items-center gap-3 flex-1">
                             <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -715,15 +566,19 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
       </PopWindow>
 
       <PopWindow
-        isOpen={!!selectedManualClue}
-        onClose={() => setSelectedManualClue(null)}
-        fullScreen={true}
+        isOpen={isClueDetailOpen}
+        onClose={() => {
+          setIsClueDetailOpen(false);
+          setSelectedManualClue(null);
+        }}
+        fullScreen={false}
         hiddenScrollbar={true}
       >
-        {renderDetailComponent()}
+        <div className="w-[50vw] lg:w-[60vw] max-w-none">
+          {renderDetailComponent()}
+        </div>
       </PopWindow>
 
-      {/* 删除线索确认模态框 */}
       <ConfirmModal
         isOpen={!!clueToDelete}
         onClose={closeDeleteConfirm}
@@ -735,7 +590,6 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
         variant="danger"
       />
 
-      {/* 删除线索夹确认模态框 */}
       <ConfirmModal
         isOpen={!!folderToDelete}
         onClose={closeDeleteFolderConfirm}

@@ -2,6 +2,7 @@ import type { UserRole } from "../../../../api";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
@@ -18,6 +19,7 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
@@ -57,6 +59,9 @@ export interface RoomComposerPanelProps {
   isSubmitting: boolean;
 
   placeholderText: string;
+
+  /** 拖拽投放文档引用后直接发送文档卡片消息 */
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
 
   curRoleId: number;
   curAvatarId: number;
@@ -104,6 +109,7 @@ function RoomComposerPanelImpl({
   notMember,
   isSubmitting,
   placeholderText,
+  onSendDocCard,
   curRoleId,
   curAvatarId,
   setCurRoleId,
@@ -123,9 +129,33 @@ function RoomComposerPanelImpl({
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const composerRootRef = React.useRef<HTMLDivElement | null>(null);
+  const [isDocRefDragOver, setIsDocRefDragOver] = React.useState(false);
+  const isDocRefDragOverRef = React.useRef(false);
+  const updateDocRefDragOver = React.useCallback((next: boolean) => {
+    if (isDocRefDragOverRef.current === next)
+      return;
+    isDocRefDragOverRef.current = next;
+    setIsDocRefDragOver(next);
+  }, []);
   const screenSize = useScreenSize();
   const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
+  const mentionRoles = React.useMemo(() => {
+    if (!isKP) {
+      return roomRoles;
+    }
+    const atAllRole: UserRole = {
+      userId: -1,
+      roleId: -9999,
+      roleName: "检定请求",
+      avatarId: -1,
+      type: 0,
+      extra: {
+        mentionNote: "发送检定按钮",
+      },
+    };
+    return [atAllRole, ...roomRoles];
+  }, [isKP, roomRoles]);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -335,14 +365,37 @@ function RoomComposerPanelImpl({
         />
 
         <div
-          className="flex flex-col gap-2 rounded-md"
+          className="relative flex flex-col gap-2 rounded-md"
           onDragOver={(e) => {
+            // 注意：部分浏览器在 dragover 阶段无法读取 getData 的自定义 MIME 内容。
+            // 因此这里仅基于 types 判定并 preventDefault，让 drop 一定能触发；
+            // 具体 payload 在 onDrop 再读取。
+            if (isDocRefDrag(e.dataTransfer)) {
+              updateDocRefDragOver(true);
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              return;
+            }
+            updateDocRefDragOver(false);
+
             if (isFileDrag(e.dataTransfer)) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
             }
           }}
+          onDragLeave={() => {
+            updateDocRefDragOver(false);
+          }}
           onDrop={(e) => {
+            updateDocRefDragOver(false);
+            const docRef = getDocRefDragData(e.dataTransfer);
+            if (docRef) {
+              e.preventDefault();
+              e.stopPropagation();
+              void onSendDocCard?.(docRef);
+              return;
+            }
+
             if (!isFileDrag(e.dataTransfer))
               return;
             e.preventDefault();
@@ -350,6 +403,13 @@ function RoomComposerPanelImpl({
             addDroppedFilesToComposer(e.dataTransfer);
           }}
         >
+          {isDocRefDragOver && (
+            <div className="pointer-events-none absolute inset-0 z-20 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
+              <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
+                松开发送文档卡片
+              </div>
+            </div>
+          )}
           <ChatAttachmentsPreviewFromStore />
 
           {replyMessage && (
@@ -444,6 +504,7 @@ function RoomComposerPanelImpl({
                             : (
                                 <RoleAvatarComponent
                                   avatarId={curAvatarId}
+                                  roleId={curRoleId}
                                   width={8}
                                   isRounded={true}
                                   withTitle={false}
@@ -699,7 +760,7 @@ function RoomComposerPanelImpl({
             <AtMentionController
               ref={atMentionRef}
               chatInputRef={chatInputRef as any}
-              allRoles={roomRoles}
+              allRoles={mentionRoles}
             >
             </AtMentionController>
           </div>

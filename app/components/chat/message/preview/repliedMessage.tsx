@@ -22,12 +22,22 @@ export default function RepliedMessage({ replyMessage, className }: {
   const role = useGetRoleQuery(replyMessage.roleId ?? -1).data?.data;
   const isTextMessage = replyMessage.messageType === 1;
   const isWebgalVarMessage = replyMessage.messageType === MESSAGE_TYPE.WEBGAL_VAR;
+  const isDocCardMessage = replyMessage.messageType === MESSAGE_TYPE.DOC_CARD;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
   const imgMsg = replyMessage.extra?.imageMessage;
   const webgalVarSummary = isWebgalVarMessage
     ? (() => {
         const payload = extractWebgalVarPayload(replyMessage.extra);
         return payload ? formatWebgalVarSummary(payload) : null;
+      })()
+    : null;
+
+  const docCardTitle = isDocCardMessage
+    ? (() => {
+        const raw = (replyMessage as any)?.extra?.docCard ?? (replyMessage as any)?.extra ?? null;
+        const title = typeof raw?.title === "string" ? raw.title.trim() : "";
+        const docId = typeof raw?.docId === "string" ? raw.docId.trim() : "";
+        return title || docId || "文档";
       })()
     : null;
   return (
@@ -61,27 +71,35 @@ export default function RepliedMessage({ replyMessage, className }: {
                 {[`[变量]`, webgalVarSummary ?? ""].filter(Boolean).join(" ")}
               </span>
             )
-          : replyMessage.extra?.imageMessage?.url
+          : isDocCardMessage
             ? (
-                <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
-                  {role?.roleName || "未命名角色"}
-                  {": "}
-                  <img
-                    src={replyMessage.extra?.imageMessage?.url}
-                    className="size-8 object-contain"
-                    alt="img"
-                    width={imgMsg?.width}
-                    height={imgMsg?.height}
-                  />
-                </span>
-              )
-            : (
                 <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
                   {role?.roleName || "未命名角色"}
                   {": "}
-                  非文本内容
+                  {[`[文档]`, docCardTitle ?? ""].filter(Boolean).join(" ")}
                 </span>
-              )}
+              )
+            : replyMessage.extra?.imageMessage?.url
+              ? (
+                  <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
+                    {role?.roleName || "未命名角色"}
+                    {": "}
+                    <img
+                      src={replyMessage.extra?.imageMessage?.url}
+                      className="size-8 object-contain"
+                      alt="img"
+                      width={imgMsg?.width}
+                      height={imgMsg?.height}
+                    />
+                  </span>
+                )
+              : (
+                  <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
+                    {role?.roleName || "未命名角色"}
+                    {": "}
+                    非文本内容
+                  </span>
+                )}
     </div>
   );
 }

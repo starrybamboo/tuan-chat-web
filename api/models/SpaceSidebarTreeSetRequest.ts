@@ -2,9 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 设置空间侧边栏频道树请求
- */
 export type SpaceSidebarTreeSetRequest = {
     /**
      * 空间ID

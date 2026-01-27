@@ -7,6 +7,7 @@
  */
 export type RuleResponse = {
     ruleId?: number;
+    authorId?: number;
     ruleName?: string;
     ruleDescription?: string;
 };

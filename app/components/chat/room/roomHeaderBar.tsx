@@ -1,9 +1,10 @@
-import { BookOpenText, ExportIcon } from "@phosphor-icons/react";
+import { ArrowSquareIn, BookOpenText, ExportIcon } from "@phosphor-icons/react";
 import React, { useEffect, useRef, useState } from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import {
   BaselineArrowBackIosNew,
   MemberIcon,
@@ -27,6 +28,7 @@ function RoomHeaderBarImpl({
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
   const exportDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const closeThreadPane = () => {
@@ -79,6 +81,20 @@ function RoomHeaderBarImpl({
           </span>
         </div>
         <div className="flex gap-2 items-center overflow-visible">
+          <div
+            className="tooltip tooltip-bottom hover:text-info relative z-50"
+            data-tip="导入记录"
+            onClick={() => {
+              closeThreadPane();
+              if (sideDrawerState === "export") {
+                setSideDrawerState("none");
+              }
+              setIsExportOpen(false);
+              setIsImportChatTextOpen(true);
+            }}
+          >
+            <ArrowSquareIn className="size-6 mt-2" />
+          </div>
           <div
             ref={exportDropdownRef}
             className={`dropdown dropdown-bottom dropdown-end ${isExportOpen ? "dropdown-open" : ""}`}

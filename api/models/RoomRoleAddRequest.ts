@@ -12,7 +12,7 @@ export type RoomRoleAddRequest = {
      */
     roleIdList: Array<number>;
     /**
-     * 角色类型，0玩家角色，1NPC
+     * 角色类型（复用 role.type）：0角色，1骰娘，2NPC（兼容旧值：1 曾表示 NPC）
      */
     type?: number;
 };

@@ -14,7 +14,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 
   return (
     <div
-      className="group relative w-10 my-1 rounded"
+      className="group relative z-20 hover:z-50 w-10 my-1 rounded"
       key={space.spaceId}
     >
       <div
@@ -24,8 +24,10 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       >
       </div>
       <button
-        className="w-10 btn btn-square relative"
+        className="tooltip tooltip-bottom w-10 btn btn-square relative"
         type="button"
+        data-tip={displayName}
+        aria-label={displayName}
         onClick={onclick}
       >
         <div className="indicator">

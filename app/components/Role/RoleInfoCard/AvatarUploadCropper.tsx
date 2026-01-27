@@ -5,6 +5,7 @@ import type { CropMode } from "@/utils/imgCropper/useCropPreview";
 import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createCenteredSquareCrop, createFullImageCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
@@ -50,6 +51,8 @@ interface ImgUploaderWithCopperProps {
   externalFilesBatchId?: number;
   // 外部文件处理完成回调（用于清理）
   onExternalFilesHandled?: () => void;
+  // 使用独立的弹窗状态 key，避免多入口冲突
+  stateKey?: string;
 }
 
 /**
@@ -68,6 +71,7 @@ export function CharacterCopper({
   externalFiles,
   externalFilesBatchId,
   onExternalFilesHandled,
+  stateKey,
 }: ImgUploaderWithCopperProps) {
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +79,8 @@ export function CharacterCopper({
   const uploadUtilsRef = useRef(new UploadUtils());
   const uploadUtils = uploadUtilsRef.current;
   // 控制弹窗的显示状态
-  const [isOpen, setIsOpen] = useState(false);
+  const searchKey = stateKey ?? "characterCopperPop";
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(searchKey, false);
 
   // 图片相关状态
   const [imgSrc, setImgSrc] = useState("");
@@ -352,6 +357,9 @@ export function CharacterCopper({
       },
     );
 
+    const shouldUploadSprite = Boolean(setDownloadUrl || mutate);
+    const shouldUploadAvatar = Boolean(setCopperedDownloadUrl || mutate);
+
     try {
       let downloadUrl = "";
       let copperedDownloadUrl = "";
@@ -369,14 +377,14 @@ export function CharacterCopper({
       }
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
-        if (setDownloadUrl) {
+        if (shouldUploadSprite) {
           downloadUrl = await uploadUtils.uploadImg(fileWithNewName, scene);
-          setDownloadUrl(downloadUrl);
+          setDownloadUrl?.(downloadUrl);
         }
-        if (setCopperedDownloadUrl) {
+        if (shouldUploadAvatar) {
           const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
           copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
-          setCopperedDownloadUrl(copperedDownloadUrl);
+          setCopperedDownloadUrl?.(copperedDownloadUrl);
         }
 
         // 确保 originUrl 已经上传完成（若用户很快提交，这里会等待）

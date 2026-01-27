@@ -27,6 +27,10 @@ export type UserRole = {
      */
     avatarId?: number;
     /**
+     * 空间id（NPC 绑定空间）
+     */
+    spaceId?: number;
+    /**
      * 角色状态,0正常,1删除
      */
     state?: number;
@@ -34,10 +38,6 @@ export type UserRole = {
      * 角色类型,0:角色,1:骰娘,2:NPC
      */
     type: number;
-    /**
-     * 空间id（NPC 绑定空间；非NPC可为空）
-     */
-    spaceId?: number;
     /**
      * tts时使用的模型
      */
@@ -53,7 +53,8 @@ export type UserRole = {
     extra?: Record<string, string>;
     createTime?: string;
     updateTime?: string;
-    role?: boolean;
     diceMaiden?: boolean;
+    role?: boolean;
+    npc?: boolean;
 };
 

@@ -10,7 +10,7 @@ export type SpaceDocDescriptor
   = | { kind: "space_description"; spaceId: number }
     | { kind: "room_description"; roomId: number }
     | { kind: "clue_description"; clueId: number }
-    | { kind: "independent"; docId: string };
+    | { kind: "independent"; docId: number };
 
 /**
  * Space 内文档的 docId 规范（仅需在一个 space/workspace 内唯一）。
@@ -30,7 +30,7 @@ export function buildSpaceDocId(desc: SpaceDocDescriptor): SpaceDocId {
     return `clue:${desc.clueId}:description`;
 
   // independent
-  return `doc:${desc.docId}`;
+  return `sdoc:${desc.docId}:description`;
 }
 
 export function parseSpaceDocId(docId: string): SpaceDocDescriptor | null {
@@ -65,11 +65,11 @@ export function parseSpaceDocId(docId: string): SpaceDocDescriptor | null {
     return { kind: "clue_description", clueId };
   }
 
-  if (type === "doc") {
-    const docKey = [idRaw, ...rest].join(":");
-    if (!docKey)
+  if (type === "sdoc" && rest.join(":") === "description") {
+    const id = Number(idRaw);
+    if (!Number.isFinite(id) || id <= 0)
       return null;
-    return { kind: "independent", docId: docKey };
+    return { kind: "independent", docId: id };
   }
 
   return null;

@@ -222,11 +222,15 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   // 这里额外考虑了 RoomSideDrawers（user/role/export）可能占据的固定宽度。
   const minRemainingWidth = React.useMemo(() => {
     const baseMinChatWidth = 520;
+    const docFolderDrawerWidth = 320;
+
     const lightDrawerWidth = sideDrawerState === "export"
       ? exportDrawerWidth
-      : (sideDrawerState === "user" || sideDrawerState === "role" || sideDrawerState === "clue" || sideDrawerState === "initiative")
-          ? roomSidebarWidth
-          : 0;
+      : sideDrawerState === "docFolder"
+        ? docFolderDrawerWidth
+        : (sideDrawerState === "user" || sideDrawerState === "role" || sideDrawerState === "clue" || sideDrawerState === "initiative")
+            ? roomSidebarWidth
+            : 0;
     return baseMinChatWidth + lightDrawerWidth;
   }, [exportDrawerWidth, roomSidebarWidth, sideDrawerState]);
 

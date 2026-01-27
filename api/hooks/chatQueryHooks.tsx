@@ -21,6 +21,7 @@ import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { SpaceExtraSetRequest } from "../models/SpaceExtraSetRequest";
 import type { SpaceRole } from "../models/SpaceRole";
+import type { UserRole } from "../models/UserRole";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
@@ -466,13 +467,117 @@ export function useTransferLeader() {
  */
 export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
+
+    const mergeRoleList = (existing: UserRole[], toAdd: UserRole[]) => {
+        if (toAdd.length === 0)
+            return existing;
+        const existingIds = new Set<number>(existing.map(r => r.roleId));
+        const deduped = toAdd.filter(r => !existingIds.has(r.roleId));
+        if (deduped.length === 0)
+            return existing;
+        return [...existing, ...deduped];
+    };
+
+    const getRoleListFromQueryData = (data: any): UserRole[] | null => {
+        if (!data)
+            return null;
+        if (Array.isArray(data))
+            return data as UserRole[];
+        if (Array.isArray(data.data))
+            return data.data as UserRole[];
+        return null;
+    };
+
+    const findCachedRoleById = (roleId: number): UserRole | null => {
+        const directRole = queryClient.getQueryData<any>(["getRole", roleId]);
+        const roleFromDirect = directRole?.data as UserRole | undefined;
+        if (roleFromDirect && roleFromDirect.roleId === roleId)
+            return roleFromDirect;
+
+        const candidateQueryGroups = [
+            queryClient.getQueriesData({ queryKey: ["getUserRoles"] }),
+            queryClient.getQueriesData({ queryKey: ["getUserRolesByTypes"] }),
+            queryClient.getQueriesData({ queryKey: ["spaceRole"] }),
+            queryClient.getQueriesData({ queryKey: ["spaceModuleRole"] }),
+        ];
+
+        for (const group of candidateQueryGroups) {
+            for (const [, data] of group) {
+                const list = getRoleListFromQueryData(data);
+                const found = list?.find(r => r.roleId === roleId);
+                if (found)
+                    return found;
+            }
+        }
+
+        return null;
+    };
+
     return useMutation({
         mutationFn: (req: RoomRoleAddRequest) => tuanchat.roomRoleController.addRole(req),
         mutationKey: ['addRole1'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
-            queryClient.invalidateQueries({ queryKey: ['roomModuleRole', variables.roomId] });
-        }
+        onMutate: async (variables) => {
+            const roomId = variables.roomId ?? -1;
+            const roleIds = Array.from(new Set((variables.roleIdList ?? []).filter(roleId => typeof roleId === "number" && roleId > 0)));
+            if (roomId <= 0 || roleIds.length === 0)
+                return;
+
+            await Promise.all([
+                queryClient.cancelQueries({ queryKey: ["roomRole", roomId] }),
+                queryClient.cancelQueries({ queryKey: ["roomModuleRole", roomId] }),
+            ]);
+
+            const previousRoomRole = queryClient.getQueryData(["roomRole", roomId]);
+            const previousRoomModuleRole = queryClient.getQueryData(["roomModuleRole", roomId]);
+
+            const roomRoleToAdd: UserRole[] = [];
+            const roomModuleRoleToAdd: UserRole[] = [];
+
+            for (const roleId of roleIds) {
+                const cached = findCachedRoleById(roleId);
+                const optimisticRole: UserRole = cached ?? ({ roleId, roleName: `角色${roleId}`, avatarId: -1 } as any);
+                if (cached?.type === 2)
+                    roomModuleRoleToAdd.push(optimisticRole);
+                else
+                    roomRoleToAdd.push(optimisticRole);
+            }
+
+            const patchCache = (queryKey: readonly unknown[], addList: UserRole[]) => {
+                if (addList.length === 0)
+                    return;
+                queryClient.setQueryData(queryKey, (old: any) => {
+                    if (!old)
+                        return { success: true, data: addList };
+
+                    if (Array.isArray(old))
+                        return mergeRoleList(old as UserRole[], addList);
+
+                    if (Array.isArray(old.data)) {
+                        return {
+                            ...old,
+                            data: mergeRoleList(old.data as UserRole[], addList),
+                        };
+                    }
+
+                    return old;
+                });
+            };
+
+            patchCache(["roomRole", roomId], roomRoleToAdd);
+            patchCache(["roomModuleRole", roomId], roomModuleRoleToAdd);
+
+            return { previousRoomRole, previousRoomModuleRole, roomId };
+        },
+        onError: (_error, _variables, context) => {
+            if (!context)
+                return;
+            queryClient.setQueryData(["roomRole", context.roomId], context.previousRoomRole);
+            queryClient.setQueryData(["roomModuleRole", context.roomId], context.previousRoomModuleRole);
+        },
+        onSettled: (_data, _error, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["roomRole", variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ["roomModuleRole", variables.roomId] });
+        },
     });
 }
 

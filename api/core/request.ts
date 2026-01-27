@@ -8,7 +8,6 @@ import type { ApiResult } from './ApiResult';
 import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
-import { handleUnauthorized } from '@/utils/auth/unauthorized';
 
 export const isDefined = <T>(value: T | null | undefined): value is Exclude<T, null | undefined> => {
     return value !== undefined && value !== null;
@@ -264,13 +263,6 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
 
     const error = errors[result.status];
     if (error) {
-        if (result.status === 401) {
-            const url = options.url ?? '';
-            const isAuthEndpoint = url.startsWith('/user/login') || url.startsWith('/user/register');
-            if (!isAuthEndpoint) {
-                handleUnauthorized({ source: 'http' });
-            }
-        }
         throw new ApiError(options, result, error);
     }
 

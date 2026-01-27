@@ -1,48 +1,36 @@
 import type { ChatMessageResponse } from "../../../../../api";
-import { useMemo } from "react";
+import { use, useMemo } from "react";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import BetterImg from "@/components/common/betterImg";
-import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 
 function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   const { message } = messageResponse;
+
+  const spaceContext = use(SpaceContext);
+  const spaceId = spaceContext?.spaceId;
+
   const clueMessage = useMemo(() => {
-    if (message.extra?.clueMessage) {
-      return message.extra.clueMessage;
-    }
-    return { name: "未知线索", description: "", img: "" };
+    // 同时兼容 extra.clueMessage 与旧的扁平 extra
+    const cm = (message.extra as any)?.clueMessage ?? null;
+    if (cm)
+      return cm;
+    const extra = (message.extra as any) ?? {};
+    return { name: extra.name ?? "未知线索", description: extra.description ?? "", img: extra.img ?? "", clueId: extra.clueId };
   }, [message.extra]);
 
-  const isBlocksuiteSnapshotLike = (text: unknown) => {
-    if (typeof text !== "string")
-      return false;
-    const trimmed = text.trim();
-    if (!trimmed.startsWith("{") || !trimmed.endsWith("}"))
-      return false;
-    try {
-      const obj = JSON.parse(trimmed) as any;
-      return obj && obj.v === 1 && typeof obj.updateB64 === "string";
-    }
-    catch {
-      return false;
-    }
-  };
-
-  const descriptionText = isBlocksuiteSnapshotLike(clueMessage.description)
-    ? "（富文本线索内容，请在右侧线索中查看）"
-    : (clueMessage.description || "无描述信息");
-
-  const hasImage = clueMessage.img && clueMessage.img.trim() !== "";
+  const hasImage = Boolean(clueMessage.img && String(clueMessage.img).trim() !== "");
+  const clueId = Number((clueMessage as any)?.clueId ?? 0);
+  const canUseBlocksuite = Boolean(spaceId && clueId > 0);
 
   return (
     <div className="flex gap-3 p-3 w-full max-w-3xl mx-auto">
       <div className="flex-1 bg-base-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
         <div className="space-y-3">
-          {/* 线索名称 */}
           <h4 className="text-lg font-semibold text-info">{clueMessage.name}</h4>
 
-          {/* 线索图片 + 描述 */}
           <div className="relative">
-            {/* 线索图片 */}
             {hasImage
               ? (
                   <div className="float-left mr-3 mb-3 w-32 rounded overflow-hidden border border-base-300">
@@ -64,9 +52,26 @@ function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse
                   </div>
                 )}
 
-            {/* 线索描述 */}
             <div className={`text-base text-base-content/90 ${hasImage ? "min-h-[128px]" : ""}`}>
-              <MarkdownMentionViewer markdown={descriptionText} enableHoverPreview={true} />
+              <div className="h-full min-h-[128px]">
+                {canUseBlocksuite
+                  ? (
+                      <BlocksuiteDescriptionEditor
+                        workspaceId={`space:${spaceId}`}
+                        spaceId={spaceId}
+                        docId={buildSpaceDocId({ kind: "clue_description", clueId })}
+                        mode="page"
+                        variant="full"
+                        className="h-full"
+                        tcHeader={{ enabled: false }}
+                      />
+                    )
+                  : (
+                      <div className="whitespace-pre-wrap leading-relaxed">
+                        {String(clueMessage.description || "无描述信息")}
+                      </div>
+                    )}
+              </div>
               <div className="clear-both"></div>
             </div>
           </div>

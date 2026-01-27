@@ -1,3 +1,5 @@
+import type { DescriptionDocType, DescriptionEntityType } from "./descriptionDocId";
+
 export async function deleteSpaceDoc(params: { spaceId: number; docId: string }) {
   // SSR-safe: this function is only meaningful in the browser.
   // Avoid importing Blocksuite runtime modules at module scope because React Router dev (Vite)
@@ -6,18 +8,35 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
     return;
   }
 
+  let remoteKey: { entityType: DescriptionEntityType; entityId: number; docType: DescriptionDocType } | null = null;
+
   // Best-effort: if this docId maps to the remote snapshot key, delete server-side snapshot too.
   // This is the only case where you'll see a network request for doc deletion.
   try {
     const { parseDescriptionDocId } = await import("./descriptionDocId");
-    const key = parseDescriptionDocId(params.docId);
-    if (key) {
+    remoteKey = parseDescriptionDocId(params.docId);
+    if (remoteKey) {
       const { deleteRemoteSnapshot } = await import("./descriptionDocRemote");
-      await deleteRemoteSnapshot(key);
+      await deleteRemoteSnapshot(remoteKey);
     }
   }
   catch {
     // ignore remote delete errors; local deletion still proceeds
+  }
+
+  // Best-effort: delete space_doc metadata too (otherwise docId could remain "valid" on server).
+  try {
+    if (remoteKey?.entityType === "space_doc") {
+      const { tuanchat } = await import("../../../../../api/instance");
+      await tuanchat.request.request<any>({
+        method: "DELETE",
+        url: "/space/doc",
+        query: { docId: remoteKey.entityId },
+      });
+    }
+  }
+  catch {
+    // ignore
   }
 
   // Clear any queued offline updates (otherwise a later debounce flush could re-upload snapshot).

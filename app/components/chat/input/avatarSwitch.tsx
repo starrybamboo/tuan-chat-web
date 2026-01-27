@@ -134,6 +134,7 @@ export default function AvatarSwitch({
         <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
           <RoleAvatarComponent
             avatarId={curAvatarId}
+            roleId={curRoleId}
             width={computedAvatarWidth}
             isRounded={true}
             withTitle={false}
