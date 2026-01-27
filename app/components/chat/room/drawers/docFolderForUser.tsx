@@ -20,7 +20,6 @@ import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddIcon, ChevronDown } from "@/icons";
-import { tuanchat } from "../../../../../api/instance";
 
 interface DocFolderDocNode {
   nodeId: string;
@@ -224,6 +223,7 @@ export default function DocFolderForUser() {
   const [tree, setTree] = useState<DocFolderTree>(normalizedFromServer);
   const treeRef = useRef<DocFolderTree>(normalizedFromServer);
   const versionRef = useRef<number>(serverVersion);
+  const persistQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     versionRef.current = serverVersion;
@@ -241,25 +241,58 @@ export default function DocFolderForUser() {
     if (!spaceId || spaceId <= 0)
       return;
 
-    const expectedVersion = versionRef.current ?? 0;
-    try {
-      const res = await setTreeMutation.mutateAsync({
-        spaceId,
-        expectedVersion,
-        treeJson: JSON.stringify(next),
-      });
-      if (!res?.success) {
-        toast.error(res?.errMsg ?? "保存文档夹失败");
-        treeQuery.refetch();
-        return;
+    const sleep = (ms: number) => new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
+
+    const doPersist = async () => {
+      let lastErrMsg = "";
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const expectedVersion = versionRef.current ?? 0;
+        try {
+          const res = await setTreeMutation.mutateAsync({
+            spaceId,
+            expectedVersion,
+            treeJson: JSON.stringify(next),
+          });
+          if (res?.success) {
+            versionRef.current = res.data?.version ?? expectedVersion + 1;
+            return;
+          }
+
+          lastErrMsg = res?.errMsg ?? "保存文档夹失败";
+          if (lastErrMsg.includes("版本冲突")) {
+            // 不打断用户操作：静默重试，并触发一次 refresh 以便把 versionRef 同步到最新值。
+            const refetchRes = await treeQuery.refetch();
+            const latestVersion = refetchRes.data?.data?.version;
+            if (typeof latestVersion === "number" && Number.isFinite(latestVersion)) {
+              versionRef.current = latestVersion;
+            }
+            await sleep(120 * (attempt + 1));
+            continue;
+          }
+
+          toast.error(lastErrMsg);
+          treeQuery.refetch();
+          return;
+        }
+        catch (err) {
+          console.error("[DocFolderForUser] setTree failed", err);
+          lastErrMsg = err instanceof Error ? err.message : "保存文档夹失败";
+
+          // 网络抖动：退避重试；最终失败再提示。
+          await sleep(120 * (attempt + 1));
+        }
       }
-      versionRef.current = res.data?.version ?? expectedVersion + 1;
-    }
-    catch (err) {
-      console.error("[DocFolderForUser] setTree failed", err);
-      toast.error("保存文档夹失败");
+
+      if (lastErrMsg && !lastErrMsg.includes("版本冲突")) {
+        toast.error(lastErrMsg);
+      }
       treeQuery.refetch();
-    }
+    };
+
+    persistQueueRef.current = persistQueueRef.current.then(doPersist, doPersist);
+    return persistQueueRef.current;
   }, [setTreeMutation, spaceId, treeQuery]);
 
   const [docCopyDropCategoryId, setDocCopyDropCategoryId] = useState<string | null>(null);
@@ -294,85 +327,29 @@ export default function DocFolderForUser() {
       newDocEntityId = res.newDocEntityId;
     }
     catch (err) {
-      console.error("[DocFolderForUser] drop copy failed (create)", err);
+      console.error("[DocFolderForUser] drop copy failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
       return;
     }
 
-    const applyAppend = (base: DocFolderTree): DocFolderTree => {
-      const next = JSON.parse(JSON.stringify(base)) as DocFolderTree;
-      const cat = next.categories.find(c => c.categoryId === params.categoryId) ?? next.categories[0];
-      if (!cat)
-        return next;
-      cat.items = Array.isArray(cat.items) ? cat.items : [];
-      if (!cat.items.some(n => n.targetId === newDocEntityId)) {
-        cat.items.push(buildDocNode(newDocEntityId));
-      }
-      return next;
-    };
+    const baseTree = treeRef.current ?? buildDefaultTree();
+    const nextTree = JSON.parse(JSON.stringify(baseTree)) as DocFolderTree;
+    const cat = nextTree.categories.find(c => c.categoryId === params.categoryId) ?? nextTree.categories[0];
+    if (!cat) {
+      toast.error("文件夹不存在", { id: toastId });
+      return;
+    }
+    cat.items = Array.isArray(cat.items) ? cat.items : [];
+    if (!cat.items.some(n => n.targetId === newDocEntityId)) {
+      cat.items.push(buildDocNode(newDocEntityId));
+    }
 
-    // 先乐观更新 UI：即使后续 treeJson 保存冲突，用户也能立刻看到副本已生成。
-    setTree(applyAppend(treeRef.current ?? buildDefaultTree()));
+    setTree(nextTree);
     setOpenDocId(newDocEntityId);
     void docsQuery.refetch();
-
-    const sleep = (ms: number) => new Promise<void>((resolve) => {
-      setTimeout(resolve, ms);
-    });
-
-    // 使用后端最新 version 写入；冲突时做多次重试+退避。
-    // 仍失败时不阻断：副本已创建，后续依赖 “缺失文档自动补到默认分类” 或刷新来可见。
-    try {
-      let lastErrMsg = "";
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        const getRes = await tuanchat.spaceUserDocFolderController.getTree(spaceId);
-        if (!getRes?.success) {
-          throw new Error(getRes?.errMsg ?? "获取文档夹失败");
-        }
-        const expectedVersion = getRes.data?.version ?? 0;
-        const parsed = tryParseTree(getRes.data?.treeJson ?? null) ?? buildDefaultTree();
-        const nextTree = applyAppend(parsed);
-
-        let setRes: any = null;
-        try {
-          setRes = await setTreeMutation.mutateAsync({
-            spaceId,
-            expectedVersion,
-            treeJson: JSON.stringify(nextTree),
-          });
-        }
-        catch (err) {
-          lastErrMsg = err instanceof Error ? err.message : "保存文档夹失败";
-          // 网络波动：短暂退避后重试
-          await sleep(120 * (attempt + 1));
-          continue;
-        }
-
-        if (setRes?.success) {
-          versionRef.current = setRes.data?.version ?? expectedVersion + 1;
-          setTree(nextTree);
-          break;
-        }
-
-        lastErrMsg = setRes?.errMsg ?? "保存文档夹失败";
-        if (!lastErrMsg.includes("版本冲突")) {
-          throw new Error(lastErrMsg);
-        }
-        await sleep(120 * (attempt + 1));
-      }
-
-      // 若仍然持续版本冲突：静默刷新，避免反复打断用户操作。
-      if (lastErrMsg.includes("版本冲突")) {
-        treeQuery.refetch();
-      }
-    }
-    catch (err) {
-      console.error("[DocFolderForUser] drop copy failed (tree)", err);
-      treeQuery.refetch();
-    }
-
+    await persistTree(nextTree);
     toast.success("已复制到我的文档", { id: toastId });
-  }, [docsQuery, setTreeMutation, spaceId, treeQuery]);
+  }, [docsQuery, persistTree, spaceId]);
 
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
