@@ -9,7 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
-| 202601272011 | import_chat_style | 修复 | 已完成 | [2026-01/202601272011_import-chat-style/](2026-01/202601272011_import-chat-style/) |
+| 202601272047 | blocksuite_mention_overlay_v3 | 修复 | 已完成 | [2026-01/202601272047_blocksuite-mention-overlay-v3/](2026-01/202601272047_blocksuite-mention-overlay-v3/) |
 | 202601271925 | blocksuite_mention_overlay_v2 | 修复 | 已完成 | [2026-01/202601271925_blocksuite-mention-overlay-v2/](2026-01/202601271925_blocksuite-mention-overlay-v2/) |
 | 202601271841 | blocksuite_mention_overlay | 修复 | 已完成 | [2026-01/202601271841_blocksuite-mention-overlay/](2026-01/202601271841_blocksuite-mention-overlay/) |
 | 202601270403 | docfolder_docref_drop | 功能 | 已完成 | [2026-01/202601270403_docfolder_docref_drop/](2026-01/202601270403_docfolder_docref_drop/) |
@@ -120,7 +120,7 @@
 
 ### 2026-01
 
-- [202601272011_import-chat-style](2026-01/202601272011_import-chat-style/) - 修复：导入对话弹窗去双层容器，长内容可滚动
+- [202601272047_blocksuite-mention-overlay-v3](2026-01/202601272047_blocksuite-mention-overlay-v3/) - 修复：CSS 全屏下 @ 弹窗挂载策略兜底
 - [202601271925_blocksuite-mention-overlay-v2](2026-01/202601271925_blocksuite-mention-overlay-v2/) - 修复：全屏画布下 @ 弹窗挂载位置补充
 - [202601271841_blocksuite-mention-overlay](2026-01/202601271841_blocksuite-mention-overlay/) - 修复：Blocksuite 全屏画布下 @ 弹窗被遮挡
 - [202601270403_docfolder_docref_drop](2026-01/202601270403_docfolder_docref_drop/) - 功能：聊天文档卡片支持拖拽复制到“我的文档”（docFolder）
