@@ -47,6 +47,7 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - `用户`候选的展示信息（头像/名称）来自 `createTuanChatUserService()`：按 `userId` 拉取 `/user/info` 并缓存（避免仅显示 userId）
 - mention 节点的渲染组件为 `<affine-mention />`（`@blocksuite/affine-inline-mention`）；本项目在 Blocksuite core elements 初始化前注册自定义 `<affine-mention />`，让 mention 在文档内展示头像 + 名称，并移除前缀 `@`：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`
 - 文档内“用户 mention”的交互：点击 mention 跳转到 `/profile/:userId`；悬浮 mention 会在短延迟后显示个人主页悬浮窗，并基于 mention 位置居中对齐（宿主侧 portal 渲染，内容为个人主页 iframe）：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`、`app/components/chat/infra/blocksuite/mentionProfilePopover.tsx`、`app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
+- 全屏画布模式下的 `@` 快速搜索弹窗需挂载到 top document，并使用高层级 z-index，避免被 edgeless 全屏遮挡（实现位于 `app/components/chat/infra/blocksuite/quickSearchService.ts`）
 
 ## 常见坑位（入口）
 
