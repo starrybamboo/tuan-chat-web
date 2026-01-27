@@ -202,6 +202,7 @@ export function SpriteCropper({
     alpha: 1,
     rotation: 0,
   }));
+  const [anchorPosition, setAnchorPosition] = useState<"left" | "center" | "right">("center");
 
   // 添加渲染key用于强制重新渲染
   const [renderKey, setRenderKey] = useState(0);
@@ -874,6 +875,7 @@ export function SpriteCropper({
                               <RenderPreview
                                 previewCanvasRef={previewCanvasRef}
                                 transform={transform}
+                                anchorPosition={anchorPosition}
                                 characterName={characterName}
                                 dialogContent="这是一段示例对话内容。"
                               />
@@ -883,6 +885,8 @@ export function SpriteCropper({
                               transform={transform}
                               setTransform={setDisplayTransform}
                               previewCanvasRef={previewCanvasRef}
+                              anchorPosition={anchorPosition}
+                              onAnchorPositionChange={setAnchorPosition}
                             />
                           </div>
                         </>
@@ -895,7 +899,7 @@ export function SpriteCropper({
       </div>
 
       {/* 操作按钮区 - 固定在右下角 */}
-      <div className={`mt-4 flex flex-shrink-0 ${operationMode === "batch" ? "justify-between" : "justify-end"} gap-2`}>
+      <div className="mt-4 flex shrink-0 items-center gap-2">
         {operationMode === "batch" && (
           <div className="text-xs text-base-content/60 self-center">
             批量模式说明：
@@ -903,47 +907,85 @@ export function SpriteCropper({
             只会将当前裁剪框应用到所有立绘，切换后应用裁剪框不会分别生效。
           </div>
         )}
-        {operationMode === "single"
-          ? (
-              <>
-                <button
-                  className="btn btn-outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownload();
-                  }}
-                  type="button"
-                  disabled={isProcessing}
-                >
-                  {isDownloading
-                    ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      )
-                    : (
-                        "下载图像"
-                      )}
-                </button>
-                {!isAvatarMode && (
-                  <>
+        <div className="ml-auto flex items-center gap-2">
+          {operationMode === "single"
+            ? (
+                <>
+                  <button
+                    className="btn btn-outline rounded-md"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload();
+                    }}
+                    type="button"
+                    disabled={isProcessing}
+                  >
+                    {isDownloading
+                      ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        )
+                      : (
+                          "下载图像"
+                        )}
+                  </button>
+                  {!isAvatarMode && (
+                    <>
+                      <button
+                        className="btn btn-secondary rounded-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyTransform();
+                        }}
+                        type="button"
+                        disabled={isProcessing}
+                      >
+                        {isTransforming
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              "应用变换"
+                            )}
+                      </button>
+                      <button
+                        className="btn btn-primary rounded-md "
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyCrop(false);
+                        }}
+                        type="button"
+                        disabled={!completedCrop || isProcessing}
+                      >
+                        {isCropping
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              "应用裁剪"
+                            )}
+                      </button>
+                      <button
+                        className="btn btn-info rounded-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyCrop(true);
+                        }}
+                        type="button"
+                        disabled={!completedCrop || isProcessing}
+                      >
+                        {isCropping
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              "一键应用"
+                            )}
+                      </button>
+                    </>
+                  )}
+                  {isAvatarMode && (
                     <button
-                      className="btn btn-info"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApplyTransform();
-                      }}
-                      type="button"
-                      disabled={isProcessing}
-                    >
-                      {isTransforming
-                        ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          )
-                        : (
-                            "应用变换"
-                          )}
-                    </button>
-                    <button
-                      className="btn btn-primary"
+                      className="btn btn-primary rounded-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleApplyCrop(false);
@@ -959,86 +1001,86 @@ export function SpriteCropper({
                             "应用裁剪"
                           )}
                     </button>
-                    <button
-                      className="btn btn-success"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApplyCrop(true);
-                      }}
-                      type="button"
-                      disabled={!completedCrop || isProcessing}
-                    >
-                      {isCropping
-                        ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          )
-                        : (
-                            "一键应用"
-                          )}
-                    </button>
-                  </>
-                )}
-                {isAvatarMode && (
+                  )}
+                </>
+              )
+            : (
+                <>
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-outline btn-info rounded-md"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleApplyCrop(false);
+                      handleBatchDownload();
                     }}
                     type="button"
                     disabled={!completedCrop || isProcessing}
                   >
-                    {isCropping
+                    {isDownloading
                       ? (
                           <span className="loading loading-spinner loading-xs"></span>
                         )
                       : (
-                          "应用裁剪"
+                          "批量下载"
                         )}
                   </button>
-                )}
-              </>
-            )
-          : (
-              <>
-                <button
-                  className="btn btn-outline btn-info"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleBatchDownload();
-                  }}
-                  type="button"
-                  disabled={!completedCrop || isProcessing}
-                >
-                  {isDownloading
-                    ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      )
-                    : (
-                        "批量下载"
-                      )}
-                </button>
-                {!isAvatarMode && (
-                  <>
+                  {!isAvatarMode && (
+                    <>
+                      <button
+                        className="btn btn-secondary rounded-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBatchApplyTransform();
+                        }}
+                        type="button"
+                        disabled={isProcessing}
+                      >
+                        {isTransforming
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              "一键变换"
+                            )}
+                      </button>
+                      <button
+                        className="btn btn-primary rounded-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBatchCropAll(false);
+                        }}
+                        type="button"
+                        disabled={!completedCrop || isProcessing}
+                      >
+                        {isCropping
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              "一键裁剪"
+                            )}
+                      </button>
+                      <button
+                        className="btn btn-info rounded-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBatchCropAll(true);
+                        }}
+                        type="button"
+                        disabled={!completedCrop || isProcessing}
+                      >
+                        {isCropping
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              "一键应用"
+                            )}
+                      </button>
+                    </>
+                  )}
+                  {isAvatarMode && (
                     <button
-                      className="btn btn-info"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBatchApplyTransform();
-                      }}
-                      type="button"
-                      disabled={isProcessing}
-                    >
-                      {isTransforming
-                        ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          )
-                        : (
-                            "一键变换"
-                          )}
-                    </button>
-                    <button
-                      className="btn btn-primary"
+                      className="btn btn-primary rounded-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleBatchCropAll(false);
@@ -1054,46 +1096,10 @@ export function SpriteCropper({
                             "一键裁剪"
                           )}
                     </button>
-                    <button
-                      className="btn btn-success"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBatchCropAll(true);
-                      }}
-                      type="button"
-                      disabled={!completedCrop || isProcessing}
-                    >
-                      {isCropping
-                        ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          )
-                        : (
-                            "一键应用全部"
-                          )}
-                    </button>
-                  </>
-                )}
-                {isAvatarMode && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleBatchCropAll(false);
-                    }}
-                    type="button"
-                    disabled={!completedCrop || isProcessing}
-                  >
-                    {isCropping
-                      ? (
-                          <span className="loading loading-spinner loading-xs"></span>
-                        )
-                      : (
-                          "一键裁剪"
-                        )}
-                  </button>
-                )}
-              </>
-            )}
+                  )}
+                </>
+              )}
+        </div>
       </div>
 
       {/* 移动端裁剪弹窗 */}

@@ -13,7 +13,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Home() {
   return (
-    <div className="bg-base-100 overflow-x-hidden">
+    <div className="bg-base-200 h-full w-full overflow-x-hidden">
       <ModuleWithTabs />
     </div>
   );

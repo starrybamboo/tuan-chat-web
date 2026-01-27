@@ -10,7 +10,7 @@
 3. 历史记录支持回填角色/背景结构（向后兼容旧记录）。
 
 ## 影响范围
-- **模块:** `app/routes/aiImage.tsx`（主页面）、`electron/main.cjs`（Electron 直连生成）、`app/utils/aiImageHistoryDb.ts`（历史结构扩展）
+- **模块:** `app/routes/aiImage.tsx`（主页面）、`electron/main.js`（Electron 直连生成）、`app/utils/aiImageHistoryDb.ts`（历史结构扩展）
 - **文件:** 见上
 - **API:** 不新增后端 API；仅调整 NAI v4/v4.5 请求参数映射
 - **数据:** IndexedDB 历史记录增加可选字段（不变更 objectStore 结构，向后兼容）

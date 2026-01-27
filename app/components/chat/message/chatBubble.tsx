@@ -62,6 +62,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
@@ -90,7 +91,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setComposerTarget("thread");
     // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
     setSideDrawerState("none");
-  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
+    setSubDrawerState("none");
+  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   const threadHintNode = shouldShowThreadHint
     ? (
@@ -123,7 +125,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </button>
                 </div>
               </div>
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost"
@@ -151,7 +153,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setComposerTarget("thread");
     // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
     setSideDrawerState("none");
-  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
+    setSubDrawerState("none");
+  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
@@ -525,7 +528,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           className="flex flex-row gap-1.5 sm:gap-2 py-0.5 sm:py-1"
           onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
         >
-          <span className="opacity-60 inline flex-shrink-0 text-xs sm:text-sm">| 回复</span>
+          <span className="opacity-60 inline shrink-0 text-xs sm:text-sm">| 回复</span>
           <PreviewMessage
             message={message.replyMessageId}
           >
@@ -554,7 +557,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             <button
               type="button"
               aria-disabled={isDisabled}
-              className={`group inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left shadow-sm transition-colors transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/30 ${
+              className={`group inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/30 ${
                 isDisabled
                   ? "opacity-60 cursor-not-allowed bg-base-200/20 shadow-none"
                   : "bg-base-200/40 hover:bg-base-200/70 hover:border-warning/50 hover:shadow-md"
@@ -573,7 +576,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 });
               }}
             >
-              <span className="badge badge-xs badge-warning flex-shrink-0">检定请求</span>
+              <span className="badge badge-xs badge-warning shrink-0">检定请求</span>
               <span className="font-mono text-xs sm:text-sm break-all">{requestCommand}</span>
               {!isDisabled && <span className="ml-auto text-xs opacity-60 group-hover:opacity-80">点击此进行检定</span>}
             </button>
@@ -855,7 +858,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 查看所有子区
               </button>
             </div>
-            <div className="text-xs text-base-content/50 flex-shrink-0">{formattedTime}</div>
+            <div className="text-xs text-base-content/50 shrink-0">{formattedTime}</div>
           </div>
 
           <div className="mt-2 flex items-center gap-2">
@@ -872,7 +875,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
                 {threadTitle}
               </div>
-              <div className="text-xs text-base-content/60 flex-shrink-0">
+              <div className="text-xs text-base-content/60 shrink-0">
                 {threadReplyCount}
                 {" "}
                 条消息
@@ -893,7 +896,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               key={message.messageId}
             >
               {/* Avatar */}
-              <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
+              <div className="shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
                   avatarId={message.avatarId ?? 0}
                   roleId={message.roleId ?? undefined}
@@ -935,7 +938,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                           {displayRoleName}
                         </span>
                       )}
-                  <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
+                  <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </span>
@@ -971,7 +974,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               key={message.messageId}
             >
               {/* 圆角矩形头像 */}
-              <div className="flex-shrink-0 pr-2 sm:pr-3">
+              <div className="shrink-0 pr-2 sm:pr-3">
                 <div className="w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId ?? 0}
@@ -1020,7 +1023,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                           </div>
                         </div>
                       )}
-                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
+                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </div>

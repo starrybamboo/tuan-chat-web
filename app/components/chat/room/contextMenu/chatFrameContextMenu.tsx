@@ -64,6 +64,7 @@ export default function ChatFrameContextMenu({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
   const sendMessageMutation = useSendMessageMutation(roomContext.roomId ?? -1);
 
@@ -382,6 +383,7 @@ export default function ChatFrameContextMenu({
     setComposerTarget("thread");
     // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
     setSideDrawerState("none");
+    setSubDrawerState("none");
   };
 
   const handleCreateOrOpenThread = () => {

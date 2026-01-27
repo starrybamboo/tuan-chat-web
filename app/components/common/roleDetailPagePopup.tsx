@@ -126,31 +126,15 @@ export function RoleDetailPagePopup({
   }
 
   return (
-    <div className="bg-base-100 flex flex-col gap-3 w-full">
-      <div className="flex items-center justify-end gap-2 px-2 pt-2">
-        {canKick && (
-          <button
-            type="button"
-            className="btn btn-error btn-xs sm:btn-sm"
-            onClick={() => setIsKickConfirmOpen(true)}
-          >
-            踢出角色
-          </button>
-        )}
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs sm:btn-sm"
-          onClick={onClose}
-        >
-          关闭
-        </button>
-      </div>
-
+    <div className="bg-base-100 flex flex-col gap-3 w-[960px] max-w-[90vw]">
       <CharacterDetail
         role={role}
         onSave={handleSave}
         selectedRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
+        layout="popup"
+        canKickOut={canKick}
+        onKickOut={() => setIsKickConfirmOpen(true)}
       />
 
       <ConfirmModal

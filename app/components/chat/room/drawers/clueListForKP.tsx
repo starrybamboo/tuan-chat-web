@@ -34,6 +34,18 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
   const [selectedLocationId, setSelectedLocationId] = useState<number>(-1);
 
+  const selectedItemManualData = useMemo(() => {
+    if (selectedItemId <= 0)
+      return undefined;
+
+    const item = roomItems.find(i => i?.id === selectedItemId);
+    return {
+      id: selectedItemId,
+      name: item?.name,
+      image: item?.entityInfo?.image,
+    };
+  }, [roomItems, selectedItemId]);
+
   const handleSend = (clue: ClueMessage) => {
     onSend(clue);
     setSelectedItemId(-1);
@@ -91,7 +103,17 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
                       aria-controls={`clue-drawer-${room.roomId}`}
                     >
                       <div className="avatar mask mask-circle w-8 flex-shrink-0">
-                        <img src={room.avatar} alt={room.name} />
+                        <img
+                          src={room.avatar || "/favicon.ico"}
+                          alt={room.name}
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            if (img.dataset.fallbackApplied)
+                              return;
+                            img.dataset.fallbackApplied = "1";
+                            img.src = "/favicon.ico";
+                          }}
+                        />
                       </div>
                       <span className="truncate flex-1 text-left font-medium">
                         {room.name}
@@ -289,8 +311,12 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
         onClose={() => setSelectedItemId(-1)}
         hiddenScrollbar={true}
       >
-        {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} onSend={handleSend} roomId={selectedRoomId} />
+        {selectedItemId > 0 && (
+          <DisplayOfItemDetail
+            manualData={selectedItemManualData}
+            spaceId={spaceId ?? undefined}
+            onSend={handleSend}
+          />
         )}
       </PopWindow>
 

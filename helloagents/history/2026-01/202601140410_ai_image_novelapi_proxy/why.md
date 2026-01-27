@@ -34,7 +34,7 @@
   - Web 运行时启动脚本（`scripts/start.mjs`）
   - Vite 开发服务器（`vite.config.ts`）
   - AI 生图页面（`app/routes/aiImage.tsx`）
-  - Electron 主进程（`electron/main.cjs`）与类型声明（`app/electron.d.ts`）
+  - Electron 主进程（`electron/main.js`）与类型声明（`app/electron.d.ts`）
   - NovelAI OpenAPI 客户端（`api/novelai/*`，仅做必要修复以便可被前端类型引用）
 - **文件:** 见上述模块
 - **API:** 新增本地同源代理路由：`/api/novelapi/*`

@@ -71,7 +71,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     try {
       const redirect = searchParams.get("redirect");
       if (window.location.pathname === "/login") {
-        window.location.assign(redirect || "/chat/private");
+        window.location.assign(redirect || "/chat");
         return;
       }
     }

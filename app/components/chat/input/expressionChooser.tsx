@@ -1,5 +1,5 @@
 import type { UserRole } from "../../../../api";
-import { use, useEffect, useRef } from "react";
+import { use, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -24,20 +24,7 @@ export function ExpressionChooser({
 }) {
   const roomContext = use(RoomContext);
   const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
-  const [roleDetailRoleId, setRoleDetailRoleId] = useSearchParamsState<number>("roleDetailPop", -1);
-  const roleDetailRoleIdRef = useRef(roleDetailRoleId);
-
-  useEffect(() => {
-    roleDetailRoleIdRef.current = roleDetailRoleId;
-  }, [roleDetailRoleId]);
-
-  useEffect(() => {
-    return () => {
-      if (roleDetailRoleIdRef.current > 0) {
-        setRoleDetailRoleId(-1);
-      }
-    };
-  }, [setRoleDetailRoleId]);
+  const [roleDetailRoleId, setRoleDetailRoleId] = useState<number>(-1);
 
   const isKP = (roomContext.curMember?.memberType ?? -1) === 1;
 
@@ -45,10 +32,17 @@ export function ExpressionChooser({
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
   const roleAvatars = roleAvatarsQuery.data?.data || [];
 
-  const availableRoles = roomContext.roomRolesThatUserOwn;
+  const currentUserId = roomContext.curMember?.userId;
+  const availableRoles = currentUserId
+    ? roomContext.roomRolesThatUserOwn.filter(role => role.userId === currentUserId)
+    : roomContext.roomRolesThatUserOwn;
 
   // 判断当前是否为旁白模式
   const isNarratorMode = selectedRoleId <= 0;
+  const narratorTitle = showNarratorOption ? "旁白模式" : "未选择角色";
+  const narratorDescription = showNarratorOption
+    ? "旁白消息没有角色头像和表情"
+    : "请选择你的角色后再发送消息";
 
   const handleRoleSelect = (role: UserRole) => {
     handleRoleChange(role.roleId);
@@ -109,7 +103,8 @@ export function ExpressionChooser({
                   }`}
                 >
                   <RoleAvatarComponent
-                    avatarId={role.avatarId ?? 0} roleId={role.roleId}
+                    avatarId={role.avatarId ?? 0}
+                    roleId={role.roleId}
                     width={10}
                     isRounded={true}
                     withTitle={false}
@@ -156,8 +151,8 @@ export function ExpressionChooser({
             ? (
                 <div className="text-center text-gray-500">
                   <NarratorIcon className="size-16 mx-auto text-base-content/30" />
-                  <div className="text-sm mb-2">旁白模式</div>
-                  <div className="text-xs text-base-content/50">旁白消息没有角色头像和表情</div>
+                  <div className="text-sm mb-2">{narratorTitle}</div>
+                  <div className="text-xs text-base-content/50">{narratorDescription}</div>
                 </div>
               )
             : roleAvatars && roleAvatars.length > 0
@@ -172,7 +167,8 @@ export function ExpressionChooser({
                           title="点击选择表情"
                         >
                           <RoleAvatarComponent
-                            avatarId={avatar.avatarId || -1} roleId={selectedRoleId}
+                            avatarId={avatar.avatarId || -1}
+                            roleId={selectedRoleId}
                             width={12}
                             isRounded={false}
                             withTitle={false}

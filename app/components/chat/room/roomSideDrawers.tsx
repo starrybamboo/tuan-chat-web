@@ -16,11 +16,12 @@ interface RoomSideDrawersProps {
 function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
-  const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
-  const initiativeWidth = Math.max(initiativeDrawerWidth, 480);
+  const setExportDrawerWidth = useDrawerPreferenceStore(state => state.setExportDrawerWidth);
+  const roomSidebarWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
+  const setRoomSidebarWidth = useDrawerPreferenceStore(state => state.setUserDrawerWidth);
 
-  // user / role drawer 固定宽度（与用户偏好宽度解耦）
-  const fixedMemberDrawerWidth = 270;
+  const defaultDrawerMinWidth = 240;
+  const defaultDrawerMaxWidth = 480;
   const docFolderDrawerWidth = 320;
   const sidebarPanelClassName = "shadow-none border-l border-base-300";
 
@@ -28,7 +29,10 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
     <>
       <VaulSideDrawer
         isOpen={sideDrawerState === "user"}
-        width={fixedMemberDrawerWidth}
+        width={roomSidebarWidth}
+        minWidth={defaultDrawerMinWidth}
+        maxWidth={defaultDrawerMaxWidth}
+        onWidthChange={setRoomSidebarWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="flex-1 min-h-0">
@@ -38,7 +42,10 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "role"}
-        width={fixedMemberDrawerWidth}
+        width={roomSidebarWidth}
+        minWidth={defaultDrawerMinWidth}
+        maxWidth={defaultDrawerMaxWidth}
+        onWidthChange={setRoomSidebarWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="flex-1 min-h-0">
@@ -49,6 +56,9 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
       <VaulSideDrawer
         isOpen={sideDrawerState === "export"}
         width={exportDrawerWidth}
+        minWidth={300}
+        maxWidth={640}
+        onWidthChange={setExportDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="overflow-auto flex-1">
@@ -58,7 +68,10 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "initiative"}
-        width={initiativeWidth}
+        width={roomSidebarWidth}
+        minWidth={defaultDrawerMinWidth}
+        maxWidth={defaultDrawerMaxWidth}
+        onWidthChange={setRoomSidebarWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="overflow-auto flex-1">
@@ -78,7 +91,10 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "clue"}
-        width={fixedMemberDrawerWidth}
+        width={roomSidebarWidth}
+        minWidth={defaultDrawerMinWidth}
+        maxWidth={defaultDrawerMaxWidth}
+        onWidthChange={setRoomSidebarWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="overflow-auto flex-1 min-h-0">

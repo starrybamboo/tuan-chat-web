@@ -9,6 +9,8 @@ interface Props {
 export default function RoomSideDrawerGuards({ spaceId }: Props) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const subDrawerState = useSideDrawerStore(state => state.subState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
 
@@ -34,7 +36,10 @@ export default function RoomSideDrawerGuards({ spaceId }: Props) {
     if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
       setSideDrawerState("none");
     }
-  }, [runModeEnabled, setSideDrawerState, sideDrawerState]);
+    if (!runModeEnabled && subDrawerState === "map") {
+      setSubDrawerState("none");
+    }
+  }, [runModeEnabled, setSideDrawerState, sideDrawerState, setSubDrawerState, subDrawerState]);
 
   return null;
 }

@@ -13,14 +13,20 @@ export type SideDrawerState
     | "export"
     | "webgal";
 
+export type SubRoomDrawerState = "none" | "map" | "webgal" | "doc";
+
 type SideDrawerStore = {
   state: SideDrawerState;
+  subState: SubRoomDrawerState;
   setState: (next: SideDrawerState) => void;
+  setSubState: (next: SubRoomDrawerState) => void;
   reset: () => void;
 };
 
 export const useSideDrawerStore = create<SideDrawerStore>(set => ({
   state: "none",
+  subState: "none",
   setState: next => set({ state: next }),
-  reset: () => set({ state: "none" }),
+  setSubState: next => set({ subState: next }),
+  reset: () => set({ state: "none", subState: "none" }),
 }));

@@ -1,6 +1,5 @@
-import { use } from "react";
+import { use, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
@@ -79,7 +78,7 @@ export default function RoleAvatarComponent({
   const hasAvatar = Boolean(displayAvatarUrl);
 
   // 控制角色详情的popWindow
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleIdTrue}`, false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const roomContext = use(RoomContext);
   const roomId = roomContext?.roomId ?? -1;
@@ -115,7 +114,12 @@ export default function RoleAvatarComponent({
               <div className="justify-center w-full">
                 {detailVariant === "simple"
                   ? (
-                      <RoleDetail roleId={roleIdTrue ?? -1} allowKickOut={allowKickOut}></RoleDetail>
+                      <RoleDetail
+                        roleId={roleIdTrue ?? -1}
+                        allowKickOut={allowKickOut}
+                        onClose={() => setIsOpen(false)}
+                      >
+                      </RoleDetail>
                     )
                   : (
                       <RoleDetailPagePopup

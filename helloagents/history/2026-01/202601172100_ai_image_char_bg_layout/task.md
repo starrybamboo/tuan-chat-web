@@ -11,7 +11,7 @@
 - [√] 1.4 在 `app/routes/aiImage.tsx` 扩展历史保存与回填（兼容旧数据），验证 why.md#需求-两模式三栏对齐-场景-普通模式一键生成后继续编辑
 
 ## 2. Electron 生成请求一致性
-- [√] 2.1 在 `electron/main.cjs` 对齐 v4/v4.5 的 `char_captions` 映射（保持与 Web 一致）
+- [√] 2.1 在 `electron/main.js` 对齐 v4/v4.5 的 `char_captions` 映射（保持与 Web 一致）
 
 ## 3. 安全检查
 - [√] 3.1 执行安全检查（按G9: 输入验证、敏感信息处理、权限控制、EHRB风险规避）
