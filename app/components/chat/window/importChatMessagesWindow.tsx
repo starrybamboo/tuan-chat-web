@@ -193,7 +193,7 @@ export default function ImportChatMessagesWindow({
   };
 
   return (
-    <div className="w-[95vw] max-w-6xl h-[85vh] flex flex-col bg-base-100 rounded-xl overflow-hidden shadow-2xl">
+    <div className="w-full h-full min-h-0 flex flex-col">
       {/* Header */}
       <div className="flex-none flex items-center justify-between p-4 border-b border-base-200 bg-base-100/50 backdrop-blur-sm z-10">
         <div className="flex items-center gap-3">
