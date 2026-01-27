@@ -51,6 +51,23 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - 若进入 Fullscreen API，`@` 弹窗需挂载到 fullscreenElement 或对应 iframe 文档，确保可见性（`app/components/chat/infra/blocksuite/quickSearchService.ts`）
 - blocksuite-frame 的“全屏画布”仅为 CSS 视口占满（`h-screen w-screen`），`@` 弹窗需挂载在 iframe 文档内避免被宿主 iframe 层级遮挡
 
+### 5) 同步与存储（仿 AFFiNE/OctoBase：updates 入库 + 定期合并 snapshot + stateVector diff）
+
+本项目 Blocksuite 文档的远端一致性以 **yjs updates 日志**为主，快照为可丢弃缓存（冷启动/加速用）：
+
+- **updates 入库（SSOT）**
+  - HTTP：`POST /blocksuite/doc/update`（离线/无 WS 时兜底）
+  - WebSocket：`type=202`（在线实时路径，服务端入库并 fanout）
+  - 前端实现：`app/components/chat/infra/blocksuite/remoteDocSource.ts`、`app/components/chat/infra/blocksuite/blocksuiteWsClient.ts`
+- **定期合并 snapshot（cache）**
+  - 触发：pull/push 发现 updates 累积或首次无快照时（debounce）
+  - 行为：拉取 snapshot+updates → `mergeUpdates` → 写回 v2 快照 → 调用 `/blocksuite/doc/compact` 删除已合并的 updates
+  - v2 快照结构：`{ v:2, updateB64, stateVectorB64?, snapshotServerTime, updatedAt }`
+  - 前端实现：`app/components/chat/infra/blocksuite/remoteDocSource.ts`
+- **stateVector diff（增量补齐）**
+  - 前端在 pull 阶段用 `diffUpdate(mergedUpdate, stateVector)` 计算最小补丁并 apply
+  - SpaceWorkspace 断线补齐：`app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
+
 ## 常见坑位（入口）
 
 - `mention` 是 embed 节点、linked-doc popover、`abort()` 语义、StrictMode 多次 mount 等：`helloagents/wiki/vendors/blocksuite/gotchas.md`

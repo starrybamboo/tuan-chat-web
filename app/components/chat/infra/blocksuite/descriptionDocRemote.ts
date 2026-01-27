@@ -10,9 +10,19 @@ export function buildLegacyExtraKey(docType: DescriptionDocType) {
 }
 
 export type StoredSnapshot = {
+  // v1: legacy snapshot format
   v: 1;
   updateB64: string;
   updatedAt: number;
+} | {
+  // v2: snapshot + metadata for yjs incremental log compaction
+  v: 2;
+  updateB64: string;
+  updatedAt: number;
+  /** 可选：快照对应的 serverTime 游标（快照已包含 <= 该时间的 updates） */
+  snapshotServerTime?: number;
+  /** 可选：该快照对应的 stateVector（用于调试/后续优化；客户端仍可自行计算） */
+  stateVectorB64?: string;
 };
 
 type RemoteKey = {
@@ -40,10 +50,18 @@ const snapshotLastSet = new Map<string, { at: number; updateB64: string }>();
 const snapshotDeleteInflight = new Map<string, Promise<void>>();
 
 function isStoredSnapshot(v: any): v is StoredSnapshot {
-  return !!v
-    && v.v === 1
-    && typeof v.updateB64 === "string"
-    && typeof v.updatedAt === "number";
+  if (!v || typeof v !== "object")
+    return false;
+  if (v.v === 1) {
+    return typeof v.updateB64 === "string" && typeof v.updatedAt === "number";
+  }
+  if (v.v === 2) {
+    return typeof v.updateB64 === "string"
+      && typeof v.updatedAt === "number"
+      && (typeof v.snapshotServerTime === "undefined" || typeof v.snapshotServerTime === "number")
+      && (typeof v.stateVectorB64 === "undefined" || typeof v.stateVectorB64 === "string");
+  }
+  return false;
 }
 
 function tryParseSnapshot(raw: unknown): StoredSnapshot | null {
@@ -238,4 +256,102 @@ export async function deleteRemoteSnapshot(params: {
       snapshotDeleteInflight.delete(cacheKey);
     }
   }
+}
+
+export type RemoteUpdates = {
+  updates: string[];
+  latestServerTime: number;
+};
+
+function isRemoteUpdates(v: any): v is RemoteUpdates {
+  return !!v
+    && Array.isArray(v.updates)
+    && typeof v.latestServerTime === "number";
+}
+
+export async function getRemoteUpdates(params: {
+  entityType: DescriptionEntityType;
+  entityId: number;
+  docType: DescriptionDocType;
+  afterServerTime?: number;
+  limit?: number;
+}): Promise<RemoteUpdates | null> {
+  const res = await tuanchat.request.request<any>({
+    method: "GET",
+    url: "/blocksuite/doc/updates",
+    query: {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      afterServerTime: params.afterServerTime,
+      limit: params.limit,
+    },
+  });
+
+  const raw = (res as any)?.data ?? res ?? null;
+  if (isRemoteUpdates(raw)) {
+    return raw;
+  }
+  if (isRemoteUpdates((raw as any)?.data)) {
+    return (raw as any).data;
+  }
+  return null;
+}
+
+export type RemoteUpdatePushResponse = {
+  updateId: number;
+  serverTime: number;
+};
+
+function isRemoteUpdatePushResponse(v: any): v is RemoteUpdatePushResponse {
+  return !!v
+    && typeof v.updateId === "number"
+    && typeof v.serverTime === "number";
+}
+
+export async function pushRemoteUpdate(params: {
+  entityType: DescriptionEntityType;
+  entityId: number;
+  docType: DescriptionDocType;
+  updateB64: string;
+}): Promise<RemoteUpdatePushResponse | null> {
+  const res = await tuanchat.request.request<any>({
+    method: "POST",
+    url: "/blocksuite/doc/update",
+    body: {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      updateB64: params.updateB64,
+    },
+    mediaType: "application/json",
+  });
+
+  const raw = (res as any)?.data ?? res ?? null;
+  if (isRemoteUpdatePushResponse(raw)) {
+    return raw;
+  }
+  if (isRemoteUpdatePushResponse((raw as any)?.data)) {
+    return (raw as any).data;
+  }
+  return null;
+}
+
+export async function compactRemoteUpdates(params: {
+  entityType: DescriptionEntityType;
+  entityId: number;
+  docType: DescriptionDocType;
+  beforeOrEqServerTime: number;
+}): Promise<void> {
+  await tuanchat.request.request<any>({
+    method: "POST",
+    url: "/blocksuite/doc/compact",
+    body: {
+      entityType: params.entityType,
+      entityId: params.entityId,
+      docType: params.docType,
+      beforeOrEqServerTime: params.beforeOrEqServerTime,
+    },
+    mediaType: "application/json",
+  });
 }

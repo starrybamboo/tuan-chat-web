@@ -198,3 +198,4 @@
 - 约束：不允许跨 space 复制
 - 数据来源：复制以 Blocksuite “full update”为准——优先把源文档的远端快照 restore 到本地 workspace，再导出 full update；若远端不可用则回退本地 IndexedDB 内容
 - 远端落库：复制后会将目标文档的 full update 写入 `/blocksuite/doc`，供其它端恢复/预览
+- 实时协作：编辑阶段以 `/blocksuite/doc_update` 的 yjs updates 日志 + WebSocket fanout 为主；快照仅用于冷启动与压缩（详见 blocksuite 模块文档）
