@@ -19,6 +19,14 @@ export default function AudioMessage({ url, duration: initialDuration }: AudioMe
     if (!containerRef.current || !url)
       return;
 
+    let isCancelled = false;
+    const isAbortError = (err: unknown) => {
+      if (!err || typeof err !== "object")
+        return false;
+      const maybeError = err as { name?: string; message?: string };
+      return maybeError.name === "AbortError" || Boolean(maybeError.message?.includes("signal is aborted"));
+    };
+
     if (wavesurferRef.current) {
       wavesurferRef.current.destroy();
       wavesurferRef.current = null;
@@ -44,6 +52,8 @@ export default function AudioMessage({ url, duration: initialDuration }: AudioMe
       wavesurferRef.current.load(url);
 
       wavesurferRef.current.on("ready", () => {
+        if (isCancelled)
+          return;
         setIsLoading(false);
         if (wavesurferRef.current) {
           const d = wavesurferRef.current.getDuration();
@@ -52,18 +62,30 @@ export default function AudioMessage({ url, duration: initialDuration }: AudioMe
         }
       });
 
-      wavesurferRef.current.on("play", () => setIsPlaying(true));
-      wavesurferRef.current.on("pause", () => setIsPlaying(false));
+      wavesurferRef.current.on("play", () => {
+        if (!isCancelled)
+          setIsPlaying(true);
+      });
+      wavesurferRef.current.on("pause", () => {
+        if (!isCancelled)
+          setIsPlaying(false);
+      });
       wavesurferRef.current.on("finish", () => {
+        if (isCancelled)
+          return;
         setIsPlaying(false);
         setCurrentTime(0);
       });
       wavesurferRef.current.on("audioprocess", () => {
+        if (isCancelled)
+          return;
         if (wavesurferRef.current) {
           setCurrentTime(wavesurferRef.current.getCurrentTime());
         }
       });
       wavesurferRef.current.on("error", (err) => {
+        if (isCancelled || isAbortError(err))
+          return;
         console.error("WaveSurfer error:", err);
         setIsLoading(false);
       });
@@ -74,6 +96,7 @@ export default function AudioMessage({ url, duration: initialDuration }: AudioMe
     }
 
     return () => {
+      isCancelled = true;
       if (wavesurferRef.current) {
         wavesurferRef.current.destroy();
         wavesurferRef.current = null;
