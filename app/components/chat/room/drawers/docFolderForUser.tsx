@@ -358,10 +358,6 @@ export default function DocFolderForUser() {
   const [newDocTitle, setNewDocTitle] = useState("");
   const [newDocCategoryId, setNewDocCategoryId] = useState<string>("cat:docs");
 
-  const [renameDocOpen, setRenameDocOpen] = useState(false);
-  const [renameDocId, setRenameDocId] = useState<number | null>(null);
-  const [renameDocTitle, setRenameDocTitle] = useState("");
-
   const openDocMeta = openDocId != null ? docById.get(openDocId) : null;
   const openDocBlocksuiteId = useMemo(() => {
     if (openDocId == null)
@@ -467,36 +463,6 @@ export default function DocFolderForUser() {
       console.error("[DocFolderForUser] createDoc failed", err);
       toast.error("创建文档失败");
     }
-  };
-
-  const requestRenameDoc = (docId: number) => {
-    const current = docById.get(docId);
-    setRenameDocId(docId);
-    setRenameDocTitle((current?.title ?? "").trim() || "新文档");
-    setRenameDocOpen(true);
-  };
-
-  const submitRenameDoc = async () => {
-    if (renameDocId == null)
-      return;
-    const title = renameDocTitle.trim();
-    if (!title) {
-      toast.error("请输入标题");
-      return;
-    }
-    renameDocMutation.mutate({ spaceId, docId: renameDocId, title }, {
-      onSuccess: (res) => {
-        if (res?.success === false) {
-          toast.error(res.errMsg ?? "重命名失败");
-          return;
-        }
-        toast.success("标题已更新");
-        docsQuery.refetch();
-        setRenameDocOpen(false);
-        setRenameDocId(null);
-      },
-      onError: () => toast.error("重命名失败"),
-    });
   };
 
   const [deleteDocConfirmId, setDeleteDocConfirmId] = useState<number | null>(null);
@@ -817,7 +783,6 @@ export default function DocFolderForUser() {
                                               <DotsThreeVerticalIcon className="size-4" />
                                             </button>
                                             <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-44">
-                                              <li><a onClick={() => requestRenameDoc(node.targetId)}>重命名</a></li>
                                               <li><a onClick={() => requestDeleteDoc(node.targetId)}>删除</a></li>
                                             </ul>
                                           </div>
@@ -886,29 +851,6 @@ export default function DocFolderForUser() {
               onClick={() => void createDoc()}
             >
               创建
-            </button>
-          </div>
-        </div>
-      </PopWindow>
-
-      <PopWindow isOpen={renameDocOpen} onClose={() => setRenameDocOpen(false)}>
-        <div className="w-[min(520px,92vw)] p-6">
-          <div className="text-sm font-medium opacity-80 mb-3">重命名文档</div>
-          <input
-            className="input input-bordered w-full"
-            placeholder="文档标题"
-            value={renameDocTitle}
-            onChange={e => setRenameDocTitle(e.target.value)}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <button type="button" className="btn btn-ghost" onClick={() => setRenameDocOpen(false)}>取消</button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={renameDocMutation.isPending}
-              onClick={() => void submitRenameDoc()}
-            >
-              保存
             </button>
           </div>
         </div>
