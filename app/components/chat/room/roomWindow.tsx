@@ -7,6 +7,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { SpaceWebgalVarsRecord, WebgalVarMessagePayload } from "@/types/webgalVar";
 // *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +18,8 @@ import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrc
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
 import BgmFloatingBall from "@/components/chat/room/bgmFloatingBall";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
@@ -29,12 +32,12 @@ import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
+import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
@@ -44,8 +47,8 @@ import UTILS from "@/components/common/dicer/utils/utils";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
-import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -62,7 +65,6 @@ import {
 import { tuanchat } from "../../../../api/instance";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
@@ -1171,74 +1173,74 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     setIsSubmitting(true);
     try {
-       const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
-       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
+      const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+      const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
 
-       const resolvedAvatarIdByRole = new Map<number, number>();
-       const ensureAvatarIdForRole = async (roleId: number): Promise<number> => {
-         if (roleId <= 0) {
-           return -1;
-         }
-         const cached = resolvedAvatarIdByRole.get(roleId);
-         if (cached != null) {
-           return cached;
-         }
+      const resolvedAvatarIdByRole = new Map<number, number>();
+      const ensureAvatarIdForRole = async (roleId: number): Promise<number> => {
+        if (roleId <= 0) {
+          return -1;
+        }
+        const cached = resolvedAvatarIdByRole.get(roleId);
+        if (cached != null) {
+          return cached;
+        }
 
-         const ensured = await ensureRuntimeAvatarIdForRole(roleId);
-         resolvedAvatarIdByRole.set(roleId, ensured);
-         return ensured;
-       };
+        const ensured = await ensureRuntimeAvatarIdForRole(roleId);
+        resolvedAvatarIdByRole.set(roleId, ensured);
+        return ensured;
+      };
 
-       let dicerRoleId: number | null = null;
-       let dicerAvatarId: number | null = null;
+      let dicerRoleId: number | null = null;
+      let dicerAvatarId: number | null = null;
 
-       const ensureDicerSender = async () => {
-         if (dicerRoleId != null && dicerAvatarId != null) {
-           return;
-         }
-         const resolvedDicerRoleId = await UTILS.getDicerRoleId(roomContext);
-         dicerRoleId = resolvedDicerRoleId;
-         const ensured = await ensureAvatarIdForRole(resolvedDicerRoleId);
-         dicerAvatarId = ensured > 0 ? ensured : 0;
-       };
+      const ensureDicerSender = async () => {
+        if (dicerRoleId != null && dicerAvatarId != null) {
+          return;
+        }
+        const resolvedDicerRoleId = await UTILS.getDicerRoleId(roomContext);
+        dicerRoleId = resolvedDicerRoleId;
+        const ensured = await ensureAvatarIdForRole(resolvedDicerRoleId);
+        dicerAvatarId = ensured > 0 ? ensured : 0;
+      };
 
-       const uniqueRoleIds = Array.from(new Set(
-         messages
-           .map(m => m.roleId)
-           .filter(roleId => roleId > 0),
-       ));
-       for (const roleId of uniqueRoleIds) {
-         await ensureAvatarIdForRole(roleId);
-       }
+      const uniqueRoleIds = Array.from(new Set(
+        messages
+          .map(m => m.roleId)
+          .filter(roleId => roleId > 0),
+      ));
+      for (const roleId of uniqueRoleIds) {
+        await ensureAvatarIdForRole(roleId);
+      }
 
-       if (messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
-         await ensureDicerSender();
-       }
+      if (messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
+        await ensureDicerSender();
+      }
 
-       const total = messages.length;
-       for (let i = 0; i < messages.length; i++) {
-         const msg = messages[i];
-         let roleId = msg.roleId;
-         let avatarId = -1;
-         let messageType = MessageType.TEXT;
-         let extra: any = {};
-         const figurePosition = msg.figurePosition;
+      const total = messages.length;
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        let roleId = msg.roleId;
+        let avatarId = -1;
+        let messageType = MessageType.TEXT;
+        let extra: any = {};
+        const figurePosition = msg.figurePosition;
 
-         // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
-         if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
-           await ensureDicerSender();
-           roleId = dicerRoleId ?? roleId;
-           avatarId = dicerAvatarId ?? 0;
-           messageType = MessageType.DICE;
-           extra = { result: msg.content };
-         }
-         else {
-           avatarId = roleId <= 0 ? -1 : await ensureAvatarIdForRole(roleId);
-         }
+        // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
+        if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
+          await ensureDicerSender();
+          roleId = dicerRoleId ?? roleId;
+          avatarId = dicerAvatarId ?? 0;
+          messageType = MessageType.DICE;
+          extra = { result: msg.content };
+        }
+        else {
+          avatarId = roleId <= 0 ? -1 : await ensureAvatarIdForRole(roleId);
+        }
 
-         const request: ChatMessageRequest = {
-           roomId,
-           roleId,
+        const request: ChatMessageRequest = {
+          roomId,
+          roleId,
           avatarId,
           content: msg.content,
           messageType,
@@ -1372,6 +1374,46 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     await sendMessageWithInsert(request);
   }, [curRoleId, ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomId, sendMessageWithInsert, spaceContext.isSpaceOwner, spaceId]);
+
+  const docHeaderOverrides = useDocHeaderOverrideStore(state => state.headers);
+
+  const handleSendDocAsClue = useCallback(async (docId: string) => {
+    const rawDocId = String(docId ?? "").trim();
+    if (!rawDocId) {
+      toast.error("无效文档");
+      return;
+    }
+
+    // 1) 图片：优先使用文档 Header Override 的封面图（侧边栏同源）
+    const override = docHeaderOverrides?.[rawDocId];
+    const img = typeof override?.imageUrl === "string" ? override.imageUrl.trim() : "";
+
+    // 2) 标题：优先从 blocksuite workspace docMetas 获取（quickSearchService 同源）
+    let title = "";
+    try {
+      const workspaceMeta = (await tuanchat.blocksuiteDocController.getDoc({ workspaceId: `space:${spaceId}` }))?.data as any;
+      const metas: Array<{ id: string; title?: string }> = Array.isArray(workspaceMeta?.docMetas) ? workspaceMeta.docMetas : [];
+      title = (metas.find(m => m?.id === rawDocId)?.title ?? "").trim();
+    }
+    catch {
+      // ignore
+    }
+
+    // 3) 兜底标题
+    if (!title) {
+      const parsed = parseSpaceDocId(rawDocId);
+      const fallbackPrefix = parsed?.kind === "independent" ? "文档" : "文档";
+      title = `${fallbackPrefix}: ${rawDocId}`;
+    }
+
+    const clue: ClueMessage = {
+      img,
+      name: title,
+      description: `docId=${rawDocId}`,
+    };
+
+    await handleClueSend(clue);
+  }, [docHeaderOverrides, handleClueSend, spaceId]);
 
   // *** 新增: onPasteFiles 的回调处理器 ***
   const handlePasteFiles = (files: File[]) => {
@@ -1600,8 +1642,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                     onEffectChange={setCurrentEffect}
                     onExecuteCommandRequest={handleExecuteCommandRequest}
                     onSendDocCard={handleSendDocCard}
-                  >
-                  </ChatFrame>
+                    onDropDocToClue={({ docId }) => { void handleSendDocAsClue(docId); }}
+                  />
                 </div>
 
                 {/* 共享输入区域（主区 + Thread 共用） */}

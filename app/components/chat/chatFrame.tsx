@@ -5,19 +5,20 @@ import type {
   ImageMessage,
   Message,
 } from "../../../api";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
@@ -25,7 +26,6 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getImageSize } from "@/utils/getImgSize";
 import {
   useDeleteMessageMutation,
@@ -65,6 +65,9 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+
+  // 当用户把文档拖进聊天室时，交给外层转为 clueMessage 发送
+  onDropDocToClue?: (payload: { docId: string }) => void;
 }
 
 interface ThreadHintMeta {
@@ -85,6 +88,7 @@ function ChatFrame(props: ChatFrameProps) {
     onEffectChange,
     onSendDocCard,
     onExecuteCommandRequest,
+    onDropDocToClue,
   } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -1101,6 +1105,20 @@ function ChatFrame(props: ChatFrameProps) {
     setReplyMessage(message);
   }
 
+  const tryExtractDocIdFromDataTransfer = useCallback((dt: DataTransfer): string | null => {
+    // 1) 优先：如果 Sidebar/Doc 侧实现了自定义 mime（可逐步对接，不影响现有功能）
+    const explicit = dt.getData("application/x-tuanchat-doc-id") || dt.getData("application/x-tuanchat-docid");
+    if (explicit && explicit.trim())
+      return explicit.trim();
+
+    // 2) 兜底：从 text/plain 或 text/uri-list 推断 docId
+    const text = (dt.getData("text/plain") || dt.getData("text/uri-list") || "").trim();
+    if (!text)
+      return null;
+
+    return text;
+  }, []);
+
   /**
    * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
    * @param chatMessageResponse
@@ -1252,11 +1270,20 @@ function ChatFrame(props: ChatFrameProps) {
             return;
           }
 
-          if (!isFileDrag(e.dataTransfer))
+          if (isFileDrag(e.dataTransfer)) {
+            e.preventDefault();
+            e.stopPropagation();
+            addDroppedFilesToComposer(e.dataTransfer);
             return;
-          e.preventDefault();
-          e.stopPropagation();
-          addDroppedFilesToComposer(e.dataTransfer);
+          }
+
+          // 文档拖拽：转 clueMessage
+          const docId = tryExtractDocIdFromDataTransfer(e.dataTransfer);
+          if (docId) {
+            e.preventDefault();
+            e.stopPropagation();
+            onDropDocToClue?.({ docId });
+          }
         }}
       >
         {selectedMessageIds.size > 0 && (
