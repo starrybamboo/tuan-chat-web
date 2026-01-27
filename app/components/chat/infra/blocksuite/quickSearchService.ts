@@ -56,15 +56,49 @@ export function createBlocksuiteQuickSearchService(params: {
     dispose();
 
     return await new Promise<SearchDocResult | null>((resolve) => {
-      const rootDoc = (() => {
+      let rootDoc = document;
+      let rootWin = window;
+      let mountTarget: HTMLElement | null = document.body ?? document.documentElement;
+
+      try {
+        const topDoc = window.top?.document;
+        if (topDoc) {
+          rootDoc = topDoc;
+          rootWin = topDoc.defaultView ?? window;
+          mountTarget = topDoc.body ?? topDoc.documentElement;
+        }
+      }
+      catch {}
+
+      const fullscreenElement = (() => {
         try {
-          return window.top?.document ?? document;
+          return rootDoc.fullscreenElement ?? null;
         }
         catch {
-          return document;
+          return null;
         }
       })();
-      const rootWin = rootDoc.defaultView ?? window;
+
+      const isIframeElement = (el: Element): el is HTMLIFrameElement => {
+        const ctor = rootWin.HTMLIFrameElement;
+        return !!ctor && el instanceof ctor;
+      };
+
+      if (fullscreenElement) {
+        if (isIframeElement(fullscreenElement)) {
+          try {
+            if (fullscreenElement.contentDocument === document) {
+              rootDoc = document;
+              rootWin = window;
+              mountTarget = document.body ?? document.documentElement;
+            }
+          }
+          catch {}
+        }
+        else {
+          mountTarget = fullscreenElement as HTMLElement;
+        }
+      }
 
       const overlay = rootDoc.createElement("div");
       overlay.style.position = "fixed";
@@ -109,7 +143,7 @@ export function createBlocksuiteQuickSearchService(params: {
       panel.appendChild(list);
 
       overlay.appendChild(panel);
-      (rootDoc.body ?? rootDoc.documentElement).appendChild(overlay);
+      mountTarget?.appendChild(overlay);
 
       let selectedIndex = 0;
 
