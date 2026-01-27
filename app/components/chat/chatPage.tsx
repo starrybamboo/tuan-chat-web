@@ -42,6 +42,7 @@ import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivate
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 import RightChatView from "@/components/privateChat/RightChatView";
 import { SidebarSimpleIcon } from "@/icons";
+import SpacePreview from "@/routes/spacePreview";
 
 /**
  * chat板块的主组件
@@ -62,6 +63,7 @@ export default function ChatPage() {
   const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
 
   const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
+  const isSpacePreviewRoute = !isPrivateChatMode && urlRoomId === "preview";
   const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg"))
     ? urlRoomId
     : null;
@@ -1075,52 +1077,58 @@ export default function ChatPage() {
                             </div>
                           </div>
                         )
-                      : (mainView === "roomSetting" && roomSettingState)
-                          ? (
-                              <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                <div className="w-full h-full overflow-auto flex justify-center ">
-                                  <RoomSettingWindow
-                                    roomId={roomSettingState.roomId}
-                                    onClose={closeRoomSettingPage}
-                                    defaultTab={roomSettingState.tab}
-                                  />
-                                </div>
-                              </div>
-                            )
-                          : activeDocId
+                      : isSpacePreviewRoute
+                        ? (
+                            <div className="flex w-full h-full min-h-0 min-w-0">
+                              <SpacePreview />
+                            </div>
+                          )
+                        : (mainView === "roomSetting" && roomSettingState)
                             ? (
                                 <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                  <div className="w-full h-full overflow-hidden flex justify-center">
-                                    {isKPInSpace
-                                      ? (
-                                          <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
-                                            <BlocksuiteDescriptionEditor
-                                              workspaceId={`space:${activeSpaceId ?? -1}`}
-                                              spaceId={activeSpaceId ?? -1}
-                                              docId={activeDocId}
-                                              variant="full"
-                                              tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
-                                              onTcHeaderChange={handleDocTcHeaderChange}
-                                              allowModeSwitch
-                                              fullscreenEdgeless
-                                            />
-                                          </div>
-                                        )
-                                      : (
-                                          <div className="flex items-center justify-center w-full h-full font-bold">
-                                            <span className="text-center">仅KP可查看文档</span>
-                                          </div>
-                                        )}
+                                  <div className="w-full h-full overflow-auto flex justify-center ">
+                                    <RoomSettingWindow
+                                      roomId={roomSettingState.roomId}
+                                      onClose={closeRoomSettingPage}
+                                      defaultTab={roomSettingState.tab}
+                                    />
                                   </div>
                                 </div>
                               )
-                            : (
-                                <RoomWindow
-                                  roomId={activeRoomId ?? -1}
-                                  spaceId={activeSpaceId ?? -1}
-                                  targetMessageId={targetMessageId}
-                                />
-                              )
+                            : activeDocId
+                              ? (
+                                  <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                    <div className="w-full h-full overflow-hidden flex justify-center">
+                                      {isKPInSpace
+                                        ? (
+                                            <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+                                              <BlocksuiteDescriptionEditor
+                                                workspaceId={`space:${activeSpaceId ?? -1}`}
+                                                spaceId={activeSpaceId ?? -1}
+                                                docId={activeDocId}
+                                                variant="full"
+                                                tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
+                                                onTcHeaderChange={handleDocTcHeaderChange}
+                                                allowModeSwitch
+                                                fullscreenEdgeless
+                                              />
+                                            </div>
+                                          )
+                                        : (
+                                            <div className="flex items-center justify-center w-full h-full font-bold">
+                                              <span className="text-center">仅KP可查看文档</span>
+                                            </div>
+                                          )}
+                                    </div>
+                                  </div>
+                                )
+                              : (
+                                  <RoomWindow
+                                    roomId={activeRoomId ?? -1}
+                                    spaceId={activeSpaceId ?? -1}
+                                    targetMessageId={targetMessageId}
+                                  />
+                                )
                   )
                 : (
                     <div className="flex items-center justify-center w-full h-full font-bold">

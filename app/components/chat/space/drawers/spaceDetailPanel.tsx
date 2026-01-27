@@ -115,19 +115,19 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
       </div>
       {resolvedTab === "members" && (
-        <div className="h-full space-y-2 p-4 overflow-y-auto">
+        <div className="h-full space-y-2 overflow-y-auto">
           <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
       )}
 
       {resolvedTab === "setting" && spaceContext.isSpaceOwner && (
-        <div className="h-full p-4 overflow-y-auto">
+        <div className="h-full  overflow-y-auto">
           <SpaceSettingWindow onClose={onClose} />
         </div>
       )}
 
       {resolvedTab === "workflow" && (
-        <div className="h-full p-4 overflow-y-auto">
+        <div className="h-full overflow-y-auto">
           <WorkflowWindow></WorkflowWindow>
         </div>
       )}
