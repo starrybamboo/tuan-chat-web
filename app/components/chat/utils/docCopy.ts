@@ -128,11 +128,25 @@ export async function copyDocToSpaceUserDoc(params: {
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
   const sourceUpdate = await getDocUpdateForCopy({ spaceId: params.spaceId, docId: params.sourceDocId });
 
-  const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
-  if (!createRes?.success || !createRes.data?.docId) {
-    throw new Error(createRes?.errMsg ?? "创建文档失败");
-  }
-  const newEntityId = createRes.data.docId;
+  const createDocWithRetry = async (): Promise<number> => {
+    let lastErr = "";
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const createRes = await tuanchat.spaceUserDocFolderController.createDoc({ spaceId: params.spaceId, title });
+      if (createRes?.success && createRes.data?.docId) {
+        return createRes.data.docId;
+      }
+      lastErr = createRes?.errMsg ?? "创建文档失败";
+      if (!lastErr.includes("版本冲突")) {
+        throw new Error(lastErr);
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 120 * (attempt + 1));
+      });
+    }
+    throw new Error(lastErr || "创建文档失败");
+  };
+
+  const newEntityId = await createDocWithRetry();
 
   const [{ buildDescriptionDocId }, { setRemoteSnapshot }, { uint8ArrayToBase64 }, registry, { setBlocksuiteDocHeader }] = await Promise.all([
     import("@/components/chat/infra/blocksuite/descriptionDocId"),
