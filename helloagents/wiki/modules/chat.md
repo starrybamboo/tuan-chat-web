@@ -106,6 +106,17 @@
 - `preload="metadata"` 以避免全量预取；音频可边播边加载
 - 已移除 WaveSurfer 波形渲染逻辑
 
+### 4.2) 全局音频播放聚合（悬浮球）
+
+- 全局悬浮球用于聚合“所有正在播放的音频”，展示数量徽标，展开后以列表形式独立展示并允许操作（暂停/停止）
+- 音频消息本身仍按消息流独立显示与交互；悬浮球仅作为聚合入口
+- 关键入口：
+  - `app/components/common/audioPlaybackStore.ts`
+  - `app/components/common/useAudioPlaybackRegistration.ts`
+  - `app/components/common/audioFloatingBall.tsx`
+  - `app/components/chat/infra/bgm/bgmPlaybackRegistry.tsx`
+  - `app/root.tsx`
+
 ### 5) 房间角色：NPC+ 快速创建
 
 - KP 在“角色列表”点击 `NPC+` 打开“创建NPC”弹窗（复用角色创建流程），创建完成后自动加入当前房间
@@ -124,6 +135,7 @@
 
 ## 变更历史
 
+- [202601281930_audio-playback-floatball](../../history/2026-01/202601281930_audio-playback-floatball/) - 全局音频悬浮球：聚合所有正在播放音频并提供列表视图
 - [202601272011_import-chat-style](../../history/2026-01/202601272011_import-chat-style/) - 导入对话弹窗去双层容器，长内容可滚动
 - [202601242150_webgal_realtime_resync](../../history/2026-01/202601242150_webgal_realtime_resync/) - WebGAL 实时预览：消息插入/删除/移动/重排时自动重建历史，尾部追加仍增量追加
 - 2026-01-24 空间列表按钮悬停提示恢复为 tooltip 样式（允许溢出/截断）
