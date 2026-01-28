@@ -908,15 +908,80 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       // 3. 上传语音
       let soundMessageData: any = null;
       if (audioFile) {
-        const audio = new Audio(URL.createObjectURL(audioFile));
-        await new Promise((resolve) => {
-          audio.onloadedmetadata = () => resolve(null);
-        });
-        const duration = audio.duration;
-        const url = await uploadUtils.uploadAudio(audioFile, 1, 60);
+        const maxAudioDurationSec = 60;
+        const objectUrl = URL.createObjectURL(audioFile);
+        const durationSec = await (async () => {
+          try {
+            const audio = new Audio();
+            audio.preload = "metadata";
+            audio.src = objectUrl;
+            audio.load();
+
+            const fromMedia = await new Promise<number | undefined>((resolve) => {
+              const timeout = window.setTimeout(() => resolve(undefined), 3000);
+              const cleanup = () => {
+                window.clearTimeout(timeout);
+                audio.onloadedmetadata = null;
+                audio.onerror = null;
+                audio.onabort = null;
+              };
+
+              audio.onloadedmetadata = () => {
+                const d = audio.duration;
+                cleanup();
+                resolve(Number.isFinite(d) && d > 0 ? d : undefined);
+              };
+              audio.onerror = () => {
+                cleanup();
+                resolve(undefined);
+              };
+              audio.onabort = () => {
+                cleanup();
+                resolve(undefined);
+              };
+            });
+
+            if (fromMedia != null)
+              return fromMedia;
+          }
+          finally {
+            URL.revokeObjectURL(objectUrl);
+          }
+
+          try {
+            const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextCtor)
+              return undefined;
+
+            const audioContext: AudioContext = new AudioContextCtor();
+            try {
+              const buf = await audioFile.arrayBuffer();
+              const decoded = await audioContext.decodeAudioData(buf.slice(0));
+              const d = decoded?.duration;
+              return Number.isFinite(d) && d > 0 ? d : undefined;
+            }
+            finally {
+              try {
+                await audioContext.close();
+              }
+              catch {
+                // ignore
+              }
+            }
+          }
+          catch {
+            return undefined;
+          }
+        })();
+
+        const second = Number.isFinite(durationSec)
+          ? Math.min(maxAudioDurationSec, Math.max(1, Math.round(durationSec)))
+          : 1;
+
+        const url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
         soundMessageData = {
           url,
-          second: Math.round(duration),
+          second,
           fileName: audioFile.name,
           size: audioFile.size,
         };
