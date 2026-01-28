@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601281955 | audio_upload_debug | 变更 | 已完成 | [2026-01/202601281955_audio-upload-debug/](2026-01/202601281955_audio-upload-debug/) |
 | 202601281840 | audio_send_nan | 修复 | 已完成 | [2026-01/202601281840_audio-send-nan/](2026-01/202601281840_audio-send-nan/) |
 | 202601281930 | audio_playback_floatball | 功能 | 已完成 | [2026-01/202601281930_audio-playback-floatball/](2026-01/202601281930_audio-playback-floatball/) |
 | 202601272308 | blocksuite_yjs_sync_adapter | 变更 | 已完成 | [2026-01/202601272308_blocksuite_yjs_sync_adapter/](2026-01/202601272308_blocksuite_yjs_sync_adapter/) |
@@ -124,6 +125,7 @@
 
 ### 2026-01
 
+- [202601281955_audio-upload-debug](2026-01/202601281955_audio-upload-debug/) - 变更：音频上传/转码/发送调试日志开关（DEV）
 - [202601281840_audio-send-nan](2026-01/202601281840_audio-send-nan/) - 修复：发送语音消息 second=NaN 导致发送失败
 - [202601281930_audio-playback-floatball](2026-01/202601281930_audio-playback-floatball/) - 功能：全局音频悬浮球（聚合所有正在播放的音频并提供列表视图）
 - [202601272208_audio-stream](2026-01/202601272208_audio-stream/) - 变更：音频播放改为流式进度条组件

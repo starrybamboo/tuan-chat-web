@@ -1,5 +1,6 @@
 import { Md5 } from "ts-md5";
 
+import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { compressImage } from "@/utils/imgCompressUtils";
 
@@ -19,7 +20,14 @@ export class UploadUtils {
     }
 
     // 统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
+    const debugEnabled = isAudioUploadDebugEnabled();
+    const debugPrefix = "[tc-audio-upload]";
+    if (debugEnabled)
+      console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, { name: file.name, type: file.type, size: file.size, maxDuration, scene });
+
     const processedFile = await transcodeAudioFileToOpusOrThrow(file, { maxDurationSec: maxDuration });
+    if (debugEnabled)
+      console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size });
 
     // 1. 计算文件内容的哈希值
     const hash = await this.calculateFileHash(processedFile);
@@ -29,6 +37,9 @@ export class UploadUtils {
 
     // 3. 构造新的唯一文件名：hash_size.opus
     const newFileName = `${hash}_${fileSize}.opus`;
+
+    if (debugEnabled)
+      console.warn(`${debugPrefix} oss`, { fileName: newFileName });
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
@@ -44,6 +55,8 @@ export class UploadUtils {
     if (!ossData.data.downloadUrl) {
       throw new Error("获取下载地址失败");
     }
+    if (debugEnabled)
+      console.warn(`${debugPrefix} downloadUrl`, ossData.data.downloadUrl);
     return ossData.data.downloadUrl;
   }
 

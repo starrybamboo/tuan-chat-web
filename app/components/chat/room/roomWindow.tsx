@@ -47,6 +47,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
+import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -910,6 +911,19 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       if (audioFile) {
         const maxAudioDurationSec = 60;
         const objectUrl = URL.createObjectURL(audioFile);
+        const debugEnabled = isAudioUploadDebugEnabled();
+        const debugPrefix = "[tc-audio-upload]";
+
+        if (debugEnabled) {
+          console.warn(`${debugPrefix} roomWindow send audio`, {
+            name: audioFile.name,
+            type: audioFile.type,
+            size: audioFile.size,
+            lastModified: audioFile.lastModified,
+            maxAudioDurationSec,
+          });
+        }
+
         const durationSec = await (async () => {
           try {
             const audio = new Audio();
@@ -978,7 +992,19 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           ? Math.min(maxAudioDurationSec, Math.max(1, Math.round(durationSec)))
           : 1;
 
-        const url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
+        if (debugEnabled)
+          console.warn(`${debugPrefix} duration`, { durationSec, second });
+
+        let url = "";
+        try {
+          url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
+        }
+        catch (error) {
+          if (debugEnabled)
+            console.error(`${debugPrefix} uploadAudio failed`, error);
+          throw error;
+        }
+
         soundMessageData = {
           url,
           second,
