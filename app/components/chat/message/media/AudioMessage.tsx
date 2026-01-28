@@ -60,7 +60,7 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
         onPause={playback.onPause}
         onEnded={playback.onEnded}
         audioProps={{
-          preload: "metadata",
+          preload: "none",
           crossOrigin: "anonymous",
         }}
       />

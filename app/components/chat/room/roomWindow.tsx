@@ -909,7 +909,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       // 3. 上传语音
       let soundMessageData: any = null;
       if (audioFile) {
-        const maxAudioDurationSec = 60;
+        // 0 表示不截断（不再强制 60s 限制）
+        const maxAudioDurationSec = 0;
         const objectUrl = URL.createObjectURL(audioFile);
         const debugEnabled = isAudioUploadDebugEnabled();
         const debugPrefix = "[tc-audio-upload]";
@@ -921,7 +922,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
             type: audioFile.type,
             size: audioFile.size,
             lastModified: audioFile.lastModified,
-            maxAudioDurationSec,
+            truncateToSec: maxAudioDurationSec > 0 ? maxAudioDurationSec : null,
           });
         }
 
@@ -991,7 +992,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           })();
 
           const second = (typeof durationSec === "number" && Number.isFinite(durationSec))
-            ? Math.min(maxAudioDurationSec, Math.max(1, Math.round(durationSec)))
+            ? Math.max(1, Math.round(durationSec))
             : 1;
 
           if (debugEnabled)

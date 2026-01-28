@@ -47,6 +47,7 @@
 - OSS：修复 Vite dev 下 `@ffmpeg/core` 深层路径无法被 exports 解析导致的预转换报错
 - OSS：`@ffmpeg/core` 版本对齐 `@ffmpeg/ffmpeg` 内置 `CORE_VERSION=0.12.9`，并在 `memory access out of bounds` 时重置转码 worker 重试一次
 - OSS：音频上传增加输入文件大小上限（30MB）避免 wasm 内存崩溃
+- Chat：聊天音频消息不再强制 60s 截断（仍受转码超时与 30MB 上限约束）
 - BGM：音量值增加非有限数兜底，避免渲染时出现 `NaN` 导致 React 控制台警告
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
 - Chat：消息发言人名不再在“名称不一致/自定义名称”时显示 `*` 标记

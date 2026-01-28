@@ -32,10 +32,14 @@ export class UploadUtils {
     if (debugEnabled)
       console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, { name: file.name, type: file.type, size: file.size, maxDuration, scene });
 
+    const execTimeoutMs = maxDuration > 0
+      ? Math.max(60_000, Math.min(240_000, Math.floor(maxDuration * 4_000)))
+      : Math.max(120_000, Math.min(600_000, Math.floor((file.size / 1024 / 1024) * 20_000)));
+
     const processedFile = await transcodeAudioFileToOpusOrThrow(file, {
       maxDurationSec: maxDuration,
       loadTimeoutMs: 45_000,
-      execTimeoutMs: Math.max(60_000, Math.min(240_000, Math.floor(maxDuration * 4_000))),
+      execTimeoutMs,
     });
     if (debugEnabled)
       console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size });
