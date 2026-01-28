@@ -1,5 +1,6 @@
 import { Md5 } from "ts-md5";
 
+import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { compressImage } from "@/utils/imgCompressUtils";
 
 import { tuanchat } from "../../api/instance";
@@ -17,8 +18,8 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
-    // 检查并截断音频时长
-    const processedFile = await this.processAudioDuration(file, maxDuration);
+    // 统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
+    const processedFile = await transcodeAudioFileToOpusOrThrow(file, { maxDurationSec: maxDuration });
 
     // 1. 计算文件内容的哈希值
     const hash = await this.calculateFileHash(processedFile);
@@ -26,11 +27,8 @@ export class UploadUtils {
     // 2. 获取文件大小
     const fileSize = processedFile.size;
 
-    // 3. 安全地获取文件扩展名
-    const extension = processedFile.name.split(".").pop() || "wav"; // 音频默认使用 wav
-
-    // 4. 构造新的唯一文件名：hash_size.extension
-    const newFileName = `${hash}_${fileSize}.${extension}`;
+    // 3. 构造新的唯一文件名：hash_size.opus
+    const newFileName = `${hash}_${fileSize}.opus`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
