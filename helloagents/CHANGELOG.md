@@ -44,6 +44,7 @@
 - OSS：音频上传统一输出为 `audio/ogg`（Opus 编码，Ogg 容器），并使用 `.ogg` 后缀作为默认对象名扩展名
 - OSS：音频转码增加 FFmpeg 核心源 fallback + 超时控制，避免网络异常时上传流程卡死
 - OSS：默认优先从同源静态资源加载 `@ffmpeg/core`（避免公共 CDN 不可达导致转码失败）
+- OSS：修复 Vite dev 下 `@ffmpeg/core` 深层路径无法被 exports 解析导致的预转换报错
 - BGM：音量值增加非有限数兜底，避免渲染时出现 `NaN` 导致 React 控制台警告
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
 - Chat：消息发言人名不再在“名称不一致/自定义名称”时显示 `*` 标记
