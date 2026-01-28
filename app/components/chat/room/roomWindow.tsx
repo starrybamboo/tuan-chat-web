@@ -913,6 +913,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         const objectUrl = URL.createObjectURL(audioFile);
         const debugEnabled = isAudioUploadDebugEnabled();
         const debugPrefix = "[tc-audio-upload]";
+        const audioToastId = toast.loading("音频处理中（转码/上传中）…");
 
         if (debugEnabled) {
           console.warn(`${debugPrefix} roomWindow send audio`, {
@@ -924,93 +925,95 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           });
         }
 
-        const durationSec = await (async () => {
-          try {
-            const audio = new Audio();
-            audio.preload = "metadata";
-            audio.src = objectUrl;
-            audio.load();
-
-            const fromMedia = await new Promise<number | undefined>((resolve) => {
-              const timeout = window.setTimeout(() => resolve(undefined), 3000);
-              const cleanup = () => {
-                window.clearTimeout(timeout);
-                audio.onloadedmetadata = null;
-                audio.onerror = null;
-                audio.onabort = null;
-              };
-
-              audio.onloadedmetadata = () => {
-                const d = audio.duration;
-                cleanup();
-                resolve(Number.isFinite(d) && d > 0 ? d : undefined);
-              };
-              audio.onerror = () => {
-                cleanup();
-                resolve(undefined);
-              };
-              audio.onabort = () => {
-                cleanup();
-                resolve(undefined);
-              };
-            });
-
-            if (fromMedia != null)
-              return fromMedia;
-          }
-          finally {
-            URL.revokeObjectURL(objectUrl);
-          }
-
-          try {
-            const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContextCtor)
-              return undefined;
-
-            const audioContext: AudioContext = new AudioContextCtor();
+        try {
+          const durationSec = await (async () => {
             try {
-              const buf = await audioFile.arrayBuffer();
-              const decoded = await audioContext.decodeAudioData(buf.slice(0));
-              const d = decoded?.duration;
-              return Number.isFinite(d) && d > 0 ? d : undefined;
+              const audio = new Audio();
+              audio.preload = "metadata";
+              audio.src = objectUrl;
+              audio.load();
+
+              const fromMedia = await new Promise<number | undefined>((resolve) => {
+                const timeout = window.setTimeout(() => resolve(undefined), 3000);
+                const cleanup = () => {
+                  window.clearTimeout(timeout);
+                  audio.onloadedmetadata = null;
+                  audio.onerror = null;
+                  audio.onabort = null;
+                };
+
+                audio.onloadedmetadata = () => {
+                  const d = audio.duration;
+                  cleanup();
+                  resolve(Number.isFinite(d) && d > 0 ? d : undefined);
+                };
+                audio.onerror = () => {
+                  cleanup();
+                  resolve(undefined);
+                };
+                audio.onabort = () => {
+                  cleanup();
+                  resolve(undefined);
+                };
+              });
+
+              if (fromMedia != null)
+                return fromMedia;
             }
             finally {
+              URL.revokeObjectURL(objectUrl);
+            }
+
+            try {
+              const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+              if (!AudioContextCtor)
+                return undefined;
+
+              const audioContext: AudioContext = new AudioContextCtor();
               try {
-                await audioContext.close();
+                const buf = await audioFile.arrayBuffer();
+                const decoded = await audioContext.decodeAudioData(buf.slice(0));
+                const d = decoded?.duration;
+                return Number.isFinite(d) && d > 0 ? d : undefined;
               }
-              catch {
-                // ignore
+              finally {
+                try {
+                  await audioContext.close();
+                }
+                catch {
+                  // ignore
+                }
               }
             }
-          }
-          catch {
-            return undefined;
-          }
-        })();
+            catch {
+              return undefined;
+            }
+          })();
 
-        const second = (typeof durationSec === "number" && Number.isFinite(durationSec))
-          ? Math.min(maxAudioDurationSec, Math.max(1, Math.round(durationSec)))
-          : 1;
+          const second = (typeof durationSec === "number" && Number.isFinite(durationSec))
+            ? Math.min(maxAudioDurationSec, Math.max(1, Math.round(durationSec)))
+            : 1;
 
-        if (debugEnabled)
-          console.warn(`${debugPrefix} duration`, { durationSec, second });
+          if (debugEnabled)
+            console.warn(`${debugPrefix} duration`, { durationSec, second });
 
-        let url = "";
-        try {
-          url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
+          const url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
+
+          soundMessageData = {
+            url,
+            second,
+            fileName: audioFile.name,
+            size: audioFile.size,
+          };
+          setAudioFile(null);
         }
         catch (error) {
           console.error(`${debugPrefix} uploadAudio failed`, error);
           throw error;
         }
-
-        soundMessageData = {
-          url,
-          second,
-          fileName: audioFile.name,
-          size: audioFile.size,
-        };
-        setAudioFile(null);
+        finally {
+          toast.dismiss(audioToastId);
+        }
       }
 
       // 4. 构建并发送消息

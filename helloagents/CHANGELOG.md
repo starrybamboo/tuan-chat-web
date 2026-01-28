@@ -42,6 +42,7 @@
 - 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata
 - OSS：新增音频上传/转码/发送调试日志开关（仅 DEV，`tc:audio:upload:debug` / `__TC_AUDIO_UPLOAD_DEBUG`）
 - OSS：音频上传统一输出为 `audio/ogg`（Opus 编码，Ogg 容器），并使用 `.ogg` 后缀作为默认对象名扩展名
+- OSS：音频转码增加 FFmpeg 核心源 fallback + 超时控制，避免网络异常时上传流程卡死
 - BGM：音量值增加非有限数兜底，避免渲染时出现 `NaN` 导致 React 控制台警告
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
 - Chat：消息发言人名不再在“名称不一致/自定义名称”时显示 `*` 标记
