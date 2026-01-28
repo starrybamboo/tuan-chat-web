@@ -38,7 +38,9 @@ if (typeof window !== "undefined" && window.customElements) {
 // pinpoint which module instance is triggering the warning.
 if (typeof window !== "undefined" && import.meta.env.DEV) {
   const originalWarn = console.warn;
+  const originalError = console.error;
   let printedLitMultiStack = false;
+  let printedNaNChildrenStack = false;
 
   console.warn = (...args: unknown[]) => {
     try {
@@ -55,6 +57,23 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
     }
 
     originalWarn(...args);
+  };
+
+  console.error = (...args: unknown[]) => {
+    try {
+      const first = typeof args[0] === "string" ? (args[0] as string) : "";
+      if (!printedNaNChildrenStack && first.includes("Received NaN for the `children` attribute")) {
+        printedNaNChildrenStack = true;
+        originalError(...args);
+        originalError(`[tc] NaN children warn stack:\n${new Error("NaN children warn stack").stack ?? ""}`);
+        return;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    originalError(...args);
   };
 }
 

@@ -25,7 +25,11 @@ export class UploadUtils {
     if (debugEnabled)
       console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, { name: file.name, type: file.type, size: file.size, maxDuration, scene });
 
-    const processedFile = await transcodeAudioFileToOpusOrThrow(file, { maxDurationSec: maxDuration });
+    const processedFile = await transcodeAudioFileToOpusOrThrow(file, {
+      maxDurationSec: maxDuration,
+      loadTimeoutMs: 45_000,
+      execTimeoutMs: Math.max(60_000, Math.min(240_000, Math.floor(maxDuration * 4_000))),
+    });
     if (debugEnabled)
       console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size });
 
@@ -217,14 +221,24 @@ export class UploadUtils {
   }
 
   private async executeUpload(url: string, file: File): Promise<void> {
-    const response = await fetch(url, {
-      method: "PUT",
-      body: file,
-      headers: {
-        "Content-Type": file.type,
-        "x-oss-acl": "public-read",
-      },
-    });
+    const controller = new AbortController();
+    const t = globalThis.setTimeout(() => controller.abort(), 120_000);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "PUT",
+        body: file,
+        signal: controller.signal,
+        headers: {
+          "Content-Type": file.type,
+          "x-oss-acl": "public-read",
+        },
+      });
+    }
+    finally {
+      globalThis.clearTimeout(t);
+    }
 
     if (!response.ok) {
       throw new Error(`文件传输失败: ${response.status}`);
