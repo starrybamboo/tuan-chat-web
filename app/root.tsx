@@ -13,7 +13,9 @@ import {
   useLocation,
   useNavigate,
 } from "react-router";
+import BgmPlaybackRegistry from "@/components/chat/infra/bgm/bgmPlaybackRegistry";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import AudioFloatingBall from "@/components/common/audioFloatingBall";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
@@ -149,6 +151,8 @@ export default function App() {
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
+      <BgmPlaybackRegistry />
+      <AudioFloatingBall />
     </GlobalContextProvider>
   );
 }

@@ -651,6 +651,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <AudioMessage
             url={soundMsg.url || ""}
             duration={soundMsg.second}
+            title={soundMsg.fileName || (currentPurpose === "bgm" ? "BGM" : currentPurpose === "se" ? "音效" : "语音")}
           />
           {/* 音频类型选择器 */}
           {canEdit && (

@@ -7,6 +7,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { SpaceWebgalVarsRecord, WebgalVarMessagePayload } from "@/types/webgalVar";
 // *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -17,8 +18,9 @@ import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrc
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
-import BgmFloatingBall from "@/components/chat/room/bgmFloatingBall";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomPopWindows from "@/components/chat/room/roomPopWindows";
@@ -34,18 +36,17 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
 import UTILS from "@/components/common/dicer/utils/utils";
+
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-
-import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -62,8 +63,6 @@ import {
 import { tuanchat } from "../../../../api/instance";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
-import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
@@ -830,7 +829,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     finally {
       webgalVarSendingRef.current = false;
     }
-  }, [curAvatarId, curRoleId, isSubmitting, notMember, roomId, sendMessageWithInsert, setSpaceExtraMutation, space?.extra, spaceContext.isSpaceOwner, spaceId]);
+  }, [curRoleId, ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomId, sendMessageWithInsert, setSpaceExtraMutation, space?.extra, spaceContext.isSpaceOwner, spaceId]);
 
   const handleMessageSubmit = async () => {
     const {
@@ -1172,74 +1171,74 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     setIsSubmitting(true);
     try {
-       const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
-       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
+      const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+      const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
 
-       const resolvedAvatarIdByRole = new Map<number, number>();
-       const ensureAvatarIdForRole = async (roleId: number): Promise<number> => {
-         if (roleId <= 0) {
-           return -1;
-         }
-         const cached = resolvedAvatarIdByRole.get(roleId);
-         if (cached != null) {
-           return cached;
-         }
+      const resolvedAvatarIdByRole = new Map<number, number>();
+      const ensureAvatarIdForRole = async (roleId: number): Promise<number> => {
+        if (roleId <= 0) {
+          return -1;
+        }
+        const cached = resolvedAvatarIdByRole.get(roleId);
+        if (cached != null) {
+          return cached;
+        }
 
-         const ensured = await ensureRuntimeAvatarIdForRole(roleId);
-         resolvedAvatarIdByRole.set(roleId, ensured);
-         return ensured;
-       };
+        const ensured = await ensureRuntimeAvatarIdForRole(roleId);
+        resolvedAvatarIdByRole.set(roleId, ensured);
+        return ensured;
+      };
 
-       let dicerRoleId: number | null = null;
-       let dicerAvatarId: number | null = null;
+      let dicerRoleId: number | null = null;
+      let dicerAvatarId: number | null = null;
 
-       const ensureDicerSender = async () => {
-         if (dicerRoleId != null && dicerAvatarId != null) {
-           return;
-         }
-         const resolvedDicerRoleId = await UTILS.getDicerRoleId(roomContext);
-         dicerRoleId = resolvedDicerRoleId;
-         const ensured = await ensureAvatarIdForRole(resolvedDicerRoleId);
-         dicerAvatarId = ensured > 0 ? ensured : 0;
-       };
+      const ensureDicerSender = async () => {
+        if (dicerRoleId != null && dicerAvatarId != null) {
+          return;
+        }
+        const resolvedDicerRoleId = await UTILS.getDicerRoleId(roomContext);
+        dicerRoleId = resolvedDicerRoleId;
+        const ensured = await ensureAvatarIdForRole(resolvedDicerRoleId);
+        dicerAvatarId = ensured > 0 ? ensured : 0;
+      };
 
-       const uniqueRoleIds = Array.from(new Set(
-         messages
-           .map(m => m.roleId)
-           .filter(roleId => roleId > 0),
-       ));
-       for (const roleId of uniqueRoleIds) {
-         await ensureAvatarIdForRole(roleId);
-       }
+      const uniqueRoleIds = Array.from(new Set(
+        messages
+          .map(m => m.roleId)
+          .filter(roleId => roleId > 0),
+      ));
+      for (const roleId of uniqueRoleIds) {
+        await ensureAvatarIdForRole(roleId);
+      }
 
-       if (messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
-         await ensureDicerSender();
-       }
+      if (messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
+        await ensureDicerSender();
+      }
 
-       const total = messages.length;
-       for (let i = 0; i < messages.length; i++) {
-         const msg = messages[i];
-         let roleId = msg.roleId;
-         let avatarId = -1;
-         let messageType = MessageType.TEXT;
-         let extra: any = {};
-         const figurePosition = msg.figurePosition;
+      const total = messages.length;
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        let roleId = msg.roleId;
+        let avatarId = -1;
+        let messageType = MessageType.TEXT;
+        let extra: any = {};
+        const figurePosition = msg.figurePosition;
 
-         // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
-         if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
-           await ensureDicerSender();
-           roleId = dicerRoleId ?? roleId;
-           avatarId = dicerAvatarId ?? 0;
-           messageType = MessageType.DICE;
-           extra = { result: msg.content };
-         }
-         else {
-           avatarId = roleId <= 0 ? -1 : await ensureAvatarIdForRole(roleId);
-         }
+        // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
+        if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
+          await ensureDicerSender();
+          roleId = dicerRoleId ?? roleId;
+          avatarId = dicerAvatarId ?? 0;
+          messageType = MessageType.DICE;
+          extra = { result: msg.content };
+        }
+        else {
+          avatarId = roleId <= 0 ? -1 : await ensureAvatarIdForRole(roleId);
+        }
 
-         const request: ChatMessageRequest = {
-           roomId,
-           roleId,
+        const request: ChatMessageRequest = {
+          roomId,
+          roleId,
           avatarId,
           content: msg.content,
           messageType,
@@ -1666,9 +1665,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onCompositionEnd={() => isComposingRef.current = false}
                   inputDisabled={notMember && noRole}
                 />
-
-                {/* BGM 悬浮球：仅在本房间有BGM且用户未主动关闭时显示 */}
-                <BgmFloatingBall roomId={roomId} />
               </div>
 
               {/* 右侧轻量抽屉：仅影响 Header 下方的主体区域 */}
