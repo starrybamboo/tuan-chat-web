@@ -139,6 +139,7 @@
     "react-d3-tree": "^3.6.6",
     "react-dom": "^19.0.0",
     "react-h5-audio-player": "^3.10.1",
+    "wavesurfer.js": "^7.9.5",
     "react-hook-form": "^7.55.0",
     "react-hot-toast": "^2.5.2",
     "react-image-crop": "^11.0.7",

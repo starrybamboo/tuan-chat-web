@@ -102,9 +102,8 @@
 
 ### 4.1) 音频消息播放（AudioMessage）
 
-- 播放组件改为 `react-h5-audio-player`（Media Element），支持流式加载与可拖动进度条
-- `preload="none"`：列表渲染/滚动/刷新时不主动探测 Range，点击播放时再开始拉取（减少“看似重复下载”）
-- 已移除 WaveSurfer 波形渲染逻辑
+- 播放组件使用 WaveSurfer（波形播放器）
+- 为避免列表渲染/刷新时触发 Range 拉取：WaveSurfer **仅在点击播放时**才初始化并加载音频
 - 发送侧会填充 `extra.soundMessage.second`（音频时长，秒）；当浏览器无法解析本地音频时长导致 `duration=NaN` 时，会进行兜底（避免 second 非法导致发送失败）
 
 ### 4.2) 全局音频播放聚合（悬浮球）
