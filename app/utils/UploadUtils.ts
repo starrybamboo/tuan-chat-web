@@ -19,6 +19,13 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
+    // 保护：避免超大文件导致浏览器内存/wasm 失败（转码需要把输入放入 wasm FS）
+    const maxInputBytes = 30 * 1024 * 1024; // 30MB
+    if (file.size > maxInputBytes) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
+    }
+
     // 统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
     const debugEnabled = isAudioUploadDebugEnabled();
     const debugPrefix = "[tc-audio-upload]";

@@ -11,7 +11,8 @@ export type AudioTranscodeOptions = {
 };
 
 const DEFAULT_BITRATE_KBPS = 96;
-const FFMPEG_CORE_VERSION = "0.12.10";
+// 对齐 @ffmpeg/ffmpeg 内置 CORE_VERSION（避免 wrapper/core 版本不一致带来兼容性风险）
+const FFMPEG_CORE_VERSION = "0.12.9";
 const DEFAULT_FFMPEG_CORE_BASE_URLS = [
   `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/umd`,
   `https://unpkg.com/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/umd`,
@@ -21,6 +22,29 @@ const DEFAULT_LOAD_TIMEOUT_MS = 45_000;
 const DEFAULT_EXEC_TIMEOUT_MS = 120_000;
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
+
+function normalizeErrorMessage(error: unknown): string {
+  if (error instanceof Error)
+    return error.message;
+  return String(error);
+}
+
+function isWasmMemoryOutOfBounds(error: unknown): boolean {
+  const msg = normalizeErrorMessage(error).toLowerCase();
+  return msg.includes("memory access out of bounds");
+}
+
+async function terminateFfmpegAndResetSingleton(ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg | null | undefined): Promise<void> {
+  ffmpegSingletonPromise = null;
+  if (!ffmpeg)
+    return;
+  try {
+    ffmpeg.terminate();
+  }
+  catch {
+    // ignore
+  }
+}
 
 function getFfmpegCoreBaseUrlCandidates(): string[] {
   const env = (import.meta as any)?.env;
@@ -203,73 +227,225 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
   const ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化");
   const { fetchFile } = await import("@ffmpeg/util");
 
-  const inputSafeName = `input-${Date.now()}-${Math.random().toString(16).slice(2)}${(() => {
-    const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
-    return ext || ".bin";
-  })()}`;
-  const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.ogg`;
+  const runOnce = async (params: { bitrateKbps: number; downmixToMono: boolean; sampleRateHz?: number; compressionLevel: number; tag: string }) => {
+    const inputSafeName = `input-${Date.now()}-${Math.random().toString(16).slice(2)}${(() => {
+      const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
+      return ext || ".bin";
+    })()}`;
+    const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.ogg`;
+
+    try {
+      await ffmpeg.writeFile(inputSafeName, await fetchFile(inputFile));
+
+      const args: string[] = [
+        "-hide_banner",
+        "-nostdin",
+        "-y",
+        "-i",
+        inputSafeName,
+      ];
+      if (maxDurationSec)
+        args.push("-t", String(maxDurationSec));
+
+      args.push(
+        "-vn",
+        "-map_metadata",
+        "-1",
+      );
+
+      if (params.downmixToMono)
+        args.push("-ac", "1");
+
+      if (params.sampleRateHz && params.sampleRateHz > 0)
+        args.push("-ar", String(params.sampleRateHz));
+
+      args.push(
+        "-c:a",
+        "libopus",
+        "-b:a",
+        `${params.bitrateKbps}k`,
+        "-vbr",
+        "on",
+        "-compression_level",
+        String(params.compressionLevel),
+        "-application",
+        "audio",
+        "-f",
+        "ogg",
+        outputSafeName,
+      );
+
+      if (debugEnabled) {
+        console.warn(`${debugPrefix} ffmpeg input`, { name: inputFile.name, type: inputFile.type, size: inputFile.size });
+        console.warn(`${debugPrefix} ffmpeg args`, {
+          tag: params.tag,
+          bitrateKbps: params.bitrateKbps,
+          maxDurationSec,
+          downmixToMono: params.downmixToMono,
+          sampleRateHz: params.sampleRateHz,
+          execTimeoutMs,
+          args,
+          baseUrlCandidates: getFfmpegCoreBaseUrlCandidates(),
+        });
+      }
+
+      const controller = new AbortController();
+      const t = globalThis.setTimeout(() => controller.abort(), execTimeoutMs);
+      let ret: number;
+      try {
+        // 同时设置 core 内部 timeout + 外部 abort（避免 worker 卡死）
+        ret = await ffmpeg.exec(args, execTimeoutMs, { signal: controller.signal });
+      }
+      finally {
+        globalThis.clearTimeout(t);
+      }
+
+      if (ret !== 0)
+        throw new Error(`FFmpeg 转码失败（ret=${ret}）`);
+
+      const outData = await ffmpeg.readFile(outputSafeName);
+      if (typeof outData === "string")
+        throw new TypeError("FFmpeg 输出数据类型异常");
+
+      const outBytes: Uint8Array = outData;
+      const outBlob = new Blob([outBytes], { type: "audio/ogg" });
+      const outName = ensureOpusFileName(inputFile.name);
+      const outFile = new File([outBlob], outName, { type: "audio/ogg" });
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg output`, { tag: params.tag, name: outFile.name, type: outFile.type, size: outFile.size });
+      return outFile;
+    }
+    finally {
+      try {
+        await ffmpeg.deleteFile(inputSafeName);
+      }
+      catch {}
+
+      try {
+        await ffmpeg.deleteFile(outputSafeName);
+      }
+      catch {}
+    }
+  };
 
   try {
-    await ffmpeg.writeFile(inputSafeName, await fetchFile(inputFile));
-
-    const args: string[] = ["-i", inputSafeName];
-    if (maxDurationSec)
-      args.push("-t", String(maxDurationSec));
-
-    args.push(
-      "-vn",
-      "-map_metadata",
-      "-1",
-      "-c:a",
-      "libopus",
-      "-b:a",
-      `${bitrateKbps}k`,
-      "-vbr",
-      "on",
-      "-compression_level",
-      "10",
-      "-application",
-      "audio",
-      "-f",
-      "ogg",
-      outputSafeName,
-    );
-
-    if (debugEnabled) {
-      console.warn(`${debugPrefix} ffmpeg input`, { name: inputFile.name, type: inputFile.type, size: inputFile.size });
-      console.warn(`${debugPrefix} ffmpeg args`, { bitrateKbps, maxDurationSec, args, loadTimeoutMs, execTimeoutMs, baseUrlCandidates: getFfmpegCoreBaseUrlCandidates() });
-    }
-
-    await withTimeout(ffmpeg.exec(args), execTimeoutMs, "FFmpeg 转码");
-    const outData = await ffmpeg.readFile(outputSafeName);
-    if (typeof outData === "string")
-      throw new TypeError("FFmpeg 输出数据类型异常");
-
-    const outBytes: Uint8Array = outData;
-
-    const outBlob = new Blob([outBytes], { type: "audio/ogg" });
-    const outName = ensureOpusFileName(inputFile.name);
-    const outFile = new File([outBlob], outName, { type: "audio/ogg" });
-    if (debugEnabled)
-      console.warn(`${debugPrefix} ffmpeg output`, { name: outFile.name, type: outFile.type, size: outFile.size });
-    return outFile;
+    return await runOnce({
+      tag: "primary",
+      bitrateKbps,
+      downmixToMono: false,
+      compressionLevel: 10,
+    });
   }
   catch (error) {
     if (debugEnabled)
       console.error(`${debugPrefix} ffmpeg transcode failed`, error);
-    const msg = error instanceof Error ? error.message : String(error);
-    throw new Error(`音频转码失败，已阻止上传: ${msg}`);
-  }
-  finally {
-    try {
-      await ffmpeg.deleteFile(inputSafeName);
-    }
-    catch {}
 
-    try {
-      await ffmpeg.deleteFile(outputSafeName);
+    // 常见：WASM 内存越界（某些输入/环境下会发生），尝试重置 worker 并用更保守参数重试一次
+    if (isWasmMemoryOutOfBounds(error)) {
+      if (debugEnabled)
+        console.warn(`${debugPrefix} retry after wasm memory OOB`);
+
+      await terminateFfmpegAndResetSingleton(ffmpeg);
+
+      try {
+        const ffmpeg2 = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化（重试）");
+        const { fetchFile: fetchFile2 } = await import("@ffmpeg/util");
+        // reuse closures by shadowing
+        const _ffmpeg = ffmpeg2;
+        const _fetchFile = fetchFile2;
+
+        const runOnceRetry = async () => {
+          const inputSafeName = `input-${Date.now()}-${Math.random().toString(16).slice(2)}${(() => {
+            const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
+            return ext || ".bin";
+          })()}`;
+          const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.ogg`;
+
+          try {
+            await _ffmpeg.writeFile(inputSafeName, await _fetchFile(inputFile));
+            const args: string[] = [
+              "-hide_banner",
+              "-nostdin",
+              "-y",
+              "-i",
+              inputSafeName,
+            ];
+            if (maxDurationSec)
+              args.push("-t", String(maxDurationSec));
+
+            args.push(
+              "-vn",
+              "-map_metadata",
+              "-1",
+              // 更保守：单声道 + 24kHz + 更低复杂度
+              "-ac",
+              "1",
+              "-ar",
+              "24000",
+              "-c:a",
+              "libopus",
+              "-b:a",
+              `${Math.min(64, bitrateKbps)}k`,
+              "-vbr",
+              "on",
+              "-compression_level",
+              "8",
+              "-application",
+              "audio",
+              "-f",
+              "ogg",
+              outputSafeName,
+            );
+
+            if (debugEnabled)
+              console.warn(`${debugPrefix} ffmpeg args`, { tag: "retry", args });
+
+            const controller = new AbortController();
+            const t = globalThis.setTimeout(() => controller.abort(), execTimeoutMs);
+            let ret: number;
+            try {
+              ret = await _ffmpeg.exec(args, execTimeoutMs, { signal: controller.signal });
+            }
+            finally {
+              globalThis.clearTimeout(t);
+            }
+
+            if (ret !== 0)
+              throw new Error(`FFmpeg 转码失败（ret=${ret}）`);
+
+            const outData = await _ffmpeg.readFile(outputSafeName);
+            if (typeof outData === "string")
+              throw new TypeError("FFmpeg 输出数据类型异常");
+
+            const outBytes: Uint8Array = outData;
+            const outBlob = new Blob([outBytes], { type: "audio/ogg" });
+            return new File([outBlob], ensureOpusFileName(inputFile.name), { type: "audio/ogg" });
+          }
+          finally {
+            try {
+              await _ffmpeg.deleteFile(inputSafeName);
+            }
+            catch {}
+
+            try {
+              await _ffmpeg.deleteFile(outputSafeName);
+            }
+            catch {}
+          }
+        };
+
+        return await runOnceRetry();
+      }
+      catch (retryError) {
+        if (debugEnabled)
+          console.error(`${debugPrefix} ffmpeg retry failed`, retryError);
+        const msg = normalizeErrorMessage(retryError);
+        throw new Error(`音频转码失败，已阻止上传: ${msg}`);
+      }
     }
-    catch {}
+
+    const msg = normalizeErrorMessage(error);
+    throw new Error(`音频转码失败，已阻止上传: ${msg}`);
   }
 }
 
