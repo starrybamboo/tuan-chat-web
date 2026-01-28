@@ -1,4 +1,4 @@
-import { CheckerboardIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -179,6 +179,15 @@ export default function ChatToolbarDock({
 
       {showRunControls && runModeEnabled && (
         <div className="flex gap-2 ml-0.5 mb-1 md:mb-0 md:mt-1">
+          <div
+            className="tooltip tooltip-top hover:text-info"
+            data-tip="我的文档"
+            data-side-drawer-toggle="true"
+            onClick={() => setSideDrawerState(sideDrawerState === "docFolder" ? "none" : "docFolder")}
+          >
+            <FileTextIcon className="size-6" />
+          </div>
+
           <div className="tooltip tooltip-top hover:text-info" data-tip="查看线索" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}>
             <Detective className="size-6" />
           </div>

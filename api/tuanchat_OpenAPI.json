@@ -18644,7 +18644,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultObject": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -21953,10 +21953,13 @@
             "type": "string",
             "format": "date-time"
           },
+          "diceMaiden": {
+            "type": "boolean"
+          },
           "role": {
             "type": "boolean"
           },
-          "diceMaiden": {
+          "npc": {
             "type": "boolean"
           },
           "npc": {

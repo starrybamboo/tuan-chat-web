@@ -1,6 +1,7 @@
 import type { ClueMessage } from "../../../../api/models/ClueMessage";
 import React from "react";
 import ClueListForPL from "@/components/chat/room/drawers/clueListForPL";
+import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
 import RoomUserList from "@/components/chat/room/drawers/roomUserList";
@@ -21,6 +22,7 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
 
   const defaultDrawerMinWidth = 240;
   const defaultDrawerMaxWidth = 480;
+  const docFolderDrawerWidth = 320;
   const sidebarPanelClassName = "shadow-none border-l border-base-300";
 
   return (
@@ -74,6 +76,16 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
       >
         <div className="overflow-auto flex-1">
           <InitiativeList />
+        </div>
+      </VaulSideDrawer>
+
+      <VaulSideDrawer
+        isOpen={sideDrawerState === "docFolder"}
+        width={docFolderDrawerWidth}
+        panelClassName={sidebarPanelClassName}
+      >
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <DocFolderForUser />
         </div>
       </VaulSideDrawer>
 
