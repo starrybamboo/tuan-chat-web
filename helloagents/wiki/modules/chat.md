@@ -184,6 +184,7 @@
   - `spaceId: number`（用于同一 space 校验/降级）
   - `title?: string`（发送时兜底标题）
   - `imageUrl?: string`（发送时兜底封面）
+  - `excerpt?: string`（发送时兜底摘要；消息列表卡片摘要仅依赖该字段，不在渲染时读取/拉取文档内容）
  - 兼容：若历史/后端消息未写入 `messageType=DOC_CARD`，但 `extra.docCard` 存在，前端仍会按文档卡片消息渲染
 
 #### 约束

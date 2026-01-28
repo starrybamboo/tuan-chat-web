@@ -63,6 +63,7 @@ import { tuanchat } from "../../../../api/instance";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
@@ -1347,6 +1348,26 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
+    let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
+    if (!excerpt) {
+      try {
+        const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+
+        const store = getOrCreateSpaceDoc({ spaceId, docId }) as any;
+        try {
+          store?.load?.();
+        }
+        catch {
+          // ignore
+        }
+
+        excerpt = extractDocExcerptFromStore(store, { maxChars: 220 });
+      }
+      catch {
+        // ignore
+      }
+    }
+
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
     const request: ChatMessageRequest = {
@@ -1361,6 +1382,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           spaceId,
           ...(payload?.title ? { title: payload.title } : {}),
           ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
+          ...(excerpt ? { excerpt } : {}),
         },
       } as any,
     };
