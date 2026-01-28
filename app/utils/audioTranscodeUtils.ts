@@ -1,3 +1,6 @@
+import bundledCoreJsUrl from "@ffmpeg/core/dist/umd/ffmpeg-core.js?url";
+import bundledCoreWasmUrl from "@ffmpeg/core/dist/umd/ffmpeg-core.wasm?url";
+
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 
 export type AudioTranscodeOptions = {
@@ -56,8 +59,22 @@ async function fetchToBlobURL(url: string, mimeType: string, timeoutMs: number):
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok)
       throw new Error(`下载失败: ${res.status} ${res.statusText}`);
-    const blob = await res.blob();
-    return URL.createObjectURL(new Blob([blob], { type: mimeType }));
+    const buf = await res.arrayBuffer();
+
+    // 轻量校验，避免下载到 HTML / 代理错误页导致后续 importScripts 报 "failed to import"
+    if (mimeType === "application/wasm") {
+      const bytes = new Uint8Array(buf);
+      const isWasm = bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6D;
+      if (!isWasm)
+        throw new Error("WASM 文件签名异常（可能下载到错误页/代理页）");
+    }
+    else if (mimeType === "text/javascript") {
+      const head = new TextDecoder("utf-8").decode(buf.slice(0, 256)).trimStart().toLowerCase();
+      if (head.startsWith("<!doctype") || head.startsWith("<html") || head.startsWith("<script") || head.startsWith("<!—") || head.startsWith("<!--"))
+        throw new Error("JS 文件内容异常（可能下载到 HTML/代理页）");
+    }
+
+    return URL.createObjectURL(new Blob([buf], { type: mimeType }));
   }
   finally {
     globalThis.clearTimeout(t);
@@ -82,6 +99,13 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
       ]);
 
       const candidates = getFfmpegCoreBaseUrlCandidates();
+      const bundledCandidates = [
+        {
+          label: "bundled",
+          coreJs: bundledCoreJsUrl,
+          wasm: bundledCoreWasmUrl,
+        },
+      ];
 
       const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
 
@@ -102,6 +126,29 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
       }
 
       const errors: string[] = [];
+      for (const c of bundledCandidates) {
+        try {
+          if (debugEnabled)
+            console.warn(`${debugPrefix} ffmpeg core candidate`, c.label);
+
+          const coreURL = await fetchToBlobURL(c.coreJs, "text/javascript", DEFAULT_LOAD_TIMEOUT_MS);
+          const wasmURL = await fetchToBlobURL(c.wasm, "application/wasm", DEFAULT_LOAD_TIMEOUT_MS);
+
+          await withTimeout(ffmpeg.load({ coreURL, wasmURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
+
+          if (debugEnabled)
+            console.warn(`${debugPrefix} ffmpeg loaded`, { label: c.label });
+
+          return ffmpeg;
+        }
+        catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          errors.push(`${c.label}: ${msg}`);
+          if (debugEnabled)
+            console.warn(`${debugPrefix} ffmpeg core candidate failed`, { label: c.label, msg });
+        }
+      }
+
       for (const baseUrl of candidates) {
         try {
           if (debugEnabled)
@@ -125,7 +172,7 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
         }
       }
 
-      throw new Error(`FFmpeg 核心加载失败（已尝试 ${candidates.length} 个源）：\n${errors.join("\n")}`);
+      throw new Error(`FFmpeg 核心加载失败（已尝试 ${bundledCandidates.length + candidates.length} 个源）：\n${errors.join("\n")}`);
     }
     catch (e) {
       ffmpegSingletonPromise = null;
