@@ -42,6 +42,7 @@
 - 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata
 - OSS：新增音频上传/转码/发送调试日志开关（仅 DEV，`tc:audio:upload:debug` / `__TC_AUDIO_UPLOAD_DEBUG`）
 - OSS：音频上传统一输出为 `audio/ogg`（Opus 编码，Ogg 容器），并使用 `.ogg` 后缀作为默认对象名扩展名
+- OSS：语音参考文件音频上传改为“原始上传”（不走 Opus 转码）
 - OSS：音频转码增加 FFmpeg 核心源 fallback + 超时控制，避免网络异常时上传流程卡死
 - OSS：默认优先从同源静态资源加载 `@ffmpeg/core`（避免公共 CDN 不可达导致转码失败）
 - OSS：修复 Vite dev 下 `@ffmpeg/core` 深层路径无法被 exports 解析导致的预转换报错
@@ -109,6 +110,7 @@
 - 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
+- 修复发送音频消息时偶发卡死：移除 `decodeAudioData` 兜底解析（大文件会阻塞主线程），仅基于 metadata 解析时长
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
 - 修复编辑 `tcHeader` 导致 blocksuite iframe 反复重载：冻结 `blocksuite-frame` URL 中的 `tcHeaderTitle/tcHeaderImageUrl`（仅首次初始化/切换文档时传入）

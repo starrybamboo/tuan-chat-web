@@ -934,8 +934,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
               audio.src = objectUrl;
               audio.load();
 
-              const fromMedia = await new Promise<number | undefined>((resolve) => {
-                const timeout = window.setTimeout(() => resolve(undefined), 3000);
+              return await new Promise<number | undefined>((resolve) => {
+                const timeout = window.setTimeout(() => resolve(undefined), 5000);
                 const cleanup = () => {
                   window.clearTimeout(timeout);
                   audio.onloadedmetadata = null;
@@ -957,37 +957,9 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   resolve(undefined);
                 };
               });
-
-              if (fromMedia != null)
-                return fromMedia;
             }
             finally {
               URL.revokeObjectURL(objectUrl);
-            }
-
-            try {
-              const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
-              if (!AudioContextCtor)
-                return undefined;
-
-              const audioContext: AudioContext = new AudioContextCtor();
-              try {
-                const buf = await audioFile.arrayBuffer();
-                const decoded = await audioContext.decodeAudioData(buf.slice(0));
-                const d = decoded?.duration;
-                return Number.isFinite(d) && d > 0 ? d : undefined;
-              }
-              finally {
-                try {
-                  await audioContext.close();
-                }
-                catch {
-                  // ignore
-                }
-              }
-            }
-            catch {
-              return undefined;
             }
           })();
 

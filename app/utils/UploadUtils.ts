@@ -7,6 +7,28 @@ import { compressImage } from "@/utils/imgCompressUtils";
 import { tuanchat } from "../../api/instance";
 
 export class UploadUtils {
+  private getAudioExtension(file: File): string {
+    const type = (file.type || "").toLowerCase();
+    if (type === "audio/mpeg")
+      return "mp3";
+    if (type === "audio/wav" || type === "audio/x-wav")
+      return "wav";
+    if (type === "audio/mp4")
+      return "m4a";
+    if (type === "audio/aac")
+      return "aac";
+    if (type === "audio/ogg")
+      return "ogg";
+    if (type === "audio/webm")
+      return "webm";
+
+    const match = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    if (match?.[1])
+      return match[1];
+
+    return "audio";
+  }
+
   /**
    * 上传音频文件
    * @param file 音频文件
@@ -83,6 +105,43 @@ export class UploadUtils {
       if (!/\.ogg(?:\?|#|$)/i.test(url)) {
         console.warn(`${debugPrefix} unexpected downloadUrl extension (expect .ogg)`, { url, fileName: newFileName });
       }
+    }
+    return ossData.data.downloadUrl;
+  }
+
+  /**
+   * 上传原始音频文件（不做 Opus 转码）
+   * - 用于“语音参考文件”等不适合被统一转码的场景
+   */
+  async uploadAudioOriginal(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    if (!file.type.startsWith("audio/")) {
+      throw new Error("只支持音频文件格式");
+    }
+
+    const maxInputBytes = 30 * 1024 * 1024; // 30MB
+    if (file.size > maxInputBytes) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
+    }
+
+    const hash = await this.calculateFileHash(file);
+    const fileSize = file.size;
+    const extension = this.getAudioExtension(file);
+    const newFileName = `${hash}_${fileSize}.${extension}`;
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+    });
+
+    if (!ossData.data?.uploadUrl) {
+      throw new Error("获取上传地址失败");
+    }
+
+    await this.executeUpload(ossData.data.uploadUrl, file);
+
+    if (!ossData.data.downloadUrl) {
+      throw new Error("获取下载地址失败");
     }
     return ossData.data.downloadUrl;
   }

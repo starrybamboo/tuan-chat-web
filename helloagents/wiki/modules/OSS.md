@@ -19,6 +19,7 @@
 #### 适用范围
 
 - 通过 `UploadUtils.uploadAudio(...)` 走 OSS 上传的音频文件。
+- 例外：角色“语音参考文件”使用 `UploadUtils.uploadAudioOriginal(...)` 上传原始音频（不做 Opus 转码）。
 
 #### 输出格式
 
@@ -86,6 +87,7 @@
 1. 该文件是历史/旧版本上传产物（未走 Opus 转码策略）。
 2. 当前运行的前端分支仍为旧逻辑（未使用 `UploadUtils.uploadAudio` 的 Opus 转码版本）。
 3. 后端生成 downloadUrl 时对扩展名做了重写/白名单校验（可开启 `[tc-audio-upload]` 调试查看 `fileName` 与 `downloadUrl` 是否一致）。
+4. 该文件来自“语音参考文件”上传：该路径使用 `UploadUtils.uploadAudioOriginal(...)`，会保留原始格式与扩展名。
 
 ## 变更历史
 

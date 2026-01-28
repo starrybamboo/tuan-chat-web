@@ -363,14 +363,14 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
         { tag: "primary", bitrateKbps: baseBitrateKbps, downmixToMono, sampleRateHz, compressionLevel },
       ];
 
-  let smallest: File | null = null;
+  let smallestBytes: number | null = null;
   let lastError: unknown = null;
 
   const attemptOnce = async (preset: TranscodePreset): Promise<File> => {
     try {
       const out = await runOnce(preset);
-      if (!smallest || out.size < smallest.size)
-        smallest = out;
+      if (smallestBytes == null || out.size < smallestBytes)
+        smallestBytes = out.size;
       return out;
     }
     catch (error) {
@@ -386,8 +386,8 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
         ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化（重试）");
         try {
           const out = await runOnce({ ...preset, tag: `${preset.tag}-retry` });
-          if (!smallest || out.size < smallest.size)
-            smallest = out;
+          if (smallestBytes == null || out.size < smallestBytes)
+            smallestBytes = out.size;
           return out;
         }
         catch (retryError) {
@@ -414,9 +414,9 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
     }
   }
 
-  if (inputTargetBytes && smallest) {
+  if (inputTargetBytes && smallestBytes != null) {
     const inputKb = (inputTargetBytes / 1024).toFixed(1);
-    const outKb = (smallest.size / 1024).toFixed(1);
+    const outKb = (smallestBytes / 1024).toFixed(1);
     throw new Error(`音频转码后未变小（原始 ${inputKb}KB，最小 ${outKb}KB），已阻止上传`);
   }
 

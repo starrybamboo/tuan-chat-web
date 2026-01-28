@@ -94,8 +94,8 @@ export default function AudioUploadModal({
       setIsUploading(true);
       toast.loading("正在上传音频文件...", { id: "audio-upload" });
 
-      // 上传音频文件，使用场景1（聊天室），最大时长30秒
-      const audioUrl = await uploadUtils.uploadAudio(selectedAudioFile, 1, 30);
+      // 语音参考文件：上传原始音频（不做 Opus 转码），避免影响后续音色参考质量/兼容性
+      const audioUrl = await uploadUtils.uploadAudioOriginal(selectedAudioFile, 1);
 
       toast.success("音频文件上传成功！", { id: "audio-upload" });
 
