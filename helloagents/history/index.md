@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601290000 | chat_audio_no_truncate | 变更 | 已完成 | [2026-01/202601290000_chat-audio-no-truncate/](2026-01/202601290000_chat-audio-no-truncate/) |
 | 202601282350 | audio_transcode_oob_retry | 修复 | 已完成 | [2026-01/202601282350_audio-transcode-oob-retry/](2026-01/202601282350_audio-transcode-oob-retry/) |
 | 202601282340 | audio_core_exports_fix | 修复 | 已完成 | [2026-01/202601282340_audio-core-exports-fix/](2026-01/202601282340_audio-core-exports-fix/) |
 | 202601282320 | audio_core_bundled | 修复 | 已完成 | [2026-01/202601282320_audio-core-bundled/](2026-01/202601282320_audio-core-bundled/) |
