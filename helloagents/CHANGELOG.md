@@ -98,6 +98,7 @@
 - 修复聊天导入/发送时未选择立绘导致消息头像回退默认图标：运行时解析 `avatarId`（不强制持久化），仍缺失时显示为空占位
 - 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
+- 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
 - 修复编辑 `tcHeader` 导致 blocksuite iframe 反复重载：冻结 `blocksuite-frame` URL 中的 `tcHeaderTitle/tcHeaderImageUrl`（仅首次初始化/切换文档时传入）

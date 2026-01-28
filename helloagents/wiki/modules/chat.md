@@ -105,6 +105,7 @@
 - 播放组件改为 `react-h5-audio-player`（Media Element），支持流式加载与可拖动进度条
 - `preload="metadata"` 以避免全量预取；音频可边播边加载
 - 已移除 WaveSurfer 波形渲染逻辑
+- 发送侧会填充 `extra.soundMessage.second`（音频时长，秒）；当浏览器无法解析本地音频时长导致 `duration=NaN` 时，会进行兜底（避免 second 非法导致发送失败）
 
 ### 4.2) 全局音频播放聚合（悬浮球）
 
