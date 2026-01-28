@@ -62,6 +62,9 @@ export class UploadUtils {
       maxDurationSec: maxDuration,
       loadTimeoutMs: 45_000,
       execTimeoutMs,
+      // 更狠的默认压缩：更低目标码率 + 降采样（不兼容 Safari）
+      bitrateKbps: 48,
+      sampleRateHz: 32000,
       // 目标：尽量比输入更小（否则按“阻止上传”策略处理）
       // 太小的文件可能被容器开销反噬，跳过严格约束避免误伤
       preferSmallerThanBytes: file.size >= 48 * 1024 ? file.size : undefined,

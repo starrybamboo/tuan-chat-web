@@ -42,6 +42,7 @@
 - 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata
 - OSS：新增音频上传/转码/发送调试日志开关（仅 DEV，`tc:audio:upload:debug` / `__TC_AUDIO_UPLOAD_DEBUG`）
 - OSS：音频上传统一输出为 `audio/webm`（Opus 编码，WebM 容器），并使用 `.webm` 后缀作为默认对象名扩展名
+- OSS：聊天音频默认压缩更激进（48kbps + 32kHz），并补充更低码率/更低采样率兜底预设以提高“必须更小”成功率
 - OSS：语音参考文件音频上传改为“原始上传”（不走 Opus 转码）
 - OSS：音频转码增加 FFmpeg 核心源 fallback + 超时控制，避免网络异常时上传流程卡死
 - OSS：默认优先从同源静态资源加载 `@ffmpeg/core`（避免公共 CDN 不可达导致转码失败）

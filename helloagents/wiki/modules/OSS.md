@@ -32,7 +32,8 @@
 
 位于 `transcodeAudioFileToOpusOrThrow`：
 
-- **目标码率：** `64kbps`（`DEFAULT_BITRATE_KBPS=64`，仅作为首选档位）
+- **目标码率：** `48kbps`（上传侧默认传入 `bitrateKbps=48`，仅作为首选档位）
+- **采样率：** `32kHz`（上传侧默认传入 `sampleRateHz=32000`，仅作为首选；更小策略会进一步降采样）
 - **VBR：** `on`
 - **compression_level：** `10`
 - **application：** `audio`
@@ -53,10 +54,12 @@
 
 聊天音频上传会传入 `preferSmallerThanBytes`（默认对 `>=48KB` 的输入启用），并按多档预设降码率尝试：
 
-1. `64kbps`（保持声道/采样率，按调用方参数）
-2. `48kbps` + mono + `24kHz`
-3. `32kbps` + mono + `16kHz`
-4. `24kbps` + mono + `16kHz`
+1. `48kbps @ 32kHz`（保持声道，按调用方参数）
+2. `48kbps` + mono + `24kHz`（`application=voip`）
+3. `32kbps` + mono + `16kHz`（`application=voip`）
+4. `24kbps` + mono + `16kHz`（`application=voip`）
+5. `20kbps` + mono + `12kHz`（`application=voip`）
+6. `16kbps` + mono + `12kHz`（`application=voip`）
 
 若全部预设仍无法比输入更小，则阻止上传并提示“转码后未变小”。
 

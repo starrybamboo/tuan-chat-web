@@ -230,6 +230,7 @@ type TranscodePreset = {
   downmixToMono: boolean;
   sampleRateHz?: number;
   compressionLevel: number;
+  application?: "audio" | "voip";
 };
 
 export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: AudioTranscodeOptions = {}): Promise<File> {
@@ -293,7 +294,7 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
         "-compression_level",
         String(params.compressionLevel),
         "-application",
-        "audio",
+        params.application || "audio",
         "-f",
         "webm",
         outputSafeName,
@@ -355,9 +356,11 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
   const presets: TranscodePreset[] = inputTargetBytes
     ? [
         { tag: "size-primary", bitrateKbps: Math.min(64, Math.max(24, baseBitrateKbps)), downmixToMono, sampleRateHz, compressionLevel },
-        { tag: "size-48-mono-24k", bitrateKbps: 48, downmixToMono: true, sampleRateHz: 24000, compressionLevel: 8 },
-        { tag: "size-32-mono-16k", bitrateKbps: 32, downmixToMono: true, sampleRateHz: 16000, compressionLevel: 8 },
-        { tag: "size-24-mono-16k", bitrateKbps: 24, downmixToMono: true, sampleRateHz: 16000, compressionLevel: 8 },
+        { tag: "size-48-mono-24k", bitrateKbps: 48, downmixToMono: true, sampleRateHz: 24000, compressionLevel: 8, application: "voip" },
+        { tag: "size-32-mono-16k", bitrateKbps: 32, downmixToMono: true, sampleRateHz: 16000, compressionLevel: 8, application: "voip" },
+        { tag: "size-24-mono-16k", bitrateKbps: 24, downmixToMono: true, sampleRateHz: 16000, compressionLevel: 8, application: "voip" },
+        { tag: "size-20-mono-12k", bitrateKbps: 20, downmixToMono: true, sampleRateHz: 12000, compressionLevel: 8, application: "voip" },
+        { tag: "size-16-mono-12k", bitrateKbps: 16, downmixToMono: true, sampleRateHz: 12000, compressionLevel: 8, application: "voip" },
       ]
     : [
         { tag: "primary", bitrateKbps: baseBitrateKbps, downmixToMono, sampleRateHz, compressionLevel },
