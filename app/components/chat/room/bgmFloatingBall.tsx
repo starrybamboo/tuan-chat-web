@@ -122,6 +122,8 @@ export default function BgmFloatingBall({ roomId }: { roomId: number }) {
     if (!hasTrack)
       return;
     const v = Number(e.target.value);
+    if (!Number.isFinite(v))
+      return;
     setVolume(roomId, v);
   };
 
@@ -250,13 +252,13 @@ export default function BgmFloatingBall({ roomId }: { roomId: number }) {
                 min={0}
                 max={100}
                 step={1}
-                value={volume}
+                value={Number.isFinite(volume) ? Math.max(0, Math.min(100, volume)) : 50}
                 onChange={handleVolumeChange}
                 disabled={!hasTrack}
                 className="range range-xs range-primary flex-1"
               />
               <span className="text-[11px] text-base-content/60 w-9 text-right shrink-0 tabular-nums">
-                {volume}
+                {Number.isFinite(volume) ? Math.max(0, Math.min(100, volume)) : 50}
               </span>
             </div>
           </div>

@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601282120 | audio_ogg_volume_nan | 修复 | 已完成 | [2026-01/202601282120_audio-ogg-volume-nan/](2026-01/202601282120_audio-ogg-volume-nan/) |
 | 202601281955 | audio_upload_debug | 变更 | 已完成 | [2026-01/202601281955_audio-upload-debug/](2026-01/202601281955_audio-upload-debug/) |
 | 202601281840 | audio_send_nan | 修复 | 已完成 | [2026-01/202601281840_audio-send-nan/](2026-01/202601281840_audio-send-nan/) |
 | 202601281930 | audio_playback_floatball | 功能 | 已完成 | [2026-01/202601281930_audio-playback-floatball/](2026-01/202601281930_audio-playback-floatball/) |

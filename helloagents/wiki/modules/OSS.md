@@ -23,7 +23,7 @@
 #### 输出格式
 
 - **封装/编码：** `libopus`（Ogg 容器）
-- **文件后缀：** `.opus`
+- **文件后缀：** `.ogg`（Opus 编码，Ogg 容器）
 - **Content-Type：** `audio/ogg`
 
 #### 默认压缩参数（以代码为准）
@@ -58,6 +58,7 @@
 
 1. 该文件是历史/旧版本上传产物（未走 Opus 转码策略）。
 2. 当前运行的前端分支仍为旧逻辑（未使用 `UploadUtils.uploadAudio` 的 Opus 转码版本）。
+3. 后端生成 downloadUrl 时对扩展名做了重写/白名单校验（可开启 `[tc-audio-upload]` 调试查看 `fileName` 与 `downloadUrl` 是否一致）。
 
 ## 变更历史
 

@@ -35,8 +35,8 @@ export class UploadUtils {
     // 2. 获取文件大小
     const fileSize = processedFile.size;
 
-    // 3. 构造新的唯一文件名：hash_size.opus
-    const newFileName = `${hash}_${fileSize}.opus`;
+    // 3. 构造新的唯一文件名：hash_size.ogg（Ogg 容器 + Opus 编码）
+    const newFileName = `${hash}_${fileSize}.ogg`;
 
     if (debugEnabled)
       console.warn(`${debugPrefix} oss`, { fileName: newFileName });
@@ -49,6 +49,8 @@ export class UploadUtils {
     if (!ossData.data?.uploadUrl) {
       throw new Error("获取上传地址失败");
     }
+    if (debugEnabled)
+      console.warn(`${debugPrefix} uploadUrl`, ossData.data.uploadUrl);
 
     await this.executeUpload(ossData.data.uploadUrl, processedFile);
 
@@ -57,6 +59,13 @@ export class UploadUtils {
     }
     if (debugEnabled)
       console.warn(`${debugPrefix} downloadUrl`, ossData.data.downloadUrl);
+
+    if (debugEnabled) {
+      const url = ossData.data.downloadUrl;
+      if (!/\.ogg(?:\?|#|$)/i.test(url)) {
+        console.warn(`${debugPrefix} unexpected downloadUrl extension (expect .ogg)`, { url, fileName: newFileName });
+      }
+    }
     return ossData.data.downloadUrl;
   }
 

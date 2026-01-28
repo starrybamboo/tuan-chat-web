@@ -47,8 +47,8 @@ function ensureOpusFileName(originalName: string): string {
   const base = (originalName || "audio").replace(/[/\\?%*:|"<>]/g, "_");
   const dot = base.lastIndexOf(".");
   if (dot > 0)
-    return `${base.slice(0, dot)}.opus`;
-  return `${base}.opus`;
+    return `${base.slice(0, dot)}.ogg`;
+  return `${base}.ogg`;
 }
 
 export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: AudioTranscodeOptions = {}): Promise<File> {
@@ -64,7 +64,7 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
     const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
     return ext || ".bin";
   })()}`;
-  const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.opus`;
+  const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.ogg`;
 
   try {
     await ffmpeg.writeFile(inputSafeName, await fetchFile(inputFile));
@@ -87,6 +87,8 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
       "10",
       "-application",
       "audio",
+      "-f",
+      "ogg",
       outputSafeName,
     );
 
