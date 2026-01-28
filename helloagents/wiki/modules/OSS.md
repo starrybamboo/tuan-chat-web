@@ -50,7 +50,7 @@
 音频转码依赖 `@ffmpeg/core`（wasm），首次转码会下载核心文件并进行初始化，可能较慢。
 
 - **默认核心源（按顺序尝试）：**
-  - **本地打包资源（优先）：** 通过 `@ffmpeg/core/dist/umd/*?url` 由 Vite 输出到同源静态资源（避免公共 CDN 不可达导致失败）
+  - **本地打包资源（优先）：** 通过 `@ffmpeg/core?url` 与 `@ffmpeg/core/wasm?url` 由 Vite 输出到同源静态资源（避免公共 CDN 不可达导致失败）
   - `cdn.jsdelivr.net`（`@ffmpeg/core@0.12.10/dist/umd`）
   - `unpkg.com`（`@ffmpeg/core@0.12.10/dist/umd`）
 - **可配置：** 通过 `VITE_FFMPEG_CORE_BASE_URL` 指向你自己的静态资源/CDN（建议在国内网络环境配置）

@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601282340 | audio_core_exports_fix | 修复 | 已完成 | [2026-01/202601282340_audio-core-exports-fix/](2026-01/202601282340_audio-core-exports-fix/) |
 | 202601282320 | audio_core_bundled | 修复 | 已完成 | [2026-01/202601282320_audio-core-bundled/](2026-01/202601282320_audio-core-bundled/) |
 | 202601282240 | audio_transcode_timeout | 修复 | 已完成 | [2026-01/202601282240_audio-transcode-timeout/](2026-01/202601282240_audio-transcode-timeout/) |
 | 202601282120 | audio_ogg_volume_nan | 修复 | 已完成 | [2026-01/202601282120_audio-ogg-volume-nan/](2026-01/202601282120_audio-ogg-volume-nan/) |

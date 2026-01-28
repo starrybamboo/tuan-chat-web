@@ -1,5 +1,5 @@
-import bundledCoreJsUrl from "@ffmpeg/core/dist/umd/ffmpeg-core.js?url";
-import bundledCoreWasmUrl from "@ffmpeg/core/dist/umd/ffmpeg-core.wasm?url";
+import bundledCoreJsUrl from "@ffmpeg/core?url";
+import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 
@@ -131,8 +131,9 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg core candidate`, c.label);
 
-          const coreURL = await fetchToBlobURL(c.coreJs, "text/javascript", DEFAULT_LOAD_TIMEOUT_MS);
-          const wasmURL = await fetchToBlobURL(c.wasm, "application/wasm", DEFAULT_LOAD_TIMEOUT_MS);
+          // 同源静态资源：直接使用 URL（避免 blob URL 在某些环境下无法 dynamic import）
+          const coreURL = c.coreJs;
+          const wasmURL = c.wasm;
 
           await withTimeout(ffmpeg.load({ coreURL, wasmURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
 
