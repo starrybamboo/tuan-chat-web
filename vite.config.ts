@@ -512,6 +512,15 @@ export default defineConfig(({ command, mode }) => {
         // - decorators not being applied (custom elements not defined) -> "Illegal constructor"
         // - mixed module instances (src vs dist) -> DI token mismatch / Yjs store issues
         // Force them to use prebuilt dist outputs.
+        // 音频转码依赖 ffmpeg.wasm：固定到 ESM 入口，避免 Vite 在 Windows 下解析 package exports 失败
+        {
+          find: /^@ffmpeg\/ffmpeg$/,
+          replacement: nm("node_modules/@ffmpeg/ffmpeg/dist/esm/index.js"),
+        },
+        {
+          find: /^@ffmpeg\/util$/,
+          replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
+        },
         {
           find: /^@blocksuite\/std$/,
           replacement: nm("node_modules/@blocksuite/std/dist/index.js"),
