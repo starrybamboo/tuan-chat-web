@@ -1,5 +1,6 @@
 import type { GameInfoDto } from "@/webGAL/apis";
 
+import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
@@ -47,6 +48,39 @@ export type IDebugMessage = {
   };
 };
 
+const AUDIO_EXTENSIONS = new Set([
+  "mp3",
+  "wav",
+  "aac",
+  "m4a",
+  "mp4",
+  "ogg",
+  "oga",
+  "opus",
+  "webm",
+  "flac",
+  "caf",
+]);
+
+function getFileExtension(fileName: string): string {
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex <= 0 || dotIndex >= fileName.length - 1)
+    return "";
+  return fileName.slice(dotIndex + 1).toLowerCase();
+}
+
+function replaceFileExtension(fileName: string, nextExt: string): string {
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex > 0)
+    return `${fileName.slice(0, dotIndex)}.${nextExt}`;
+  return `${fileName}.${nextExt}`;
+}
+
+function isLikelyAudioFileName(fileName: string): boolean {
+  const ext = getFileExtension(fileName);
+  return Boolean(ext && AUDIO_EXTENSIONS.has(ext));
+}
+
 /**
  * 从 URL 中提取文件扩展名
  * 支持处理带查询参数的 URL，以及没有扩展名的情况
@@ -86,19 +120,37 @@ export function getFileExtensionFromUrl(url: string, defaultExt: string = "webp"
 export async function uploadFile(url: string, path: string, fileName?: string | undefined): Promise<string> {
   // 如果未定义fileName，那就使用url中的fileName
   const newFileName = fileName || url.substring(url.lastIndexOf("/") + 1);
-  const safeFileName = newFileName.replace(/\P{ASCII}/gu, char =>
+
+  // 对音频统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
+  const shouldTranscodeAudioByName = isLikelyAudioFileName(newFileName);
+  let targetFileName = shouldTranscodeAudioByName ? replaceFileExtension(newFileName, "opus") : newFileName;
+
+  let safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
     encodeURIComponent(char).replace(/%/g, ""));
-  if (await checkFileExist(path, safeFileName)) {
+
+  if (await checkFileExist(path, safeFileName))
     return safeFileName;
-  }
+
   const response = await fetch(url);
   if (!response.ok)
     throw new Error(`Failed to fetch file: ${response.statusText}`);
   const data = await response.blob();
-  const blob = new Blob([data]);
-  // 替换中文字符（webgal不支持）
 
-  const file = new File([blob], safeFileName);
+  const isAudioByResponse = typeof data.type === "string" && data.type.startsWith("audio/");
+  const shouldTranscodeAudio = shouldTranscodeAudioByName || isAudioByResponse;
+
+  if (shouldTranscodeAudio && !shouldTranscodeAudioByName) {
+    targetFileName = replaceFileExtension(newFileName, "opus");
+    safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
+      encodeURIComponent(char).replace(/%/g, ""));
+
+    if (await checkFileExist(path, safeFileName))
+      return safeFileName;
+  }
+
+  const file = shouldTranscodeAudio
+    ? await transcodeAudioBlobToOpusOrThrow(data, safeFileName)
+    : new File([data], safeFileName, { type: data.type || "application/octet-stream" });
 
   const formData = new FormData();
   formData.append("files", file);
