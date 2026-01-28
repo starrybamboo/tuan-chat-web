@@ -1,3 +1,5 @@
+import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
+
 export type AudioTranscodeOptions = {
   maxDurationSec?: number;
   bitrateKbps?: number;
@@ -52,6 +54,8 @@ function ensureOpusFileName(originalName: string): string {
 export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: AudioTranscodeOptions = {}): Promise<File> {
   const bitrateKbps = options.bitrateKbps && options.bitrateKbps > 0 ? options.bitrateKbps : DEFAULT_BITRATE_KBPS;
   const maxDurationSec = options.maxDurationSec && options.maxDurationSec > 0 ? options.maxDurationSec : undefined;
+  const debugEnabled = isAudioUploadDebugEnabled();
+  const debugPrefix = "[tc-audio-upload]";
 
   const ffmpeg = await getFfmpeg();
   const { fetchFile } = await import("@ffmpeg/util");
@@ -86,6 +90,11 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
       outputSafeName,
     );
 
+    if (debugEnabled) {
+      console.warn(`${debugPrefix} ffmpeg input`, { name: inputFile.name, type: inputFile.type, size: inputFile.size });
+      console.warn(`${debugPrefix} ffmpeg args`, { bitrateKbps, maxDurationSec, args, baseUrl: getFfmpegCoreBaseUrl() });
+    }
+
     await ffmpeg.exec(args);
     const outData = await ffmpeg.readFile(outputSafeName);
     if (typeof outData === "string")
@@ -95,9 +104,14 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
 
     const outBlob = new Blob([outBytes], { type: "audio/ogg" });
     const outName = ensureOpusFileName(inputFile.name);
-    return new File([outBlob], outName, { type: "audio/ogg" });
+    const outFile = new File([outBlob], outName, { type: "audio/ogg" });
+    if (debugEnabled)
+      console.warn(`${debugPrefix} ffmpeg output`, { name: outFile.name, type: outFile.type, size: outFile.size });
+    return outFile;
   }
   catch (error) {
+    if (debugEnabled)
+      console.error(`${debugPrefix} ffmpeg transcode failed`, error);
     const msg = error instanceof Error ? error.message : String(error);
     throw new Error(`音频转码失败，已阻止上传: ${msg}`);
   }

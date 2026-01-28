@@ -45,6 +45,13 @@
 
 - 前端转码失败会抛错并阻止上传（避免上传原始大文件或非统一格式）。
 
+#### 调试：音频上传控制台日志（DEV）
+
+当需要定位“音频转码/上传/发送失败”时，可在开发环境开启调试日志：
+
+- **localStorage 开关：** `localStorage.setItem("tc:audio:upload:debug", "1")`
+- **全局开关：** `window.__TC_AUDIO_UPLOAD_DEBUG = true`
+
 ### 排查：为什么看到 `.mp3` / `audio/mpeg`？
 
 如果下载 URL 后缀仍为 `.mp3` 且响应 `Content-Type: audio/mpeg`，通常表示：
