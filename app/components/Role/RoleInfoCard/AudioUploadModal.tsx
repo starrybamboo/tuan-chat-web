@@ -39,7 +39,7 @@ export default function AudioUploadModal({
       "audio/ogg",
       "audio/webm",
     ];
-    const audioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg"];
+    const audioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"];
 
     return audioTypes.includes(file.type)
       || audioExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
@@ -185,7 +185,7 @@ export default function AudioUploadModal({
             >
               <input
                 type="file"
-                accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
+                accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm"
                 className="hidden"
                 id="audioFileInput"
                 onChange={(e) => {

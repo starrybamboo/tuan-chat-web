@@ -75,8 +75,8 @@ export class UploadUtils {
     // 2. 获取文件大小
     const fileSize = processedFile.size;
 
-    // 3. 构造新的唯一文件名：hash_size.ogg（Ogg 容器 + Opus 编码）
-    const newFileName = `${hash}_${fileSize}.ogg`;
+    // 3. 构造新的唯一文件名：hash_size.webm（WebM 容器 + Opus 编码）
+    const newFileName = `${hash}_${fileSize}.webm`;
 
     if (debugEnabled)
       console.warn(`${debugPrefix} oss`, { fileName: newFileName });
@@ -102,8 +102,8 @@ export class UploadUtils {
 
     if (debugEnabled) {
       const url = ossData.data.downloadUrl;
-      if (!/\.ogg(?:\?|#|$)/i.test(url)) {
-        console.warn(`${debugPrefix} unexpected downloadUrl extension (expect .ogg)`, { url, fileName: newFileName });
+      if (!/\.webm(?:\?|#|$)/i.test(url)) {
+        console.warn(`${debugPrefix} unexpected downloadUrl extension (expect .webm)`, { url, fileName: newFileName });
       }
     }
     return ossData.data.downloadUrl;

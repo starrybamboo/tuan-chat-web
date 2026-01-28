@@ -216,12 +216,12 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
   return ffmpegSingletonPromise;
 }
 
-function ensureOpusFileName(originalName: string): string {
+function ensureOpusWebmFileName(originalName: string): string {
   const base = (originalName || "audio").replace(/[/\\?%*:|"<>]/g, "_");
   const dot = base.lastIndexOf(".");
   if (dot > 0)
-    return `${base.slice(0, dot)}.ogg`;
-  return `${base}.ogg`;
+    return `${base.slice(0, dot)}.webm`;
+  return `${base}.webm`;
 }
 
 type TranscodePreset = {
@@ -256,7 +256,7 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
       const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
       return ext || ".bin";
     })()}`;
-    const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.ogg`;
+    const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.webm`;
 
     try {
       await ffmpeg.writeFile(inputSafeName, await fetchFile(inputFile));
@@ -295,7 +295,7 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
         "-application",
         "audio",
         "-f",
-        "ogg",
+        "webm",
         outputSafeName,
       );
 
@@ -332,9 +332,9 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
         throw new TypeError("FFmpeg 输出数据类型异常");
 
       const outBytes: Uint8Array = outData;
-      const outBlob = new Blob([outBytes], { type: "audio/ogg" });
-      const outName = ensureOpusFileName(inputFile.name);
-      const outFile = new File([outBlob], outName, { type: "audio/ogg" });
+      const outBlob = new Blob([outBytes], { type: "audio/webm" });
+      const outName = ensureOpusWebmFileName(inputFile.name);
+      const outFile = new File([outBlob], outName, { type: "audio/webm" });
       if (debugEnabled)
         console.warn(`${debugPrefix} ffmpeg output`, { tag: params.tag, name: outFile.name, type: outFile.type, size: outFile.size });
       return outFile;

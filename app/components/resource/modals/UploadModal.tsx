@@ -56,7 +56,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     else {
       // 音频文件检查
       const audioTypes = ["audio/mpeg", "audio/wav", "audio/mp4", "audio/aac", "audio/ogg", "audio/webm"];
-      const audioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg"];
+      const audioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"];
       return audioTypes.includes(file.type)
         || audioExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
     }
@@ -302,7 +302,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
               >
                 <input
                   type="file"
-                  accept={selectedType === "5" ? "image/*,.jpg,.jpeg,.png,.gif,.webp" : "audio/*,.mp3,.wav,.m4a,.aac,.ogg"}
+                  accept={selectedType === "5" ? "image/*,.jpg,.jpeg,.png,.gif,.webp" : "audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm"}
                   className="hidden"
                   id="resourceFileInput"
                   onChange={(e) => {
