@@ -988,7 +988,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           }
         })();
 
-        const second = Number.isFinite(durationSec)
+        const second = (typeof durationSec === "number" && Number.isFinite(durationSec))
           ? Math.min(maxAudioDurationSec, Math.max(1, Math.round(durationSec)))
           : 1;
 
@@ -1000,8 +1000,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
         }
         catch (error) {
-          if (debugEnabled)
-            console.error(`${debugPrefix} uploadAudio failed`, error);
+          console.error(`${debugPrefix} uploadAudio failed`, error);
           throw error;
         }
 
