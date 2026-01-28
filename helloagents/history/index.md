@@ -11,6 +11,7 @@
 
 | 202601290010 | chat_audio_preload_metadata | 变更 | 已完成 | [2026-01/202601290010_chat-audio-preload-metadata/](2026-01/202601290010_chat-audio-preload-metadata/) |
 | 202601290000 | chat_audio_no_truncate | 变更 | 已完成 | [2026-01/202601290000_chat-audio-no-truncate/](2026-01/202601290000_chat-audio-no-truncate/) |
+| 202601290020 | chat_audio_prefer_smaller | 变更 | 已完成 | [2026-01/202601290020_chat-audio-prefer-smaller/](2026-01/202601290020_chat-audio-prefer-smaller/) |
 | 202601282350 | audio_transcode_oob_retry | 修复 | 已完成 | [2026-01/202601282350_audio-transcode-oob-retry/](2026-01/202601282350_audio-transcode-oob-retry/) |
 | 202601282340 | audio_core_exports_fix | 修复 | 已完成 | [2026-01/202601282340_audio-core-exports-fix/](2026-01/202601282340_audio-core-exports-fix/) |
 | 202601282320 | audio_core_bundled | 修复 | 已完成 | [2026-01/202601282320_audio-core-bundled/](2026-01/202601282320_audio-core-bundled/) |

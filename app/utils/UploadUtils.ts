@@ -40,6 +40,9 @@ export class UploadUtils {
       maxDurationSec: maxDuration,
       loadTimeoutMs: 45_000,
       execTimeoutMs,
+      // 目标：尽量比输入更小（否则按“阻止上传”策略处理）
+      // 太小的文件可能被容器开销反噬，跳过严格约束避免误伤
+      preferSmallerThanBytes: file.size >= 48 * 1024 ? file.size : undefined,
     });
     if (debugEnabled)
       console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size });

@@ -8,9 +8,17 @@ export type AudioTranscodeOptions = {
   bitrateKbps?: number;
   loadTimeoutMs?: number;
   execTimeoutMs?: number;
+  downmixToMono?: boolean;
+  sampleRateHz?: number;
+  compressionLevel?: number;
+  /**
+   * 期望转码后文件严格小于该字节数；若无法做到将抛错并阻止上传。
+   * 用于“比输入更小”的强约束策略。
+   */
+  preferSmallerThanBytes?: number;
 };
 
-const DEFAULT_BITRATE_KBPS = 96;
+const DEFAULT_BITRATE_KBPS = 64;
 // 对齐 @ffmpeg/ffmpeg 内置 CORE_VERSION（避免 wrapper/core 版本不一致带来兼容性风险）
 const FFMPEG_CORE_VERSION = "0.12.9";
 const DEFAULT_FFMPEG_CORE_BASE_URLS = [
@@ -216,18 +224,34 @@ function ensureOpusFileName(originalName: string): string {
   return `${base}.ogg`;
 }
 
+type TranscodePreset = {
+  tag: string;
+  bitrateKbps: number;
+  downmixToMono: boolean;
+  sampleRateHz?: number;
+  compressionLevel: number;
+};
+
 export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: AudioTranscodeOptions = {}): Promise<File> {
-  const bitrateKbps = options.bitrateKbps && options.bitrateKbps > 0 ? options.bitrateKbps : DEFAULT_BITRATE_KBPS;
+  const inputTargetBytes = typeof options.preferSmallerThanBytes === "number" && Number.isFinite(options.preferSmallerThanBytes) && options.preferSmallerThanBytes > 0
+    ? Math.floor(options.preferSmallerThanBytes)
+    : undefined;
+
+  const baseBitrateKbps = options.bitrateKbps && options.bitrateKbps > 0 ? options.bitrateKbps : DEFAULT_BITRATE_KBPS;
+  const downmixToMono = options.downmixToMono === true;
+  const sampleRateHz = options.sampleRateHz && options.sampleRateHz > 0 ? Math.floor(options.sampleRateHz) : undefined;
+  const compressionLevel = options.compressionLevel && options.compressionLevel > 0 ? Math.min(10, Math.max(0, Math.floor(options.compressionLevel))) : 10;
+
   const maxDurationSec = options.maxDurationSec && options.maxDurationSec > 0 ? options.maxDurationSec : undefined;
   const loadTimeoutMs = options.loadTimeoutMs && options.loadTimeoutMs > 0 ? options.loadTimeoutMs : DEFAULT_LOAD_TIMEOUT_MS;
   const execTimeoutMs = options.execTimeoutMs && options.execTimeoutMs > 0 ? options.execTimeoutMs : DEFAULT_EXEC_TIMEOUT_MS;
   const debugEnabled = isAudioUploadDebugEnabled();
   const debugPrefix = "[tc-audio-upload]";
 
-  const ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化");
+  let ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化");
   const { fetchFile } = await import("@ffmpeg/util");
 
-  const runOnce = async (params: { bitrateKbps: number; downmixToMono: boolean; sampleRateHz?: number; compressionLevel: number; tag: string }) => {
+  const runOnce = async (params: TranscodePreset) => {
     const inputSafeName = `input-${Date.now()}-${Math.random().toString(16).slice(2)}${(() => {
       const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
       return ext || ".bin";
@@ -328,125 +352,75 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
     }
   };
 
-  try {
-    return await runOnce({
-      tag: "primary",
-      bitrateKbps,
-      downmixToMono: false,
-      compressionLevel: 10,
-    });
-  }
-  catch (error) {
-    if (debugEnabled)
-      console.error(`${debugPrefix} ffmpeg transcode failed`, error);
+  const presets: TranscodePreset[] = inputTargetBytes
+    ? [
+        { tag: "size-primary", bitrateKbps: Math.min(64, Math.max(24, baseBitrateKbps)), downmixToMono, sampleRateHz, compressionLevel },
+        { tag: "size-48-mono-24k", bitrateKbps: 48, downmixToMono: true, sampleRateHz: 24000, compressionLevel: 8 },
+        { tag: "size-32-mono-16k", bitrateKbps: 32, downmixToMono: true, sampleRateHz: 16000, compressionLevel: 8 },
+        { tag: "size-24-mono-16k", bitrateKbps: 24, downmixToMono: true, sampleRateHz: 16000, compressionLevel: 8 },
+      ]
+    : [
+        { tag: "primary", bitrateKbps: baseBitrateKbps, downmixToMono, sampleRateHz, compressionLevel },
+      ];
 
-    // 常见：WASM 内存越界（某些输入/环境下会发生），尝试重置 worker 并用更保守参数重试一次
-    if (isWasmMemoryOutOfBounds(error)) {
-      if (debugEnabled)
-        console.warn(`${debugPrefix} retry after wasm memory OOB`);
+  let smallest: File | null = null;
+  let lastError: unknown = null;
 
-      await terminateFfmpegAndResetSingleton(ffmpeg);
-
-      try {
-        const ffmpeg2 = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化（重试）");
-        const { fetchFile: fetchFile2 } = await import("@ffmpeg/util");
-        // reuse closures by shadowing
-        const _ffmpeg = ffmpeg2;
-        const _fetchFile = fetchFile2;
-
-        const runOnceRetry = async () => {
-          const inputSafeName = `input-${Date.now()}-${Math.random().toString(16).slice(2)}${(() => {
-            const ext = inputFile.name.includes(".") ? `.${inputFile.name.split(".").pop()}` : "";
-            return ext || ".bin";
-          })()}`;
-          const outputSafeName = `output-${Date.now()}-${Math.random().toString(16).slice(2)}.ogg`;
-
-          try {
-            await _ffmpeg.writeFile(inputSafeName, await _fetchFile(inputFile));
-            const args: string[] = [
-              "-hide_banner",
-              "-nostdin",
-              "-y",
-              "-i",
-              inputSafeName,
-            ];
-            if (maxDurationSec)
-              args.push("-t", String(maxDurationSec));
-
-            args.push(
-              "-vn",
-              "-map_metadata",
-              "-1",
-              // 更保守：单声道 + 24kHz + 更低复杂度
-              "-ac",
-              "1",
-              "-ar",
-              "24000",
-              "-c:a",
-              "libopus",
-              "-b:a",
-              `${Math.min(64, bitrateKbps)}k`,
-              "-vbr",
-              "on",
-              "-compression_level",
-              "8",
-              "-application",
-              "audio",
-              "-f",
-              "ogg",
-              outputSafeName,
-            );
-
-            if (debugEnabled)
-              console.warn(`${debugPrefix} ffmpeg args`, { tag: "retry", args });
-
-            const controller = new AbortController();
-            const t = globalThis.setTimeout(() => controller.abort(), execTimeoutMs);
-            let ret: number;
-            try {
-              ret = await _ffmpeg.exec(args, execTimeoutMs, { signal: controller.signal });
-            }
-            finally {
-              globalThis.clearTimeout(t);
-            }
-
-            if (ret !== 0)
-              throw new Error(`FFmpeg 转码失败（ret=${ret}）`);
-
-            const outData = await _ffmpeg.readFile(outputSafeName);
-            if (typeof outData === "string")
-              throw new TypeError("FFmpeg 输出数据类型异常");
-
-            const outBytes: Uint8Array = outData;
-            const outBlob = new Blob([outBytes], { type: "audio/ogg" });
-            return new File([outBlob], ensureOpusFileName(inputFile.name), { type: "audio/ogg" });
-          }
-          finally {
-            try {
-              await _ffmpeg.deleteFile(inputSafeName);
-            }
-            catch {}
-
-            try {
-              await _ffmpeg.deleteFile(outputSafeName);
-            }
-            catch {}
-          }
-        };
-
-        return await runOnceRetry();
-      }
-      catch (retryError) {
-        if (debugEnabled)
-          console.error(`${debugPrefix} ffmpeg retry failed`, retryError);
-        const msg = normalizeErrorMessage(retryError);
-        throw new Error(`音频转码失败，已阻止上传: ${msg}`);
-      }
+  const attemptOnce = async (preset: TranscodePreset): Promise<File> => {
+    try {
+      const out = await runOnce(preset);
+      if (!smallest || out.size < smallest.size)
+        smallest = out;
+      return out;
     }
+    catch (error) {
+      lastError = error;
+      if (debugEnabled)
+        console.error(`${debugPrefix} ffmpeg transcode failed`, { tag: preset.tag, error });
 
-    const msg = normalizeErrorMessage(error);
-    throw new Error(`音频转码失败，已阻止上传: ${msg}`);
+      // 常见：WASM 内存越界（某些输入/环境下会发生），尝试重置 worker，并用同一 preset 重跑一次
+      if (isWasmMemoryOutOfBounds(error)) {
+        if (debugEnabled)
+          console.warn(`${debugPrefix} retry after wasm memory OOB`, { tag: preset.tag });
+        await terminateFfmpegAndResetSingleton(ffmpeg);
+        ffmpeg = await withTimeout(getFfmpeg(), loadTimeoutMs, "FFmpeg 初始化（重试）");
+        try {
+          const out = await runOnce({ ...preset, tag: `${preset.tag}-retry` });
+          if (!smallest || out.size < smallest.size)
+            smallest = out;
+          return out;
+        }
+        catch (retryError) {
+          lastError = retryError;
+          if (debugEnabled)
+            console.error(`${debugPrefix} ffmpeg retry failed`, { tag: preset.tag, retryError });
+          throw retryError;
+        }
+      }
+      throw error;
+    }
+  };
+
+  for (const preset of presets) {
+    try {
+      const out = await attemptOnce(preset);
+      if (!inputTargetBytes || out.size < inputTargetBytes)
+        return out;
+      if (debugEnabled)
+        console.warn(`${debugPrefix} output not smaller than input`, { tag: preset.tag, outBytes: out.size, inputBytes: inputTargetBytes });
+    }
+    catch {
+      // ignore and try next preset
+    }
   }
+
+  if (inputTargetBytes && smallest) {
+    const inputKb = (inputTargetBytes / 1024).toFixed(1);
+    const outKb = (smallest.size / 1024).toFixed(1);
+    throw new Error(`音频转码后未变小（原始 ${inputKb}KB，最小 ${outKb}KB），已阻止上传`);
+  }
+
+  throw new Error(`音频转码失败，已阻止上传: ${normalizeErrorMessage(lastError)}`);
 }
 
 export async function transcodeAudioBlobToOpusOrThrow(inputBlob: Blob, fileName: string, options: AudioTranscodeOptions = {}): Promise<File> {

@@ -30,7 +30,7 @@
 
 位于 `transcodeAudioFileToOpusOrThrow`：
 
-- **目标码率：** `96kbps`（`DEFAULT_BITRATE_KBPS=96`）
+- **目标码率：** `64kbps`（`DEFAULT_BITRATE_KBPS=64`，仅作为首选档位）
 - **VBR：** `on`
 - **compression_level：** `10`
 - **application：** `audio`
@@ -45,6 +45,18 @@
 
 - 前端转码失败会抛错并阻止上传（避免上传原始大文件或非统一格式）。
 - 输入文件大小超过 `30MB` 会直接阻止上传（避免 wasm 内存崩溃/浏览器卡死）。
+- 当启用“必须更小”的策略时：若转码后仍不小于输入，将按失败处理并阻止上传。
+
+#### 体积策略：尽量比输入更小（聊天音频）
+
+聊天音频上传会传入 `preferSmallerThanBytes`（默认对 `>=48KB` 的输入启用），并按多档预设降码率尝试：
+
+1. `64kbps`（保持声道/采样率，按调用方参数）
+2. `48kbps` + mono + `24kHz`
+3. `32kbps` + mono + `16kHz`
+4. `24kbps` + mono + `16kHz`
+
+若全部预设仍无法比输入更小，则阻止上传并提示“转码后未变小”。
 
 #### FFmpeg 核心加载来源与超时
 
