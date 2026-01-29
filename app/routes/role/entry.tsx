@@ -8,6 +8,7 @@ import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";
 import CreateRoleBySelf from "@/components/Role/RoleCreation/CreateRoleBySelf";
 import STCreateRole from "@/components/Role/RoleCreation/STCreateRole";
+import RuleEditorRoute from "@/components/Role/RuleEditor/RuleEditorRoute";
 import { setRoleRule } from "@/utils/roleRuleStorage";
 
 interface RoleContext {
@@ -20,7 +21,7 @@ export default function RoleCreationPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [mode, setMode] = useState<"self" | "dice" | "AI" | "ST" | "entry">("entry");
+  const [mode, setMode] = useState<"self" | "dice" | "AI" | "ST" | "entry" | "rule">("entry");
 
   const handleBackToEntry = () => {
     navigate("/role");
@@ -35,6 +36,13 @@ export default function RoleCreationPage() {
     }
     else if (typeParam === "dice") {
       setMode("dice");
+    }
+    else if (typeParam === "rule") {
+      setMode("rule");
+    }
+    else {
+      // 当 query 被清理/无效时，回退到入口
+      setMode("entry");
     }
   }, [searchParams]);
 
@@ -76,6 +84,9 @@ export default function RoleCreationPage() {
   }
   if (mode === "ST") {
     return <STCreateRole onBack={handleBackToEntry} onComplete={handleCreationComplete} />;
+  }
+  if (mode === "rule") {
+    return <RuleEditorRoute onBack={handleBackToEntry} />;
   }
 
   // 默认渲染创建入口

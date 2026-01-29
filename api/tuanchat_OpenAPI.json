@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8081",
+      "url": "http://101.126.143.129:8081",
       "description": "Generated server url"
     }
   ],
@@ -18696,7 +18696,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultObject": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -21957,6 +21957,9 @@
             "type": "boolean"
           },
           "role": {
+            "type": "boolean"
+          },
+          "npc": {
             "type": "boolean"
           },
           "npc": {

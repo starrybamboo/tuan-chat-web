@@ -678,7 +678,7 @@ function CharacterDetailInner({
                   <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-102 overflow-y-auto">
                 <Suspense fallback={(
                   <div className="flex flex-col items-center gap-4 py-8">
                     <span className="loading loading-spinner loading-lg text-primary"></span>
