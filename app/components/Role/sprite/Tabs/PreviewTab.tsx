@@ -5,9 +5,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import toast from "react-hot-toast";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
-import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { withOssResizeProcess } from "@/utils/ossImageProcess";
+import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
 
 interface RenderTransform {
@@ -18,12 +18,12 @@ interface RenderTransform {
   rotation: number;
 }
 
-type ReplaceAvatarPayload = {
+interface ReplaceAvatarPayload {
   avatarUrl: string;
   spriteUrl: string;
   originUrl?: string;
   transform?: Transform;
-};
+}
 
 const DEFAULT_TRANSFORM: RenderTransform = {
   scale: 1,

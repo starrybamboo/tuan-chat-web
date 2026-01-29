@@ -3,7 +3,10 @@ import type { DocSource } from "@blocksuite/sync";
 import { debounce } from "lodash";
 import { diffUpdate, encodeStateVectorFromUpdate, mergeUpdates } from "yjs";
 
+import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+
 import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
+import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
 import { addUpdate, clearUpdates, listUpdates } from "@/components/chat/infra/blocksuite/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import {
@@ -12,9 +15,8 @@ import {
   getRemoteUpdates,
   pushRemoteUpdate,
   setRemoteSnapshot,
-  type StoredSnapshot,
+
 } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
-import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
 
 function parseRemoteKeyFromDocId(docId: string) {
   return parseDescriptionDocId(docId);

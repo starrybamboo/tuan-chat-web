@@ -31,7 +31,7 @@ export interface AtMentionHandle {
   onInput: () => void; // 处理输入事件
 }
 
-const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({ chatInputRef, allRoles }, ref) => {
+function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
   // 1. 将所有 @ 相关的状态移动到这里
   const [showDialog, setShowDialog] = useState(false);
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
@@ -334,6 +334,6 @@ const AtMentionController = React.forwardRef<AtMentionHandle, AtMentionProps>(({
       </div>
     </Mounter>
   );
-});
+}
 
 export default AtMentionController;

@@ -8,7 +8,7 @@
 
 - **职责:** Blocksuite runtime 初始化、iframe 强隔离、样式隔离、tcHeader/标题体系、doc metas 同步、提及/引用相关交互
 - **状态:** ?开发中
-$12026-01-19
+- **最后更新:** 2026-01-29
 
 ## 入口与目录
 
@@ -67,6 +67,7 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - **stateVector diff（增量补齐）**
   - 前端在 pull 阶段用 `diffUpdate(mergedUpdate, stateVector)` 计算最小补丁并 apply
   - SpaceWorkspace 断线补齐：`app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
+  - 回调参数如未使用 `serverTime`，不要解构该字段（或改名 `_serverTime`），避免 eslint `unused-imports/no-unused-vars`
 
 ## 常见坑位（入口）
 

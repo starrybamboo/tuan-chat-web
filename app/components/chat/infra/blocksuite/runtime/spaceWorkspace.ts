@@ -19,9 +19,11 @@ import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
 import { applyUpdate, encodeStateAsUpdate, encodeStateVector, mergeUpdates } from "yjs";
 
-import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
-import { blocksuiteWsClient, type BlocksuiteDocKey } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
+import type { BlocksuiteDocKey } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
+
+import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineStoreExtensions";
 
 const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
@@ -257,14 +259,14 @@ class SpaceDoc implements Doc {
     })();
 
     this._wsDisposers.push(
-      blocksuiteWsClient.onUpdate(parsed, ({ update, serverTime }) => {
+      blocksuiteWsClient.onUpdate(parsed, ({ update }) => {
         try {
           applyUpdate(this.spaceDoc, update, REMOTE_WS_ORIGIN);
         }
         catch {
           // ignore
         }
-      })
+      }),
     );
   }
 

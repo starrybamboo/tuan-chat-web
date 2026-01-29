@@ -112,6 +112,8 @@
 - 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复房间初次导入无头像：房间头像缺失时用 `/favicon.ico` 兜底，并在头像加载失败时自动回退
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
+- 修复 eslint 错误：`AudioMessage` 避免条件调用 Hooks；`SpaceWorkspace` WS 更新回调移除未使用的 `serverTime` 解构
+- 修复 CI `pnpm install` 失败：通过 `pnpm.overrides` 固定 `@electron/node-gyp` 为 registry 版本，避免通过 SSH clone GitHub
 - 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
 - 修复发送音频消息时偶发卡死：移除 `decodeAudioData` 兜底解析（大文件会阻塞主线程），仅基于 metadata 解析时长
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
