@@ -9,6 +9,23 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601291407 | remove_bgm_floatball | 变更 | 已完成 | [2026-01/202601291407_remove-bgm-floatball/](2026-01/202601291407_remove-bgm-floatball/) |
+| 202601290010 | chat_audio_preload_metadata | 变更 | 已完成 | [2026-01/202601290010_chat-audio-preload-metadata/](2026-01/202601290010_chat-audio-preload-metadata/) |
+| 202601290000 | chat_audio_no_truncate | 变更 | 已完成 | [2026-01/202601290000_chat-audio-no-truncate/](2026-01/202601290000_chat-audio-no-truncate/) |
+| 202601290020 | chat_audio_prefer_smaller | 变更 | 已完成 | [2026-01/202601290020_chat-audio-prefer-smaller/](2026-01/202601290020_chat-audio-prefer-smaller/) |
+| 202601282350 | audio_transcode_oob_retry | 修复 | 已完成 | [2026-01/202601282350_audio-transcode-oob-retry/](2026-01/202601282350_audio-transcode-oob-retry/) |
+| 202601282340 | audio_core_exports_fix | 修复 | 已完成 | [2026-01/202601282340_audio-core-exports-fix/](2026-01/202601282340_audio-core-exports-fix/) |
+| 202601282320 | audio_core_bundled | 修复 | 已完成 | [2026-01/202601282320_audio-core-bundled/](2026-01/202601282320_audio-core-bundled/) |
+| 202601282240 | audio_transcode_timeout | 修复 | 已完成 | [2026-01/202601282240_audio-transcode-timeout/](2026-01/202601282240_audio-transcode-timeout/) |
+| 202601282120 | audio_ogg_volume_nan | 修复 | 已完成 | [2026-01/202601282120_audio-ogg-volume-nan/](2026-01/202601282120_audio-ogg-volume-nan/) |
+| 202601281955 | audio_upload_debug | 变更 | 已完成 | [2026-01/202601281955_audio-upload-debug/](2026-01/202601281955_audio-upload-debug/) |
+| 202601281840 | audio_send_nan | 修复 | 已完成 | [2026-01/202601281840_audio-send-nan/](2026-01/202601281840_audio-send-nan/) |
+| 202601281930 | audio_playback_floatball | 功能 | 已完成 | [2026-01/202601281930_audio-playback-floatball/](2026-01/202601281930_audio-playback-floatball/) |
+| 202601272308 | blocksuite_yjs_sync_adapter | 变更 | 已完成 | [2026-01/202601272308_blocksuite_yjs_sync_adapter/](2026-01/202601272308_blocksuite_yjs_sync_adapter/) |
+| 202601272208 | audio_stream | 变更 | 已完成 | [2026-01/202601272208_audio-stream/](2026-01/202601272208_audio-stream/) |
+| 202601272047 | blocksuite_mention_overlay_v3 | 修复 | 已完成 | [2026-01/202601272047_blocksuite-mention-overlay-v3/](2026-01/202601272047_blocksuite-mention-overlay-v3/) |
+| 202601271925 | blocksuite_mention_overlay_v2 | 修复 | 已完成 | [2026-01/202601271925_blocksuite-mention-overlay-v2/](2026-01/202601271925_blocksuite-mention-overlay-v2/) |
+| 202601271841 | blocksuite_mention_overlay | 修复 | 已完成 | [2026-01/202601271841_blocksuite-mention-overlay/](2026-01/202601271841_blocksuite-mention-overlay/) |
 | 202601270403 | docfolder_docref_drop | 功能 | 已完成 | [2026-01/202601270403_docfolder_docref_drop/](2026-01/202601270403_docfolder_docref_drop/) |
 | 202601270013 | docref_sidebar_drop_fix | 修复 | 已完成 | [2026-01/202601270013_docref_sidebar_drop_fix/](2026-01/202601270013_docref_sidebar_drop_fix/) |
 | 202601262156 | doc_message_drag_copy_to_sidebar | 功能 | 已完成 | [2026-01/202601262156_doc_message_drag_copy_to_sidebar/](2026-01/202601262156_doc_message_drag_copy_to_sidebar/) |
@@ -110,7 +127,6 @@
 | 202601211623 | chat_import_figure_position | 功能 | 已完成 | [2026-01/202601211623_chat_import_figure_position/](2026-01/202601211623_chat_import_figure_position/) |
 | 202601211740 | room-role-delete-filter-npc | 优化 | 已完成 | [2026-01/202601211740_room-role-delete-filter-npc/](2026-01/202601211740_room-role-delete-filter-npc/) |
 | 202601211915 | use-user-roles-by-type | 优化 | 已完成 | [2026-01/202601211915_use-user-roles-by-type/](2026-01/202601211915_use-user-roles-by-type/) |
-| 202601222021 | room_avatar_fallback | 修复 | 已完成 | [2026-01/202601222021_room_avatar_fallback/](2026-01/202601222021_room_avatar_fallback/) |
 
 ---
 
@@ -118,6 +134,14 @@
 
 ### 2026-01
 
+- [202601291407_remove-bgm-floatball](2026-01/202601291407_remove-bgm-floatball/) - 变更：移除房间级 BGM 悬浮球组件（统一使用全局音频悬浮球）
+- [202601281955_audio-upload-debug](2026-01/202601281955_audio-upload-debug/) - 变更：音频上传/转码/发送调试日志开关（DEV）
+- [202601281840_audio-send-nan](2026-01/202601281840_audio-send-nan/) - 修复：发送语音消息 second=NaN 导致发送失败
+- [202601281930_audio-playback-floatball](2026-01/202601281930_audio-playback-floatball/) - 功能：全局音频悬浮球（聚合所有正在播放的音频并提供列表视图）
+- [202601272208_audio-stream](2026-01/202601272208_audio-stream/) - 变更：音频播放改为流式进度条组件
+- [202601272047_blocksuite-mention-overlay-v3](2026-01/202601272047_blocksuite-mention-overlay-v3/) - 修复：CSS 全屏下 @ 弹窗挂载策略兜底
+- [202601271925_blocksuite-mention-overlay-v2](2026-01/202601271925_blocksuite-mention-overlay-v2/) - 修复：全屏画布下 @ 弹窗挂载位置补充
+- [202601271841_blocksuite-mention-overlay](2026-01/202601271841_blocksuite-mention-overlay/) - 修复：Blocksuite 全屏画布下 @ 弹窗被遮挡
 - [202601270403_docfolder_docref_drop](2026-01/202601270403_docfolder_docref_drop/) - 功能：聊天文档卡片支持拖拽复制到“我的文档”（docFolder）
 - [202601270013_docref_sidebar_drop_fix](2026-01/202601270013_docref_sidebar_drop_fix/) - 修复：聊天文档卡片拖拽到侧边栏无响应（docRef 兜底 + drop 可触发）
 - [202601262156_doc_message_drag_copy_to_sidebar](2026-01/202601262156_doc_message_drag_copy_to_sidebar/) - 功能：聊天列表的文档卡片支持拖拽复制到 sidebarTree（KP）

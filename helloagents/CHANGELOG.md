@@ -13,6 +13,7 @@
 - Blocksuite 描述文档支持自定义“图片 + 标题”头部（`tc_header`），并禁用 blocksuite 内置 `doc-title`；宿主侧支持乐观显示 room/space 标题与头像覆盖值
 - Blocksuite 描述文档 `tcHeader` 新增“重置内置标题”按钮：一键清空 blocksuite 内置页面标题（用于修复历史文档的双标题/标题不一致）
 - Blocksuite 描述文档画布（edgeless）新增“全屏/退出全屏”按钮（浏览器 Fullscreen API）
+- Blocksuite 同步：从“仅快照”升级为“yjs updates 入库 + WebSocket 实时同步 + v2 snapshot 定期合并 + stateVector diff 补齐”
 - 新增 BlockSuite 学习路线文档：`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
 - 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
 - 新增 Quill 引用统计审计报告：`helloagents/wiki/reports/2026-01-14_quill_reference_audit.md`
@@ -35,8 +36,23 @@
 - Chat：文档卡片消息右键菜单新增“复制到我的文档 / 复制到空间侧边栏（KP）”，语义为真正复制副本（从源文档导出 Blocksuite full update 并 restore 到新 doc，再写入 `/blocksuite/doc`；空间侧边栏复制会创建 `space_doc(sdoc)` 并写入 sidebarTree 引用）
 - Chat：聊天列表中的文档卡片消息支持拖拽到 sidebarTree 进行复制（KP，copy 语义）
 - Chat：支持将聊天列表的文档卡片消息拖拽复制到“我的文档”（创建 `space_user_doc(udoc)` 副本并追加到 docFolder）
+- Chat：全局音频悬浮球（聚合所有正在播放的音频，支持列表查看与暂停/停止）
 
 ### 变更
+- 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata
+- OSS：新增音频上传/转码/发送调试日志开关（仅 DEV，`tc:audio:upload:debug` / `__TC_AUDIO_UPLOAD_DEBUG`）
+- OSS：音频上传统一输出为 `audio/webm`（Opus 编码，WebM 容器），并使用 `.webm` 后缀作为默认对象名扩展名
+- OSS：聊天音频默认压缩更激进（48kbps + 32kHz），并补充更低码率/更低采样率兜底预设以提高“必须更小”成功率
+- Chat：聊天音频消息播放器切回 WaveSurfer 波形方案，并改为“点击播放才初始化/加载”，避免列表渲染/刷新时触发拉取
+- OSS：语音参考文件音频上传改为“原始上传”（不走 Opus 转码）
+- OSS：音频转码增加 FFmpeg 核心源 fallback + 超时控制，避免网络异常时上传流程卡死
+- OSS：默认优先从同源静态资源加载 `@ffmpeg/core`（避免公共 CDN 不可达导致转码失败）
+- OSS：修复 Vite dev 下 `@ffmpeg/core` 深层路径无法被 exports 解析导致的预转换报错
+- OSS：`@ffmpeg/core` 版本对齐 `@ffmpeg/ffmpeg` 内置 `CORE_VERSION=0.12.9`，并在 `memory access out of bounds` 时重置转码 worker 重试一次
+- OSS：音频上传增加输入文件大小上限（30MB）避免 wasm 内存崩溃
+- Chat：聊天音频消息不再强制 60s 截断（仍受转码超时与 30MB 上限约束）
+- OSS：聊天音频转码启用“必须更小”策略（多档降码率预设），转码后不小于输入则阻止上传
+- BGM：音量值增加非有限数兜底，避免渲染时出现 `NaN` 导致 React 控制台警告
 - 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
 - Chat：消息发言人名不再在“名称不一致/自定义名称”时显示 `*` 标记
 - 聊天室文本导入：导入弹窗 UI 重构（双栏分区、消息预览、缺失映射提示与快捷创建入口）
@@ -78,6 +94,9 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
+- 修复 Blocksuite 画布全屏（CSS 视口占满）下 @ 弹窗仍被遮挡：强制挂载在 iframe 文档
+- 修复 Blocksuite 全屏模式下 @ 弹窗仍被遮挡：根据 fullscreenElement 选择挂载目标
+- 修复 Blocksuite 全屏画布下 @ 快速搜索弹窗被遮挡：弹窗挂载到 top document 并提升 z-index
 - 修复聊天消息文本选区松开后丢失：存在选区时跳过消息点击逻辑
 - 修复聊天拖拽自动滚动重复声明导致的构建失败
 - 拖拽移动聊天消息时靠近顶部/底部自动滚动，便于移动到更早或更晚位置
@@ -93,6 +112,8 @@
 - 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复房间初次导入无头像：房间头像缺失时用 `/favicon.ico` 兜底，并在头像加载失败时自动回退
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
+- 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
+- 修复发送音频消息时偶发卡死：移除 `decodeAudioData` 兜底解析（大文件会阻塞主线程），仅基于 metadata 解析时长
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
 - 修复编辑 `tcHeader` 导致 blocksuite iframe 反复重载：冻结 `blocksuite-frame` URL 中的 `tcHeaderTitle/tcHeaderImageUrl`（仅首次初始化/切换文档时传入）
@@ -159,6 +180,7 @@
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
+- Chat：移除房间级 BGM 悬浮球组件（统一使用全局音频悬浮球作为聚合入口）
 
 ### ??
 - ?? API ???? authorId ?????? RulePageRequest ???????

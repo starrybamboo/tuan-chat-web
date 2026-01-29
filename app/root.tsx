@@ -13,7 +13,9 @@ import {
   useLocation,
   useNavigate,
 } from "react-router";
+import BgmPlaybackRegistry from "@/components/chat/infra/bgm/bgmPlaybackRegistry";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import AudioFloatingBall from "@/components/common/audioFloatingBall";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
@@ -36,7 +38,9 @@ if (typeof window !== "undefined" && window.customElements) {
 // pinpoint which module instance is triggering the warning.
 if (typeof window !== "undefined" && import.meta.env.DEV) {
   const originalWarn = console.warn;
+  const originalError = console.error;
   let printedLitMultiStack = false;
+  let printedNaNChildrenStack = false;
 
   console.warn = (...args: unknown[]) => {
     try {
@@ -53,6 +57,23 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
     }
 
     originalWarn(...args);
+  };
+
+  console.error = (...args: unknown[]) => {
+    try {
+      const first = typeof args[0] === "string" ? (args[0] as string) : "";
+      if (!printedNaNChildrenStack && first.includes("Received NaN for the `children` attribute")) {
+        printedNaNChildrenStack = true;
+        originalError(...args);
+        originalError(`[tc] NaN children warn stack:\n${new Error("NaN children warn stack").stack ?? ""}`);
+        return;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    originalError(...args);
   };
 }
 
@@ -149,6 +170,8 @@ export default function App() {
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
+      <BgmPlaybackRegistry />
+      <AudioFloatingBall />
     </GlobalContextProvider>
   );
 }

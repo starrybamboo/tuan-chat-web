@@ -7,59 +7,98 @@ import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/
 import { addUpdate, clearUpdates, listUpdates } from "@/components/chat/infra/blocksuite/descriptionDocDb";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import {
+  compactRemoteUpdates,
   getRemoteSnapshot,
+  getRemoteUpdates,
+  pushRemoteUpdate,
   setRemoteSnapshot,
+  type StoredSnapshot,
 } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
+import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
 
 function parseRemoteKeyFromDocId(docId: string) {
   return parseDescriptionDocId(docId);
 }
 
-const DEBOUNCE_MS = 5000;
+function snapshotCursor(snapshot: StoredSnapshot | null) {
+  if (!snapshot)
+    return 0;
+  if (snapshot.v === 2 && typeof snapshot.snapshotServerTime === "number") {
+    return Math.max(0, snapshot.snapshotServerTime);
+  }
+  return Math.max(0, snapshot.updatedAt ?? 0);
+}
+
+const OFFLINE_FLUSH_DEBOUNCE_MS = 3500;
+const COMPACT_DEBOUNCE_MS = 12_000;
 
 /**
- * Remote doc source backed by tuanchat `/blocksuite/doc` snapshot API.
+ * Remote doc source backed by:
+ * - snapshot (`/blocksuite/doc`) for cold start
+ * - updates log (`/blocksuite/doc/update`, `/blocksuite/doc/updates`) for incremental sync
+ * - websocket for realtime fanout
  *
- * The API stores a "merged full update" (base64), so we can:
- * - `pull`: return diffUpdate(fullUpdate, stateVector)
- * - `push`: mergeUpdates([fullUpdate, incrementalUpdate]) then persist
+ * 说明：
+ * - stateVector diff 在前端完成：pull 时把 snapshot + updates 合并为 mergedUpdate，再 diffUpdate(mergedUpdate, stateVector)。
+ * - 定期合并 snapshot：当检测到 updates 积累较多时，客户端会写回 v2 snapshot 并调用 compact 删除旧 updates。
  */
-export class RemoteSnapshotDocSource implements DocSource {
-  name = "remote-snapshot";
+export class RemoteYjsLogDocSource implements DocSource {
+  name = "remote-yjs-log";
 
-  private readonly cache = new Map<string, Uint8Array>();
-  private readonly pushDebouncers = new Map<string, ReturnType<typeof debounce>>();
+  private readonly flushDebouncers = new Map<string, ReturnType<typeof debounce>>();
+  private readonly compactDebouncers = new Map<string, ReturnType<typeof debounce>>();
 
-  private async getRemoteFullUpdate(docId: string): Promise<Uint8Array | null> {
-    const key = parseRemoteKeyFromDocId(docId);
-    if (!key)
-      return null;
-
-    const remote = await getRemoteSnapshot(key);
-    if (!remote?.updateB64)
-      return null;
-
-    return base64ToUint8Array(remote.updateB64);
-  }
+  private subscribedCb: ((docId: string, data: Uint8Array) => void) | null = null;
+  private readonly joinedDocIds = new Set<string>();
+  private readonly wsDisposers = new Map<string, () => void>();
 
   async pull(docId: string, state: Uint8Array) {
     const key = parseRemoteKeyFromDocId(docId);
     if (!key)
       return null;
 
-    const remote = await getRemoteSnapshot(key);
-    if (!remote?.updateB64)
+    const snapshot = await getRemoteSnapshot(key);
+    const baseUpdate = snapshot?.updateB64 ? base64ToUint8Array(snapshot.updateB64) : null;
+    const after = snapshotCursor(snapshot);
+
+    // Pull incremental updates after snapshot cursor.
+    const remoteUpdates = await getRemoteUpdates({
+      ...key,
+      afterServerTime: after,
+      limit: 2000,
+    });
+
+    const mergedParts: Uint8Array[] = [];
+    if (baseUpdate?.length) {
+      mergedParts.push(baseUpdate);
+    }
+    if (remoteUpdates?.updates?.length) {
+      for (const b64 of remoteUpdates.updates) {
+        try {
+          mergedParts.push(base64ToUint8Array(b64));
+        }
+        catch {
+          // ignore bad update
+        }
+      }
+    }
+
+    if (!mergedParts.length) {
       return null;
+    }
 
-    const remoteFullUpdate = base64ToUint8Array(remote.updateB64);
+    const mergedUpdate = mergedParts.length === 1 ? mergedParts[0] : mergeUpdates(mergedParts);
+    const diff = state.length ? diffUpdate(mergedUpdate, state) : mergedUpdate;
 
-    const pending = await listUpdates(docId);
-    const mergedForLocal = pending.length ? mergeUpdates([remoteFullUpdate, ...pending]) : remoteFullUpdate;
+    // Join WS room lazily when doc is actually pulled.
+    this.ensureJoined(docId);
 
-    this.cache.set(docId, mergedForLocal);
+    // If updates are accumulating (or snapshot missing), schedule a compaction pass (best-effort).
+    if (remoteUpdates?.updates?.length && (!snapshot || snapshot.v === 1 || remoteUpdates.updates.length >= 200)) {
+      this.scheduleCompaction(docId);
+    }
 
-    const diff = state.length ? diffUpdate(mergedForLocal, state) : mergedForLocal;
-    return { data: diff, state: encodeStateVectorFromUpdate(mergedForLocal) };
+    return { data: diff, state: encodeStateVectorFromUpdate(mergedUpdate) };
   }
 
   async push(docId: string, data: Uint8Array) {
@@ -67,78 +106,203 @@ export class RemoteSnapshotDocSource implements DocSource {
     if (!key)
       return;
 
-    // 1. Always queue the incremental update locally first (safety net).
-    // This allows us to debounce the network request without risking data loss.
+    this.ensureJoined(docId);
+
+    // Prefer WS path: store + broadcast happens server-side.
+    if (blocksuiteWsClient.tryPushUpdateIfOpen(key, data)) {
+      // Best-effort: keep snapshot reasonably fresh for cold-start; compaction is debounced.
+      this.scheduleCompaction(docId);
+      return;
+    }
+
+    // Offline / WS not connected: queue to IndexedDB, flush via HTTP later.
     try {
       await addUpdate(docId, data);
     }
     catch {
-      // If local DB fails, we still try to proceed with debounce logic,
-      // though risk of loss increases if tab closes before flush.
+      // ignore local DB failure; we still try to flush via debounce
     }
 
-    // 2. Schedule a debounced flush to the server.
-    let debounced = this.pushDebouncers.get(docId);
+    let debounced = this.flushDebouncers.get(docId);
     if (!debounced) {
-      debounced = debounce(() => this.flushInternal(docId), DEBOUNCE_MS);
-      this.pushDebouncers.set(docId, debounced);
+      debounced = debounce(() => void this.flushOfflineUpdates(docId), OFFLINE_FLUSH_DEBOUNCE_MS);
+      this.flushDebouncers.set(docId, debounced);
+    }
+    debounced();
+
+    // Offline queue: compaction will happen after flush succeeds.
+  }
+
+  subscribe(cb: (docId: string, data: Uint8Array) => void) {
+    this.subscribedCb = cb;
+
+    // Attach handlers for already-joined docs.
+    for (const docId of this.joinedDocIds) {
+      this.attachWsListener(docId);
+    }
+
+    return () => {
+      this.subscribedCb = null;
+
+      for (const dispose of this.wsDisposers.values()) {
+        try {
+          dispose();
+        }
+        catch {
+          // ignore
+        }
+      }
+      this.wsDisposers.clear();
+
+      for (const docId of this.joinedDocIds) {
+        const key = parseRemoteKeyFromDocId(docId);
+        if (key) {
+          blocksuiteWsClient.leaveDoc(key);
+        }
+      }
+      this.joinedDocIds.clear();
+    };
+  }
+
+  private ensureJoined(docId: string) {
+    if (this.joinedDocIds.has(docId)) {
+      return;
+    }
+    const key = parseRemoteKeyFromDocId(docId);
+    if (!key) {
+      return;
+    }
+
+    blocksuiteWsClient.joinDoc(key);
+    this.joinedDocIds.add(docId);
+
+    this.attachWsListener(docId);
+  }
+
+  private attachWsListener(docId: string) {
+    if (!this.subscribedCb) {
+      return;
+    }
+    if (this.wsDisposers.has(docId)) {
+      return;
+    }
+
+    const key = parseRemoteKeyFromDocId(docId);
+    if (!key) {
+      return;
+    }
+
+    const dispose = blocksuiteWsClient.onUpdate(key, ({ update }) => {
+      this.subscribedCb?.(docId, update);
+    });
+    this.wsDisposers.set(docId, dispose);
+  }
+
+  private async flushOfflineUpdates(docId: string) {
+    const key = parseRemoteKeyFromDocId(docId);
+    if (!key) {
+      return;
+    }
+
+    const pending = await listUpdates(docId);
+    if (!pending.length) {
+      return;
+    }
+
+    const merged = pending.length === 1 ? pending[0] : mergeUpdates(pending);
+    try {
+      const resp = await pushRemoteUpdate({
+        ...key,
+        updateB64: uint8ArrayToBase64(merged),
+      });
+      if (!resp) {
+        return;
+      }
+      await clearUpdates(docId);
+
+      // Once offline backlog is flushed, try to compact into snapshot (best-effort).
+      this.scheduleCompaction(docId);
+    }
+    catch {
+      // keep pending for later retry
+    }
+  }
+
+  private scheduleCompaction(docId: string) {
+    let debounced = this.compactDebouncers.get(docId);
+    if (!debounced) {
+      debounced = debounce(() => void this.compactRemote(docId), COMPACT_DEBOUNCE_MS);
+      this.compactDebouncers.set(docId, debounced);
     }
     debounced();
   }
 
-  private async flushInternal(docId: string) {
+  private async compactRemote(docId: string) {
     const key = parseRemoteKeyFromDocId(docId);
-    if (!key)
+    if (!key) {
       return;
-
-    // Merge strategy:
-    // - Prefer cached fullUpdate (from pull)
-    // - If not cached, fetch remote fullUpdate first to avoid overwriting remote state
-    // - Also merge any queued offline updates
-    let base = this.cache.get(docId);
-    if (!base) {
-      try {
-        base = (await this.getRemoteFullUpdate(docId)) ?? undefined;
-        if (base)
-          this.cache.set(docId, base);
-      }
-      catch {
-        // ignore, we will queue this update below
-      }
     }
 
-    // Read all pending local updates (including the ones added just before debounce started).
-    const pending = await listUpdates(docId);
-    if (!pending.length)
+    // Only compact when WS is online and we don't have offline pending updates.
+    if (!blocksuiteWsClient.isOpen()) {
       return;
-
-    const merged = base
-      ? mergeUpdates([base, ...pending])
-      : mergeUpdates([...pending]);
+    }
+    const pendingLocal = await listUpdates(docId);
+    if (pendingLocal.length) {
+      return;
+    }
 
     try {
+      const snapshot = await getRemoteSnapshot(key);
+      const baseUpdate = snapshot?.updateB64 ? base64ToUint8Array(snapshot.updateB64) : null;
+      const after = snapshotCursor(snapshot);
+
+      const remoteUpdates = await getRemoteUpdates({ ...key, afterServerTime: after, limit: 5000 });
+      if (!remoteUpdates?.updates?.length) {
+        return;
+      }
+
+      const parts: Uint8Array[] = [];
+      if (baseUpdate?.length) {
+        parts.push(baseUpdate);
+      }
+      for (const b64 of remoteUpdates.updates) {
+        try {
+          parts.push(base64ToUint8Array(b64));
+        }
+        catch {
+          // ignore
+        }
+      }
+      if (!parts.length) {
+        return;
+      }
+
+      const mergedUpdate = parts.length === 1 ? parts[0] : mergeUpdates(parts);
+      const sv = encodeStateVectorFromUpdate(mergedUpdate);
+      const latest = remoteUpdates.latestServerTime;
+
       await setRemoteSnapshot({
         ...key,
         snapshot: {
-          v: 1,
-          updateB64: uint8ArrayToBase64(merged),
+          v: 2,
+          updateB64: uint8ArrayToBase64(mergedUpdate),
+          stateVectorB64: uint8ArrayToBase64(sv),
+          snapshotServerTime: latest,
           updatedAt: Date.now(),
         },
       });
-      this.cache.set(docId, merged);
 
-      // Clear queue only after successful remote persist
-      if (pending.length)
-        await clearUpdates(docId);
+      await compactRemoteUpdates({
+        ...key,
+        beforeOrEqServerTime: latest,
+      });
     }
     catch {
-      // Network/server failure: do nothing.
-      // Updates remain in 'descriptionDocDb' and will be retried on next flush/pull.
+      // ignore compaction failures
     }
   }
-
-  subscribe() {
-    // No server push channel right now.
-    return () => {};
-  }
 }
+
+// Backward-compat name: existing call sites can switch gradually.
+export class RemoteSnapshotDocSource extends RemoteYjsLogDocSource {}

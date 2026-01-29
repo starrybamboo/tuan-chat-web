@@ -1,4 +1,4 @@
-import { ArrowSquareIn, BookOpenText, ExportIcon } from "@phosphor-icons/react";
+import { ArrowSquareIn, ExportIcon } from "@phosphor-icons/react";
 import React, { useEffect, useRef, useState } from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
@@ -23,8 +23,6 @@ function RoomHeaderBarImpl({
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const subDrawerState = useSideDrawerStore(state => state.subState);
-  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -137,16 +135,6 @@ function RoomHeaderBarImpl({
             }}
           >
             <RoleListIcon className="size-6" />
-          </div>
-          <div
-            className="tooltip tooltip-bottom hover:text-info relative z-50"
-            data-tip="文档"
-            onClick={() => {
-              closeThreadPane();
-              setSubDrawerState(subDrawerState === "doc" ? "none" : "doc");
-            }}
-          >
-            <BookOpenText className="size-6" />
           </div>
           <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
         </div>

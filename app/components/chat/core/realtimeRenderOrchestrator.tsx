@@ -1,4 +1,6 @@
 import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
+import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
+
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
@@ -46,8 +48,13 @@ export default function RealtimeRenderOrchestrator({
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
 
-  const subDrawerState = useSideDrawerStore(state => state.subState);
-  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
+  const sideDrawerState = useSideDrawerStore(state => state.state);
+  const setSideDrawerState = useSideDrawerStore(state => state.setState);
+
+  const sideDrawerStateRef = useRef<SideDrawerState>(sideDrawerState);
+  useEffect(() => {
+    sideDrawerStateRef.current = sideDrawerState;
+  }, [sideDrawerState]);
 
   const realtimeTTSEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const realtimeMiniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
@@ -168,8 +175,15 @@ export default function RealtimeRenderOrchestrator({
       lastRenderedMessageIdRef.current = null;
       isRenderingHistoryRef.current = false;
       lastBackgroundMessageIdRef.current = null;
-      if (subDrawerState === "webgal") {
-        setSubDrawerState("none");
+      prevHistoryOrderIdsRef.current = null;
+      prevHistoryUpdateTimeMapRef.current = new Map();
+      pendingFullRerenderRef.current = null;
+      if (fullRerenderTimerRef.current) {
+        clearTimeout(fullRerenderTimerRef.current);
+        fullRerenderTimerRef.current = null;
+      }
+      if (sideDrawerState === "webgal") {
+        setSideDrawerState("none");
       }
       prevHistoryOrderIdsRef.current = null;
       prevHistoryUpdateTimeMapRef.current = new Map();
@@ -179,7 +193,7 @@ export default function RealtimeRenderOrchestrator({
         fullRerenderTimerRef.current = null;
       }
     }
-  }, [roomId, setIsRealtimeRenderEnabled, subDrawerState, setSubDrawerState]);
+  }, [roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
 
   useEffect(() => {
     if (!realtimeRender.isActive || realtimeRender.status !== "connected" || hasRenderedHistoryRef.current || isRenderingHistoryRef.current) {
@@ -249,7 +263,7 @@ export default function RealtimeRenderOrchestrator({
     if (realtimeRender.isActive) {
       realtimeRender.stop();
       setIsRealtimeRenderEnabled(false);
-      setSubDrawerState("none");
+      setSideDrawerState("none");
       toast.success("已关闭实时渲染");
       return;
     }
@@ -270,7 +284,7 @@ export default function RealtimeRenderOrchestrator({
       if (success) {
         toast.success("实时渲染已开启", { id: "webgal-init" });
         setIsRealtimeRenderEnabled(true);
-        setSubDrawerState("webgal");
+        setSideDrawerState("webgal");
         await renderHistoryMessages();
       }
       else {
@@ -282,7 +296,7 @@ export default function RealtimeRenderOrchestrator({
       toast.error("WebGAL 启动超时", { id: "webgal-init" });
       setIsRealtimeRenderEnabled(false);
     }
-  }, [ensureHydrated, realtimeRender, setIsRealtimeRenderEnabled, setSubDrawerState, renderHistoryMessages, terrePort]);
+  }, [ensureHydrated, realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, renderHistoryMessages, terrePort]);
 
   useEffect(() => {
     if (realtimeRender.initProgress && realtimeRender.status === "initializing") {
@@ -301,13 +315,13 @@ export default function RealtimeRenderOrchestrator({
     toast.error("实时渲染连接失败，请确认 WebGAL 已启动", { id: "webgal-error" });
     stopRealtimeRender();
     setIsRealtimeRenderEnabled(false);
-    if (subDrawerState === "webgal") {
-      setSubDrawerState("none");
+    if (sideDrawerState === "webgal") {
+      setSideDrawerState("none");
     }
     hasRenderedHistoryRef.current = false;
     lastRenderedMessageIdRef.current = null;
     lastBackgroundMessageIdRef.current = null;
-  }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled, subDrawerState, setSubDrawerState]);
+  }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
 
   const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
     if (!realtimeRender.isActive) {
