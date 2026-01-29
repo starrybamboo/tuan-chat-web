@@ -11,8 +11,6 @@ interface RenderPreviewProps {
   previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   // Transform状态
   transform: Transform;
-  // 位置锚点（left/center/right）
-  anchorPosition?: "left" | "center" | "right";
   // 角色名称，用于遮罩中的显示
   characterName?: string;
   // 对话内容，用于遮罩中的显示
@@ -26,7 +24,6 @@ interface RenderPreviewProps {
 function RenderPreviewComponent({
   previewCanvasRef,
   transform,
-  anchorPosition = "center",
   characterName = "角色名",
   dialogContent = "对话内容",
 }: RenderPreviewProps) {
@@ -68,11 +65,7 @@ function RenderPreviewComponent({
       return transform;
     }
 
-    const anchorOffsetXRef = getAnchorOffsetXRef(
-      anchorPosition,
-      transform.scale,
-      previewCanvasRef.current,
-    );
+    const anchorOffsetXRef = getAnchorOffsetXRef();
 
     // 返回一个新的 transform 对象，其中位置信息已被缩放
     // 注意：scale, rotation, alpha 保持不变，因为它们本身就是相对值
@@ -81,7 +74,7 @@ function RenderPreviewComponent({
       positionX: (transform.positionX + anchorOffsetXRef) * scaleX,
       positionY: transform.positionY * scaleY,
     };
-  }, [transform, containerSize, scaleX, scaleY, anchorPosition, previewCanvasRef]); // 当 transform 或 containerSize 变化时重新计算
+  }, [transform, containerSize, scaleX, scaleY]); // 当 transform 或 containerSize 变化时重新计算
 
   return (
     <>

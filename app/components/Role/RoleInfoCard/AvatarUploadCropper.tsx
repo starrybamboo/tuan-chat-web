@@ -562,7 +562,6 @@ export function CharacterCopper({
                             <TransformControl
                               transform={transform}
                               setTransform={setTransform}
-                              previewCanvasRef={previewCanvasRef}
                             />
                           </div>
                         </>

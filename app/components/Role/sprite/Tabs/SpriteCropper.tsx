@@ -202,7 +202,6 @@ export function SpriteCropper({
     alpha: 1,
     rotation: 0,
   }));
-  const [anchorPosition, setAnchorPosition] = useState<"left" | "center" | "right">("center");
 
   // 添加渲染key用于强制重新渲染
   const [renderKey, setRenderKey] = useState(0);
@@ -875,7 +874,6 @@ export function SpriteCropper({
                               <RenderPreview
                                 previewCanvasRef={previewCanvasRef}
                                 transform={transform}
-                                anchorPosition={anchorPosition}
                                 characterName={characterName}
                                 dialogContent="这是一段示例对话内容。"
                               />
@@ -884,9 +882,6 @@ export function SpriteCropper({
                             <TransformControl
                               transform={transform}
                               setTransform={setDisplayTransform}
-                              previewCanvasRef={previewCanvasRef}
-                              anchorPosition={anchorPosition}
-                              onAnchorPositionChange={setAnchorPosition}
                             />
                           </div>
                         </>
