@@ -1274,6 +1274,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
+  const [hasFrameReadyOnce, setHasFrameReadyOnce] = useState(false);
   const hostMentionDebugUntilRef = useRef(0);
   const hostMentionDebugRemainingRef = useRef(0);
   const [mentionProfilePopover, setMentionProfilePopover] = useState<BlocksuiteMentionProfilePopoverState | null>(null);
@@ -1899,12 +1900,17 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     setIsFrameReady(false);
   }, [docId]);
 
+  useEffect(() => {
+    if (isFrameReady)
+      setHasFrameReadyOnce(true);
+  }, [isFrameReady]);
+
   /* eslint-disable react-dom/no-unsafe-iframe-sandbox */
 
   // blocksuiteMentionProfilePopover是“@ 提及用户”的悬浮卡片，放在宿主页面外层，方便在 iframe 外显示（避免被 iframe 限制/裁剪），通过 postMessage 和 iframe 内的编辑器通信。
   return (
     <div className={wrapperClassName}>
-      {!isFrameReady && (
+      {!hasFrameReadyOnce && !isFrameReady && (
         <div
           className={[
             "w-full",
@@ -1918,19 +1924,19 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
           ].filter(Boolean).join(" ")}
           aria-label="Blocksuite loading"
         >
-          <div className="max-w-xl mx-auto">
-            <div className="flex items-center gap-4">
-              <div className="skeleton h-10 w-10 rounded-full" />
-              <div className="skeleton h-5 w-44" />
-              <div className="ml-auto flex items-center gap-3">
-                <div className="skeleton h-4 w-28" />
-                <div className="skeleton h-4 w-24" />
+          <div className="mx-auto w-full max-w-195 pr-6 px-4">
+            <div className="flex min-h-12 items-center gap-4">
+              <div className="skeleton h-14 w-14 rounded-2xl" />
+              <div className="skeleton h-12 flex-1 rounded-2xl" />
+              <div className="ml-auto flex items-center gap-2">
+                <div className="skeleton h-8 w-24 rounded-full" />
+                <div className="skeleton h-8 w-20 rounded-full" />
               </div>
             </div>
+            <div className="skeleton mt-3 h-4 w-full" />
+            <div className="skeleton mt-2 h-4 w-full" />
+            <div className="skeleton mt-2 h-4 w-full" />
           </div>
-          <div className="skeleton mt-3 h-4 w-full max-w-xl mx-auto" />
-          <div className="skeleton mt-2 h-4 w-full max-w-xl mx-auto" />
-          <div className="skeleton mt-2 h-4 w-full max-w-xl mx-auto" />
         </div>
       )}
       <BlocksuiteMentionProfilePopover
