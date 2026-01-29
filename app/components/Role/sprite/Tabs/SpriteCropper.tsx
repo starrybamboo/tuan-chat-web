@@ -249,7 +249,7 @@ export function SpriteCropper({
   });
 
   // 切换裁剪源/图片时重置裁剪状态，避免沿用旧的 crop 尺寸导致“看起来没切换”
-  useEffect(() => {
+  useLayoutEffect(() => {
     resetCropState();
     setPreviewReadyKey("");
   }, [currentUrl, resetCropState]);
