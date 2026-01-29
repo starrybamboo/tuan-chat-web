@@ -97,7 +97,7 @@ export function SpriteSettingsPopup({
   const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
 
   // ========== 上传和删除功能 ==========
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
+  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   const { mutate: batchDeleteAvatars } = useBatchDeleteRoleAvatarsMutation(role?.id);
 
   // Notification state for upload feedback
@@ -117,7 +117,7 @@ export function SpriteSettingsPopup({
   }, [uploadNotification]);
 
   // Handle avatar upload
-  const handleAvatarUpload = useCallback((data: any) => {
+  const handleAvatarUpload = useCallback(async (data: any) => {
     if (!role?.id) {
       setUploadNotification({
         type: "error",
@@ -126,25 +126,22 @@ export function SpriteSettingsPopup({
       return;
     }
 
-    // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
-    uploadAvatar(
-      { ...data, roleId: role.id, autoApply: false, autoNameFirst: true },
-      {
-        onSuccess: () => {
-          setUploadNotification({
-            type: "success",
-            message: "头像上传成功",
-          });
-        },
-        onError: (error) => {
-          console.error("头像上传失败:", error);
-          setUploadNotification({
-            type: "error",
-            message: "头像上传失败，请重试",
-          });
-        },
-      },
-    );
+    try {
+      // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
+      await uploadAvatar({ ...data, roleId: role.id, autoApply: false, autoNameFirst: true });
+      setUploadNotification({
+        type: "success",
+        message: "头像上传成功",
+      });
+    }
+    catch (error) {
+      console.error("头像上传失败:", error);
+      setUploadNotification({
+        type: "error",
+        message: "头像上传失败，请重试",
+      });
+      throw error;
+    }
   }, [role, uploadAvatar]);
 
   // 内部索引变更处理

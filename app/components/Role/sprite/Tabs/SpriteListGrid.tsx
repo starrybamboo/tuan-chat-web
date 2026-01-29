@@ -22,7 +22,7 @@ interface SpriteListGridProps {
   /** 模式：'view' 仅展示，'manage' 管理模式（显示上传、删除等功能） */
   mode?: "view" | "manage";
   /** 上传触发后的回调 */
-  onUpload?: (data: any) => void;
+  onUpload?: (data: any) => void | Promise<void>;
   /** 传给上传组件的文件名（可选） */
   fileName?: string;
   /** 角色信息（用于删除和编辑逻辑） */
@@ -188,10 +188,11 @@ export function SpriteListGrid({
                 }}
                 mutate={(data) => {
                   try {
-                    onUpload?.(data);
+                    return onUpload?.(data);
                   }
                   catch (e) {
                     console.error("onUpload 回调执行失败", e);
+                    throw e;
                   }
                 }}
               >
@@ -370,11 +371,12 @@ export function SpriteListGrid({
               }}
               mutate={(data) => {
                 try {
-                  onUpload?.(data);
+                  return onUpload?.(data);
                 }
                 catch (e) {
                   // 保持轻量：调用方处理错误
                   console.error("onUpload 回调执行失败", e);
+                  throw e;
                 }
               }}
             >

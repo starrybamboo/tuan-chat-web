@@ -202,7 +202,6 @@ export function SpriteCropper({
     alpha: 1,
     rotation: 0,
   }));
-  const [anchorPosition, setAnchorPosition] = useState<"left" | "center" | "right">("center");
 
   // 添加渲染key用于强制重新渲染
   const [renderKey, setRenderKey] = useState(0);
@@ -249,7 +248,7 @@ export function SpriteCropper({
   });
 
   // 切换裁剪源/图片时重置裁剪状态，避免沿用旧的 crop 尺寸导致“看起来没切换”
-  useEffect(() => {
+  useLayoutEffect(() => {
     resetCropState();
     setPreviewReadyKey("");
   }, [currentUrl, resetCropState]);
@@ -875,7 +874,6 @@ export function SpriteCropper({
                               <RenderPreview
                                 previewCanvasRef={previewCanvasRef}
                                 transform={transform}
-                                anchorPosition={anchorPosition}
                                 characterName={characterName}
                                 dialogContent="这是一段示例对话内容。"
                               />
@@ -884,9 +882,6 @@ export function SpriteCropper({
                             <TransformControl
                               transform={transform}
                               setTransform={setDisplayTransform}
-                              previewCanvasRef={previewCanvasRef}
-                              anchorPosition={anchorPosition}
-                              onAnchorPositionChange={setAnchorPosition}
                             />
                           </div>
                         </>
