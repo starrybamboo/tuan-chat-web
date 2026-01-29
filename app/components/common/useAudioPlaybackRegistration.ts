@@ -20,22 +20,33 @@ function createStableId(prefix: string): string {
 
 export function useAudioPlaybackRegistration(options: UseAudioPlaybackRegistrationOptions) {
   const idRef = useRef<string>(options.id || createStableId("audio"));
+  const initialOptionsRef = useRef(options);
 
   useEffect(() => {
     const id = idRef.current;
+    const initial = initialOptionsRef.current;
     useAudioPlaybackStore.getState().register({
       id,
-      kind: options.kind,
-      title: options.title,
-      url: options.url,
-      pause: options.pause,
-      stop: options.stop,
-      isPlaying: false,
+      kind: initial.kind,
+      title: initial.title,
+      url: initial.url,
+      pause: initial.pause,
+      stop: initial.stop,
     });
 
     return () => {
       useAudioPlaybackStore.getState().unregister(id);
     };
+  }, []);
+
+  useEffect(() => {
+    useAudioPlaybackStore.getState().update(idRef.current, {
+      kind: options.kind,
+      title: options.title,
+      url: options.url,
+      pause: options.pause,
+      stop: options.stop,
+    });
   }, [options.kind, options.pause, options.stop, options.title, options.url]);
 
   const setPlaying = (isPlaying: boolean) => {
