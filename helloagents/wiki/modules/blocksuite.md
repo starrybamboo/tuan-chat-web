@@ -47,6 +47,26 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - `用户`候选的展示信息（头像/名称）来自 `createTuanChatUserService()`：按 `userId` 拉取 `/user/info` 并缓存（避免仅显示 userId）
 - mention 节点的渲染组件为 `<affine-mention />`（`@blocksuite/affine-inline-mention`）；本项目在 Blocksuite core elements 初始化前注册自定义 `<affine-mention />`，让 mention 在文档内展示头像 + 名称，并移除前缀 `@`：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`
 - 文档内“用户 mention”的交互：点击 mention 跳转到 `/profile/:userId`；悬浮 mention 会在短延迟后显示个人主页悬浮窗，并基于 mention 位置居中对齐（宿主侧 portal 渲染，内容为个人主页 iframe）：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`、`app/components/chat/infra/blocksuite/mentionProfilePopover.tsx`、`app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
+- 全屏画布模式下的 `@` 快速搜索弹窗需挂载到 top document，并使用高层级 z-index，避免被 edgeless 全屏遮挡（实现位于 `app/components/chat/infra/blocksuite/quickSearchService.ts`）
+- 若进入 Fullscreen API，`@` 弹窗需挂载到 fullscreenElement 或对应 iframe 文档，确保可见性（`app/components/chat/infra/blocksuite/quickSearchService.ts`）
+- blocksuite-frame 的“全屏画布”仅为 CSS 视口占满（`h-screen w-screen`），`@` 弹窗需挂载在 iframe 文档内避免被宿主 iframe 层级遮挡
+
+### 5) 同步与存储（仿 AFFiNE/OctoBase：updates 入库 + 定期合并 snapshot + stateVector diff）
+
+本项目 Blocksuite 文档的远端一致性以 **yjs updates 日志**为主，快照为可丢弃缓存（冷启动/加速用）：
+
+- **updates 入库（SSOT）**
+  - HTTP：`POST /blocksuite/doc/update`（离线/无 WS 时兜底）
+  - WebSocket：`type=202`（在线实时路径，服务端入库并 fanout）
+  - 前端实现：`app/components/chat/infra/blocksuite/remoteDocSource.ts`、`app/components/chat/infra/blocksuite/blocksuiteWsClient.ts`
+- **定期合并 snapshot（cache）**
+  - 触发：pull/push 发现 updates 累积或首次无快照时（debounce）
+  - 行为：拉取 snapshot+updates → `mergeUpdates` → 写回 v2 快照 → 调用 `/blocksuite/doc/compact` 删除已合并的 updates
+  - v2 快照结构：`{ v:2, updateB64, stateVectorB64?, snapshotServerTime, updatedAt }`
+  - 前端实现：`app/components/chat/infra/blocksuite/remoteDocSource.ts`
+- **stateVector diff（增量补齐）**
+  - 前端在 pull 阶段用 `diffUpdate(mergedUpdate, stateVector)` 计算最小补丁并 apply
+  - SpaceWorkspace 断线补齐：`app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
 
 ## 常见坑位（入口）
 

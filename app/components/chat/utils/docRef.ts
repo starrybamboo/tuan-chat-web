@@ -9,6 +9,8 @@ export type DocRefDragPayload = {
   title?: string;
   /** 发送时的封面兜底（预览加载前展示） */
   imageUrl?: string;
+  /** 发送时的摘要兜底（预览加载前展示） */
+  excerpt?: string;
 };
 
 function normalizePayload(raw: any): DocRefDragPayload | null {
@@ -23,12 +25,14 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
 
   const title = typeof raw?.title === "string" ? raw.title.trim() : "";
   const imageUrl = typeof raw?.imageUrl === "string" ? raw.imageUrl.trim() : "";
+  const excerpt = typeof raw?.excerpt === "string" ? raw.excerpt.trim() : "";
 
   return {
     docId,
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
     ...(imageUrl ? { imageUrl } : {}),
+    ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
   };
 }
 

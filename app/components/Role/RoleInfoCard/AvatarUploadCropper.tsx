@@ -101,7 +101,6 @@ export function CharacterCopper({
 
   // Transform控制状态
   const [transform, setTransform] = useState<Transform>(createDefaultTransform);
-  const [anchorPosition, setAnchorPosition] = useState<"left" | "center" | "right">("center");
 
   // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
   const getCropMode = useCallback((): CropMode => {
@@ -473,7 +472,7 @@ export function CharacterCopper({
         }}
         fullScreen={isMobileScreen()}
       >
-        <div className="w-4xl max-w-full min-h-[75vh] mx-auto flex flex-col">
+        <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-8">
             <div className="w-full flex items-center">
               <h1 className="text-xl md:text-2xl font-bold w-64">
@@ -506,7 +505,7 @@ export function CharacterCopper({
             )}
           </div>
           <div className="divider my-0"></div>
-          <div className="flex flex-col md:flex-row gap-8 justify-center flex-1 min-h-0">
+          <div className="flex flex-col md:flex-row gap-8 justify-center">
             {/* 原始图片裁剪区域 */}
             <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
               {!!imgSrc && (
@@ -557,7 +556,6 @@ export function CharacterCopper({
                             <RenderPreview
                               previewCanvasRef={previewCanvasRef}
                               transform={transform}
-                              anchorPosition={anchorPosition}
                               characterName="角色名"
                               dialogContent="对话内容"
                             />
@@ -565,8 +563,6 @@ export function CharacterCopper({
                               transform={transform}
                               setTransform={setTransform}
                               previewCanvasRef={previewCanvasRef}
-                              anchorPosition={anchorPosition}
-                              onAnchorPositionChange={setAnchorPosition}
                             />
                           </div>
                         </>

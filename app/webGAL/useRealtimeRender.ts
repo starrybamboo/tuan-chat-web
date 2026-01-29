@@ -15,8 +15,8 @@ import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api"
 import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
 import { tuanchat } from "../../api/instance";
-import { onWebgalAvatarUpdated } from "./avatarSync";
 import { RealtimeRenderer } from "./realtimeRenderer";
+import { onWebgalAvatarUpdated } from "./avatarSync";
 
 export type { RealtimeTTSConfig };
 
@@ -398,6 +398,7 @@ export function useRealtimeRender({
         idsToFetch.push(avatarId);
       }
     }
+
 
     for (const avatarId of idsToFetch) {
       try {

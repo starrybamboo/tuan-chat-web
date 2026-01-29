@@ -1,10 +1,9 @@
-import type { QueryClient } from "@tanstack/react-query";
-
 /**
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
  */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";

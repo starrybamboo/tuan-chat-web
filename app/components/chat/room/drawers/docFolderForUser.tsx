@@ -628,9 +628,7 @@ export default function DocFolderForUser() {
               </div>
             )
           : (
-              <div className="flex-1 min-h-0 overflow-auto">
-                <div
-                  className="p-2 space-y-2"
+              <div className="flex-1 min-h-0 overflow-auto"
                   onDragOverCapture={(e) => {
                     if (!spaceId || spaceId <= 0)
                       return;
@@ -668,7 +666,8 @@ export default function DocFolderForUser() {
                     setDocCopyDropCategoryId(null);
                     void handleDropDocRefToCategory({ categoryId, docRef });
                   }}
-                >
+              >
+                <div className="p-2 space-y-2 min-h-full">
                   {tree.categories.map((cat) => {
                     const isCollapsed = Boolean(cat.collapsed);
                     return (

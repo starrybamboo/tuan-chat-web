@@ -19,9 +19,8 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
-import BgmFloatingBall from "@/components/chat/room/bgmFloatingBall";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomPopWindows from "@/components/chat/room/roomPopWindows";
@@ -32,7 +31,6 @@ import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
-import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -44,11 +42,12 @@ import ImportChatMessagesWindow from "@/components/chat/window/importChatMessage
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
 import UTILS from "@/components/common/dicer/utils/utils";
+
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
+import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import {
@@ -69,7 +68,6 @@ import { MessageType } from "../../../../api/wsModels";
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
-  const isKP = Boolean(spaceContext.isSpaceOwner);
 
   // BGM：切换/卸载房间时视为“打断”，停止播放但不影响用户是否已主动关闭（dismiss）
   useEffect(() => {
@@ -152,24 +150,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   // 获取当前群聊中的所有NPC角色
   const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
   const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
-  // 用户拥有的角色 + 所有NPC角色（剔除已删除的角色）
+  // 用户拥有的角色 + 所有NPC角色
   const roomRolesThatUserOwn = useMemo(() => {
-    const activeRoomRoles = roomRoles.filter(role => role.state !== 1);
-    const activeNpcRoles = roomNpcRoles.filter(role => role.state !== 1);
     // 先获取用户拥有的玩家角色
     const playerRoles = spaceContext.isSpaceOwner
-      ? activeRoomRoles
-      : activeRoomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
+      ? roomRoles
+      : roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
     // 合并玩家角色和NPC角色
-    return [...playerRoles, ...activeNpcRoles];
+    return [...playerRoles, ...roomNpcRoles];
   }, [roomRoles, roomNpcRoles, spaceContext.isSpaceOwner, userRoles]);
-  const selectableRoles = useMemo(() => {
-    const currentUserId = Number(userId);
-    if (!currentUserId) {
-      return roomRolesThatUserOwn;
-    }
-    return roomRolesThatUserOwn.filter(role => role.userId === currentUserId);
-  }, [roomRolesThatUserOwn, userId]);
 
   // 房间ID到角色ID、角色ID到头像ID 的映射（持久化）
   const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
@@ -270,9 +259,12 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   }, [curAvatarIdMap, roleDefaultAvatarIdMap, runtimeAvatarIdMap]);
 
   const storedRoleId = curRoleIdMap[roomId];
-  const fallbackRoleId = selectableRoles[0]?.roleId ?? -1;
-  const storedRoleIsSelectable = storedRoleId != null && selectableRoles.some(role => role.roleId === storedRoleId);
-  const curRoleId = storedRoleIsSelectable ? storedRoleId : fallbackRoleId;
+  const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? -1;
+  const curRoleId = (storedRoleId == null)
+    ? fallbackRoleId
+    : (storedRoleId <= 0 && !spaceContext.isSpaceOwner)
+        ? fallbackRoleId
+        : storedRoleId;
   const setCurRoleId = useCallback((roleId: number) => {
     if (roleId <= 0 && !spaceContext.isSpaceOwner) {
       toast.error("只有KP可以使用旁白");
@@ -642,12 +634,13 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
+    const isKP = spaceContext.isSpaceOwner;
     if (notMember) {
       toast.error("您是观战，不能发送消息");
       return;
     }
-    if (noRole) {
-      toast.error("请先选择你的角色");
+    if (noRole && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting) {
@@ -661,7 +654,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       threadId,
       replyMessageId: requestMessageId,
     });
-  }, [commandExecutor, isSubmitting, noRole, notMember]);
+  }, [commandExecutor, isSubmitting, noRole, notMember, spaceContext.isSpaceOwner]);
 
   /**
    * 发送消息的辅助函数
@@ -731,12 +724,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     const rawKey = String(key ?? "").trim();
     const rawExpr = String(expr ?? "").trim();
 
+    const isKP = spaceContext.isSpaceOwner;
+    const isNarrator = curRoleId <= 0;
+
     if (notMember) {
       toast.error("您是观战，不能发送消息");
       return;
     }
-    if (curRoleId <= 0) {
-      toast.error("请先选择你的角色");
+    if (isNarrator && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
       return;
     }
     if (isSubmitting || webgalVarSendingRef.current) {
@@ -834,7 +830,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
     finally {
       webgalVarSendingRef.current = false;
     }
-  }, [curAvatarId, curRoleId, isSubmitting, notMember, roomId, sendMessageWithInsert, setSpaceExtraMutation, space?.extra, spaceId]);
+  }, [curRoleId, ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomId, sendMessageWithInsert, setSpaceExtraMutation, space?.extra, spaceContext.isSpaceOwner, spaceId]);
 
   const handleMessageSubmit = async () => {
     const {
@@ -867,13 +863,18 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
 
-    const disableSendMessage = notMember || noInput || isSubmitting || noRole;
+    const isKP = spaceContext.isSpaceOwner;
+    const isNarrator = noRole;
+
+    // 旁白不再依赖联动模式，但仅KP可用
+    const disableSendMessage = (notMember || noInput || isSubmitting)
+      || (isNarrator && !isKP);
 
     if (disableSendMessage) {
       if (notMember)
         toast.error("您是观战，不能发送消息");
-      else if (noRole)
-        toast.error("请先选择你的角色");
+      else if (isNarrator && !isKP)
+        toast.error("旁白仅KP可用，请先选择/拉入你的角色");
       else if (noInput)
         toast.error("请输入内容");
       else if (isSubmitting)
@@ -908,19 +909,84 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       // 3. 上传语音
       let soundMessageData: any = null;
       if (audioFile) {
-        const audio = new Audio(URL.createObjectURL(audioFile));
-        await new Promise((resolve) => {
-          audio.onloadedmetadata = () => resolve(null);
-        });
-        const duration = audio.duration;
-        const url = await uploadUtils.uploadAudio(audioFile, 1, 6000); // 最长6000秒
-        soundMessageData = {
-          url,
-          second: Math.round(duration),
-          fileName: audioFile.name,
-          size: audioFile.size,
-        };
-        setAudioFile(null);
+        // 0 表示不截断（不再强制 60s 限制）
+        const maxAudioDurationSec = 0;
+        const objectUrl = URL.createObjectURL(audioFile);
+        const debugEnabled = isAudioUploadDebugEnabled();
+        const debugPrefix = "[tc-audio-upload]";
+        const audioToastId = toast.loading("音频处理中（转码/上传中）…");
+
+        if (debugEnabled) {
+          console.warn(`${debugPrefix} roomWindow send audio`, {
+            name: audioFile.name,
+            type: audioFile.type,
+            size: audioFile.size,
+            lastModified: audioFile.lastModified,
+            truncateToSec: maxAudioDurationSec > 0 ? maxAudioDurationSec : null,
+          });
+        }
+
+        try {
+          const durationSec = await (async () => {
+            try {
+              const audio = new Audio();
+              audio.preload = "metadata";
+              audio.src = objectUrl;
+              audio.load();
+
+              return await new Promise<number | undefined>((resolve) => {
+                const timeout = window.setTimeout(() => resolve(undefined), 5000);
+                const cleanup = () => {
+                  window.clearTimeout(timeout);
+                  audio.onloadedmetadata = null;
+                  audio.onerror = null;
+                  audio.onabort = null;
+                };
+
+                audio.onloadedmetadata = () => {
+                  const d = audio.duration;
+                  cleanup();
+                  resolve(Number.isFinite(d) && d > 0 ? d : undefined);
+                };
+                audio.onerror = () => {
+                  cleanup();
+                  resolve(undefined);
+                };
+                audio.onabort = () => {
+                  cleanup();
+                  resolve(undefined);
+                };
+              });
+            }
+            finally {
+              URL.revokeObjectURL(objectUrl);
+            }
+          })();
+
+          const second = (typeof durationSec === "number" && Number.isFinite(durationSec))
+            ? Math.max(1, Math.round(durationSec))
+            : 1;
+
+          if (debugEnabled)
+            console.warn(`${debugPrefix} duration`, { durationSec, second });
+
+          const url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
+
+          soundMessageData = {
+            url,
+            second,
+            fileName: audioFile.name,
+            size: audioFile.size,
+          };
+          setAudioFile(null);
+        }
+        catch (error) {
+          console.error(`${debugPrefix} uploadAudio failed`, error);
+          throw error;
+        }
+        finally {
+          toast.dismiss(audioToastId);
+        }
       }
 
       // 4. 构建并发送消息
@@ -1347,6 +1413,26 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
       return;
     }
 
+    let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
+    if (!excerpt) {
+      try {
+        const { getOrCreateSpaceDoc } = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
+
+        const store = getOrCreateSpaceDoc({ spaceId, docId }) as any;
+        try {
+          store?.load?.();
+        }
+        catch {
+          // ignore
+        }
+
+        excerpt = extractDocExcerptFromStore(store, { maxChars: 220 });
+      }
+      catch {
+        // ignore
+      }
+    }
+
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
     const request: ChatMessageRequest = {
@@ -1361,6 +1447,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
           spaceId,
           ...(payload?.title ? { title: payload.title } : {}),
           ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
+          ...(excerpt ? { excerpt } : {}),
         },
       } as any,
     };
@@ -1372,54 +1459,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 
     await sendMessageWithInsert(request);
   }, [curRoleId, ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomId, sendMessageWithInsert, spaceContext.isSpaceOwner, spaceId]);
-
-  const docHeaderOverrides = useDocHeaderOverrideStore(state => state.headers);
-
-  const handleSendDocAsClue = useCallback(async (docId: string) => {
-    const rawDocId = String(docId ?? "").trim();
-    if (!rawDocId) {
-      toast.error("无效文档");
-      return;
-    }
-
-    // 1) 图片：优先使用文档 Header Override 的封面图（侧边栏同源）
-    const override = docHeaderOverrides?.[rawDocId];
-    const img = typeof override?.imageUrl === "string" ? override.imageUrl.trim() : "";
-
-    // 2) 标题：优先从 blocksuite workspace docMetas 获取（quickSearchService 同源）
-    let title = "";
-    try {
-      if (typeof spaceId === "number" && spaceId > 0) {
-        const workspaceMetaRaw = (await tuanchat.blocksuiteDocController.getDoc("space", spaceId, "workspace"))?.data as any;
-        const workspaceMeta = typeof workspaceMetaRaw === "string"
-          ? JSON.parse(workspaceMetaRaw)
-          : workspaceMetaRaw;
-
-        const metas: Array<{ id: string; title?: string }> = Array.isArray(workspaceMeta?.docMetas)
-          ? workspaceMeta.docMetas
-          : [];
-        title = (metas.find(m => m?.id === rawDocId)?.title ?? "").trim();
-      }
-    }
-    catch {
-      // ignore
-    }
-
-    // 3) 兜底标题
-    if (!title) {
-      const parsed = parseSpaceDocId(rawDocId);
-      const fallbackPrefix = parsed?.kind === "independent" ? "文档" : "文档";
-      title = `${fallbackPrefix}: ${rawDocId}`;
-    }
-
-    const clue: ClueMessage = {
-      img,
-      name: title,
-      description: `docId=${rawDocId}`,
-    };
-
-    await handleClueSend(clue);
-  }, [docHeaderOverrides, handleClueSend, spaceId]);
 
   // *** 新增: onPasteFiles 的回调处理器 ***
   const handlePasteFiles = (files: File[]) => {
@@ -1502,11 +1541,15 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const placeholderText = (() => {
+    const isKP = spaceContext.isSpaceOwner;
     if (notMember) {
       return "你是观战成员，不能发送消息";
     }
-    if (noRole) {
-      return "请先选择你的角色，之后才能发送消息。";
+    if (noRole && !isKP) {
+      return "请先拉入你的角色，之后才能发送消息。";
+    }
+    if (noRole && isKP) {
+      return "旁白模式：在此输入消息...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
     }
     if (curAvatarId <= 0) {
       return "请为你的角色添加至少一个表情差分（头像）。";
@@ -1644,8 +1687,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                     onEffectChange={setCurrentEffect}
                     onExecuteCommandRequest={handleExecuteCommandRequest}
                     onSendDocCard={handleSendDocCard}
-                    onDropDocToClue={({ docId }) => { void handleSendDocAsClue(docId); }}
-                  />
+                  >
+                  </ChatFrame>
                 </div>
 
                 {/* 共享输入区域（主区 + Thread 共用） */}
@@ -1665,8 +1708,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onClearBackground={handleClearBackground}
                   onClearFigure={handleClearFigure}
                   onSetWebgalVar={handleSetWebgalVar}
-                  onOpenImportChatText={() => setIsImportChatTextOpen(true)}
-                  isKP={isKP}
+                  isKP={spaceContext.isSpaceOwner}
                   onStopBgmForAll={handleStopBgmForAll}
                   noRole={noRole}
                   notMember={notMember}
@@ -1689,9 +1731,6 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   onCompositionEnd={() => isComposingRef.current = false}
                   inputDisabled={notMember && noRole}
                 />
-
-                {/* BGM 悬浮球：仅在本房间有BGM且用户未主动关闭时显示 */}
-                <BgmFloatingBall roomId={roomId} />
               </div>
 
               {/* 右侧轻量抽屉：仅影响 Header 下方的主体区域 */}
@@ -1709,7 +1748,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         onClose={() => setIsImportChatTextOpen(false)}
       >
         <ImportChatMessagesWindow
-          isKP={isKP}
+          isKP={Boolean(spaceContext.isSpaceOwner)}
           availableRoles={roomRolesThatUserOwn}
           onImport={async (items, onProgress) => {
             await handleImportChatText(items.map(i => ({

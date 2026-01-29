@@ -99,7 +99,25 @@
 - 消息头像渲染：当 `avatarId<=0` 且无法找到可用头像时，不再回退到 `/favicon.ico`（显示为空占位）
 - 立绘位置：可为每个发言人选择左/中/右位置，导入发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
 - 若当前房间无可用角色（非KP），导入弹窗提供“创建/导入角色”快捷入口
-- 导入弹窗 UI：双栏卡片分区、消息预览、缺失角色高亮与快捷引导
+- 导入弹窗 UI：双栏布局与单层容器，避免双层滚动，缺失角色高亮与快捷引导
+
+### 4.1) 音频消息播放（AudioMessage）
+
+- 播放组件使用 WaveSurfer（波形播放器）
+- 为避免列表渲染/刷新时触发 Range 拉取：WaveSurfer **仅在点击播放时**才初始化并加载音频
+- 发送侧会填充 `extra.soundMessage.second`（音频时长，秒）；当浏览器无法解析本地音频时长导致 `duration=NaN` 时，会进行兜底（避免 second 非法导致发送失败）
+
+### 4.2) 全局音频播放聚合（悬浮球）
+
+- 全局悬浮球用于聚合“所有正在播放的音频”，展示数量徽标，展开后以列表形式独立展示并允许操作（暂停/停止）
+- 音频消息本身仍按消息流独立显示与交互；悬浮球仅作为聚合入口
+- 播放状态通过 `useAudioPlaybackRegistration` 写入全局 store；更新元信息（title/url/pause/stop）不会重置 `isPlaying`，避免播放器组件重渲染导致悬浮球“闪现后消失”
+- 关键入口：
+  - `app/components/common/audioPlaybackStore.ts`
+  - `app/components/common/useAudioPlaybackRegistration.ts`
+  - `app/components/common/audioFloatingBall.tsx`
+  - `app/components/chat/infra/bgm/bgmPlaybackRegistry.tsx`
+  - `app/root.tsx`
 
 ### 5) 房间角色：NPC+ 快速创建
 
@@ -110,12 +128,6 @@
 - 删除房间角色：KP 可在角色头像详情中将 NPC/角色从当前房间移除
 - 获取“我的角色”：前端改用 `GET /role/user/type`（分别取 type=0/1），不再从 `/role/user` 拉取后再前端过滤
 
-### 6) 房间头像显示兜底
-
-- 房间列表展示头像时，优先使用本地覆盖（Blocksuite `tc_header` / header override）中的 `imageUrl`
-- 若后端 `room.avatar` 缺失或为空，兜底使用 `/favicon.ico`
-- 头像 URL 加载失败时（`img onError`），自动回退到 `/favicon.ico`，避免破图
-
 ## 相关文档
 
 - 项目概览：[overview](../overview.md)
@@ -125,6 +137,8 @@
 
 ## 变更历史
 
+- [202601281930_audio-playback-floatball](../../history/2026-01/202601281930_audio-playback-floatball/) - 全局音频悬浮球：聚合所有正在播放音频并提供列表视图
+- [202601272011_import-chat-style](../../history/2026-01/202601272011_import-chat-style/) - 导入对话弹窗去双层容器，长内容可滚动
 - [202601242150_webgal_realtime_resync](../../history/2026-01/202601242150_webgal_realtime_resync/) - WebGAL 实时预览：消息插入/删除/移动/重排时自动重建历史，尾部追加仍增量追加
 - 2026-01-24 空间列表按钮悬停提示恢复为 tooltip 样式（允许溢出/截断）
 - 2026-01-23 修复聊天消息文本选区松开后丢失
@@ -144,6 +158,11 @@
 - [202601211623_chat_import_figure_position](../../history/2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）
 - [202601211700_chat_import_ui_refine](../../history/2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口
 
+## ????
+- 2026-01-27: ??????????????????????????????
+- @ ????????????????????????
+- ?? @ ????????????????????????
+- ????????????? roleId ??????????
 ## Space 用户文档夹（docFolder）
 
 - 入口：聊天输入区 Dock 模式中，线索按钮左侧“我的文档”
@@ -180,6 +199,7 @@
   - `spaceId: number`（用于同一 space 校验/降级）
   - `title?: string`（发送时兜底标题）
   - `imageUrl?: string`（发送时兜底封面）
+  - `excerpt?: string`（发送时兜底摘要；消息列表卡片摘要仅依赖该字段，不在渲染时读取/拉取文档内容）
  - 兼容：若历史/后端消息未写入 `messageType=DOC_CARD`，但 `extra.docCard` 存在，前端仍会按文档卡片消息渲染
 
 #### 约束
@@ -194,3 +214,4 @@
 - 约束：不允许跨 space 复制
 - 数据来源：复制以 Blocksuite “full update”为准——优先把源文档的远端快照 restore 到本地 workspace，再导出 full update；若远端不可用则回退本地 IndexedDB 内容
 - 远端落库：复制后会将目标文档的 full update 写入 `/blocksuite/doc`，供其它端恢复/预览
+- 实时协作：编辑阶段以 `/blocksuite/doc_update` 的 yjs updates 日志 + WebSocket fanout 为主；快照仅用于冷启动与压缩（详见 blocksuite 模块文档）

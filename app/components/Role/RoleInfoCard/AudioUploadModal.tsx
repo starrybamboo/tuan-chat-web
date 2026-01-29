@@ -39,7 +39,7 @@ export default function AudioUploadModal({
       "audio/ogg",
       "audio/webm",
     ];
-    const audioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg"];
+    const audioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"];
 
     return audioTypes.includes(file.type)
       || audioExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
@@ -94,8 +94,8 @@ export default function AudioUploadModal({
       setIsUploading(true);
       toast.loading("正在上传音频文件...", { id: "audio-upload" });
 
-      // 上传音频文件，使用场景1（聊天室），最大时长30秒
-      const audioUrl = await uploadUtils.uploadAudio(selectedAudioFile, 1, 30);
+      // 语音参考文件：上传原始音频（不做 Opus 转码），避免影响后续音色参考质量/兼容性
+      const audioUrl = await uploadUtils.uploadAudioOriginal(selectedAudioFile, 1);
 
       toast.success("音频文件上传成功！", { id: "audio-upload" });
 
@@ -185,7 +185,7 @@ export default function AudioUploadModal({
             >
               <input
                 type="file"
-                accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
+                accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm"
                 className="hidden"
                 id="audioFileInput"
                 onChange={(e) => {

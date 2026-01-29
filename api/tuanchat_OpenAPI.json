@@ -18696,32 +18696,6 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultVoid": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
       "UserPreferenceRequest": {
         "type": "object",
         "properties": {
@@ -21957,9 +21931,6 @@
             "type": "boolean"
           },
           "role": {
-            "type": "boolean"
-          },
-          "npc": {
             "type": "boolean"
           },
           "npc": {
@@ -27538,6 +27509,32 @@
             "format": "int64"
           }
         }
+      },
+      "ApiResultObject": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "object",
+            "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
       }
     },
     "securitySchemes": {

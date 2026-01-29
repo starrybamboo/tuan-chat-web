@@ -56,6 +56,7 @@ export interface ChatRoomListPanelProps {
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
 
   onOpenCreateInCategory: (categoryId: string) => void;
+  isKPInSpace: boolean;
 }
 
 export default function ChatRoomListPanel({

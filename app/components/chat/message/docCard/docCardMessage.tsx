@@ -1,8 +1,7 @@
-import type * as Y from "yjs";
 import type { ChatMessageResponse } from "../../../../../api";
 
 import { FileTextIcon } from "@phosphor-icons/react";
-import React, { use, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -17,6 +16,7 @@ interface DocCardPayload {
   spaceId?: number;
   title?: string;
   imageUrl?: string;
+  excerpt?: string;
 }
 
 function extractDocCardPayload(extra: unknown): DocCardPayload | null {
@@ -35,40 +35,15 @@ function extractDocCardPayload(extra: unknown): DocCardPayload | null {
 
   const title = typeof obj?.title === "string" ? obj.title.trim() : "";
   const imageUrl = typeof obj?.imageUrl === "string" ? obj.imageUrl.trim() : "";
+  const excerpt = typeof obj?.excerpt === "string" ? obj.excerpt.trim() : "";
 
   return {
     docId,
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
     ...(imageUrl ? { imageUrl } : {}),
+    ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
   };
-}
-
-function extractExcerptFromStore(store: any): string {
-  try {
-    const models = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
-    const parts: string[] = [];
-    for (const m of models ?? []) {
-      const t = m?.props?.text;
-      const s = typeof t?.toString === "function" ? t.toString() : String(t ?? "");
-      const trimmed = String(s ?? "").replace(/\s+/g, " ").trim();
-      if (!trimmed)
-        continue;
-      parts.push(trimmed);
-      if (parts.join(" ").length >= 220)
-        break;
-    }
-    const joined = parts.join(" ").trim();
-    return joined.length > 220 ? `${joined.slice(0, 220)}…` : joined;
-  }
-  catch {
-    return "";
-  }
-}
-
-function getYDocFromStore(store: any): Y.Doc | null {
-  const doc = store?.spaceDoc;
-  return doc && typeof doc.on === "function" && typeof doc.off === "function" ? (doc as Y.Doc) : null;
 }
 
 function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageResponse }) {
@@ -85,19 +60,9 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
   const [preview, setPreview] = useState<{ title: string; imageUrl: string; excerpt: string }>({
     title: payload?.title ?? "",
     imageUrl: payload?.imageUrl ?? "",
-    excerpt: "",
+    excerpt: payload?.excerpt ?? "",
   });
   const [isOpen, setIsOpen] = useState(false);
-
-  const storeRef = useRef<any>(null);
-  const disposedRef = useRef(false);
-
-  useEffect(() => {
-    disposedRef.current = false;
-    return () => {
-      disposedRef.current = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!docId || !isSameSpace || !isSupportedDocId)
@@ -106,28 +71,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
       return;
 
     let unsubHeader: (() => void) | null = null;
-    let excerptTimer: number | null = null;
-    let ydoc: Y.Doc | null = null;
-
-    const scheduleExcerpt = (store: any) => {
-      if (excerptTimer != null)
-        window.clearTimeout(excerptTimer);
-      excerptTimer = window.setTimeout(() => {
-        if (disposedRef.current)
-          return;
-        const excerpt = extractExcerptFromStore(store);
-        if (!excerpt)
-          return;
-        setPreview(prev => (prev.excerpt === excerpt ? prev : { ...prev, excerpt }));
-      }, 120);
-    };
-
-    const onYUpdate = () => {
-      const store = storeRef.current;
-      if (!store)
-        return;
-      scheduleExcerpt(store);
-    };
 
     const cleanup = () => {
       try {
@@ -137,28 +80,12 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         // ignore
       }
       unsubHeader = null;
-
-      if (ydoc) {
-        try {
-          (ydoc as any).off("update", onYUpdate);
-        }
-        catch {
-          // ignore
-        }
-      }
-      ydoc = null;
-
-      if (excerptTimer != null) {
-        window.clearTimeout(excerptTimer);
-        excerptTimer = null;
-      }
     };
 
     (async () => {
       try {
         const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
         const store = registry.getOrCreateSpaceDoc({ spaceId: currentSpaceId, docId }) as any;
-        storeRef.current = store;
 
         try {
           (store as any)?.load?.();
@@ -185,18 +112,6 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             excerpt: prev.excerpt,
           }));
         });
-
-        scheduleExcerpt(store);
-
-        ydoc = getYDocFromStore(store);
-        if (ydoc) {
-          try {
-            (ydoc as any).on("update", onYUpdate);
-          }
-          catch {
-            // ignore
-          }
-        }
       }
       catch {
         // ignore
@@ -259,6 +174,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               ...(spaceId ? { spaceId } : {}),
               ...(title ? { title } : {}),
               ...(coverUrl ? { imageUrl: coverUrl } : {}),
+              ...(excerpt ? { excerpt } : {}),
             });
           }}
           aria-disabled={isDisabled}
@@ -288,7 +204,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                   )
                 : (
                     <div className="text-sm text-base-content/50 leading-relaxed line-clamp-2">
-                      {isDisabled ? (disabledReason || "") : "加载预览中…"}
+                      {isDisabled ? (disabledReason || "") : "暂无摘要"}
                     </div>
                   )}
             </div>
