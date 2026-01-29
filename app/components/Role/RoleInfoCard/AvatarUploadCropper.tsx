@@ -40,7 +40,7 @@ interface ImgUploaderWithCopperProps {
   // 上传场景：1.聊天室,2.表情包，3.角色差分 4.模组图片
   scene: 1 | 2 | 3 | 4;
   // 数据更新回调函数
-  mutate?: (data: any) => void;
+  mutate?: (data: any) => void | Promise<void>;
   // 外层div的className
   wrapperClassName?: string;
   // 内层div的className
@@ -254,12 +254,12 @@ export function CharacterCopper({
       uploadUtils.uploadImg(avatarFile, scene, 60, 512),
     ]);
 
-    mutate?.({
+    await Promise.resolve(mutate?.({
       avatarUrl,
       spriteUrl,
       originUrl: originUrl || undefined,
       transform: createDefaultTransform(),
-    });
+    }));
   }, [loadImageFromFile, mutate, scene, uploadUtils]);
 
   const handleFiles = useCallback(async (files: File[]) => {
@@ -402,12 +402,12 @@ export function CharacterCopper({
         }
 
         if (mutate !== undefined) {
-          mutate({
+          await Promise.resolve(mutate({
             avatarUrl: copperedDownloadUrl,
             spriteUrl: downloadUrl,
             originUrl: resolvedOriginUrl || undefined,
             transform,
-          });
+          }));
         }
         if (toastId) {
           toast.success("头像上传成功", { id: toastId });
@@ -562,7 +562,6 @@ export function CharacterCopper({
                             <TransformControl
                               transform={transform}
                               setTransform={setTransform}
-                              previewCanvasRef={previewCanvasRef}
                             />
                           </div>
                         </>

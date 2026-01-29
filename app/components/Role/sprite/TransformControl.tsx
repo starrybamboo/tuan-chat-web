@@ -19,12 +19,6 @@ interface TransformControlProps {
   transform: Transform;
   // Transform状态更新函数
   setTransform: React.Dispatch<React.SetStateAction<Transform>>;
-  // 预览Canvas引用，用于贴底对齐计算
-  previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
-  // 位置锚点（left/center/right）
-  anchorPosition?: "left" | "center" | "right";
-  // 位置锚点更新函数
-  onAnchorPositionChange?: (anchor: "left" | "center" | "right") => void;
   // 是否禁用控制
   disabled?: boolean;
 }
@@ -39,19 +33,8 @@ const REFERENCE_WIDTH = 2560;
 export function TransformControl({
   transform,
   setTransform,
-  anchorPosition,
-  onAnchorPositionChange,
   disabled = false,
 }: TransformControlProps) {
-  const [internalAnchor, setInternalAnchor] = React.useState<"left" | "center" | "right">("center");
-  const effectiveAnchor = anchorPosition ?? internalAnchor;
-  const handleAnchorChange = (nextAnchor: "left" | "center" | "right") => {
-    onAnchorPositionChange?.(nextAnchor);
-    if (anchorPosition === undefined) {
-      setInternalAnchor(nextAnchor);
-    }
-  };
-
   /**
    * 重置所有Transform参数到默认值
    */
@@ -82,28 +65,6 @@ export function TransformControl({
 
   return (
     <div className={`w-full p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
-      <div className="flex items-center justify-start">
-        <div className="flex items-center gap-3">
-          <h3 className="text-sm font-semibold">变换起始点 :</h3>
-          <div className="join rounded-full border">
-            {(["left", "center", "right"] as const).map(pos => (
-              <button
-                key={pos}
-                type="button"
-                className={`join-item btn btn-xs px-2 ${effectiveAnchor === pos ? "btn-primary" : "btn-ghost"}`}
-                onClick={() => handleAnchorChange(pos)}
-                title={`中心：${pos === "left" ? "左" : pos === "center" ? "中" : "右"}`}
-                disabled={disabled}
-              >
-                {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="divider divider-horizontal mx-0 px-0" />
-        <span className="text-xs text-base-content/70">位移是相对起始点的相对值</span>
-      </div>
-
       {/* Scale控制 - 调整范围和步长，提供更精细的控制 */}
       <div className="flex items-center gap-3">
         <label className="text-xs w-16 shrink-0">缩放:</label>
