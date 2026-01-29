@@ -110,6 +110,7 @@
 
 - 全局悬浮球用于聚合“所有正在播放的音频”，展示数量徽标，展开后以列表形式独立展示并允许操作（暂停/停止）
 - 音频消息本身仍按消息流独立显示与交互；悬浮球仅作为聚合入口
+- 播放状态通过 `useAudioPlaybackRegistration` 写入全局 store；更新元信息（title/url/pause/stop）不会重置 `isPlaying`，避免播放器组件重渲染导致悬浮球“闪现后消失”
 - 关键入口：
   - `app/components/common/audioPlaybackStore.ts`
   - `app/components/common/useAudioPlaybackRegistration.ts`
