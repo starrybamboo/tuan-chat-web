@@ -5,19 +5,20 @@ import type {
   ImageMessage,
   Message,
 } from "../../../api";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
@@ -25,7 +26,6 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getImageSize } from "@/utils/getImgSize";
 import {
   useDeleteMessageMutation,

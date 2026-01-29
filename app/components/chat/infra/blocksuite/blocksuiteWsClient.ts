@@ -1,4 +1,4 @@
-import { uint8ArrayToBase64, base64ToUint8Array } from "@/components/chat/infra/blocksuite/base64";
+import { base64ToUint8Array, uint8ArrayToBase64 } from "@/components/chat/infra/blocksuite/base64";
 
 export type BlocksuiteDocKey = {
   entityType: string;
@@ -70,7 +70,7 @@ class BlocksuiteWsClient {
       this.reconnectTimer = window.setTimeout(() => this.connect(), 800);
     };
 
-    this.ws.onmessage = ev => {
+    this.ws.onmessage = (ev) => {
       try {
         const msg: WsMessage<any> = JSON.parse(ev.data);
         this.onMessage(msg);

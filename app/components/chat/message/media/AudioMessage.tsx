@@ -47,9 +47,6 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
     },
   });
 
-  if (!hasUrl)
-    return null;
-
   const ensureWaveSurfer = async () => {
     if (waveSurferRef.current)
       return waveSurferRef.current;
@@ -168,6 +165,9 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
       console.error("[tc-audio-message] toggle play failed", e);
     }
   };
+
+  if (!hasUrl)
+    return null;
 
   return (
     <div className="tc-audio-message bg-base-200 rounded-lg p-2 min-w-[200px] max-w-[340px]">

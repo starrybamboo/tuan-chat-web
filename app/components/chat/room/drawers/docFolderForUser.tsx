@@ -628,44 +628,45 @@ export default function DocFolderForUser() {
               </div>
             )
           : (
-              <div className="flex-1 min-h-0 overflow-auto"
-                  onDragOverCapture={(e) => {
-                    if (!spaceId || spaceId <= 0)
-                      return;
-                    if (!isDocRefDrag(e.dataTransfer))
-                      return;
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "copy";
+              <div
+                className="flex-1 min-h-0 overflow-auto"
+                onDragOverCapture={(e) => {
+                  if (!spaceId || spaceId <= 0)
+                    return;
+                  if (!isDocRefDrag(e.dataTransfer))
+                    return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
 
-                    const targetEl = e.target as HTMLElement | null;
-                    const catEl = targetEl?.closest?.("[data-tc-docfolder-category]") as HTMLElement | null;
-                    const cid = catEl?.getAttribute?.("data-tc-docfolder-category") || "";
-                    if (cid && cid !== docCopyDropCategoryId) {
-                      setDocCopyDropCategoryId(cid);
-                    }
-                  }}
-                  onDropCapture={(e) => {
-                    if (!spaceId || spaceId <= 0)
-                      return;
-                    if (!isDocRefDrag(e.dataTransfer))
-                      return;
+                  const targetEl = e.target as HTMLElement | null;
+                  const catEl = targetEl?.closest?.("[data-tc-docfolder-category]") as HTMLElement | null;
+                  const cid = catEl?.getAttribute?.("data-tc-docfolder-category") || "";
+                  if (cid && cid !== docCopyDropCategoryId) {
+                    setDocCopyDropCategoryId(cid);
+                  }
+                }}
+                onDropCapture={(e) => {
+                  if (!spaceId || spaceId <= 0)
+                    return;
+                  if (!isDocRefDrag(e.dataTransfer))
+                    return;
 
-                    e.preventDefault();
-                    e.stopPropagation();
+                  e.preventDefault();
+                  e.stopPropagation();
 
-                    const docRef = getDocRefDragData(e.dataTransfer);
-                    if (!docRef) {
-                      toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
-                      return;
-                    }
+                  const docRef = getDocRefDragData(e.dataTransfer);
+                  if (!docRef) {
+                    toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                    return;
+                  }
 
-                    const targetEl = e.target as HTMLElement | null;
-                    const catEl = targetEl?.closest?.("[data-tc-docfolder-category]") as HTMLElement | null;
-                    const cid = catEl?.getAttribute?.("data-tc-docfolder-category") || "";
-                    const categoryId = cid || docCopyDropCategoryId || tree.categories[0]?.categoryId || "cat:docs";
-                    setDocCopyDropCategoryId(null);
-                    void handleDropDocRefToCategory({ categoryId, docRef });
-                  }}
+                  const targetEl = e.target as HTMLElement | null;
+                  const catEl = targetEl?.closest?.("[data-tc-docfolder-category]") as HTMLElement | null;
+                  const cid = catEl?.getAttribute?.("data-tc-docfolder-category") || "";
+                  const categoryId = cid || docCopyDropCategoryId || tree.categories[0]?.categoryId || "cat:docs";
+                  setDocCopyDropCategoryId(null);
+                  void handleDropDocRefToCategory({ categoryId, docRef });
+                }}
               >
                 <div className="p-2 space-y-2 min-h-full">
                   {tree.categories.map((cat) => {

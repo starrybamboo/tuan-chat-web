@@ -8,7 +8,7 @@
 
 - **职责:** 脚本命令、Lint/类型检查、提交流程、构建与发布说明
 - **状态:** ?开发中
-- **最后更新:** 2026-01-14
+- **最后更新:** 2026-01-29
 
 ## 规范
 
@@ -24,6 +24,7 @@
 
 - **唯一允许：pnpm**。仓库以 `pnpm-lock.yaml` 为唯一锁文件来源。
 - **禁止使用：npm**（不要执行 `npm install` / `npm ci` / `npm run *`），避免生成/更新 `package-lock.json` 造成依赖漂移。
+- CI/Runner 环境通常无 GitHub SSH Key：若 `pnpm-lock.yaml` 中出现 `git@github.com:*` 依赖会导致 `pnpm install` 失败；优先用 `pnpm.overrides` 将其固定为 npm registry 版本（如 `@electron/node-gyp`）。
 
 ### Vite 依赖预打包（optimizeDeps）
 

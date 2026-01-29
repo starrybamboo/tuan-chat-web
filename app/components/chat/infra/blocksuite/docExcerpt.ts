@@ -37,4 +37,3 @@ export function extractDocExcerptFromStore(
     return "";
   }
 }
-
