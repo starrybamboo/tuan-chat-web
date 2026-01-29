@@ -87,19 +87,22 @@ export class UploadUtils {
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
       scene,
+      dedupCheck: true,
     });
 
-    if (!ossData.data?.uploadUrl) {
-      throw new Error("获取上传地址失败");
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
     }
     if (debugEnabled)
       console.warn(`${debugPrefix} uploadUrl`, ossData.data.uploadUrl);
 
-    await this.executeUpload(ossData.data.uploadUrl, processedFile);
-
-    if (!ossData.data.downloadUrl) {
-      throw new Error("获取下载地址失败");
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, processedFile);
     }
+    else if (debugEnabled) {
+      console.warn(`${debugPrefix} dedup hit: skip upload`, { fileName: newFileName });
+    }
+
     if (debugEnabled)
       console.warn(`${debugPrefix} downloadUrl`, ossData.data.downloadUrl);
 
@@ -135,17 +138,17 @@ export class UploadUtils {
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
       scene,
+      dedupCheck: true,
     });
 
-    if (!ossData.data?.uploadUrl) {
-      throw new Error("获取上传地址失败");
-    }
-
-    await this.executeUpload(ossData.data.uploadUrl, file);
-
-    if (!ossData.data.downloadUrl) {
+    if (!ossData.data?.downloadUrl) {
       throw new Error("获取下载地址失败");
     }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, file);
+    }
+
     return ossData.data.downloadUrl;
   }
 
