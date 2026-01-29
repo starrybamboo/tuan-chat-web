@@ -79,27 +79,27 @@ export default function RepliedMessage({ replyMessage, className }: {
                   {[`[文档]`, docCardTitle ?? ""].filter(Boolean).join(" ")}
                 </span>
               )
-          : replyMessage.extra?.imageMessage?.url
-            ? (
-                <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
-                  {role?.roleName || "未命名角色"}
-                  {": "}
-                  <img
-                    src={replyMessage.extra?.imageMessage?.url}
-                    className="size-8 object-contain"
-                    alt="img"
-                    width={imgMsg?.width}
-                    height={imgMsg?.height}
-                  />
-                </span>
-              )
-            : (
-                <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
-                  {role?.roleName || "未命名角色"}
-                  {": "}
-                  非文本内容
-                </span>
-              )}
+            : replyMessage.extra?.imageMessage?.url
+              ? (
+                  <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
+                    {role?.roleName || "未命名角色"}
+                    {": "}
+                    <img
+                      src={replyMessage.extra?.imageMessage?.url}
+                      className="size-8 object-contain"
+                      alt="img"
+                      width={imgMsg?.width}
+                      height={imgMsg?.height}
+                    />
+                  </span>
+                )
+              : (
+                  <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
+                    {role?.roleName || "未命名角色"}
+                    {": "}
+                    非文本内容
+                  </span>
+                )}
     </div>
   );
 }
