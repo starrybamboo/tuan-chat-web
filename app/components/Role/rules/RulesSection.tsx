@@ -1,12 +1,16 @@
 // RulesSection.tsx
 
+import { Plus } from "@phosphor-icons/react";
 import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 interface RulesSectionProps {
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
   large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）
+  autoSelectFirst?: boolean; // 默认 true：首次加载时自动选中第一个规则
+  authorId?: number; // 可选：按作者ID过滤规则列表（用于“我的规则”等场景）
 }
 
 /**
@@ -18,6 +22,8 @@ export default function RulesSection({
   currentRuleId,
   onRuleChange,
   large = false,
+  autoSelectFirst = true,
+  authorId = undefined,
 }: RulesSectionProps) {
   // 内部状态管理 - 完全自治
   const [pageNum, setPageNum] = useState(1);
@@ -26,18 +32,19 @@ export default function RulesSection({
   // 每页大小（分页展示固定 8，两列布局）
   const pageSize = 8;
   // 使用 Suspense 版本的查询，自动处理加载状态
-  const { data: rules } = useRulePageSuspenseQuery(
+  const { data: rules, meta } = useRulePageSuspenseQuery(
     pageNum,
     keyword,
     pageSize,
+    authorId,
   );
 
   // 当首次有数据且未选择规则时，默认选中第一个
   useEffect(() => {
-    if (!currentRuleId && rules.length > 0) {
+    if (autoSelectFirst && !currentRuleId && rules.length > 0) {
       onRuleChange(rules[0].ruleId || 0);
     }
-  }, [rules, currentRuleId, onRuleChange]);
+  }, [rules, currentRuleId, onRuleChange, autoSelectFirst]);
 
   // 处理搜索输入
   const handleSearchInput = (value: string) => {
@@ -47,7 +54,7 @@ export default function RulesSection({
 
   // 提取搜索与分页控件（两种模式共用）
   const searchBar = (
-    (rules.length || keyword.trim()) && (
+    (rules.length || keyword.trim() || pageNum > 1) && (
       <div className="flex justify-between items-center gap-3">
         <div className="relative flex-1">
           <input
@@ -86,7 +93,7 @@ export default function RulesSection({
           <button
             type="button"
             onClick={() => setPageNum(pageNum + 1)}
-            disabled={rules.length < pageSize}
+            disabled={meta?.isLast ?? (rules.length < pageSize)}
             className="join-item btn btn-ghost btn-sm disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -103,7 +110,13 @@ export default function RulesSection({
       <div className="space-y-6">
         <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
           <div className="card-body">
-            <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
+            <div className="flex justify-between">
+              <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
+              <Link to="/role?type=rule" className="btn btn-sm btn-primary">
+                <Plus className="size-4" weight="bold" />
+                自定义规则
+              </Link>
+            </div>
             <div className="mt-4 space-y-4">
               {searchBar}
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -116,9 +129,10 @@ export default function RulesSection({
                     }`}
                     onClick={() => onRuleChange(rule.ruleId || 0)}
                   >
-                    <div className="card-body p-5 md:p-6 min-h-[128px]">
+                    <div className="card-body p-5 md:p-6 min-h-32">
                       <div className="flex h-full items-center justify-between gap-4 md:gap-6">
                         <div>
+                          <p className="text-sm text-base-content/70 line-clamp-2">{`#${rule.ruleId}`}</p>
                           <h4 className="font-medium text-base">{rule.ruleName}</h4>
                           <p className="text-sm text-base-content/70 line-clamp-2">{rule.ruleDescription}</p>
                         </div>
@@ -130,9 +144,11 @@ export default function RulesSection({
                   </div>
                 ))}
               </div>
-              {rules.length === 0 && (
-                <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
-              )}
+              {rules.length === 0
+                ? authorId === undefined && (
+                  <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
+                )
+                : null}
             </div>
           </div>
         </div>
@@ -154,6 +170,7 @@ export default function RulesSection({
             }`}
             onClick={() => onRuleChange(rule.ruleId || 0)}
           >
+            <p className="text-xs text-base-content/60 line-clamp-2">{`#${rule.ruleId}`}</p>
             <h3 className="font-medium text-sm mb-1">{rule.ruleName}</h3>
             <p className="text-xs text-base-content/60 line-clamp-2">{rule.ruleDescription}</p>
           </div>
@@ -173,9 +190,11 @@ export default function RulesSection({
           </div>
         ))}
       </div>
-      {rules.length === 0 && (
-        <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
-      )}
+      {rules.length === 0
+        ? authorId === undefined && (
+          <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
+        )
+        : null}
     </div>
   );
 }

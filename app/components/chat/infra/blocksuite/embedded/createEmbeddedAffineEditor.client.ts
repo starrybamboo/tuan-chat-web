@@ -36,8 +36,6 @@ import { parseSpaceDocId } from "../spaceDocId";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
-type ElementSnapshot = { attrs: Map<string, string | null>; className: string; styleText: string };
-
 type WorkspaceLike = {
   getDoc: (docId: string) => { getStore: () => unknown; loaded?: boolean; load?: () => void } | null;
   meta?: unknown;
@@ -368,129 +366,6 @@ function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
   };
 }
 
-function snapshotElementAttributes(el: Element): ElementSnapshot {
-  const attrs = new Map<string, string | null>();
-  for (const name of el.getAttributeNames()) {
-    attrs.set(name, el.getAttribute(name));
-  }
-
-  return {
-    attrs,
-    className: (el as any).className ?? "",
-    styleText: (el as HTMLElement).style?.cssText ?? "",
-  };
-}
-
-function restoreElementAttributes(el: Element, snapshot: ElementSnapshot) {
-  // Remove attributes that didn't exist before
-  for (const name of el.getAttributeNames()) {
-    if (!snapshot.attrs.has(name)) {
-      el.removeAttribute(name);
-    }
-  }
-
-  // Restore original attributes
-  for (const [name, value] of snapshot.attrs.entries()) {
-    if (value === null) {
-      el.removeAttribute(name);
-    }
-    else {
-      el.setAttribute(name, value);
-    }
-  }
-
-  (el as any).className = snapshot.className;
-  if ((el as HTMLElement).style)
-    (el as HTMLElement).style.cssText = snapshot.styleText;
-}
-
-function installGlobalDomStyleGuard(): () => void {
-  if (typeof document === "undefined")
-    return () => {};
-
-  const htmlSnapshot = snapshotElementAttributes(document.documentElement);
-  const bodySnapshot = snapshotElementAttributes(document.body);
-
-  const injectedHeadNodes: Element[] = [];
-  const head = document.head;
-
-  // Snapshot adoptedStyleSheets if the browser supports it.
-  const docAny = document as any;
-  const adoptedStyleSheetsSnapshot: any[] | null = Array.isArray(docAny?.adoptedStyleSheets)
-    ? [...docAny.adoptedStyleSheets]
-    : null;
-
-  let headObserver: MutationObserver | null = null;
-  try {
-    if (head && typeof MutationObserver !== "undefined") {
-      headObserver = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          for (const node of m.addedNodes) {
-            if (!(node instanceof Element))
-              continue;
-
-            const isStyle = node.tagName === "STYLE";
-            const isStylesheetLink
-              = node.tagName === "LINK"
-                && (node.getAttribute("rel") ?? "").toLowerCase() === "stylesheet";
-
-            if (!isStyle && !isStylesheetLink)
-              continue;
-
-            // Mark nodes injected while blocksuite editor is alive so we can safely remove them on dispose.
-            node.setAttribute("data-tc-blocksuite-injected", "1");
-            injectedHeadNodes.push(node);
-          }
-        }
-      });
-
-      headObserver.observe(head, { childList: true, subtree: true });
-    }
-  }
-  catch {
-    headObserver = null;
-  }
-
-  return () => {
-    try {
-      try {
-        headObserver?.disconnect?.();
-      }
-      catch {
-        // ignore
-      }
-
-      // Remove stylesheets injected during editor lifetime.
-      for (let i = injectedHeadNodes.length - 1; i >= 0; i -= 1) {
-        const node = injectedHeadNodes[i];
-        try {
-          if (node.isConnected)
-            node.remove();
-        }
-        catch {
-          // ignore
-        }
-      }
-
-      // Restore adoptedStyleSheets.
-      if (adoptedStyleSheetsSnapshot) {
-        try {
-          docAny.adoptedStyleSheets = adoptedStyleSheetsSnapshot;
-        }
-        catch {
-          // ignore
-        }
-      }
-
-      restoreElementAttributes(document.documentElement, htmlSnapshot);
-      restoreElementAttributes(document.body, bodySnapshot);
-    }
-    catch {
-      // ignore
-    }
-  };
-}
-
 export function createEmbeddedAffineEditor(params: {
   store: unknown;
   workspace: WorkspaceLike;
@@ -503,7 +378,6 @@ export function createEmbeddedAffineEditor(params: {
   const { store, workspace, docModeProvider, autofocus = true, disableDocTitle = false, onNavigateToDoc } = params;
 
   const disposers: Array<() => void> = [];
-  disposers.push(installGlobalDomStyleGuard());
   disposers.push(installSlashMenuDoesNotClearSelectionOnClick());
 
   // Register custom elements for linked doc, this is crucial for the widget to work

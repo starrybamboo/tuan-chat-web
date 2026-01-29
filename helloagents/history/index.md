@@ -168,6 +168,7 @@
 - [202601231852_role-avatar-replace](2026-01/202601231852_role-avatar-replace/) - 角色页面支持替换已有头像（保持 avatarId）
 - [202601231851_role_avatar_fallback](2026-01/202601231851_role_avatar_fallback/) - 房间角色导入头像兜底显示（avatarId 为空时取首个头像）
 - [202601231830_webgal_disable_autojump](2026-01/202601231830_webgal_disable_autojump/) - WebGAL 实时渲染消息写入不再自动跳转预览
+- [202601222021_room_avatar_fallback](2026-01/202601222021_room_avatar_fallback/) - 修复房间初次导入无头像：头像缺失/加载失败时回退到默认头像
 - [202601211915_use-user-roles-by-type](2026-01/202601211915_use-user-roles-by-type/) - 获取“我的角色”改用 `GET /role/user/type`（type=0/1 合并），避免取回 NPC
 - [202601211740_room-role-delete-filter-npc](2026-01/202601211740_room-role-delete-filter-npc/) - 房间角色支持移除 NPC；角色页（/role）隐藏 NPC；导入我的角色过滤 NPC
 - [202601211700_chat_import_ui_refine](2026-01/202601211700_chat_import_ui_refine/) - 文本导入弹窗 UI 重构：双栏布局、预览、缺失映射提示与快捷创建入口

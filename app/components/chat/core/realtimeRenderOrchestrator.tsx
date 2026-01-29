@@ -185,6 +185,13 @@ export default function RealtimeRenderOrchestrator({
       if (sideDrawerState === "webgal") {
         setSideDrawerState("none");
       }
+      prevHistoryOrderIdsRef.current = null;
+      prevHistoryUpdateTimeMapRef.current = new Map();
+      pendingFullRerenderRef.current = null;
+      if (fullRerenderTimerRef.current) {
+        clearTimeout(fullRerenderTimerRef.current);
+        fullRerenderTimerRef.current = null;
+      }
     }
   }, [roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
 

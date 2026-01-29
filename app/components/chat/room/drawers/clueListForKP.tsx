@@ -34,6 +34,18 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
   const [selectedLocationId, setSelectedLocationId] = useState<number>(-1);
 
+  const selectedItemManualData = useMemo(() => {
+    if (selectedItemId <= 0)
+      return undefined;
+
+    const item = roomItems.find(i => i?.id === selectedItemId);
+    return {
+      id: selectedItemId,
+      name: item?.name,
+      image: item?.entityInfo?.image,
+    };
+  }, [roomItems, selectedItemId]);
+
   const handleSend = (clue: ClueMessage) => {
     onSend(clue);
     setSelectedItemId(-1);
@@ -299,8 +311,12 @@ export default function ClueListForKP({ onSend }: { onSend: (clue: ClueMessage) 
         onClose={() => setSelectedItemId(-1)}
         hiddenScrollbar={true}
       >
-        {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} onSend={handleSend} roomId={selectedRoomId} />
+        {selectedItemId > 0 && (
+          <DisplayOfItemDetail
+            manualData={selectedItemManualData}
+            spaceId={spaceId ?? undefined}
+            onSend={handleSend}
+          />
         )}
       </PopWindow>
 

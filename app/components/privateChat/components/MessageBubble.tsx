@@ -40,17 +40,20 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
 
   // 获取消息气泡的样式类
   const getMessageBubbleClass = () => {
-    const baseClass = isOwn
-      ? "bg-info text-info-content dark:text-white rounded-lg max-w-[70%] h-full"
-      : "bg-base-300 dark:bg-gray-700 text-base-content rounded-lg max-w-[70%] h-full";
+    const baseClass = "rounded-lg max-w-[70%] h-full";
 
     if (message.messageType === 2) {
       // 图片消息减少内边距
-      return `${baseClass}`;
+      return baseClass;
     }
     else {
       // 文本消息正常内边距
-      return `${baseClass} p-2`;
+      if (isOwn) {
+        return `${baseClass} bg-blue-300 dark:bg-blue-500 text-info-content dark:text-white p-2`;
+      }
+      else {
+        return `${baseClass} bg-base-300 dark:bg-gray-700 text-base-content p-2`;
+      }
     }
   };
 

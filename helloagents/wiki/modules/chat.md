@@ -11,6 +11,7 @@
 - **最后更新:** 2026-01-27
 
 
+
 ## 入口与目录
 
 - 主要目录：`app/components/chat/`
@@ -151,6 +152,7 @@
 - [202601231857_chat-drag-auto-scroll](../../history/2026-01/202601231857_chat-drag-auto-scroll/) - 拖拽移动消息时支持顶部/底部自动滚动
 
 - [202601231851_role_avatar_fallback](../../history/2026-01/202601231851_role_avatar_fallback/) - 房间角色导入头像兜底显示（avatarId 为空时取首个头像）
+- [202601222021_room_avatar_fallback](../../history/2026-01/202601222021_room_avatar_fallback/) - 修复房间初次导入无头像：头像缺失/加载失败时回退到默认头像
 - [202601201337_chat_import_text](../../history/2026-01/202601201337_chat_import_text/) - 新增聊天室文本导入（txt → 多条消息，按角色名映射发送）
 - [202601201620_chat_import_dicer](../../history/2026-01/202601201620_chat_import_dicer/) - 文本导入支持“骰娘”发言：按骰娘角色发送并使用 `DICE(6)` 类型
 - [202601211623_chat_import_figure_position](../../history/2026-01/202601211623_chat_import_figure_position/) - 文本导入支持为发言人设置立绘位置（左/中/右）

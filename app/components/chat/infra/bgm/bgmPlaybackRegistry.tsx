@@ -24,10 +24,12 @@ export default function BgmPlaybackRegistry() {
         title: playingTrack.fileName || "BGM",
         url: playingTrack.url,
         pause: () => {
-          void useBgmStore.getState().userToggle(playingRoomId);
+          if (playingRoomId == null)
+            return;
+          void useBgmStore.getState().userToggle(playingRoomId!);
         },
         stop: () => {
-          useBgmStore.getState().onBgmStopFromWs(playingRoomId);
+          useBgmStore.getState().onBgmStopFromWs(playingRoomId!);
         },
         isPlaying: true,
       });
