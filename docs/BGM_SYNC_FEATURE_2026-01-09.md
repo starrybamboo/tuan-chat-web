@@ -7,7 +7,7 @@
 - 每个用户可通过悬浮球/工具栏控制自己的开关
 - 进出房间/切换房间等打断后停止，但可手动重开
 - KP 发送停止信息后全员停止
-- 用户主动停止后悬浮球消失/按钮失效（直到 KP 发送新的 BGM）
+- 用户主动暂停后若没有其它音频在播放，全局悬浮球会隐藏（避免常驻遮挡）；仍可通过工具栏手动重开（KP 未停止时）
 
 本实现尽量复用现有群聊消息推送与 `SOUND` 消息结构，不新增新的 WS 推送类型。
 
@@ -41,14 +41,14 @@
 - 核心状态（按 roomId 维度）：
   - `trackByRoomId`：当前 BGM track（url/volume 等）
   - `kpStoppedByRoomId`：KP 是否已发“停止全员”
-  - `userDismissedByRoomId`：用户是否“主动停止并不再显示控件”
+  - `userDismissedByRoomId`：预留：用户是否“主动停止并隐藏控件”（当前实现不再使用该标记）
   - `activeRoomId`：当前用户正在查看/激活的房间
 - 核心动作：
   - `onBgmStartFromWs(roomId, track)`：收到 BGM SOUND 推送
   - `onBgmStopFromWs(roomId)`：收到 SYSTEM `[停止BGM]`
   - `onRoomInterrupted(roomId)`：打断（切房/卸载）导致暂停
   - `userToggle(roomId)`：用户通过 UI 开关
-  - `userStopAndDismiss(roomId)`：用户主动停止并 dismiss
+  - `userStopAndDismiss(roomId)`：用户主动停止（仅自己；当前实现不再 dismiss）
 
 ### WS 收消息触发点
 
@@ -59,18 +59,18 @@
 
 ### UI
 
-- 悬浮球：`app/components/chat/room/bgmFloatingBall.tsx`
-  - 仅当当前 room 有 track 且未 dismissed 时显示
-  - 点击执行 `userToggle(roomId)`
+- 全局音频悬浮球：`app/components/common/audioFloatingBall.tsx`
+  - BGM 通过 `app/components/chat/infra/bgm/bgmPlaybackRegistry.tsx` 注册到聚合列表
+  - 悬浮球仅在存在“正在播放的音频”时显示；点击可展开列表并暂停/停止
 - 工具栏按钮：`app/components/chat/input/chatToolbar.tsx`
-  - 个人开关：用户关闭会 dismiss（控件消失/按钮 disabled）
+  - 个人开关：用户关闭为“暂停”（仅自己），可再次点击重开（KP 未停止时）
   - KP 按钮：触发发送 SYSTEM `[停止BGM]`（在 `roomWindow.tsx` 实现回调）
 
 ## 行为规则总结
 
 - 自动播放仅在 `activeRoomId` 对应房间触发：避免用户在别的房间时被强制外放。
-- “打断”=暂停：切房/卸载会停止当前播放，但不 dismiss；用户回到房间后可手动重开。
-- “用户主动停止”=dismiss：悬浮球隐藏、工具栏按钮失效，直到 KP 再发送新的 BGM track。
+- “打断”=暂停：切房/卸载会停止当前播放；用户回到房间后可手动重开。
+- “用户主动停止”=暂停：仅停止当前播放；若无其它音频播放，全局悬浮球会隐藏（工具栏仍可重开）。
 - “KP 停止全员”=强制停止：所有人停止并标记 `kpStopped`，阻止再次开启。
 
 ## 已知限制与后续可选增强

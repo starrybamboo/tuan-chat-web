@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601291407 | remove_bgm_floatball | 变更 | 已完成 | [2026-01/202601291407_remove-bgm-floatball/](2026-01/202601291407_remove-bgm-floatball/) |
 | 202601290010 | chat_audio_preload_metadata | 变更 | 已完成 | [2026-01/202601290010_chat-audio-preload-metadata/](2026-01/202601290010_chat-audio-preload-metadata/) |
 | 202601290000 | chat_audio_no_truncate | 变更 | 已完成 | [2026-01/202601290000_chat-audio-no-truncate/](2026-01/202601290000_chat-audio-no-truncate/) |
 | 202601290020 | chat_audio_prefer_smaller | 变更 | 已完成 | [2026-01/202601290020_chat-audio-prefer-smaller/](2026-01/202601290020_chat-audio-prefer-smaller/) |
@@ -133,6 +134,7 @@
 
 ### 2026-01
 
+- [202601291407_remove-bgm-floatball](2026-01/202601291407_remove-bgm-floatball/) - 变更：移除房间级 BGM 悬浮球组件（统一使用全局音频悬浮球）
 - [202601281955_audio-upload-debug](2026-01/202601281955_audio-upload-debug/) - 变更：音频上传/转码/发送调试日志开关（DEV）
 - [202601281840_audio-send-nan](2026-01/202601281840_audio-send-nan/) - 修复：发送语音消息 second=NaN 导致发送失败
 - [202601281930_audio-playback-floatball](2026-01/202601281930_audio-playback-floatball/) - 功能：全局音频悬浮球（聚合所有正在播放的音频并提供列表视图）
