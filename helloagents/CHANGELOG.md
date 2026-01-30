@@ -119,6 +119,7 @@
 - 修复 eslint 错误：`AudioMessage` 避免条件调用 Hooks；`SpaceWorkspace` WS 更新回调移除未使用的 `serverTime` 解构
 - 修复 CI `pnpm install` 失败：通过 `pnpm.overrides` 固定 `@electron/node-gyp` 为 registry 版本，避免通过 SSH clone GitHub
 - 修复聊天页面未读数在进入时持续累加：底部状态下对齐已读位置，标签仅显示实时未读
+- 修复未读来源难以定位：新增 `tc:unread:debug` 调试日志开关，输出未读统计细节
 - 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
 - 修复发送音频消息时偶发卡死：移除 `decodeAudioData` 兜底解析（大文件会阻塞主线程），仅基于 metadata 解析时长
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
