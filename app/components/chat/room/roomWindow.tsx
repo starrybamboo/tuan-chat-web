@@ -146,19 +146,30 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
   // 获取当前群聊中的所有角色
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
-  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+  const roomBaseRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
   // 获取当前群聊中的所有NPC角色
   const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
   const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
+  // 房间内所有可见角色（玩家角色 + NPC 角色），用于 @ 提及、实时渲染等“需要全量角色表”的场景
+  const roomAllRoles = useMemo(() => {
+    const map = new Map<number, UserRole>();
+    for (const role of roomBaseRoles) {
+      map.set(role.roleId, role);
+    }
+    for (const role of roomNpcRoles) {
+      map.set(role.roleId, role);
+    }
+    return [...map.values()];
+  }, [roomBaseRoles, roomNpcRoles]);
   // 用户拥有的角色 + 所有NPC角色
   const roomRolesThatUserOwn = useMemo(() => {
     // 先获取用户拥有的玩家角色
     const playerRoles = spaceContext.isSpaceOwner
-      ? roomRoles
-      : roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
+      ? roomBaseRoles
+      : roomBaseRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
     // 合并玩家角色和NPC角色
     return [...playerRoles, ...roomNpcRoles];
-  }, [roomRoles, roomNpcRoles, spaceContext.isSpaceOwner, userRoles]);
+  }, [roomBaseRoles, roomNpcRoles, spaceContext.isSpaceOwner, userRoles]);
 
   // 房间ID到角色ID、角色ID到头像ID 的映射（持久化）
   const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
@@ -1646,7 +1657,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
         spaceId={spaceId}
         roomId={roomId}
         room={room}
-        roomRoles={roomRoles}
+        roles={roomAllRoles}
         historyMessages={mainHistoryMessages}
         chatHistoryLoading={!!chatHistory?.loading}
         onApiChange={handleRealtimeRenderApiChange}
@@ -1723,7 +1734,8 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   curAvatarId={curAvatarId}
                   setCurRoleId={setCurRoleId}
                   setCurAvatarId={setCurAvatarId}
-                  roomRoles={roomRolesThatUserOwn}
+                  mentionRoles={roomAllRoles}
+                  selectableRoles={roomRolesThatUserOwn}
                   chatInputRef={chatInputRef as any}
                   atMentionRef={atMentionRef as any}
                   onInputSync={handleInputAreaChange}

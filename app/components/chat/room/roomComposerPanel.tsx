@@ -68,7 +68,10 @@ export interface RoomComposerPanelProps {
   setCurRoleId: (roleId: number) => void;
   setCurAvatarId: (avatarId: number) => void;
 
-  roomRoles: UserRole[];
+  /** 输入框 @ 提及候选（应包含房间内全部可提及角色，含 NPC） */
+  mentionRoles: UserRole[];
+  /** 当前用户可切换的身份列表（玩家拥有角色 + NPC；旁白由 roleId=-1 表示） */
+  selectableRoles: UserRole[];
 
   chatInputRef: React.RefObject<ChatInputAreaHandle | null>;
   atMentionRef: React.RefObject<AtMentionHandle | null>;
@@ -114,7 +117,8 @@ function RoomComposerPanelImpl({
   curAvatarId,
   setCurRoleId,
   setCurAvatarId,
-  roomRoles,
+  mentionRoles: mentionRolesProp,
+  selectableRoles,
   chatInputRef,
   atMentionRef,
   onInputSync,
@@ -142,7 +146,7 @@ function RoomComposerPanelImpl({
   const isMobile = screenSize === "sm";
   const mentionRoles = React.useMemo(() => {
     if (!isKP) {
-      return roomRoles;
+      return mentionRolesProp;
     }
     const atAllRole: UserRole = {
       userId: -1,
@@ -154,8 +158,8 @@ function RoomComposerPanelImpl({
         mentionNote: "发送检定按钮",
       },
     };
-    return [atAllRole, ...roomRoles];
-  }, [isKP, roomRoles]);
+    return [atAllRole, ...mentionRolesProp];
+  }, [isKP, mentionRolesProp]);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -235,8 +239,8 @@ function RoomComposerPanelImpl({
   }, [curRoleId, setDefaultFigurePositionForRole]);
 
   const currentRole = React.useMemo(() => {
-    return roomRoles.find(role => role.roleId === curRoleId);
-  }, [curRoleId, roomRoles]);
+    return selectableRoles.find(role => role.roleId === curRoleId);
+  }, [curRoleId, selectableRoles]);
 
   const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1);
   const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
