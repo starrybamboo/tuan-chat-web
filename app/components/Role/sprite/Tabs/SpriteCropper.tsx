@@ -1,7 +1,7 @@
 import type { RoleAvatar } from "api";
+import type { PixelCrop } from "react-image-crop";
 import type { Transform } from "../TransformControl";
 import type { ImageLoadContext } from "@/utils/imgCropper";
-
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
@@ -373,32 +373,69 @@ export function SpriteCropper({
     }
   }
 
+  const isCanvasReady = useCallback(() => {
+    const img = imgRef.current;
+    const canvas = previewCanvasRef.current;
+    return !!(
+      img
+      && canvas
+      && img.width > 0
+      && img.height > 0
+      && canvas.width > 0
+      && canvas.height > 0
+    );
+  }, [imgRef, previewCanvasRef]);
+
+  const waitForPreviewReady = useCallback(async (timeoutMs = 2000): Promise<boolean> => {
+    if (isPreviewReady && isCanvasReady())
+      return true;
+
+    const start = performance.now();
+    return await new Promise<boolean>((resolve) => {
+      const tick = () => {
+        if (isPreviewReady && isCanvasReady())
+          return resolve(true);
+        if (performance.now() - start >= timeoutMs)
+          return resolve(false);
+        requestAnimationFrame(tick);
+      };
+
+      requestAnimationFrame(tick);
+    });
+  }, [isPreviewReady, isCanvasReady]);
+
   /**
    * 将Img数据转换为Blob
    * 使用 Web Worker 优化,将图像处理转移到后台线程
    */
-  async function getCroppedImageBlobFromImg(img: HTMLImageElement): Promise<Blob> {
-    if (!completedCrop) {
+  async function getCroppedImageBlobFromImg(
+    img: HTMLImageElement,
+    options?: {
+      crop?: PixelCrop;
+      displaySize?: { width: number; height: number };
+    },
+  ): Promise<Blob> {
+    const cropToUse = options?.crop ?? completedCrop;
+    if (!cropToUse) {
       throw new Error("No completed crop");
     }
 
-    // 如果是当前显示的图片，直接使用现有的处理逻辑
-    if (imgRef.current && img.src === imgRef.current.src) {
-      // 直接用预览canvas导出blob
+    // 如果是当前显示的图片，且没有覆盖 crop，则直接使用现有的预览 canvas
+    if (!options?.crop && imgRef.current && img.src === imgRef.current.src) {
       if (!previewCanvasRef.current)
         throw new Error("No preview canvas");
+      if (previewCanvasRef.current.width === 0 || previewCanvasRef.current.height === 0) {
+        throw new Error("Preview canvas has zero size");
+      }
       return await canvasToBlob(previewCanvasRef.current);
     }
 
-    // 对于其他图片，确保尺寸和当前图片一致
     const currentImg = imgRef.current;
-    if (!currentImg) {
-      throw new Error("No current image reference");
+    const tempDisplayWidth = options?.displaySize?.width ?? currentImg?.width ?? 0;
+    const tempDisplayHeight = options?.displaySize?.height ?? currentImg?.height ?? 0;
+    if (!tempDisplayWidth || !tempDisplayHeight) {
+      throw new Error("Preview image size is 0");
     }
-
-    // 设置临时图片的显示尺寸和当前图片一致
-    const tempDisplayWidth = currentImg.width;
-    const tempDisplayHeight = currentImg.height;
 
     // 计算缩放比例
     const scaleToCurrentDisplay = Math.min(
@@ -413,7 +450,7 @@ export function SpriteCropper({
     try {
       const blob = await cropImage({
         img,
-        crop: completedCrop,
+        crop: cropToUse,
         scale: 1,
         rotate: 0,
       });
@@ -426,14 +463,14 @@ export function SpriteCropper({
       const scaleX = img.naturalWidth / img.width;
       const scaleY = img.naturalHeight / img.height;
       const outputCanvas = new OffscreenCanvas(
-        completedCrop.width * scaleX,
-        completedCrop.height * scaleY,
+        cropToUse.width * scaleX,
+        cropToUse.height * scaleY,
       );
 
       await canvasPreview(
         img,
         outputCanvas,
-        completedCrop,
+        cropToUse,
         1,
         0,
       );
@@ -571,6 +608,24 @@ export function SpriteCropper({
     try {
       setIsCropping(true);
 
+      const ready = await waitForPreviewReady();
+      if (!ready) {
+        throw new Error("Preview not ready for batch crop");
+      }
+
+      const cropSnapshot = completedCrop;
+      const displaySnapshot = {
+        width: imgRef.current?.width ?? 0,
+        height: imgRef.current?.height ?? 0,
+      };
+
+      if (!cropSnapshot?.width || !cropSnapshot?.height) {
+        throw new Error("Invalid crop snapshot");
+      }
+      if (!displaySnapshot.width || !displaySnapshot.height) {
+        throw new Error("Preview display size is 0");
+      }
+
       console.warn(`开始批量裁剪 ${avatarsToProcess.length} 张${isAvatarMode ? "头像" : "立绘"}（最大并发:${MAX_CONCURRENCY}）`);
 
       // 阶段1：加载图片（并发控制）
@@ -613,7 +668,10 @@ export function SpriteCropper({
           }
 
           try {
-            const croppedBlob = await getCroppedImageBlobFromImg(item.img);
+            const croppedBlob = await getCroppedImageBlobFromImg(item.img, {
+              crop: cropSnapshot,
+              displaySize: displaySnapshot,
+            });
             console.warn(`裁剪完成 (${item.index + 1}/${loadedImages.length})`);
             return { ...item, croppedBlob };
           }
