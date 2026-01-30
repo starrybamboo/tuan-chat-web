@@ -556,6 +556,61 @@ function RoomComposerPanelImpl({
     layout: toolbarLayout,
     showStatusBar: false,
   };
+  const threadBannerNode = threadRootMessageId
+    ? (
+        <div className="p-2 pb-1">
+          <div className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-2 justify-between">
+            <div className="min-w-0 flex items-center gap-2">
+              <div className="join">
+                <button
+                  type="button"
+                  className={`btn btn-xs join-item ${composerTarget === "main" ? "btn-info" : "btn-ghost"}`}
+                  onClick={handleSelectMainTarget}
+                >
+                  主区
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-xs join-item ${composerTarget === "thread" ? "btn-info" : "btn-ghost"}`}
+                  onClick={handleSelectThreadTarget}
+                >
+                  子区
+                </button>
+              </div>
+              <span className="text-xs text-base-content/60 truncate">
+                🧵
+                {threadRootMessageId}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost shrink-0"
+              onClick={handleCloseThreadRoot}
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      )
+    : null;
+  const insertAfterBannerNode = insertAfterMessageId
+    ? (
+        <div className="p-2 pb-1">
+          <div className="flex flex-row gap-2 items-center bg-info/20 rounded-md shadow-sm text-sm p-2 justify-between">
+            <span className="text-info-content">📍 将在消息后插入</span>
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost"
+              onClick={handleCancelInsertAfter}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )
+    : null;
+
   const webgalToolbarNode = showWebgalRunControls
     ? (
         <div className="flex items-start gap-2">
@@ -643,58 +698,9 @@ function RoomComposerPanelImpl({
             </div>
           )}
 
-          {threadRootMessageId && (
-            <div className="p-2 pb-1">
-              <div className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-2 justify-between">
-                <div className="min-w-0 flex items-center gap-2">
-                  <div className="join">
-                    <button
-                      type="button"
-                      className={`btn btn-xs join-item ${composerTarget === "main" ? "btn-info" : "btn-ghost"}`}
-                      onClick={handleSelectMainTarget}
-                    >
-                      主区
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-xs join-item ${composerTarget === "thread" ? "btn-info" : "btn-ghost"}`}
-                      onClick={handleSelectThreadTarget}
-                    >
-                      子区
-                    </button>
-                  </div>
-                  <span className="text-xs text-base-content/60 truncate">
-                    🧵
-                    {threadRootMessageId}
-                  </span>
-                </div>
+          {threadBannerNode}
 
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost shrink-0"
-                  onClick={handleCloseThreadRoot}
-                >
-                  关闭
-                </button>
-              </div>
-            </div>
-          )}
-
-          {insertAfterMessageId && (
-            <div className="p-2 pb-1">
-              <div className="flex flex-row gap-2 items-center bg-info/20 rounded-md shadow-sm text-sm p-2 justify-between">
-                <span className="text-info-content">📍 将在消息后插入</span>
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost"
-                  onClick={handleCancelInsertAfter}
-                >
-                  取消
-                </button>
-              </div>
-            </div>
-          )}
-
+          {insertAfterBannerNode}
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex flex-col border border-base-300 rounded-xl bg-base-100/80">
