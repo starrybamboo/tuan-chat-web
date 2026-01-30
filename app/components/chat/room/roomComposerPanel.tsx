@@ -556,6 +556,16 @@ function RoomComposerPanelImpl({
     layout: toolbarLayout,
     showStatusBar: false,
   };
+  const replyMessageNode = replyMessage
+    ? (
+        <div className="p-2 pb-1">
+          <RepliedMessage
+            replyMessage={replyMessage}
+            className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-1"
+          />
+        </div>
+      )
+    : null;
   const threadBannerNode = threadRootMessageId
     ? (
         <div className="p-2 pb-1">
@@ -689,14 +699,7 @@ function RoomComposerPanelImpl({
           )}
           <ChatAttachmentsPreviewFromStore />
 
-          {replyMessage && (
-            <div className="p-2 pb-1">
-              <RepliedMessage
-                replyMessage={replyMessage}
-                className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-1"
-              />
-            </div>
-          )}
+          {replyMessageNode}
 
           {threadBannerNode}
 
