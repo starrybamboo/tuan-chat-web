@@ -44,6 +44,9 @@ export default function AvatarSwitch({
 
   // 当前是否已选择角色
   const hasSelectedRole = curRoleId > 0;
+  // 旁白模式：当前已选择旁白（roleId<=0 的情况里，-1 表示旁白；0 通常表示“未选择”）
+  const hasSelectedNarrator = curRoleId < 0;
+  const hasSelectedIdentity = hasSelectedRole || hasSelectedNarrator;
 
   const draftCustomRoleName = draftCustomRoleNameMap[curRoleId];
   const displayName = (draftCustomRoleName?.trim() || currentRole?.roleName || "");
@@ -91,7 +94,7 @@ export default function AvatarSwitch({
   const computedAvatarWidth = avatarWidth ?? (getScreenSize() === "sm" ? 10 : 14);
   const narratorSizeClass = sizeClassMap[computedAvatarWidth] ?? "w-10 h-10";
 
-  if (!hasSelectedRole) {
+  if (!hasSelectedIdentity) {
     return (
       <div className={wrapperClassName}>
         <div role="button" tabIndex={0} className="">
@@ -127,21 +130,30 @@ export default function AvatarSwitch({
     <div className={wrapperClassName}>
       <div
         className={tooltipClassName}
-        data-tip="切换角色和表情"
+        data-tip={hasSelectedNarrator ? "切换旁白头像/角色" : "切换角色和表情"}
       >
         <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
-          <RoleAvatarComponent
-            avatarId={curAvatarId}
-            roleId={curRoleId}
-            width={computedAvatarWidth}
-            isRounded={true}
-            withTitle={false}
-            stopPopWindow={true}
-            alt={curRoleId > 0 ? "无可用头像" : "无可用角色"}
-          />
+          {hasSelectedNarrator && curAvatarId <= 0
+            ? (
+                <div className={`${narratorSizeClass} rounded-full bg-base-300 flex items-center justify-center`}>
+                  <NarratorIcon className={computedAvatarWidth <= 8 ? "size-5 text-base-content/60" : "size-6 md:size-8 text-base-content/60"} />
+                </div>
+              )
+            : (
+                <RoleAvatarComponent
+                  avatarId={curAvatarId}
+                  roleId={curRoleId}
+                  width={computedAvatarWidth}
+                  isRounded={true}
+                  withTitle={false}
+                  stopPopWindow={true}
+                  useDefaultAvatarFallback={false}
+                  alt={hasSelectedRole ? "无可用头像" : "旁白"}
+                />
+              )}
         </div>
 
-        {showName && !isEditingName && (
+        {showName && hasSelectedRole && !isEditingName && (
           <div
             className={nameClassName}
             onClick={(e) => {
@@ -156,7 +168,7 @@ export default function AvatarSwitch({
           </div>
         )}
 
-        {showName && isEditingName && (
+        {showName && hasSelectedRole && isEditingName && (
           <input
             className={`input input-xs input-bordered w-full ${isHorizontal ? "text-left" : "text-center"} bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info`}
             value={editingName}
@@ -186,6 +198,12 @@ export default function AvatarSwitch({
             }}
             placeholder={currentRole?.roleName || ""}
           />
+        )}
+
+        {showName && hasSelectedNarrator && (
+          <div className={`${nameClassName} text-base-content/40 select-none`} title="旁白不显示名称">
+            &nbsp;
+          </div>
         )}
       </div>
       <ul
