@@ -6,7 +6,7 @@
 - 数据: 通过 `useGetUserSpacesQuery()` 拉取 space 列表，前端筛选 `space.status === 2` 作为“已归档群聊”。
 - 交互:
   - 搜索框：按名称/简介做前端包含匹配（大小写不敏感）。
-  - 卡片操作：`预览 -> /space-preview/:spaceId`；`打开 -> /chat/:spaceId`。
+  - 卡片操作：`打开 -> /chat/:spaceId`。
 
 ## 安全与性能
 
