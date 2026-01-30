@@ -126,10 +126,9 @@ export default function RuleEditor({
     navigate("/role");
   }, [isSavingRule, navigate, onBack]);
 
-  const displayRuleId = ruleEdit.ruleId;
-  const displayAuthorId = mode === "edit" ? (ruleDetail?.authorId ?? ruleEdit.authorId) : userId;
-  const authorIdText = typeof displayAuthorId === "number" && displayAuthorId > 0 ? `#${displayAuthorId}` : (mode === "create" ? "未登录" : "#");
-  const ruleIdText = typeof displayRuleId === "number" && displayRuleId > 0 ? `#${displayRuleId}` : "#";
+  const editorStatusBadge = mode === "create"
+    ? { text: "新建规则", className: "badge-success" }
+    : { text: `#${ruleEdit.ruleId}`, className: "badge-info" };
 
   function applyClonedRule(rule: Rule) {
     // 仅导入数据作为本地编辑初始值：不保留源规则 id
@@ -153,73 +152,83 @@ export default function RuleEditor({
     toast.success("规则导入成功");
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (isSavingRule)
       return;
 
-    try {
-      // 保存前：若存在任意模块仍在编辑态（未点击“应用/取消”），提示用户先结束编辑。
-      // 该校验必须放在规则名称校验之前。
-      const hasEditingModule = Object.values(editingMap).some(Boolean);
-      if (hasEditingModule) {
-        toast.error("请先应用或取消所有编辑");
+    // 前端校验
+    // 编辑态校验，该校验必须放在规则名称校验之前
+    const hasEditingModule = Object.values(editingMap).some(Boolean);
+    if (hasEditingModule) {
+      toast.error("请先应用或取消所有编辑");
+      return;
+    }
+
+    // 规则名称校验
+    const nextRuleName = ruleEdit.ruleName ?? "";
+    if (nextRuleName.length === 0) {
+      toast.error("规则名称不能为空");
+      return;
+    }
+
+    // 编辑模式下的规则id与作者id校验
+    if (mode === "edit") {
+      const currentRuleId = ruleEdit.ruleId ?? ruleId;
+      if (typeof currentRuleId !== "number" || currentRuleId <= 0) {
+        toast.error("规则ID无效，无法保存");
         return;
       }
 
-      const nextRuleName = ruleEdit.ruleName ?? "";
-      if (nextRuleName.length === 0) {
-        toast.error("规则名称不能为空");
-        return;
-      }
-
-      if (mode === "edit") {
-        const currentRuleId = ruleEdit.ruleId ?? ruleId;
-        if (typeof currentRuleId !== "number" || currentRuleId <= 0) {
-          toast.error("规则ID无效，无法保存");
+      const authorId = ruleEdit.authorId ?? ruleDetail?.authorId;
+      if (typeof authorId === "number" && authorId > 0) {
+        const loginUserId = userId ?? -1;
+        if (loginUserId <= 0) {
+          toast.error("未登录，无法修改规则");
           return;
         }
-
-        const authorId = ruleEdit.authorId ?? ruleDetail?.authorId;
-        if (typeof authorId === "number" && authorId > 0) {
-          const loginUserId = userId ?? -1;
-          if (loginUserId <= 0) {
-            toast.error("未登录，无法修改规则");
-            return;
-          }
-          if (loginUserId !== authorId) {
-            toast.error("只有规则作者可以修改该规则");
-            return;
-          }
+        if (loginUserId !== authorId) {
+          toast.error("只有规则作者可以修改该规则");
+          return;
         }
       }
+    }
 
-      // 通过校验后，开始提交并进入过渡状态：降低透明度 + 禁用所有按钮
-      setIsSavingRule(true);
+    // 通过校验后，开始提交并进入过渡状态
+    setIsSavingRule(true);
 
-      if (mode === "edit") {
-        const currentRuleId = ruleEdit.ruleId ?? ruleId;
-        const res = await updateRuleMutation.mutateAsync({
-          ruleId: currentRuleId as number,
-          ruleName: nextRuleName,
-          ruleDescription: ruleEdit.ruleDescription,
-          actTemplate: ruleEdit.actTemplate,
-          abilityFormula: ruleEdit.abilityFormula,
-          skillDefault: ruleEdit.skillDefault,
-          basicDefault: ruleEdit.basicDefault,
-          dicerConfig: ruleEdit.dicerConfig,
-        });
+    const onMutationError = (err: any) => {
+      const msg = err instanceof ApiError ? err.body?.errMsg : undefined;
+      toast.error(msg || (mode === "edit" ? "保存失败" : "创建失败"));
+      setIsSavingRule(false);
+    };
 
-        if (res?.success) {
-          toast.success("规则已保存");
-          // 编辑模式：停留原界面
-        }
-        else {
-          toast.error(res?.errMsg || "保存失败");
-        }
-        return;
+    const onMutationSuccess = (res: any, isCreate: boolean) => {
+      if (res?.success) {
+        toast.success(isCreate ? "规则已创建" : "规则已保存");
+
+        // 成功时延时关闭过渡状态
+        setTimeout(() => {
+          setIsSavingRule(false);
+
+          // 创建成功时调整到编辑界面
+          if (isCreate) {
+            const newRuleId = res?.data;
+            if (typeof newRuleId === "number" && newRuleId > 0) {
+              navigate(`/role?type=rule&ruleId=${newRuleId}`, { replace: true });
+            }
+          }
+        }, 300);
       }
+      else {
+        toast.error(res?.errMsg || (isCreate ? "创建失败" : "保存失败"));
+        setIsSavingRule(false);
+      }
+    };
 
-      const res = await createRuleMutation.mutateAsync({
+    if (mode === "edit") {
+      const currentRuleId = ruleEdit.ruleId ?? ruleId;
+      const updatePayload = {
+        ruleId: currentRuleId as number,
         ruleName: nextRuleName,
         ruleDescription: ruleEdit.ruleDescription,
         actTemplate: ruleEdit.actTemplate,
@@ -227,27 +236,26 @@ export default function RuleEditor({
         skillDefault: ruleEdit.skillDefault,
         basicDefault: ruleEdit.basicDefault,
         dicerConfig: ruleEdit.dicerConfig,
+      };
+      updateRuleMutation.mutate(updatePayload, {
+        onSuccess: res => onMutationSuccess(res, false),
+        onError: onMutationError,
       });
-
-      if (res?.success) {
-        toast.success("规则已创建");
-
-        const newRuleId = res?.data;
-        if (typeof newRuleId === "number" && newRuleId > 0) {
-          // 创建模式：导航到新创建规则的编辑界面（edit）
-          navigate(`/role?type=rule&ruleId=${newRuleId}`, { replace: true });
-        }
-      }
-      else {
-        toast.error(res?.errMsg || "创建失败");
-      }
     }
-    catch (err) {
-      const msg = err instanceof ApiError ? err.body?.errMsg : undefined;
-      toast.error(msg || (mode === "edit" ? "保存失败" : "创建失败"));
-    }
-    finally {
-      setIsSavingRule(false);
+    else {
+      const createPayload = {
+        ruleName: nextRuleName,
+        ruleDescription: ruleEdit.ruleDescription,
+        actTemplate: ruleEdit.actTemplate,
+        abilityFormula: ruleEdit.abilityFormula,
+        skillDefault: ruleEdit.skillDefault,
+        basicDefault: ruleEdit.basicDefault,
+        dicerConfig: ruleEdit.dicerConfig,
+      };
+      createRuleMutation.mutate(createPayload, {
+        onSuccess: res => onMutationSuccess(res, true),
+        onError: onMutationError,
+      });
     }
   }
 
@@ -343,15 +351,9 @@ export default function RuleEditor({
             <h1 className="font-semibold text-2xl md:text-3xl my-2">
               {ruleEdit.ruleName || "未命名规则"}
             </h1>
-            <p className="text-base-content/60">
-              规则ID
-              {" "}
-              {ruleIdText}
-              <span className="mx-1">·</span>
-              作者ID
-              {" "}
-              {authorIdText}
-            </p>
+            <div className={`badge badge-outline badge-sm md:badge-md ${editorStatusBadge.className}`}>
+              {editorStatusBadge.text}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -431,15 +433,9 @@ export default function RuleEditor({
                     <h1 className="font-semibold text-xl max-w-32 truncate">
                       {ruleEdit.ruleName || "未命名规则"}
                     </h1>
-                    <p className="text-base-content/60 text-sm">
-                      规则ID
-                      {" "}
-                      {ruleIdText}
-                      <span className="mx-1">·</span>
-                      作者ID
-                      {" "}
-                      {authorIdText}
-                    </p>
+                    <div className={`badge badge-outline badge-sm ${editorStatusBadge.className}`}>
+                      {editorStatusBadge.text}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {mode === "edit" && (
