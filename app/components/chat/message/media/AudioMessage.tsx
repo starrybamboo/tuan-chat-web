@@ -2,6 +2,7 @@
 // 为了避免列表渲染/刷新时自动触发下载，WaveSurfer 仅在用户点击播放时才初始化与加载音频。
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { acquireAudioMessageWaveSurfer, hasAudioMessageWaveSurfer } from "@/components/chat/infra/audioMessage/audioMessageWaveSurferCache";
 import { useAudioPlaybackRegistration } from "@/components/common/useAudioPlaybackRegistration";
 
 import "./audioMessage.css";
@@ -24,6 +25,8 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
   const waveContainerRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<any>(null);
   const shouldAutoPlayRef = useRef(false);
+  const releaseRef = useRef<null | ((opts?: { keepPlaying?: boolean }) => void)>(null);
+  const unsubsRef = useRef<(() => void)[]>([]);
 
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -47,31 +50,33 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
     },
   });
 
-  const ensureWaveSurfer = async () => {
-    if (waveSurferRef.current)
-      return waveSurferRef.current;
-    if (!waveContainerRef.current)
-      throw new Error("音频波形容器未就绪");
+  const cleanupWaveSurfer = (opts?: { keepPlaying?: boolean }) => {
+    const unsubs = unsubsRef.current;
+    unsubsRef.current = [];
+    for (const unsub of unsubs) {
+      try {
+        unsub();
+      }
+      catch {
+        // ignore
+      }
+    }
 
-    const mod: any = await import("wavesurfer.js");
-    const WaveSurfer = mod?.default ?? mod;
+    const release = releaseRef.current;
+    releaseRef.current = null;
+    waveSurferRef.current = null;
+    try {
+      release?.(opts);
+    }
+    catch {
+      // ignore
+    }
+  };
 
-    const ws = WaveSurfer.create({
-      container: waveContainerRef.current,
-      waveColor: "rgba(148, 163, 184, 0.55)",
-      progressColor: "#3b82f6",
-      cursorColor: "rgba(59, 130, 246, 0.9)",
-      barWidth: 2,
-      barGap: 1,
-      barRadius: 2,
-      height: 28,
-      normalize: true,
-      interact: true,
-      url,
-      crossOrigin: "anonymous",
-    });
+  const bindWaveSurfer = (ws: any) => {
+    const unsubs: Array<(() => void) | undefined> = [];
 
-    ws.on("ready", () => {
+    unsubs.push(ws.on?.("ready", () => {
       setIsReady(true);
       const d = ws.getDuration?.();
       if (typeof d === "number" && Number.isFinite(d) && d > 0)
@@ -81,35 +86,74 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
         shouldAutoPlayRef.current = false;
         ws.play?.();
       }
-    });
+    }));
 
-    ws.on("play", () => {
+    unsubs.push(ws.on?.("play", () => {
       setIsPlaying(true);
       playback.onPlay();
-    });
-    ws.on("pause", () => {
+    }));
+    unsubs.push(ws.on?.("pause", () => {
       setIsPlaying(false);
       playback.onPause();
-    });
-    ws.on("finish", () => {
+    }));
+    unsubs.push(ws.on?.("finish", () => {
       setIsPlaying(false);
       setCurrentTime(0);
       playback.onEnded();
-    });
+    }));
 
     const updateTime = () => {
       const t = ws.getCurrentTime?.();
       if (typeof t === "number" && Number.isFinite(t))
         setCurrentTime(t);
     };
-    ws.on("timeupdate", updateTime);
-    ws.on("audioprocess", updateTime);
+    unsubs.push(ws.on?.("timeupdate", updateTime));
+    unsubs.push(ws.on?.("audioprocess", updateTime));
 
-    ws.on("error", (e: any) => {
+    unsubs.push(ws.on?.("error", (e: any) => {
       console.error("[tc-audio-message] wavesurfer error", e);
+    }));
+
+    unsubsRef.current = unsubs.filter(Boolean) as Array<() => void>;
+  };
+
+  const ensureWaveSurfer = async () => {
+    if (waveSurferRef.current)
+      return waveSurferRef.current;
+    if (!waveContainerRef.current)
+      throw new Error("音频波形容器未就绪");
+
+    const { ws, release } = await acquireAudioMessageWaveSurfer({
+      url,
+      container: waveContainerRef.current,
     });
 
     waveSurferRef.current = ws;
+    releaseRef.current = release;
+
+    bindWaveSurfer(ws);
+
+    try {
+      const d = ws.getDuration?.();
+      if (typeof d === "number" && Number.isFinite(d) && d > 0) {
+        setIsReady(true);
+        setResolvedDuration(d);
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    try {
+      setIsPlaying(Boolean(ws.isPlaying?.()));
+      const t = ws.getCurrentTime?.();
+      if (typeof t === "number" && Number.isFinite(t))
+        setCurrentTime(t);
+    }
+    catch {
+      // ignore
+    }
+
     return ws;
   };
 
@@ -119,29 +163,27 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
     setCurrentTime(0);
     setResolvedDuration(undefined);
     shouldAutoPlayRef.current = false;
-
-    const ws = waveSurferRef.current;
-    waveSurferRef.current = null;
-    try {
-      ws?.destroy?.();
-    }
-    catch {
-      // ignore
-    }
+    cleanupWaveSurfer({ keepPlaying: false });
   }, [url]);
 
   useEffect(() => {
     return () => {
       const ws = waveSurferRef.current;
-      waveSurferRef.current = null;
-      try {
-        ws?.destroy?.();
-      }
-      catch {
-        // ignore
-      }
+      const keepPlaying = Boolean(ws?.isPlaying?.());
+      cleanupWaveSurfer({ keepPlaying });
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasUrl)
+      return;
+    if (!waveContainerRef.current)
+      return;
+    if (!hasAudioMessageWaveSurfer(url))
+      return;
+
+    void ensureWaveSurfer();
+  }, [hasUrl, url]);
 
   const durationText = useMemo(() => {
     const d = typeof resolvedDuration === "number" && Number.isFinite(resolvedDuration) && resolvedDuration > 0

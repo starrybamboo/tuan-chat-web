@@ -452,6 +452,7 @@ export default function DocFolderForUser() {
       const nextTree: DocFolderTree = { ...tree, categories: nextCategories };
 
       setTree(nextTree);
+      setOpenDocId(docId);
       setCreateDocOpen(false);
       setNewDocTitle("");
       await persistTree(nextTree);

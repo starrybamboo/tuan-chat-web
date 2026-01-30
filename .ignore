@@ -1,0 +1,74 @@
+﻿# Ignore rules for ripgrep/fd/ag (gitignore syntax)
+# Goal: avoid scanning irrelevant folders in large "collection" directories
+
+# Dependencies / build artifacts
+node_modules/
+.pnpm-store/
+.yarn/
+.yarn/cache/
+.yarn/unplugged/
+.bun/
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+.parcel-cache/
+.cache/
+coverage/
+tmp/
+temp/
+logs/
+
+# Python
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Rust / Java / .NET
+target/
+.gradle/
+bin/
+obj/
+
+# VCS / IDE
+.git/
+.hg/
+.svn/
+.idea/
+.vscode/
+
+# Archives / images / binaries (usually not worth full-text searching)
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.bz2
+*.xz
+*.iso
+*.img
+*.dmg
+*.exe
+*.dll
+*.pdb
+
+# Media / images (usually not worth full-text searching)
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.mp3
+*.wav
+*.flac

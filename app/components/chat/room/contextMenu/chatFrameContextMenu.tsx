@@ -32,7 +32,7 @@ interface ContextMenuProps {
   onAddEmoji: (imgMessage: ImageMessage) => void;
   onAddClue?: (clueInfo: { img: string; name: string; description: string }) => void;
   onInsertAfter: (messageId: number) => void;
-  onToggleNarrator: (messageId: number) => void;
+  onToggleNarrator?: (messageId: number) => void;
 }
 
 export default function ChatFrameContextMenu({
@@ -52,7 +52,6 @@ export default function ChatFrameContextMenu({
   onUnlockCg,
   onAddEmoji,
   onInsertAfter,
-  onToggleNarrator,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
@@ -590,20 +589,6 @@ export default function ChatFrameContextMenu({
             在此处插入消息
           </a>
         </li>
-        {
-          (spaceContext.isSpaceOwner || message?.message.userId === globalContext.userId) && (
-            <li>
-              <a onClick={(e) => {
-                e.preventDefault();
-                onToggleNarrator(contextMenu.messageId);
-                onClose();
-              }}
-              >
-                切换旁白/角色
-              </a>
-            </li>
-          )
-        }
         {
           (isSelecting) && (
             <li>

@@ -14706,6 +14706,128 @@
         }
       }
     },
+    "/space/archive/square": {
+      "get": {
+        "tags": [
+          "space-controller"
+        ],
+        "summary": "发现-广场：查看所有人的归档群聊（空间）",
+        "operationId": "listArchivedSpacesSquare",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListSpace"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/archive/my": {
+      "get": {
+        "tags": [
+          "space-controller"
+        ],
+        "summary": "发现-我的归档：查看我个人归档的群聊（空间）",
+        "operationId": "listArchivedSpacesMy",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListSpace"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/space/docFolder/docs": {
       "get": {
         "tags": [
@@ -22933,6 +23055,10 @@
             "type": "integer",
             "description": "上传场景1.聊天室,2.表情包，3.角色差分 4.模组图片",
             "format": "int32"
+          },
+          "dedupCheck": {
+            "type": "boolean",
+            "description": "去重预检：若对象已存在则返回 downloadUrl 且 uploadUrl 为空，前端可跳过实际上传"
           }
         }
       },

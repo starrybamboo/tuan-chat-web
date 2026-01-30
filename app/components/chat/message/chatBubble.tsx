@@ -18,7 +18,7 @@ import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChatBubbleEllipsesOutline } from "@/icons";
+import { ChatBubbleEllipsesOutline, NarratorIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
@@ -217,7 +217,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <RoomContext value={roomContext}>
             <div className="flex flex-col">
               <ExpressionChooser
-                roleId={message.roleId as number}
+                roleId={message.roleId ?? -1}
                 handleExpressionChange={(avatarId) => {
                   handleExpressionChange(avatarId);
                   onClose();
@@ -783,14 +783,123 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   // 旁白的特殊渲染（无角色）
   if (isNarrator) {
+    // 气泡模式与传统模式的旁白样式需要分开：传统模式头像为方形；气泡模式尽量更“旁白化”（更居中、更弱化头像存在感）
+    const hasNarratorAvatar = Boolean(message.avatarId && message.avatarId > 0 && avatar?.avatarUrl);
+    if (useChatBubbleStyle) {
+      const narratorAvatarWidth = isMobile ? 8 : 10;
+      const avatarButtonClassName = `btn btn-ghost btn-xs px-1 ${canEdit ? "cursor-pointer" : "cursor-default"}`;
+      return (
+        <div className="flex w-full justify-center py-1 sm:py-2 group">
+          <div className="relative w-full max-w-[calc(100vw-4rem)] sm:max-w-md rounded-lg bg-base-200/40 px-3 sm:px-4 py-2">
+            <div className="flex items-center gap-2 text-xs text-base-content/60">
+              <button
+                type="button"
+                className={avatarButtonClassName}
+                onClick={handleAvatarClick}
+                aria-label="选择旁白头像"
+                title={canEdit ? "点击选择旁白头像" : "旁白头像"}
+              >
+                {hasNarratorAvatar
+                  ? (
+                      <RoleAvatarComponent
+                        avatarId={message.avatarId ?? 0}
+                        roleId={message.roleId ?? undefined}
+                        width={narratorAvatarWidth}
+                        isRounded={true}
+                        withTitle={false}
+                        stopPopWindow={true}
+                        useDefaultAvatarFallback={false}
+                      />
+                    )
+                  : (
+                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-transparent">
+                        <NarratorIcon className="size-4 text-base-content/70" />
+                      </span>
+                    )}
+              </button>
+
+              <span className="text-xs text-base-content/50 select-none">&nbsp;</span>
+
+              <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* WebGAL 联动模式下显示切换黑屏按钮 */}
+                {message.messageType === MESSAGE_TYPE.TEXT && canEdit && webgalLinkMode && (
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
+                    onClick={handleToggleIntroText}
+                    title="切换为黑屏文字"
+                  >
+                    → 黑屏
+                  </button>
+                )}
+                {/* 切换为角色对话按钮 */}
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
+                    onClick={handleToggleNarrator}
+                    title="切换为角色对话"
+                  >
+                    → 角色
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-1 italic text-xs sm:text-sm lg:text-base text-base-content/80 text-center">
+              {renderedContent}
+            </div>
+
+            <div className="mt-1 text-center text-xs text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
+              {formattedTime}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const narratorAvatarWidth = isMobile ? 10 : 20;
     return (
-      <div className="flex w-full py-1 group">
-        <div className="flex-1 min-w-0 px-2 py-1">
-          {/* 旁白样式：无头像，居中或左对齐，斜体 */}
-          <div className="bg-base-200/50 rounded-lg p-1 sm:p-2 relative">
-            {/* 类型标识和操作按钮 */}
+      <div className="flex w-full py-1.5 sm:py-2 group">
+        {/* 方形头像（传统模式） */}
+        <div className="shrink-0 pr-2 sm:pr-3">
+          <div
+            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-transparent flex items-center justify-center`}
+            onClick={handleAvatarClick}
+            aria-label="选择旁白头像"
+            title={canEdit ? "点击选择旁白头像" : "旁白头像"}
+          >
+            {hasNarratorAvatar
+              ? (
+                  <RoleAvatarComponent
+                    avatarId={message.avatarId ?? 0}
+                    roleId={message.roleId ?? undefined}
+                    width={narratorAvatarWidth}
+                    isRounded={false}
+                    withTitle={false}
+                    stopPopWindow={true}
+                    useDefaultAvatarFallback={false}
+                    alt="旁白"
+                  />
+                )
+              : (
+                  <NarratorIcon className="size-6 sm:size-10 md:size-12 text-base-content/70" />
+                )}
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
+          <div className="flex items-center justify-between w-full gap-2">
+            <span className="text-sm text-base-content/50 select-none">&nbsp;</span>
+            <div className="text-xs text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
+              {formattedTime}
+            </div>
+          </div>
+
+          <div className="mt-0.5 relative rounded-lg bg-base-200/50 p-1.5 sm:p-2 break-words">
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* WebGAL 联动模式下显示切换黑屏按钮 */}
               {message.messageType === MESSAGE_TYPE.TEXT && canEdit && webgalLinkMode && (
                 <button
                   type="button"
@@ -801,7 +910,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   → 黑屏
                 </button>
               )}
-              {/* 切换为角色对话按钮 */}
               {canEdit && (
                 <button
                   type="button"
@@ -812,20 +920,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   → 角色
                 </button>
               )}
-              {/* 根据消息类型显示不同标签 */}
               {message.messageType === MESSAGE_TYPE.EFFECT
                 ? (<span className="badge badge-xs badge-info">特效</span>)
-                : (<span className="badge badge-xs badge-secondary">旁白</span>)}
-            </div>
-            {/* 内容 - 支持文本、图片、音频等 */}
-            <div className="italic text-xs sm:text-sm lg:text-base text-base-content/80">
-              {renderedContent}
+                : null}
             </div>
 
-            {/* 时间 */}
-            <div className="text-xs text-base-content/50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
-              {formattedTime}
+            <div className="italic text-sm sm:text-sm lg:text-base text-base-content/80">
+              {renderedContent}
             </div>
           </div>
         </div>
