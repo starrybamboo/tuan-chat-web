@@ -1,11 +1,12 @@
-import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+﻿import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 import {
   useAddRoomMemberMutation,
   useAddSpaceMemberMutation,
+  useGetSpaceInfoQuery,
   useGetSpaceMembersQuery,
+  useGetUserActiveSpacesQuery,
   useGetUserRoomsQuery,
-  useGetUserSpacesQuery,
   useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
@@ -48,15 +49,15 @@ import RightChatView from "@/components/privateChat/RightChatView";
 import { SidebarSimpleIcon } from "@/icons";
 
 /**
- * chat板块的主组件
+ * chat鏉垮潡鐨勪富缁勪欢
  */
 export type ChatPageMainView = "chat" | "spaceDetail" | "roomSetting" | "discover";
 export type ChatDiscoverMode = "square" | "my";
 
 export interface ChatPageProps {
   /**
-   * 用于特殊入口（如 /chat/discover）指定初始主视图。
-   * 注意：主视图仍以组件内部状态为准（不做 URL 全量映射）。
+   * 鐢ㄤ簬鐗规畩鍏ュ彛锛堝 /chat/discover锛夋寚瀹氬垵濮嬩富瑙嗗浘銆?
+   * 娉ㄦ剰锛氫富瑙嗗浘浠嶄互缁勪欢鍐呴儴鐘舵€佷负鍑嗭紙涓嶅仛 URL 鍏ㄩ噺鏄犲皠锛夈€?
    */
   initialMainView?: ChatPageMainView;
   discoverMode?: ChatDiscoverMode;
@@ -77,7 +78,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
     const decoded = decodeURIComponent(urlMessageId as string);
 
-    // URL 传纯数字 docId：内部映射为 blocksuite docId（sdoc:<id>:description）。
+    // URL 浼犵函鏁板瓧 docId锛氬唴閮ㄦ槧灏勪负 blocksuite docId锛坰doc:<id>:description锛夈€?
     if (/^\d+$/.test(decoded)) {
       const id = Number(decoded);
       if (Number.isFinite(id) && id > 0) {
@@ -85,13 +86,13 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       }
     }
 
-    // 不兼容旧的 sdoc:<id>:description（应使用纯数字 URL）
+    // 涓嶅吋瀹规棫鐨?sdoc:<id>:description锛堝簲浣跨敤绾暟瀛?URL锛?
     const parsed = parseSpaceDocId(decoded);
     if (parsed?.kind === "independent") {
       return null;
     }
 
-    // 其它 docId（如 udoc:<id>:description）仍允许通过 URL 直达
+    // 鍏跺畠 docId锛堝 udoc:<id>:description锛変粛鍏佽閫氳繃 URL 鐩磋揪
     return decoded;
   })();
 
@@ -169,31 +170,34 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
-  // 当前激活的space对应的rooms。
+  // 褰撳墠婵€娲荤殑space瀵瑰簲鐨剅ooms銆?
   const rooms = useMemo(() => userRoomQuery.data?.data?.rooms ?? [], [userRoomQuery.data?.data?.rooms]);
-  // 获取用户空间列表
-  const userSpacesQuery = useGetUserSpacesQuery();
+  // 鑾峰彇鐢ㄦ埛绌洪棿鍒楄〃
+  const userSpacesQuery = useGetUserActiveSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
 
-  // 获取当前用户信息（需要在后续 effect / memo 中使用）
+  const activeSpaceInfoQuery = useGetSpaceInfoQuery(activeSpaceId ?? -1);
+  const activeSpaceInfo = useMemo(() => activeSpaceInfoQuery.data?.data, [activeSpaceInfoQuery.data?.data]);
+
+  // 鑾峰彇褰撳墠鐢ㄦ埛淇℃伅锛堥渶瑕佸湪鍚庣画 effect / memo 涓娇鐢級
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
 
-  // space 自定义排序（纯本地）
-  // 用一个固定 key 保存所有用户的排序，避免 useLocalStorage 不支持动态 key 的问题。
+  // space 鑷畾涔夋帓搴忥紙绾湰鍦帮級
+  // 鐢ㄤ竴涓浐瀹?key 淇濆瓨鎵€鏈夌敤鎴风殑鎺掑簭锛岄伩鍏?useLocalStorage 涓嶆敮鎸佸姩鎬?key 鐨勯棶棰樸€?
   const [spaceOrderByUser, setSpaceOrderByUser] = useLocalStorage<Record<string, number[]>>("spaceOrderByUser", {});
-  // room 自定义排序（纯本地）
+  // room 鑷畾涔夋帓搴忥紙绾湰鍦帮級
   // key: userId -> spaceId -> roomIds
   const [roomOrderByUserAndSpace, setRoomOrderByUserAndSpace] = useLocalStorage<Record<string, Record<string, number[]>>>(
     "roomOrderByUserAndSpace",
     {},
   );
-  // 用于减少 /room/list 重复请求：缓存 space -> roomIds（按 user 分组）
+  // 鐢ㄤ簬鍑忓皯 /room/list 閲嶅璇锋眰锛氱紦瀛?space -> roomIds锛堟寜 user 鍒嗙粍锛?
   const [spaceRoomIdsByUser, setSpaceRoomIdsByUser] = useLocalStorage<Record<string, Record<string, number[]>>>(
     "spaceRoomIdsByUser",
     {},
   );
-  const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
+  const activeSpace = activeSpaceInfo ?? spaces.find(space => space.spaceId === activeSpaceId);
   const activeSpaceIsArchived = activeSpace?.status === 2;
   const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
   const activeSpaceNameForUi = activeSpaceHeaderOverride?.title ?? activeSpace?.name;
@@ -216,7 +220,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
         if (cancelled)
           return;
 
-        // 1) Ensure business doc metas have business titles so `@`（Linked Doc）菜单默认就能显示房间/空间标题。
+        // 1) Ensure business doc metas have business titles so `@`锛圠inked Doc锛夎彍鍗曢粯璁ゅ氨鑳芥樉绀烘埧闂?绌洪棿鏍囬銆?
         if (activeSpace?.name) {
           ensureSpaceDocMeta({
             spaceId: activeSpaceId,
@@ -313,7 +317,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     navigate(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}?${newSearchParams.toString()}`, { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
-  // 主区域视图：不再用 URL 管理（避免 URL 变得过长/冲突）
+  // 涓诲尯鍩熻鍥撅細涓嶅啀鐢?URL 绠＄悊锛堥伩鍏?URL 鍙樺緱杩囬暱/鍐茬獊锛?
   type RoomSettingTab = "role" | "setting";
   type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
   const [mainView, setMainView] = useState<ChatPageMainView>(() => initialMainView ?? "chat");
@@ -326,7 +330,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   }, [globalContext.userId, spaceMembersQuery.data?.data]);
 
   const docMetasFromSidebarTree = useMemo(() => {
-    // 不做历史兼容：仅保留能解析的“空间内独立文档”（sdoc:<docId>:description）。
+    // 涓嶅仛鍘嗗彶鍏煎锛氫粎淇濈暀鑳借В鏋愮殑鈥滅┖闂村唴鐙珛鏂囨。鈥濓紙sdoc:<docId>:description锛夈€?
     return extractDocMetasFromSidebarTree(sidebarTree).filter((m) => {
       const parsed = parseSpaceDocId(m.id);
       return parsed?.kind === "independent";
@@ -363,7 +367,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
   const [spaceDocMetas, setSpaceDocMetas] = useState<MinimalDocMeta[] | null>(null);
 
-  // Space 共享文档（space_doc）：tcHeader 改名时做一次轻量节流同步，避免每次输入都打后端。
+  // Space 鍏变韩鏂囨。锛坰pace_doc锛夛細tcHeader 鏀瑰悕鏃跺仛涓€娆¤交閲忚妭娴佸悓姝ワ紝閬垮厤姣忔杈撳叆閮芥墦鍚庣銆?
   const spaceDocTitleSyncTimerRef = useRef<number | null>(null);
   const spaceDocTitleSyncPendingRef = useRef<{ docId: number; title: string } | null>(null);
   const spaceDocTitleSyncLastRef = useRef<{ docId: number; title: string } | null>(null);
@@ -391,7 +395,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     if (typeof fromTree === "string" && fromTree.trim().length > 0)
       return fromTree.trim();
 
-    return "文档";
+    return "鏂囨。";
   }, [activeDocHeaderOverride?.title, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
 
   const handleDocTcHeaderChange = useCallback((payload: {
@@ -428,7 +432,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       return next;
     });
 
-    // space_doc：把标题同步到后端（节流）。
+    // space_doc锛氭妸鏍囬鍚屾鍒板悗绔紙鑺傛祦锛夈€?
     if (typeof window !== "undefined") {
       try {
         void (async () => {
@@ -512,7 +516,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
         return;
       setSpaceDocMetas(merged);
 
-      // workspace meta 可能在刷新后为空：用 sidebarTree 中的 doc 节点回补，确保可见/可打开。
+      // workspace meta 鍙兘鍦ㄥ埛鏂板悗涓虹┖锛氱敤 sidebarTree 涓殑 doc 鑺傜偣鍥炶ˉ锛岀‘淇濆彲瑙?鍙墦寮€銆?
       try {
         const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
         for (const m of docMetasFromSidebarTree) {
@@ -590,9 +594,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       return;
     if (!isKPInSpace)
       return;
-
     const title = (titleOverride ?? "新文档").trim() || "新文档";
-
     let createdDocId: number | null = null;
     try {
       const resp = await tuanchat.request.request<any>({
@@ -611,7 +613,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }
 
     if (!createdDocId) {
-      toast.error("创建文档失败");
+      toast.error("鍒涘缓鏂囨。澶辫触");
       return;
     }
 
@@ -722,7 +724,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
     if (urlDrivenSpaceDetailRef.current) {
       urlDrivenSpaceDetailRef.current = false;
-      // 从 spaceDetail 路由跳到 room setting 路由时，避免覆盖 roomSetting 的 mainView。
+      // 浠?spaceDetail 璺敱璺冲埌 room setting 璺敱鏃讹紝閬垮厤瑕嗙洊 roomSetting 鐨?mainView銆?
       if (isRoomSettingRoute)
         return;
       setMainView("chat");
@@ -737,7 +739,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       return;
     hasInitPrivateChatRef.current = true;
 
-    // 恢复上次的激活空间和房间,否则恢复第一个房间
+    // 鎭㈠涓婃鐨勬縺娲荤┖闂村拰鎴块棿,鍚﹀垯鎭㈠绗竴涓埧闂?
     const targetRoomId = storedIds.roomId ?? rooms[0]?.roomId;
     if (targetRoomId) {
       setActiveRoomId(targetRoomId);
@@ -748,7 +750,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }
   }, [isPrivateChatMode, rooms, setActiveRoomId, setActiveSpaceId, storedIds.roomId, storedIds.spaceId]);
 
-  // 当前 space 的 rooms 拉取后，更新本地 space->roomIds 映射，避免为了 space 未读数等需求进行批量请求。
+  // 褰撳墠 space 鐨?rooms 鎷夊彇鍚庯紝鏇存柊鏈湴 space->roomIds 鏄犲皠锛岄伩鍏嶄负浜?space 鏈鏁扮瓑闇€姹傝繘琛屾壒閲忚姹傘€?
   useEffect(() => {
     if (isPrivateChatMode)
       return;
@@ -775,14 +777,13 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     });
   }, [activeSpaceId, isPrivateChatMode, rooms, setSpaceRoomIdsByUser, userId]);
 
-  // 创建空间弹窗是否打开
+  // 鍒涘缓绌洪棿寮圭獥鏄惁鎵撳紑
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
   const [isCreateInCategoryOpen, setIsCreateInCategoryOpen] = useSearchParamsState<boolean>("createInCategoryPop", false);
 
   const [pendingCreateInCategoryId, setPendingCreateInCategoryId] = useState<string | null>(null);
   const [createInCategoryMode, setCreateInCategoryMode] = useState<"room" | "doc">("room");
   const [createDocTitle, setCreateDocTitle] = useState("新文档");
-
   const openCreateInCategory = useCallback((categoryId: string) => {
     if (!activeSpaceId || activeSpaceId <= 0)
       return;
@@ -862,9 +863,9 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     const nextRoomId = (typeof fallbackRoomId === "number" && Number.isFinite(fallbackRoomId)) ? fallbackRoomId : "";
     navigate(`/chat/${activeSpaceId}/${nextRoomId}${qs ? `?${qs}` : ""}`);
   }, [activeSpaceId, isPrivateChatMode, navigate, searchParam, storedIds.roomId, storedIds.spaceId]);
-  // 空间成员邀请窗口状态
+  // 绌洪棿鎴愬憳閭€璇风獥鍙ｇ姸鎬?
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
-  // 房间邀请窗口状态
+  // 鎴块棿閭€璇风獥鍙ｇ姸鎬?
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
@@ -957,7 +958,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     if (typeof firstRoomId !== "number" || !Number.isFinite(firstRoomId))
       return;
 
-    // 在空间模式下，URL roomId 缺失时，房间列表加载完成后默认选中自定义排序的第一个房间
+    // 鍦ㄧ┖闂存ā寮忎笅锛孶RL roomId 缂哄け鏃讹紝鎴块棿鍒楄〃鍔犺浇瀹屾垚鍚庨粯璁ら€変腑鑷畾涔夋帓搴忕殑绗竴涓埧闂?
     setActiveRoomId(firstRoomId, { replace: true });
   }, [activeSpaceId, isPrivateChatMode, orderedRooms, setActiveRoomId, urlRoomId]);
 
@@ -981,7 +982,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }));
   }, [activeSpaceId, isPrivateChatMode, setRoomOrderByUserAndSpace, userId]);
 
-  // 私聊未读消息：复用私聊列表现有计算逻辑（用于左侧“私信入口”角标）
+  // 绉佽亰鏈娑堟伅锛氬鐢ㄧ鑱婂垪琛ㄧ幇鏈夎绠楅€昏緫锛堢敤浜庡乏渚р€滅淇″叆鍙ｂ€濊鏍囷級
   const privateMessageList = usePrivateMessageList({ globalContext, userId });
   const { unreadMessageNumbers: privateUnreadMessageNumbers } = useUnreadCount({
     realTimeContacts: privateMessageList.realTimeContacts,
@@ -991,7 +992,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   });
   const privateTotalUnreadMessages = useMemo(() => {
     return privateMessageList.realTimeContacts.reduce((sum, contactId) => {
-      // 当前正在看的私聊不再显示未读（与 ChatItem 逻辑一致）
+      // 褰撳墠姝ｅ湪鐪嬬殑绉佽亰涓嶅啀鏄剧ず鏈锛堜笌 ChatItem 閫昏緫涓€鑷达級
       if (isPrivateChatMode && activeRoomId === contactId) {
         return sum;
       }
@@ -999,7 +1000,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }, 0);
   }, [activeRoomId, isPrivateChatMode, privateMessageList.realTimeContacts, privateUnreadMessageNumbers]);
 
-  // 待处理好友申请数：合并到私信入口角标
+  // 寰呭鐞嗗ソ鍙嬬敵璇锋暟锛氬悎骞跺埌绉佷俊鍏ュ彛瑙掓爣
   const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 });
   const pendingFriendRequestCount = useMemo(() => {
     const list = friendRequestPageQuery.data?.data?.list ?? [];
@@ -1012,17 +1013,17 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     return privateTotalUnreadMessages + pendingFriendRequestCount;
   }, [pendingFriendRequestCount, privateTotalUnreadMessages]);
 
-  // 右键菜单
+  // 鍙抽敭鑿滃崟
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
-  // 空间右键菜单
+  // 绌洪棿鍙抽敭鑿滃崟
   const [spaceContextMenu, setSpaceContextMenu] = useState<{ x: number; y: number; spaceId: number } | null>(null);
 
-  // 关闭右键菜单
+  // 鍏抽棴鍙抽敭鑿滃崟
   function closeContextMenu() {
     setContextMenu(null);
   }
 
-  // 关闭空间右键菜单
+  // 鍏抽棴绌洪棿鍙抽敭鑿滃崟
   function closeSpaceContextMenu() {
     setSpaceContextMenu(null);
   }
@@ -1030,7 +1031,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     const target = e.target as HTMLElement;
-    // 向上查找包含data-room-id属性的父元素
+    // 鍚戜笂鏌ユ壘鍖呭惈data-room-id灞炴€х殑鐖跺厓绱?
     const messageElement = target.closest("[data-room-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
   }
@@ -1038,7 +1039,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   function handleSpaceContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     const target = e.target as HTMLElement;
-    // 向上查找包含data-space-id属性的父元素
+    // 鍚戜笂鏌ユ壘鍖呭惈data-space-id灞炴€х殑鐖跺厓绱?
     const spaceElement = target.closest("[data-space-id]");
     const rawSpaceId = spaceElement?.getAttribute("data-space-id");
     if (!rawSpaceId)
@@ -1046,7 +1047,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     setSpaceContextMenu({ x: e.clientX, y: e.clientY, spaceId: Number(rawSpaceId) });
   }
 
-  // 处理点击外部关闭房间右键菜单的逻辑
+  // 澶勭悊鐐瑰嚮澶栭儴鍏抽棴鎴块棿鍙抽敭鑿滃崟鐨勯€昏緫
   useEffect(() => {
     if (contextMenu) {
       window.addEventListener("click", closeContextMenu);
@@ -1054,9 +1055,9 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     return () => {
       window.removeEventListener("click", closeContextMenu);
     };
-  }, [contextMenu]); // 依赖于contextMenu状态
+  }, [contextMenu]); // 渚濊禆浜巆ontextMenu鐘舵€?
 
-  // 处理点击外部关闭空间右键菜单的逻辑
+  // 澶勭悊鐐瑰嚮澶栭儴鍏抽棴绌洪棿鍙抽敭鑿滃崟鐨勯€昏緫
   useEffect(() => {
     if (spaceContextMenu) {
       window.addEventListener("click", closeSpaceContextMenu);
@@ -1066,18 +1067,18 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     };
   }, [spaceContextMenu]);
 
-  // websocket封装, 用于发送接受消息
+  // websocket灏佽, 鐢ㄤ簬鍙戦€佹帴鍙楁秷鎭?
   const websocketUtils = useGlobalContext().websocketUtils;
-  // 消息提醒相关
+  // 娑堟伅鎻愰啋鐩稿叧
   const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
   const totalUnreadMessages = useMemo(() => {
     return Object.values(unreadMessagesNumber).reduce((sum, count) => sum + count, 0);
   }, [unreadMessagesNumber]);
-  // 在标签页中显示未读消息
+  // 鍦ㄦ爣绛鹃〉涓樉绀烘湭璇绘秷鎭?
   useEffect(() => {
-    const originalTitle = document.title.replace(/^\d+条新消息-/, ""); // 清除已有前缀
+    const originalTitle = document.title.replace(/^\d+鏉℃柊娑堟伅-/, ""); // 娓呴櫎宸叉湁鍓嶇紑
     if (totalUnreadMessages > 0) {
-      document.title = `${totalUnreadMessages}条新消息-${originalTitle}`;
+      document.title = `${totalUnreadMessages}鏉℃柊娑堟伅-${originalTitle}`;
     }
     else {
       document.title = originalTitle;
@@ -1110,18 +1111,18 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     return result;
   };
 
-  // 添加房间成员的mutation
+  // 娣诲姞鎴块棿鎴愬憳鐨刴utation
   const addRoomMemberMutation = useAddRoomMemberMutation();
-  // 添加空间成员的mutation
+  // 娣诲姞绌洪棿鎴愬憳鐨刴utation
   const addSpaceMemberMutation = useAddSpaceMemberMutation();
   const setPlayerMutation = useSetPlayerMutation();
 
-  // 处理邀请玩家
+  // 澶勭悊閭€璇风帺瀹?
   const handleInvitePlayer = (roomId: number) => {
     setInviteRoomId(roomId);
   };
 
-  // 处理添加房间成员
+  // 澶勭悊娣诲姞鎴块棿鎴愬憳
   const handleAddRoomMember = (userId: number) => {
     if (inviteRoomId) {
       addRoomMemberMutation.mutate({
@@ -1135,7 +1136,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }
   };
 
-  // 处理添加空间成员
+  // 澶勭悊娣诲姞绌洪棿鎴愬憳
   const handleAddSpaceMember = (userId: number) => {
     if (activeSpaceId) {
       addSpaceMemberMutation.mutate({
@@ -1264,13 +1265,12 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                     )
                   : (
                       <div className="flex items-center justify-center w-full h-full font-bold">
-                        <span className="text-center lg:hidden">请从右侧选择房间</span>
+                        <span className="text-center lg:hidden">璇蜂粠鍙充晶閫夋嫨鎴块棿</span>
                       </div>
                     )
               )}
         </>
       );
-
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
 
@@ -1293,7 +1293,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
         {screenSize === "sm"
           ? (
               <>
-                {/* 只有小屏才允许收起侧边栏 */}
+                {/* 鍙湁灏忓睆鎵嶅厑璁告敹璧蜂晶杈规爮 */}
                 <OpenAbleDrawer
                   isOpen={isOpenLeftDrawer}
                   className="h-full z-10 w-full bg-base-200"
@@ -1305,7 +1305,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                 >
                   <div className="h-full flex flex-col w-full min-w-0 relative">
                     <div className="flex flex-row w-full min-w-0 flex-1 min-h-0">
-                      {/* 空间列表 */}
+                      {/* 绌洪棿鍒楄〃 */}
                       <ChatSpaceSidebar
                         isPrivateChatMode={isPrivateChatMode}
                         spaces={orderedSpaces}
@@ -1330,7 +1330,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                         onSpaceContextMenu={handleSpaceContextMenu}
                       />
                       {/* <div className="w-px bg-base-300"></div> */}
-                      {/* 房间列表 */}
+                      {/* 鎴块棿鍒楄〃 */}
                       {mainView === "discover"
                         ? (
                             <ChatDiscoverNavPanel
@@ -1394,7 +1394,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                     />
                   </div>
                 </OpenAbleDrawer>
-                {/* 聊天记录窗口，输入窗口，侧边栏 */}
+                {/* 鑱婂ぉ璁板綍绐楀彛锛岃緭鍏ョ獥鍙ｏ紝渚ц竟鏍?*/}
                 <div
                   className={`flex-1 min-h-0 min-w-0 transition-opacity ${isOpenLeftDrawer ? "opacity-0 pointer-events-none" : "opacity-100"}`}
                   aria-hidden={isOpenLeftDrawer}
@@ -1405,11 +1405,11 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
             )
           : (
               <>
-                {/* 桌面端：房间列表 + 右侧视图放在同一容器，并做左上圆角 */}
+                {/* 妗岄潰绔細鎴块棿鍒楄〃 + 鍙充晶瑙嗗浘鏀惧湪鍚屼竴瀹瑰櫒锛屽苟鍋氬乏涓婂渾瑙?*/}
                 <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
                   <div className="flex flex-col bg-base-200 h-full relative">
                     <div className="flex flex-row flex-1 min-h-0">
-                      {/* 桌面端：空间列表不在圆角容器内 */}
+                      {/* 妗岄潰绔細绌洪棿鍒楄〃涓嶅湪鍦嗚瀹瑰櫒鍐?*/}
                       <div className="bg-base-200 h-full">
                         <ChatSpaceSidebar
                           isPrivateChatMode={isPrivateChatMode}
@@ -1446,7 +1446,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                         handlePosition="right"
                       >
                         <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
-                          {/* 房间列表 */}
+                          {/* 鎴块棿鍒楄〃 */}
                           {mainView === "discover"
                             ? (
                                 <ChatDiscoverNavPanel
@@ -1516,20 +1516,20 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
               </>
             )}
 
-        {/* 创建空间弹出窗口 */}
+        {/* 鍒涘缓绌洪棿寮瑰嚭绐楀彛 */}
         <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
           <CreateSpaceWindow
             onSuccess={() => setIsSpaceHandleOpen(false)}
           />
         </PopWindow>
-        {/* 创建房间弹出窗口 */}
+        {/* 鍒涘缓鎴块棿寮瑰嚭绐楀彛 */}
         <PopWindow
           isOpen={isCreateInCategoryOpen}
           onClose={closeCreateInCategory}
         >
           <div className="w-[min(720px,92vw)] p-6">
             <div className="mb-3">
-              <div className="text-sm font-medium opacity-80 mb-2">创建类型</div>
+              <div className="text-sm font-medium opacity-80 mb-2">鍒涘缓绫诲瀷</div>
               <div className="grid grid-cols-2 gap-2">
                 <label
                   className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${createInCategoryMode === "room" ? "bg-base-200" : "bg-base-100"}`}
@@ -1540,11 +1540,11 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                     className="radio radio-sm mt-1"
                     checked={createInCategoryMode === "room"}
                     onChange={() => setCreateInCategoryMode("room")}
-                    aria-label="创建房间"
+                    aria-label="鍒涘缓鎴块棿"
                   />
                   <div className="min-w-0">
-                    <div className="font-medium">创建房间</div>
-                    <div className="text-xs opacity-70">创建后会自动加入当前分类</div>
+                    <div className="font-medium">鍒涘缓鎴块棿</div>
+                    <div className="text-xs opacity-70">鍒涘缓鍚庝細鑷姩鍔犲叆褰撳墠鍒嗙被</div>
                   </div>
                 </label>
 
@@ -1558,11 +1558,11 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                     checked={createInCategoryMode === "doc"}
                     disabled={!isKPInSpace}
                     onChange={() => setCreateInCategoryMode("doc")}
-                    aria-label="创建文档"
+                    aria-label="鍒涘缓鏂囨。"
                   />
                   <div className="min-w-0">
-                    <div className="font-medium">创建文档</div>
-                    <div className="text-xs opacity-70">仅 KP 可创建/编辑文档</div>
+                    <div className="font-medium">鍒涘缓鏂囨。</div>
+                    <div className="text-xs opacity-70">浠?KP 鍙垱寤?缂栬緫鏂囨。</div>
                   </div>
                 </label>
               </div>
@@ -1571,7 +1571,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
             {createInCategoryMode === "doc"
               ? (
                   <div className="bg-base-200 p-4 rounded-lg">
-                    <div className="text-sm font-medium opacity-80 mb-2">文档标题</div>
+                    <div className="text-sm font-medium opacity-80 mb-2">鏂囨。鏍囬</div>
                     <input
                       className="input input-bordered w-full mb-3"
                       value={createDocTitle}
@@ -1588,7 +1588,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                         void createDocInSelectedCategory();
                       }}
                     >
-                      创建文档
+                      鍒涘缓鏂囨。
                     </button>
                   </div>
                 )
@@ -1601,7 +1601,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                 )}
           </div>
         </PopWindow>
-        {/* 房间邀请玩家窗口 */}
+        {/* 鎴块棿閭€璇风帺瀹剁獥鍙?*/}
         <PopWindow
           isOpen={inviteRoomId !== null}
           onClose={() => setInviteRoomId(null)}
@@ -1611,7 +1611,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
             showSpace={true}
           />
         </PopWindow>
-        {/* 空间成员邀请窗口 */}
+        {/* 绌洪棿鎴愬憳閭€璇风獥鍙?*/}
         <PopWindow
           isOpen={isMemberHandleOpen}
           onClose={() => {
