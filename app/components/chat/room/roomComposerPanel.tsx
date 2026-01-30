@@ -336,6 +336,12 @@ function RoomComposerPanelImpl({
     stopEvent(event);
     addDroppedFilesToComposer(event.dataTransfer);
   }, [onSendDocCard, stopEvent, updateDocRefDragOver]);
+  const handleAvatarPopoverToggle = React.useCallback(() => {
+    if (isSpectator) {
+      return;
+    }
+    setIsAvatarPopoverOpen(prev => !prev);
+  }, [isSpectator]);
 
   React.useEffect(() => {
     cancelEditingName();
@@ -410,6 +416,13 @@ function RoomComposerPanelImpl({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
+  const handleCloseThreadRoot = React.useCallback(() => {
+    setComposerTarget("main");
+    setThreadRootMessageId(undefined);
+  }, [setComposerTarget, setThreadRootMessageId]);
+  const handleCancelInsertAfter = React.useCallback(() => {
+    setInsertAfterMessageId(undefined);
+  }, [setInsertAfterMessageId]);
 
   const onInsertWebgalCommandPrefix = React.useCallback(() => {
     const inputHandle = chatInputRef.current;
@@ -545,10 +558,7 @@ function RoomComposerPanelImpl({
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost shrink-0"
-                  onClick={() => {
-                    setComposerTarget("main");
-                    setThreadRootMessageId(undefined);
-                  }}
+                  onClick={handleCloseThreadRoot}
                 >
                   关闭
                 </button>
@@ -563,7 +573,7 @@ function RoomComposerPanelImpl({
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost"
-                  onClick={() => setInsertAfterMessageId(undefined)}
+                  onClick={handleCancelInsertAfter}
                 >
                   取消
                 </button>
@@ -583,12 +593,7 @@ function RoomComposerPanelImpl({
                           className={`flex items-center justify-center leading-none ${isSpectator ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                           aria-haspopup="dialog"
                           aria-expanded={isAvatarPopoverOpen}
-                          onClick={() => {
-                            if (isSpectator) {
-                              return;
-                            }
-                            setIsAvatarPopoverOpen(prev => !prev);
-                          }}
+                          onClick={handleAvatarPopoverToggle}
                         >
                           {curRoleId <= 0
                             ? (
