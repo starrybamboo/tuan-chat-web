@@ -37,6 +37,7 @@ export default [
 
     route("module", "routes/module/index.tsx"),
     route("module/detail/:id?", "routes/module/detail.tsx"),
+    route("chat/discover/my", "routes/chatDiscoverMy.tsx"),
     route("chat/discover", "routes/chatDiscover.tsx"),
     route("chat/:spaceId?/:roomId?/:messageId?", "routes/chat.tsx"),
     route("space-preview/:spaceId", "routes/spacePreview.tsx"),

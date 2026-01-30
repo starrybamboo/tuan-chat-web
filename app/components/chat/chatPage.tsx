@@ -50,6 +50,7 @@ import { SidebarSimpleIcon } from "@/icons";
  * chat板块的主组件
  */
 export type ChatPageMainView = "chat" | "spaceDetail" | "roomSetting" | "discover";
+export type ChatDiscoverMode = "square" | "my";
 
 export interface ChatPageProps {
   /**
@@ -57,9 +58,10 @@ export interface ChatPageProps {
    * 注意：主视图仍以组件内部状态为准（不做 URL 全量映射）。
    */
   initialMainView?: ChatPageMainView;
+  discoverMode?: ChatDiscoverMode;
 }
 
-export default function ChatPage({ initialMainView }: ChatPageProps) {
+export default function ChatPage({ initialMainView, discoverMode }: ChatPageProps) {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
   const activeSpaceId = Number(urlSpaceId) || null;
   const [searchParam, _] = useSearchParams();
@@ -314,6 +316,7 @@ export default function ChatPage({ initialMainView }: ChatPageProps) {
   type RoomSettingTab = "role" | "setting";
   type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
   const [mainView, setMainView] = useState<ChatPageMainView>(() => initialMainView ?? "chat");
+  const discoverModeForUi = discoverMode ?? "square";
   const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
   const [roomSettingState, setRoomSettingState] = useState<{ roomId: number; tab: RoomSettingTab } | null>(null);
 
@@ -1198,7 +1201,7 @@ export default function ChatPage({ initialMainView }: ChatPageProps) {
         <>
           {mainView === "discover"
             ? (
-                <DiscoverArchivedSpacesView />
+                <DiscoverArchivedSpacesView mode={discoverModeForUi} />
               )
             : (
                 activeSpaceId
@@ -1333,6 +1336,7 @@ export default function ChatPage({ initialMainView }: ChatPageProps) {
                               onCloseLeftDrawer={closeLeftDrawer}
                               onToggleLeftDrawer={toggleLeftDrawer}
                               isLeftDrawerOpen={isOpenLeftDrawer}
+                              activeMode={discoverModeForUi}
                             />
                           )
                         : (
@@ -1448,6 +1452,7 @@ export default function ChatPage({ initialMainView }: ChatPageProps) {
                                   onCloseLeftDrawer={closeLeftDrawer}
                                   onToggleLeftDrawer={toggleLeftDrawer}
                                   isLeftDrawerOpen={isOpenLeftDrawer}
+                                  activeMode={discoverModeForUi}
                                 />
                               )
                             : (

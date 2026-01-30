@@ -1,6 +1,14 @@
 import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+import { useGlobalContext } from "@/components/globalContextProvider";
+
+export type DiscoverArchivedSpacesMode = "square" | "my";
+
+export interface DiscoverArchivedSpacesViewProps {
+  mode: DiscoverArchivedSpacesMode;
+}
 
 function toEpochMs(value?: string) {
   if (!value)
@@ -9,19 +17,39 @@ function toEpochMs(value?: string) {
   return Number.isFinite(ms) ? ms : 0;
 }
 
-export default function DiscoverArchivedSpacesView() {
+function uniqNumbers(list: number[]) {
+  return [...new Set(list.filter(n => typeof n === "number" && Number.isFinite(n)))];
+}
+
+export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpacesViewProps) {
   const navigate = useNavigate();
   const spacesQuery = useGetUserSpacesQuery();
   const [keyword, setKeyword] = useState("");
+  const userId = useGlobalContext().userId ?? -1;
+  const [myArchivedSpaceIds, setMyArchivedSpaceIds] = useLocalStorage<number[]>(
+    `tc:discover:myArchivedSpaces:${userId}`,
+    [],
+  );
+
+  const myArchivedSpaceIdSet = useMemo(() => {
+    return new Set(myArchivedSpaceIds);
+  }, [myArchivedSpaceIds]);
 
   const archivedSpaces = useMemo(() => {
     const raw = Array.isArray(spacesQuery.data?.data) ? spacesQuery.data?.data : [];
-    const list = raw
+    const base = raw
       .filter(space => space?.status === 2)
       .filter((space) => {
         const id = space?.spaceId;
         return typeof id === "number" && Number.isFinite(id) && id > 0;
       });
+
+    const list = mode === "my"
+      ? base.filter((space) => {
+          const id = space?.spaceId;
+          return typeof id === "number" && myArchivedSpaceIdSet.has(id);
+        })
+      : base;
 
     list.sort((a, b) => {
       const at = toEpochMs(a?.updateTime) || toEpochMs(a?.createTime);
@@ -38,7 +66,16 @@ export default function DiscoverArchivedSpacesView() {
       const desc = String(space?.description ?? "").trim().toLowerCase();
       return name.includes(q) || desc.includes(q);
     });
-  }, [keyword, spacesQuery.data?.data]);
+  }, [keyword, mode, myArchivedSpaceIdSet, spacesQuery.data?.data]);
+
+  const headerTitle = mode === "my" ? "我的归档" : "广场";
+  const headerDescription = mode === "my"
+    ? "这里会展示你手动加入“我的归档”的群聊（空间）。"
+    : "这里会展示你加入过的、已归档的群聊（空间）。";
+  const emptyTitle = mode === "my" ? "暂无我的归档" : "暂无已归档群聊";
+  const emptyDescription = mode === "my"
+    ? "你可以先在“广场”里把某个已归档群聊加入“我的归档”。"
+    : "你可以在聊天室的空间右键菜单中选择“归档空间”，归档后会出现在这里。";
 
   return (
     <div className="flex flex-col w-full h-full min-h-0 min-w-0 bg-base-200">
@@ -46,10 +83,11 @@ export default function DiscoverArchivedSpacesView() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             <h1 className="text-lg font-bold truncate">发现</h1>
+            <span className="badge badge-outline badge-sm">{headerTitle}</span>
             <span className="badge badge-sm">{`已归档 ${archivedSpaces.length}`}</span>
           </div>
           <div className="text-xs text-base-content/60 mt-1">
-            这里会展示你加入过的、已归档的群聊（空间）。
+            {headerDescription}
           </div>
         </div>
 
@@ -57,8 +95,8 @@ export default function DiscoverArchivedSpacesView() {
           className="input input-sm input-bordered w-full sm:w-64"
           value={keyword}
           onChange={e => setKeyword(e.target.value)}
-          placeholder="搜索已归档群聊"
-          aria-label="搜索已归档群聊"
+          placeholder={mode === "my" ? "搜索我的归档" : "搜索已归档群聊"}
+          aria-label={mode === "my" ? "搜索我的归档" : "搜索已归档群聊"}
         />
       </div>
 
@@ -74,9 +112,9 @@ export default function DiscoverArchivedSpacesView() {
         {!spacesQuery.isLoading && archivedSpaces.length === 0 && (
           <div className="card bg-base-100 border border-base-300">
             <div className="card-body">
-              <h2 className="card-title">暂无已归档群聊</h2>
+              <h2 className="card-title">{emptyTitle}</h2>
               <p className="text-sm text-base-content/60">
-                你可以在聊天室的空间右键菜单中选择“归档空间”，归档后会出现在这里。
+                {emptyDescription}
               </p>
             </div>
           </div>
@@ -113,6 +151,18 @@ export default function DiscoverArchivedSpacesView() {
                     </div>
 
                     <div className="card-actions justify-end mt-3">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => {
+                          const next = myArchivedSpaceIdSet.has(spaceId)
+                            ? myArchivedSpaceIds.filter(id => id !== spaceId)
+                            : [...myArchivedSpaceIds, spaceId];
+                          setMyArchivedSpaceIds(uniqNumbers(next));
+                        }}
+                      >
+                        {myArchivedSpaceIdSet.has(spaceId) ? "移出我的归档" : "加入我的归档"}
+                      </button>
                       <button
                         type="button"
                         className="btn btn-sm btn-outline"

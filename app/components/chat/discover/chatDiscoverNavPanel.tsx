@@ -1,12 +1,14 @@
+import { Link } from "react-router";
 import { SidebarSimpleIcon } from "@/icons";
 
 export interface ChatDiscoverNavPanelProps {
   onCloseLeftDrawer: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
+  activeMode: "square" | "my";
 }
 
-export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDrawer, isLeftDrawerOpen }: ChatDiscoverNavPanelProps) {
+export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDrawer, isLeftDrawerOpen, activeMode }: ChatDiscoverNavPanelProps) {
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
 
   return (
@@ -29,17 +31,19 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
       </div>
 
       <div className="px-2 pb-2">
+        <div className="px-2 pt-1 pb-2 text-xs font-semibold text-base-content/60">
+          已归档群聊
+        </div>
         <ul className="menu p-0">
           <li>
-            <button
-              type="button"
-              className="active"
-              onClick={() => {
-                onCloseLeftDrawer();
-              }}
-            >
-              已归档群聊
-            </button>
+            <Link to="/chat/discover" className={activeMode === "square" ? "active" : undefined} onClick={onCloseLeftDrawer}>
+              广场
+            </Link>
+          </li>
+          <li>
+            <Link to="/chat/discover/my" className={activeMode === "my" ? "active" : undefined} onClick={onCloseLeftDrawer}>
+              我的归档
+            </Link>
           </li>
         </ul>
       </div>
