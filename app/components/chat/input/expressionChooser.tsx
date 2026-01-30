@@ -77,7 +77,7 @@ export function ExpressionChooser({
                   isNarratorMode ? "bg-base-200 ring-2 ring-inset ring-secondary/30" : ""
                 }`}
               >
-                <div className="size-10 rounded-full bg-transparent ring-1 ring-base-content/10 flex items-center justify-center flex-shrink-0">
+                <div className="size-10 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
                   <NarratorIcon className="size-6 text-base-content/60" />
                 </div>
                 <div className="flex-1 min-w-0">
