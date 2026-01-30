@@ -214,7 +214,7 @@ export default function RuleEditor({
           if (isCreate) {
             const newRuleId = res?.data;
             if (typeof newRuleId === "number" && newRuleId > 0) {
-              navigate(`/role?type=rule&ruleId=${newRuleId}`, { replace: true });
+              navigate(`/role?type=rule&mode=edit&ruleId=${newRuleId}`, { replace: true });
             }
           }
         }, 300);
