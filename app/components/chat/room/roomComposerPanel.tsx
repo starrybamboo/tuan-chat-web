@@ -302,6 +302,40 @@ function RoomComposerPanelImpl({
     setDraftCustomRoleNameForRole(curRoleId, editingName);
     setIsEditingName(false);
   }, [curRoleId, editingName, setDraftCustomRoleNameForRole, stopEvent]);
+  const handleComposerDragOver = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    // 注意：部分浏览器在 dragover 阶段无法读取 getData 的自定义 MIME 内容。
+    // 因此这里仅基于 types 判定并 preventDefault，让 drop 一定能触发。
+    if (isDocRefDrag(event.dataTransfer)) {
+      updateDocRefDragOver(true);
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      return;
+    }
+    updateDocRefDragOver(false);
+
+    if (isFileDrag(event.dataTransfer)) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }, [updateDocRefDragOver]);
+  const handleComposerDragLeave = React.useCallback(() => {
+    updateDocRefDragOver(false);
+  }, [updateDocRefDragOver]);
+  const handleComposerDrop = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    updateDocRefDragOver(false);
+    const docRef = getDocRefDragData(event.dataTransfer);
+    if (docRef) {
+      stopEvent(event);
+      void onSendDocCard?.(docRef);
+      return;
+    }
+
+    if (!isFileDrag(event.dataTransfer)) {
+      return;
+    }
+    stopEvent(event);
+    addDroppedFilesToComposer(event.dataTransfer);
+  }, [onSendDocCard, stopEvent, updateDocRefDragOver]);
 
   React.useEffect(() => {
     cancelEditingName();
@@ -460,42 +494,9 @@ function RoomComposerPanelImpl({
 
         <div
           className="relative flex flex-col gap-2 rounded-md"
-          onDragOver={(e) => {
-            // 注意：部分浏览器在 dragover 阶段无法读取 getData 的自定义 MIME 内容。
-            // 因此这里仅基于 types 判定并 preventDefault，让 drop 一定能触发；
-            // 具体 payload 在 onDrop 再读取。
-            if (isDocRefDrag(e.dataTransfer)) {
-              updateDocRefDragOver(true);
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-              return;
-            }
-            updateDocRefDragOver(false);
-
-            if (isFileDrag(e.dataTransfer)) {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-            }
-          }}
-          onDragLeave={() => {
-            updateDocRefDragOver(false);
-          }}
-          onDrop={(e) => {
-            updateDocRefDragOver(false);
-            const docRef = getDocRefDragData(e.dataTransfer);
-            if (docRef) {
-              e.preventDefault();
-              e.stopPropagation();
-              void onSendDocCard?.(docRef);
-              return;
-            }
-
-            if (!isFileDrag(e.dataTransfer))
-              return;
-            e.preventDefault();
-            e.stopPropagation();
-            addDroppedFilesToComposer(e.dataTransfer);
-          }}
+          onDragOver={handleComposerDragOver}
+          onDragLeave={handleComposerDragLeave}
+          onDrop={handleComposerDrop}
         >
           {isDocRefDragOver && (
             <div className="pointer-events-none absolute inset-0 z-20 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
