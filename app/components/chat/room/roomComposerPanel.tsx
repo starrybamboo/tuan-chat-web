@@ -556,6 +556,33 @@ function RoomComposerPanelImpl({
     layout: toolbarLayout,
     showStatusBar: false,
   };
+  const webgalToolbarNode = showWebgalRunControls
+    ? (
+        <div className="flex items-start gap-2">
+          <ChatToolbarFromStore
+            {...toolbarCommonProps}
+            showWebgalLinkToggle={false}
+            showRunModeToggle={false}
+            showMainActions={false}
+            showSendButton={false}
+            showWebgalControls={true}
+            showRunControls={true}
+          />
+        </div>
+      )
+    : null;
+  const mainToolbarNode = (
+    <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
+      <ChatToolbarFromStore
+        {...toolbarCommonProps}
+        onOpenImportChatText={onOpenImportChatText}
+        showWebgalLinkToggle={true}
+        showRunModeToggle={true}
+        showWebgalControls={false}
+        showRunControls={false}
+      />
+    </div>
+  );
   const chatInputAreaNode = isMobile
     ? (
         <div className="flex items-end gap-2">
@@ -735,34 +762,13 @@ function RoomComposerPanelImpl({
                         {otherStatusBarNode}
                       </div>
                     </div>
-                    {showWebgalRunControls && (
-                      <div className="flex items-start gap-2">
-                        <ChatToolbarFromStore
-                          {...toolbarCommonProps}
-                          showWebgalLinkToggle={false}
-                          showRunModeToggle={false}
-                          showMainActions={false}
-                          showSendButton={false}
-                          showWebgalControls={true}
-                          showRunControls={true}
-                        />
-                      </div>
-                    )}
+                    {webgalToolbarNode}
                   </div>
                 </div>
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start p-2">
                   {chatInputAreaNode}
 
-                  <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
-                    <ChatToolbarFromStore
-                      {...toolbarCommonProps}
-                      onOpenImportChatText={onOpenImportChatText}
-                      showWebgalLinkToggle={true}
-                      showRunModeToggle={true}
-                      showWebgalControls={false}
-                      showRunControls={false}
-                    />
-                  </div>
+                  {mainToolbarNode}
                 </div>
               </div>
 
