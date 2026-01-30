@@ -304,9 +304,8 @@ function RoomComposerPanelImpl({
   }, [curRoleId, editingName, setDraftCustomRoleNameForRole, stopEvent]);
 
   React.useEffect(() => {
-    setIsEditingName(false);
-    setEditingName("");
-  }, [curRoleId, isSpectator]);
+    cancelEditingName();
+  }, [cancelEditingName, curRoleId, isSpectator]);
 
   React.useEffect(() => {
     if (isSpectator) {
