@@ -87,7 +87,8 @@ export function useAvatarDeletion({
       return;
     }
 
-    const isCurrentRoleAvatar = avatarToDelete.avatarId === role.avatarId;
+    const isCurrentRoleAvatar = avatarToDelete.avatarId === role.avatarId
+      || (role.avatar && (!role.avatarId || role.avatarId === 0) && avatarToDelete.avatarUrl === role.avatar);
     const isCurrentlySelected = avatarToDelete.avatarId === selectedAvatarId;
 
     setIsDeleting(true);
@@ -166,8 +167,12 @@ export function useAvatarDeletion({
 
     try {
       // Check if current avatar is in the deletion list
+      const roleAvatarByUrl = role.avatar && (!role.avatarId || role.avatarId === 0)
+        ? avatars.find(a => a.avatarUrl === role.avatar)
+        : null;
       const isDeletingCurrentAvatar = avatarIds.includes(role.avatarId)
-        || avatarIds.includes(selectedAvatarId);
+        || avatarIds.includes(selectedAvatarId)
+        || (roleAvatarByUrl?.avatarId ? avatarIds.includes(roleAvatarByUrl.avatarId) : false);
 
       // Step 1: If deleting current avatar, select replacement first
       if (isDeletingCurrentAvatar) {
@@ -178,11 +183,13 @@ export function useAvatarDeletion({
 
         if (replacementAvatar) {
           // Update character's avatar if needed
-          if (avatarIds.includes(role.avatarId) && onAvatarChange) {
-            onAvatarChange(
+          const shouldUpdateRoleAvatar = avatarIds.includes(role.avatarId)
+            || (roleAvatarByUrl?.avatarId ? avatarIds.includes(roleAvatarByUrl.avatarId) : false);
+          if (shouldUpdateRoleAvatar && onAvatarChange) {
+            await Promise.resolve(onAvatarChange(
               replacementAvatar.avatarUrl || "",
               replacementAvatar.avatarId || 0,
-            );
+            ));
 
             await queryClient.invalidateQueries({
               queryKey: ["getRole", role.id],

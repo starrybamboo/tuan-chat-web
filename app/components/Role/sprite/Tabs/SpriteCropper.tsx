@@ -343,42 +343,6 @@ export function SpriteCropper({
   /**
    * 处理批量应用变换
    */
-  async function handleBatchApplyTransform() {
-    if (!isMutiAvatars || filteredAvatars.length === 0) {
-      console.error("批量模式下没有可用的头像");
-      return;
-    }
-
-    try {
-      setIsTransforming(true);
-
-      // 获取要处理的头像列表（仅处理选中的）
-      const avatarsToProcess = Array.from(selectedIndices)
-        .map(index => filteredAvatars[index])
-        .filter(Boolean);
-
-      console.warn("开始批量应用Transform", {
-        avatarCount: avatarsToProcess.length,
-        transform,
-      });
-
-      // 批量应用当前transform到选中的头像
-      for (const avatar of avatarsToProcess) {
-        await updateTransformMutation.mutateAsync({
-          roleId: avatar.roleId!,
-          avatarId: avatar.avatarId!,
-          transform,
-          currentAvatar: avatar,
-        });
-      }
-    }
-    catch (error) {
-      console.error("批量应用Transform失败:", error);
-    }
-    finally {
-      setIsTransforming(false);
-    }
-  }
 
   const isCanvasReady = useCallback(() => {
     const img = imgRef.current;
@@ -1186,40 +1150,6 @@ export function SpriteCropper({
                   {!isAvatarMode && (
                     <>
                       <button
-                        className="btn btn-secondary rounded-md"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBatchApplyTransform();
-                        }}
-                        type="button"
-                        disabled={isProcessing}
-                      >
-                        {isTransforming
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
-                              "一键变换"
-                            )}
-                      </button>
-                      <button
-                        className="btn btn-primary rounded-md"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBatchCropAll(false);
-                        }}
-                        type="button"
-                        disabled={!completedCrop || isProcessing}
-                      >
-                        {isCropping
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
-                              "一键裁剪"
-                            )}
-                      </button>
-                      <button
                         className="btn btn-info rounded-md"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1240,7 +1170,7 @@ export function SpriteCropper({
                   )}
                   {isAvatarMode && (
                     <button
-                      className="btn btn-primary rounded-md"
+                      className="btn btn-info rounded-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleBatchCropAll(false);
@@ -1253,7 +1183,7 @@ export function SpriteCropper({
                             <span className="loading loading-spinner loading-xs"></span>
                           )
                         : (
-                            "一键裁剪"
+                            "一键应用"
                           )}
                     </button>
                   )}

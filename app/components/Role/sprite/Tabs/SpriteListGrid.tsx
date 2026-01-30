@@ -1,9 +1,6 @@
 import type { RoleAvatar } from "api";
-
 import type { UploadContext } from "../../RoleInfoCard/AvatarUploadCropper";
-
 import type { Role } from "../../types";
-
 import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useState } from "react";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
@@ -289,6 +286,11 @@ export function SpriteListGrid({
           {avatars.map((avatar, index) => {
             const avatarName = getAvatarName(avatar, index);
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
+            const isAppliedAvatar = Boolean(
+              role?.avatarId
+                ? avatar.avatarId === role.avatarId
+                : (role?.avatar ? avatar.avatarUrl === role.avatar : false),
+            );
 
             return (
               <div key={avatar.avatarId} className="flex flex-col">
@@ -367,6 +369,20 @@ export function SpriteListGrid({
                     {/* Multi-select mode: show overlay for selected items */}
                     {isMultiSelectMode && selectedIndices.has(index) && (
                       <div className="absolute inset-0 bg-primary/20 pointer-events-none" />
+                    )}
+
+                    {/* Applied avatar indicator */}
+                    {isAppliedAvatar && (
+                      <div className="absolute bottom-0 left-1 z-10 flex items-center gap-1.5">
+                        <span
+                          className="h-3 w-3 rounded-full bg-success shadow-sm"
+                          title="这是当前应用的头像"
+                        >
+                        </span>
+                        <span className="rounded-full bg-success/90 p-1 text-[10px] text-success-content opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          当前应用
+                        </span>
+                      </div>
                     )}
                   </button>
 
