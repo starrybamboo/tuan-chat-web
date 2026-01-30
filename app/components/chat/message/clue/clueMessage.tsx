@@ -62,7 +62,6 @@ function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse
                         docId={buildSpaceDocId({ kind: "clue_description", clueId })}
                         mode="page"
                         variant="full"
-                        className="h-full"
                         tcHeader={{ enabled: false }}
                       />
                     )
