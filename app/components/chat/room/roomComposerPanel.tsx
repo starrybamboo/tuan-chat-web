@@ -423,6 +423,42 @@ function RoomComposerPanelImpl({
   const handleCancelInsertAfter = React.useCallback(() => {
     setInsertAfterMessageId(undefined);
   }, [setInsertAfterMessageId]);
+  const avatarButtonClassName = isSpectator
+    ? "flex items-center justify-center leading-none cursor-not-allowed opacity-70"
+    : "flex items-center justify-center leading-none cursor-pointer";
+  const avatarContent = React.useMemo(() => {
+    if (curRoleId <= 0) {
+      if (curAvatarId > 0) {
+        return (
+          <RoleAvatarComponent
+            avatarId={curAvatarId}
+            width={8}
+            isRounded={true}
+            withTitle={false}
+            stopPopWindow={true}
+            useDefaultAvatarFallback={false}
+            alt="旁白"
+          />
+        );
+      }
+      return (
+        <div className="size-8 rounded-full bg-transparent flex items-center justify-center shrink-0">
+          <NarratorIcon className="size-5 text-base-content/60" />
+        </div>
+      );
+    }
+    return (
+      <RoleAvatarComponent
+        avatarId={curAvatarId}
+        roleId={curRoleId}
+        width={8}
+        isRounded={true}
+        withTitle={false}
+        stopPopWindow={true}
+        alt={displayRoleName || "无头像"}
+      />
+    );
+  }, [curAvatarId, curRoleId, displayRoleName]);
 
   const onInsertWebgalCommandPrefix = React.useCallback(() => {
     const inputHandle = chatInputRef.current;
@@ -590,42 +626,12 @@ function RoomComposerPanelImpl({
                       <div ref={avatarPopoverRef} className="relative shrink-0">
                         <button
                           type="button"
-                          className={`flex items-center justify-center leading-none ${isSpectator ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                          className={avatarButtonClassName}
                           aria-haspopup="dialog"
                           aria-expanded={isAvatarPopoverOpen}
                           onClick={handleAvatarPopoverToggle}
                         >
-                          {curRoleId <= 0
-                            ? (
-                                curAvatarId > 0
-                                  ? (
-                                      <RoleAvatarComponent
-                                        avatarId={curAvatarId}
-                                        width={8}
-                                        isRounded={true}
-                                        withTitle={false}
-                                        stopPopWindow={true}
-                                        useDefaultAvatarFallback={false}
-                                        alt="旁白"
-                                      />
-                                    )
-                                  : (
-                                      <div className="size-8 rounded-full bg-transparent flex items-center justify-center shrink-0">
-                                        <NarratorIcon className="size-5 text-base-content/60" />
-                                      </div>
-                                    )
-                              )
-                            : (
-                                <RoleAvatarComponent
-                                  avatarId={curAvatarId}
-                                  roleId={curRoleId}
-                                  width={8}
-                                  isRounded={true}
-                                  withTitle={false}
-                                  stopPopWindow={true}
-                                  alt={displayRoleName || "无头像"}
-                                />
-                              )}
+                          {avatarContent}
                         </button>
                         {isAvatarPopoverOpen && !isSpectator && (
                           <div className="absolute left-0 bottom-full mb-2 z-50 flex items-stretch">
