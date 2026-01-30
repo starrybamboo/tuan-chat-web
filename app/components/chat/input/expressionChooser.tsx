@@ -41,7 +41,7 @@ export function ExpressionChooser({
   const isNarratorMode = selectedRoleId <= 0;
   const narratorTitle = showNarratorOption ? "旁白模式" : "未选择角色";
   const narratorDescription = showNarratorOption
-    ? "旁白消息没有角色头像和表情"
+    ? "旁白也可以选择“旁白用头像”（如果已配置），用于统一交互"
     : "请选择你的角色后再发送消息";
 
   const handleRoleSelect = (role: UserRole) => {
@@ -146,44 +146,44 @@ export function ExpressionChooser({
 
         {/* 右侧：表情列表 */}
         <div className="w-full md:w-3/5 min-w-0 md:pl-3">
-          {/* 旁白模式下不显示表情 */}
-          {isNarratorMode
+          {/* 旁白模式也可选择头像（若已配置） */}
+          {roleAvatars && roleAvatars.length > 0
             ? (
-                <div className="text-center text-gray-500">
-                  <NarratorIcon className="size-16 mx-auto text-base-content/30" />
-                  <div className="text-sm mb-2">{narratorTitle}</div>
-                  <div className="text-xs text-base-content/50">{narratorDescription}</div>
+                <div className="max-h-[40vh] md:max-h-[35vh] overflow-y-auto">
+                  <div className="grid grid-cols-3 sm:grid-cols-4">
+                    {roleAvatars.map(avatar => (
+                      <div
+                        onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}
+                        className="aspect-square rounded-lg transition-all hover:bg-base-200 cursor-pointer flex items-center justify-center"
+                        key={avatar.avatarId}
+                        title="点击选择头像"
+                      >
+                        <RoleAvatarComponent
+                          avatarId={avatar.avatarId || -1}
+                          roleId={selectedRoleId}
+                          width={12}
+                          isRounded={false}
+                          withTitle={false}
+                          stopPopWindow={true}
+                          hoverToScale={true}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )
-            : roleAvatars && roleAvatars.length > 0
+            : isNarratorMode
               ? (
-                  <div className="max-h-[40vh] md:max-h-[35vh] overflow-y-auto">
-                    <div className="grid grid-cols-3 sm:grid-cols-4">
-                      {roleAvatars.map(avatar => (
-                        <div
-                          onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}
-                          className="aspect-square rounded-lg transition-all hover:bg-base-200 cursor-pointer flex items-center justify-center"
-                          key={avatar.avatarId}
-                          title="点击选择表情"
-                        >
-                          <RoleAvatarComponent
-                            avatarId={avatar.avatarId || -1}
-                            roleId={selectedRoleId}
-                            width={12}
-                            isRounded={false}
-                            withTitle={false}
-                            stopPopWindow={true}
-                            hoverToScale={true}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                  <div className="text-center text-gray-500">
+                    <NarratorIcon className="size-16 mx-auto text-base-content/30" />
+                    <div className="text-sm mb-2">{narratorTitle}</div>
+                    <div className="text-xs text-base-content/50">{narratorDescription}</div>
                   </div>
                 )
               : (
                   <div className="text-center py-12 text-gray-500">
                     <div className="text-sm mb-2">暂无可用头像</div>
-                    <div className="text-xs text-base-content/50">请先为角色添加表情差分</div>
+                    <div className="text-xs text-base-content/50">请先为角色添加头像差分</div>
                   </div>
                 )}
         </div>

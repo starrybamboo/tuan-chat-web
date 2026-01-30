@@ -18,7 +18,7 @@ import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChatBubbleEllipsesOutline } from "@/icons";
+import { ChatBubbleEllipsesOutline, NarratorIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
@@ -217,7 +217,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <RoomContext value={roomContext}>
             <div className="flex flex-col">
               <ExpressionChooser
-                roleId={message.roleId as number}
+                roleId={message.roleId ?? -1}
                 handleExpressionChange={(avatarId) => {
                   handleExpressionChange(avatarId);
                   onClose();
@@ -783,10 +783,37 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   // 旁白的特殊渲染（无角色）
   if (isNarrator) {
+    const narratorAvatarWidth = isMobile ? 10 : 12;
+    const narratorPlaceholderSizeClass = narratorAvatarWidth === 10 ? "w-10 h-10" : "w-12 h-12";
     return (
-      <div className="flex w-full py-1 group">
+      <div className="flex w-full items-start gap-2 py-1 group">
+        {/* Avatar（旁白也可选择头像） */}
+        <div className="shrink-0 cursor-pointer" onClick={handleAvatarClick}>
+          {message.avatarId && message.avatarId > 0
+            ? (
+                <RoleAvatarComponent
+                  avatarId={message.avatarId ?? 0}
+                  roleId={message.roleId ?? undefined}
+                  width={narratorAvatarWidth}
+                  isRounded={true}
+                  withTitle={false}
+                  stopPopWindow={true}
+                  useDefaultAvatarFallback={false}
+                />
+              )
+            : (
+                <div
+                  className={`${narratorPlaceholderSizeClass} rounded-full bg-base-300 flex items-center justify-center`}
+                  aria-label="旁白头像（点击选择）"
+                  title="点击选择旁白头像"
+                >
+                  <NarratorIcon className={narratorAvatarWidth === 10 ? "size-5 text-base-content/60" : "size-6 text-base-content/60"} />
+                </div>
+              )}
+        </div>
+
         <div className="flex-1 min-w-0 px-2 py-1">
-          {/* 旁白样式：无头像，居中或左对齐，斜体 */}
+          {/* 旁白样式：斜体 */}
           <div className="bg-base-200/50 rounded-lg p-1 sm:p-2 relative">
             {/* 类型标识和操作按钮 */}
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
