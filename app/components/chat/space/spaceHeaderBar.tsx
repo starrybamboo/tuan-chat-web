@@ -72,7 +72,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
               disabled={spaceId <= 0}
               onClick={() => {
                 if (spaceId > 0) {
-                  navigate(`/chat/${spaceId}/preview`);
+                  navigate(`/space-preview/${spaceId}`);
                 }
               }}
             >
