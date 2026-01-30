@@ -884,7 +884,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   />
                 )
               : (
-                  <NarratorIcon className={isMobile ? "size-6 text-base-content/70" : "size-9 text-base-content/70"} />
+                  <NarratorIcon className="size-6 sm:size-10 md:size-12 text-base-content/70" />
                 )}
           </div>
         </div>
