@@ -1240,7 +1240,28 @@ async function fetchUserRolesByTypes(userId: number, types: number[]): Promise<U
     }
   }
 
-  return Array.from(roleMap.values()).sort((a, b) => (b.roleId ?? 0) - (a.roleId ?? 0));
+  /**
+   * 角色页侧边栏会把“骰娘/普通角色”分组展示。
+   * 但 infinite-query 分页是按列表顺序切片，若仅按 roleId 倒序，
+   * 老的骰娘可能会被切到后续页面，导致用户进入角色页时看不到骰娘，必须滚动触发下一页才出现。
+   *
+   * 这里统一按“骰娘(1) → 普通(0) → NPC(2) → 其它”排序，再按 roleId 倒序，
+   * 让首屏分页也能拿到骰娘，避免“需要下拉才加载骰娘”的体验问题。
+   */
+  const getTypePriority = (role: UserRole) => {
+    // type: 0=角色, 1=骰娘, 2=NPC
+    if (role.type === 1) return 0;
+    if (role.type === 0) return 1;
+    if (role.type === 2) return 2;
+    return 3;
+  };
+
+  return Array.from(roleMap.values()).sort((a, b) => {
+    const pa = getTypePriority(a);
+    const pb = getTypePriority(b);
+    if (pa !== pb) return pa - pb;
+    return (b.roleId ?? 0) - (a.roleId ?? 0);
+  });
 }
 
 /**
