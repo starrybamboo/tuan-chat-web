@@ -23,7 +23,7 @@ import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef"
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
-import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { useGetRoleAvatarsQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export interface RoomComposerPanelProps {
   roomId: number;
@@ -238,6 +238,9 @@ function RoomComposerPanelImpl({
     return roomRoles.find(role => role.roleId === curRoleId);
   }, [curRoleId, roomRoles]);
 
+  const roleQuery = useGetRoleQuery(curRoleId > 0 ? curRoleId : 0);
+  const roleNameFromQuery = (roleQuery.data?.data?.roleName ?? "").trim();
+
   const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1);
   const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const hasRoleAvatarsLoaded = Boolean(roleAvatarsQuery.data);
@@ -246,12 +249,17 @@ function RoomComposerPanelImpl({
     if (isSpectator) {
       return "观战";
     }
-    if (curRoleId <= 0) {
+    // -1 表示旁白：不显示名称，但保持占位（渲染层处理）
+    if (curRoleId < 0) {
+      return "";
+    }
+    // 0 表示未选择角色
+    if (curRoleId === 0) {
       return "未选择角色";
     }
     const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
-    return draftName || currentRole?.roleName || "未选择角色";
-  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator]);
+    return draftName || currentRole?.roleName || roleNameFromQuery || "未选择角色";
+  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator, roleNameFromQuery]);
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editingName, setEditingName] = React.useState("");
@@ -497,9 +505,23 @@ function RoomComposerPanelImpl({
                         >
                           {curRoleId <= 0
                             ? (
-                                <div className="size-8 rounded-full bg-base-300 flex items-center justify-center shrink-0">
-                                  <NarratorIcon className="size-5 text-base-content/60" />
-                                </div>
+                                curAvatarId > 0
+                                  ? (
+                                      <RoleAvatarComponent
+                                        avatarId={curAvatarId}
+                                        width={8}
+                                        isRounded={true}
+                                        withTitle={false}
+                                        stopPopWindow={true}
+                                        useDefaultAvatarFallback={false}
+                                        alt="旁白"
+                                      />
+                                    )
+                                  : (
+                                      <div className="size-8 rounded-full bg-base-300 flex items-center justify-center shrink-0">
+                                        <NarratorIcon className="size-5 text-base-content/60" />
+                                      </div>
+                                    )
                               )
                             : (
                                 <RoleAvatarComponent
@@ -531,10 +553,10 @@ function RoomComposerPanelImpl({
                         <div className="min-w-0 flex-1">
                           {!isEditingName && (
                             <div
-                              className={`text-sm font-medium truncate ${isSpectator ? "" : "cursor-text"}`}
-                              title={isSpectator ? undefined : "点击编辑显示名称"}
+                              className={`text-sm font-medium truncate ${isSpectator || curRoleId <= 0 ? "text-base-content/50 select-none" : "cursor-text"}`}
+                              title={isSpectator || curRoleId <= 0 ? undefined : "点击编辑显示名称"}
                               onClick={(e) => {
-                                if (isSpectator) {
+                                if (isSpectator || curRoleId <= 0) {
                                   return;
                                 }
                                 e.preventDefault();
@@ -543,7 +565,7 @@ function RoomComposerPanelImpl({
                                 setIsEditingName(true);
                               }}
                             >
-                              {displayRoleName}
+                              {displayRoleName || "\u00A0"}
                             </div>
                           )}
                           {isEditingName && (
