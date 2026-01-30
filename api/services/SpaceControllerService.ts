@@ -286,4 +286,38 @@ export class SpaceControllerService {
             },
         });
     }
+    /**
+     * 发现-广场：查看所有人的归档群聊（空间）
+     * @returns ApiResultListSpace OK
+     * @throws ApiError
+     */
+    public listArchivedSpacesSquare(): CancelablePromise<ApiResultListSpace> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/space/archive/square',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 发现-我的归档：查看我个人归档的群聊（空间）
+     * @returns ApiResultListSpace OK
+     * @throws ApiError
+     */
+    public listArchivedSpacesMy(): CancelablePromise<ApiResultListSpace> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/space/archive/my',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
 }
