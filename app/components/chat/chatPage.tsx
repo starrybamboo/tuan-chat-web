@@ -30,6 +30,7 @@ import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { getDefaultCreateInCategoryMode } from "@/components/chat/utils/createInCategoryMode";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
@@ -786,10 +787,10 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     if (!activeSpaceId || activeSpaceId <= 0)
       return;
     setPendingCreateInCategoryId(categoryId);
-    setCreateInCategoryMode("room");
+    setCreateInCategoryMode(getDefaultCreateInCategoryMode({ categoryId, isKPInSpace }));
     setCreateDocTitle("新文档");
     setIsCreateInCategoryOpen(true);
-  }, [activeSpaceId, setIsCreateInCategoryOpen]);
+  }, [activeSpaceId, isKPInSpace, setIsCreateInCategoryOpen]);
 
   const closeCreateInCategory = useCallback(() => {
     setIsCreateInCategoryOpen(false);
