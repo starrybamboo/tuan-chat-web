@@ -1074,6 +1074,59 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   const totalUnreadMessages = useMemo(() => {
     return Object.values(unreadMessagesNumber).reduce((sum, count) => sum + count, 0);
   }, [unreadMessagesNumber]);
+  const unreadDebugEnabled = typeof window !== "undefined" && localStorage.getItem("tc:unread:debug") === "1";
+  const unreadDebugSnapshotRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!unreadDebugEnabled) {
+      unreadDebugSnapshotRef.current = null;
+      return;
+    }
+
+    const path = `${window.location.pathname}${window.location.search}`;
+    const groupDetails = Object.entries(unreadMessagesNumber)
+      .map(([roomId, unread]) => ({
+        roomId: Number(roomId),
+        unread: unread ?? 0,
+      }))
+      .sort((a, b) => a.roomId - b.roomId);
+    const privateDetails = privateMessageList.realTimeContacts
+      .map(contactId => ({
+        contactId,
+        unread: privateUnreadMessageNumbers[contactId] ?? 0,
+        isActive: isPrivateChatMode && activeRoomId === contactId,
+      }))
+      .sort((a, b) => a.contactId - b.contactId);
+
+    const snapshot = {
+      path,
+      isPrivateChatMode,
+      activeRoomId,
+      totalUnreadMessages,
+      privateTotalUnreadMessages,
+      pendingFriendRequestCount,
+      privateEntryBadgeCount,
+      groupUnreadTotal: totalUnreadMessages,
+      groupDetails,
+      privateDetails,
+    };
+    const nextSnapshot = JSON.stringify(snapshot);
+    if (unreadDebugSnapshotRef.current === nextSnapshot) {
+      return;
+    }
+    unreadDebugSnapshotRef.current = nextSnapshot;
+    console.warn(`[tc:unread] ${path}`, snapshot);
+  }, [
+    activeRoomId,
+    isPrivateChatMode,
+    pendingFriendRequestCount,
+    privateEntryBadgeCount,
+    privateMessageList.realTimeContacts,
+    privateTotalUnreadMessages,
+    privateUnreadMessageNumbers,
+    totalUnreadMessages,
+    unreadDebugEnabled,
+    unreadMessagesNumber,
+  ]);
   // 鍦ㄦ爣绛鹃〉涓樉绀烘湭璇绘秷鎭?
   useEffect(() => {
     const originalTitle = document.title.replace(/^\d+条新消息-/, ""); // 清除已有前缀
