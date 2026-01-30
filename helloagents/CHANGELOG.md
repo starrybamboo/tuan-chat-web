@@ -38,6 +38,7 @@
 - Chat：支持将聊天列表的文档卡片消息拖拽复制到“我的文档”（创建 `space_user_doc(udoc)` 副本并追加到 docFolder）
 - Chat：全局音频悬浮球（聚合所有正在播放的音频，支持列表查看与暂停/停止）
 - Chat：新增发现页 `/chat/discover`，用于集中展示已归档群聊（`space.status=2`），并提供“预览/打开”入口
+- Chat：发现页使用 Chat 版面内视图渲染，保留顶部栏与最左侧空间栏（类似 Discord Discover）
 
 ### 变更
 - 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata

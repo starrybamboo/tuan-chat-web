@@ -15,6 +15,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import toast from "react-hot-toast";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
+import DiscoverArchivedSpacesView from "@/components/chat/discover/discoverArchivedSpacesView";
 import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
@@ -47,7 +49,17 @@ import { SidebarSimpleIcon } from "@/icons";
 /**
  * chat板块的主组件
  */
-export default function ChatPage() {
+export type ChatPageMainView = "chat" | "spaceDetail" | "roomSetting" | "discover";
+
+export interface ChatPageProps {
+  /**
+   * 用于特殊入口（如 /chat/discover）指定初始主视图。
+   * 注意：主视图仍以组件内部状态为准（不做 URL 全量映射）。
+   */
+  initialMainView?: ChatPageMainView;
+}
+
+export default function ChatPage({ initialMainView }: ChatPageProps) {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
   const activeSpaceId = Number(urlSpaceId) || null;
   const [searchParam, _] = useSearchParams();
@@ -301,7 +313,7 @@ export default function ChatPage() {
   // 主区域视图：不再用 URL 管理（避免 URL 变得过长/冲突）
   type RoomSettingTab = "role" | "setting";
   type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
-  const [mainView, setMainView] = useState<"chat" | "spaceDetail" | "roomSetting">("chat");
+  const [mainView, setMainView] = useState<ChatPageMainView>(() => initialMainView ?? "chat");
   const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
   const [roomSettingState, setRoomSettingState] = useState<{ roomId: number; tab: RoomSettingTab } | null>(null);
 
@@ -1184,70 +1196,74 @@ export default function ChatPage() {
       )
     : (
         <>
-          {
-            activeSpaceId
-              ? (
-                  mainView === "spaceDetail"
-                    ? (
-                        <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                          <div className="w-full h-full overflow-auto flex justify-center">
-                            <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
-                          </div>
-                        </div>
-                      )
-                    : (mainView === "roomSetting" && roomSettingState)
+          {mainView === "discover"
+            ? (
+                <DiscoverArchivedSpacesView />
+              )
+            : (
+                activeSpaceId
+                  ? (
+                      mainView === "spaceDetail"
                         ? (
                             <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                              <div className="w-full h-full overflow-auto flex justify-center ">
-                                <RoomSettingWindow
-                                  roomId={roomSettingState.roomId}
-                                  onClose={closeRoomSettingPage}
-                                  defaultTab={roomSettingState.tab}
-                                />
+                              <div className="w-full h-full overflow-auto flex justify-center">
+                                <SpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
                               </div>
                             </div>
                           )
-                        : activeDocId
-                          ? (
-                              <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-                                <div className="w-full h-full overflow-hidden flex justify-center">
-                                  {isKPInSpace
-                                    ? (
-                                        <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
-                                          <BlocksuiteDescriptionEditor
-                                            workspaceId={`space:${activeSpaceId ?? -1}`}
-                                            spaceId={activeSpaceId ?? -1}
-                                            docId={activeDocId}
-                                            variant="full"
-                                            tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
-                                            onTcHeaderChange={handleDocTcHeaderChange}
-                                            allowModeSwitch
-                                            fullscreenEdgeless
-                                          />
-                                        </div>
-                                      )
-                                    : (
-                                        <div className="flex items-center justify-center w-full h-full font-bold">
-                                          <span className="text-center">仅KP可查看文档</span>
-                                        </div>
-                                      )}
+                        : (mainView === "roomSetting" && roomSettingState)
+                            ? (
+                                <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                  <div className="w-full h-full overflow-auto flex justify-center ">
+                                    <RoomSettingWindow
+                                      roomId={roomSettingState.roomId}
+                                      onClose={closeRoomSettingPage}
+                                      defaultTab={roomSettingState.tab}
+                                    />
+                                  </div>
                                 </div>
-                              </div>
-                            )
-                          : (
-                              <RoomWindow
-                                roomId={activeRoomId ?? -1}
-                                spaceId={activeSpaceId ?? -1}
-                                targetMessageId={targetMessageId}
-                              />
-                            )
-                )
-              : (
-                  <div className="flex items-center justify-center w-full h-full font-bold">
-                    <span className="text-center lg:hidden">请从右侧选择房间</span>
-                  </div>
-                )
-          }
+                              )
+                            : activeDocId
+                              ? (
+                                  <div className="flex w-full h-full justify-center min-h-0 min-w-0">
+                                    <div className="w-full h-full overflow-hidden flex justify-center">
+                                      {isKPInSpace
+                                        ? (
+                                            <div className="w-full h-full overflow-hidden bg-base-100 border border-base-300 rounded-box">
+                                              <BlocksuiteDescriptionEditor
+                                                workspaceId={`space:${activeSpaceId ?? -1}`}
+                                                spaceId={activeSpaceId ?? -1}
+                                                docId={activeDocId}
+                                                variant="full"
+                                                tcHeader={{ enabled: true, fallbackTitle: activeDocTitleForTcHeader }}
+                                                onTcHeaderChange={handleDocTcHeaderChange}
+                                                allowModeSwitch
+                                                fullscreenEdgeless
+                                              />
+                                            </div>
+                                          )
+                                        : (
+                                            <div className="flex items-center justify-center w-full h-full font-bold">
+                                              <span className="text-center">仅KP可查看文档</span>
+                                            </div>
+                                          )}
+                                    </div>
+                                  </div>
+                                )
+                              : (
+                                  <RoomWindow
+                                    roomId={activeRoomId ?? -1}
+                                    spaceId={activeSpaceId ?? -1}
+                                    targetMessageId={targetMessageId}
+                                  />
+                                )
+                    )
+                  : (
+                      <div className="flex items-center justify-center w-full h-full font-bold">
+                        <span className="text-center lg:hidden">请从右侧选择房间</span>
+                      </div>
+                    )
+              )}
         </>
       );
 
@@ -1311,51 +1327,61 @@ export default function ChatPage() {
                       />
                       {/* <div className="w-px bg-base-300"></div> */}
                       {/* 房间列表 */}
-                      <ChatRoomListPanel
-                        isPrivateChatMode={isPrivateChatMode}
-                        currentUserId={userId}
-                        activeSpaceId={activeSpaceId}
-                        activeSpaceName={activeSpaceNameForUi}
-                        activeSpaceIsArchived={activeSpaceIsArchived}
-                        isSpaceOwner={!!spaceContext.isSpaceOwner}
-                        isKPInSpace={isKPInSpace}
-                        rooms={orderedRooms}
-                        roomOrderIds={orderedRoomIds}
-                        onReorderRoomIds={setUserRoomOrder}
-                        sidebarTree={sidebarTree}
-                        onSaveSidebarTree={handleSaveSidebarTree}
-                        onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
-                        docMetas={spaceDocMetas ?? []}
-                        onSelectDoc={(docId) => {
-                          if (!activeSpaceId || activeSpaceId <= 0)
-                            return;
-                          setMainView("chat");
-                          const parsed = parseSpaceDocId(docId);
-                          if (parsed?.kind === "independent") {
-                            navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
-                            return;
-                          }
-                          navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
-                        }}
-                        activeRoomId={activeRoomId}
-                        activeDocId={activeDocId}
-                        unreadMessagesNumber={unreadMessagesNumber}
-                        onContextMenu={handleContextMenu}
-                        onInviteMember={() => setIsMemberHandleOpen(true)}
-                        onOpenSpaceDetailPanel={openSpaceDetailPanel}
-                        onSelectRoom={(roomId) => {
-                          setMainView("chat");
-                          setActiveRoomId(roomId);
-                        }}
-                        onCloseLeftDrawer={closeLeftDrawer}
-                        onToggleLeftDrawer={toggleLeftDrawer}
-                        isLeftDrawerOpen={isOpenLeftDrawer}
-                        onOpenRoomSetting={(roomId, tab) => {
-                          openRoomSettingPage(roomId, tab);
-                        }}
-                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                        onOpenCreateInCategory={openCreateInCategory}
-                      />
+                      {mainView === "discover"
+                        ? (
+                            <ChatDiscoverNavPanel
+                              onCloseLeftDrawer={closeLeftDrawer}
+                              onToggleLeftDrawer={toggleLeftDrawer}
+                              isLeftDrawerOpen={isOpenLeftDrawer}
+                            />
+                          )
+                        : (
+                            <ChatRoomListPanel
+                              isPrivateChatMode={isPrivateChatMode}
+                              currentUserId={userId}
+                              activeSpaceId={activeSpaceId}
+                              activeSpaceName={activeSpaceNameForUi}
+                              activeSpaceIsArchived={activeSpaceIsArchived}
+                              isSpaceOwner={!!spaceContext.isSpaceOwner}
+                              isKPInSpace={isKPInSpace}
+                              rooms={orderedRooms}
+                              roomOrderIds={orderedRoomIds}
+                              onReorderRoomIds={setUserRoomOrder}
+                              sidebarTree={sidebarTree}
+                              onSaveSidebarTree={handleSaveSidebarTree}
+                              onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                              docMetas={spaceDocMetas ?? []}
+                              onSelectDoc={(docId) => {
+                                if (!activeSpaceId || activeSpaceId <= 0)
+                                  return;
+                                setMainView("chat");
+                                const parsed = parseSpaceDocId(docId);
+                                if (parsed?.kind === "independent") {
+                                  navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
+                                  return;
+                                }
+                                navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                              }}
+                              activeRoomId={activeRoomId}
+                              activeDocId={activeDocId}
+                              unreadMessagesNumber={unreadMessagesNumber}
+                              onContextMenu={handleContextMenu}
+                              onInviteMember={() => setIsMemberHandleOpen(true)}
+                              onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                              onSelectRoom={(roomId) => {
+                                setMainView("chat");
+                                setActiveRoomId(roomId);
+                              }}
+                              onCloseLeftDrawer={closeLeftDrawer}
+                              onToggleLeftDrawer={toggleLeftDrawer}
+                              isLeftDrawerOpen={isOpenLeftDrawer}
+                              onOpenRoomSetting={(roomId, tab) => {
+                                openRoomSettingPage(roomId, tab);
+                              }}
+                              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                              onOpenCreateInCategory={openCreateInCategory}
+                            />
+                          )}
                     </div>
                     <div
                       id="chat-sidebar-user-card"
@@ -1416,51 +1442,61 @@ export default function ChatPage() {
                       >
                         <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
                           {/* 房间列表 */}
-                          <ChatRoomListPanel
-                            isPrivateChatMode={isPrivateChatMode}
-                            currentUserId={userId}
-                            activeSpaceId={activeSpaceId}
-                            activeSpaceName={activeSpaceNameForUi}
-                            activeSpaceIsArchived={activeSpaceIsArchived}
-                            isSpaceOwner={!!spaceContext.isSpaceOwner}
-                            isKPInSpace={isKPInSpace}
-                            rooms={orderedRooms}
-                            roomOrderIds={orderedRoomIds}
-                            onReorderRoomIds={setUserRoomOrder}
-                            sidebarTree={sidebarTree}
-                            onSaveSidebarTree={handleSaveSidebarTree}
-                            onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
-                            docMetas={spaceDocMetas ?? []}
-                            onSelectDoc={(docId) => {
-                              if (!activeSpaceId || activeSpaceId <= 0)
-                                return;
-                              setMainView("chat");
-                              const parsed = parseSpaceDocId(docId);
-                              if (parsed?.kind === "independent") {
-                                navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
-                                return;
-                              }
-                              navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
-                            }}
-                            activeRoomId={activeRoomId}
-                            activeDocId={activeDocId}
-                            unreadMessagesNumber={unreadMessagesNumber}
-                            onContextMenu={handleContextMenu}
-                            onInviteMember={() => setIsMemberHandleOpen(true)}
-                            onOpenSpaceDetailPanel={openSpaceDetailPanel}
-                            onSelectRoom={(roomId) => {
-                              setMainView("chat");
-                              setActiveRoomId(roomId);
-                            }}
-                            onCloseLeftDrawer={closeLeftDrawer}
-                            onToggleLeftDrawer={toggleLeftDrawer}
-                            isLeftDrawerOpen={isOpenLeftDrawer}
-                            onOpenRoomSetting={(roomId, tab) => {
-                              openRoomSettingPage(roomId, tab);
-                            }}
-                            setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                            onOpenCreateInCategory={openCreateInCategory}
-                          />
+                          {mainView === "discover"
+                            ? (
+                                <ChatDiscoverNavPanel
+                                  onCloseLeftDrawer={closeLeftDrawer}
+                                  onToggleLeftDrawer={toggleLeftDrawer}
+                                  isLeftDrawerOpen={isOpenLeftDrawer}
+                                />
+                              )
+                            : (
+                                <ChatRoomListPanel
+                                  isPrivateChatMode={isPrivateChatMode}
+                                  currentUserId={userId}
+                                  activeSpaceId={activeSpaceId}
+                                  activeSpaceName={activeSpaceNameForUi}
+                                  activeSpaceIsArchived={activeSpaceIsArchived}
+                                  isSpaceOwner={!!spaceContext.isSpaceOwner}
+                                  isKPInSpace={isKPInSpace}
+                                  rooms={orderedRooms}
+                                  roomOrderIds={orderedRoomIds}
+                                  onReorderRoomIds={setUserRoomOrder}
+                                  sidebarTree={sidebarTree}
+                                  onSaveSidebarTree={handleSaveSidebarTree}
+                                  onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
+                                  docMetas={spaceDocMetas ?? []}
+                                  onSelectDoc={(docId) => {
+                                    if (!activeSpaceId || activeSpaceId <= 0)
+                                      return;
+                                    setMainView("chat");
+                                    const parsed = parseSpaceDocId(docId);
+                                    if (parsed?.kind === "independent") {
+                                      navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
+                                      return;
+                                    }
+                                    navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
+                                  }}
+                                  activeRoomId={activeRoomId}
+                                  activeDocId={activeDocId}
+                                  unreadMessagesNumber={unreadMessagesNumber}
+                                  onContextMenu={handleContextMenu}
+                                  onInviteMember={() => setIsMemberHandleOpen(true)}
+                                  onOpenSpaceDetailPanel={openSpaceDetailPanel}
+                                  onSelectRoom={(roomId) => {
+                                    setMainView("chat");
+                                    setActiveRoomId(roomId);
+                                  }}
+                                  onCloseLeftDrawer={closeLeftDrawer}
+                                  onToggleLeftDrawer={toggleLeftDrawer}
+                                  isLeftDrawerOpen={isOpenLeftDrawer}
+                                  onOpenRoomSetting={(roomId, tab) => {
+                                    openRoomSettingPage(roomId, tab);
+                                  }}
+                                  setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                                  onOpenCreateInCategory={openCreateInCategory}
+                                />
+                              )}
                         </div>
                       </OpenAbleDrawer>
                     </div>
