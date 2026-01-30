@@ -812,13 +812,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                       />
                     )
                   : (
-                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-primary/35 via-base-200 to-secondary/25 ring-1 ring-base-300/70 shadow-sm">
+                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-base-200 ring-1 ring-base-300/70 shadow-sm">
                         <NarratorIcon className="size-4 text-base-content/70" />
                       </span>
                     )}
               </button>
 
-              <span className="badge badge-xs badge-secondary">旁白</span>
+              <span className="text-xs text-base-content/50 select-none">&nbsp;</span>
 
               <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {/* WebGAL 联动模式下显示切换黑屏按钮 */}
@@ -865,7 +865,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         {/* 方形头像（传统模式） */}
         <div className="shrink-0 pr-2 sm:pr-3">
           <div
-            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-gradient-to-br from-primary/20 via-base-200 to-secondary/20 ring-1 ring-base-300/60 shadow-sm flex items-center justify-center`}
+            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-base-200 ring-1 ring-base-300/60 shadow-sm flex items-center justify-center`}
             onClick={handleAvatarClick}
             aria-label="选择旁白头像"
             title={canEdit ? "点击选择旁白头像" : "旁白头像"}
@@ -891,7 +891,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
         <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
           <div className="flex items-center justify-between w-full gap-2">
-            <span className="badge badge-sm badge-secondary">旁白</span>
+            <span className="text-sm text-base-content/50 select-none">&nbsp;</span>
             <div className="text-xs text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
               {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
               {formattedTime}
