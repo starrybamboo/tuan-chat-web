@@ -28,7 +28,7 @@ export default function AvatarSwitch({
   showName?: boolean;
   avatarWidth?: React.ComponentProps<typeof RoleAvatarComponent>["width"];
 }) {
-  const _webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
 
@@ -118,7 +118,7 @@ export default function AvatarSwitch({
             roleId={curRoleId}
             handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
             handleRoleChange={roleId => setCurRoleId(roleId)}
-            showNarratorOption={false}
+            showNarratorOption={webgalLinkMode}
           />
         </ul>
       </div>
@@ -198,7 +198,7 @@ export default function AvatarSwitch({
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
-          showNarratorOption={false}
+          showNarratorOption={webgalLinkMode}
         />
       </ul>
     </div>

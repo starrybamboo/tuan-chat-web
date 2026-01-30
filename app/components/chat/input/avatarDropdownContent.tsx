@@ -1,5 +1,6 @@
 import React from "react";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 
 interface AvatarDropdownContentProps {
   roleId: number;
@@ -12,13 +13,15 @@ function AvatarDropdownContentImpl({
   onAvatarChange,
   onRoleChange,
 }: AvatarDropdownContentProps) {
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+
   return (
     <div className="p-2">
       <ExpressionChooser
         roleId={roleId}
         handleExpressionChange={onAvatarChange}
         handleRoleChange={onRoleChange}
-        showNarratorOption={false}
+        showNarratorOption={webgalLinkMode}
       />
     </div>
   );
