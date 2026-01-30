@@ -28,7 +28,6 @@ export default function AvatarSwitch({
   showName?: boolean;
   avatarWidth?: React.ComponentProps<typeof RoleAvatarComponent>["width"];
 }) {
-  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
 
@@ -64,7 +63,7 @@ export default function AvatarSwitch({
     }
   }, [setCurAvatarId, roleAvatars, curAvatarId, currentRole]);
 
-  // WebGAL 联动模式下的旁白模式
+  // 旁白模式
   const isHorizontal = layout === "horizontal";
   const wrapperClassName = isHorizontal
     ? `dropdown dropdown-${dropdownPosition} dropdown-${dropdownAlign} flex items-center gap-2`
@@ -118,7 +117,6 @@ export default function AvatarSwitch({
             roleId={curRoleId}
             handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
             handleRoleChange={roleId => setCurRoleId(roleId)}
-            showNarratorOption={webgalLinkMode}
           />
         </ul>
       </div>
@@ -198,7 +196,6 @@ export default function AvatarSwitch({
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
-          showNarratorOption={webgalLinkMode}
         />
       </ul>
     </div>
