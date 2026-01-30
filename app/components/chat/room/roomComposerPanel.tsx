@@ -531,6 +531,32 @@ function RoomComposerPanelImpl({
     layout: toolbarLayout,
     showStatusBar: false,
   };
+  const chatInputAreaNode = isMobile
+    ? (
+        <div className="flex items-end gap-2">
+          <ChatInputArea
+            ref={chatInputRef}
+            {...chatInputAreaProps}
+          />
+          <AvatarSwitch
+            curRoleId={curRoleId}
+            curAvatarId={curAvatarId}
+            setCurAvatarId={setCurAvatarId}
+            setCurRoleId={setCurRoleId}
+            layout="horizontal"
+            dropdownPosition="top"
+            dropdownAlign="end"
+            showName={false}
+            avatarWidth={8}
+          />
+        </div>
+      )
+    : (
+        <ChatInputArea
+          ref={chatInputRef}
+          {...chatInputAreaProps}
+        />
+      );
 
   return (
     <div ref={composerRootRef} className="bg-transparent z-20">
@@ -713,32 +739,7 @@ function RoomComposerPanelImpl({
                   </div>
                 </div>
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start p-2">
-                  {isMobile
-                    ? (
-                        <div className="flex items-end gap-2">
-                          <ChatInputArea
-                            ref={chatInputRef}
-                            {...chatInputAreaProps}
-                          />
-                          <AvatarSwitch
-                            curRoleId={curRoleId}
-                            curAvatarId={curAvatarId}
-                            setCurAvatarId={setCurAvatarId}
-                            setCurRoleId={setCurRoleId}
-                            layout="horizontal"
-                            dropdownPosition="top"
-                            dropdownAlign="end"
-                            showName={false}
-                            avatarWidth={8}
-                          />
-                        </div>
-                      )
-                    : (
-                        <ChatInputArea
-                          ref={chatInputRef}
-                          {...chatInputAreaProps}
-                        />
-                      )}
+                  {chatInputAreaNode}
 
                   <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
                     <ChatToolbarFromStore
