@@ -58,7 +58,7 @@ export function PreviewTab({
   onApply,
 }: PreviewTabProps) {
   // 预览模式: 'sprite' | 'avatar' | 'render'
-  const [previewMode, setPreviewMode] = useState<"sprite" | "avatar" | "render">("sprite");
+  const [previewMode, setPreviewMode] = useState<"sprite" | "avatar" | "render">("render");
 
   const spriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
   const avatarUrl = currentAvatar?.avatarUrl || null;
@@ -326,13 +326,13 @@ export function PreviewTab({
   return (
     <div className="h-full flex flex-col">
       {/* 预览标题和切换按钮 */}
-      <div className="flex justify-between items-center mb-2 flex-shrink-0">
+      <div className="flex justify-between items-center mb-2 shrink-0">
         <h3 className="text-lg font-semibold">
           {getPreviewModeLabel()}
         </h3>
         <button
           type="button"
-          className="btn btn-sm btn-ghost gap-2"
+          className="btn btn-sm btn-ghost gap-2 rounded-md"
           onClick={cyclePreviewMode}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -428,7 +428,7 @@ export function PreviewTab({
       </div>
 
       {/* 操作按钮 */}
-      <div className="mt-4 flex justify-end gap-2 flex-shrink-0">
+      <div className="mt-4 flex justify-end gap-2 shrink-0">
         {currentAvatar?.avatarId && (
           <CharacterCopper
             fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
@@ -438,7 +438,7 @@ export function PreviewTab({
           >
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary rounded-md"
               disabled={isReplacing}
             >
               {isReplacing ? "替换中..." : "替换头像"}
@@ -447,7 +447,7 @@ export function PreviewTab({
         )}
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-secondary rounded-md"
           onClick={handlePreview}
           disabled={!currentAvatar}
         >
@@ -455,7 +455,7 @@ export function PreviewTab({
         </button>
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary rounded-md"
           onClick={handleApplyAvatar}
           disabled={!currentAvatar}
         >
