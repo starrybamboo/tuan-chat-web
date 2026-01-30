@@ -487,6 +487,25 @@ function RoomComposerPanelImpl({
     compact: true,
     className: "shrink-0",
   };
+  const selfStatusBarNode = showSelfStatus
+    ? (
+        <ChatStatusBar
+          {...statusBarCommonProps}
+          showGrouped={false}
+          currentChatStatus={currentChatStatus}
+          onChangeChatStatus={onChangeChatStatus}
+        />
+      )
+    : null;
+  const otherStatusBarNode = showOtherStatus
+    ? (
+        <ChatStatusBar
+          {...statusBarCommonProps}
+          showGrouped={true}
+          showGroupDivider={false}
+        />
+      )
+    : null;
   const showWebgalRunControls = webgalLinkMode || runModeEnabled;
   const chatInputAreaProps = {
     onInputSync,
@@ -710,23 +729,10 @@ function RoomComposerPanelImpl({
                             />
                           )}
                         </div>
-                        {showSelfStatus && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
-                        {showSelfStatus && (
-                          <ChatStatusBar
-                            {...statusBarCommonProps}
-                            showGrouped={false}
-                            currentChatStatus={currentChatStatus}
-                            onChangeChatStatus={onChangeChatStatus}
-                          />
-                        )}
-                        {showOtherStatus && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
-                        {showOtherStatus && (
-                          <ChatStatusBar
-                            {...statusBarCommonProps}
-                            showGrouped={true}
-                            showGroupDivider={false}
-                          />
-                        )}
+                        {selfStatusBarNode && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
+                        {selfStatusBarNode}
+                        {otherStatusBarNode && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
+                        {otherStatusBarNode}
                       </div>
                     </div>
                     {showWebgalRunControls && (
