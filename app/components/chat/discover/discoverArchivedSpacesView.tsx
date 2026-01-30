@@ -1,6 +1,6 @@
 import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
@@ -78,112 +78,160 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
     : "你可以在聊天室的空间右键菜单中选择“归档空间”，归档后会出现在这里。";
 
   return (
-    <div className="flex flex-col w-full h-full min-h-0 min-w-0 bg-base-200">
-      <div className="flex items-center justify-between gap-3 px-4 pt-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-lg font-bold truncate">发现</h1>
-            <span className="badge badge-outline badge-sm">{headerTitle}</span>
-            <span className="badge badge-sm">{`已归档 ${archivedSpaces.length}`}</span>
-          </div>
-          <div className="text-xs text-base-content/60 mt-1">
-            {headerDescription}
-          </div>
-        </div>
-
-        <input
-          className="input input-sm input-bordered w-full sm:w-64"
-          value={keyword}
-          onChange={e => setKeyword(e.target.value)}
-          placeholder={mode === "my" ? "搜索我的归档" : "搜索已归档群聊"}
-          aria-label={mode === "my" ? "搜索我的归档" : "搜索已归档群聊"}
-        />
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto p-4">
-        {spacesQuery.isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {[0, 1, 2, 3, 4, 5].map(n => (
-              <div key={n} className="skeleton h-24 w-full" />
-            ))}
-          </div>
-        )}
-
-        {!spacesQuery.isLoading && archivedSpaces.length === 0 && (
-          <div className="card bg-base-100 border border-base-300">
-            <div className="card-body">
-              <h2 className="card-title">{emptyTitle}</h2>
-              <p className="text-sm text-base-content/60">
-                {emptyDescription}
-              </p>
+    <div className="flex flex-col w-full h-full min-h-0 min-w-0 bg-[#313338] text-[#dbdee1]">
+      {/* 顶部栏：仿 Discord Discover */}
+      <div className="sticky top-0 z-20 backdrop-blur bg-[#1e1f22]/80 border-b border-white/5">
+        <div className="flex items-center justify-between gap-4 px-6 h-12">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="text-sm font-semibold truncate">发现</div>
+            <div className="hidden sm:flex items-center gap-1 text-sm">
+              <Link
+                to="/chat/discover"
+                className={`px-3 py-1.5 rounded-md transition-colors ${mode === "square" ? "bg-white/10 text-white" : "text-[#b5bac1] hover:text-white hover:bg-white/5"}`}
+              >
+                广场
+              </Link>
+              <Link
+                to="/chat/discover/my"
+                className={`px-3 py-1.5 rounded-md transition-colors ${mode === "my" ? "bg-white/10 text-white" : "text-[#b5bac1] hover:text-white hover:bg-white/5"}`}
+              >
+                我的归档
+              </Link>
             </div>
           </div>
-        )}
 
-        {!spacesQuery.isLoading && archivedSpaces.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {archivedSpaces.map((space) => {
-              const spaceId = space?.spaceId ?? -1;
-              const name = space?.name ?? `空间 #${spaceId}`;
-              const description = String(space?.description ?? "").trim();
-              const avatar = space?.avatar ?? "/moduleDefaultImage.webp";
+          <div className="relative w-full max-w-[320px]">
+            <input
+              className="w-full h-9 rounded-full bg-[#111214] border border-white/10 px-4 text-sm text-[#dbdee1] placeholder:text-[#949ba4] focus:outline-none focus:ring-2 focus:ring-[#5865f2]/40"
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              placeholder={mode === "my" ? "搜索我的归档" : "搜索已归档群聊"}
+              aria-label={mode === "my" ? "搜索我的归档" : "搜索已归档群聊"}
+            />
+          </div>
+        </div>
+      </div>
 
-              return (
-                <div key={spaceId} className="card bg-base-100 border border-base-300 shadow-sm">
-                  <div className="card-body p-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="avatar shrink-0">
-                        <div className="w-12 rounded-xl border border-base-300 overflow-hidden bg-base-200">
-                          <img src={avatar} alt={String(name)} className="w-full h-full object-cover" />
-                        </div>
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="mx-auto w-full max-w-6xl px-6 py-6 space-y-6">
+          {/* Hero */}
+          <div className="rounded-xl overflow-hidden border border-white/5 bg-gradient-to-r from-[#1e3a8a] via-[#1f2a6d] to-[#3b0764]">
+            <div className="px-8 py-10 sm:py-14">
+              <div className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
+                {mode === "my" ? "这是你的收藏夹" : "找到自己的社区"}
+              </div>
+              <div className="mt-3 text-sm sm:text-base text-white/70 max-w-2xl">
+                {mode === "my"
+                  ? "把喜欢的归档群聊加入这里，随时快速回访。"
+                  : "从你加入过的归档群聊里，快速找到想继续的故事。"}
+              </div>
+            </div>
+          </div>
+
+          {/* 分区标题 */}
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-white">{headerTitle}</div>
+              <div className="mt-1 text-xs text-[#b5bac1]">{headerDescription}</div>
+            </div>
+            <div className="text-xs text-[#b5bac1]">{`已归档 ${archivedSpaces.length}`}</div>
+          </div>
+
+          {spacesQuery.isLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {[0, 1, 2, 3, 4, 5].map(n => (
+                <div key={n} className="h-56 rounded-xl bg-white/5 animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {!spacesQuery.isLoading && archivedSpaces.length === 0 && (
+            <div className="rounded-xl border border-white/10 bg-[#1e1f22] p-6">
+              <div className="text-base font-semibold text-white">{emptyTitle}</div>
+              <div className="mt-2 text-sm text-[#b5bac1]">{emptyDescription}</div>
+            </div>
+          )}
+
+          {!spacesQuery.isLoading && archivedSpaces.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {archivedSpaces.map((space) => {
+                const spaceId = space?.spaceId ?? -1;
+                const name = space?.name ?? `空间 #${spaceId}`;
+                const description = String(space?.description ?? "").trim();
+                const avatar = space?.avatar ?? "/moduleDefaultImage.webp";
+                const isInMyArchive = myArchivedSpaceIdSet.has(spaceId);
+
+                return (
+                  <div
+                    key={spaceId}
+                    className="group rounded-xl border border-white/5 bg-[#1e1f22] shadow-sm overflow-hidden transition-transform hover:-translate-y-0.5 hover:border-white/10"
+                  >
+                    <div className="relative h-28 bg-[#111214]">
+                      <img
+                        src={avatar}
+                        alt={String(name)}
+                        className="h-full w-full object-cover opacity-90"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1e1f22] via-transparent to-transparent" />
+
+                      <div className="absolute left-3 top-3 flex items-center gap-2">
+                        <span className="rounded-full bg-black/40 px-2 py-1 text-[11px] text-white/90 backdrop-blur">
+                          已归档
+                        </span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="font-semibold truncate">{name}</div>
-                          <span className="badge badge-outline badge-sm shrink-0">已归档</span>
-                        </div>
-                        {description && (
-                          <div className="text-xs text-base-content/60 truncate">
-                            {description}
-                          </div>
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="card-actions justify-end mt-3">
                       <button
                         type="button"
-                        className="btn btn-sm btn-ghost"
+                        className={`absolute right-3 top-3 rounded-md px-2 py-1 text-[11px] transition-colors ${isInMyArchive ? "bg-[#5865f2] text-white" : "bg-black/40 text-white/90 hover:bg-black/55"}`}
                         onClick={() => {
-                          const next = myArchivedSpaceIdSet.has(spaceId)
+                          const next = isInMyArchive
                             ? myArchivedSpaceIds.filter(id => id !== spaceId)
                             : [...myArchivedSpaceIds, spaceId];
                           setMyArchivedSpaceIds(uniqNumbers(next));
                         }}
+                        aria-label={isInMyArchive ? "移出我的归档" : "加入我的归档"}
+                        title={isInMyArchive ? "移出我的归档" : "加入我的归档"}
                       >
-                        {myArchivedSpaceIdSet.has(spaceId) ? "移出我的归档" : "加入我的归档"}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline"
-                        onClick={() => navigate(`/space-preview/${spaceId}`)}
-                      >
-                        预览
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-primary"
-                        onClick={() => navigate(`/chat/${spaceId}`)}
-                      >
-                        打开
+                        {isInMyArchive ? "已收藏" : "收藏"}
                       </button>
                     </div>
+
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-white truncate">{name}</div>
+                          {description && (
+                            <div className="mt-1 text-xs text-[#b5bac1] max-h-9 overflow-hidden">
+                              {description}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-[#949ba4] shrink-0">{`#${spaceId}`}</div>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="h-8 rounded-md px-3 text-xs font-semibold bg-white/5 text-white hover:bg-white/10 transition-colors"
+                          onClick={() => navigate(`/space-preview/${spaceId}`)}
+                        >
+                          预览
+                        </button>
+                        <button
+                          type="button"
+                          className="h-8 rounded-md px-3 text-xs font-semibold bg-[#5865f2] text-white hover:bg-[#4752c4] transition-colors"
+                          onClick={() => navigate(`/chat/${spaceId}`)}
+                        >
+                          打开
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
