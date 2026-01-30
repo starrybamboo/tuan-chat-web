@@ -33,9 +33,9 @@ export function ExpressionChooser({
   const roleAvatars = roleAvatarsQuery.data?.data || [];
 
   const currentUserId = roomContext.curMember?.userId;
-  const availableRoles = currentUserId
-    ? roomContext.roomRolesThatUserOwn.filter(role => role.userId === currentUserId)
-    : roomContext.roomRolesThatUserOwn;
+  const availableRoles = (isKP || !currentUserId)
+    ? roomContext.roomRolesThatUserOwn
+    : roomContext.roomRolesThatUserOwn.filter(role => role.userId === currentUserId);
 
   // 判断当前是否为旁白模式
   const isNarratorMode = selectedRoleId <= 0;

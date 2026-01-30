@@ -42,6 +42,7 @@
 - Chat：发现页拆分为两条路由：`/chat/discover`（广场）与 `/chat/discover/my`（我的归档，使用本地存储）
 
 ### 变更
+- Chat：KP 发言角色选择支持切换房间内所有角色（含玩家角色与 NPC）
 - 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata
 - OSS：新增音频上传/转码/发送调试日志开关（仅 DEV，`tc:audio:upload:debug` / `__TC_AUDIO_UPLOAD_DEBUG`）
 - OSS：音频上传统一输出为 `audio/webm`（Opus 编码，WebM 容器），并使用 `.webm` 后缀作为默认对象名扩展名
