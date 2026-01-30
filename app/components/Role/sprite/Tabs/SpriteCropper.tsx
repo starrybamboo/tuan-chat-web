@@ -10,6 +10,7 @@ import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   canvasPreview,
   canvasToBlob,
+  createTopCenteredSquareCrop,
   useCropPreview,
 } from "@/utils/imgCropper";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
@@ -237,6 +238,11 @@ export function SpriteCropper({
     reset: resetCropState,
   } = useCropPreview({
     mode: useCallback(() => isAvatarMode ? "avatar" : "sprite", [isAvatarMode]),
+    initialCrop: useCallback(({ width, height, mode }: { width: number; height: number; mode: "avatar" | "sprite" }) => {
+      if (mode !== "avatar")
+        return undefined;
+      return createTopCenteredSquareCrop(width, height);
+    }, []),
     onImageLoadExtend: handleImageLoadExtend,
     // 让首次绘制延后一帧：给外部状态（如 transform）留出提交时间，避免“新画布 + 旧 transform”的中间帧
     deferInitialPreviewDraw: true,
@@ -600,6 +606,8 @@ export function SpriteCropper({
       return;
 
     const MAX_CONCURRENCY = 8; // 最大并发数
+    const MAX_LOAD_ATTEMPTS = 3; // 图片加载最大尝试次数（含首次）
+    const LOAD_RETRY_DELAY_MS = 300; // 重试基础延迟
     const toastId = `sprite-batch-crop-${Date.now()}`;
 
     // 获取要处理的头像列表（仅处理选中的）
@@ -636,6 +644,35 @@ export function SpriteCropper({
       let loadDone = 0;
       let loadSuccess = 0;
       let loadFail = 0;
+      const failedLoadItems: Array<{ index: number; avatarId?: number; imageUrl?: string }> = [];
+
+      const loadImageOnce = (imageUrl: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const tempImg = new Image();
+          tempImg.crossOrigin = "anonymous";
+          tempImg.onload = () => resolve(tempImg);
+          tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
+          tempImg.src = imageUrl;
+        });
+      };
+
+      const loadImageWithRetry = async (imageUrl: string): Promise<HTMLImageElement> => {
+        let lastError: unknown;
+        for (let attempt = 1; attempt <= MAX_LOAD_ATTEMPTS; attempt += 1) {
+          try {
+            if (attempt > 1) {
+              await new Promise(resolve => setTimeout(resolve, LOAD_RETRY_DELAY_MS * attempt));
+            }
+            return await loadImageOnce(imageUrl);
+          }
+          catch (error) {
+            lastError = error;
+            console.warn(`加载失败，准备重试(${attempt}/${MAX_LOAD_ATTEMPTS})`, { imageUrl, error });
+          }
+        }
+        throw lastError instanceof Error ? lastError : new Error("Image load failed");
+      };
+
       const results = await cropImagesWithConcurrency(
         avatarsToProcess,
         MAX_CONCURRENCY,
@@ -652,21 +689,14 @@ export function SpriteCropper({
           }
 
           console.warn(`加载 ${index + 1}/${avatarsToProcess.length}`);
-
-          const tempImg = new Image();
-          tempImg.crossOrigin = "anonymous";
-
           try {
-            await new Promise<void>((resolve, reject) => {
-              tempImg.onload = () => resolve();
-              tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
-              tempImg.src = imageUrl!;
-            });
+            const tempImg = await loadImageWithRetry(imageUrl);
             loadSuccess += 1;
             return { avatar, img: tempImg, index };
           }
           catch (error) {
             loadFail += 1;
+            failedLoadItems.push({ index, avatarId: avatar.avatarId, imageUrl });
             console.error("加载图片失败", { index, imageUrl, error });
             return null;
           }
@@ -683,6 +713,9 @@ export function SpriteCropper({
 
       // 阶段2：裁剪图片（并发控制）
       console.warn(`阶段1加载完成，共 ${loadedImages.length} 张图片`);
+      if (failedLoadItems.length > 0) {
+        console.warn("加载失败的图片（已重试）", failedLoadItems);
+      }
       toast.loading(`批量处理中：裁剪图片 0/${loadedImages.length}`, { id: toastId });
 
       console.warn("开始裁剪图片blob");
