@@ -135,7 +135,7 @@ export default function AvatarSwitch({
         <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
           {hasSelectedNarrator && curAvatarId <= 0
             ? (
-                <div className={`${narratorSizeClass} rounded-full bg-transparent ring-1 ring-base-content/10 flex items-center justify-center`}>
+                <div className={`${narratorSizeClass} rounded-full bg-transparent flex items-center justify-center`}>
                   <NarratorIcon className={computedAvatarWidth <= 8 ? "size-5 text-base-content/60" : "size-6 md:size-8 text-base-content/60"} />
                 </div>
               )
