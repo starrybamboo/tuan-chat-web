@@ -648,6 +648,15 @@ function RoomComposerPanelImpl({
       />
     </div>
   );
+  const docRefDragOverlayNode = isDocRefDragOver
+    ? (
+        <div className="pointer-events-none absolute inset-0 z-20 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
+          <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
+            松开发送文档卡片
+          </div>
+        </div>
+      )
+    : null;
   const chatInputAreaNode = isMobile
     ? (
         <div className="flex items-end gap-2">
@@ -674,6 +683,14 @@ function RoomComposerPanelImpl({
           {...chatInputAreaProps}
         />
       );
+  const atMentionControllerNode = (
+    <AtMentionController
+      ref={atMentionRef}
+      chatInputRef={chatInputRef as any}
+      allRoles={mentionRoles}
+    >
+    </AtMentionController>
+  );
 
   return (
     <div ref={composerRootRef} className="bg-transparent z-20">
@@ -690,13 +707,7 @@ function RoomComposerPanelImpl({
           onDragLeave={handleComposerDragLeave}
           onDrop={handleComposerDrop}
         >
-          {isDocRefDragOver && (
-            <div className="pointer-events-none absolute inset-0 z-20 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
-              <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
-                松开发送文档卡片
-              </div>
-            </div>
-          )}
+          {docRefDragOverlayNode}
           <ChatAttachmentsPreviewFromStore />
 
           {replyMessageNode}
@@ -787,12 +798,7 @@ function RoomComposerPanelImpl({
               />
             </div>
 
-            <AtMentionController
-              ref={atMentionRef}
-              chatInputRef={chatInputRef as any}
-              allRoles={mentionRoles}
-            >
-            </AtMentionController>
+            {atMentionControllerNode}
           </div>
         </div>
       </div>
