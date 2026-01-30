@@ -416,6 +416,12 @@ function RoomComposerPanelImpl({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
+  const handleSelectMainTarget = React.useCallback(() => {
+    setComposerTarget("main");
+  }, [setComposerTarget]);
+  const handleSelectThreadTarget = React.useCallback(() => {
+    setComposerTarget("thread");
+  }, [setComposerTarget]);
   const handleCloseThreadRoot = React.useCallback(() => {
     setComposerTarget("main");
     setThreadRootMessageId(undefined);
@@ -599,14 +605,14 @@ function RoomComposerPanelImpl({
                     <button
                       type="button"
                       className={`btn btn-xs join-item ${composerTarget === "main" ? "btn-info" : "btn-ghost"}`}
-                      onClick={() => setComposerTarget("main")}
+                      onClick={handleSelectMainTarget}
                     >
                       主区
                     </button>
                     <button
                       type="button"
                       className={`btn btn-xs join-item ${composerTarget === "thread" ? "btn-info" : "btn-ghost"}`}
-                      onClick={() => setComposerTarget("thread")}
+                      onClick={handleSelectThreadTarget}
                     >
                       子区
                     </button>
