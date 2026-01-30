@@ -142,7 +142,7 @@ function RoomComposerPanelImpl({
     setIsDocRefDragOver(next);
   }, []);
   const screenSize = useScreenSize();
-  const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
+  const toolbarLayout: "stacked" | "inline" = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
   const mentionRoles = React.useMemo(() => {
     if (!isKP) {
@@ -363,6 +363,65 @@ function RoomComposerPanelImpl({
     inputHandle.focus();
     inputHandle.triggerSync();
   }, [chatInputRef]);
+  const statusBarCommonProps = {
+    roomId,
+    userId,
+    webSocketUtils,
+    excludeSelf: true,
+    isSpectator,
+    compact: true,
+    className: "shrink-0",
+  };
+  const showWebgalRunControls = webgalLinkMode || runModeEnabled;
+  const chatInputAreaProps = {
+    onInputSync,
+    onPasteFiles,
+    onKeyDown,
+    onKeyUp,
+    onMouseDown,
+    onCompositionStart,
+    onCompositionEnd,
+    disabled: inputDisabled,
+    placeholder: placeholderText,
+    className: "min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1",
+  };
+  const toolbarCommonProps = {
+    roomId,
+    statusUserId: userId,
+    statusWebSocketUtils: webSocketUtils,
+    statusExcludeSelf: false,
+    sideDrawerState,
+    setSideDrawerState,
+    handleMessageSubmit,
+    onAIRewrite,
+    currentChatStatus,
+    onChangeChatStatus,
+    isSpectator,
+    onToggleRealtimeRender,
+    onToggleWebgalLinkMode: toggleWebgalLinkMode,
+    onInsertWebgalCommandPrefix,
+    autoReplyMode,
+    onToggleAutoReplyMode: toggleAutoReplyMode,
+    runModeEnabled,
+    onToggleRunMode,
+    defaultFigurePosition,
+    onSetDefaultFigurePosition,
+    dialogNotend,
+    onToggleDialogNotend: toggleDialogNotend,
+    dialogConcat,
+    onToggleDialogConcat: toggleDialogConcat,
+    onSendEffect,
+    onClearBackground,
+    onClearFigure,
+    onSetWebgalVar,
+    isKP,
+    onStopBgmForAll,
+    noRole,
+    notMember,
+    isSubmitting,
+    layout: toolbarLayout,
+    showStatusBar: false,
+  };
 
   return (
     <div ref={composerRootRef} className="bg-transparent z-20">
@@ -604,72 +663,26 @@ function RoomComposerPanelImpl({
                         {showSelfStatus && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
                         {showSelfStatus && (
                           <ChatStatusBar
-                            roomId={roomId}
-                            userId={userId}
-                            webSocketUtils={webSocketUtils}
-                            excludeSelf={true}
+                            {...statusBarCommonProps}
                             showGrouped={false}
                             currentChatStatus={currentChatStatus}
                             onChangeChatStatus={onChangeChatStatus}
-                            isSpectator={isSpectator}
-                            compact={true}
-                            className="shrink-0"
                           />
                         )}
                         {showOtherStatus && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
                         {showOtherStatus && (
                           <ChatStatusBar
-                            roomId={roomId}
-                            userId={userId}
-                            webSocketUtils={webSocketUtils}
-                            excludeSelf={true}
+                            {...statusBarCommonProps}
                             showGrouped={true}
                             showGroupDivider={false}
-                            isSpectator={isSpectator}
-                            compact={true}
-                            className="shrink-0"
                           />
                         )}
                       </div>
                     </div>
-                    {(webgalLinkMode || runModeEnabled) && (
+                    {showWebgalRunControls && (
                       <div className="flex items-start gap-2">
                         <ChatToolbarFromStore
-                          roomId={roomId}
-                          statusUserId={userId}
-                          statusWebSocketUtils={webSocketUtils}
-                          statusExcludeSelf={false}
-                          sideDrawerState={sideDrawerState}
-                          setSideDrawerState={setSideDrawerState}
-                          handleMessageSubmit={handleMessageSubmit}
-                          onAIRewrite={onAIRewrite}
-                          currentChatStatus={currentChatStatus}
-                          onChangeChatStatus={onChangeChatStatus}
-                          isSpectator={isSpectator}
-                          onToggleRealtimeRender={onToggleRealtimeRender}
-                          onToggleWebgalLinkMode={toggleWebgalLinkMode}
-                          onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-                          autoReplyMode={autoReplyMode}
-                          onToggleAutoReplyMode={toggleAutoReplyMode}
-                          runModeEnabled={runModeEnabled}
-                          onToggleRunMode={onToggleRunMode}
-                          defaultFigurePosition={defaultFigurePosition}
-                          onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-                          dialogNotend={dialogNotend}
-                          onToggleDialogNotend={toggleDialogNotend}
-                          dialogConcat={dialogConcat}
-                          onToggleDialogConcat={toggleDialogConcat}
-                          onSendEffect={onSendEffect}
-                          onClearBackground={onClearBackground}
-                          onClearFigure={onClearFigure}
-                          onSetWebgalVar={onSetWebgalVar}
-                          isKP={isKP}
-                          onStopBgmForAll={onStopBgmForAll}
-                          noRole={noRole}
-                          notMember={notMember}
-                          isSubmitting={isSubmitting}
-                          layout={toolbarLayout}
-                          showStatusBar={false}
+                          {...toolbarCommonProps}
                           showWebgalLinkToggle={false}
                           showRunModeToggle={false}
                           showMainActions={false}
@@ -687,16 +700,7 @@ function RoomComposerPanelImpl({
                         <div className="flex items-end gap-2">
                           <ChatInputArea
                             ref={chatInputRef}
-                            onInputSync={onInputSync}
-                            onPasteFiles={onPasteFiles}
-                            onKeyDown={onKeyDown}
-                            onKeyUp={onKeyUp}
-                            onMouseDown={onMouseDown}
-                            onCompositionStart={onCompositionStart}
-                            onCompositionEnd={onCompositionEnd}
-                            disabled={inputDisabled}
-                            placeholder={placeholderText}
-                            className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
+                            {...chatInputAreaProps}
                           />
                           <AvatarSwitch
                             curRoleId={curRoleId}
@@ -714,57 +718,14 @@ function RoomComposerPanelImpl({
                     : (
                         <ChatInputArea
                           ref={chatInputRef}
-                          onInputSync={onInputSync}
-                          onPasteFiles={onPasteFiles}
-                          onKeyDown={onKeyDown}
-                          onKeyUp={onKeyUp}
-                          onMouseDown={onMouseDown}
-                          onCompositionStart={onCompositionStart}
-                          onCompositionEnd={onCompositionEnd}
-                          disabled={inputDisabled}
-                          placeholder={placeholderText}
-                          className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
+                          {...chatInputAreaProps}
                         />
                       )}
 
                   <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
                     <ChatToolbarFromStore
-                      roomId={roomId}
-                      statusUserId={userId}
-                      statusWebSocketUtils={webSocketUtils}
-                      statusExcludeSelf={false}
-                      sideDrawerState={sideDrawerState}
-                      setSideDrawerState={setSideDrawerState}
-                      handleMessageSubmit={handleMessageSubmit}
-                      onAIRewrite={onAIRewrite}
-                      currentChatStatus={currentChatStatus}
-                      onChangeChatStatus={onChangeChatStatus}
-                      isSpectator={isSpectator}
-                      onToggleRealtimeRender={onToggleRealtimeRender}
-                      onToggleWebgalLinkMode={toggleWebgalLinkMode}
-                      onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-                      autoReplyMode={autoReplyMode}
-                      onToggleAutoReplyMode={toggleAutoReplyMode}
-                      runModeEnabled={runModeEnabled}
-                      onToggleRunMode={onToggleRunMode}
-                      defaultFigurePosition={defaultFigurePosition}
-                      onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-                      dialogNotend={dialogNotend}
-                      onToggleDialogNotend={toggleDialogNotend}
-                      dialogConcat={dialogConcat}
-                      onToggleDialogConcat={toggleDialogConcat}
-                      onSendEffect={onSendEffect}
-                      onClearBackground={onClearBackground}
-                      onClearFigure={onClearFigure}
-                      onSetWebgalVar={onSetWebgalVar}
+                      {...toolbarCommonProps}
                       onOpenImportChatText={onOpenImportChatText}
-                      isKP={isKP}
-                      onStopBgmForAll={onStopBgmForAll}
-                      noRole={noRole}
-                      notMember={notMember}
-                      isSubmitting={isSubmitting}
-                      layout={toolbarLayout}
-                      showStatusBar={false}
                       showWebgalLinkToggle={true}
                       showRunModeToggle={true}
                       showWebgalControls={false}
