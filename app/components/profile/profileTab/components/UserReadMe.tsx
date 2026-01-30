@@ -31,7 +31,6 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
             docId={`user:${userId}:readme`}
             readOnly={!isOwner || !isEditingReadMe}
             // 使用 embedded + 自动高度：让外层页面滚动，而不是让编辑器容器内部滚动。
-            className="min-h-[80vh]"
           />
         </div>
       </div>

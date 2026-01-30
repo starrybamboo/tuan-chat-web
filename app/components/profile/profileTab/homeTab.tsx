@@ -34,7 +34,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         {/* 移动端布局 */}
         <div className="md:hidden">
           {/* 小屏幕布局 - 顶部栏样式 */}
-          <div className="flex flex-row items-center justify-between p-4 bg-base-200 rounded-2xl">
+          <div className="flex flex-row items-center justify-between p-4 bg-base-100 rounded-2xl">
             {/* 头像和用户名 */}
             <div className="flex gap-4">
               <UserAvatar

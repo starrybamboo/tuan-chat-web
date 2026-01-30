@@ -66,7 +66,7 @@ function ProfilePage() {
   }, [location.pathname, userId]);
 
   return (
-    <div className="bg-base-300">
+    <div className="bg-base-100">
       {/* 导航栏 */}
       <div
         role="tablist"
