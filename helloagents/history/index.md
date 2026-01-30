@@ -9,6 +9,7 @@
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
 
+| 202601310016 | unread-title-realtime | 修复 | 已完成 | [2026-01/202601310016_unread-title-realtime/](2026-01/202601310016_unread-title-realtime/) |
 | 202601302255 | kp_role_select_all | 变更 | 已完成 | [2026-01/202601302255_kp-role-select/](2026-01/202601302255_kp-role-select/) |
 | 202601291856 | fix_eslint_lint | 修复 | 已完成 | [2026-01/202601291856_fix-eslint-lint/](2026-01/202601291856_fix-eslint-lint/) |
 | 202601291407 | remove_bgm_floatball | 变更 | 已完成 | [2026-01/202601291407_remove-bgm-floatball/](2026-01/202601291407_remove-bgm-floatball/) |
@@ -136,6 +137,7 @@
 
 ### 2026-01
 
+- [202601310016_unread-title-realtime](2026-01/202601310016_unread-title-realtime/) - 修复：聊天页未读数在进入时持续累加，标签仅显示实时未读
 - [202601302255_kp-role-select](2026-01/202601302255_kp-role-select/) - 变更：KP 发言角色选择可切换到所有角色
 - [202601291856_fix-eslint-lint](2026-01/202601291856_fix-eslint-lint/) - 修复：修复 eslint 错误（AudioMessage Hooks 规则 + SpaceWorkspace 未使用参数）
 - [202601291407_remove-bgm-floatball](2026-01/202601291407_remove-bgm-floatball/) - 变更：移除房间级 BGM 悬浮球组件（统一使用全局音频悬浮球）
