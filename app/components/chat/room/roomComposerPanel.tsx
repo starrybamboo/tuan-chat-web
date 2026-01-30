@@ -23,7 +23,7 @@ import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef"
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
-import { useGetRoleAvatarsQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export interface RoomComposerPanelProps {
   roomId: number;
@@ -238,9 +238,6 @@ function RoomComposerPanelImpl({
     return roomRoles.find(role => role.roleId === curRoleId);
   }, [curRoleId, roomRoles]);
 
-  const roleQuery = useGetRoleQuery(curRoleId > 0 ? curRoleId : 0);
-  const roleNameFromQuery = (roleQuery.data?.data?.roleName ?? "").trim();
-
   const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1);
   const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const hasRoleAvatarsLoaded = Boolean(roleAvatarsQuery.data);
@@ -258,8 +255,8 @@ function RoomComposerPanelImpl({
       return "未选择角色";
     }
     const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
-    return draftName || currentRole?.roleName || roleNameFromQuery || "未选择角色";
-  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator, roleNameFromQuery]);
+    return draftName || currentRole?.roleName || "未选择角色";
+  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator]);
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editingName, setEditingName] = React.useState("");

@@ -243,7 +243,11 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
   }, [pickDefaultAvatarId, roleDefaultAvatarIdMap]);
 
   const getEffectiveAvatarIdForRole = useCallback((roleId: number): number => {
-    if (roleId <= 0) {
+    // 旁白（-1）也允许选择并持久化 avatarId（存到 curAvatarIdMap[-1]）
+    if (roleId < 0) {
+      return curAvatarIdMap[roleId] ?? -1;
+    }
+    if (roleId === 0) {
       return -1;
     }
     const stored = curAvatarIdMap[roleId] ?? -1;
@@ -1719,7 +1723,7 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
                   curAvatarId={curAvatarId}
                   setCurRoleId={setCurRoleId}
                   setCurAvatarId={setCurAvatarId}
-                  roomRoles={roomRoles}
+                  roomRoles={roomRolesThatUserOwn}
                   chatInputRef={chatInputRef as any}
                   atMentionRef={atMentionRef as any}
                   onInputSync={handleInputAreaChange}
