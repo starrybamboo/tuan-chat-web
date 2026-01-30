@@ -2,8 +2,10 @@ import type { RoleAvatar } from "api";
 
 import type { Role } from "../../types";
 
-import { useState } from "react";
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 
+import { useCallback, useState } from "react";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { BaselineDeleteOutline } from "@/icons";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
@@ -84,6 +86,38 @@ export function SpriteListGrid({
     onAvatarChange,
     onAvatarSelect,
   });
+
+  const updateNameMutation = useUpdateAvatarNameMutation(role?.id);
+  const canEditName = Boolean(role?.id);
+
+  const handleAvatarNameCommit = useCallback(async (avatar: RoleAvatar, nextName: string) => {
+    if (!role?.id) {
+      return;
+    }
+    if (updateNameMutation.isPending) {
+      return;
+    }
+    const trimmedName = nextName.trim();
+    if (!trimmedName) {
+      return;
+    }
+    const normalizedAvatar: RoleAvatar = {
+      ...avatar,
+      avatarTitle: typeof avatar.avatarTitle === "string"
+        ? { label: avatar.avatarTitle }
+        : (avatar.avatarTitle ?? {}),
+    };
+
+    try {
+      await updateNameMutation.mutateAsync({
+        avatar: normalizedAvatar,
+        name: trimmedName,
+      });
+    }
+    catch (error) {
+      console.error("保存头像名称失败:", error);
+    }
+  }, [role?.id, updateNameMutation]);
 
   // Helper function to get avatar display name
   const getAvatarName = (avatar: RoleAvatar, index: number): string => {
@@ -351,9 +385,20 @@ export function SpriteListGrid({
                   )}
                 </div>
 
-                <div className="text-xs text-center text-base-content/70 truncate w-full">
-                  {avatarName}
-                </div>
+                <DoubleClickEditableText
+                  value={avatarName}
+                  disabled={!canEditName || updateNameMutation.isPending}
+                  className="text-xs text-center text-base-content/70 w-full"
+                  displayClassName={`block truncate ${canEditName ? "cursor-text" : ""}`}
+                  inputClassName="input input-xs w-full text-center"
+                  placeholder={`头像${index + 1}`}
+                  invalidBehavior="revert"
+                  validate={nextValue => (nextValue.trim().length ? null : "头像名称不能为空")}
+                  onCommit={nextValue => handleAvatarNameCommit(avatar, nextValue)}
+                  displayProps={{
+                    title: canEditName ? "双击修改头像标题" : avatarName,
+                  }}
+                />
               </div>
             );
           })}
