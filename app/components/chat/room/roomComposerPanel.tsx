@@ -266,6 +266,7 @@ function RoomComposerPanelImpl({
   const [editingName, setEditingName] = React.useState("");
   const [isAvatarPopoverOpen, setIsAvatarPopoverOpen] = React.useState(false);
   const avatarPopoverRef = React.useRef<HTMLDivElement | null>(null);
+  const isRoleNameEditable = !isSpectator && curRoleId > 0;
   const showSelfStatus = Boolean(currentChatStatus && !isSpectator);
   const showOtherStatus = React.useMemo(() => {
     const raw = (webSocketUtils?.chatStatus?.[roomId] ?? []) as { userId: number; status: "input" | "wait" | "leave" | "idle" }[];
@@ -275,6 +276,32 @@ function RoomComposerPanelImpl({
     const others = userId != null ? raw.filter(s => s.userId !== userId) : raw;
     return others.some(s => s.status === "input" || s.status === "wait" || s.status === "leave");
   }, [roomId, userId, webSocketUtils?.chatStatus]);
+  const stopEvent = React.useCallback((event: React.SyntheticEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+  const startEditingName = React.useCallback((event: React.MouseEvent) => {
+    if (!isRoleNameEditable) {
+      return;
+    }
+    stopEvent(event);
+    setEditingName(displayRoleName);
+    setIsEditingName(true);
+  }, [displayRoleName, isRoleNameEditable, stopEvent]);
+  const cancelEditingName = React.useCallback((event?: React.SyntheticEvent) => {
+    if (event) {
+      stopEvent(event);
+    }
+    setIsEditingName(false);
+    setEditingName("");
+  }, [stopEvent]);
+  const commitEditingName = React.useCallback((event?: React.SyntheticEvent) => {
+    if (event) {
+      stopEvent(event);
+    }
+    setDraftCustomRoleNameForRole(curRoleId, editingName);
+    setIsEditingName(false);
+  }, [curRoleId, editingName, setDraftCustomRoleNameForRole, stopEvent]);
 
   React.useEffect(() => {
     setIsEditingName(false);
@@ -613,17 +640,9 @@ function RoomComposerPanelImpl({
                         <div className="min-w-0 flex-1">
                           {!isEditingName && (
                             <div
-                              className={`text-sm font-medium truncate ${isSpectator || curRoleId <= 0 ? "text-base-content/50 select-none" : "cursor-text"}`}
-                              title={isSpectator || curRoleId <= 0 ? undefined : "点击编辑显示名称"}
-                              onClick={(e) => {
-                                if (isSpectator || curRoleId <= 0) {
-                                  return;
-                                }
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setEditingName(displayRoleName);
-                                setIsEditingName(true);
-                              }}
+                              className={`text-sm font-medium truncate ${isRoleNameEditable ? "cursor-text" : "text-base-content/50 select-none"}`}
+                              title={isRoleNameEditable ? "点击编辑显示名称" : undefined}
+                              onClick={startEditingName}
                             >
                               {displayRoleName || "\u00A0"}
                             </div>
@@ -633,29 +652,17 @@ function RoomComposerPanelImpl({
                               className="input input-xs input-bordered bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info w-full max-w-48"
                               value={editingName}
                               autoFocus
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
+                              onClick={stopEvent}
                               onChange={e => setEditingName(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Escape") {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setIsEditingName(false);
-                                  setEditingName("");
+                                  cancelEditingName(e);
                                 }
                                 if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setDraftCustomRoleNameForRole(curRoleId, editingName);
-                                  setIsEditingName(false);
+                                  commitEditingName(e);
                                 }
                               }}
-                              onBlur={() => {
-                                setDraftCustomRoleNameForRole(curRoleId, editingName);
-                                setIsEditingName(false);
-                              }}
+                              onBlur={() => commitEditingName()}
                               placeholder={currentRole?.roleName || ""}
                             />
                           )}
