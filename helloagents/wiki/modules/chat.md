@@ -16,7 +16,7 @@
 
 - 主要目录：`app/components/chat/`
 - 关键路由：
-  - `/chat/discover`：发现页（列出已归档群聊/空间）
+  - `/chat/discover`：发现页（列出已归档群聊/空间；保留顶部栏与最左侧空间栏）
   - `/chat/:spaceId/:roomId`：房间聊天页
   - `/chat/:spaceId/:roomId/setting`：房间资料页（含 Blocksuite 文档）
   - `/chat/:spaceId/doc/:docId`：独立文档页（保留侧边栏）
