@@ -387,6 +387,17 @@ export function useGetRoleAvatarsQuery(roleId: number, options?: RoleAvatarQuery
     queryKey: ['getRoleAvatars', roleId],
     queryFn: () => tuanchat.avatarController.getRoleAvatars(roleId),
     staleTime: 86400000, // 24小时缓存
+    select: (res) => {
+      if (!res || !Array.isArray(res.data)) {
+        return res;
+      }
+      const sorted = [...res.data].sort((a, b) => {
+        const aId = a.avatarId ?? Number.MAX_SAFE_INTEGER;
+        const bId = b.avatarId ?? Number.MAX_SAFE_INTEGER;
+        return aId - bId;
+      });
+      return { ...res, data: sorted };
+    },
     enabled,
   });
 }
@@ -1450,4 +1461,3 @@ export function useRoleAbility(roleId: number) {
   );
   return abilityQuery;
 }
-
