@@ -784,6 +784,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   // 旁白的特殊渲染（无角色）
   if (isNarrator) {
     // 气泡模式与传统模式的旁白样式需要分开：传统模式头像为方形；气泡模式尽量更“旁白化”（更居中、更弱化头像存在感）
+    const hasNarratorAvatar = Boolean(message.avatarId && message.avatarId > 0 && avatar?.avatarUrl);
     if (useChatBubbleStyle) {
       const narratorAvatarWidth = isMobile ? 8 : 10;
       const avatarButtonClassName = `btn btn-ghost btn-xs px-1 ${canEdit ? "cursor-pointer" : "cursor-default"}`;
@@ -798,7 +799,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 aria-label="选择旁白头像"
                 title={canEdit ? "点击选择旁白头像" : "旁白头像"}
               >
-                {message.avatarId && message.avatarId > 0
+                {hasNarratorAvatar
                   ? (
                       <RoleAvatarComponent
                         avatarId={message.avatarId ?? 0}
@@ -811,7 +812,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                       />
                     )
                   : (
-                      <NarratorIcon className="size-4 text-base-content/60" />
+                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-primary/35 via-base-200 to-secondary/25 ring-1 ring-base-300/70 shadow-sm">
+                        <NarratorIcon className="size-4 text-base-content/70" />
+                      </span>
                     )}
               </button>
 
@@ -862,12 +865,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         {/* 方形头像（传统模式） */}
         <div className="shrink-0 pr-2 sm:pr-3">
           <div
-            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-base-300 flex items-center justify-center`}
+            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-gradient-to-br from-primary/20 via-base-200 to-secondary/20 ring-1 ring-base-300/60 shadow-sm flex items-center justify-center`}
             onClick={handleAvatarClick}
             aria-label="选择旁白头像"
             title={canEdit ? "点击选择旁白头像" : "旁白头像"}
           >
-            {message.avatarId && message.avatarId > 0
+            {hasNarratorAvatar
               ? (
                   <RoleAvatarComponent
                     avatarId={message.avatarId ?? 0}
@@ -877,10 +880,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     withTitle={false}
                     stopPopWindow={true}
                     useDefaultAvatarFallback={false}
+                    alt="旁白"
                   />
                 )
               : (
-                  <NarratorIcon className={isMobile ? "size-5 text-base-content/60" : "size-8 text-base-content/60"} />
+                  <NarratorIcon className={isMobile ? "size-6 text-base-content/70" : "size-9 text-base-content/70"} />
                 )}
           </div>
         </div>
