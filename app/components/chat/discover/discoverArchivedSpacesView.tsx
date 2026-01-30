@@ -1,8 +1,10 @@
-import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
+import type { ApiResultListSpace } from "api/models/ApiResultListSpace";
+import type { Space } from "api/models/Space";
+
+import { useQuery } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-import { useGlobalContext } from "@/components/globalContextProvider";
 
 export type DiscoverArchivedSpacesMode = "square" | "my";
 
@@ -17,39 +19,33 @@ function toEpochMs(value?: string) {
   return Number.isFinite(ms) ? ms : 0;
 }
 
-function uniqNumbers(list: number[]) {
-  return [...new Set(list.filter(n => typeof n === "number" && Number.isFinite(n)))];
+function toSpaces(result?: ApiResultListSpace): Space[] {
+  const data = (result as any)?.data;
+  return Array.isArray(data) ? data as Space[] : [];
 }
 
 export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpacesViewProps) {
   const navigate = useNavigate();
-  const spacesQuery = useGetUserSpacesQuery();
   const [keyword, setKeyword] = useState("");
-  const userId = useGlobalContext().userId ?? -1;
-  const [myArchivedSpaceIds, setMyArchivedSpaceIds] = useLocalStorage<number[]>(
-    `tc:discover:myArchivedSpaces:${userId}`,
-    [],
-  );
 
-  const myArchivedSpaceIdSet = useMemo(() => {
-    return new Set(myArchivedSpaceIds);
-  }, [myArchivedSpaceIds]);
+  const archivedSpacesQuery = useQuery({
+    queryKey: ["discoverArchivedSpaces", mode],
+    queryFn: () => {
+      return mode === "square"
+        ? tuanchat.spaceController.listArchivedSpacesSquare()
+        : tuanchat.spaceController.listArchivedSpacesMy();
+    },
+    staleTime: 30000,
+    retry: 0,
+  });
 
   const archivedSpaces = useMemo(() => {
-    const raw = Array.isArray(spacesQuery.data?.data) ? spacesQuery.data?.data : [];
-    const base = raw
+    const list = toSpaces(archivedSpacesQuery.data)
       .filter(space => space?.status === 2)
       .filter((space) => {
         const id = space?.spaceId;
         return typeof id === "number" && Number.isFinite(id) && id > 0;
       });
-
-    const list = mode === "my"
-      ? base.filter((space) => {
-          const id = space?.spaceId;
-          return typeof id === "number" && myArchivedSpaceIdSet.has(id);
-        })
-      : base;
 
     list.sort((a, b) => {
       const at = toEpochMs(a?.updateTime) || toEpochMs(a?.createTime);
@@ -66,16 +62,16 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
       const desc = String(space?.description ?? "").trim().toLowerCase();
       return name.includes(q) || desc.includes(q);
     });
-  }, [keyword, mode, myArchivedSpaceIdSet, spacesQuery.data?.data]);
+  }, [archivedSpacesQuery.data, keyword]);
 
   const headerTitle = mode === "my" ? "我的归档" : "广场";
   const headerDescription = mode === "my"
-    ? "这里会展示你手动加入“我的归档”的群聊（空间）。"
-    : "这里会展示你加入过的、已归档的群聊（空间）。";
+    ? "这里会展示你个人归档的群聊（空间）。"
+    : "这里会展示所有人的归档群聊（空间）。";
   const emptyTitle = mode === "my" ? "暂无我的归档" : "暂无已归档群聊";
   const emptyDescription = mode === "my"
-    ? "你可以先在“广场”里把某个已归档群聊加入“我的归档”。"
-    : "你可以在聊天室的空间右键菜单中选择“归档空间”，归档后会出现在这里。";
+    ? "你可以在群聊（空间）里执行“归档”，归档后会出现在这里。"
+    : "暂时还没有任何人归档群聊，或当前账号没有权限查看。";
 
   return (
     <div className="flex flex-col w-full h-full min-h-0 min-w-0 bg-base-200 text-base-content">
@@ -113,21 +109,19 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl px-6 py-6 space-y-6">
-          {/* Hero */}
           <div className="rounded-xl overflow-hidden border border-base-300 bg-gradient-to-r from-primary/25 via-secondary/10 to-accent/25">
             <div className="px-8 py-10 sm:py-14">
               <div className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-                {mode === "my" ? "这是你的收藏夹" : "找到自己的社区"}
+                {mode === "my" ? "这是你的归档" : "探索已归档群聊"}
               </div>
               <div className="mt-3 text-sm sm:text-base text-base-content/70 max-w-2xl">
                 {mode === "my"
-                  ? "把喜欢的归档群聊加入这里，随时快速回访。"
-                  : "从你加入过的归档群聊里，快速找到想继续的故事。"}
+                  ? "这里会集中展示你归档过的群聊，方便随时回访。"
+                  : "看看大家都归档了哪些群聊，也许能找到你想继续的故事。"}
               </div>
             </div>
           </div>
 
-          {/* 分区标题 */}
           <div className="flex items-end justify-between gap-3">
             <div>
               <div className="text-sm font-semibold">{headerTitle}</div>
@@ -136,7 +130,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
             <div className="text-xs text-base-content/60">{`已归档 ${archivedSpaces.length}`}</div>
           </div>
 
-          {spacesQuery.isLoading && (
+          {archivedSpacesQuery.isLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {[0, 1, 2, 3, 4, 5].map(n => (
                 <div key={n} className="h-56 rounded-xl bg-base-300/50 animate-pulse" />
@@ -144,21 +138,36 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
             </div>
           )}
 
-          {!spacesQuery.isLoading && archivedSpaces.length === 0 && (
+          {archivedSpacesQuery.isError && (
+            <div className="rounded-xl border border-base-300 bg-base-100 p-4">
+              <div className="text-sm font-semibold">
+                {mode === "my" ? "暂时无法加载我的归档" : "暂时无法加载广场归档列表"}
+              </div>
+              <div className="mt-1 text-xs text-base-content/60">
+                请确认后端已提供对应接口，并且当前账号已登录。
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button className="btn btn-sm btn-outline" type="button" onClick={() => archivedSpacesQuery.refetch()}>
+                  重试
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!archivedSpacesQuery.isLoading && !archivedSpacesQuery.isError && archivedSpaces.length === 0 && (
             <div className="rounded-xl border border-base-300 bg-base-100 p-6">
               <div className="text-base font-semibold">{emptyTitle}</div>
               <div className="mt-2 text-sm text-base-content/60">{emptyDescription}</div>
             </div>
           )}
 
-          {!spacesQuery.isLoading && archivedSpaces.length > 0 && (
+          {!archivedSpacesQuery.isLoading && !archivedSpacesQuery.isError && archivedSpaces.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {archivedSpaces.map((space) => {
                 const spaceId = space?.spaceId ?? -1;
                 const name = space?.name ?? `空间 #${spaceId}`;
                 const description = String(space?.description ?? "").trim();
                 const avatar = space?.avatar ?? "/moduleDefaultImage.webp";
-                const isInMyArchive = myArchivedSpaceIdSet.has(spaceId);
 
                 return (
                   <div
@@ -178,21 +187,6 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                           已归档
                         </span>
                       </div>
-
-                      <button
-                        type="button"
-                        className={`absolute right-3 top-3 btn btn-xs rounded-md ${isInMyArchive ? "btn-primary" : "btn-ghost bg-base-100/60 hover:bg-base-100/80"}`}
-                        onClick={() => {
-                          const next = isInMyArchive
-                            ? myArchivedSpaceIds.filter(id => id !== spaceId)
-                            : [...myArchivedSpaceIds, spaceId];
-                          setMyArchivedSpaceIds(uniqNumbers(next));
-                        }}
-                        aria-label={isInMyArchive ? "移出我的归档" : "加入我的归档"}
-                        title={isInMyArchive ? "移出我的归档" : "加入我的归档"}
-                      >
-                        {isInMyArchive ? "已收藏" : "收藏"}
-                      </button>
                     </div>
 
                     <div className="p-4">
