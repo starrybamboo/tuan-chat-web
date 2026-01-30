@@ -28,6 +28,12 @@ function createDefaultTransform(): Transform {
 /**
  * 图片上传器组件的属性接口
  */
+export interface UploadContext {
+  batch?: boolean;
+  index?: number;
+  total?: number;
+}
+
 interface ImgUploaderWithCopperProps {
   // 设置原始图片下载链接的回调函数
   setDownloadUrl?: (newUrl: string) => void | undefined;
@@ -40,7 +46,7 @@ interface ImgUploaderWithCopperProps {
   // 上传场景：1.聊天室,2.表情包，3.角色差分 4.模组图片
   scene: 1 | 2 | 3 | 4;
   // 数据更新回调函数
-  mutate?: (data: any) => void | Promise<void>;
+  mutate?: (data: any, context?: UploadContext) => void | Promise<void>;
   // 外层div的className
   wrapperClassName?: string;
   // 内层div的className
@@ -259,6 +265,10 @@ export function CharacterCopper({
       spriteUrl,
       originUrl: originUrl || undefined,
       transform: createDefaultTransform(),
+    }, {
+      batch: true,
+      index,
+      total,
     }));
   }, [loadImageFromFile, mutate, scene, uploadUtils]);
 

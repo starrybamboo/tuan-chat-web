@@ -1,4 +1,5 @@
 import type { RoleAvatar } from "api";
+import type { UploadContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
 import {
   CheckCircleIcon,
@@ -117,29 +118,33 @@ export function SpriteSettingsPopup({
   }, [uploadNotification]);
 
   // Handle avatar upload
-  const handleAvatarUpload = useCallback(async (data: any) => {
+  const handleAvatarUpload = useCallback(async (data: any, context?: UploadContext) => {
+    const isBatchUpload = Boolean(context?.batch);
     if (!role?.id) {
-      setUploadNotification({
-        type: "error",
-        message: "角色信息缺失，无法上传头像",
-      });
+      if (!isBatchUpload) {
+        setUploadNotification({
+          type: "error",
+          message: "角色信息缺失，无法上传头像",
+        });
+      }
+      if (isBatchUpload) {
+        throw new Error("角色信息缺失，无法上传头像");
+      }
       return;
     }
 
     try {
       // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
       await uploadAvatar({ ...data, roleId: role.id, autoApply: false, autoNameFirst: true });
-      setUploadNotification({
-        type: "success",
-        message: "头像上传成功",
-      });
     }
     catch (error) {
       console.error("头像上传失败:", error);
-      setUploadNotification({
-        type: "error",
-        message: "头像上传失败，请重试",
-      });
+      if (!isBatchUpload) {
+        setUploadNotification({
+          type: "error",
+          message: "头像上传失败，请重试",
+        });
+      }
       throw error;
     }
   }, [role, uploadAvatar]);

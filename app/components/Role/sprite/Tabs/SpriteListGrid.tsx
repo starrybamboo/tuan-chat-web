@@ -1,9 +1,10 @@
 import type { RoleAvatar } from "api";
 
+import type { UploadContext } from "../../RoleInfoCard/AvatarUploadCropper";
+
 import type { Role } from "../../types";
 
 import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
-
 import { useCallback, useState } from "react";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { BaselineDeleteOutline } from "@/icons";
@@ -24,7 +25,7 @@ interface SpriteListGridProps {
   /** 模式：'view' 仅展示，'manage' 管理模式（显示上传、删除等功能） */
   mode?: "view" | "manage";
   /** 上传触发后的回调 */
-  onUpload?: (data: any) => void | Promise<void>;
+  onUpload?: (data: any, context?: UploadContext) => void | Promise<void>;
   /** 传给上传组件的文件名（可选） */
   fileName?: string;
   /** 角色信息（用于删除和编辑逻辑） */
@@ -220,9 +221,9 @@ export function SpriteListGrid({
                   setDroppedFiles(null);
                   setDroppedBatchId(null);
                 }}
-                mutate={(data) => {
+                mutate={(data, context) => {
                   try {
-                    return onUpload?.(data);
+                    return onUpload?.(data, context);
                   }
                   catch (e) {
                     console.error("onUpload 回调执行失败", e);
@@ -414,9 +415,9 @@ export function SpriteListGrid({
                 setDroppedFiles(null);
                 setDroppedBatchId(null);
               }}
-              mutate={(data) => {
+              mutate={(data, context) => {
                 try {
-                  return onUpload?.(data);
+                  return onUpload?.(data, context);
                 }
                 catch (e) {
                   // 保持轻量：调用方处理错误
