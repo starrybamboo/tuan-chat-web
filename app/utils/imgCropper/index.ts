@@ -12,6 +12,7 @@ export {
   createCenteredAspectCrop,
   createCenteredSquareCrop,
   createFullImageCrop,
+  createTopCenteredSquareCrop,
   getCroppedImageFile,
 } from "./cropUtils";
 

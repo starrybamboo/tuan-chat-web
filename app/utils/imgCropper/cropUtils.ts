@@ -30,6 +30,29 @@ export function createCenteredSquareCrop(width: number, height: number): {
 }
 
 /**
+ * 创建顶部对齐的1:1裁剪区域（用于头像）
+ */
+export function createTopCenteredSquareCrop(width: number, height: number): {
+  crop: Crop;
+  pixelCrop: PixelCrop;
+} {
+  const size = Math.min(width, height);
+  const x = (width - size) / 2;
+  const y = 0;
+
+  return {
+    crop: {
+      unit: "%",
+      x: (x / width) * 100,
+      y: 0,
+      width: (size / width) * 100,
+      height: (size / height) * 100,
+    },
+    pixelCrop: { unit: "px", x, y, width: size, height: size },
+  };
+}
+
+/**
  * 创建全图裁剪区域（用于立绘）
  */
 export function createFullImageCrop(width: number, height: number): {
