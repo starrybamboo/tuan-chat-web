@@ -812,7 +812,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                       />
                     )
                   : (
-                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-base-300">
+                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-transparent ring-1 ring-base-content/10">
                         <NarratorIcon className="size-4 text-base-content/70" />
                       </span>
                     )}
@@ -865,7 +865,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         {/* 方形头像（传统模式） */}
         <div className="shrink-0 pr-2 sm:pr-3">
           <div
-            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-base-300 flex items-center justify-center`}
+            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-transparent ring-1 ring-base-content/10 flex items-center justify-center`}
             onClick={handleAvatarClick}
             aria-label="选择旁白头像"
             title={canEdit ? "点击选择旁白头像" : "旁白头像"}

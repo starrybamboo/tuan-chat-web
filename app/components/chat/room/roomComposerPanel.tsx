@@ -519,7 +519,7 @@ function RoomComposerPanelImpl({
                                       />
                                     )
                                   : (
-                                      <div className="size-8 rounded-full bg-base-300 flex items-center justify-center shrink-0">
+                                      <div className="size-8 rounded-full bg-transparent ring-1 ring-base-content/10 flex items-center justify-center shrink-0">
                                         <NarratorIcon className="size-5 text-base-content/60" />
                                       </div>
                                     )
