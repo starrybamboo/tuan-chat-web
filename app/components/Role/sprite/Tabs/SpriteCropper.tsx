@@ -1,9 +1,10 @@
 import type { RoleAvatar } from "api";
+import type { PixelCrop } from "react-image-crop";
 import type { Transform } from "../TransformControl";
 import type { ImageLoadContext } from "@/utils/imgCropper";
-
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
@@ -373,32 +374,69 @@ export function SpriteCropper({
     }
   }
 
+  const isCanvasReady = useCallback(() => {
+    const img = imgRef.current;
+    const canvas = previewCanvasRef.current;
+    return !!(
+      img
+      && canvas
+      && img.width > 0
+      && img.height > 0
+      && canvas.width > 0
+      && canvas.height > 0
+    );
+  }, [imgRef, previewCanvasRef]);
+
+  const waitForPreviewReady = useCallback(async (timeoutMs = 2000): Promise<boolean> => {
+    if (isPreviewReady && isCanvasReady())
+      return true;
+
+    const start = performance.now();
+    return await new Promise<boolean>((resolve) => {
+      const tick = () => {
+        if (isPreviewReady && isCanvasReady())
+          return resolve(true);
+        if (performance.now() - start >= timeoutMs)
+          return resolve(false);
+        requestAnimationFrame(tick);
+      };
+
+      requestAnimationFrame(tick);
+    });
+  }, [isPreviewReady, isCanvasReady]);
+
   /**
    * 将Img数据转换为Blob
    * 使用 Web Worker 优化,将图像处理转移到后台线程
    */
-  async function getCroppedImageBlobFromImg(img: HTMLImageElement): Promise<Blob> {
-    if (!completedCrop) {
+  async function getCroppedImageBlobFromImg(
+    img: HTMLImageElement,
+    options?: {
+      crop?: PixelCrop;
+      displaySize?: { width: number; height: number };
+    },
+  ): Promise<Blob> {
+    const cropToUse = options?.crop ?? completedCrop;
+    if (!cropToUse) {
       throw new Error("No completed crop");
     }
 
-    // 如果是当前显示的图片，直接使用现有的处理逻辑
-    if (imgRef.current && img.src === imgRef.current.src) {
-      // 直接用预览canvas导出blob
+    // 如果是当前显示的图片，且没有覆盖 crop，则直接使用现有的预览 canvas
+    if (!options?.crop && imgRef.current && img.src === imgRef.current.src) {
       if (!previewCanvasRef.current)
         throw new Error("No preview canvas");
+      if (previewCanvasRef.current.width === 0 || previewCanvasRef.current.height === 0) {
+        throw new Error("Preview canvas has zero size");
+      }
       return await canvasToBlob(previewCanvasRef.current);
     }
 
-    // 对于其他图片，确保尺寸和当前图片一致
     const currentImg = imgRef.current;
-    if (!currentImg) {
-      throw new Error("No current image reference");
+    const tempDisplayWidth = options?.displaySize?.width ?? currentImg?.width ?? 0;
+    const tempDisplayHeight = options?.displaySize?.height ?? currentImg?.height ?? 0;
+    if (!tempDisplayWidth || !tempDisplayHeight) {
+      throw new Error("Preview image size is 0");
     }
-
-    // 设置临时图片的显示尺寸和当前图片一致
-    const tempDisplayWidth = currentImg.width;
-    const tempDisplayHeight = currentImg.height;
 
     // 计算缩放比例
     const scaleToCurrentDisplay = Math.min(
@@ -413,7 +451,7 @@ export function SpriteCropper({
     try {
       const blob = await cropImage({
         img,
-        crop: completedCrop,
+        crop: cropToUse,
         scale: 1,
         rotate: 0,
       });
@@ -426,14 +464,14 @@ export function SpriteCropper({
       const scaleX = img.naturalWidth / img.width;
       const scaleY = img.naturalHeight / img.height;
       const outputCanvas = new OffscreenCanvas(
-        completedCrop.width * scaleX,
-        completedCrop.height * scaleY,
+        cropToUse.width * scaleX,
+        cropToUse.height * scaleY,
       );
 
       await canvasPreview(
         img,
         outputCanvas,
-        completedCrop,
+        cropToUse,
         1,
         0,
       );
@@ -562,6 +600,7 @@ export function SpriteCropper({
       return;
 
     const MAX_CONCURRENCY = 8; // 最大并发数
+    const toastId = `sprite-batch-crop-${Date.now()}`;
 
     // 获取要处理的头像列表（仅处理选中的）
     const avatarsToProcess = Array.from(selectedIndices)
@@ -570,30 +609,73 @@ export function SpriteCropper({
 
     try {
       setIsCropping(true);
+      toast.loading("批量处理中：准备中...", { id: toastId });
+
+      const ready = await waitForPreviewReady();
+      if (!ready) {
+        throw new Error("Preview not ready for batch crop");
+      }
+
+      const cropSnapshot = completedCrop;
+      const displaySnapshot = {
+        width: imgRef.current?.width ?? 0,
+        height: imgRef.current?.height ?? 0,
+      };
+
+      if (!cropSnapshot?.width || !cropSnapshot?.height) {
+        throw new Error("Invalid crop snapshot");
+      }
+      if (!displaySnapshot.width || !displaySnapshot.height) {
+        throw new Error("Preview display size is 0");
+      }
 
       console.warn(`开始批量裁剪 ${avatarsToProcess.length} 张${isAvatarMode ? "头像" : "立绘"}（最大并发:${MAX_CONCURRENCY}）`);
+      toast.loading(`批量处理中：加载图片 0/${avatarsToProcess.length}`, { id: toastId });
 
       // 阶段1：加载图片（并发控制）
+      let loadDone = 0;
+      let loadSuccess = 0;
+      let loadFail = 0;
       const results = await cropImagesWithConcurrency(
         avatarsToProcess,
         MAX_CONCURRENCY,
         async (avatar, index) => {
           const imageUrl = getAvatarSourceUrl(avatar);
-          if (!imageUrl || !avatar.avatarId)
+          if (!imageUrl || !avatar.avatarId) {
+            loadFail += 1;
+            loadDone += 1;
+            if (loadDone % 2 === 0 || loadDone === avatarsToProcess.length) {
+              toast.loading(`批量处理中：加载图片 ${loadDone}/${avatarsToProcess.length}（成功 ${loadSuccess} 失败 ${loadFail}）`, { id: toastId });
+            }
+            console.warn("跳过无效头像数据", { index, imageUrl, avatarId: avatar.avatarId });
             return null;
+          }
 
           console.warn(`加载 ${index + 1}/${avatarsToProcess.length}`);
 
           const tempImg = new Image();
           tempImg.crossOrigin = "anonymous";
 
-          await new Promise<void>((resolve, reject) => {
-            tempImg.onload = () => resolve();
-            tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
-            tempImg.src = imageUrl!;
-          });
-
-          return { avatar, img: tempImg, index };
+          try {
+            await new Promise<void>((resolve, reject) => {
+              tempImg.onload = () => resolve();
+              tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
+              tempImg.src = imageUrl!;
+            });
+            loadSuccess += 1;
+            return { avatar, img: tempImg, index };
+          }
+          catch (error) {
+            loadFail += 1;
+            console.error("加载图片失败", { index, imageUrl, error });
+            return null;
+          }
+          finally {
+            loadDone += 1;
+            if (loadDone % 2 === 0 || loadDone === avatarsToProcess.length) {
+              toast.loading(`批量处理中：加载图片 ${loadDone}/${avatarsToProcess.length}（成功 ${loadSuccess} 失败 ${loadFail}）`, { id: toastId });
+            }
+          }
         },
       );
 
@@ -601,25 +683,45 @@ export function SpriteCropper({
 
       // 阶段2：裁剪图片（并发控制）
       console.warn(`阶段1加载完成，共 ${loadedImages.length} 张图片`);
+      toast.loading(`批量处理中：裁剪图片 0/${loadedImages.length}`, { id: toastId });
 
       console.warn("开始裁剪图片blob");
+      let cropDone = 0;
+      let cropSuccess = 0;
+      let cropFail = 0;
       const cropResults = await cropImagesWithConcurrency(
         loadedImages,
         MAX_CONCURRENCY,
         async (item: any, _) => {
           if (!item) {
             console.warn("跳过空项");
+            cropFail += 1;
+            cropDone += 1;
+            if (cropDone % 2 === 0 || cropDone === loadedImages.length) {
+              toast.loading(`批量处理中：裁剪图片 ${cropDone}/${loadedImages.length}（成功 ${cropSuccess} 失败 ${cropFail}）`, { id: toastId });
+            }
             return null;
           }
 
           try {
-            const croppedBlob = await getCroppedImageBlobFromImg(item.img);
+            const croppedBlob = await getCroppedImageBlobFromImg(item.img, {
+              crop: cropSnapshot,
+              displaySize: displaySnapshot,
+            });
             console.warn(`裁剪完成 (${item.index + 1}/${loadedImages.length})`);
+            cropSuccess += 1;
             return { ...item, croppedBlob };
           }
           catch (error) {
             console.error(`裁剪失败 (${item.index + 1}):`, error);
+            cropFail += 1;
             return null;
+          }
+          finally {
+            cropDone += 1;
+            if (cropDone % 2 === 0 || cropDone === loadedImages.length) {
+              toast.loading(`批量处理中：裁剪图片 ${cropDone}/${loadedImages.length}（成功 ${cropSuccess} 失败 ${cropFail}）`, { id: toastId });
+            }
           }
         },
       );
@@ -630,19 +732,31 @@ export function SpriteCropper({
 
       // 阶段3：上传结果（并发控制）
       console.warn(`进入上传阶段，待上传 ${croppedResults.length} 张图片`);
+      toast.loading(`批量处理中：上传图片 0/${croppedResults.length}`, { id: toastId });
 
       if (croppedResults.length === 0) {
         console.error("没有可上传的图片，跳过上传阶段");
+        toast.error("批量处理中断：没有可上传的图片", { id: toastId });
         return;
       }
 
       console.warn("开始上传图片");
+      let uploadDone = 0;
+      let uploadSuccess = 0;
+      let uploadFail = 0;
       const uploadResults = await cropImagesWithConcurrency(
         croppedResults,
         MAX_CONCURRENCY,
         async (item: any, idx: number) => {
-          if (!item || !item.avatar.roleId)
+          if (!item || !item.avatar.roleId) {
+            uploadFail += 1;
+            uploadDone += 1;
+            if (uploadDone % 2 === 0 || uploadDone === croppedResults.length) {
+              toast.loading(`批量处理中：上传图片 ${uploadDone}/${croppedResults.length}（成功 ${uploadSuccess} 失败 ${uploadFail}）`, { id: toastId });
+            }
+            console.warn("跳过无效上传项", { idx, item });
             return null;
+          }
 
           try {
             if (isAvatarMode) {
@@ -663,20 +777,38 @@ export function SpriteCropper({
               });
             }
             console.warn(`上传完成 (${idx + 1}/${croppedResults.length})`);
+            uploadSuccess += 1;
             return true;
           }
           catch (error) {
             console.error(`上传失败 (${idx + 1}):`, error);
+            uploadFail += 1;
             return false;
+          }
+          finally {
+            uploadDone += 1;
+            if (uploadDone % 2 === 0 || uploadDone === croppedResults.length) {
+              toast.loading(`批量处理中：上传图片 ${uploadDone}/${croppedResults.length}（成功 ${uploadSuccess} 失败 ${uploadFail}）`, { id: toastId });
+            }
           }
         },
       );
 
       const uploadSuccessCount = uploadResults.filter(Boolean).length;
       console.warn(`上传阶段完成，成功 ${uploadSuccessCount}/${croppedResults.length} 张`);
+      const totalCount = avatarsToProcess.length;
+      const totalFail = Math.max(0, totalCount - uploadSuccessCount);
+      if (totalFail === 0) {
+        toast.success(`批量处理完成：成功 ${uploadSuccessCount}/${totalCount}`, { id: toastId });
+      }
+      else {
+        toast.error(`批量处理完成：成功 ${uploadSuccessCount}/${totalCount}，失败 ${totalFail}`, { id: toastId });
+      }
     }
     catch (error) {
       console.error("批量裁剪失败:", error);
+      const errMsg = error instanceof Error ? error.message : "未知错误";
+      toast.error(`批量裁剪失败：${errMsg}`, { id: toastId });
     }
     finally {
       setIsCropping(false);
