@@ -119,6 +119,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
     onSuccess: (_, variables) => {
       onSave(variables);
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', variables.roleId] });
@@ -154,6 +155,7 @@ export function useCreateRoleMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     },
@@ -182,6 +184,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
@@ -343,6 +346,7 @@ export function useCopyRoleMutation() {
       queryClient.invalidateQueries({ queryKey: ["getRole", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["listRoleAbility", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
@@ -851,6 +855,7 @@ export function useUploadAvatarMutation() {
           await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
           await queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
           await queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
+          await queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
           console.log("缓存已刷新，roleId:", roleId);
           return uploadRes;
         } else {
@@ -1311,6 +1316,7 @@ export function useGetInfiniteUserRolesQuery(userId: number) {
       }
     },
     staleTime: 1000 * 60 * 10,
+    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
   });
 }
 
