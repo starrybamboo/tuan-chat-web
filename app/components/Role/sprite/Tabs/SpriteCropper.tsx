@@ -10,6 +10,7 @@ import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   canvasPreview,
   canvasToBlob,
+  createTopCenteredSquareCrop,
   useCropPreview,
 } from "@/utils/imgCropper";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
@@ -237,6 +238,11 @@ export function SpriteCropper({
     reset: resetCropState,
   } = useCropPreview({
     mode: useCallback(() => isAvatarMode ? "avatar" : "sprite", [isAvatarMode]),
+    initialCrop: useCallback(({ width, height, mode }: { width: number; height: number; mode: "avatar" | "sprite" }) => {
+      if (mode !== "avatar")
+        return undefined;
+      return createTopCenteredSquareCrop(width, height);
+    }, []),
     onImageLoadExtend: handleImageLoadExtend,
     // 让首次绘制延后一帧：给外部状态（如 transform）留出提交时间，避免“新画布 + 旧 transform”的中间帧
     deferInitialPreviewDraw: true,
