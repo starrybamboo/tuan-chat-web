@@ -8,7 +8,7 @@ import { ReactCrop } from "react-image-crop";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { canvasPreview, createCenteredSquareCrop, createFullImageCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
+import { canvasPreview, createFullImageCrop, createTopCenteredSquareCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { AvatarPreview } from "../Preview/AvatarPreview";
 import { RenderPreview } from "../Preview/RenderPreview";
@@ -28,6 +28,12 @@ function createDefaultTransform(): Transform {
 /**
  * 图片上传器组件的属性接口
  */
+export interface UploadContext {
+  batch?: boolean;
+  index?: number;
+  total?: number;
+}
+
 interface ImgUploaderWithCopperProps {
   // 设置原始图片下载链接的回调函数
   setDownloadUrl?: (newUrl: string) => void | undefined;
@@ -40,7 +46,7 @@ interface ImgUploaderWithCopperProps {
   // 上传场景：1.聊天室,2.表情包，3.角色差分 4.模组图片
   scene: 1 | 2 | 3 | 4;
   // 数据更新回调函数
-  mutate?: (data: any) => void;
+  mutate?: (data: any, context?: UploadContext) => void | Promise<void>;
   // 外层div的className
   wrapperClassName?: string;
   // 内层div的className
@@ -126,6 +132,11 @@ export function CharacterCopper({
   } = useCropPreview({
     mode: getCropMode,
     debounceMs: 100,
+    initialCrop: useCallback(({ width, height, mode }: { width: number; height: number; mode: CropMode }) => {
+      if (mode !== "avatar")
+        return undefined;
+      return createTopCenteredSquareCrop(width, height);
+    }, []),
   });
 
   // 监听裁剪完成，延迟更新渲染key以确保canvas已经绘制完成
@@ -236,7 +247,7 @@ export function CharacterCopper({
     await canvasPreview(img, spriteCanvas, spritePixelCrop, 1, 0, { previewMode: false });
     const spriteFile = await getCroppedImageFile(spriteCanvas, `${fileBaseName}.png`);
 
-    const { pixelCrop: avatarPixelCrop } = createCenteredSquareCrop(img.naturalWidth, img.naturalHeight);
+    const { pixelCrop: avatarPixelCrop } = createTopCenteredSquareCrop(img.naturalWidth, img.naturalHeight);
     const avatarCanvas = document.createElement("canvas");
     await canvasPreview(img, avatarCanvas, avatarPixelCrop, 1, 0, { previewMode: false });
     const avatarFile = await getCroppedImageFile(avatarCanvas, `${fileBaseName}-cropped.png`);
@@ -254,12 +265,16 @@ export function CharacterCopper({
       uploadUtils.uploadImg(avatarFile, scene, 60, 512),
     ]);
 
-    mutate?.({
+    await Promise.resolve(mutate?.({
       avatarUrl,
       spriteUrl,
       originUrl: originUrl || undefined,
       transform: createDefaultTransform(),
-    });
+    }, {
+      batch: true,
+      index,
+      total,
+    }));
   }, [loadImageFromFile, mutate, scene, uploadUtils]);
 
   const handleFiles = useCallback(async (files: File[]) => {
@@ -402,12 +417,12 @@ export function CharacterCopper({
         }
 
         if (mutate !== undefined) {
-          mutate({
+          await Promise.resolve(mutate({
             avatarUrl: copperedDownloadUrl,
             spriteUrl: downloadUrl,
             originUrl: resolvedOriginUrl || undefined,
             transform,
-          });
+          }));
         }
         if (toastId) {
           toast.success("头像上传成功", { id: toastId });
@@ -472,7 +487,7 @@ export function CharacterCopper({
         }}
         fullScreen={isMobileScreen()}
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="w-[92vw] max-w-4xl min-h-[70vh] mx-auto flex flex-col">
           <div className="flex items-center gap-8">
             <div className="w-full flex items-center">
               <h1 className="text-xl md:text-2xl font-bold w-64">
@@ -505,7 +520,7 @@ export function CharacterCopper({
             )}
           </div>
           <div className="divider my-0"></div>
-          <div className="flex flex-col md:flex-row gap-8 justify-center">
+          <div className="flex flex-1 min-h-0 flex-col md:flex-row gap-8 justify-center">
             {/* 原始图片裁剪区域 */}
             <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
               {!!imgSrc && (
@@ -562,7 +577,6 @@ export function CharacterCopper({
                             <TransformControl
                               transform={transform}
                               setTransform={setTransform}
-                              previewCanvasRef={previewCanvasRef}
                             />
                           </div>
                         </>

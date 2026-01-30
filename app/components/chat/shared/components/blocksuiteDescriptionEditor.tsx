@@ -1801,6 +1801,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     ? iframeHeight
     : undefined;
 
+  const shouldHideFrame = !hasFrameReadyOnce && !isFrameReady;
+
   // 关键：iframe 必须保持“同一个节点”，否则切换到画布全屏时会触发 remount -> iframe reload ->
   // blocksuite-frame 按 URL 的默认 mode 回到 page，并回传 mode，导致出现“白屏一下又回退”。
   // 这里通过始终渲染同一层 wrapper（非全屏时使用 `contents`）来避免 remount。
@@ -1815,6 +1817,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         "w-full",
         "border-0",
         "bg-transparent",
+        shouldHideFrame ? "opacity-0 pointer-events-none" : "opacity-100",
         className,
         (variant !== "full" && !iframeHeightAttr) ? "min-h-32" : "",
         // full variant 默认填充父容器；但如果外部已显式指定高度（例如 h-[60vh]），不要再追加 h-full 覆盖它。
