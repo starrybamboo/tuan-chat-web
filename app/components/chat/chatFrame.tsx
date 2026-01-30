@@ -354,6 +354,7 @@ function ChatFrame(props: ChatFrameProps) {
    */
   // 虚拟列表的index到historyMessage中的index的转换
   const isAtBottomRef = useRef(true);
+  const lastAutoSyncUnreadRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
   const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
     // return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
@@ -378,6 +379,24 @@ function ChatFrame(props: ChatFrameProps) {
       updateLastReadSyncId(roomId);
     }
   }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
+  useEffect(() => {
+    if (!enableUnreadIndicator) {
+      lastAutoSyncUnreadRef.current = null;
+      return;
+    }
+    if (unreadMessageNumber <= 0) {
+      lastAutoSyncUnreadRef.current = null;
+      return;
+    }
+    if (!isAtBottomRef.current) {
+      return;
+    }
+    if (lastAutoSyncUnreadRef.current === unreadMessageNumber) {
+      return;
+    }
+    lastAutoSyncUnreadRef.current = unreadMessageNumber;
+    updateLastReadSyncId(roomId);
+  }, [enableUnreadIndicator, roomId, unreadMessageNumber, updateLastReadSyncId]);
   /**
    * scroll相关
    */

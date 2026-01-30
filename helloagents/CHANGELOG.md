@@ -37,8 +37,12 @@
 - Chat：聊天列表中的文档卡片消息支持拖拽到 sidebarTree 进行复制（KP，copy 语义）
 - Chat：支持将聊天列表的文档卡片消息拖拽复制到“我的文档”（创建 `space_user_doc(udoc)` 副本并追加到 docFolder）
 - Chat：全局音频悬浮球（聚合所有正在播放的音频，支持列表查看与暂停/停止）
+- Chat：新增发现页 `/chat/discover`，用于集中展示已归档群聊（`space.status=2`），并提供“预览/打开”入口
+- Chat：发现页使用 Chat 版面内视图渲染，保留顶部栏与最左侧空间栏（类似 Discord Discover）
+- Chat：发现页拆分为两条路由：`/chat/discover`（广场）与 `/chat/discover/my`（我的归档，使用本地存储）
 
 ### 变更
+- Chat：KP 发言角色选择支持切换房间内所有角色（含玩家角色与 NPC）
 - 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata
 - OSS：新增音频上传/转码/发送调试日志开关（仅 DEV，`tc:audio:upload:debug` / `__TC_AUDIO_UPLOAD_DEBUG`）
 - OSS：音频上传统一输出为 `audio/webm`（Opus 编码，WebM 容器），并使用 `.webm` 后缀作为默认对象名扩展名
@@ -114,6 +118,8 @@
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复 eslint 错误：`AudioMessage` 避免条件调用 Hooks；`SpaceWorkspace` WS 更新回调移除未使用的 `serverTime` 解构
 - 修复 CI `pnpm install` 失败：通过 `pnpm.overrides` 固定 `@electron/node-gyp` 为 registry 版本，避免通过 SSH clone GitHub
+- 修复聊天页面未读数在进入时持续累加：底部状态下对齐已读位置，标签仅显示实时未读
+- 修复未读来源难以定位：新增 `tc:unread:debug` 调试日志开关，输出未读统计细节
 - 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
 - 修复发送音频消息时偶发卡死：移除 `decodeAudioData` 兜底解析（大文件会阻塞主线程），仅基于 metadata 解析时长
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传

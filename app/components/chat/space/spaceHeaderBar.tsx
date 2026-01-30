@@ -1,8 +1,8 @@
-import { HouseIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, HouseIcon } from "@phosphor-icons/react";
 import React from "react";
-import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { AddIcon, ChevronDown, DiceD6Icon, GraphIcon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
+import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
+import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 
@@ -17,9 +17,10 @@ export interface SpaceHeaderBarProps {
 }
 
 export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember, onToggleLeftDrawer, isLeftDrawerOpen }: SpaceHeaderBarProps) {
-  const navigate = useNavigate();
   const spaceContext = React.use(SpaceContext);
-  const spaceId = spaceContext.spaceId ?? -1;
+  const spaceId = Number(spaceContext.spaceId ?? -1);
+  const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
+  const archived = Boolean(isArchived);
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
 
   return (
@@ -35,7 +36,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
           <span className="text-base font-bold truncate leading-none min-w-0 flex-1 text-left">
             {spaceName}
           </span>
-          {isArchived && (
+          {archived && (
             <span className="badge badge-sm">已归档</span>
           )}
           <ChevronDown className="size-4 opacity-60 shrink-0" />
@@ -69,21 +70,6 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
             <button
               type="button"
               className="gap-3"
-              disabled={spaceId <= 0}
-              onClick={() => {
-                if (spaceId > 0) {
-                  navigate(`/chat/${spaceId}/preview`);
-                }
-              }}
-            >
-              <GraphIcon className="size-4 opacity-70" />
-              <span className="flex-1 text-left">空间预览</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              className="gap-3"
               onClick={() => {
                 onOpenSpaceDetailPanel("trpg");
               }}
@@ -103,6 +89,23 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
               >
                 <Setting className="size-4 opacity-70" />
                 <span className="flex-1 text-left">空间资料</span>
+              </button>
+            </li>
+          )}
+          {isSpaceOwner && (
+            <li>
+              <button
+                type="button"
+                className="gap-3"
+                disabled={spaceId <= 0 || updateArchiveStatus.isPending}
+                onClick={() => {
+                  if (spaceId > 0) {
+                    updateArchiveStatus.mutate({ spaceId, archived: !archived });
+                  }
+                }}
+              >
+                <ArchiveIcon className="size-4 opacity-70" />
+                <span className="flex-1 text-left">{archived ? "取消归档" : "归档空间"}</span>
               </button>
             </li>
           )}

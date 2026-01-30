@@ -18,7 +18,6 @@ function AvatarDropdownContentImpl({
         roleId={roleId}
         handleExpressionChange={onAvatarChange}
         handleRoleChange={onRoleChange}
-        showNarratorOption={false}
       />
     </div>
   );

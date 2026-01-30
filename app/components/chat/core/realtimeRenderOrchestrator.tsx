@@ -24,7 +24,7 @@ interface Props {
   spaceId: number;
   roomId: number;
   room: Room | undefined;
-  roomRoles: UserRole[];
+  roles: UserRole[];
   historyMessages: ChatMessageResponse[];
   chatHistoryLoading: boolean;
   onApiChange: (api: RealtimeRenderOrchestratorApi) => void;
@@ -34,7 +34,7 @@ export default function RealtimeRenderOrchestrator({
   spaceId,
   roomId,
   room,
-  roomRoles,
+  roles,
   historyMessages,
   chatHistoryLoading,
   onApiChange,
@@ -75,7 +75,7 @@ export default function RealtimeRenderOrchestrator({
   const realtimeRender = useRealtimeRender({
     spaceId,
     enabled: isRealtimeRenderEnabled,
-    roles: roomRoles,
+    roles,
     rooms: room ? [room] : [],
     ttsConfig: realtimeTTSConfig,
     miniAvatarEnabled: realtimeMiniAvatarEnabled,
