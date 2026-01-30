@@ -1283,6 +1283,85 @@ export function useGetUserRolesQuery(userId: number) {
   });
 }
 
+async function fetchUserRolesByType(userId: number, type: number): Promise<UserRole[]> {
+  const res = await tuanchat.roleController.getUserRolesByType(userId, type);
+  if (!res.success) {
+    throw new Error(res.errMsg || "鑾峰彇鐢ㄦ埛瑙掕壊澶辫触");
+  }
+  return (res.data ?? []).sort((a, b) => (b.roleId ?? 0) - (a.roleId ?? 0));
+}
+
+/**
+ * 鑾峰彇鐢ㄦ埛鎸夌被鍨嬬殑瑙掕壊
+ * @param userId 鐢ㄦ埛ID
+ * @param type  0=瑙掕壊,1=楠板,2=NPC
+ */
+export function useGetUserRolesByTypeQuery(userId: number, type: number) {
+  return useQuery({
+    queryKey: ["getUserRolesByType", userId, type],
+    queryFn: () => fetchUserRolesByType(userId, type),
+    staleTime: 600000,
+    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
+  });
+}
+
+type RoleInfinitePageParam = {
+  pageNo?: number;
+  pageSize?: number;
+};
+
+/**
+ * 鎸夌被鍨嬭繘琛?Infinite Query 鍔犺浇
+ *
+ * 娉ㄦ剰锛氬悗绔苟鏈?type+pageNo 的鐪熷垎椤垫帴鍙ｏ紝鎵€浠ヨ繖閲屽鍗曠被鍨嬬殑鏁版嵁鍋氣€滃墠绔垏鐗囧垎椤碘€濓紝
+ * 但至少不会出现“骰娘被普通角色挤到后面页”的混合分页问题。
+ */
+export function useGetInfiniteUserRolesByTypeQuery(userId: number, type: number) {
+  const PAGE_SIZE = 15;
+  const queryClient = useQueryClient();
+  return useInfiniteQuery({
+    queryKey: ["roleInfiniteByType", userId, type],
+    queryFn: async ({ pageParam }: { pageParam: RoleInfinitePageParam }) => {
+      const pageNo = pageParam.pageNo ?? 1;
+      const pageSize = pageParam.pageSize ?? PAGE_SIZE;
+
+      const allRoles = await queryClient.fetchQuery({
+        queryKey: ["getUserRolesByType", userId, type],
+        queryFn: () => fetchUserRolesByType(userId, type),
+        staleTime: 600000,
+      });
+
+      const start = (pageNo - 1) * pageSize;
+      const list = allRoles.slice(start, start + pageSize);
+      const totalRecords = allRoles.length;
+      const isLast = start + pageSize >= totalRecords;
+
+      return {
+        success: true,
+        data: {
+          pageNo,
+          pageSize,
+          totalRecords,
+          isLast,
+          list,
+        },
+      };
+    },
+    initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data?.pageNo === undefined || lastPage.data?.isLast) {
+        return undefined;
+      }
+      return {
+        pageNo: lastPage.data.pageNo + 1,
+        pageSize: PAGE_SIZE,
+      };
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
+  });
+}
+
 export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
   return useQuery({
     queryKey: ['getUserRolesPage', params],
