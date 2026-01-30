@@ -672,6 +672,35 @@ function RoomComposerPanelImpl({
         </div>
       )
     : null;
+  const roleNameNode = isEditingName
+    ? (
+        <input
+          className="input input-xs input-bordered bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info w-full max-w-48"
+          value={editingName}
+          autoFocus
+          onClick={stopEvent}
+          onChange={e => setEditingName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              cancelEditingName(e);
+            }
+            if (e.key === "Enter") {
+              commitEditingName(e);
+            }
+          }}
+          onBlur={commitEditingName}
+          placeholder={currentRole?.roleName || ""}
+        />
+      )
+    : (
+        <div
+          className={`text-sm font-medium truncate ${isRoleNameEditable ? "cursor-text" : "text-base-content/50 select-none"}`}
+          title={isRoleNameEditable ? "点击编辑显示名称" : undefined}
+          onClick={startEditingName}
+        >
+          {displayRoleName || "\u00A0"}
+        </div>
+      );
   const chatInputAreaNode = isMobile
     ? (
         <div className="flex items-end gap-2">
@@ -750,34 +779,7 @@ function RoomComposerPanelImpl({
                       </div>
                       <div className="min-w-0 flex items-center gap-2">
                         <div className="min-w-0 flex-1">
-                          {!isEditingName && (
-                            <div
-                              className={`text-sm font-medium truncate ${isRoleNameEditable ? "cursor-text" : "text-base-content/50 select-none"}`}
-                              title={isRoleNameEditable ? "点击编辑显示名称" : undefined}
-                              onClick={startEditingName}
-                            >
-                              {displayRoleName || "\u00A0"}
-                            </div>
-                          )}
-                          {isEditingName && (
-                            <input
-                              className="input input-xs input-bordered bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info w-full max-w-48"
-                              value={editingName}
-                              autoFocus
-                              onClick={stopEvent}
-                              onChange={e => setEditingName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                  cancelEditingName(e);
-                                }
-                                if (e.key === "Enter") {
-                                  commitEditingName(e);
-                                }
-                              }}
-                              onBlur={() => commitEditingName()}
-                              placeholder={currentRole?.roleName || ""}
-                            />
-                          )}
+                          {roleNameNode}
                         </div>
                         {selfStatusBarNode && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
                         {selfStatusBarNode}
