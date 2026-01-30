@@ -8,7 +8,7 @@
 
 - **职责:** Chat 页面与布局、房间列表与分类、消息渲染与发送、房间资料与文档入口、跑团相关交互
 - **状态:** ?开发中
-- **最后更新:** 2026-01-29
+- **最后更新:** 2026-01-30
 
 
 
@@ -16,6 +16,7 @@
 
 - 主要目录：`app/components/chat/`
 - 关键路由：
+  - `/chat/discover`：发现页（列出已归档群聊/空间）
   - `/chat/:spaceId/:roomId`：房间聊天页
   - `/chat/:spaceId/:roomId/setting`：房间资料页（含 Blocksuite 文档）
   - `/chat/:spaceId/doc/:docId`：独立文档页（保留侧边栏）
