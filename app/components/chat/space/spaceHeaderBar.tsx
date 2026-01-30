@@ -1,8 +1,6 @@
 import { HouseIcon } from "@phosphor-icons/react";
-import React from "react";
-import { useNavigate } from "react-router";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { AddIcon, ChevronDown, DiceD6Icon, GraphIcon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
+import { useMemo } from "react";
+import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
 
 export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 
@@ -17,10 +15,7 @@ export interface SpaceHeaderBarProps {
 }
 
 export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember, onToggleLeftDrawer, isLeftDrawerOpen }: SpaceHeaderBarProps) {
-  const navigate = useNavigate();
-  const spaceContext = React.use(SpaceContext);
-  const spaceId = spaceContext.spaceId ?? -1;
-  const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
+  const leftDrawerLabel = useMemo(() => (isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏"), [isLeftDrawerOpen]);
 
   return (
     <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
@@ -63,21 +58,6 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
             >
               <MapPlaceHolderIcon className="size-4 opacity-70" />
               <span className="flex-1 text-left">流程图</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              className="gap-3"
-              disabled={spaceId <= 0}
-              onClick={() => {
-                if (spaceId > 0) {
-                  navigate(`/space-preview/${spaceId}`);
-                }
-              }}
-            >
-              <GraphIcon className="size-4 opacity-70" />
-              <span className="flex-1 text-left">空间预览</span>
             </button>
           </li>
           <li>

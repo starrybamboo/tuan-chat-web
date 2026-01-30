@@ -205,13 +205,6 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       <div className="mt-4 flex items-center justify-end gap-2">
                         <button
                           type="button"
-                          className="btn btn-sm btn-ghost"
-                          onClick={() => navigate(`/space-preview/${spaceId}`)}
-                        >
-                          预览
-                        </button>
-                        <button
-                          type="button"
                           className="btn btn-sm btn-primary"
                           onClick={() => navigate(`/chat/${spaceId}`)}
                         >
