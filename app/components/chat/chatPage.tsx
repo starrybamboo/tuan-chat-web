@@ -1,4 +1,4 @@
-﻿import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 import {
   useAddRoomMemberMutation,
@@ -1076,9 +1076,9 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   }, [unreadMessagesNumber]);
   // 鍦ㄦ爣绛鹃〉涓樉绀烘湭璇绘秷鎭?
   useEffect(() => {
-    const originalTitle = document.title.replace(/^\d+鏉℃柊娑堟伅-/, ""); // 娓呴櫎宸叉湁鍓嶇紑
+    const originalTitle = document.title.replace(/^\d+条新消息-/, ""); // 清除已有前缀
     if (totalUnreadMessages > 0) {
-      document.title = `${totalUnreadMessages}鏉℃柊娑堟伅-${originalTitle}`;
+      document.title = `${totalUnreadMessages}条新消息-${originalTitle}`;
     }
     else {
       document.title = originalTitle;
@@ -1394,7 +1394,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                     />
                   </div>
                 </OpenAbleDrawer>
-                {/* 鑱婂ぉ璁板綍绐楀彛锛岃緭鍏ョ獥鍙ｏ紝渚ц竟鏍?*/}
+                {/* 鑱婂ぉ璁板綍绐楀彛锛岃緭鍏ョ獥鍙ｏ紝渚ц竟鏍? */}
                 <div
                   className={`flex-1 min-h-0 min-w-0 transition-opacity ${isOpenLeftDrawer ? "opacity-0 pointer-events-none" : "opacity-100"}`}
                   aria-hidden={isOpenLeftDrawer}
@@ -1405,11 +1405,11 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
             )
           : (
               <>
-                {/* 妗岄潰绔細鎴块棿鍒楄〃 + 鍙充晶瑙嗗浘鏀惧湪鍚屼竴瀹瑰櫒锛屽苟鍋氬乏涓婂渾瑙?*/}
+                {/* 妗岄潰绔細鎴块棿鍒楄〃 + 鍙充晶瑙嗗浘鏀惧湪鍚屼竴瀹瑰櫢锛屽苟鍋氬乏涓婳渾瑙? */}
                 <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
                   <div className="flex flex-col bg-base-200 h-full relative">
                     <div className="flex flex-row flex-1 min-h-0">
-                      {/* 妗岄潰绔細绌洪棿鍒楄〃涓嶅湪鍦嗚瀹瑰櫒鍐?*/}
+                      {/* 妗岄潰绔：绌洪棿鍒楄〃涓嶅湪鍦嗚瀹瑰櫢鍐? */}
                       <div className="bg-base-200 h-full">
                         <ChatSpaceSidebar
                           isPrivateChatMode={isPrivateChatMode}
@@ -1601,7 +1601,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
                 )}
           </div>
         </PopWindow>
-        {/* 鎴块棿閭€璇风帺瀹剁獥鍙?*/}
+        {/* 鎴块棿閭€璇风帺瀹剁獥鍙? */}
         <PopWindow
           isOpen={inviteRoomId !== null}
           onClose={() => setInviteRoomId(null)}
@@ -1611,7 +1611,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
             showSpace={true}
           />
         </PopWindow>
-        {/* 绌洪棿鎴愬憳閭€璇风獥鍙?*/}
+        {/* 绌洪棿鎴愬憳閭€璇风獥鍙? */}
         <PopWindow
           isOpen={isMemberHandleOpen}
           onClose={() => {
