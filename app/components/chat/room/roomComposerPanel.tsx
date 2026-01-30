@@ -657,6 +657,21 @@ function RoomComposerPanelImpl({
         </div>
       )
     : null;
+  const avatarPopoverNode = isAvatarPopoverOpen && !isSpectator
+    ? (
+        <div className="absolute left-0 bottom-full mb-2 z-50 flex items-stretch">
+          <div className="w-[92vw] md:w-120 min-w-100 max-w-[92vw] rounded-box bg-base-100 border border-base-300 shadow-lg p-2 self-stretch flex flex-col">
+            <div className="flex-1 min-h-0">
+              <AvatarDropdownContent
+                roleId={curRoleId}
+                onAvatarChange={setCurAvatarId}
+                onRoleChange={setCurRoleId}
+              />
+            </div>
+          </div>
+        </div>
+      )
+    : null;
   const chatInputAreaNode = isMobile
     ? (
         <div className="flex items-end gap-2">
@@ -731,19 +746,7 @@ function RoomComposerPanelImpl({
                         >
                           {avatarContent}
                         </button>
-                        {isAvatarPopoverOpen && !isSpectator && (
-                          <div className="absolute left-0 bottom-full mb-2 z-50 flex items-stretch">
-                            <div className="w-[92vw] md:w-120 min-w-100 max-w-[92vw] rounded-box bg-base-100 border border-base-300 shadow-lg p-2 self-stretch flex flex-col">
-                              <div className="flex-1 min-h-0">
-                                <AvatarDropdownContent
-                                  roleId={curRoleId}
-                                  onAvatarChange={setCurAvatarId}
-                                  onRoleChange={setCurRoleId}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        {avatarPopoverNode}
                       </div>
                       <div className="min-w-0 flex items-center gap-2">
                         <div className="min-w-0 flex-1">
