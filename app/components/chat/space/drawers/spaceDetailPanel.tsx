@@ -7,6 +7,7 @@ import MemberLists from "@/components/chat/shared/components/memberLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
+import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { BaselineArrowBackIosNew } from "@/icons";
 import {
@@ -26,6 +27,13 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   // const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
   const resolvedTab = (!spaceContext.isSpaceOwner && activeTab === "setting") ? "members" : activeTab;
+  const panelTitle = resolvedTab === "members"
+    ? "空间成员"
+    : resolvedTab === "workflow"
+      ? "流程图"
+      : resolvedTab === "trpg"
+        ? "跑团设置"
+        : "空间资料";
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
@@ -38,11 +46,11 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
       spaceId,
-      roleIdList: [roleId],
+      roleId,
     }, {
       onSettled: () => {
         // setIsRoleHandleOpen(false);
-        toast("添加成员成功");
+        toast("添加NPC成功");
       },
     });
   };
@@ -92,7 +100,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   };
   return (
     <div className="h-full w-full overflow-hidden">
-      <div className="flex items-center gap-2 px-2 py-1 border-b border-base-300 bg-base-100">
+      <div className="flex items-center gap-2 h-10 px-2 border-t border-b border-gray-300 dark:border-gray-700 bg-base-100">
         <button
           type="button"
           className="btn btn-ghost btn-sm btn-square"
@@ -102,31 +110,31 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
           <BaselineArrowBackIosNew className="size-5" />
         </button>
         <div className="text-sm font-medium opacity-80 truncate">
-          空间资料
+          {panelTitle}
         </div>
 
       </div>
       {resolvedTab === "members" && (
-        <div className="h-full space-y-2 p-4 overflow-y-auto">
-          <div className="flex flex-row justify-center items-center gap-2 px-4">
-            <p>
-              空间成员-
-              {spaceMembers.length}
-            </p>
-          </div>
+        <div className="h-full space-y-2 overflow-y-auto">
           <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
       )}
 
       {resolvedTab === "setting" && spaceContext.isSpaceOwner && (
-        <div className="h-full p-4 overflow-y-auto">
+        <div className="h-full  overflow-y-auto">
           <SpaceSettingWindow onClose={onClose} />
         </div>
       )}
 
       {resolvedTab === "workflow" && (
-        <div className="h-full p-4 overflow-y-auto">
+        <div className="h-full overflow-y-auto">
           <WorkflowWindow></WorkflowWindow>
+        </div>
+      )}
+
+      {resolvedTab === "trpg" && (
+        <div className="h-full overflow-hidden">
+          <SpaceTrpgSettingWindow />
         </div>
       )}
 

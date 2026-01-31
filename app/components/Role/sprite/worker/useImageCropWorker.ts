@@ -241,12 +241,16 @@ async function runWithConcurrencyLimit<T, R>(
       }
     })();
 
-    executing.push(promise);
+    const tracked = promise.finally(() => {
+      const index = executing.indexOf(tracked);
+      if (index >= 0) {
+        executing.splice(index, 1);
+      }
+    });
+    executing.push(tracked);
 
     if (executing.length >= maxConcurrency) {
       await Promise.race(executing);
-      // 移除已完成的 promise，保持并发队列流动
-      executing.splice(0, executing.findIndex(() => true) + 1);
     }
   }
 

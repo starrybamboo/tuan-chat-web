@@ -1,3 +1,5 @@
+// BGM 播放器封装，维护单例 Audio 与 WebAudio 增益控制。
+// 使用 metadata 预加载策略以支持边播边加载。
 type BgmPlayOptions = {
   loop?: boolean;
   /**
@@ -26,7 +28,7 @@ function ensureAudio(): HTMLAudioElement {
     return audio;
 
   audio = new Audio();
-  audio.preload = "auto";
+  audio.preload = "metadata";
   audio.loop = true;
 
   // 允许跨域资源接入 WebAudio（否则 createMediaElementSource + 外链可能导致问题）

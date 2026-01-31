@@ -1,12 +1,13 @@
-import { use } from "react";
+import { use, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
+import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useGetRoleAvatarQuery,
+  useGetRoleAvatarsQuery,
 } from "../../../api/hooks/RoleAndAvatarHooks";
 
 const sizeMap = {
@@ -35,6 +36,7 @@ const sizeMap = {
  * @param alt
  * @param allowKickOut 是否允许被踢出，模组角色是不可以的
  * @param hoverToScale 是否允许鼠标悬停时放大
+ * @param detailVariant 详情弹窗形态：simple(旧) / page(复用角色页面)
  */
 export default function RoleAvatarComponent({
   avatarId,
@@ -45,8 +47,10 @@ export default function RoleAvatarComponent({
   withTitle = false,
   stopPopWindow = false,
   alt = "avatar",
+  useDefaultAvatarFallback = true,
   allowKickOut = true,
   hoverToScale = false,
+  detailVariant = "page",
 }: {
   avatarId: number;
   roleId?: number;
@@ -55,16 +59,26 @@ export default function RoleAvatarComponent({
   withTitle?: boolean; // 是否在下方显示标题
   stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
   alt?: string;
+  /** 当 avatarId <= 0 且无法从 roleId 找到可用头像时，是否回退到默认图标（/favicon.ico） */
+  useDefaultAvatarFallback?: boolean;
   allowKickOut?: boolean;
   hoverToScale?: boolean;
+  detailVariant?: "simple" | "page";
 }) {
-  const avatarQuery = useGetRoleAvatarQuery(avatarId);
+  const hasExplicitAvatarId = typeof avatarId === "number" && avatarId > 0;
+  const safeAvatarId = hasExplicitAvatarId ? avatarId : 0;
+  const avatarQuery = useGetRoleAvatarQuery(safeAvatarId);
   const roleAvatar = avatarQuery.data?.data;
-  const roleIdTrue = roleId ?? roleAvatar?.roleId;
-  const hasAvatar = Boolean(roleAvatar?.avatarUrl);
+  const shouldUseFallback = !hasExplicitAvatarId && typeof roleId === "number" && roleId > 0;
+  const fallbackAvatarsQuery = useGetRoleAvatarsQuery(roleId ?? -1, { enabled: shouldUseFallback });
+  const fallbackAvatar = shouldUseFallback ? fallbackAvatarsQuery.data?.data?.[0] : undefined;
+  const defaultAvatarUrl = (hasExplicitAvatarId || useDefaultAvatarFallback) ? "/favicon.ico" : "";
+  const displayAvatarUrl = (hasExplicitAvatarId ? roleAvatar?.avatarUrl : fallbackAvatar?.avatarUrl) || defaultAvatarUrl;
+  const roleIdTrue = roleId ?? roleAvatar?.roleId ?? fallbackAvatar?.roleId;
+  const hasAvatar = Boolean(displayAvatarUrl);
 
   // 控制角色详情的popWindow
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleIdTrue}`, false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const roomContext = use(RoomContext);
   const roomId = roomContext?.roomId ?? -1;
@@ -83,7 +97,7 @@ export default function RoleAvatarComponent({
             : (
                 <ImgWithHoverToScale
                   enableScale={hoverToScale}
-                  src={roleAvatar?.avatarUrl}
+                  src={displayAvatarUrl}
                   alt={alt}
                   className={`${!stopPopWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
                 />
@@ -98,7 +112,22 @@ export default function RoleAvatarComponent({
           (isOpen && !stopPopWindow && roomId) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)} fullScreen={getScreenSize() === "sm"}>
               <div className="justify-center w-full">
-                <RoleDetail roleId={roleIdTrue ?? -1} allowKickOut={allowKickOut}></RoleDetail>
+                {detailVariant === "simple"
+                  ? (
+                      <RoleDetail
+                        roleId={roleIdTrue ?? -1}
+                        allowKickOut={allowKickOut}
+                        onClose={() => setIsOpen(false)}
+                      >
+                      </RoleDetail>
+                    )
+                  : (
+                      <RoleDetailPagePopup
+                        roleId={roleIdTrue ?? -1}
+                        allowKickOut={allowKickOut}
+                        onClose={() => setIsOpen(false)}
+                      />
+                    )}
               </div>
             </PopWindow>
           )

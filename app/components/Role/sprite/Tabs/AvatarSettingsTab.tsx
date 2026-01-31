@@ -47,7 +47,6 @@ export function AvatarSettingsTab({
     }
     return currentAvatar.avatarTitle as Record<string, string>;
   }, [currentAvatar]);
-
   // 情绪调节器兜底标签
   const DEFAULT_MOOD_LABELS = useMemo(
     () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
@@ -205,7 +204,7 @@ export function AvatarSettingsTab({
       <div className="mt-4 flex justify-end gap-2 shrink-0">
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary rounded-md"
           onClick={handleApplyMood}
           disabled={!currentAvatar || isSaving}
         >

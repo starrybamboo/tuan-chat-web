@@ -1,4 +1,4 @@
-import { CheckerboardIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -53,6 +53,8 @@ export default function ChatToolbarDock({
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const subDrawerState = useSideDrawerStore(state => state.subState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
   const defaultFigurePositionEffective = defaultFigurePosition ?? undefined;
   return (
@@ -177,6 +179,15 @@ export default function ChatToolbarDock({
 
       {showRunControls && runModeEnabled && (
         <div className="flex gap-2 ml-0.5 mb-1 md:mb-0 md:mt-1">
+          <div
+            className="tooltip tooltip-top hover:text-info"
+            data-tip="我的文档"
+            data-side-drawer-toggle="true"
+            onClick={() => setSideDrawerState(sideDrawerState === "docFolder" ? "none" : "docFolder")}
+          >
+            <FileTextIcon className="size-6" />
+          </div>
+
           <div className="tooltip tooltip-top hover:text-info" data-tip="查看线索" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}>
             <Detective className="size-6" />
           </div>
@@ -185,7 +196,12 @@ export default function ChatToolbarDock({
             <SwordIcon className="size-6 jump_icon" />
           </div>
 
-          <div className="tooltip tooltip-top" data-tip="地图" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}>
+          <div
+            className="tooltip tooltip-top"
+            data-tip="地图"
+            data-side-drawer-toggle="true"
+            onClick={() => setSubDrawerState(subDrawerState === "map" ? "none" : "map")}
+          >
             <CheckerboardIcon className="size-6 jump_icon" />
           </div>
         </div>

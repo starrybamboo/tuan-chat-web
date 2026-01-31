@@ -1,0 +1,77 @@
+.tc-audio-player.rhap_container {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.tc-audio-player .rhap_controls-section {
+  margin: 0;
+}
+
+.tc-audio-player .rhap_main-controls {
+  margin: 0 6px 0 0;
+}
+
+.tc-audio-player .rhap_main-controls-button {
+  width: 28px;
+  height: 28px;
+}
+
+.tc-audio-player .rhap_main-controls-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tc-audio-player .rhap_progress-section {
+  align-items: center;
+}
+
+.tc-audio-player .rhap_progress-bar {
+  height: var(--tc-audio-progress-height, 6px);
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
+.tc-audio-player .rhap_progress-filled {
+  background-color: #3b82f6;
+}
+
+.tc-audio-player .rhap_progress-indicator {
+  background-color: #3b82f6;
+  width: 10px;
+  height: 10px;
+  top: calc(-0.5 * var(--tc-audio-progress-height, 6px) + 1px);
+  margin-left: -5px;
+}
+
+.tc-audio-player .rhap_time {
+  font-size: 11px;
+  color: rgba(100, 116, 139, 0.9);
+}
+
+.tc-audio-player.tc-audio-player--sm .rhap_main-controls-button {
+  width: 24px;
+  height: 24px;
+}
+
+.tc-audio-player.tc-audio-player--sm .rhap_main-controls-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tc-audio-player.tc-audio-player--sm .rhap_time {
+  font-size: 10px;
+}
+
+.tc-audio-player.tc-audio-player--lg .rhap_main-controls-button {
+  width: 32px;
+  height: 32px;
+}
+
+.tc-audio-player.tc-audio-player--lg .rhap_main-controls-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tc-audio-player.tc-audio-player--lg .rhap_time {
+  font-size: 12px;
+}

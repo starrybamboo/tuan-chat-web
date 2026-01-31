@@ -8,6 +8,14 @@ interface EditableFieldProps {
   /** 确认更新内容后的回调函数 */
   handleContentUpdate: (content: string) => void;
   className?: string;
+  /** 根据内容长度自适应宽度（以 ch 为单位） */
+  autoWidth?: boolean;
+  /** 最小 ch 宽度（autoWidth 时生效） */
+  minCh?: number;
+  /** 最大 ch 宽度（autoWidth 时生效） */
+  maxCh?: number;
+  /** 额外的 ch 留白（autoWidth 时生效） */
+  padCh?: number;
   /** 是否允许编辑（设置为false时，和普通的<p>没有区别） @default true */
   canEdit?: boolean;
   /** 使用input元素替代textarea @default false */
@@ -21,6 +29,10 @@ export function EditableField({
   content,
   handleContentUpdate,
   className,
+  autoWidth = false,
+  minCh = 2,
+  maxCh = 8,
+  padCh = 1,
   canEdit = true,
   usingInput = false,
   type = "text",
@@ -86,7 +98,14 @@ export function EditableField({
   }, [isEditing, usingInput, cursorPosition]);
 
   const saveCursorPosition = (e: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setCursorPosition(e.currentTarget.selectionStart);
+    const { selectionStart, selectionEnd } = e.currentTarget;
+    if (selectionStart === null || selectionEnd === null) {
+      return;
+    }
+    if (selectionStart !== selectionEnd) {
+      return;
+    }
+    setCursorPosition(selectionStart);
   };
 
   // 使用回调函数来调整高度,避免在每次 editContent 变化时触发 effect
@@ -120,6 +139,10 @@ export function EditableField({
     }
   };
 
+  const textForWidth = (isEditing ? editContent : content) ?? "";
+  const chWidth = Math.min(maxCh, Math.max(minCh, (textForWidth?.length ?? 0) + padCh));
+  const widthStyle = autoWidth ? { width: `${chWidth}ch` } : undefined;
+
   return isEditing
     ? (
         usingInput
@@ -128,6 +151,7 @@ export function EditableField({
                 className={`${className} input border border-base-300 rounded-[8px] px-2 py-1 h-6`}
                 value={editContent}
                 type={type}
+                style={widthStyle}
                 onChange={e => setEditContent(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
@@ -146,6 +170,7 @@ export function EditableField({
                 className={`${className} min-w-[18rem] sm:min-w-[26rem] bg-transparent p-2 border-0 border-base-300 rounded-[8px] w-full overflow-hidden resize-none`}
                 ref={textareaRef}
                 value={editContent}
+                style={widthStyle}
                 onChange={handleChange}
                 onKeyUp={saveCursorPosition}
                 onClick={saveCursorPosition}
@@ -165,6 +190,7 @@ export function EditableField({
     : (
         <div
           className={`${className}`}
+          style={widthStyle}
           onDoubleClick={handleDoubleClick}
         >
           <TextEnhanceRenderer content={content} />

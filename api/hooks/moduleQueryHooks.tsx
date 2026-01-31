@@ -29,7 +29,7 @@ export function useUpdateItemMutation() {
 export function useAddItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem1(req),
+        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem(req),
         mutationKey: ['addItem'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['items'] });

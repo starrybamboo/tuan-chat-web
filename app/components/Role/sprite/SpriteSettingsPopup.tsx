@@ -1,4 +1,5 @@
 import type { RoleAvatar } from "api";
+import type { UploadContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
 import {
   CheckCircleIcon,
@@ -15,15 +16,18 @@ import {
   XCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { useBatchDeleteRoleAvatarsMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { PopWindow } from "@/components/common/popWindow";
 import { isMobileScreen } from "@/utils/getScreenSize";
+import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarLibraryTab } from "./Tabs/AvatarLibraryTab";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
+import { getEffectiveSpriteUrl } from "./utils";
 
 export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library";
 
@@ -93,11 +97,10 @@ export function SpriteSettingsPopup({
   }, [spritesAvatars, internalIndex]);
 
   // 当前选中的立绘 URL
-  const currentSpriteUrl = currentAvatar?.spriteUrl || null;
+  const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
 
   // ========== 上传和删除功能 ==========
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
-  const { mutate: batchDeleteAvatars } = useBatchDeleteRoleAvatarsMutation(role?.id);
+  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
 
   // Notification state for upload feedback
   const [uploadNotification, setUploadNotification] = useState<{
@@ -116,34 +119,35 @@ export function SpriteSettingsPopup({
   }, [uploadNotification]);
 
   // Handle avatar upload
-  const handleAvatarUpload = useCallback((data: any) => {
+  const handleAvatarUpload = useCallback(async (data: any, context?: UploadContext) => {
+    const isBatchUpload = Boolean(context?.batch);
     if (!role?.id) {
-      setUploadNotification({
-        type: "error",
-        message: "角色信息缺失，无法上传头像",
-      });
+      if (!isBatchUpload) {
+        setUploadNotification({
+          type: "error",
+          message: "角色信息缺失，无法上传头像",
+        });
+      }
+      if (isBatchUpload) {
+        throw new Error("角色信息缺失，无法上传头像");
+      }
       return;
     }
 
-    // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
-    uploadAvatar(
-      { ...data, roleId: role.id, autoApply: false, autoNameFirst: true },
-      {
-        onSuccess: () => {
-          setUploadNotification({
-            type: "success",
-            message: "头像上传成功",
-          });
-        },
-        onError: (error) => {
-          console.error("头像上传失败:", error);
-          setUploadNotification({
-            type: "error",
-            message: "头像上传失败，请重试",
-          });
-        },
-      },
-    );
+    try {
+      // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
+      await uploadAvatar({ ...data, roleId: role.id, autoApply: false, autoNameFirst: true });
+    }
+    catch (error) {
+      console.error("头像上传失败:", error);
+      if (!isBatchUpload) {
+        setUploadNotification({
+          type: "error",
+          message: "头像上传失败，请重试",
+        });
+      }
+      throw error;
+    }
   }, [role, uploadAvatar]);
 
   // 内部索引变更处理
@@ -151,12 +155,31 @@ export function SpriteSettingsPopup({
     setInternalIndex(index);
   }, []);
 
+  const handleAvatarSelectById = useCallback((avatarId: number) => {
+    const index = spritesAvatars.findIndex(a => a.avatarId === avatarId);
+    if (index !== -1) {
+      handleInternalIndexChange(index);
+    }
+  }, [spritesAvatars, handleInternalIndexChange]);
+
   // 应用头像到外部（同步外部状态）
   const handleAvatarChange = useCallback((avatarUrl: string, avatarId: number) => {
     onAvatarChange?.(avatarUrl, avatarId);
     // 同步外部立绘索引
-    onSpriteIndexChange?.(internalIndex);
-  }, [onAvatarChange, onSpriteIndexChange, internalIndex]);
+    if (onSpriteIndexChange) {
+      const nextIndex = spritesAvatars.findIndex(a => a.avatarId === avatarId);
+      onSpriteIndexChange(nextIndex !== -1 ? nextIndex : internalIndex);
+    }
+  }, [onAvatarChange, onSpriteIndexChange, spritesAvatars, internalIndex]);
+
+  const deletionHook = useAvatarDeletion({
+    role,
+    avatars: spritesAvatars,
+    selectedAvatarId: currentAvatar?.avatarId ?? 0,
+    onAvatarChange: handleAvatarChange,
+    onAvatarSelect: handleAvatarSelectById,
+  });
+  const { handleBatchDelete, isDeleting: isDeletingAvatar } = deletionHook;
 
   // 展示预览（仅同步外部索引，不关闭弹窗）
   const handlePreview = useCallback(() => {
@@ -190,14 +213,14 @@ export function SpriteSettingsPopup({
     if (selectedIndices.size === 0)
       return;
     if (selectedIndices.size >= spritesAvatars.length) {
-      console.error("无法删除所有头像，至少需要保留一个");
+      toast.error("无法删除所有头像，至少需要保留一个");
       return;
     }
     setBatchDeleteConfirmOpen(true);
   }, [selectedIndices, spritesAvatars.length]);
 
   // 执行批量删除
-  const handleBatchDeleteConfirm = useCallback(() => {
+  const handleBatchDeleteConfirm = useCallback(async () => {
     // Get avatar IDs from selected indices
     const avatarIdsToDelete = Array.from(selectedIndices)
       .map(index => spritesAvatars[index]?.avatarId)
@@ -206,23 +229,23 @@ export function SpriteSettingsPopup({
     if (avatarIdsToDelete.length === 0)
       return;
 
-    batchDeleteAvatars(avatarIdsToDelete, {
-      onSuccess: () => {
-        // Exit multi-select mode and clear selections
-        setIsMultiSelectMode(false);
-        setSelectedIndices(new Set());
-        setBatchDeleteConfirmOpen(false);
+    try {
+      await handleBatchDelete(avatarIdsToDelete);
+      // Exit multi-select mode and clear selections
+      setIsMultiSelectMode(false);
+      setSelectedIndices(new Set());
+      setBatchDeleteConfirmOpen(false);
 
-        // Reset internal index if needed
-        if (internalIndex >= spritesAvatars.length - avatarIdsToDelete.length) {
-          setInternalIndex(Math.max(0, spritesAvatars.length - avatarIdsToDelete.length - 1));
-        }
-      },
-      onError: (error) => {
-        console.error("批量删除失败:", error);
-      },
-    });
-  }, [selectedIndices, spritesAvatars, batchDeleteAvatars, internalIndex]);
+      // Reset internal index if needed
+      if (internalIndex >= spritesAvatars.length - avatarIdsToDelete.length) {
+        setInternalIndex(Math.max(0, spritesAvatars.length - avatarIdsToDelete.length - 1));
+      }
+    }
+    catch (error) {
+      console.error("批量删除失败:", error);
+      toast.error("批量删除失败，请稍后重试");
+    }
+  }, [selectedIndices, spritesAvatars, handleBatchDelete, internalIndex]);
 
   // 当弹窗从关闭变为打开时，重置为 defaultTab 并同步外部索引
   useEffect(() => {
@@ -342,12 +365,7 @@ export function SpriteSettingsPopup({
               gridCols="grid-cols-3"
               role={role}
               onAvatarChange={handleAvatarChange}
-              onAvatarSelect={(avatarId) => {
-                const index = spritesAvatars.findIndex(a => a.avatarId === avatarId);
-                if (index !== -1) {
-                  handleInternalIndexChange(index);
-                }
-              }}
+              onAvatarSelect={handleAvatarSelectById}
               onUpload={handleAvatarUpload}
               fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
               selectedIndices={selectedIndices}
@@ -547,9 +565,9 @@ export function SpriteSettingsPopup({
                 type="button"
                 className="btn btn-error"
                 onClick={handleBatchDeleteConfirm}
-                disabled={selectedIndices.size >= spritesAvatars.length}
+                disabled={selectedIndices.size >= spritesAvatars.length || isDeletingAvatar}
               >
-                确认删除
+                {isDeletingAvatar ? "删除中..." : "确认删除"}
               </button>
             </div>
           </div>

@@ -8,7 +8,7 @@
 
 - **职责:** Blocksuite runtime 初始化、iframe 强隔离、样式隔离、tcHeader/标题体系、doc metas 同步、提及/引用相关交互
 - **状态:** ?开发中
-$12026-01-19
+- **最后更新:** 2026-01-29
 
 ## 入口与目录
 
@@ -24,6 +24,10 @@ $12026-01-19
 
 Blocksuite 运行在 `/blocksuite-frame` 内；宿主侧只负责 iframe 容器与 `postMessage` 同步（主题/高度/模式等），避免上游 portal/global style 副作用污染同页 UI。
 
+### 1.1) 画布全屏（Fullscreen API）
+
+描述文档在 edgeless（画布）模式提供“全屏/退出全屏”按钮：由 `/blocksuite-frame` 内的运行时调用浏览器 Fullscreen API；宿主侧 iframe 需开启 `allowFullScreen` 权限（实现位于 `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`）。
+
 ### 2) SSR 安全：避免在模块顶层静态导入 Blocksuite runtime
 
 React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；Blocksuite 依赖链可能访问 DOM 全局对象。约定：在 `useEffect`/事件回调边界内使用 `import()` 动态加载，并在 cleanup 中解除订阅。
@@ -37,6 +41,34 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 
 当前 Blocksuite 版本下，输入 `@` 打开的弹窗来自 linked-doc widget 的 popover；同时 mention 在模型层是 embed 节点，插入必须遵循 embed 规则（见 gotchas）。
 
+补充约定（本项目 UI 信息架构）：
+- `Link to Doc`（文档候选）始终优先展示
+- `用户`（空间成员提及）默认收起为二级入口，仅展示“展开用户列表”，需要时再展开选择（实现位于 `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts` 的 `getDocMenus()`）
+- `用户`候选的展示信息（头像/名称）来自 `createTuanChatUserService()`：按 `userId` 拉取 `/user/info` 并缓存（避免仅显示 userId）
+- mention 节点的渲染组件为 `<affine-mention />`（`@blocksuite/affine-inline-mention`）；本项目在 Blocksuite core elements 初始化前注册自定义 `<affine-mention />`，让 mention 在文档内展示头像 + 名称，并移除前缀 `@`：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`
+- 文档内“用户 mention”的交互：点击 mention 跳转到 `/profile/:userId`；悬浮 mention 会在短延迟后显示个人主页悬浮窗，并基于 mention 位置居中对齐（宿主侧 portal 渲染，内容为个人主页 iframe）：`app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts`、`app/components/chat/infra/blocksuite/mentionProfilePopover.tsx`、`app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
+- 全屏画布模式下的 `@` 快速搜索弹窗需挂载到 top document，并使用高层级 z-index，避免被 edgeless 全屏遮挡（实现位于 `app/components/chat/infra/blocksuite/quickSearchService.ts`）
+- 若进入 Fullscreen API，`@` 弹窗需挂载到 fullscreenElement 或对应 iframe 文档，确保可见性（`app/components/chat/infra/blocksuite/quickSearchService.ts`）
+- blocksuite-frame 的“全屏画布”仅为 CSS 视口占满（`h-screen w-screen`），`@` 弹窗需挂载在 iframe 文档内避免被宿主 iframe 层级遮挡
+
+### 5) 同步与存储（仿 AFFiNE/OctoBase：updates 入库 + 定期合并 snapshot + stateVector diff）
+
+本项目 Blocksuite 文档的远端一致性以 **yjs updates 日志**为主，快照为可丢弃缓存（冷启动/加速用）：
+
+- **updates 入库（SSOT）**
+  - HTTP：`POST /blocksuite/doc/update`（离线/无 WS 时兜底）
+  - WebSocket：`type=202`（在线实时路径，服务端入库并 fanout）
+  - 前端实现：`app/components/chat/infra/blocksuite/remoteDocSource.ts`、`app/components/chat/infra/blocksuite/blocksuiteWsClient.ts`
+- **定期合并 snapshot（cache）**
+  - 触发：pull/push 发现 updates 累积或首次无快照时（debounce）
+  - 行为：拉取 snapshot+updates → `mergeUpdates` → 写回 v2 快照 → 调用 `/blocksuite/doc/compact` 删除已合并的 updates
+  - v2 快照结构：`{ v:2, updateB64, stateVectorB64?, snapshotServerTime, updatedAt }`
+  - 前端实现：`app/components/chat/infra/blocksuite/remoteDocSource.ts`
+- **stateVector diff（增量补齐）**
+  - 前端在 pull 阶段用 `diffUpdate(mergedUpdate, stateVector)` 计算最小补丁并 apply
+  - SpaceWorkspace 断线补齐：`app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
+  - 回调参数如未使用 `serverTime`，不要解构该字段（或改名 `_serverTime`），避免 eslint `unused-imports/no-unused-vars`
+
 ## 常见坑位（入口）
 
 - `mention` 是 embed 节点、linked-doc popover、`abort()` 语义、StrictMode 多次 mount 等：`helloagents/wiki/vendors/blocksuite/gotchas.md`
@@ -46,3 +78,46 @@ React Router 的 dev/SSR 评估阶段可能会在服务端加载部分模块；B
 - Blocksuite 依赖文档索引：`helloagents/wiki/vendors/blocksuite/index.md`
 - app 模块的 Blocksuite 集成事实记录：`helloagents/wiki/modules/app.md`
 
+## ??
+
+### ??: @????????
+**??:** blocksuite
+@????????????? tc_header ????????? Untitled?
+
+#### ??: @??????
+??? @ ?????????????
+- ????: ?????????????? Untitled
+
+
+### ??: @????????
+**??:** blocksuite
+??????? title ???????? tc_header ???
+
+#### ??: @??????
+??? @ ?????????????
+- ????: ????????? tc_header ??
+
+### ??: @????? Deleted doc
+**??:** blocksuite
+??????? doc ????? workspace?????? Deleted doc?
+
+#### ??: @??????
+??? @ ?????????????
+- ????: ????? Deleted doc
+
+### ??: @????? Deleted doc?workspace ???
+**??:** blocksuite
+????????????? `editorHost.std.workspace`???? title ????? meta?
+
+#### ??: @??????
+??? @ ?????????????
+- ????: ??? Deleted doc?????????
+## ????
+- 202601191140_blocksuite_mention_ref_title (../../history/2026-01/202601191140_blocksuite_mention_ref_title/) - ?? @??????????
+- 202601191418_blocksuite_mention_ref_title_alias (../../history/2026-01/202601191418_blocksuite_mention_ref_title_alias/) - ??????????
+- 202601201346_blocksuite_mention_deleted_doc_fix (../../history/2026-01/202601201346_blocksuite_mention_deleted_doc_fix/) - ???????? Deleted doc
+- 202601201354_blocksuite_mention_deleted_doc_fix2 (../../history/2026-01/202601201354_blocksuite_mention_deleted_doc_fix2/) - ???????? Deleted doc?workspace ???
+## Space 用户文档（space_user_doc）
+
+- docId 规范：`udoc:<docId>:description`
+- 远端快照：`/blocksuite/doc`（`entityType="space_user_doc"`, `entityId=<docId>`, `docType="description"`）

@@ -56,7 +56,35 @@ export default function CreateEntry({
             </p>
           </Link>
 
-          {/* 占位符 */}
+          {/* 规则编辑器入口卡片（全页选择页） */}
+          <Link
+            to="/role?type=rule"
+            className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 h-auto md:h-100 cursor-pointer transform hover:scale-105 flex flex-col justify-start items-stretch"
+          >
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-info/40 bg-info/5 text-info/60 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                className="w-8 h-8"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20M8 11h8M8 7h6"
+                >
+                </path>
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-base-content mb-2 text-center">规则编辑器</h3>
+            <p className="text-sm text-base-content/70 text-center leading-relaxed">
+              创建或编辑规则，用于普通角色模板
+            </p>
+          </Link>
+
+          {/* 占位符
           <div className="bg-base-100 rounded-xl p-6 shadow-sm border-2 border-dashed border-base-300 h-auto md:h-100">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-base-300 bg-base-200/30 text-base-content/40 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8">
@@ -68,11 +96,13 @@ export default function CreateEntry({
               敬请期待
             </p>
           </div>
+          */}
         </div>
 
         <p className="mt-10 text-xs text-base-content/70 text-center">
           💡 提示：也可以从现有角色页面点击"转换为骰娘"快速创建骰娘角色
         </p>
+
       </div>
     </div>
   );

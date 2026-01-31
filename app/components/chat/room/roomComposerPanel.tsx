@@ -2,6 +2,7 @@ import type { UserRole } from "../../../../api";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
@@ -18,9 +19,11 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
+import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export interface RoomComposerPanelProps {
   roomId: number;
@@ -44,6 +47,7 @@ export interface RoomComposerPanelProps {
   onClearBackground: () => void;
   onClearFigure: () => void;
   onSetWebgalVar: (key: string, expr: string) => Promise<void> | void;
+  onOpenImportChatText?: () => void;
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
   isKP?: boolean;
@@ -56,12 +60,18 @@ export interface RoomComposerPanelProps {
 
   placeholderText: string;
 
+  /** 拖拽投放文档引用后直接发送文档卡片消息 */
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
+
   curRoleId: number;
   curAvatarId: number;
   setCurRoleId: (roleId: number) => void;
   setCurAvatarId: (avatarId: number) => void;
 
-  roomRoles: UserRole[];
+  /** 输入框 @ 提及候选（应包含房间内全部可提及角色，含 NPC） */
+  mentionRoles: UserRole[];
+  /** 当前用户可切换的身份列表（玩家拥有角色 + NPC；旁白由 roleId=-1 表示） */
+  selectableRoles: UserRole[];
 
   chatInputRef: React.RefObject<ChatInputAreaHandle | null>;
   atMentionRef: React.RefObject<AtMentionHandle | null>;
@@ -95,17 +105,20 @@ function RoomComposerPanelImpl({
   onClearBackground,
   onClearFigure,
   onSetWebgalVar,
+  onOpenImportChatText,
   isKP,
   onStopBgmForAll,
   noRole,
   notMember,
   isSubmitting,
   placeholderText,
+  onSendDocCard,
   curRoleId,
   curAvatarId,
   setCurRoleId,
   setCurAvatarId,
-  roomRoles,
+  mentionRoles: mentionRolesProp,
+  selectableRoles,
   chatInputRef,
   atMentionRef,
   onInputSync,
@@ -120,9 +133,33 @@ function RoomComposerPanelImpl({
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const composerRootRef = React.useRef<HTMLDivElement | null>(null);
+  const [isDocRefDragOver, setIsDocRefDragOver] = React.useState(false);
+  const isDocRefDragOverRef = React.useRef(false);
+  const updateDocRefDragOver = React.useCallback((next: boolean) => {
+    if (isDocRefDragOverRef.current === next)
+      return;
+    isDocRefDragOverRef.current = next;
+    setIsDocRefDragOver(next);
+  }, []);
   const screenSize = useScreenSize();
   const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
+  const mentionRoles = React.useMemo(() => {
+    if (!isKP) {
+      return mentionRolesProp;
+    }
+    const atAllRole: UserRole = {
+      userId: -1,
+      roleId: -9999,
+      roleName: "检定请求",
+      avatarId: -1,
+      type: 0,
+      extra: {
+        mentionNote: "发送检定按钮",
+      },
+    };
+    return [atAllRole, ...mentionRolesProp];
+  }, [isKP, mentionRolesProp]);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
@@ -202,15 +239,24 @@ function RoomComposerPanelImpl({
   }, [curRoleId, setDefaultFigurePositionForRole]);
 
   const currentRole = React.useMemo(() => {
-    return roomRoles.find(role => role.roleId === curRoleId);
-  }, [curRoleId, roomRoles]);
+    return selectableRoles.find(role => role.roleId === curRoleId);
+  }, [curRoleId, selectableRoles]);
+
+  const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1);
+  const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
+  const hasRoleAvatarsLoaded = Boolean(roleAvatarsQuery.data);
 
   const displayRoleName = React.useMemo(() => {
     if (isSpectator) {
       return "观战";
     }
-    if (curRoleId <= 0) {
-      return "旁白";
+    // -1 表示旁白：不显示名称，但保持占位（渲染层处理）
+    if (curRoleId < 0) {
+      return "";
+    }
+    // 0 表示未选择角色
+    if (curRoleId === 0) {
+      return "未选择角色";
     }
     const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
     return draftName || currentRole?.roleName || "未选择角色";
@@ -242,6 +288,38 @@ function RoomComposerPanelImpl({
   }, [isSpectator]);
 
   React.useEffect(() => {
+    if (isSpectator || curRoleId <= 0) {
+      return;
+    }
+    if (!hasRoleAvatarsLoaded && !currentRole?.avatarId) {
+      return;
+    }
+
+    const avatarIds = roleAvatars
+      .map(avatar => avatar.avatarId ?? -1)
+      .filter(avatarId => avatarId > 0);
+    const hasValidAvatar = curAvatarId > 0
+      && (avatarIds.length === 0 || avatarIds.includes(curAvatarId));
+
+    if (hasValidAvatar) {
+      return;
+    }
+
+    const fallbackAvatarId = avatarIds[0] ?? currentRole?.avatarId ?? -1;
+    if (fallbackAvatarId > 0 && fallbackAvatarId !== curAvatarId) {
+      setCurAvatarId(fallbackAvatarId);
+    }
+  }, [
+    curAvatarId,
+    curRoleId,
+    currentRole?.avatarId,
+    hasRoleAvatarsLoaded,
+    isSpectator,
+    roleAvatars,
+    setCurAvatarId,
+  ]);
+
+  React.useEffect(() => {
     if (!isAvatarPopoverOpen) {
       return;
     }
@@ -251,6 +329,10 @@ function RoomComposerPanelImpl({
         return;
       }
       if (avatarPopoverRef.current?.contains(target)) {
+        return;
+      }
+      const modalRoot = document.getElementById("modal-root");
+      if (modalRoot?.contains(target)) {
         return;
       }
       setIsAvatarPopoverOpen(false);
@@ -292,14 +374,37 @@ function RoomComposerPanelImpl({
         />
 
         <div
-          className="flex flex-col gap-2 rounded-md"
+          className="relative flex flex-col gap-2 rounded-md"
           onDragOver={(e) => {
+            // 注意：部分浏览器在 dragover 阶段无法读取 getData 的自定义 MIME 内容。
+            // 因此这里仅基于 types 判定并 preventDefault，让 drop 一定能触发；
+            // 具体 payload 在 onDrop 再读取。
+            if (isDocRefDrag(e.dataTransfer)) {
+              updateDocRefDragOver(true);
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              return;
+            }
+            updateDocRefDragOver(false);
+
             if (isFileDrag(e.dataTransfer)) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
             }
           }}
+          onDragLeave={() => {
+            updateDocRefDragOver(false);
+          }}
           onDrop={(e) => {
+            updateDocRefDragOver(false);
+            const docRef = getDocRefDragData(e.dataTransfer);
+            if (docRef) {
+              e.preventDefault();
+              e.stopPropagation();
+              void onSendDocCard?.(docRef);
+              return;
+            }
+
             if (!isFileDrag(e.dataTransfer))
               return;
             e.preventDefault();
@@ -307,6 +412,13 @@ function RoomComposerPanelImpl({
             addDroppedFilesToComposer(e.dataTransfer);
           }}
         >
+          {isDocRefDragOver && (
+            <div className="pointer-events-none absolute inset-0 z-20 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
+              <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
+                松开发送文档卡片
+              </div>
+            </div>
+          )}
           <ChatAttachmentsPreviewFromStore />
 
           {replyMessage && (
@@ -394,13 +506,28 @@ function RoomComposerPanelImpl({
                         >
                           {curRoleId <= 0
                             ? (
-                                <div className="size-8 rounded-full bg-base-300 flex items-center justify-center shrink-0">
-                                  <NarratorIcon className="size-5 text-base-content/60" />
-                                </div>
+                                curAvatarId > 0
+                                  ? (
+                                      <RoleAvatarComponent
+                                        avatarId={curAvatarId}
+                                        width={8}
+                                        isRounded={true}
+                                        withTitle={false}
+                                        stopPopWindow={true}
+                                        useDefaultAvatarFallback={false}
+                                        alt="旁白"
+                                      />
+                                    )
+                                  : (
+                                      <div className="size-8 rounded-full bg-transparent flex items-center justify-center shrink-0">
+                                        <NarratorIcon className="size-5 text-base-content/60" />
+                                      </div>
+                                    )
                               )
                             : (
                                 <RoleAvatarComponent
                                   avatarId={curAvatarId}
+                                  roleId={curRoleId}
                                   width={8}
                                   isRounded={true}
                                   withTitle={false}
@@ -427,10 +554,10 @@ function RoomComposerPanelImpl({
                         <div className="min-w-0 flex-1">
                           {!isEditingName && (
                             <div
-                              className={`text-sm font-medium truncate ${isSpectator ? "" : "cursor-text"}`}
-                              title={isSpectator ? undefined : "点击编辑显示名称"}
+                              className={`text-sm font-medium truncate ${isSpectator || curRoleId <= 0 ? "text-base-content/50 select-none" : "cursor-text"}`}
+                              title={isSpectator || curRoleId <= 0 ? undefined : "点击编辑显示名称"}
                               onClick={(e) => {
-                                if (isSpectator) {
+                                if (isSpectator || curRoleId <= 0) {
                                   return;
                                 }
                                 e.preventDefault();
@@ -439,7 +566,7 @@ function RoomComposerPanelImpl({
                                 setIsEditingName(true);
                               }}
                             >
-                              {displayRoleName}
+                              {displayRoleName || "\u00A0"}
                             </div>
                           )}
                           {isEditingName && (
@@ -630,6 +757,7 @@ function RoomComposerPanelImpl({
                       onClearBackground={onClearBackground}
                       onClearFigure={onClearFigure}
                       onSetWebgalVar={onSetWebgalVar}
+                      onOpenImportChatText={onOpenImportChatText}
                       isKP={isKP}
                       onStopBgmForAll={onStopBgmForAll}
                       noRole={noRole}
@@ -655,7 +783,7 @@ function RoomComposerPanelImpl({
             <AtMentionController
               ref={atMentionRef}
               chatInputRef={chatInputRef as any}
-              allRoles={roomRoles}
+              allRoles={mentionRoles}
             >
             </AtMentionController>
           </div>

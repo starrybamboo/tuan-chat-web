@@ -1,10 +1,7 @@
 import type { Transform } from "../sprite/TransformControl";
 import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 React Hooks
 
-// --- 关键步骤 1: 定义你的基准尺寸 ---
-// 假设所有的 transform 值都是在 1280x720 (16:9) 的画布上设定的
-const REFERENCE_WIDTH = 2560;
-const REFERENCE_HEIGHT = 1440;
+import { getAnchorOffsetXRef, REFERENCE_HEIGHT, REFERENCE_WIDTH } from "./previewAnchor";
 
 /**
  * 渲染预览组件的属性接口
@@ -68,11 +65,13 @@ function RenderPreviewComponent({
       return transform;
     }
 
+    const anchorOffsetXRef = getAnchorOffsetXRef();
+
     // 返回一个新的 transform 对象，其中位置信息已被缩放
     // 注意：scale, rotation, alpha 保持不变，因为它们本身就是相对值
     return {
       ...transform,
-      positionX: transform.positionX * scaleX,
+      positionX: (transform.positionX + anchorOffsetXRef) * scaleX,
       positionY: transform.positionY * scaleY,
     };
   }, [transform, containerSize, scaleX, scaleY]); // 当 transform 或 containerSize 变化时重新计算
@@ -83,10 +82,12 @@ function RenderPreviewComponent({
         {/* 裁剪后的图像 - 左侧显示 */}
         <canvas
           ref={previewCanvasRef}
-          className="absolute left-0 h-full object-contain"
+          className="absolute h-full object-contain"
           style={{
-            objectPosition: "left center",
-            transform: `translate(${scaledTransform.positionX}px, ${scaledTransform.positionY}px) scale(${scaledTransform.scale}) rotate(${scaledTransform.rotation}deg)`,
+            left: "50%",
+            objectPosition: "center center",
+            transformOrigin: "center center",
+            transform: `translate(-50%, 0) translate(${scaledTransform.positionX}px, ${scaledTransform.positionY}px) scale(${scaledTransform.scale}) rotate(${scaledTransform.rotation}deg)`,
             opacity: scaledTransform.alpha,
           }}
         />
@@ -94,7 +95,7 @@ function RenderPreviewComponent({
         <div className="absolute bottom-[1%] left-[1%] right-[1%] h-[29%] bg-black/30 rounded">
           <div className="absolute top-0 left-[8%] text-white">
             <p className="text-white leading-snug">
-              <span className="block font-medium mt-[3%] text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-100" style={{ fontSize: `${55 * scaleX}px` }}>{characterName}</span>
+              <span className="block font-medium mt-[3%] text-transparent bg-clip-text bg-linear-to-b from-white to-cyan-100" style={{ fontSize: `${55 * scaleX}px` }}>{characterName}</span>
               <span className="block mt-[1%]" style={{ fontSize: `${55 * scaleX}px` }}>{dialogContent}</span>
             </p>
           </div>

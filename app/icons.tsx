@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import { AddressBookIcon, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, HouseIcon, ImageIcon, MusicNotesIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
+import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索
@@ -27,6 +27,40 @@ export function QQIcon(props: SVGProps<SVGSVGElement>) {
 export function UserSwitchIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <UserSwitch {...props} />
+  );
+}
+
+export function GraphIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Graph {...props} />
+  );
+}
+
+export function FolderIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Folder {...props} />
+  );
+}
+
+export function BookOpenTextIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BookOpenText {...props} />
+  );
+}
+
+// 文档图标
+// 其他关键词：文章，doc，资料
+export function ArticleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <FileText {...props} />
+  );
+}
+
+// 卡片图标
+// 其他关键词：卡片，收起，列表
+export function CardsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <PhosphorCardsIcon {...props} />
   );
 }
 
@@ -155,6 +189,14 @@ export function MoreMenu(props: SVGProps<SVGSVGElement>) {
 export function RoleListIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <AddressBookIcon {...props} />
+  );
+}
+
+// 身份卡图标
+// 其他关键词：角色详情，名片，信息卡
+export function IdentificationCardIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IdentificationCard {...props} />
   );
 }
 
@@ -1330,6 +1372,12 @@ export function ConnectionIcon() {
       <circle cx="20" cy="4" r="2" />
       <circle cx="4" cy="20" r="2" />
     </svg>
+  );
+}
+
+export function SidebarSimpleIcon() {
+  return (
+    <PhosphorSidebarSimpleIcon weight="bold" size={20} />
   );
 }
 

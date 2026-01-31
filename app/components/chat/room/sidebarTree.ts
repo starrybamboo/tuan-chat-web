@@ -5,6 +5,8 @@ export type SidebarLeafNode = {
   type: "room" | "doc";
   targetId: number | string;
   fallbackTitle?: string;
+  /** 文档封面/缩略图缓存（用于 sidebarTree 首屏快速展示） */
+  fallbackImageUrl?: string;
 };
 
 export type SidebarCategoryNode = {
@@ -19,7 +21,7 @@ export type SidebarTree = {
   categories: SidebarCategoryNode[];
 };
 
-export type MinimalDocMeta = { id: string; title?: string };
+export type MinimalDocMeta = { id: string; title?: string; imageUrl?: string };
 
 export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefined): MinimalDocMeta[] {
   const list: MinimalDocMeta[] = [];
@@ -35,7 +37,7 @@ export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefi
       if (seen.has(id))
         continue;
       seen.add(id);
-      list.push({ id, title: node.fallbackTitle });
+      list.push({ id, title: node.fallbackTitle, imageUrl: node.fallbackImageUrl });
     }
   }
 
@@ -79,12 +81,13 @@ function buildRoomNode(roomId: number, fallbackTitle?: string): SidebarLeafNode 
   };
 }
 
-function buildDocNode(docId: string, fallbackTitle?: string): SidebarLeafNode {
+function buildDocNode(docId: string, fallbackTitle?: string, fallbackImageUrl?: string): SidebarLeafNode {
   return {
     nodeId: `doc:${docId}`,
     type: "doc",
     targetId: docId,
     fallbackTitle,
+    fallbackImageUrl,
   };
 }
 
@@ -173,7 +176,7 @@ export function buildDefaultSidebarTree(params: {
     const docItems: SidebarLeafNode[] = params.docMetas
       .filter(m => typeof m?.id === "string" && m.id.length > 0)
       .map(m => ({
-        ...buildDocNode(m.id, m.title ?? m.id),
+        ...buildDocNode(m.id, m.title ?? m.id, m.imageUrl),
       }));
     categories.push({
       categoryId: "cat:docs",
@@ -214,6 +217,7 @@ export function normalizeSidebarTree(params: {
       docMetaMap.set(m.id, m);
     }
   }
+  const hasDocMetas = docMetaMap.size > 0;
 
   let base: SidebarTree;
   const inputTree = params.tree as any;
@@ -255,9 +259,13 @@ export function normalizeSidebarTree(params: {
     if (!docId)
       return null;
     const meta = docMetaMap.get(docId);
-    if (!meta)
+    // docMetas 可能是异步加载的：在还未加载到任何 meta 之前，允许保留 sidebarTree 里的 doc 节点，先展示缓存。
+    if (!meta && hasDocMetas)
       return null;
-    return buildDocNode(docId, raw?.fallbackTitle ?? meta.title ?? docId);
+
+    const title = raw?.fallbackTitle ?? meta?.title ?? docId;
+    const imageUrl = raw?.fallbackImageUrl ?? meta?.imageUrl;
+    return buildDocNode(docId, title, imageUrl);
   };
 
   const categories: SidebarCategoryNode[] = [];

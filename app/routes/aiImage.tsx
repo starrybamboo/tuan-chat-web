@@ -670,7 +670,7 @@ function writeLocalStorageString(key: string, value: string) {
   }
 }
 
-function dataUrlToBase64(dataUrl: string) {
+function _dataUrlToBase64(dataUrl: string) {
   const value = String(dataUrl || "");
   const idx = value.indexOf(",");
   if (idx < 0)
@@ -731,8 +731,6 @@ export default function AiImagePage() {
   const isNAI4 = isNaiV4Family(model);
 
   useEffect(() => {
-    if (uiMode !== "simple")
-      return;
     setMode("txt2img");
     setSourceImageDataUrl("");
     setSourceImageBase64("");
@@ -745,7 +743,12 @@ export default function AiImagePage() {
   }, [selectedStyleIds, stylePresets]);
 
   const selectedStyleTags = useMemo(() => {
-    return selectedStylePresets.flatMap(p => p.tags);
+    return selectedStylePresets.flatMap((preset) => {
+      if (preset.tags.length)
+        return preset.tags;
+      const fallback = String(preset.title || "").trim();
+      return fallback ? [fallback] : [];
+    });
   }, [selectedStylePresets]);
 
   const selectedStyleNegativeTags = useMemo(() => {
@@ -813,8 +816,11 @@ export default function AiImagePage() {
 
   const runGenerate = useCallback(async (args?: { prompt?: string; negativePrompt?: string; mode?: AiImageHistoryMode }) => {
     const effectiveMode = args?.mode ?? mode;
-    const effectivePrompt = String(args?.prompt ?? prompt).trim();
-    const effectiveNegative = String(args?.negativePrompt ?? negativePrompt);
+    const basePrompt = String(args?.prompt ?? prompt).trim();
+    const baseNegative = String(args?.negativePrompt ?? negativePrompt);
+    const mergeStyleTags = uiMode === "simple";
+    const effectivePrompt = mergeStyleTags ? mergeTagString(basePrompt, selectedStyleTags).trim() : basePrompt;
+    const effectiveNegative = mergeStyleTags ? mergeTagString(baseNegative, selectedStyleNegativeTags) : baseNegative;
     const v4CharsPayload = isNAI4 && uiMode === "pro" ? v4Chars.map(({ id, ...rest }) => rest) : undefined;
     const v4UseCoordsPayload = uiMode === "pro" ? v4UseCoords : undefined;
     const v4UseOrderPayload = uiMode === "pro" ? v4UseOrder : undefined;
@@ -822,6 +828,13 @@ export default function AiImagePage() {
     setError("");
     setLoading(true);
     try {
+      if (mergeStyleTags) {
+        if (effectivePrompt !== basePrompt)
+          setPrompt(effectivePrompt);
+        if (effectiveNegative !== baseNegative)
+          setNegativePrompt(effectiveNegative);
+      }
+
       const seedInput = Number(seed);
       const seedValue = Number.isFinite(seedInput) && seedInput >= 0 ? Math.floor(seedInput) : undefined;
       const generator = requestMode === "direct" ? generateNovelImageDirect : generateNovelImageViaProxy;
@@ -893,6 +906,8 @@ export default function AiImagePage() {
     requestMode,
     sampler,
     scale,
+    selectedStyleNegativeTags,
+    selectedStyleTags,
     seed,
     smea,
     smeaDyn,
@@ -908,17 +923,11 @@ export default function AiImagePage() {
     width,
   ]);
 
-  const handleSimpleGenerate = useCallback(async () => {
+  const handleSimpleGenerateFromText = useCallback(async () => {
     setSimpleError("");
     const trimmed = simpleText.trim();
     if (!trimmed) {
-      if (!prompt.trim()) {
-        setSimpleError("请先输入一行自然语言描述");
-        return;
-      }
-      const effectivePrompt = mergeTagString(prompt, selectedStyleTags);
-      const effectiveNegativePrompt = mergeTagString(negativePrompt, selectedStyleNegativeTags);
-      await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
+      setSimpleError("请先输入一行自然语言描述");
       return;
     }
 
@@ -950,23 +959,29 @@ export default function AiImagePage() {
       return;
     }
 
-    const effectivePrompt = mergeTagString(resolvedPrompt, selectedStyleTags);
-    const effectiveNegativePrompt = mergeTagString(resolvedNegativePrompt, selectedStyleNegativeTags);
-    await runGenerate({ mode: "txt2img", prompt: effectivePrompt, negativePrompt: effectiveNegativePrompt });
+    await runGenerate({ mode: "txt2img", prompt: resolvedPrompt, negativePrompt: resolvedNegativePrompt });
   }, [
     negativePrompt,
     prompt,
     runGenerate,
-    selectedStyleNegativeTags,
-    selectedStyleTags,
     simpleConverted,
     simpleConvertedFromText,
     simpleText,
   ]);
 
+  const handleSimpleGenerateFromTags = useCallback(async () => {
+    setSimpleError("");
+    if (!prompt.trim()) {
+      setSimpleError("prompt 为空：请先完成自然语言转换或手动编辑 tags");
+      return;
+    }
+    await runGenerate({ mode: "txt2img", prompt, negativePrompt });
+  }, [negativePrompt, prompt, runGenerate]);
+
   const handleLoadHistory = useCallback((row: AiImageHistoryRow) => {
-    const effectiveMode: AiImageHistoryMode = uiMode === "simple" ? "txt2img" : row.mode;
-    setMode(effectiveMode);
+    setMode("txt2img");
+    setSourceImageDataUrl("");
+    setSourceImageBase64("");
     setPrompt(row.prompt);
     setNegativePrompt(row.negativePrompt);
     setV4UseCoords(Boolean(row.v4UseCoords));
@@ -988,11 +1003,7 @@ export default function AiImagePage() {
     setWidth(row.width);
     setHeight(row.height);
     setResult({ dataUrl: row.dataUrl, seed: row.seed, width: row.width, height: row.height, model: row.model });
-    if (effectiveMode === "img2img" && row.sourceDataUrl) {
-      setSourceImageDataUrl(row.sourceDataUrl);
-      setSourceImageBase64(dataUrlToBase64(row.sourceDataUrl));
-    }
-  }, [uiMode]);
+  }, []);
 
   const handleDeleteCurrentHistory = useCallback(async () => {
     const selectedDataUrl = result?.dataUrl;
@@ -1101,65 +1112,6 @@ export default function AiImagePage() {
           <div className="card bg-base-200">
             <div className="card-body gap-3">
               <div className="flex items-center gap-2">
-                <div className="font-medium">模式</div>
-                <div className="ml-auto join">
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => setMode("txt2img")}
-                  >
-                    txt2img
-                  </button>
-                  {uiMode !== "simple"
-                    ? (
-                        <button
-                          type="button"
-                          className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
-                          onClick={() => setMode("img2img")}
-                        >
-                          img2img
-                        </button>
-                      )
-                    : null}
-                </div>
-              </div>
-
-              {uiMode !== "simple" && mode === "img2img"
-                ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
-                          选择源图
-                        </button>
-                        {result?.dataUrl
-                          ? (
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-ghost"
-                                onClick={() => {
-                                  setSourceImageDataUrl(result.dataUrl);
-                                  setSourceImageBase64(dataUrlToBase64(result.dataUrl));
-                                }}
-                              >
-                                使用当前结果
-                              </button>
-                            )
-                          : null}
-                      </div>
-                      <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
-                        {sourceImageDataUrl
-                          ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
-                          : <div className="text-sm opacity-60">未选择源图</div>}
-                      </div>
-                    </div>
-                  )
-                : null}
-            </div>
-          </div>
-
-          <div className="card bg-base-200">
-            <div className="card-body gap-3">
-              <div className="flex items-center gap-2">
                 <div className="font-medium">Prompt</div>
                 {uiMode === "pro" && isNAI4
                   ? (
@@ -1181,57 +1133,104 @@ export default function AiImagePage() {
                 ? (
                     <div className="flex flex-col gap-3">
                       <div className="text-sm opacity-80">一行自然语言 → 自动转换 tags → 出图</div>
-                      <input
-                        className="input input-bordered w-full"
-                        value={simpleText}
-                        onChange={(e) => {
-                          const next = e.target.value;
-                          setSimpleText(next);
-                          if (simpleConverted) {
-                            setSimpleConverted(null);
-                            setSimpleConvertedFromText("");
-                            setPrompt("");
-                            setNegativePrompt("");
-                            setV4Chars([]);
-                          }
-                        }}
-                        placeholder="例如：A girl with silver hair in a rainy cyberpunk street, cinematic lighting"
-                      />
+                      <div className="join w-full">
+                        <input
+                          className="input input-bordered join-item flex-1"
+                          value={simpleText}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            setSimpleText(next);
+                            if (simpleConverted) {
+                              setSimpleConverted(null);
+                              setSimpleConvertedFromText("");
+                              setPrompt("");
+                              setNegativePrompt("");
+                              setV4Chars([]);
+                            }
+                          }}
+                          placeholder="例如：A girl with silver hair in a rainy cyberpunk street, cinematic lighting"
+                        />
+                        <button
+                          type="button"
+                          className={`btn btn-primary join-item ${canGenerate ? "" : "btn-disabled"}`}
+                          onClick={() => void handleSimpleGenerateFromText()}
+                        >
+                          {loading || simpleConverting ? "出图中..." : "一键出图"}
+                        </button>
+                      </div>
 
                       {simpleError ? <div className="text-sm text-error">{simpleError}</div> : null}
+
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs opacity-70">画风</div>
+                          <div className="ml-auto flex items-center gap-2">
+                            {selectedStyleIds.length
+                              ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
+                              : <div className="text-xs opacity-60">未选择</div>}
+                            <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
+                              选择画风
+                            </button>
+                            {selectedStyleIds.length
+                              ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
+                              : null}
+                          </div>
+                        </div>
+
+                        {selectedStylePresets.length
+                          ? (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedStylePresets.map((preset) => {
+                                  return (
+                                    <button
+                                      key={preset.id}
+                                      type="button"
+                                      className="flex items-center gap-2 rounded-box border border-base-300 bg-base-100 pr-2 hover:border-primary"
+                                      onClick={() => setIsStylePickerOpen(true)}
+                                      title="点击继续选择画风"
+                                    >
+                                      <div className="w-10 aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                                        {preset.imageUrl
+                                          ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
+                                          : <div className="text-xs opacity-60">{preset.title}</div>}
+                                      </div>
+                                      <div className="text-xs opacity-70 max-w-32 truncate">{preset.title}</div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )
+                          : null}
+
+                        {selectedStyleTags.length
+                          ? (
+                              <div className="text-xs opacity-70">
+                                {`画风 tags：${selectedStyleTags.join(", ")}`}
+                              </div>
+                            )
+                          : null}
+                      </div>
 
                       {prompt.trim()
                         ? (
                             <div className="flex flex-col gap-2">
-                              <div className="text-xs opacity-70">最终 tags（可编辑后再次生成）：</div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs opacity-70">最终 tags（可编辑）：</div>
+                                <div className="ml-auto">
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs btn-primary ${canGenerate ? "" : "btn-disabled"}`}
+                                    onClick={() => void handleSimpleGenerateFromTags()}
+                                  >
+                                    按 tag 出图
+                                  </button>
+                                </div>
+                              </div>
                               <textarea
                                 className="textarea textarea-bordered w-full min-h-24"
                                 value={prompt}
                                 onChange={e => setPrompt(e.target.value)}
                               />
-
-                              <div className="flex items-center gap-2">
-                                <div className="text-xs opacity-70">画风</div>
-                                <div className="ml-auto flex items-center gap-2">
-                                  {selectedStyleIds.length
-                                    ? <div className="text-xs opacity-60">{`已选 ${selectedStyleIds.length} 个`}</div>
-                                    : <div className="text-xs opacity-60">未选择</div>}
-                                  <button type="button" className="btn btn-xs" onClick={() => setIsStylePickerOpen(true)}>
-                                    选择画风
-                                  </button>
-                                  {selectedStyleIds.length
-                                    ? <button type="button" className="btn btn-xs btn-ghost" onClick={handleClearStyles}>清空</button>
-                                    : null}
-                                </div>
-                              </div>
-
-                              {selectedStyleTags.length
-                                ? (
-                                    <div className="text-xs opacity-70">
-                                      {`画风 tags：${selectedStyleTags.join(", ")}`}
-                                    </div>
-                                  )
-                                : null}
 
                               <details className="collapse bg-base-100">
                                 <summary className="collapse-title text-sm">负面 tags（可选）</summary>
@@ -1497,13 +1496,17 @@ export default function AiImagePage() {
 
         <div className="flex-1 overflow-auto p-3 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className={`btn btn-primary ${canGenerate ? "" : "btn-disabled"}`}
-              onClick={() => void (uiMode === "simple" ? handleSimpleGenerate() : runGenerate())}
-            >
-              {loading || simpleConverting ? "生成中..." : (uiMode === "simple" && simpleConverted ? "重新生成" : "生成")}
-            </button>
+            {uiMode !== "simple"
+              ? (
+                  <button
+                    type="button"
+                    className={`btn btn-primary ${canGenerate ? "" : "btn-disabled"}`}
+                    onClick={() => void runGenerate()}
+                  >
+                    {loading ? "生成中..." : "生成"}
+                  </button>
+                )
+              : null}
             {result ? <a className="btn" href={result.dataUrl} download={`nai_${result.seed}.png`}>下载</a> : null}
             {result ? <button type="button" className="btn btn-ghost" onClick={() => void handleDeleteCurrentHistory()}>删除当前</button> : null}
             {history.length ? <button type="button" className="btn btn-ghost" onClick={() => void handleClearHistory()}>清空历史</button> : null}
@@ -1693,61 +1696,6 @@ export default function AiImagePage() {
         : (
             <div className="flex-1 overflow-hidden flex">
               <div className="w-[380px] shrink-0 border-r border-base-300 overflow-auto p-3 flex flex-col gap-3">
-                <div className="card bg-base-200">
-                  <div className="card-body gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="font-medium">模式</div>
-                      <div className="ml-auto join">
-                        <button
-                          type="button"
-                          className={`btn btn-sm join-item ${mode === "txt2img" ? "btn-primary" : "btn-ghost"}`}
-                          onClick={() => setMode("txt2img")}
-                        >
-                          txt2img
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn btn-sm join-item ${mode === "img2img" ? "btn-primary" : "btn-ghost"}`}
-                          onClick={() => setMode("img2img")}
-                        >
-                          img2img
-                        </button>
-                      </div>
-                    </div>
-
-                    {mode === "img2img"
-                      ? (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <button type="button" className="btn btn-sm" onClick={() => fileInputRef.current?.click()}>
-                                选择源图
-                              </button>
-                              {result?.dataUrl
-                                ? (
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-ghost"
-                                      onClick={() => {
-                                        setSourceImageDataUrl(result.dataUrl);
-                                        setSourceImageBase64(dataUrlToBase64(result.dataUrl));
-                                      }}
-                                    >
-                                      使用当前结果
-                                    </button>
-                                  )
-                                : null}
-                            </div>
-                            <div className="bg-base-100 rounded-box p-2 min-h-28 flex items-center justify-center">
-                              {sourceImageDataUrl
-                                ? <img src={sourceImageDataUrl} className="max-h-40 w-auto rounded-box" alt="source" />
-                                : <div className="text-sm opacity-60">未选择源图</div>}
-                            </div>
-                          </div>
-                        )
-                      : null}
-                  </div>
-                </div>
-
                 <div className="card bg-base-200">
                   <div className="card-body gap-3">
                     <div className="font-medium">Prompt</div>
@@ -2016,7 +1964,7 @@ export default function AiImagePage() {
                   onClick={() => handleToggleStyle(preset.id)}
                   title={preset.tags.length ? preset.tags.join(", ") : preset.title}
                 >
-                  <div className="w-full aspect-video rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
+                  <div className="w-full aspect-square rounded-box bg-base-200 overflow-hidden flex items-center justify-center">
                     {preset.imageUrl
                       ? <img src={preset.imageUrl} alt={preset.title} className="w-full h-full object-cover" />
                       : <div className="text-xs opacity-60">{preset.title}</div>}

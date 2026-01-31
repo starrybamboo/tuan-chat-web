@@ -3,7 +3,7 @@ import type { Role } from "../types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RenderPreview } from "../Preview/RenderPreview";
 import { SpriteSettingsPopup } from "./SpriteSettingsPopup";
-import { parseTransformFromAvatar } from "./utils";
+import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "./utils";
 
 interface SpriteRenderStudioProps {
   characterName: string;
@@ -36,8 +36,8 @@ export function SpriteRenderStudio({
   // 优先使用外部Canvas引用，否则使用内部引用
   const previewCanvasRef = externalCanvasRef || internalCanvasRef;
 
-  // 过滤出有立绘的头像
-  const spritesAvatars = roleAvatars.filter(avatar => avatar.spriteUrl);
+  // 过滤出“有可用立绘源”的头像：无立绘时使用头像作为默认立绘
+  const spritesAvatars = roleAvatars.filter(avatar => Boolean(getEffectiveSpriteUrl(avatar)));
 
   // 使用useMemo计算正确的立绘索引，响应数据变化
   const correctSpriteIndex = useMemo(() => {
@@ -101,7 +101,7 @@ export function SpriteRenderStudio({
     return null;
   }, [currentSpriteIndex, spritesAvatars, initialAvatarId, manualIndexOffset]);
 
-  const spriteUrl = currentSprite?.spriteUrl || null;
+  const spriteUrl = currentSprite ? (getEffectiveSpriteUrl(currentSprite) || null) : null;
 
   // 直接从 currentSprite 计算 transform,无需状态
   const transform = useMemo(() => {

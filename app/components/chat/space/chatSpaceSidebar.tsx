@@ -2,8 +2,9 @@ import type { Space } from "../../../../api";
 
 import { ChatCircleIcon } from "@phosphor-icons/react";
 import React, { useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
-import { AddIcon } from "@/icons";
+import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
 
 export interface ChatSpaceSidebarProps {
   isPrivateChatMode: boolean;
@@ -17,6 +18,8 @@ export interface ChatSpaceSidebarProps {
   onSelectSpace: (spaceId: number) => void;
   onCreateSpace: () => void;
   onSpaceContextMenu: (e: React.MouseEvent) => void;
+  onToggleLeftDrawer?: () => void;
+  isLeftDrawerOpen?: boolean;
 }
 
 export default function ChatSpaceSidebar({
@@ -31,10 +34,13 @@ export default function ChatSpaceSidebar({
   onSelectSpace,
   onCreateSpace,
   onSpaceContextMenu,
+  onToggleLeftDrawer,
+  isLeftDrawerOpen,
 }: ChatSpaceSidebarProps) {
   const isDraggingRef = useRef(false);
   const [draggingSpaceId, setDraggingSpaceId] = useState<number | null>(null);
   const [draftOrderIds, setDraftOrderIds] = useState<number[] | null>(null);
+  const showCollapsedToggle = onToggleLeftDrawer && isLeftDrawerOpen === false;
 
   const currentIds = useMemo(() => {
     if (Array.isArray(spaceOrderIds) && spaceOrderIds.length > 0) {
@@ -93,37 +99,64 @@ export default function ChatSpaceSidebar({
   };
 
   return (
-    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto">
-      {/* 私信入口 */}
-      <div className="rounded w-10 relative mx-2">
-        <div
-          className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
-          }`}
-        />
-        <button
-          className="tooltip tooltip-bottom w-10 btn btn-square"
-          data-tip="私信"
-          type="button"
-          aria-label="私信"
-          onClick={onOpenPrivate}
-        >
-          <div className="indicator">
-            {(privateUnreadMessagesNumber > 0)
-              ? (
-                  <span className="indicator-item badge badge-xs bg-error">
-                    {privateUnreadMessagesNumber > 99 ? "99+" : privateUnreadMessagesNumber}
-                  </span>
-                )
-              : null}
-            <ChatCircleIcon className="size-6" weight="bold" />
-          </div>
-        </button>
+    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible">
+      {showCollapsedToggle && (
+        <div className="rounded w-10 relative z-20 hover:z-50 mx-2 mt-1 mb-1">
+          <button
+            className="tooltip tooltip-bottom w-10 btn btn-square"
+            data-tip="展开侧边栏"
+            type="button"
+            aria-label="展开侧边栏"
+            onClick={onToggleLeftDrawer}
+          >
+            <SidebarSimpleIcon />
+          </button>
+        </div>
+      )}
+      <div className="flex flex-col gap-1">
+        {/* 发现入口 */}
+        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+          <Link
+            to="/chat/discover"
+            className="tooltip tooltip-bottom w-10 btn btn-square"
+            data-tip="发现"
+            aria-label="发现"
+          >
+            <CompassIcon className="size-6" />
+          </Link>
+        </div>
+
+        {/* 私信入口 */}
+        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+          <div
+            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
+            }`}
+          />
+          <button
+            className="tooltip tooltip-bottom w-10 btn btn-square"
+            data-tip="私信"
+            type="button"
+            aria-label="私信"
+            onClick={onOpenPrivate}
+          >
+            <div className="indicator">
+              {(privateUnreadMessagesNumber > 0)
+                ? (
+                    <span className="indicator-item badge badge-xs bg-error">
+                      {privateUnreadMessagesNumber > 99 ? "99+" : privateUnreadMessagesNumber}
+                    </span>
+                  )
+                : null}
+              <ChatCircleIcon className="size-6" weight="bold" />
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* 分隔线 */}
       <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-      <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2" onContextMenu={onSpaceContextMenu}>
+      <div className="hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2" onContextMenu={onSpaceContextMenu}>
         {/* 全部空间列表 */}
         {renderSpaces.map(space => (
           <div
@@ -210,7 +243,7 @@ export default function ChatSpaceSidebar({
         ))}
       </div>
       <button
-        className="tooltip tooltip-top btn btn-square btn-dash btn-info w-10 mx-2"
+        className="tooltip tooltip-top btn btn-square btn-dash btn-info w-10 mx-2 relative z-20 hover:z-50"
         type="button"
         data-tip="创建"
         aria-label="创建空间"

@@ -1,7 +1,7 @@
 import type { UserRole } from "api";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useDeleteRolesMutation, useGetInfiniteUserRolesByTypeQuery, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
@@ -37,14 +37,15 @@ export function Sidebar({
   const [isNormalCollapsed, setIsNormalCollapsed] = useState(false);
   // 获取用户数据
   const userId = useGlobalContext().userId;
+  const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
   const {
-    data: roleQuery,
-    isSuccess,
+    data: normalRolesQuery,
+    isSuccess: isNormalSuccess,
     fetchNextPage,
     // isFetchingNextPage,
     hasNextPage,
     // status,
-  } = useGetInfiniteUserRolesQuery(userId ?? -1);
+  } = useGetInfiniteUserRolesByTypeQuery(userId ?? -1, 0);
   // 创建角色接口
   // const { mutateAsync: createRole } = useCreateRoleMutation();
   // 上传头像接口
@@ -86,23 +87,25 @@ export function Sidebar({
     });
 
     // 有query数据时
-    if (isSuccess && roleQuery.pages.length > 0) {
+    const diceUserRoles = diceRolesQuery.data ?? [];
+    const normalUserRoles = normalRolesQuery?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+    if (diceUserRoles.length > 0 || normalUserRoles.length > 0) {
       // 将API返回的角色数据映射为前端使用的格式
-      const mappedRoles = roleQuery?.pages.flatMap(page =>
-        (page.data?.list ?? []).map(convertRole),
-      ) ?? [];
+      const mappedRoles = [...diceUserRoles, ...normalUserRoles].map(convertRole);
+      const filteredMappedRoles = mappedRoles.filter(role => role.type !== 2);
       // 将映射后的角色数据设置到状态中
       setRoles((prev) => {
+        const filteredPrev = prev.filter(role => role.type !== 2);
         // 如果存在旧角色数据，需要过滤掉重复的角色，这也避免了头像数据的重复加载
-        const existingIds = new Set(prev.map(r => r.id));
-        const newRoles = mappedRoles.filter(
+        const existingIds = new Set(filteredPrev.map(r => r.id));
+        const newRoles = filteredMappedRoles.filter(
           role => !existingIds.has(role.id),
         );
-        return [...prev, ...newRoles];
+        return [...filteredPrev, ...newRoles];
       });
 
       // 并行加载所有角色的头像
-      const avatarPromises = mappedRoles.map(async (role) => {
+      const avatarPromises = filteredMappedRoles.map(async (role) => {
         // 检查角色的头像是否已经缓存
         const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", role.id]);
         if (cachedAvatar) {
@@ -216,12 +219,12 @@ export function Sidebar({
 
   // 初始化角色数据
   useEffect(() => {
-    if (isSuccess) {
+    if (diceRolesQuery.isSuccess || isNormalSuccess) {
       loadRoles();
     }
     // 监听 roleQuery.pages 的变化，当 infinite query 加载新页面时也会触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSuccess, roleQuery?.pages.length]);
+  }, [diceRolesQuery.data?.length, isNormalSuccess, normalRolesQuery?.pages.length]);
   // 过滤角色列表（按搜索）
   const filteredRoles = roles
     .filter(role => role.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -300,7 +303,7 @@ export function Sidebar({
   return (
     <>
 
-      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 md:bg-base-300/40 flex flex-col">
+      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 md:bg-base-300/40 flex flex-col border-t border-gray-300 dark:border-gray-700">
         {/* 搜索和创建区域 - 固定在顶部 */}
         <div className="flex gap-2 sticky top-0 bg-transparent z-50 py-2">
           <label className="input">

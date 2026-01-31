@@ -70,7 +70,7 @@ const BGM_MAX_GAIN = 1.6; // 最大增益（整体偏大时下调这里）
 const BGM_CURVE = 2.2; // >1 越大：低音量更细腻，高音量段变化更明显
 
 function uiToGain(uiVolume: number | undefined): number | undefined {
-  if (typeof uiVolume !== "number")
+  if (typeof uiVolume !== "number" || !Number.isFinite(uiVolume))
     return undefined;
 
   const v = Math.max(0, Math.min(100, uiVolume)) / 100; // 0~1
@@ -171,7 +171,7 @@ export const useBgmStore = create<BgmState>((set, get) => ({
       // 如果 track 自带 volume 则初始化默认音量，否则默认 50
       volumeByRoomId: {
         ...state.volumeByRoomId,
-        [roomId]: typeof track.volume === "number"
+        [roomId]: typeof track.volume === "number" && Number.isFinite(track.volume)
           ? Math.max(0, Math.min(100, track.volume))
           : (state.volumeByRoomId[roomId] ?? 50),
       },
@@ -321,6 +321,8 @@ export const useBgmStore = create<BgmState>((set, get) => ({
   },
 
   setVolume: (roomId, volume) => {
+    if (!Number.isFinite(volume))
+      return;
     const clamped = Math.max(0, Math.min(100, volume));
     set(state => ({
       ...state,

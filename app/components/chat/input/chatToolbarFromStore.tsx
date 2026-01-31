@@ -15,7 +15,7 @@ export default function ChatToolbarFromStore({
   notMember,
   isSubmitting,
   ...rest
-}: Omit<ChatToolbarProps, "disableSendMessage" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
+}: Omit<ChatToolbarProps, "disableSendMessage" | "disableImportChatText" | "isRealtimeRenderActive" | "updateEmojiUrls" | "updateImgFiles" | "setAudioFile" | "roomId" | "isKP" | "onStopBgmForAll"> & {
   roomId: number;
   isKP?: boolean;
   onStopBgmForAll?: () => void;
@@ -33,8 +33,12 @@ export default function ChatToolbarFromStore({
 
   const disableSendMessage = React.useMemo(() => {
     const noInput = !(plainText.trim() || hasAttachments);
-    return (noRole && !isKP) || notMember || noInput || isSubmitting;
-  }, [plainText, hasAttachments, isKP, noRole, notMember, isSubmitting]);
+    return noRole || notMember || noInput || isSubmitting;
+  }, [plainText, hasAttachments, noRole, notMember, isSubmitting]);
+
+  const disableImportChatText = React.useMemo(() => {
+    return notMember || isSubmitting;
+  }, [isSubmitting, notMember]);
 
   return (
     <ChatToolbar
@@ -47,6 +51,7 @@ export default function ChatToolbarFromStore({
       updateImgFiles={updateImgFiles}
       setAudioFile={setAudioFile}
       disableSendMessage={disableSendMessage}
+      disableImportChatText={disableImportChatText}
       isRealtimeRenderActive={isRealtimeRenderActive}
     />
   );

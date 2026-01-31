@@ -5,17 +5,20 @@ import type {
   ImageMessage,
   Message,
 } from "../../../api";
+import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
@@ -56,6 +59,7 @@ interface ChatFrameProps {
   isMessageMovable?: (message: Message) => boolean;
   onBackgroundUrlChange?: (url: string | null) => void;
   onEffectChange?: (effectName: string | null) => void;
+  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
@@ -79,6 +83,7 @@ function ChatFrame(props: ChatFrameProps) {
     isMessageMovable,
     onBackgroundUrlChange,
     onEffectChange,
+    onSendDocCard,
     onExecuteCommandRequest,
   } = props;
   const globalContext = useGlobalContext();
@@ -349,6 +354,7 @@ function ChatFrame(props: ChatFrameProps) {
    */
   // 虚拟列表的index到historyMessage中的index的转换
   const isAtBottomRef = useRef(true);
+  const lastAutoSyncUnreadRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
   const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
     // return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
@@ -373,6 +379,24 @@ function ChatFrame(props: ChatFrameProps) {
       updateLastReadSyncId(roomId);
     }
   }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
+  useEffect(() => {
+    if (!enableUnreadIndicator) {
+      lastAutoSyncUnreadRef.current = null;
+      return;
+    }
+    if (unreadMessageNumber <= 0) {
+      lastAutoSyncUnreadRef.current = null;
+      return;
+    }
+    if (!isAtBottomRef.current) {
+      return;
+    }
+    if (lastAutoSyncUnreadRef.current === unreadMessageNumber) {
+      return;
+    }
+    lastAutoSyncUnreadRef.current = unreadMessageNumber;
+    updateLastReadSyncId(roomId);
+  }, [enableUnreadIndicator, roomId, unreadMessageNumber, updateLastReadSyncId]);
   /**
    * scroll相关
    */
@@ -655,9 +679,87 @@ function ChatFrame(props: ChatFrameProps) {
   const indicatorRef = useRef<HTMLDivElement | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const pendingDragCheckRef = useRef<{ target: HTMLDivElement; clientY: number } | null>(null);
+  const dragScrollRafRef = useRef<number | null>(null);
+  const dragScrollDirectionRef = useRef<-1 | 0 | 1>(0);
+  const scrollerRef = useRef<HTMLElement | null>(null);
+  const windowDragOverListeningRef = useRef(false);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
+  const [isDocRefDragOver, setIsDocRefDragOver] = useState(false);
+  const isDocRefDragOverRef = useRef(false);
+  const updateDocRefDragOver = useCallback((next: boolean) => {
+    if (isDocRefDragOverRef.current === next)
+      return;
+    isDocRefDragOverRef.current = next;
+    setIsDocRefDragOver(next);
+  }, []);
+
+  const sendDocCardFromDrop = useCallback(async (payload: DocRefDragPayload) => {
+    if (onSendDocCard) {
+      try {
+        await onSendDocCard(payload);
+      }
+      catch {
+        toast.error("发送文档失败");
+      }
+      return;
+    }
+
+    const docId = String(payload?.docId ?? "").trim();
+    if (!docId) {
+      toast.error("未检测到可用文档");
+      return;
+    }
+
+    if (!parseDescriptionDocId(docId)) {
+      toast.error("仅支持发送空间文档（我的文档/描述文档）");
+      return;
+    }
+
+    const currentSpaceId = roomContext.spaceId ?? -1;
+    if (payload?.spaceId && payload.spaceId !== currentSpaceId) {
+      toast.error("仅支持在同一空间分享文档");
+      return;
+    }
+
+    const notMember = (roomContext.curMember?.memberType ?? 3) >= 3;
+    const isKP = spaceContext.isSpaceOwner;
+    const curRoleId = roomContext.curRoleId ?? -1;
+    const isNarrator = curRoleId <= 0;
+
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isNarrator && !isKP) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      return;
+    }
+
+    const request: ChatMessageRequest = {
+      roomId,
+      roleId: curRoleId,
+      avatarId: roomContext.curAvatarId ?? -1,
+      content: "",
+      messageType: MESSAGE_TYPE.DOC_CARD,
+      extra: {
+        docCard: {
+          docId,
+          ...(currentSpaceId > 0 ? { spaceId: currentSpaceId } : {}),
+          ...(payload?.title ? { title: payload.title } : {}),
+          ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
+        },
+      } as any,
+    };
+
+    const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+    if (composerTarget === "thread" && threadRootMessageId) {
+      request.threadId = threadRootMessageId;
+    }
+
+    send(request);
+  }, [onSendDocCard, roomContext.curAvatarId, roomContext.curMember?.memberType, roomContext.curRoleId, roomContext.spaceId, roomId, send, spaceContext.isSpaceOwner]);
   /**
    * 通用的消息拖拽消息函数
    * @param targetIndex 将被移动到targetIndex对应的消息的下方
@@ -700,13 +802,14 @@ function ChatFrame(props: ChatFrameProps) {
     const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
       ?? historyMessages[historyMessages.length - 1].message.position + 1;
 
-    for (const selectedMessage of selectedMessages) {
-      const index = selectedMessages.indexOf(selectedMessage);
+    const step = (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1);
+    selectedMessages.forEach((selectedMessage, index) => {
+      const nextPosition = step * (index + 1) + topMessagePosition;
       updateMessage({
         ...selectedMessage,
-        position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
+        position: nextPosition,
       });
-    }
+    });
   }, [historyMessages, isMessageMovable, updateMessage]);
   const cleanupDragIndicator = useCallback(() => {
     pendingDragCheckRef.current = null;
@@ -714,10 +817,94 @@ function ChatFrame(props: ChatFrameProps) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
+    if (dragScrollRafRef.current !== null) {
+      cancelAnimationFrame(dragScrollRafRef.current);
+      dragScrollRafRef.current = null;
+    }
+    dragScrollDirectionRef.current = 0;
     indicatorRef.current?.remove();
     curDragOverMessageRef.current = null;
     dropPositionRef.current = "before";
   }, []);
+
+  const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
+    if (dragScrollDirectionRef.current === direction) {
+      return;
+    }
+    dragScrollDirectionRef.current = direction;
+
+    if (direction === 0) {
+      if (dragScrollRafRef.current !== null) {
+        cancelAnimationFrame(dragScrollRafRef.current);
+        dragScrollRafRef.current = null;
+      }
+      return;
+    }
+
+    if (dragScrollRafRef.current !== null) {
+      return;
+    }
+
+    const step = () => {
+      const currentDirection = dragScrollDirectionRef.current;
+      if (currentDirection === 0) {
+        dragScrollRafRef.current = null;
+        return;
+      }
+      virtuosoRef.current?.scrollBy({ top: currentDirection * 18, behavior: "auto" });
+      dragScrollRafRef.current = requestAnimationFrame(step);
+    };
+
+    dragScrollRafRef.current = requestAnimationFrame(step);
+  }, [virtuosoRef]);
+
+  const updateAutoScroll = useCallback((clientY: number) => {
+    if (dragStartMessageIdRef.current === -1) {
+      startAutoScroll(0);
+      return;
+    }
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      startAutoScroll(0);
+      return;
+    }
+    const rect = scroller.getBoundingClientRect();
+    const topDistance = clientY - rect.top;
+    const bottomDistance = rect.bottom - clientY;
+    const threshold = 80;
+    if (topDistance <= threshold) {
+      startAutoScroll(-1);
+      return;
+    }
+    if (bottomDistance <= threshold) {
+      startAutoScroll(1);
+      return;
+    }
+    startAutoScroll(0);
+  }, [startAutoScroll]);
+
+  const handleWindowDragOver = useCallback((event: DragEvent) => {
+    if (dragStartMessageIdRef.current === -1) {
+      return;
+    }
+    updateAutoScroll(event.clientY);
+  }, [updateAutoScroll]);
+
+  const attachWindowDragOver = useCallback(() => {
+    if (windowDragOverListeningRef.current) {
+      return;
+    }
+    window.addEventListener("dragover", handleWindowDragOver, true);
+    windowDragOverListeningRef.current = true;
+  }, [handleWindowDragOver]);
+
+  const detachWindowDragOver = useCallback(() => {
+    if (!windowDragOverListeningRef.current) {
+      return;
+    }
+    window.removeEventListener("dragover", handleWindowDragOver, true);
+    windowDragOverListeningRef.current = false;
+  }, [handleWindowDragOver]);
 
   /**
    * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
@@ -776,6 +963,7 @@ function ChatFrame(props: ChatFrameProps) {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageId;
+    attachWindowDragOver();
     // 设置拖动预览图像
     // 创建轻量拖拽预览元素（避免 clone 大块复杂 DOM 造成拖拽卡顿）
     const clone = document.createElement("div");
@@ -791,34 +979,59 @@ function ChatFrame(props: ChatFrameProps) {
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
-  }, [historyMessages, isSelecting, selectedMessageIds.size]);
+  }, [attachWindowDragOver, historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (isDocRefDrag(e.dataTransfer)) {
+      updateDocRefDragOver(true);
+      e.dataTransfer.dropEffect = "copy";
+      startAutoScroll(0);
+      return;
+    }
+    updateDocRefDragOver(false);
     if (isFileDrag(e.dataTransfer)) {
       e.dataTransfer.dropEffect = "copy";
+      startAutoScroll(0);
       return;
     }
     e.dataTransfer.dropEffect = "move";
+    updateAutoScroll(e.clientY);
     scheduleCheckPosition(e.currentTarget, e.clientY);
-  }, [scheduleCheckPosition]);
+  }, [scheduleCheckPosition, startAutoScroll, updateAutoScroll, updateDocRefDragOver]);
 
   const handleDragEnd = useCallback(() => {
     dragStartMessageIdRef.current = -1;
+    detachWindowDragOver();
     cleanupDragIndicator();
-  }, [cleanupDragIndicator]);
+  }, [cleanupDragIndicator, detachWindowDragOver]);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    updateDocRefDragOver(false);
     curDragOverMessageRef.current = null;
-  }, []);
+    startAutoScroll(0);
+  }, [startAutoScroll, updateDocRefDragOver]);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
+    updateDocRefDragOver(false);
     curDragOverMessageRef.current = null;
+
+    const docRef = getDocRefDragData(e.dataTransfer);
+    if (docRef) {
+      startAutoScroll(0);
+      e.stopPropagation();
+      await sendDocCardFromDrop(docRef);
+      dragStartMessageIdRef.current = -1;
+      detachWindowDragOver();
+      cleanupDragIndicator();
+      return;
+    }
 
     // 拖拽上传（图片/音频）：优先处理文件拖拽，避免触发现有的“消息拖拽排序”
     if (isFileDrag(e.dataTransfer)) {
+      startAutoScroll(0);
       e.stopPropagation();
       addDroppedFilesToComposer(e.dataTransfer);
       return;
@@ -835,8 +1048,15 @@ function ChatFrame(props: ChatFrameProps) {
     }
 
     dragStartMessageIdRef.current = -1;
+    detachWindowDragOver();
     cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator]);
+  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, sendDocCardFromDrop, startAutoScroll, detachWindowDragOver, updateDocRefDragOver]);
+
+  useEffect(() => {
+    return () => {
+      detachWindowDragOver();
+    };
+  }, [detachWindowDragOver]);
 
   /**
    * 右键菜单
@@ -918,6 +1138,21 @@ function ChatFrame(props: ChatFrameProps) {
         pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
+          const selection = window.getSelection();
+          if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+            const container = e.currentTarget;
+            let hasRangeInContainer = false;
+            for (let i = 0; i < selection.rangeCount; i += 1) {
+              const range = selection.getRangeAt(i);
+              if (range.intersectsNode(container)) {
+                hasRangeInContainer = true;
+                break;
+              }
+            }
+            if (hasRangeInContainer) {
+              return;
+            }
+          }
           // 检查点击目标是否是按钮或其子元素，如果是则不触发跳转
           const target = e.target as HTMLElement;
           const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
@@ -1000,16 +1235,42 @@ function ChatFrame(props: ChatFrameProps) {
    */
   return (
     <div className="h-full relative">
+      {isDocRefDragOver && (
+        <div className="pointer-events-none absolute inset-2 z-30 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
+          <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
+            松开发送文档卡片
+          </div>
+        </div>
+      )}
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
         onDragOver={(e) => {
+          if (isDocRefDrag(e.dataTransfer)) {
+            updateDocRefDragOver(true);
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            return;
+          }
+          updateDocRefDragOver(false);
           if (isFileDrag(e.dataTransfer)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = "copy";
           }
         }}
+        onDragLeave={() => {
+          updateDocRefDragOver(false);
+        }}
         onDrop={(e) => {
+          updateDocRefDragOver(false);
+          const docRef = getDocRefDragData(e.dataTransfer);
+          if (docRef) {
+            e.preventDefault();
+            e.stopPropagation();
+            void sendDocCardFromDrop(docRef);
+            return;
+          }
+
           if (!isFileDrag(e.dataTransfer))
             return;
           e.preventDefault();
@@ -1067,6 +1328,9 @@ function ChatFrame(props: ChatFrameProps) {
             followOutput={true}
             overscan={10} // 不要设得太大，会导致rangeChange更新不及时
             ref={virtuosoRef}
+            scrollerRef={(ref) => {
+              scrollerRef.current = ref instanceof HTMLElement ? ref : null;
+            }}
             context={{
               isAtTopRef,
             }}

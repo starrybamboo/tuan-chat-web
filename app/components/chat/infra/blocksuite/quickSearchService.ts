@@ -30,6 +30,15 @@ function normalizeQuery(input: string) {
   return input.trim().toLowerCase();
 }
 
+export function getDocTitleFromMeta(meta: MinimalWorkspaceMeta | null | undefined, docId: string): string {
+  const id = String(docId ?? "").trim();
+  if (!id)
+    return "";
+  const metas = meta?.docMetas ?? [];
+  const hit = metas.find(m => m?.id === id);
+  return (hit?.title ?? "").trim();
+}
+
 export function createBlocksuiteQuickSearchService(params: {
   meta: MinimalWorkspaceMeta;
 }): BlocksuiteQuickSearchService {
@@ -56,13 +65,48 @@ export function createBlocksuiteQuickSearchService(params: {
     dispose();
 
     return await new Promise<SearchDocResult | null>((resolve) => {
-      const overlay = document.createElement("div");
+      let rootDoc = document;
+      let rootWin = window;
+      let mountTarget: HTMLElement | null = document.body ?? document.documentElement;
+
+      const fullscreenElement = (() => {
+        try {
+          return rootDoc.fullscreenElement ?? null;
+        }
+        catch {
+          return null;
+        }
+      })();
+
+      const isIframeElement = (el: Element): el is HTMLIFrameElement => {
+        const ctor = rootWin.HTMLIFrameElement;
+        return !!ctor && el instanceof ctor;
+      };
+
+      if (fullscreenElement) {
+        if (isIframeElement(fullscreenElement)) {
+          try {
+            if (fullscreenElement.contentDocument === document) {
+              rootDoc = document;
+              rootWin = window;
+              mountTarget = document.body ?? document.documentElement;
+            }
+          }
+          catch {}
+        }
+        else {
+          mountTarget = fullscreenElement as HTMLElement;
+        }
+      }
+
+      const overlay = rootDoc.createElement("div");
       overlay.style.position = "fixed";
       overlay.style.inset = "0";
-      overlay.style.zIndex = "9999";
+      overlay.style.zIndex = "2147483647";
       overlay.style.background = "transparent";
+      overlay.style.pointerEvents = "auto";
 
-      const panel = document.createElement("div");
+      const panel = rootDoc.createElement("div");
       panel.style.position = "fixed";
       panel.style.left = "50%";
       panel.style.top = "50%";
@@ -76,10 +120,10 @@ export function createBlocksuiteQuickSearchService(params: {
       // No hard-coded colors/shadows; rely on base background + border classes.
       panel.className = "bg-base-100 border border-base-300 rounded-box";
 
-      const header = document.createElement("div");
+      const header = rootDoc.createElement("div");
       header.className = "p-3 border-b border-base-300";
 
-      const input = document.createElement("input");
+      const input = rootDoc.createElement("input");
       input.className = "input input-bordered w-full";
       input.type = "text";
       input.placeholder = "搜索文档标题，或粘贴 http(s) 链接";
@@ -87,10 +131,10 @@ export function createBlocksuiteQuickSearchService(params: {
 
       header.appendChild(input);
 
-      const list = document.createElement("div");
+      const list = rootDoc.createElement("div");
       list.className = "max-h-[50vh] overflow-auto";
 
-      const empty = document.createElement("div");
+      const empty = rootDoc.createElement("div");
       empty.className = "p-3 text-sm opacity-70";
       empty.textContent = "没有匹配的文档";
 
@@ -98,13 +142,13 @@ export function createBlocksuiteQuickSearchService(params: {
       panel.appendChild(list);
 
       overlay.appendChild(panel);
-      document.body.appendChild(overlay);
+      mountTarget?.appendChild(overlay);
 
       let selectedIndex = 0;
 
       function cleanup() {
         overlay.removeEventListener("click", onOverlayClick, true);
-        window.removeEventListener("keydown", onKeyDown, true);
+        rootWin.removeEventListener("keydown", onKeyDown, true);
         input.removeEventListener("input", onInput);
         overlay.remove();
 
@@ -159,17 +203,17 @@ export function createBlocksuiteQuickSearchService(params: {
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
 
-          const row = document.createElement("button");
+          const row = rootDoc.createElement("button");
           row.type = "button";
           row.className = `w-full text-left px-3 py-2 hover:bg-base-200 flex items-center gap-2${i === selectedIndex ? " bg-base-200" : ""}`;
 
-          const main = document.createElement("div");
+          const main = rootDoc.createElement("div");
           main.className = "flex-1 min-w-0";
 
-          const title = document.createElement("div");
+          const title = rootDoc.createElement("div");
           title.className = "truncate";
 
-          const sub = document.createElement("div");
+          const sub = rootDoc.createElement("div");
           sub.className = "text-xs opacity-60 truncate";
 
           if (item.kind === "url") {
@@ -265,13 +309,13 @@ export function createBlocksuiteQuickSearchService(params: {
       activeCleanup = cleanup;
 
       overlay.addEventListener("click", onOverlayClick, true);
-      window.addEventListener("keydown", onKeyDown, true);
+      rootWin.addEventListener("keydown", onKeyDown, true);
       input.addEventListener("input", onInput);
 
       render();
 
       // Ensure focus after mounting
-      window.setTimeout(() => {
+      rootWin.setTimeout(() => {
         input.focus();
         input.select();
       }, 0);

@@ -1,3 +1,8 @@
+import type { QueryClient } from "@tanstack/react-query";
+
+/**
+ * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
+ */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
@@ -229,7 +234,7 @@ export class RealtimeRenderer {
   private uploadedBgmsMap = new Map<string, string>(); // url -> fileName
   private uploadedMiniAvatarsMap = new Map<number, string>(); // avatarId -> fileName
   private roleMap = new Map<number, UserRole>();
-  private avatarMap = new Map<number, RoleAvatar>();
+  private queryClient: QueryClient | null = null;
   private roomMap = new Map<number, Room>(); // roomId -> Room
   private onStatusChange?: (status: "connected" | "disconnected" | "error") => void;
   private onProgressChange?: (progress: InitProgress) => void;
@@ -237,6 +242,8 @@ export class RealtimeRenderer {
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
   private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
+  // 自动跳转已永久关闭，避免新增消息打断当前预览位置
+  private readonly autoJumpEnabled = false;
 
   // 小头像相关
   private miniAvatarEnabled: boolean = false;
@@ -366,7 +373,18 @@ export class RealtimeRenderer {
    * 全量预加载所有角色的立绘资源
    */
   private async preloadSprites(): Promise<void> {
-    const avatars = Array.from(this.avatarMap.values());
+    const avatars: RoleAvatar[] = [];
+    const seenAvatarIds = new Set<number>();
+    for (const role of this.roleMap.values()) {
+      const avatarId = Number(role.avatarId ?? 0);
+      if (avatarId > 0 && !seenAvatarIds.has(avatarId)) {
+        const avatar = this.getCachedRoleAvatar(avatarId);
+        if (avatar) {
+          avatars.push(avatar);
+          seenAvatarIds.add(avatarId);
+        }
+      }
+    }
     if (avatars.length === 0) {
       console.warn("[RealtimeRenderer] 没有头像需要预加载");
       return;
@@ -574,9 +592,12 @@ export class RealtimeRenderer {
   }
 
   /**
-   * 发送同步消息到指定房间的场景
+   * 发送同步消息到指定房间的场景（自动跳转关闭时不发送）
    */
   private sendSyncMessage(roomId: number): void {
+    if (!this.autoJumpEnabled) {
+      return;
+    }
     const sceneName = this.getSceneName(roomId);
     const context = this.sceneContextMap.get(roomId);
     if (!context) {
@@ -700,12 +721,52 @@ export class RealtimeRenderer {
   /**
    * 设置头像信息缓存
    */
-  public setAvatarCache(avatars: RoleAvatar[]): void {
-    avatars.forEach((avatar) => {
-      if (avatar.avatarId) {
-        this.avatarMap.set(avatar.avatarId, avatar);
+  public setQueryClient(queryClient: QueryClient): void {
+    this.queryClient = queryClient;
+  }
+
+  public invalidateAvatarCaches(avatarId: number): void {
+    this.uploadedSpritesMap.delete(avatarId);
+    this.uploadedMiniAvatarsMap.delete(avatarId);
+  }
+
+  private getCachedRoleAvatar(avatarId: number): RoleAvatar | undefined {
+    if (!this.queryClient || !avatarId) {
+      return undefined;
+    }
+
+    const cached = this.queryClient.getQueryData<any>(["getRoleAvatar", avatarId]);
+    const candidate = cached?.data ?? cached?.data?.data ?? cached;
+    if (candidate && typeof candidate === "object" && "avatarId" in candidate) {
+      return candidate as RoleAvatar;
+    }
+
+    return undefined;
+  }
+
+  private getAllCachedRoleAvatars(): RoleAvatar[] {
+    if (!this.queryClient) {
+      return [];
+    }
+
+    const queries = this.queryClient.getQueryCache().findAll({ queryKey: ["getRoleAvatar"] });
+    const avatars: RoleAvatar[] = [];
+
+    for (const query of queries) {
+      const data: any = query.state.data;
+      const candidate = data?.data ?? data?.data?.data ?? data;
+      if (candidate && typeof candidate === "object" && candidate.avatarId) {
+        avatars.push(candidate as RoleAvatar);
       }
-    });
+    }
+
+    const deduped = new Map<number, RoleAvatar>();
+    for (const avatar of avatars) {
+      if (avatar.avatarId) {
+        deduped.set(avatar.avatarId, avatar);
+      }
+    }
+    return Array.from(deduped.values());
   }
 
   /**
@@ -1055,9 +1116,9 @@ export class RealtimeRenderer {
     }
 
     // 获取头像信息
-    const avatar = this.avatarMap.get(avatarId);
+    const avatar = this.getCachedRoleAvatar(avatarId);
     if (!avatar) {
-      console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}, avatarMap 中有 ${this.avatarMap.size} 个头像`);
+      console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}`);
       return null;
     }
 
@@ -1080,7 +1141,7 @@ export class RealtimeRenderer {
     }
 
     // 获取头像信息
-    const avatar = this.avatarMap.get(avatarId);
+    const avatar = this.getCachedRoleAvatar(avatarId);
     if (!avatar) {
       return null;
     }
@@ -1279,23 +1340,28 @@ export class RealtimeRenderer {
     // 判断消息类型：黑屏文字（messageType === 9）
     const isIntroText = (msg.messageType as number) === 9;
     const roleId = msg.roleId ?? 0;
-    const avatarId = msg.avatarId ?? 0;
 
     // 判断是否为旁白：roleId <= 0
     const isNarrator = roleId <= 0;
 
     // 获取角色信息
     const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
+    // avatarId 优先使用消息上的 avatarId；若缺失则回退到角色本身的 avatarId（即“角色头像”）
+    const messageAvatarId = msg.avatarId ?? 0;
+    const roleAvatarId = Number(role?.avatarId ?? 0);
+    const effectiveAvatarId = messageAvatarId > 0
+      ? messageAvatarId
+      : (roleAvatarId > 0 ? roleAvatarId : 0);
     // 优先使用自定义角色名
     const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
     const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
-    const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
+    const avatar = effectiveAvatarId > 0 ? this.getCachedRoleAvatar(effectiveAvatarId) : undefined;
 
     // 获取立绘文件名
-    const spriteFileName = (avatarId > 0 && roleId > 0)
-      ? await this.getAndUploadSprite(avatarId, roleId)
+    const spriteFileName = (effectiveAvatarId > 0 && roleId > 0)
+      ? await this.getAndUploadSprite(effectiveAvatarId, roleId)
       : null;
 
     console.error(msg.content, msg.webgal?.voiceRenderSettings);
@@ -1380,7 +1446,7 @@ export class RealtimeRenderer {
     const isNormalDialog = !isNarrator && !isIntroText;
     if (isNormalDialog) {
       const miniAvatarFileName = this.miniAvatarEnabled
-        ? (avatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(avatarId, roleId) : null)
+        ? (effectiveAvatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(effectiveAvatarId, roleId) : null)
         : null;
 
       if (miniAvatarFileName) {
@@ -1453,7 +1519,7 @@ export class RealtimeRenderer {
       this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, { startLine, endLine });
     }
 
-    // 发送同步消息到 WebGAL
+    // 自动跳转已关闭，保留写入但不主动跳转
     if (syncToFile) {
       this.sendSyncMessage(targetRoomId);
     }
@@ -1472,7 +1538,7 @@ export class RealtimeRenderer {
       await this.renderMessage(message, targetRoomId, false);
     }
 
-    // 最后统一同步文件和发送 WebSocket 指令
+    // 最后统一同步文件（自动跳转关闭时不会主动跳转）
     await this.syncContextToFile(targetRoomId);
     this.sendSyncMessage(targetRoomId);
   }
@@ -1522,6 +1588,12 @@ export class RealtimeRenderer {
    */
   public async resetScene(roomId?: number): Promise<void> {
     if (roomId) {
+      // 重置房间场景时，必须清理该房间的消息行号映射，否则后续跳转/更新会基于旧行号导致顺序错乱
+      for (const key of Array.from(this.messageLineMap.keys())) {
+        if (key.startsWith(`${roomId}_`)) {
+          this.messageLineMap.delete(key);
+        }
+      }
       await this.initRoomScene(roomId);
       this.currentSpriteStateMap.set(roomId, new Set());
       this.sendSyncMessage(roomId);
@@ -1530,6 +1602,7 @@ export class RealtimeRenderer {
       // 重置所有房间
       await this.initScene();
       this.currentSpriteStateMap.clear();
+      this.messageLineMap.clear();
     }
   }
 
@@ -1588,8 +1661,14 @@ export class RealtimeRenderer {
         concat?: boolean;
       } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
-      const avatarId = msg.avatarId ?? 0;
-      const avatar = avatarId > 0 ? this.avatarMap.get(avatarId) : undefined;
+      const roleId = msg.roleId ?? 0;
+      const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
+      const messageAvatarId = msg.avatarId ?? 0;
+      const roleAvatarId = Number(role?.avatarId ?? 0);
+      const effectiveAvatarId = messageAvatarId > 0
+        ? messageAvatarId
+        : (roleAvatarId > 0 ? roleAvatarId : 0);
+      const avatar = effectiveAvatarId > 0 ? this.getCachedRoleAvatar(effectiveAvatarId) : undefined;
       const emotionVector = customEmotionVector && customEmotionVector.length > 0
         ? customEmotionVector
         : (avatar?.avatarTitle ? this.convertAvatarTitleToEmotionVector(avatar.avatarTitle) : []);

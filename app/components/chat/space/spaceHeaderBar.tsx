@@ -1,6 +1,8 @@
-import { HouseIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, HouseIcon } from "@phosphor-icons/react";
 import React from "react";
-import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting } from "@/icons";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
+import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 
@@ -10,9 +12,17 @@ export interface SpaceHeaderBarProps {
   isSpaceOwner: boolean;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab) => void;
   onInviteMember: () => void;
+  onToggleLeftDrawer?: () => void;
+  isLeftDrawerOpen?: boolean;
 }
 
-export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember }: SpaceHeaderBarProps) {
+export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, onOpenSpaceDetailPanel, onInviteMember, onToggleLeftDrawer, isLeftDrawerOpen }: SpaceHeaderBarProps) {
+  const spaceContext = React.use(SpaceContext);
+  const spaceId = Number(spaceContext.spaceId ?? -1);
+  const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
+  const archived = Boolean(isArchived);
+  const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
+
   return (
     <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
       <div className="dropdown dropdown-bottom min-w-0">
@@ -26,7 +36,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
           <span className="text-base font-bold truncate leading-none min-w-0 flex-1 text-left">
             {spaceName}
           </span>
-          {isArchived && (
+          {archived && (
             <span className="badge badge-sm">已归档</span>
           )}
           <ChevronDown className="size-4 opacity-60 shrink-0" />
@@ -82,9 +92,39 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
               </button>
             </li>
           )}
+          {isSpaceOwner && (
+            <li>
+              <button
+                type="button"
+                className="gap-3"
+                disabled={spaceId <= 0 || updateArchiveStatus.isPending}
+                onClick={() => {
+                  if (spaceId > 0) {
+                    updateArchiveStatus.mutate({ spaceId, archived: !archived });
+                  }
+                }}
+              >
+                <ArchiveIcon className="size-4 opacity-70" />
+                <span className="flex-1 text-left">{archived ? "取消归档" : "归档空间"}</span>
+              </button>
+            </li>
+          )}
         </ul>
       </div>
       <div className="flex gap-2 shrink-0 mr-2">
+        {onToggleLeftDrawer && (
+          <div className="tooltip tooltip-bottom" data-tip={leftDrawerLabel}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square hover:text-info"
+              onClick={onToggleLeftDrawer}
+              aria-label={leftDrawerLabel}
+              aria-pressed={Boolean(isLeftDrawerOpen)}
+            >
+              <SidebarSimpleIcon />
+            </button>
+          </div>
+        )}
         <div className="tooltip tooltip-bottom" data-tip="邀请成员">
           <button
             type="button"

@@ -2,7 +2,7 @@ import type { Route } from "./+types/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import React from "react";
-import { Toaster } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import {
   isRouteErrorResponse,
   Links,
@@ -13,9 +13,12 @@ import {
   useLocation,
   useNavigate,
 } from "react-router";
+import BgmPlaybackRegistry from "@/components/chat/infra/bgm/bgmPlaybackRegistry";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import AudioFloatingBall from "@/components/common/audioFloatingBall";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
+import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import "./app.css";
 import "./animation.css";
 
@@ -35,7 +38,9 @@ if (typeof window !== "undefined" && window.customElements) {
 // pinpoint which module instance is triggering the warning.
 if (typeof window !== "undefined" && import.meta.env.DEV) {
   const originalWarn = console.warn;
+  const originalError = console.error;
   let printedLitMultiStack = false;
+  let printedNaNChildrenStack = false;
 
   console.warn = (...args: unknown[]) => {
     try {
@@ -53,6 +58,23 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 
     originalWarn(...args);
   };
+
+  console.error = (...args: unknown[]) => {
+    try {
+      const first = typeof args[0] === "string" ? (args[0] as string) : "";
+      if (!printedNaNChildrenStack && first.includes("Received NaN for the `children` attribute")) {
+        printedNaNChildrenStack = true;
+        originalError(...args);
+        originalError(`[tc] NaN children warn stack:\n${new Error("NaN children warn stack").stack ?? ""}`);
+        return;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    originalError(...args);
+  };
 }
 
 const queryClient = new QueryClient(
@@ -66,18 +88,22 @@ const queryClient = new QueryClient(
   },
 );
 
-export const links: Route.LinksFunction = () => [
-  { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossOrigin: "anonymous",
-  },
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
-  },
-];
+export const links: Route.LinksFunction = () => (
+  import.meta.env.VITE_ENABLE_GOOGLE_FONTS === "true"
+    ? [
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        {
+          rel: "preconnect",
+          href: "https://fonts.gstatic.com",
+          crossOrigin: "anonymous",
+        },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+        },
+      ]
+    : []
+);
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -102,6 +128,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation();
   const isBlocksuiteFrame = location.pathname.startsWith("/blocksuite-frame");
+
+  React.useEffect(() => {
+    const msg = consumeAuthToast();
+    if (msg) {
+      toast.error(msg);
+    }
+  }, []);
 
   React.useEffect(() => {
     if (isBlocksuiteFrame)
@@ -137,6 +170,8 @@ export default function App() {
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
+      <BgmPlaybackRegistry />
+      <AudioFloatingBall />
     </GlobalContextProvider>
   );
 }

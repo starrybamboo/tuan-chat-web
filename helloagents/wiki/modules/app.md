@@ -27,6 +27,8 @@ $12026-01-19
 
 - `app/routes/`：路由页面（最终页面）
 - `app/components/`：页面组件，按业务大模块分类；`common/` 放通用组件
+- `app/components/Role/`：角色管理与立绘/头像设置；无 `spriteUrl` 的头像会自动以 `avatarUrl` 作为默认立绘来源
+- 角色头像替换时即使未提供下载回调，也会上传并同步 `avatarUrl`/`spriteUrl`
 - `app/utils/`：工具函数与通用逻辑
 - `app/webGAL/`：WebGAL 相关
   - 实时渲染创建游戏：不使用模板（不传 `templateDir`），创建失败直接返回失败
@@ -36,6 +38,7 @@ $12026-01-19
 ### 样式与组件
 
 - 以 Tailwind CSS + daisyUI 为主，补充样式文件见 `app/app.css` 等
+- 字体策略：默认不再通过 Google Fonts 注入 Inter 外链样式（避免部分网络环境不可达导致 `<link rel="stylesheet">` 长时间阻塞页面渲染）。如确需启用，可在环境变量中设置 `VITE_ENABLE_GOOGLE_FONTS=true`（见 `app/root.tsx`）
 
 ## 依赖
 
@@ -109,4 +112,5 @@ $12026-01-19
 
 ## 变更历史
 
-（从 `helloagents/history/` 自动补全）
+- 2026-01-24 移除 `app/utils/transformStageEntityToUserRole.ts`（已确认保留删除）
+- （从 `helloagents/history/` 自动补全）

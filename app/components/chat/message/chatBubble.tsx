@@ -1,6 +1,6 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
 import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
-import React, { use, useMemo, useState } from "react";
+import React, { use, useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -18,7 +18,7 @@ import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChatBubbleEllipsesOutline } from "@/icons";
+import { ChatBubbleEllipsesOutline, NarratorIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
@@ -26,6 +26,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import ClueMessage from "./clue/clueMessage";
+import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
   command: string;
@@ -61,6 +62,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
@@ -89,7 +91,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setComposerTarget("thread");
     // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
     setSideDrawerState("none");
-  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
+    setSubDrawerState("none");
+  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   const threadHintNode = shouldShowThreadHint
     ? (
@@ -122,7 +125,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   </button>
                 </div>
               </div>
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost"
@@ -150,7 +153,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setComposerTarget("thread");
     // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
     setSideDrawerState("none");
-  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setThreadRootMessageId]);
+    setSubDrawerState("none");
+  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
@@ -166,7 +170,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const introHold = (message.webgal as any)?.introHold as boolean | undefined;
 
   // 更新消息并同步到本地缓存
-  function updateMessageAndSync(newMessage: Message) {
+  const updateMessageAndSync = useCallback((newMessage: Message) => {
     updateMessageMutation.mutate(newMessage, {
       onSuccess: (response) => {
         // 更新成功后同步到本地 IndexedDB
@@ -184,7 +188,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         }
       },
     });
-  }
+  }, [chatMessageResponse, roomContext, updateMessageMutation]);
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
@@ -213,7 +217,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <RoomContext value={roomContext}>
             <div className="flex flex-col">
               <ExpressionChooser
-                roleId={message.roleId as number}
+                roleId={message.roleId ?? -1}
                 handleExpressionChange={(avatarId) => {
                   handleExpressionChange(avatarId);
                   onClose();
@@ -230,14 +234,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
   }
 
-  function handleContentUpdate(content: string) {
+  const handleContentUpdate = useCallback((content: string) => {
     if (message.content !== content) {
       updateMessageAndSync({
         ...message,
         content,
       });
     }
-  }
+  }, [message, updateMessageAndSync]);
 
   // 处理语音渲染设置更新
   function handleVoiceRenderSettingsChange(
@@ -293,7 +297,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   }
 
   // 处理音频用途切换（语音/BGM/音效）
-  function handleAudioPurposeChange(purpose: string) {
+  const handleAudioPurposeChange = useCallback((purpose: string) => {
     const soundMessage = message.extra?.soundMessage;
     if (!soundMessage)
       return;
@@ -325,7 +329,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         }
       },
     });
-  }
+  }, [chatMessageResponse, message, roomContext, updateMessageMutation]);
 
   // 处理角色名编辑
   function handleRoleNameClick() {
@@ -485,12 +489,21 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const requestAllowAll = Boolean(commandRequest?.allowAll);
     const requestAllowedRoleIds = Array.isArray(commandRequest?.allowedRoleIds) ? commandRequest?.allowedRoleIds : null;
 
+    const extraAny = message.extra as any;
+    // 兼容：部分后端/历史消息可能未写入 messageType=DOC_CARD，但 extra 里已经包含 docCard 数据
+    const isDocCardLikeMessage = message.messageType === MESSAGE_TYPE.DOC_CARD
+      || typeof extraAny?.docCard?.docId === "string"
+      || typeof extraAny?.docId === "string";
+
     // 1. 特殊类型消息（独占显示）
     if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
     }
     else if (message.messageType === 1000) {
       return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
+    }
+    else if (isDocCardLikeMessage) {
+      return <DocCardMessage messageResponse={chatMessageResponse}></DocCardMessage>;
     }
     else if (message.messageType === MESSAGE_TYPE.WEBGAL_VAR) {
       const payload = extractWebgalVarPayload(message.extra);
@@ -515,7 +528,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           className="flex flex-row gap-1.5 sm:gap-2 py-0.5 sm:py-1"
           onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
         >
-          <span className="opacity-60 inline flex-shrink-0 text-xs sm:text-sm">| 回复</span>
+          <span className="opacity-60 inline shrink-0 text-xs sm:text-sm">| 回复</span>
           <PreviewMessage
             message={message.replyMessageId}
           >
@@ -544,7 +557,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             <button
               type="button"
               aria-disabled={isDisabled}
-              className={`group inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left shadow-sm transition-colors transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/30 ${
+              className={`group inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/30 ${
                 isDisabled
                   ? "opacity-60 cursor-not-allowed bg-base-200/20 shadow-none"
                   : "bg-base-200/40 hover:bg-base-200/70 hover:border-warning/50 hover:shadow-md"
@@ -563,7 +576,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 });
               }}
             >
-              <span className="badge badge-xs badge-warning flex-shrink-0">检定请求</span>
+              <span className="badge badge-xs badge-warning shrink-0">检定请求</span>
               <span className="font-mono text-xs sm:text-sm break-all">{requestCommand}</span>
               {!isDisabled && <span className="ml-auto text-xs opacity-60 group-hover:opacity-80">点击此进行检定</span>}
             </button>
@@ -638,6 +651,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <AudioMessage
             url={soundMsg.url || ""}
             duration={soundMsg.second}
+            title={soundMsg.fileName || (currentPurpose === "bgm" ? "BGM" : currentPurpose === "se" ? "音效" : "语音")}
           />
           {/* 音频类型选择器 */}
           {canEdit && (
@@ -680,15 +694,22 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
     return <div className="flex flex-col">{contentElements}</div>;
   }, [
+    canEdit,
+    chatMessageResponse,
+    handleAudioPurposeChange,
+    handleContentUpdate,
     message.content,
     message.extra,
     message.messageType,
     message.messageId,
     message.replyMessageId,
+    message.threadId,
+    message.webgal,
     roomContext.curRoleId,
     roomContext.curMember?.memberType,
     spaceContext.isSpaceOwner,
     onExecuteCommandRequest,
+    scrollToGivenMessage,
   ]);
 
   const formattedTime = useMemo(() => {
@@ -762,14 +783,123 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   // 旁白的特殊渲染（无角色）
   if (isNarrator) {
+    // 气泡模式与传统模式的旁白样式需要分开：传统模式头像为方形；气泡模式尽量更“旁白化”（更居中、更弱化头像存在感）
+    const hasNarratorAvatar = Boolean(message.avatarId && message.avatarId > 0 && avatar?.avatarUrl);
+    if (useChatBubbleStyle) {
+      const narratorAvatarWidth = isMobile ? 8 : 10;
+      const avatarButtonClassName = `btn btn-ghost btn-xs px-1 ${canEdit ? "cursor-pointer" : "cursor-default"}`;
+      return (
+        <div className="flex w-full justify-center py-1 sm:py-2 group">
+          <div className="relative w-full max-w-[calc(100vw-4rem)] sm:max-w-md rounded-lg bg-base-200/40 px-3 sm:px-4 py-2">
+            <div className="flex items-center gap-2 text-xs text-base-content/60">
+              <button
+                type="button"
+                className={avatarButtonClassName}
+                onClick={handleAvatarClick}
+                aria-label="选择旁白头像"
+                title={canEdit ? "点击选择旁白头像" : "旁白头像"}
+              >
+                {hasNarratorAvatar
+                  ? (
+                      <RoleAvatarComponent
+                        avatarId={message.avatarId ?? 0}
+                        roleId={message.roleId ?? undefined}
+                        width={narratorAvatarWidth}
+                        isRounded={true}
+                        withTitle={false}
+                        stopPopWindow={true}
+                        useDefaultAvatarFallback={false}
+                      />
+                    )
+                  : (
+                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-transparent">
+                        <NarratorIcon className="size-4 text-base-content/70" />
+                      </span>
+                    )}
+              </button>
+
+              <span className="text-xs text-base-content/50 select-none">&nbsp;</span>
+
+              <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* WebGAL 联动模式下显示切换黑屏按钮 */}
+                {message.messageType === MESSAGE_TYPE.TEXT && canEdit && webgalLinkMode && (
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
+                    onClick={handleToggleIntroText}
+                    title="切换为黑屏文字"
+                  >
+                    → 黑屏
+                  </button>
+                )}
+                {/* 切换为角色对话按钮 */}
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
+                    onClick={handleToggleNarrator}
+                    title="切换为角色对话"
+                  >
+                    → 角色
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-1 italic text-xs sm:text-sm lg:text-base text-base-content/80 text-center">
+              {renderedContent}
+            </div>
+
+            <div className="mt-1 text-center text-xs text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
+              {formattedTime}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const narratorAvatarWidth = isMobile ? 10 : 20;
     return (
-      <div className="flex w-full py-1 group">
-        <div className="flex-1 min-w-0 px-2 py-1">
-          {/* 旁白样式：无头像，居中或左对齐，斜体 */}
-          <div className="bg-base-200/50 rounded-lg p-1 sm:p-2 relative">
-            {/* 类型标识和操作按钮 */}
+      <div className="flex w-full py-1.5 sm:py-2 group">
+        {/* 方形头像（传统模式） */}
+        <div className="shrink-0 pr-2 sm:pr-3">
+          <div
+            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-transparent flex items-center justify-center`}
+            onClick={handleAvatarClick}
+            aria-label="选择旁白头像"
+            title={canEdit ? "点击选择旁白头像" : "旁白头像"}
+          >
+            {hasNarratorAvatar
+              ? (
+                  <RoleAvatarComponent
+                    avatarId={message.avatarId ?? 0}
+                    roleId={message.roleId ?? undefined}
+                    width={narratorAvatarWidth}
+                    isRounded={false}
+                    withTitle={false}
+                    stopPopWindow={true}
+                    useDefaultAvatarFallback={false}
+                    alt="旁白"
+                  />
+                )
+              : (
+                  <NarratorIcon className="size-6 sm:size-10 md:size-12 text-base-content/70" />
+                )}
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
+          <div className="flex items-center justify-between w-full gap-2">
+            <span className="text-sm text-base-content/50 select-none">&nbsp;</span>
+            <div className="text-xs text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
+              {formattedTime}
+            </div>
+          </div>
+
+          <div className="mt-0.5 relative rounded-lg bg-base-200/50 p-1.5 sm:p-2 break-words">
             <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* WebGAL 联动模式下显示切换黑屏按钮 */}
               {message.messageType === MESSAGE_TYPE.TEXT && canEdit && webgalLinkMode && (
                 <button
                   type="button"
@@ -780,7 +910,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   → 黑屏
                 </button>
               )}
-              {/* 切换为角色对话按钮 */}
               {canEdit && (
                 <button
                   type="button"
@@ -791,20 +920,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   → 角色
                 </button>
               )}
-              {/* 根据消息类型显示不同标签 */}
               {message.messageType === MESSAGE_TYPE.EFFECT
                 ? (<span className="badge badge-xs badge-info">特效</span>)
-                : (<span className="badge badge-xs badge-secondary">旁白</span>)}
-            </div>
-            {/* 内容 - 支持文本、图片、音频等 */}
-            <div className="italic text-xs sm:text-sm lg:text-base text-base-content/80">
-              {renderedContent}
+                : null}
             </div>
 
-            {/* 时间 */}
-            <div className="text-xs text-base-content/50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
-              {formattedTime}
+            <div className="italic text-sm sm:text-sm lg:text-base text-base-content/80">
+              {renderedContent}
             </div>
           </div>
         </div>
@@ -838,22 +960,24 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 查看所有子区
               </button>
             </div>
-            <div className="text-xs text-base-content/50 flex-shrink-0">{formattedTime}</div>
+            <div className="text-xs text-base-content/50 shrink-0">{formattedTime}</div>
           </div>
 
           <div className="mt-2 flex items-center gap-2">
             <div className="flex items-center gap-2 rounded-md bg-base-100/70 border border-base-300 px-2 py-0.5 sm:py-1">
               <RoleAvatarComponent
                 avatarId={message.avatarId ?? 0}
+                roleId={message.roleId ?? undefined}
                 width={6}
                 isRounded={true}
                 withTitle={false}
                 stopPopWindow={true}
+                useDefaultAvatarFallback={false}
               />
               <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
                 {threadTitle}
               </div>
-              <div className="text-xs text-base-content/60 flex-shrink-0">
+              <div className="text-xs text-base-content/60 shrink-0">
                 {threadReplyCount}
                 {" "}
                 条消息
@@ -874,13 +998,15 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               key={message.messageId}
             >
               {/* Avatar */}
-              <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
+              <div className="shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
                   avatarId={message.avatarId ?? 0}
+                  roleId={message.roleId ?? undefined}
                   width={isMobile ? 10 : 12}
                   isRounded={true}
                   withTitle={false}
                   stopPopWindow={true}
+                  useDefaultAvatarFallback={false}
                 />
               </div>
               <div className="flex flex-col items-start">
@@ -912,10 +1038,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                           className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
                         >
                           {displayRoleName}
-                          {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
                         </span>
                       )}
-                  <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
+                  <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </span>
@@ -951,14 +1076,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               key={message.messageId}
             >
               {/* 圆角矩形头像 */}
-              <div className="flex-shrink-0 pr-2 sm:pr-3">
+              <div className="shrink-0 pr-2 sm:pr-3">
                 <div className="w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId ?? 0}
+                    roleId={message.roleId ?? undefined}
                     width={isMobile ? 10 : 20}
                     isRounded={false}
                     withTitle={false}
                     stopPopWindow={true}
+                    useDefaultAvatarFallback={false}
                   >
                   </RoleAvatarComponent>
                 </div>
@@ -995,11 +1122,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         >
                           <div className="truncate">
                             {`【${displayRoleName}】`}
-                            {customRoleName && <span className="text-xs text-primary ml-1">*</span>}
                           </div>
                         </div>
                       )}
-                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0">
+                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </div>

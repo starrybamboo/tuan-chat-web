@@ -21,7 +21,7 @@
   - `tuan-chat-web/app/routes.ts`
   - `tuan-chat-web/app/routes/aiImage.tsx`
   - `tuan-chat-web/app/components/topbanner/Topbanner.tsx`
-  - `tuan-chat-web/electron/main.cjs`
+  - `tuan-chat-web/electron/main.js`
   - `tuan-chat-web/electron/preload.js`
   - `tuan-chat-web/app/electron.d.ts`
   - `tuan-chat-web/package.json`

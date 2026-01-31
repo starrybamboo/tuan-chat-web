@@ -1,9 +1,9 @@
 import type { RoleAvatar } from "api";
-
+import type { UploadContext } from "../../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../../types";
-
-import { useState } from "react";
-
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useCallback, useState } from "react";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { BaselineDeleteOutline } from "@/icons";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
@@ -22,7 +22,7 @@ interface SpriteListGridProps {
   /** 模式：'view' 仅展示，'manage' 管理模式（显示上传、删除等功能） */
   mode?: "view" | "manage";
   /** 上传触发后的回调 */
-  onUpload?: (data: any) => void;
+  onUpload?: (data: any, context?: UploadContext) => void | Promise<void>;
   /** 传给上传组件的文件名（可选） */
   fileName?: string;
   /** 角色信息（用于删除和编辑逻辑） */
@@ -68,6 +68,9 @@ export function SpriteListGrid({
   // 删除确认对话框状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [avatarToDelete, setAvatarToDelete] = useState<number | null>(null);
+  const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
+  const [droppedBatchId, setDroppedBatchId] = useState<number | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   // 当前选中的头像
   const currentAvatar = avatars[selectedIndex] || null;
@@ -81,6 +84,38 @@ export function SpriteListGrid({
     onAvatarChange,
     onAvatarSelect,
   });
+
+  const updateNameMutation = useUpdateAvatarNameMutation(role?.id);
+  const canEditName = Boolean(role?.id);
+
+  const handleAvatarNameCommit = useCallback(async (avatar: RoleAvatar, nextName: string) => {
+    if (!role?.id) {
+      return;
+    }
+    if (updateNameMutation.isPending) {
+      return;
+    }
+    const trimmedName = nextName.trim();
+    if (!trimmedName) {
+      return;
+    }
+    const normalizedAvatar: RoleAvatar = {
+      ...avatar,
+      avatarTitle: typeof avatar.avatarTitle === "string"
+        ? { label: avatar.avatarTitle }
+        : (avatar.avatarTitle ?? {}),
+    };
+
+    try {
+      await updateNameMutation.mutateAsync({
+        avatar: normalizedAvatar,
+        name: trimmedName,
+      });
+    }
+    catch (error) {
+      console.error("保存头像名称失败:", error);
+    }
+  }, [role?.id, updateNameMutation]);
 
   // Helper function to get avatar display name
   const getAvatarName = (avatar: RoleAvatar, index: number): string => {
@@ -130,24 +165,132 @@ export function SpriteListGrid({
   const canDelete = avatars.length > 1;
   if (avatars.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 text-base-content/70">
-        <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-          <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <p>暂无立绘</p>
+      <div
+        className={`flex flex-col ${className}`}
+        onDragOver={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+          setIsDragActive(true);
+        }}
+        onDragLeave={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget as Node)) {
+            return;
+          }
+          setIsDragActive(false);
+        }}
+        onDrop={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDragActive(false);
+          const files = Array.from(event.dataTransfer.files ?? []);
+          if (files.length === 0) {
+            return;
+          }
+          setDroppedFiles(files);
+          setDroppedBatchId(Date.now());
+        }}
+      >
+        <div className={`flex flex-col items-center justify-center flex-1 text-base-content/70 ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}>
+          <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+            <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <p className="mb-3">暂无立绘</p>
+          {showUpload && (
+            <div className="w-24 h-24">
+              <CharacterCopper
+                setDownloadUrl={() => { }}
+                setCopperedDownloadUrl={() => { }}
+                fileName={fileName ?? `avatar-upload-${Date.now()}`}
+                scene={3}
+                externalFiles={droppedFiles}
+                externalFilesBatchId={droppedBatchId ?? undefined}
+                onExternalFilesHandled={() => {
+                  setDroppedFiles(null);
+                  setDroppedBatchId(null);
+                }}
+                mutate={(data, context) => {
+                  try {
+                    return onUpload?.(data, context);
+                  }
+                  catch (e) {
+                    console.error("onUpload 回调执行失败", e);
+                    throw e;
+                  }
+                }}
+              >
+                <button
+                  type="button"
+                  className="w-full h-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group overflow-hidden"
+                  title="上传新头像"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </CharacterCopper>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className={`flex flex-col ${className}`}>
+      <div
+        className={`flex flex-col ${className}`}
+        onDragOver={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+          setIsDragActive(true);
+        }}
+        onDragLeave={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget as Node)) {
+            return;
+          }
+          setIsDragActive(false);
+        }}
+        onDrop={(event) => {
+          if (!showUpload) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDragActive(false);
+          const files = Array.from(event.dataTransfer.files ?? []);
+          if (files.length === 0) {
+            return;
+          }
+          setDroppedFiles(files);
+          setDroppedBatchId(Date.now());
+        }}
+      >
 
-        <div className={`grid ${gridCols} gap-2 overflow-auto content-start`}>
+        <div className={`grid ${gridCols} gap-2 overflow-auto content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}>
           {avatars.map((avatar, index) => {
             const avatarName = getAvatarName(avatar, index);
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
+            const isAppliedAvatar = Boolean(
+              role?.avatarId
+                ? avatar.avatarId === role.avatarId
+                : (role?.avatar ? avatar.avatarUrl === role.avatar : false),
+            );
 
             return (
               <div key={avatar.avatarId} className="flex flex-col">
@@ -227,6 +370,20 @@ export function SpriteListGrid({
                     {isMultiSelectMode && selectedIndices.has(index) && (
                       <div className="absolute inset-0 bg-primary/20 pointer-events-none" />
                     )}
+
+                    {/* Applied avatar indicator */}
+                    {isAppliedAvatar && (
+                      <div className="absolute bottom-0 left-1 z-10 flex items-center gap-1.5">
+                        <span
+                          className="h-3 w-3 rounded-full bg-success shadow-sm"
+                          title="这是当前应用的头像"
+                        >
+                        </span>
+                        <span className="rounded-full bg-success/90 p-1 text-[10px] text-success-content opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          当前应用
+                        </span>
+                      </div>
+                    )}
                   </button>
 
                   {/* Delete button - shown on hover (desktop) or always (mobile), hidden if only 1 avatar or in multi-select mode */}
@@ -245,9 +402,20 @@ export function SpriteListGrid({
                   )}
                 </div>
 
-                <div className="text-xs text-center text-base-content/70 truncate w-full">
-                  {avatarName}
-                </div>
+                <DoubleClickEditableText
+                  value={avatarName}
+                  disabled={!canEditName || updateNameMutation.isPending}
+                  className="text-xs text-center text-base-content/70 w-full"
+                  displayClassName={`block truncate ${canEditName ? "cursor-text" : ""}`}
+                  inputClassName="input input-xs w-full text-center"
+                  placeholder={`头像${index + 1}`}
+                  invalidBehavior="revert"
+                  validate={nextValue => (nextValue.trim().length ? null : "头像名称不能为空")}
+                  onCommit={nextValue => handleAvatarNameCommit(avatar, nextValue)}
+                  displayProps={{
+                    title: canEditName ? "双击修改头像标题" : avatarName,
+                  }}
+                />
               </div>
             );
           })}
@@ -257,13 +425,20 @@ export function SpriteListGrid({
               setCopperedDownloadUrl={() => { }}
               fileName={fileName ?? `avatar-upload-${Date.now()}`}
               scene={3}
-              mutate={(data) => {
+              externalFiles={droppedFiles}
+              externalFilesBatchId={droppedBatchId ?? undefined}
+              onExternalFilesHandled={() => {
+                setDroppedFiles(null);
+                setDroppedBatchId(null);
+              }}
+              mutate={(data, context) => {
                 try {
-                  onUpload?.(data);
+                  return onUpload?.(data, context);
                 }
                 catch (e) {
                   // 保持轻量：调用方处理错误
                   console.error("onUpload 回调执行失败", e);
+                  throw e;
                 }
               }}
             >
@@ -279,7 +454,7 @@ export function SpriteListGrid({
             </CharacterCopper>
           )}
         </div>
-        <div className="text-sm text-center mt-3 text-base-content/70 flex-shrink-0">
+        <div className="text-sm text-center mt-3 text-base-content/70 shrink-0">
           当前选中:
           {" "}
           {selectedIndex + 1}

@@ -10,7 +10,7 @@
 
 ## 2. 模型运行时拉取（Web + Electron）
 - [√] 2.1 在 `app/routes/aiImage.tsx` 中实现模型列表“运行时拉取 + 降级提示”，验证 why.md#需求-模型运行时拉取-场景-动态加载模型列表
-- [√] 2.2 在 `electron/main.cjs`、`electron/preload.js`、`app/electron.d.ts` 中增加 IPC：获取模型/设置所需数据（用于 Electron 环境），并在页面中接入，验证 why.md#需求-模型运行时拉取-场景-动态加载模型列表，依赖任务2.1
+- [√] 2.2 在 `electron/main.js`、`electron/preload.js`、`app/electron.d.ts` 中增加 IPC：获取模型/设置所需数据（用于 Electron 环境），并在页面中接入，验证 why.md#需求-模型运行时拉取-场景-动态加载模型列表，依赖任务2.1
 
 ## 3. 代理与连通性（如需要）
 - [√] 3.1 若模型拉取需要访问 `api.novelai.net`，在 `vite.config.ts` 与 `scripts/start.mjs` 中扩展 NovelAPI proxy 允许的 host 白名单，并保持安全校验

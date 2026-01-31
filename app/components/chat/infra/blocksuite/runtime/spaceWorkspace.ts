@@ -17,13 +17,18 @@ import { BlobEngine, DocEngine, IndexedDBBlobSource, IndexedDBDocSource } from "
 import { Subject, Subscription } from "rxjs";
 import { Awareness } from "y-protocols/awareness.js";
 import * as Y from "yjs";
-import { applyUpdate, encodeStateAsUpdate, mergeUpdates } from "yjs";
+import { applyUpdate, encodeStateAsUpdate, encodeStateVector, mergeUpdates } from "yjs";
 
+import type { BlocksuiteDocKey } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
+
+import { blocksuiteWsClient } from "@/components/chat/infra/blocksuite/blocksuiteWsClient";
+import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { RemoteSnapshotDocSource } from "@/components/chat/infra/blocksuite/remoteDocSource";
 import { AFFINE_STORE_EXTENSIONS } from "@/components/chat/infra/blocksuite/spec/affineStoreExtensions";
 
 const remoteSnapshotDocSource = new RemoteSnapshotDocSource();
 const REMOTE_RESTORE_ORIGIN = "tc:remote-restore";
+const REMOTE_WS_ORIGIN = "tc:remote-ws";
 
 class InMemoryWorkspaceMeta implements WorkspaceMeta {
   private _docMetas: DocMeta[] = [];
@@ -99,6 +104,8 @@ class SpaceDoc implements Doc {
   private _remoteUpdateHandler: ((update: Uint8Array, origin: unknown) => void) | null = null;
   private _pendingRemoteUpdates: Uint8Array[] = [];
   private _remotePushTimer: ReturnType<typeof setTimeout> | null = null;
+  private _wsDisposers: Array<() => void> = [];
+  private _wsKey: BlocksuiteDocKey | null = null;
 
   private _loaded = true;
   private _ready = false;
@@ -172,12 +179,15 @@ class SpaceDoc implements Doc {
     // This avoids the sync engine pulling every subdoc in the space.
     this._remoteUpdateHandler = (update: Uint8Array, origin: unknown) => {
       // Ignore initial loads / programmatic remote restores to avoid redundant PUT right after GET.
-      if (origin === "load" || origin === REMOTE_RESTORE_ORIGIN)
+      if (origin === "load" || origin === REMOTE_RESTORE_ORIGIN || origin === REMOTE_WS_ORIGIN)
         return;
 
       this._enqueueRemoteUpdate(update);
     };
     this.spaceDoc.on("update", this._remoteUpdateHandler);
+
+    // Real-time sync channel (yjs updates via WS), keyed by docId -> (entityType/entityId/docType).
+    this._attachBlocksuiteWs();
   }
 
   private _enqueueRemoteUpdate(update: Uint8Array) {
@@ -216,10 +226,64 @@ class SpaceDoc implements Doc {
       void remoteSnapshotDocSource.push(this.id, mergeUpdates(pending));
     }
 
+    this._detachBlocksuiteWs();
+
     if (this._remoteUpdateHandler) {
       this.spaceDoc.off("update", this._remoteUpdateHandler);
       this._remoteUpdateHandler = null;
     }
+  }
+
+  private _attachBlocksuiteWs() {
+    const parsed = parseDescriptionDocId(this.id);
+    if (!parsed) {
+      return;
+    }
+
+    this._wsKey = parsed;
+
+    blocksuiteWsClient.joinDoc(parsed);
+
+    // Catch-up by stateVector diff: pull snapshot+updates, then apply the minimal diff against local stateVector.
+    void (async () => {
+      try {
+        const stateVector = encodeStateVector(this.spaceDoc);
+        const pulled = await remoteSnapshotDocSource.pull(this.id, stateVector);
+        if (pulled?.data?.length) {
+          applyUpdate(this.spaceDoc, pulled.data, REMOTE_WS_ORIGIN);
+        }
+      }
+      catch {
+        // ignore
+      }
+    })();
+
+    this._wsDisposers.push(
+      blocksuiteWsClient.onUpdate(parsed, ({ update }) => {
+        try {
+          applyUpdate(this.spaceDoc, update, REMOTE_WS_ORIGIN);
+        }
+        catch {
+          // ignore
+        }
+      }),
+    );
+  }
+
+  private _detachBlocksuiteWs() {
+    if (this._wsKey) {
+      blocksuiteWsClient.leaveDoc(this._wsKey);
+    }
+    for (const dispose of this._wsDisposers) {
+      try {
+        dispose();
+      }
+      catch {
+        // ignore
+      }
+    }
+    this._wsDisposers = [];
+    this._wsKey = null;
   }
 
   getStore(options: GetStoreOptions = {}): Store {

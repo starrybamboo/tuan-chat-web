@@ -238,6 +238,41 @@ function novelApiProxyPlugin(config: { defaultEndpoint: string; allowAnyEndpoint
   };
 }
 
+function electronDevPingPlugin(): Plugin {
+  return {
+    name: "tc-electron-dev-ping",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        try {
+          const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+          if (reqUrl.pathname !== "/__electron_ping") {
+            next();
+            return;
+          }
+
+          const nonce = reqUrl.searchParams.get("nonce") || "";
+          const body = JSON.stringify({
+            ok: true,
+            app: "tuan-chat-web",
+            dev: true,
+            nonce,
+          });
+
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Tuan-Chat-Web", "1");
+          res.end(body);
+        }
+        catch {
+          next();
+        }
+      });
+    },
+  };
+}
+
 function resolveWindowsSystemProxyUrl(): string {
   if (process.platform !== "win32")
     return "";
@@ -368,6 +403,7 @@ export default defineConfig(({ command, mode }) => {
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
       novelApiProxyPlugin(novelApiConfig),
+      electronDevPingPlugin(),
 
       // Downlevel BlockSuite ES2023 auto-accessor syntax in dist outputs.
       // Example crashing syntax: `accessor color = ...` (brush.js), `accessor elements = ...` (v-line.js).
@@ -476,6 +512,15 @@ export default defineConfig(({ command, mode }) => {
         // - decorators not being applied (custom elements not defined) -> "Illegal constructor"
         // - mixed module instances (src vs dist) -> DI token mismatch / Yjs store issues
         // Force them to use prebuilt dist outputs.
+        // 音频转码依赖 ffmpeg.wasm：固定到 ESM 入口，避免 Vite 在 Windows 下解析 package exports 失败
+        {
+          find: /^@ffmpeg\/ffmpeg$/,
+          replacement: nm("node_modules/@ffmpeg/ffmpeg/dist/esm/index.js"),
+        },
+        {
+          find: /^@ffmpeg\/util$/,
+          replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
+        },
         {
           find: /^@blocksuite\/std$/,
           replacement: nm("node_modules/@blocksuite/std/dist/index.js"),

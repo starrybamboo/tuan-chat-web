@@ -48,11 +48,18 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   const minRemainingWidth = React.useMemo(() => {
     const baseMinChatWidth = 520;
     const fixedMemberDrawerWidth = 270;
-    const lightDrawerWidth = (sideDrawerState === "user" || sideDrawerState === "role")
-      ? fixedMemberDrawerWidth
-      : (sideDrawerState === "export")
-          ? exportDrawerWidth
-          : 0;
+    const docFolderDrawerWidth = 320;
+
+    let lightDrawerWidth = 0;
+    if (sideDrawerState === "user" || sideDrawerState === "role") {
+      lightDrawerWidth = fixedMemberDrawerWidth;
+    }
+    else if (sideDrawerState === "docFolder") {
+      lightDrawerWidth = docFolderDrawerWidth;
+    }
+    else if (sideDrawerState === "export") {
+      lightDrawerWidth = exportDrawerWidth;
+    }
     return baseMinChatWidth + lightDrawerWidth;
   }, [exportDrawerWidth, sideDrawerState]);
 
@@ -61,8 +68,8 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
 
     switch (activePane) {
       case "initiative": {
-        const min = 280;
-        const max = 420;
+        const min = 380;
+        const max = 640;
         return { minWidth: min, maxWidth: max };
       }
       case "clue": {

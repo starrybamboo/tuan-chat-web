@@ -3,11 +3,13 @@ import type { LinkedMenuGroup } from "@blocksuite/affine-widget-linked-doc";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 
 import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine-block-embed-doc";
+import { LinkedDocIcon, LinkedEdgelessIcon } from "@blocksuite/affine-components/icons";
 import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
-import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier } from "@blocksuite/affine-shared/services";
+import { REFERENCE_NODE } from "@blocksuite/affine-shared/consts";
+import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier, TelemetryProvider } from "@blocksuite/affine-shared/services";
+import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
 import {
-  createLinkedDocMenuGroup,
   LinkedWidgetConfigExtension,
 } from "@blocksuite/affine-widget-linked-doc";
 import { LinkedDocViewExtension } from "@blocksuite/affine-widget-linked-doc/view";
@@ -26,12 +28,13 @@ import { html } from "lit";
 
 import { tuanchat } from "api/instance";
 
+import { isBlocksuiteDebugEnabled } from "../debugFlags";
+import { readBlocksuiteDocHeader } from "../docHeader";
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
+import { parseSpaceDocId } from "../spaceDocId";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
-
-type ElementSnapshot = { attrs: Map<string, string | null>; className: string; styleText: string };
 
 type WorkspaceLike = {
   getDoc: (docId: string) => { getStore: () => unknown; loaded?: boolean; load?: () => void } | null;
@@ -45,9 +48,15 @@ let slashMenuSelectionGuardRefCount = 0;
 let slashMenuSelectionGuardHandler: ((e: Event) => void) | null = null;
 const mentionMenuLockMs = 400;
 let mentionMenuLockUntil = 0;
-const mentionMenuDebugEnabled = Boolean((import.meta as any)?.env?.DEV);
+const mentionMenuDebugEnabled = isBlocksuiteDebugEnabled();
 const mentionCommitDedupMs = 600;
 let mentionCommitDedupUntil = 0;
+const ROOM_LIST_CACHE_TTL_MS = 10_000;
+const roomListCache = new Map<number, { at: number; ids: Set<number> }>();
+const roomListInflight = new Map<number, Promise<Set<number> | null>>();
+const TC_HEADER_TITLE_TTL_MS = 10_000;
+const tcHeaderTitleCache = new Map<string, { at: number; title: string }>();
+const tcHeaderTitleInflight = new Map<string, Promise<string>>();
 
 function isMentionCommitDeduped(): boolean {
   return Date.now() < mentionCommitDedupUntil;
@@ -79,12 +88,127 @@ function logMentionMenu(message: string, payload?: Record<string, unknown>) {
   if (!mentionMenuDebugEnabled)
     return;
   if (payload) {
-    console.warn("[BlocksuiteMentionMenu]", message, payload);
+    console.debug("[BlocksuiteMentionMenu]", message, payload);
   }
   else {
-    console.warn("[BlocksuiteMentionMenu]", message);
+    console.debug("[BlocksuiteMentionMenu]", message);
   }
   forwardMentionMenu(message, payload);
+}
+
+function normalizeTcHeaderTitle(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getCachedTcHeaderTitle(docId: string): string | null {
+  const cached = tcHeaderTitleCache.get(docId);
+  if (!cached)
+    return null;
+  if (Date.now() - cached.at > TC_HEADER_TITLE_TTL_MS) {
+    tcHeaderTitleCache.delete(docId);
+    return null;
+  }
+  return cached.title;
+}
+
+function cacheTcHeaderTitle(docId: string, title: string) {
+  tcHeaderTitleCache.set(docId, { at: Date.now(), title });
+}
+
+function syncMetaTitleFromTcHeader(workspace: WorkspaceLike, docId: string, title: string) {
+  try {
+    const metaAny = (workspace as any)?.meta;
+    if (!metaAny)
+      return;
+    const current = metaAny.getDocMeta?.(docId);
+    if (!current) {
+      metaAny.addDocMeta?.({ id: docId, title, tags: [], createDate: Date.now() });
+      (workspace as any)?.slots?.docListUpdated?.next?.();
+      return;
+    }
+    if (current.title !== title) {
+      metaAny.setDocMeta?.(docId, { title });
+      (workspace as any)?.slots?.docListUpdated?.next?.();
+    }
+  }
+  catch {
+    // ignore
+  }
+}
+
+function ensureDocExistsInWorkspace(workspace: WorkspaceLike, docId: string) {
+  try {
+    const wsAny = workspace as any;
+    const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
+    doc?.load?.();
+  }
+  catch {
+    // ignore
+  }
+}
+
+function insertLinkedNodeWithTitle(params: { inlineEditor: any; docId: string; title?: string }) {
+  const { inlineEditor, docId, title } = params;
+  if (!inlineEditor)
+    return;
+  const inlineRange = inlineEditor.getInlineRange?.();
+  if (!inlineRange)
+    return;
+  const reference: { type: "LinkedPage"; pageId: string; title?: string } = { type: "LinkedPage", pageId: docId };
+  if (title)
+    reference.title = title;
+  inlineEditor.insertText(inlineRange, REFERENCE_NODE, { reference });
+  inlineEditor.setInlineRange({
+    index: inlineRange.index + 1,
+    length: 0,
+  });
+}
+
+async function readTcHeaderTitle(params: {
+  docId: string;
+  signal: AbortSignal;
+  workspace: WorkspaceLike;
+}): Promise<string> {
+  const { docId, signal, workspace } = params;
+  if (signal.aborted)
+    return "";
+
+  const cached = getCachedTcHeaderTitle(docId);
+  if (cached !== null)
+    return cached;
+
+  const inflight = tcHeaderTitleInflight.get(docId);
+  if (inflight)
+    return inflight;
+
+  const task = (async () => {
+    if (signal.aborted)
+      return "";
+    let title = "";
+    try {
+      const wsAny = workspace as any;
+      const doc = wsAny?.getDoc?.(docId) ?? wsAny?.createDoc?.(docId);
+      doc?.load?.();
+      const store = doc?.getStore?.({ readonly: true }) ?? doc?.getStore?.();
+      const header = readBlocksuiteDocHeader(store);
+      title = normalizeTcHeaderTitle(header?.title);
+    }
+    catch {
+      // ignore
+    }
+
+    cacheTcHeaderTitle(docId, title);
+    syncMetaTitleFromTcHeader(workspace, docId, title);
+    return title;
+  })();
+
+  tcHeaderTitleInflight.set(docId, task);
+  try {
+    return await task;
+  }
+  finally {
+    tcHeaderTitleInflight.delete(docId);
+  }
 }
 
 function insertMentionViaInlineEditor(params: {
@@ -131,6 +255,54 @@ function insertMentionViaInlineEditor(params: {
   catch (err) {
     logMentionMenu("insert: failed", { memberId, err: String(err) });
     return false;
+  }
+}
+
+function parseRoomIdFromDocKey(key: string): number | null {
+  const parsed = parseSpaceDocId(key);
+  if (parsed?.kind !== "room_description")
+    return null;
+  return parsed.roomId;
+}
+
+async function getRoomIdsForSpace(spaceId: number, signal: AbortSignal): Promise<Set<number> | null> {
+  if (!Number.isFinite(spaceId) || spaceId <= 0)
+    return null;
+
+  const cached = roomListCache.get(spaceId);
+  if (cached && Date.now() - cached.at <= ROOM_LIST_CACHE_TTL_MS) {
+    return cached.ids;
+  }
+
+  const inflight = roomListInflight.get(spaceId);
+  if (inflight)
+    return inflight;
+
+  const task = (async () => {
+    if (signal.aborted)
+      return null;
+    const resp = await tuanchat.roomController.getUserRooms(spaceId);
+    const rooms = (resp as any)?.data?.rooms ?? [];
+    const ids = new Set<number>();
+    for (const room of rooms) {
+      const id = Number((room as any)?.roomId);
+      if (Number.isFinite(id) && id > 0) {
+        ids.add(id);
+      }
+    }
+    roomListCache.set(spaceId, { at: Date.now(), ids });
+    return ids;
+  })();
+
+  roomListInflight.set(spaceId, task);
+  try {
+    return await task;
+  }
+  catch {
+    return null;
+  }
+  finally {
+    roomListInflight.delete(spaceId);
   }
 }
 
@@ -194,129 +366,6 @@ function installSlashMenuDoesNotClearSelectionOnClick(): () => void {
   };
 }
 
-function snapshotElementAttributes(el: Element): ElementSnapshot {
-  const attrs = new Map<string, string | null>();
-  for (const name of el.getAttributeNames()) {
-    attrs.set(name, el.getAttribute(name));
-  }
-
-  return {
-    attrs,
-    className: (el as any).className ?? "",
-    styleText: (el as HTMLElement).style?.cssText ?? "",
-  };
-}
-
-function restoreElementAttributes(el: Element, snapshot: ElementSnapshot) {
-  // Remove attributes that didn't exist before
-  for (const name of el.getAttributeNames()) {
-    if (!snapshot.attrs.has(name)) {
-      el.removeAttribute(name);
-    }
-  }
-
-  // Restore original attributes
-  for (const [name, value] of snapshot.attrs.entries()) {
-    if (value === null) {
-      el.removeAttribute(name);
-    }
-    else {
-      el.setAttribute(name, value);
-    }
-  }
-
-  (el as any).className = snapshot.className;
-  if ((el as HTMLElement).style)
-    (el as HTMLElement).style.cssText = snapshot.styleText;
-}
-
-function installGlobalDomStyleGuard(): () => void {
-  if (typeof document === "undefined")
-    return () => {};
-
-  const htmlSnapshot = snapshotElementAttributes(document.documentElement);
-  const bodySnapshot = snapshotElementAttributes(document.body);
-
-  const injectedHeadNodes: Element[] = [];
-  const head = document.head;
-
-  // Snapshot adoptedStyleSheets if the browser supports it.
-  const docAny = document as any;
-  const adoptedStyleSheetsSnapshot: any[] | null = Array.isArray(docAny?.adoptedStyleSheets)
-    ? [...docAny.adoptedStyleSheets]
-    : null;
-
-  let headObserver: MutationObserver | null = null;
-  try {
-    if (head && typeof MutationObserver !== "undefined") {
-      headObserver = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          for (const node of m.addedNodes) {
-            if (!(node instanceof Element))
-              continue;
-
-            const isStyle = node.tagName === "STYLE";
-            const isStylesheetLink
-              = node.tagName === "LINK"
-                && (node.getAttribute("rel") ?? "").toLowerCase() === "stylesheet";
-
-            if (!isStyle && !isStylesheetLink)
-              continue;
-
-            // Mark nodes injected while blocksuite editor is alive so we can safely remove them on dispose.
-            node.setAttribute("data-tc-blocksuite-injected", "1");
-            injectedHeadNodes.push(node);
-          }
-        }
-      });
-
-      headObserver.observe(head, { childList: true, subtree: true });
-    }
-  }
-  catch {
-    headObserver = null;
-  }
-
-  return () => {
-    try {
-      try {
-        headObserver?.disconnect?.();
-      }
-      catch {
-        // ignore
-      }
-
-      // Remove stylesheets injected during editor lifetime.
-      for (let i = injectedHeadNodes.length - 1; i >= 0; i -= 1) {
-        const node = injectedHeadNodes[i];
-        try {
-          if (node.isConnected)
-            node.remove();
-        }
-        catch {
-          // ignore
-        }
-      }
-
-      // Restore adoptedStyleSheets.
-      if (adoptedStyleSheetsSnapshot) {
-        try {
-          docAny.adoptedStyleSheets = adoptedStyleSheetsSnapshot;
-        }
-        catch {
-          // ignore
-        }
-      }
-
-      restoreElementAttributes(document.documentElement, htmlSnapshot);
-      restoreElementAttributes(document.body, bodySnapshot);
-    }
-    catch {
-      // ignore
-    }
-  };
-}
-
 export function createEmbeddedAffineEditor(params: {
   store: unknown;
   workspace: WorkspaceLike;
@@ -329,7 +378,6 @@ export function createEmbeddedAffineEditor(params: {
   const { store, workspace, docModeProvider, autofocus = true, disableDocTitle = false, onNavigateToDoc } = params;
 
   const disposers: Array<() => void> = [];
-  disposers.push(installGlobalDomStyleGuard());
   disposers.push(installSlashMenuDoesNotClearSelectionOnClick());
 
   // Register custom elements for linked doc, this is crucial for the widget to work
@@ -419,11 +467,93 @@ export function createEmbeddedAffineEditor(params: {
     let mentionActionLocked = false;
     logMentionMenu("getDocMenus", { query, locked: isMentionMenuLocked() });
 
-    // 1. Official linked-doc menu
-    const docGroupRaw = createLinkedDocMenuGroup(query, abort, editorHost, inlineEditor);
+    // 1. Custom linked-doc menu (tc_header only)
+    const metaAny = (workspace as any)?.meta ?? (editorHost as any)?.store?.workspace?.meta;
+    const docMetas = Array.isArray(metaAny?.docMetas) ? metaAny.docMetas : [];
+    const currentDocId = (editorHost as any)?.store?.id ?? (storeAny as any)?.id;
+    const docIds = docMetas.map((m: any) => m?.id).filter((id: string) => id && id !== currentDocId);
+
+    const queryText = String(query ?? "");
+    const filterQuery = queryText.trim();
+    const wsForTitle = ((editorHost as any)?.std?.workspace ?? workspace) as WorkspaceLike;
+    const docEntries = await Promise.all(docIds.map(async (docId: string) => ({
+      docId,
+      title: await readTcHeaderTitle({ docId, signal, workspace: wsForTitle }),
+    })));
+
+    let filteredEntries = docEntries.filter(({ title }) => {
+      if (!filterQuery)
+        return true;
+      if (!title)
+        return false;
+      return isFuzzyMatch(title, filterQuery);
+    });
+
+    const removedDocIds: string[] = [];
+    if (params.spaceId && params.spaceId > 0 && filteredEntries.length > 0) {
+      const hasRoomDoc = filteredEntries.some(item => parseRoomIdFromDocKey(item.docId) !== null);
+      if (hasRoomDoc) {
+        const roomIds = await getRoomIdsForSpace(params.spaceId, signal);
+        if (roomIds && !signal.aborted) {
+          filteredEntries = filteredEntries.filter((item) => {
+            const roomId = parseRoomIdFromDocKey(item.docId);
+            if (roomId === null)
+              return true;
+            if (roomIds.has(roomId))
+              return true;
+            removedDocIds.push(item.docId);
+            return false;
+          });
+        }
+      }
+    }
+
+    if (removedDocIds.length > 0) {
+      try {
+        if (metaAny?.removeDocMeta) {
+          for (const docId of removedDocIds) {
+            metaAny.removeDocMeta(docId);
+          }
+        }
+      }
+      catch {
+        // ignore
+      }
+    }
+
+    const MAX_DOCS = 6;
+    const docItems = filteredEntries.map(({ docId, title }) => {
+      const mode = docModeProvider?.getPrimaryMode?.(docId);
+      return {
+        key: docId,
+        name: title,
+        icon: mode === "edgeless" ? LinkedEdgelessIcon : LinkedDocIcon,
+        action: () => {
+          abort();
+          const safeTitle = typeof title === "string" ? title : "";
+          const wsForInsert = ((editorHost as any)?.std?.workspace ?? workspace) as WorkspaceLike;
+          ensureDocExistsInWorkspace(wsForInsert, docId);
+          syncMetaTitleFromTcHeader(wsForInsert, docId, safeTitle);
+          insertLinkedNodeWithTitle({
+            inlineEditor,
+            docId,
+            title: safeTitle,
+          });
+          editorHost?.std
+            ?.getOptional?.(TelemetryProvider)
+            ?.track?.("LinkedDocCreated", {
+              control: "linked doc",
+              module: "inline @",
+              type: "doc",
+              other: "existing doc",
+            });
+        },
+      };
+    });
+
     const docGroup = {
-      ...docGroupRaw,
-      items: (docGroupRaw.items ?? []).map((item: any) => {
+      name: "Link to Doc",
+      items: docItems.map((item: any) => {
         const orig = item?.action;
         return {
           ...item,
@@ -437,6 +567,8 @@ export function createEmbeddedAffineEditor(params: {
           },
         };
       }),
+      maxDisplay: MAX_DOCS,
+      overflowText: `${docItems.length - MAX_DOCS} more docs`,
     };
 
     const result: LinkedMenuGroup[] = [];
@@ -448,35 +580,68 @@ export function createEmbeddedAffineEditor(params: {
         const resp = await tuanchat.spaceMemberController.getMemberList(params.spaceId);
         const members = (resp.data ?? []).filter(m => m.userId != null);
 
-        const q = query.toLowerCase();
-        const filtered = members.filter((m) => {
-          const id = String(m.userId);
-          // Best effort: cast to any to check for extra fields if backend sends them
-          // otherwise fallback to ID.
-          const anyM = m as any;
-          const name = anyM.displayName || anyM.username || anyM.nickname || id;
-          return name.toLowerCase().includes(q) || id.includes(q);
-        });
+        const q = String(query ?? "").trim().toLowerCase();
+        const memberIds = members
+          .map(m => Number(m.userId))
+          .filter(id => Number.isFinite(id) && id > 0);
+
+        const MAX_MEMBERS = 20;
+        const MAX_SCAN_MEMBERS = 200;
+        const SCAN_BATCH_SIZE = 30;
+        const isNumericQuery = q.length > 0 && /^\d+$/.test(q);
+
+        let filteredIds: number[] = [];
+        if (!q) {
+          filteredIds = memberIds.slice(0, MAX_MEMBERS);
+        }
+        else if (isNumericQuery) {
+          filteredIds = memberIds.filter(id => String(id).includes(q)).slice(0, MAX_MEMBERS);
+        }
+        else {
+          const matched: number[] = [];
+          const limit = Math.min(memberIds.length, MAX_SCAN_MEMBERS);
+          for (let offset = 0; offset < limit && matched.length < MAX_MEMBERS; offset += SCAN_BATCH_SIZE) {
+            const batch = memberIds.slice(offset, offset + SCAN_BATCH_SIZE);
+            if (batch.length === 0)
+              break;
+            await userService.prefetch(batch.map(String));
+            for (const id of batch) {
+              const cached = userService.getCachedUserInfo(String(id));
+              const nameLower = cached && "removed" in cached && cached.removed
+                ? ""
+                : String(cached?.name ?? "").toLowerCase();
+              if (nameLower.includes(q)) {
+                matched.push(id);
+                if (matched.length >= MAX_MEMBERS)
+                  break;
+              }
+            }
+          }
+          filteredIds = matched;
+        }
 
         logMentionMenu("menu request", {
           query,
           locked: isMentionMenuLocked(),
-          memberCount: filtered.length,
+          memberCount: filteredIds.length,
         });
 
-        if (filtered.length > 0) {
+        if (filteredIds.length > 0) {
+          await userService.prefetch(filteredIds.map(String));
           memberGroup = {
-            name: "Members",
-            items: filtered.slice(0, 20).map((m) => {
-              const id = String(m.userId);
-              const anyM = m as any;
-              const name = anyM.displayName || anyM.username || anyM.nickname || id;
+            // 放到二级入口：默认仅展示“展开”项，避免成员过多影响文档选择。
+            name: "用户",
+            items: filteredIds.map((idNum) => {
+              const id = String(idNum);
+              const cached = userService.getCachedUserInfo(id);
+              const name = cached && "removed" in cached && cached.removed ? id : (cached?.name || id);
+              const avatar = cached && "removed" in cached && cached.removed ? null : (cached?.avatar ?? null);
 
               return {
                 key: `member:${id}`,
                 name,
-                icon: (m as any).avatar
-                  ? html`<img src="${(m as any).avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
+                icon: avatar
+                  ? html`<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />`
                   : html`<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:#eee;border-radius:50%;font-size:12px;">@</div>`,
                 action: () => {
                   if (mentionActionLocked || isMentionMenuLocked())
@@ -507,6 +672,10 @@ export function createEmbeddedAffineEditor(params: {
                 },
               };
             }),
+            // linked-doc popover 的 overflow 展开逻辑要求 maxDisplay 为 truthy。
+            // 这里使用一个极小的非 0 数，让默认列表为空，只保留 “more/展开” 行。
+            maxDisplay: 0.0001,
+            overflowText: "展开用户列表",
           };
         }
       }
@@ -514,10 +683,10 @@ export function createEmbeddedAffineEditor(params: {
         // ignore network errors
       }
     }
-    if (memberGroup)
-      result.push(memberGroup);
     if (docGroup.items.length > 0)
       result.push(docGroup);
+    if (memberGroup)
+      result.push(memberGroup);
 
     return result;
   };

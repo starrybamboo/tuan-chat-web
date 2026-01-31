@@ -18,6 +18,9 @@ import type { UserLoginRequest } from '../models/UserLoginRequest';
 import type { UserRegisterRequest } from '../models/UserRegisterRequest';
 import type { RolePageQueryRequest } from '../models/RolePageQueryRequest'
 import type { Transform } from '../../app/components/Role/sprite/TransformControl';
+import type { UserRole } from '../models/UserRole';
+
+import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
 
 import {
   type ApiResultRoleAbility,
@@ -26,6 +29,41 @@ import {
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
+
+function upsertRoleAvatarQueryCaches(queryClient: any, avatar: RoleAvatar, roleId?: number): void {
+  const avatarId = avatar.avatarId;
+  if (!avatarId) {
+    return;
+  }
+
+  if (roleId) {
+    queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
+      if (!old) {
+        return old;
+      }
+
+      const replaceAvatar = (list: RoleAvatar[]) =>
+        list.map((item) => (item.avatarId === avatarId ? { ...item, ...avatar } : item));
+
+      if (Array.isArray(old)) {
+        return replaceAvatar(old);
+      }
+
+      if (Array.isArray(old.data)) {
+        return {
+          ...old,
+          data: replaceAvatar(old.data),
+        };
+      }
+
+      return old;
+    });
+  }
+
+  queryClient.setQueryData(["getRoleAvatar", avatarId], { data: avatar });
+  queryClient.invalidateQueries({ queryKey: ["getRoleAvatar", avatarId] });
+  queryClient.invalidateQueries({ queryKey: ["avatar", avatarId] });
+}
 
 // ==================== 角色管理 ====================
 /**
@@ -81,6 +119,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
     onSuccess: (_, variables) => {
       onSave(variables);
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', variables.roleId] });
@@ -116,6 +155,7 @@ export function useCreateRoleMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     },
@@ -144,6 +184,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
@@ -305,6 +346,7 @@ export function useCopyRoleMutation() {
       queryClient.invalidateQueries({ queryKey: ["getRole", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
       queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["listRoleAbility", newRole.id] });
       queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
@@ -335,11 +377,28 @@ export function useRegisterMutation(onSuccess?: () => void) {
  * 获取角色所有头像
  * @param roleId 角色ID
  */
-export function useGetRoleAvatarsQuery(roleId: number) {
+type RoleAvatarQueryOptions = {
+  enabled?: boolean;
+};
+
+export function useGetRoleAvatarsQuery(roleId: number, options?: RoleAvatarQueryOptions) {
+  const enabled = (options?.enabled ?? true) && typeof roleId === "number" && roleId > 0;
   return useQuery({
     queryKey: ['getRoleAvatars', roleId],
     queryFn: () => tuanchat.avatarController.getRoleAvatars(roleId),
-    staleTime: 86400000 // 24小时缓存
+    staleTime: 86400000, // 24小时缓存
+    select: (res) => {
+      if (!res || !Array.isArray(res.data)) {
+        return res;
+      }
+      const sorted = [...res.data].sort((a, b) => {
+        const aId = a.avatarId ?? Number.MAX_SAFE_INTEGER;
+        const bId = b.avatarId ?? Number.MAX_SAFE_INTEGER;
+        return aId - bId;
+      });
+      return { ...res, data: sorted };
+    },
+    enabled,
   });
 }
 
@@ -365,8 +424,43 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
   return useMutation({
     mutationFn: (req: RoleAvatar) => tuanchat.avatarController.updateRoleAvatar(req),
     mutationKey: ['updateRoleAvatar'],
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
+    onSuccess: (res, variables) => {
+      const nextAvatar = res?.data ?? variables;
+      const resolvedRoleId = nextAvatar?.roleId ?? roleId;
+      if (resolvedRoleId) {
+        queryClient.setQueryData(["getRoleAvatars", resolvedRoleId], (old: any) => {
+          if (!old || !nextAvatar?.avatarId) {
+            return old;
+          }
+
+          const replaceAvatar = (list: RoleAvatar[]) => list.map((avatar) => {
+            if (avatar.avatarId === nextAvatar.avatarId) {
+              return { ...avatar, ...nextAvatar };
+            }
+            return avatar;
+          });
+
+          if (Array.isArray(old)) {
+            return replaceAvatar(old);
+          }
+
+          if (Array.isArray(old.data)) {
+            return {
+              ...old,
+              data: replaceAvatar(old.data),
+            };
+          }
+
+          return old;
+        });
+        queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', resolvedRoleId] });
+      }
+      if (nextAvatar?.avatarId) {
+        queryClient.setQueryData(["getRoleAvatar", nextAvatar.avatarId], { data: nextAvatar });
+        emitWebgalAvatarUpdated({ avatarId: nextAvatar.avatarId, avatar: nextAvatar });
+        queryClient.invalidateQueries({ queryKey: ['getRoleAvatar', nextAvatar.avatarId] });
+        queryClient.invalidateQueries({ queryKey: ['avatar', nextAvatar.avatarId] });
+      }
     }
   });
 }
@@ -481,6 +575,20 @@ export function useApplyCropMutation() {
         }
 
         console.log("裁剪应用成功，头像记录已更新");
+        const nextAvatar: RoleAvatar = updateRes.data ?? {
+          ...currentAvatar,
+          roleId,
+          avatarId,
+          avatarUrl: currentAvatar.avatarUrl,
+          spriteUrl: newSpriteUrl,
+          spriteXPosition: finalTransform.positionX,
+          spriteYPosition: finalTransform.positionY,
+          spriteScale: finalTransform.scale,
+          spriteTransparency: finalTransform.alpha,
+          spriteRotation: finalTransform.rotation,
+        };
+        upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
+        emitWebgalAvatarUpdated({ avatarId, avatar: nextAvatar });
         await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
         console.log("缓存已刷新，roleId:", roleId);
         return updateRes;
@@ -550,6 +658,15 @@ export function useApplyCropAvatarMutation() {
         throw error;
       }
     },
+    onSuccess: (res, variables) => {
+      const nextAvatar: RoleAvatar = res?.data ?? {
+        ...variables.currentAvatar,
+        roleId: variables.roleId,
+        avatarId: variables.avatarId,
+      };
+      upsertRoleAvatarQueryCaches(queryClient, nextAvatar, variables.roleId);
+      emitWebgalAvatarUpdated({ avatarId: variables.avatarId, avatar: nextAvatar });
+    },
     onError: (error) => {
       console.error("Crop avatar application mutation failed:", error.message || error);
     },
@@ -600,6 +717,22 @@ export function useUpdateAvatarTransformMutation() {
         console.error("Transform更新请求失败", error);
         throw error;
       }
+    },
+    onSuccess: (res, variables) => {
+      const nextAvatar: RoleAvatar = res?.data ?? {
+        ...variables.currentAvatar,
+        roleId: variables.roleId,
+        avatarId: variables.avatarId,
+        avatarUrl: variables.currentAvatar.avatarUrl,
+        spriteUrl: variables.currentAvatar.spriteUrl,
+        spriteXPosition: variables.transform.positionX,
+        spriteYPosition: variables.transform.positionY,
+        spriteScale: variables.transform.scale,
+        spriteTransparency: variables.transform.alpha,
+        spriteRotation: variables.transform.rotation,
+      };
+      upsertRoleAvatarQueryCaches(queryClient, nextAvatar, variables.roleId);
+      emitWebgalAvatarUpdated({ avatarId: variables.avatarId, avatar: nextAvatar });
     },
     onError: (error) => {
       console.error("Transform update mutation failed:", error.message || error);
@@ -733,6 +866,7 @@ export function useUploadAvatarMutation() {
           await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
           await queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
           await queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
+          await queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
           console.log("缓存已刷新，roleId:", roleId);
           return uploadRes;
         } else {
@@ -1094,6 +1228,53 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
 }
 
 // ==================== 用户角色查询 ====================
+async function fetchUserRolesByTypes(userId: number, types: number[]): Promise<UserRole[]> {
+  const validTypes = types.filter(t => typeof t === "number" && !Number.isNaN(t));
+  const uniqueTypes = Array.from(new Set(validTypes));
+
+  const results = await Promise.all(
+    uniqueTypes.map(async (type) => {
+      const res = await tuanchat.roleController.getUserRolesByType(userId, type);
+      if (!res.success) {
+        throw new Error(res.errMsg || "获取用户角色失败");
+      }
+      return res.data ?? [];
+    }),
+  );
+
+  const roleMap = new Map<number, UserRole>();
+  for (const list of results) {
+    for (const role of list) {
+      if (typeof role.roleId === "number") {
+        roleMap.set(role.roleId, role);
+      }
+    }
+  }
+
+  /**
+   * 角色页侧边栏会把“骰娘/普通角色”分组展示。
+   * 但 infinite-query 分页是按列表顺序切片，若仅按 roleId 倒序，
+   * 老的骰娘可能会被切到后续页面，导致用户进入角色页时看不到骰娘，必须滚动触发下一页才出现。
+   *
+   * 这里统一按“骰娘(1) → 普通(0) → NPC(2) → 其它”排序，再按 roleId 倒序，
+   * 让首屏分页也能拿到骰娘，避免“需要下拉才加载骰娘”的体验问题。
+   */
+  const getTypePriority = (role: UserRole) => {
+    // type: 0=角色, 1=骰娘, 2=NPC
+    if (role.type === 1) return 0;
+    if (role.type === 0) return 1;
+    if (role.type === 2) return 2;
+    return 3;
+  };
+
+  return Array.from(roleMap.values()).sort((a, b) => {
+    const pa = getTypePriority(a);
+    const pb = getTypePriority(b);
+    if (pa !== pb) return pa - pb;
+    return (b.roleId ?? 0) - (a.roleId ?? 0);
+  });
+}
+
 /**
  * 获取用户所有角色
  * @param userId 用户ID
@@ -1101,9 +1282,94 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
 export function useGetUserRolesQuery(userId: number) {
   return useQuery({
     queryKey: ['getUserRoles', userId],
-    queryFn: () => tuanchat.roleController.getUserRoles(userId),
+    queryFn: async () => {
+      const data = await fetchUserRolesByTypes(userId, [0, 1]);
+      return {
+        success: true,
+        data,
+      };
+    },
     staleTime: 600000, // 10分钟缓存
     enabled: typeof userId === 'number' && !isNaN(userId) && userId > 0
+  });
+}
+
+async function fetchUserRolesByType(userId: number, type: number): Promise<UserRole[]> {
+  const res = await tuanchat.roleController.getUserRolesByType(userId, type);
+  if (!res.success) {
+    throw new Error(res.errMsg || "鑾峰彇鐢ㄦ埛瑙掕壊澶辫触");
+  }
+  return (res.data ?? []).sort((a, b) => (b.roleId ?? 0) - (a.roleId ?? 0));
+}
+
+/**
+ * 鑾峰彇鐢ㄦ埛鎸夌被鍨嬬殑瑙掕壊
+ * @param userId 鐢ㄦ埛ID
+ * @param type  0=瑙掕壊,1=楠板,2=NPC
+ */
+export function useGetUserRolesByTypeQuery(userId: number, type: number) {
+  return useQuery({
+    queryKey: ["getUserRolesByType", userId, type],
+    queryFn: () => fetchUserRolesByType(userId, type),
+    staleTime: 600000,
+    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
+  });
+}
+
+type RoleInfinitePageParam = {
+  pageNo?: number;
+  pageSize?: number;
+};
+
+/**
+ * 鎸夌被鍨嬭繘琛?Infinite Query 鍔犺浇
+ *
+ * 娉ㄦ剰锛氬悗绔苟鏈?type+pageNo 的鐪熷垎椤垫帴鍙ｏ紝鎵€浠ヨ繖閲屽鍗曠被鍨嬬殑鏁版嵁鍋氣€滃墠绔垏鐗囧垎椤碘€濓紝
+ * 但至少不会出现“骰娘被普通角色挤到后面页”的混合分页问题。
+ */
+export function useGetInfiniteUserRolesByTypeQuery(userId: number, type: number) {
+  const PAGE_SIZE = 15;
+  const queryClient = useQueryClient();
+  return useInfiniteQuery({
+    queryKey: ["roleInfiniteByType", userId, type],
+    queryFn: async ({ pageParam }: { pageParam: RoleInfinitePageParam }) => {
+      const pageNo = pageParam.pageNo ?? 1;
+      const pageSize = pageParam.pageSize ?? PAGE_SIZE;
+
+      const allRoles = await queryClient.fetchQuery({
+        queryKey: ["getUserRolesByType", userId, type],
+        queryFn: () => fetchUserRolesByType(userId, type),
+        staleTime: 600000,
+      });
+
+      const start = (pageNo - 1) * pageSize;
+      const list = allRoles.slice(start, start + pageSize);
+      const totalRecords = allRoles.length;
+      const isLast = start + pageSize >= totalRecords;
+
+      return {
+        success: true,
+        data: {
+          pageNo,
+          pageSize,
+          totalRecords,
+          isLast,
+          list,
+        },
+      };
+    },
+    initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data?.pageNo === undefined || lastPage.data?.isLast) {
+        return undefined;
+      }
+      return {
+        pageNo: lastPage.data.pageNo + 1,
+        pageSize: PAGE_SIZE,
+      };
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
   });
 }
 
@@ -1117,12 +1383,34 @@ export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
 
 export function useGetInfiniteUserRolesQuery(userId: number) {
   const PAGE_SIZE = 15;
+  const queryClient = useQueryClient();
   return useInfiniteQuery({
     queryKey: ["roleInfinite", userId],
     queryFn: async ({ pageParam }: { pageParam: RolePageQueryRequest }) => {
-      const res = await tuanchat.roleController.getRolesByPage(pageParam);
-      console.log(res);
-      return res;
+      const pageNo = pageParam.pageNo ?? 1;
+      const pageSize = pageParam.pageSize ?? PAGE_SIZE;
+
+      const allRoles = await queryClient.fetchQuery({
+        queryKey: ["getUserRolesByTypes", userId, 0, 1],
+        queryFn: () => fetchUserRolesByTypes(userId, [0, 1]),
+        staleTime: 600000, // 10分钟缓存
+      });
+
+      const start = (pageNo - 1) * pageSize;
+      const list = allRoles.slice(start, start + pageSize);
+      const totalRecords = allRoles.length;
+      const isLast = start + pageSize >= totalRecords;
+
+      return {
+        success: true,
+        data: {
+          pageNo,
+          pageSize,
+          totalRecords,
+          isLast,
+          list,
+        },
+      };
     },
     initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE, userId: userId ?? -1 },
     getNextPageParam: (lastPage) => {
@@ -1139,6 +1427,7 @@ export function useGetInfiniteUserRolesQuery(userId: number) {
       }
     },
     staleTime: 1000 * 60 * 10,
+    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
   });
 }
 
@@ -1172,4 +1461,3 @@ export function useRoleAbility(roleId: number) {
   );
   return abilityQuery;
 }
-

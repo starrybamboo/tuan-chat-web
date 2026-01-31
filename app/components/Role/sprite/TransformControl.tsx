@@ -1,5 +1,7 @@
 import React from "react";
 
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+
 /**
  * Transform状态接口
  */
@@ -19,20 +21,23 @@ interface TransformControlProps {
   transform: Transform;
   // Transform状态更新函数
   setTransform: React.Dispatch<React.SetStateAction<Transform>>;
-  // 预览Canvas引用，用于贴底对齐计算
-  previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   // 是否禁用控制
   disabled?: boolean;
 }
 
 const REFERENCE_HEIGHT = 1440;
 const REFERENCE_WIDTH = 2560;
+const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 /**
  * Transform控制组件
  * 提供缩放、位置、透明度、旋转等控制功能
  */
-export function TransformControl({ transform, setTransform, disabled = false }: TransformControlProps) {
+export function TransformControl({
+  transform,
+  setTransform,
+  disabled = false,
+}: TransformControlProps) {
   /**
    * 重置所有Transform参数到默认值
    */
@@ -63,11 +68,9 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
 
   return (
     <div className={`w-full p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
-      <h3 className="text-sm font-semibold text-center">Transform 控制</h3>
-
       {/* Scale控制 - 调整范围和步长，提供更精细的控制 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 flex-shrink-0">缩放:</label>
+        <label className="text-xs w-16 shrink-0">缩放:</label>
         <input
           type="range"
           min="0.1" // (修改) 避免完全消失
@@ -78,12 +81,35 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
           className="range range-xs range-info flex-1"
           disabled={disabled}
         />
-        <span className="text-xs w-12 text-right">{transform.scale.toFixed(2)}</span>
+        <DoubleClickEditableText
+          value={transform.scale}
+          disabled={disabled}
+          className="w-12"
+          displayClassName="block text-xs text-right"
+          inputClassName="input input-xs w-full text-right"
+          formatDisplay={value => value.toFixed(2)}
+          formatInput={value => String(value)}
+          parse={(rawValue) => {
+            const nextValue = Number.parseFloat(rawValue);
+            return Number.isFinite(nextValue) ? nextValue : null;
+          }}
+          invalidBehavior="revert"
+          onCommit={nextValue => setTransform(prev => ({
+            ...prev,
+            scale: clampNumber(nextValue, 0.1, 4),
+          }))}
+          inputProps={{
+            inputMode: "decimal",
+            min: 0.1,
+            max: 4,
+            step: 0.05,
+          }}
+        />
       </div>
 
       {/* Position X控制 - 扩大范围以适应1280px的基准宽度 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 flex-shrink-0">X位置:</label>
+        <label className="text-xs w-16 shrink-0">X位移:</label>
         <input
           type="range"
           min={-REFERENCE_WIDTH}
@@ -94,12 +120,35 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
           className="range range-xs range-info flex-1"
           disabled={disabled}
         />
-        <span className="text-xs w-12 text-right">{transform.positionX}</span>
+        <DoubleClickEditableText
+          value={transform.positionX}
+          disabled={disabled}
+          className="w-12"
+          displayClassName="block text-xs text-right"
+          inputClassName="input input-xs w-full text-right"
+          formatDisplay={value => String(value)}
+          formatInput={value => String(value)}
+          parse={(rawValue) => {
+            const nextValue = Number.parseInt(rawValue);
+            return Number.isFinite(nextValue) ? nextValue : null;
+          }}
+          invalidBehavior="revert"
+          onCommit={nextValue => setTransform(prev => ({
+            ...prev,
+            positionX: clampNumber(nextValue, -REFERENCE_WIDTH, REFERENCE_WIDTH),
+          }))}
+          inputProps={{
+            inputMode: "numeric",
+            min: -REFERENCE_WIDTH,
+            max: REFERENCE_WIDTH,
+            step: 5,
+          }}
+        />
       </div>
 
       {/* Position Y控制 - 扩大范围以适应720px的基准高度 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 flex-shrink-0">Y位置:</label>
+        <label className="text-xs w-16 shrink-0">Y位移:</label>
         <input
           type="range"
           min={-REFERENCE_HEIGHT}
@@ -110,12 +159,35 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
           className="range range-xs range-info flex-1"
           disabled={disabled}
         />
-        <span className="text-xs w-12 text-right">{transform.positionY}</span>
+        <DoubleClickEditableText
+          value={transform.positionY}
+          disabled={disabled}
+          className="w-12"
+          displayClassName="block text-xs text-right"
+          inputClassName="input input-xs w-full text-right"
+          formatDisplay={value => String(value)}
+          formatInput={value => String(value)}
+          parse={(rawValue) => {
+            const nextValue = Number.parseInt(rawValue);
+            return Number.isFinite(nextValue) ? nextValue : null;
+          }}
+          invalidBehavior="revert"
+          onCommit={nextValue => setTransform(prev => ({
+            ...prev,
+            positionY: clampNumber(nextValue, -REFERENCE_HEIGHT, REFERENCE_HEIGHT),
+          }))}
+          inputProps={{
+            inputMode: "numeric",
+            min: -REFERENCE_HEIGHT,
+            max: REFERENCE_HEIGHT,
+            step: 5,
+          }}
+        />
       </div>
 
       {/* Alpha控制 - 步长改为0.05 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 flex-shrink-0">透明度:</label>
+        <label className="text-xs w-16 shrink-0">透明度:</label>
         <input
           type="range"
           min="0"
@@ -126,12 +198,35 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
           className="range range-xs range-info flex-1"
           disabled={disabled}
         />
-        <span className="text-xs w-12 text-right">{transform.alpha.toFixed(2)}</span>
+        <DoubleClickEditableText
+          value={transform.alpha}
+          disabled={disabled}
+          className="w-12"
+          displayClassName="block text-xs text-right"
+          inputClassName="input input-xs w-full text-right"
+          formatDisplay={value => value.toFixed(2)}
+          formatInput={value => String(value)}
+          parse={(rawValue) => {
+            const nextValue = Number.parseFloat(rawValue);
+            return Number.isFinite(nextValue) ? nextValue : null;
+          }}
+          invalidBehavior="revert"
+          onCommit={nextValue => setTransform(prev => ({
+            ...prev,
+            alpha: clampNumber(nextValue, 0, 1),
+          }))}
+          inputProps={{
+            inputMode: "decimal",
+            min: 0,
+            max: 1,
+            step: 0.05,
+          }}
+        />
       </div>
 
       {/* Rotation控制 - 步长改为5度 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 flex-shrink-0">旋转:</label>
+        <label className="text-xs w-16 shrink-0">旋转:</label>
         <input
           type="range"
           min="0"
@@ -142,10 +237,30 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
           className="range range-xs range-info flex-1"
           disabled={disabled}
         />
-        <span className="text-xs w-12 text-right">
-          {transform.rotation}
-          °
-        </span>
+        <DoubleClickEditableText
+          value={transform.rotation}
+          disabled={disabled}
+          className="w-12"
+          displayClassName="block text-xs text-right"
+          inputClassName="input input-xs w-full text-right"
+          formatDisplay={value => `${value}°`}
+          formatInput={value => String(value)}
+          parse={(rawValue) => {
+            const nextValue = Number.parseInt(rawValue);
+            return Number.isFinite(nextValue) ? nextValue : null;
+          }}
+          invalidBehavior="revert"
+          onCommit={nextValue => setTransform(prev => ({
+            ...prev,
+            rotation: clampNumber(nextValue, 0, 360),
+          }))}
+          inputProps={{
+            inputMode: "numeric",
+            min: 0,
+            max: 360,
+            step: 5,
+          }}
+        />
       </div>
 
       {/* 控制按钮组 */}
