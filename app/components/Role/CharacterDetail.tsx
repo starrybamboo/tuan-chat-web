@@ -666,7 +666,7 @@ function CharacterDetailInner({
       {/* 规则选择弹窗 */}
       {isRuleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setIsRuleModalOpen(false)}>
-          <div className="bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">选择规则系统</h3>
@@ -678,12 +678,10 @@ function CharacterDetailInner({
                   <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
-              <div className="max-h-102 overflow-y-auto">
-                <RulesSection
-                  currentRuleId={selectedRuleId}
-                  onRuleChange={handleRuleChange}
-                />
-              </div>
+              <RulesSection
+                currentRuleId={selectedRuleId}
+                onRuleChange={handleRuleChange}
+              />
             </div>
           </div>
         </div>
