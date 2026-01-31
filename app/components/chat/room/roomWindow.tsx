@@ -1,5 +1,5 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse, SpaceMember } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequest
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomInputController from "@/components/chat/room/useRoomInputController";
+import useRoomMemberState from "@/components/chat/room/useRoomMemberState";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
@@ -31,7 +32,6 @@ import useCommandExecutor from "@/components/common/dicer/cmdPre";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
-  useGetMemberListQuery,
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
   useSendMessageMutation,
@@ -122,24 +122,16 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     isRealtimeRenderActive,
     clearRealtimeFigure,
   });
-  const membersQuery = useGetMemberListQuery(roomId);
-  const spaceMembers = useMemo(() => {
-    return spaceContext.spaceMembers ?? [];
-  }, [spaceContext.spaceMembers]);
-  const members: SpaceMember[] = useMemo(() => {
-    const members = membersQuery.data?.data ?? [];
-    return members.map((member) => {
-      const spaceMember = spaceMembers.find(m => m.userId === member.userId);
-      return {
-        ...member,
-        ...spaceMember,
-      };
-    });
-  }, [membersQuery.data?.data, spaceMembers]);
-
-  const curMember = useMemo(() => {
-    return members.find(member => member.userId === userId);
-  }, [members, userId]);
+  const {
+    members,
+    curMember,
+    isSpectator,
+    notMember,
+  } = useRoomMemberState({
+    roomId,
+    userId,
+    spaceMembers: spaceContext.spaceMembers,
+  });
   const chatHistory = useChatHistory(roomId);
   const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
@@ -180,8 +172,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, spaceId, chatHistory, scrollToGivenMessage, isRealtimeRenderActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, rerenderHistoryInWebGAL]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
-  const isSpectator = (curMember?.memberType ?? 3) >= 3;
-
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
     roomId,
     userId,
@@ -200,7 +190,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3);
   const noRole = curRoleId <= 0;
 
   const {
