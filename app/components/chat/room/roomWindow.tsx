@@ -21,6 +21,7 @@ import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
+import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
@@ -72,8 +73,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
   const resetChatInputUi = useChatInputUiStore(state => state.reset);
   const resetChatComposer = useChatComposerStore(state => state.reset);
-
-  const delayTimer = useRef<NodeJS.Timeout | null>(null);
 
   const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
     useChatInputUiStore.getState().setSnapshot({
@@ -171,45 +170,13 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [historyMessages]);
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
-  const scrollToGivenMessage = useCallback((messageId: number) => {
-    const messageIndex = mainHistoryMessages.findIndex(m => m.message.messageId === messageId);
-    if (messageIndex >= 0) {
-      virtuosoRef.current?.scrollToIndex(messageIndex);
-    }
-    setTimeout(() => {
-      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-      if (messageElement) {
-        // ... (highlight animation logic as-is) ...
-        messageElement.classList.add("highlight-animation");
-        messageElement.addEventListener("animationend", () => {
-          messageElement.classList.remove("highlight-animation");
-        }, { once: true });
-      }
-    }, 50);
-  }, [mainHistoryMessages]);
-
-  const hasScrolledToTargetRef = useRef(false);
-  useEffect(() => {
-    if (targetMessageId && historyMessages.length > 0 && !chatHistory?.loading && !hasScrolledToTargetRef.current) {
-      const messageExists = historyMessages.some(m => m.message.messageId === targetMessageId);
-      if (messageExists) {
-        if (delayTimer.current) {
-          clearTimeout(delayTimer.current);
-        }
-        delayTimer.current = setTimeout(() => {
-          scrollToGivenMessage(targetMessageId);
-          delayTimer.current = null;
-        }, 100);
-        hasScrolledToTargetRef.current = true;
-      }
-    }
-    return () => {
-      if (delayTimer.current) {
-        clearTimeout(delayTimer.current);
-        delayTimer.current = null;
-      }
-    };
-  }, [targetMessageId, historyMessages, chatHistory?.loading, scrollToGivenMessage]);
+  const { scrollToGivenMessage } = useRoomMessageScroll({
+    targetMessageId,
+    historyMessages,
+    mainHistoryMessages,
+    isHistoryLoading: chatHistory?.loading,
+    virtuosoRef,
+  });
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
