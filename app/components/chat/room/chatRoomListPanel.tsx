@@ -1,13 +1,15 @@
 import type { Room } from "../../../../api";
-import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "./sidebarTree";
+import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { CategoryEditorState, DeleteConfirmDocState, SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import { FileTextIcon } from "@phosphor-icons/react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
+import useRoomSidebarDragState from "@/components/chat/room/useRoomSidebarDragState";
+import useRoomSidebarDropHandler from "@/components/chat/room/useRoomSidebarDropHandler";
 import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTreeActions";
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
 import RoomButton from "@/components/chat/shared/components/roomButton";
@@ -87,20 +89,6 @@ export default function ChatRoomListPanel({
   setIsOpenLeftDrawer,
   onOpenCreateInCategory,
 }: ChatRoomListPanelProps) {
-  type DraggingItem = {
-    kind: "node";
-    nodeId: string;
-    type: "room" | "doc";
-    fromCategoryId: string;
-    fromIndex: number;
-  } | {
-    kind: "category";
-    fromIndex: number;
-    categoryId: string;
-  };
-
-  type DropTarget = { kind: "node"; toCategoryId: string; insertIndex: number } | { kind: "category"; insertIndex: number };
-
   const roomsInSpace = useMemo(() => {
     return rooms.filter(room => room.spaceId === activeSpaceId);
   }, [activeSpaceId, rooms]);
@@ -152,8 +140,14 @@ export default function ChatRoomListPanel({
   }, [orderedRoomIdsFallback, roomById, roomsInSpace]);
 
   const canEdit = Boolean(activeSpaceId && isSpaceOwner);
-  const [dragging, setDragging] = useState<DraggingItem | null>(null);
-  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+  const {
+    dragging,
+    dropTarget,
+    setDragging,
+    setDropTarget,
+    dropHandledRef,
+    resetDropHandled,
+  } = useRoomSidebarDragState();
 
   const {
     treeToRender,
@@ -170,8 +164,6 @@ export default function ChatRoomListPanel({
     visibleDocMetas,
     isSpaceOwner,
   });
-
-  const dropHandledRef = useRef(false);
 
   const [addPanelCategoryId, setAddPanelCategoryId] = useState<string | null>(null);
   const [pendingAddRoomId, setPendingAddRoomId] = useState<number | null>(null);
@@ -192,7 +184,7 @@ export default function ChatRoomListPanel({
       includeDocs: isSpaceOwner,
     });
 
-    // 文档缓存：把 title/cover 写入 sidebarTree 节点（持久化到后端），让首屏优先展示缓存，而不是等待 meta/网络加载。
+    // 鏂囨。缂撳瓨锛氭妸 title/cover 鍐欏叆 sidebarTree 鑺傜偣锛堟寔涔呭寲鍒板悗绔級锛岃棣栧睆浼樺厛灞曠ず缂撳瓨锛岃€屼笉鏄瓑寰?meta/缃戠粶鍔犺浇銆?
     const normalizedWithCache = (() => {
       const base = JSON.parse(JSON.stringify(normalized)) as SidebarTree;
       for (const cat of base.categories ?? []) {
@@ -244,7 +236,7 @@ export default function ChatRoomListPanel({
     docRef: { docId: string; spaceId?: number; title?: string; imageUrl?: string };
   }) => {
     if (!activeSpaceId || activeSpaceId <= 0) {
-      toast.error("未选择空间");
+      toast.error("鏈€夋嫨绌洪棿");
       return;
     }
     if (!isSpaceOwner) {
@@ -252,7 +244,7 @@ export default function ChatRoomListPanel({
       return;
     }
     if (params.docRef.spaceId && params.docRef.spaceId !== activeSpaceId) {
-      toast.error("不允许跨空间复制文档");
+      toast.error("涓嶅厑璁歌法绌洪棿澶嶅埗鏂囨。");
       return;
     }
 
@@ -283,7 +275,7 @@ export default function ChatRoomListPanel({
       const nextTree = JSON.parse(JSON.stringify(baseTree)) as SidebarTree;
       const cat = nextTree.categories.find(c => c.categoryId === params.categoryId) ?? nextTree.categories[0];
       if (!cat) {
-        toast.error("侧边栏分类不存在", { id: toastId });
+        toast.error("渚ц竟鏍忓垎绫讳笉瀛樺湪", { id: toastId });
         return;
       }
       cat.items = Array.isArray(cat.items) ? cat.items : [];
@@ -324,7 +316,7 @@ export default function ChatRoomListPanel({
     }
     catch (err) {
       console.error("[DocCopy] drop copy failed", err);
-      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
+      toast.error(err instanceof Error ? err.message : "澶嶅埗澶辫触", { id: toastId });
     }
   }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas, appendExtraDocMeta]);
 
@@ -333,27 +325,81 @@ export default function ChatRoomListPanel({
     normalizeAndSet,
   });
 
-  const handleDrop = useCallback(() => {
-    if (dropHandledRef.current)
-      return;
-    if (!dragging || !dropTarget)
-      return;
+  const handleDrop = useRoomSidebarDropHandler({
+    dragging,
+    dropTarget,
+    dropHandledRef,
+    setDragging,
+    setDropTarget,
+    moveCategory,
+    moveNode,
+  });
 
-    dropHandledRef.current = true;
+  const openAddCategory = useCallback(() => {
+    setCategoryEditor({ mode: "add", name: "新分类" });
+    setCategoryEditorError("");
+  }, []);
 
-    if (dragging.kind === "category" && dropTarget.kind === "category") {
-      moveCategory(dragging.fromIndex, dropTarget.insertIndex);
-      setDragging(null);
-      setDropTarget(null);
+  const openRenameCategory = useCallback((categoryId: string) => {
+    const current = treeToRender.categories.find(c => c.categoryId === categoryId);
+    if (!current)
+      return;
+    setCategoryEditor({ mode: "rename", categoryId, name: current.name ?? "" });
+    setCategoryEditorError("");
+  }, [treeToRender.categories]);
+
+  const submitCategoryEditor = useCallback(() => {
+    if (!categoryEditor)
+      return;
+    const name = categoryEditor.name.trim();
+    if (!name) {
+      setCategoryEditorError("鍚嶇О涓嶈兘涓虹┖");
       return;
     }
-
-    if (dragging.kind === "node" && dropTarget.kind === "node") {
-      moveNode(dragging.fromCategoryId, dragging.fromIndex, dropTarget.toCategoryId, dropTarget.insertIndex, true);
-      setDragging(null);
-      setDropTarget(null);
+    const base = treeToRender;
+    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
+    let newCategoryId: string | null = null;
+    if (categoryEditor.mode === "add") {
+      next.categories.push({
+        categoryId: (newCategoryId = `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`),
+        name,
+        items: [],
+      });
     }
-  }, [dragging, dropTarget, moveCategory, moveNode]);
+    else {
+      const cat = next.categories.find(c => c.categoryId === categoryEditor.categoryId);
+      if (!cat)
+        return;
+      cat.name = name;
+    }
+    normalizeAndSet(next, true);
+    setCategoryEditor(null);
+    setCategoryEditorError("");
+
+    // 鏂板鍒嗙被榛樿灞曞紑锛岄伩鍏嶁€滅偣涓€涓嬪睍寮€鍙堟敹鍥炩€濈殑浣撻獙銆?
+    if (newCategoryId) {
+      toggleCategoryExpanded(newCategoryId);
+    }
+  }, [categoryEditor, normalizeAndSet, toggleCategoryExpanded, treeToRender]);
+
+  const deleteCategoryCore = useCallback((categoryId: string) => {
+    const base = treeToRender;
+    const idx = base.categories.findIndex(c => c.categoryId === categoryId);
+    if (idx === -1)
+      return;
+    if (base.categories.length <= 1)
+      return;
+    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
+    const [removed] = next.categories.splice(idx, 1);
+    if (!removed)
+      return;
+    const targetIdx = Math.max(0, Math.min(idx - 1, next.categories.length - 1));
+    const target = next.categories[targetIdx];
+    if (target) {
+      target.items.push(...(removed.items ?? []));
+    }
+    normalizeAndSet(next, true);
+  }, [normalizeAndSet, treeToRender]);
 
   const existingRoomIdsInTree = useMemo(() => {
     const ids = new Set<number>();
@@ -439,7 +485,7 @@ export default function ChatRoomListPanel({
 
                   const docRef = getDocRefDragData(e.dataTransfer);
                   if (!docRef) {
-                    toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                    toast.error("鏈瘑鍒埌鏂囨。鎷栨嫿鏁版嵁锛岃浠庢枃妗ｅ崱鐗囩┖鐧藉閲嶆柊鎷栨嫿");
                     return;
                   }
 
@@ -458,7 +504,7 @@ export default function ChatRoomListPanel({
                       className="btn btn-sm btn-ghost"
                       onClick={openAddCategory}
                     >
-                      新增分类
+                      鏂板鍒嗙被
                     </button>
                     <button
                       type="button"
@@ -467,14 +513,14 @@ export default function ChatRoomListPanel({
                         onResetSidebarTreeToDefault?.();
                       }}
                     >
-                      重置默认
+                      閲嶇疆榛樿
                     </button>
                   </div>
                 )}
 
                 {treeToRender.categories.map((cat, categoryIndex) => {
                   const items = Array.isArray(cat.items) ? cat.items : [];
-                  // 默认折叠：如果本地还没加载完，则先折叠；展开状态以 IndexedDB 为准。
+                  // 榛樿鎶樺彔锛氬鏋滄湰鍦拌繕娌″姞杞藉畬锛屽垯鍏堟姌鍙狅紱灞曞紑鐘舵€佷互 IndexedDB 涓哄噯銆?
                   const isExpanded = Boolean(expandedByCategoryId?.[cat.categoryId]);
                   const isCollapsed = !isExpanded;
                   const isAddPanelOpen = canEdit && addPanelCategoryId === cat.categoryId;
@@ -494,7 +540,7 @@ export default function ChatRoomListPanel({
                           return;
                         if (!activeSpaceId || activeSpaceId <= 0)
                           return;
-                        // 始终 preventDefault，确保 drop 能触发（部分环境 dragover 阶段 types 不可靠）。
+                        // 濮嬬粓 preventDefault锛岀‘淇?drop 鑳借Е鍙戯紙閮ㄥ垎鐜 dragover 闃舵 types 涓嶅彲闈狅級銆?
                         e.preventDefault();
                         if (!isDocRefDrag(e.dataTransfer)) {
                           if (docCopyDropCategoryId === cat.categoryId) {
@@ -521,7 +567,7 @@ export default function ChatRoomListPanel({
                         const docRef = getDocRefDragData(e.dataTransfer);
                         if (!docRef) {
                           if (isDocRefDrag(e.dataTransfer)) {
-                            toast.error("未识别到文档拖拽数据，请从文档卡片空白处重新拖拽");
+                            toast.error("鏈瘑鍒埌鏂囨。鎷栨嫿鏁版嵁锛岃浠庢枃妗ｅ崱鐗囩┖鐧藉閲嶆柊鎷栨嫿");
                           }
                           return;
                         }
@@ -546,13 +592,13 @@ export default function ChatRoomListPanel({
                         onDragStart={(e) => {
                           if (!canEdit)
                             return;
-                          // 避免从输入控件触发拖拽
+                          // 閬垮厤浠庤緭鍏ユ帶浠惰Е鍙戞嫋鎷?
                           const el = e.target as HTMLElement | null;
                           if (el && (el.closest("input") || el.closest("select") || el.closest("textarea") || el.closest("button"))) {
                             e.preventDefault();
                             return;
                           }
-                          dropHandledRef.current = false;
+                          resetDropHandled();
                           e.dataTransfer.effectAllowed = "move";
                           e.dataTransfer.setData("text/plain", `category:${cat.categoryId}`);
                           setDragging({ kind: "category", fromIndex: categoryIndex, categoryId: cat.categoryId });
@@ -563,7 +609,7 @@ export default function ChatRoomListPanel({
                           setDropTarget(null);
                         }}
                         onContextMenu={(e) => {
-                          // 分类操作：用右键替代原来的下拉菜单
+                          // 鍒嗙被鎿嶄綔锛氱敤鍙抽敭鏇夸唬鍘熸潵鐨勪笅鎷夎彍鍗?
                           if (!canEdit)
                             return;
                           e.preventDefault();
@@ -591,7 +637,7 @@ export default function ChatRoomListPanel({
                             return;
                           }
 
-                          // node: drop 到分类头部 -> 追加到末尾
+                          // node: drop 鍒板垎绫诲ご閮?-> 杩藉姞鍒版湯灏?
                           setDropTarget({ kind: "node", toCategoryId: cat.categoryId, insertIndex: items.length });
                         }}
                         onDrop={(e) => {
@@ -608,7 +654,7 @@ export default function ChatRoomListPanel({
                           onClick={() => {
                             toggleCategoryExpanded(cat.categoryId);
                           }}
-                          title={isCollapsed ? "展开" : "折叠"}
+                          title={isCollapsed ? "灞曞紑" : "鎶樺彔"}
                         >
                           <ChevronDown className={`size-4 opacity-80 ${isCollapsed ? "-rotate-90" : ""}`} />
                         </button>
@@ -630,7 +676,7 @@ export default function ChatRoomListPanel({
                           </button>
                         )}
 
-                        {/* 分类的弹出操作菜单已改为右键触发 */}
+                        {/* 鍒嗙被鐨勫脊鍑烘搷浣滆彍鍗曞凡鏀逛负鍙抽敭瑙﹀彂 */}
                       </div>
 
                       {!isCollapsed && (
@@ -661,7 +707,7 @@ export default function ChatRoomListPanel({
 
                           {items
                             .filter((node) => {
-                              // 非 KP：隐藏 doc 节点（目前 doc 路由也会 gate）
+                              // 闈?KP锛氶殣钘?doc 鑺傜偣锛堢洰鍓?doc 璺敱涔熶細 gate锛?
                               if (!isSpaceOwner && node.type === "doc")
                                 return false;
                               return true;
@@ -708,7 +754,7 @@ export default function ChatRoomListPanel({
                                             onContextMenu={(e) => {
                                               e.preventDefault();
                                               e.stopPropagation();
-                                              // 房间右键菜单：统一使用 ChatPageContextMenu
+                                              // 鎴块棿鍙抽敭鑿滃崟锛氱粺涓€浣跨敤 ChatPageContextMenu
                                               onContextMenu(e);
                                             }}
                                             draggable={canEdit}
@@ -720,7 +766,7 @@ export default function ChatRoomListPanel({
                                                 e.preventDefault();
                                                 return;
                                               }
-                                              dropHandledRef.current = false;
+                                              resetDropHandled();
                                               e.dataTransfer.effectAllowed = "move";
                                               e.dataTransfer.setData("text/plain", String(node.nodeId));
                                               setDragging({
@@ -764,7 +810,7 @@ export default function ChatRoomListPanel({
                                               }}
                                               isActive={activeRoomId === rid}
                                             >
-                                              {/* 房间的弹出操作菜单已改为右键触发 */}
+                                              {/* 鎴块棿鐨勫脊鍑烘搷浣滆彍鍗曞凡鏀逛负鍙抽敭瑙﹀彂 */}
                                             </RoomButton>
                                           </div>
                                         );
@@ -822,7 +868,7 @@ export default function ChatRoomListPanel({
                                               e.preventDefault();
                                               return;
                                             }
-                                            dropHandledRef.current = false;
+                                            resetDropHandled();
                                             e.dataTransfer.effectAllowed = "copyMove";
                                             e.dataTransfer.setData("text/plain", String(node.nodeId));
                                             setDocRefDragData(e.dataTransfer, {
@@ -879,7 +925,7 @@ export default function ChatRoomListPanel({
                               <div className="flex items-center gap-2">
                                 <select
                                   className="select select-bordered select-xs flex-1"
-                                  aria-label="添加房间"
+                                  aria-label="娣诲姞鎴块棿"
                                   value={pendingAddRoomId ?? ""}
                                   onChange={(e) => {
                                     const v = e.target.value;
@@ -907,7 +953,7 @@ export default function ChatRoomListPanel({
                                   }}
                                   disabled={!pendingAddRoomId}
                                 >
-                                  添加
+                                  娣诲姞
                                 </button>
                               </div>
 
@@ -915,7 +961,7 @@ export default function ChatRoomListPanel({
                                 <div className="flex items-center gap-2 mt-2">
                                   <select
                                     className="select select-bordered select-xs flex-1"
-                                    aria-label="添加文档"
+                                    aria-label="娣诲姞鏂囨。"
                                     value={pendingAddDocId}
                                     onChange={(e) => {
                                       setPendingAddDocId(e.target.value);
@@ -942,7 +988,7 @@ export default function ChatRoomListPanel({
                                     }}
                                     disabled={!pendingAddDocId}
                                   >
-                                    添加
+                                    娣诲姞
                                   </button>
                                 </div>
                               )}
@@ -957,7 +1003,7 @@ export default function ChatRoomListPanel({
                                     setPendingAddDocId("");
                                   }}
                                 >
-                                  关闭
+                                  鍏抽棴
                                 </button>
                               </div>
                             </div>
