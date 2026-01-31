@@ -4,11 +4,11 @@ import type { CategoryEditorState, DeleteConfirmDocState, SidebarTreeContextMenu
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import { FileTextIcon } from "@phosphor-icons/react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
-import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
+import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
@@ -151,95 +151,24 @@ export default function ChatRoomListPanel({
   }, [orderedRoomIdsFallback, roomById, roomsInSpace]);
 
   const canEdit = Boolean(activeSpaceId && isSpaceOwner);
-
-  const displayTree = useMemo(() => {
-    return normalizeSidebarTree({
-      tree: sidebarTree ?? null,
-      roomsInSpace: fallbackTextRooms,
-      docMetas: visibleDocMetas,
-      includeDocs: isSpaceOwner,
-    });
-  }, [fallbackTextRooms, isSpaceOwner, sidebarTree, visibleDocMetas]);
-
-  // KP 直接拖拽/编辑：使用本地副本做乐观更新；drop/操作结束后再保存。
-  const [localTree, setLocalTree] = useState<SidebarTree | null>(null);
   const [dragging, setDragging] = useState<DraggingItem | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 
-  // 分类折叠：默认折叠；仅本地 IndexedDB 保存“展开状态”，不再同步到后端 sidebarTree。
-  const [expandedByCategoryId, setExpandedByCategoryId] = useState<Record<string, boolean> | null>(null);
-  const lastSpaceIdRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!canEdit) {
-      setLocalTree(null);
-      return;
-    }
-    // 拖拽中不覆写本地树，避免抖动
-    if (dragging)
-      return;
-    setLocalTree(displayTree);
-  }, [canEdit, displayTree, dragging]);
-
-  useEffect(() => {
-    if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
-      setExpandedByCategoryId(null);
-      lastSpaceIdRef.current = activeSpaceId;
-      return;
-    }
-
-    // 切换空间：从 IndexedDB 读取上次展开状态；默认全部折叠（expanded=false）。
-    if (activeSpaceId !== lastSpaceIdRef.current) {
-      lastSpaceIdRef.current = activeSpaceId;
-      setExpandedByCategoryId(null);
-      getSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId })
-        .then((val) => {
-          // 避免覆盖用户在读取完成前的手动展开操作（会导致“展开后立刻收回”的抖动）。
-          setExpandedByCategoryId(prev => prev ?? (val ?? {}));
-        })
-        .catch(() => {
-          setExpandedByCategoryId({});
-        });
-    }
-  }, [activeSpaceId, canEdit, currentUserId, displayTree]);
-
-  useEffect(() => {
-    if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0)
-      return;
-    if (!expandedByCategoryId)
-      return;
-    // categories 变化时：去掉不存在的 key，避免无限增长
-    const next: Record<string, boolean> = {};
-    const categoriesInView = (canEdit ? (localTree ?? displayTree) : displayTree).categories;
-    for (const c of categoriesInView) {
-      if (expandedByCategoryId[c.categoryId]) {
-        next[c.categoryId] = true;
-      }
-    }
-    const prevKeys = Object.keys(expandedByCategoryId).length;
-    const nextKeys = Object.keys(next).length;
-    if (prevKeys !== nextKeys) {
-      setExpandedByCategoryId(next);
-      setSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId, expandedByCategoryId: next }).catch(() => {
-        // ignore
-      });
-    }
-  }, [activeSpaceId, canEdit, currentUserId, displayTree, expandedByCategoryId, localTree]);
-
-  const toggleCategoryExpanded = useCallback((categoryId: string) => {
-    if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0)
-      return;
-    setExpandedByCategoryId((prev) => {
-      const base = prev ?? {};
-      const next = { ...base, [categoryId]: !base[categoryId] };
-      setSidebarTreeExpandedByCategoryId({ userId: currentUserId, spaceId: activeSpaceId, expandedByCategoryId: next }).catch(() => {
-        // ignore
-      });
-      return next;
-    });
-  }, [activeSpaceId, currentUserId]);
-
-  const treeToRender = canEdit ? (localTree ?? displayTree) : displayTree;
+  const {
+    treeToRender,
+    setLocalTree,
+    expandedByCategoryId,
+    toggleCategoryExpanded,
+  } = useRoomSidebarTreeState({
+    activeSpaceId,
+    currentUserId,
+    canEdit,
+    isDragging: Boolean(dragging),
+    sidebarTree,
+    fallbackTextRooms,
+    visibleDocMetas,
+    isSpaceOwner,
+  });
 
   const dropHandledRef = useRef(false);
 
@@ -305,7 +234,7 @@ export default function ChatRoomListPanel({
     if (save) {
       onSaveSidebarTree?.(normalizedWithCache);
     }
-  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas]);
+  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas, setLocalTree]);
 
   const [docCopyDropCategoryId, setDocCopyDropCategoryId] = useState<string | null>(null);
 
