@@ -6,7 +6,6 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import type { SpaceWebgalVarsRecord } from "@/types/webgalVar";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 // hooks (local)
@@ -22,6 +21,7 @@ import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
 import useAiRewrite from "@/components/chat/room/useAiRewrite";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
+import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
@@ -38,10 +38,6 @@ import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre"
 import UTILS from "@/components/common/dicer/utils/utils";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { parseWebgalVarCommand } from "@/types/webgalVar";
-import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
-import { getImageSize } from "@/utils/getImgSize";
-import { UploadUtils } from "@/utils/UploadUtils";
 import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,
@@ -118,8 +114,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       resetChatComposer();
     };
   }, [resetChatInputUi, resetChatComposer, roomId]);
-
-  const uploadUtils = new UploadUtils();
 
   useLayoutEffect(() => {
     useRoomUiStore.getState().reset();
@@ -337,8 +331,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     });
   }, [commandExecutor, isSubmitting, noRole, notMember, spaceContext.isSpaceOwner]);
 
-  /**
-   */
   const { sendMessageWithInsert, handleSetWebgalVar } = useRoomMessageActions({
     roomId,
     spaceId,
@@ -355,365 +347,25 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     ensureRuntimeAvatarIdForRole,
     setSpaceExtra: setSpaceExtraMutation.mutateAsync,
   });
-  const handleMessageSubmit = async () => {
-    const {
-      plainText: inputText,
-      textWithoutMentions: inputTextWithoutMentions,
-      mentionedRoles: mentionedRolesInInput,
-    } = useChatInputUiStore.getState();
-
-    const {
-      imgFiles,
-      emojiUrls,
-      audioFile,
-      sendAsBackground,
-      audioPurpose,
-      setImgFiles,
-      setEmojiUrls,
-      setAudioFile,
-      setSendAsBackground,
-      setAudioPurpose,
-    } = useChatComposerStore.getState();
-
-    const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile);
-
-    const {
-      webgalLinkMode,
-      dialogNotend,
-      dialogConcat,
-      defaultFigurePositionMap,
-    } = useRoomPreferenceStore.getState();
-
-    const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
-
-    const isKP = spaceContext.isSpaceOwner;
-    const isNarrator = noRole;
-
-    const disableSendMessage = (notMember || noInput || isSubmitting)
-      || (isNarrator && !isKP);
-
-    if (disableSendMessage) {
-      if (notMember)
-        toast.error("您是观战，不能发送消息");
-      else if (isNarrator && !isKP)
-        toast.error("旁白仅KP可用，请先选择/拉入你的角色");
-      else if (noInput)
-        toast.error("请输入内容");
-      else if (isSubmitting)
-        toast.error("正在提交中，请稍后");
-      return;
-    }
-    if (inputText.length > 1024) {
-      toast.error("消息长度不能超过 1024 字");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const uploadedImages: any[] = [];
-      const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
-
-      for (let i = 0; i < imgFiles.length; i++) {
-        const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-        const { width, height, size } = await getImageSize(imgFiles[i]);
-        uploadedImages.push({ url: imgDownLoadUrl, width, height, size, fileName: imgFiles[i].name });
-      }
-      setImgFiles([]);
-
-      for (let i = 0; i < emojiUrls.length; i++) {
-        const { width, height, size } = await getImageSize(emojiUrls[i]);
-        uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
-      }
-      setEmojiUrls([]);
-
-      let soundMessageData: any = null;
-      if (audioFile) {
-        const maxAudioDurationSec = 0;
-        const objectUrl = URL.createObjectURL(audioFile);
-        const debugEnabled = isAudioUploadDebugEnabled();
-        const debugPrefix = "[tc-audio-upload]";
-        const audioToastId = toast.loading("正在上传音频...");
-
-        if (debugEnabled) {
-          console.warn(`${debugPrefix} roomWindow send audio`, {
-            name: audioFile.name,
-            type: audioFile.type,
-            size: audioFile.size,
-            lastModified: audioFile.lastModified,
-            truncateToSec: maxAudioDurationSec > 0 ? maxAudioDurationSec : null,
-          });
-        }
-
-        try {
-          const durationSec = await (async () => {
-            try {
-              const audio = new Audio();
-              audio.preload = "metadata";
-              audio.src = objectUrl;
-              audio.load();
-
-              return await new Promise<number | undefined>((resolve) => {
-                const timeout = window.setTimeout(() => resolve(undefined), 5000);
-                const cleanup = () => {
-                  window.clearTimeout(timeout);
-                  audio.onloadedmetadata = null;
-                  audio.onerror = null;
-                  audio.onabort = null;
-                };
-
-                audio.onloadedmetadata = () => {
-                  const d = audio.duration;
-                  cleanup();
-                  resolve(Number.isFinite(d) && d > 0 ? d : undefined);
-                };
-                audio.onerror = () => {
-                  cleanup();
-                  resolve(undefined);
-                };
-                audio.onabort = () => {
-                  cleanup();
-                  resolve(undefined);
-                };
-              });
-            }
-            finally {
-              URL.revokeObjectURL(objectUrl);
-            }
-          })();
-
-          const second = (typeof durationSec === "number" && Number.isFinite(durationSec))
-            ? Math.max(1, Math.round(durationSec))
-            : 1;
-
-          if (debugEnabled)
-            console.warn(`${debugPrefix} duration`, { durationSec, second });
-
-          const url = await uploadUtils.uploadAudio(audioFile, 1, maxAudioDurationSec);
-
-          soundMessageData = {
-            url,
-            second,
-            fileName: audioFile.name,
-            size: audioFile.size,
-          };
-          setAudioFile(null);
-        }
-        catch (error) {
-          console.error(`${debugPrefix} uploadAudio failed`, error);
-          throw error;
-        }
-        finally {
-          toast.dismiss(audioToastId);
-        }
-      }
-
-      const finalReplyId = useRoomUiStore.getState().replyMessage?.messageId || undefined;
-      let isFirstMessage = true;
-
-      const getCommonFields = () => {
-        const fields: Partial<ChatMessageRequest> = {
-          roomId,
-          roleId: curRoleId,
-          avatarId: resolvedAvatarId,
-        };
-
-        const { threadRootMessageId: activeThreadRootId, composerTarget } = useRoomUiStore.getState();
-        if (composerTarget === "thread" && activeThreadRootId) {
-          fields.threadId = activeThreadRootId;
-        }
-
-        const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
-        if (draftCustomRoleName?.trim()) {
-          fields.webgal = {
-            ...(fields.webgal as any),
-            customRoleName: draftCustomRoleName.trim(),
-          } as any;
-        }
-
-        if (isFirstMessage) {
-          fields.replayMessageId = finalReplyId;
-          if (webgalLinkMode) {
-            const voiceRenderSettings = {
-              ...(currentDefaultFigurePosition ? { figurePosition: currentDefaultFigurePosition } : {}),
-              ...(dialogNotend ? { notend: true } : {}),
-              ...(dialogConcat ? { concat: true } : {}),
-            };
-
-            if (Object.keys(voiceRenderSettings).length > 0) {
-              fields.webgal = {
-                ...(fields.webgal as any),
-                voiceRenderSettings,
-              } as any;
-            }
-          }
-          isFirstMessage = false;
-        }
-        return fields;
-      };
-
-      let textContent = inputText.trim();
-      const trimmedWithoutMentions = inputTextWithoutMentions.trim();
-      const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
-      const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
-
-      if (isWebgalVarCommandPrefix && !webgalVarPayload) {
-        toast.error("WebGAL 变量指令格式错误，请使用 /var set a=1");
-        return;
-      }
-
-      const isCommandRequestByAll = isKP && containsCommandRequestAllToken(inputText);
-      const extractedCommandForRequest = isCommandRequestByAll ? extractFirstCommandText(trimmedWithoutMentions) : null;
-      const requestCommand = extractedCommandForRequest ? stripCommandRequestAllToken(extractedCommandForRequest) : null;
-      const shouldSendCommandRequest = Boolean(requestCommand && isCommand(requestCommand));
-
-      if (shouldSendCommandRequest) {
-        const requestMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: requestCommand,
-          messageType: MessageType.COMMAND_REQUEST,
-          extra: {
-            commandRequest: {
-              command: requestCommand,
-              allowAll: true,
-            },
-          },
-        };
-
-        await sendMessageWithInsert(requestMsg);
-
-        isFirstMessage = false;
-        textContent = "";
-      }
-      else if (webgalVarPayload) {
-        const varMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: "",
-          messageType: MessageType.WEBGAL_VAR,
-          extra: {
-            webgalVar: webgalVarPayload,
-          },
-        };
-
-        await sendMessageWithInsert(varMsg);
-
-        try {
-          const rawExtra = space?.extra || "{}";
-          let parsedExtra: Record<string, any> = {};
-          try {
-            parsedExtra = JSON.parse(rawExtra) as Record<string, any>;
-          }
-          catch {
-            parsedExtra = {};
-          }
-
-          let currentVars: SpaceWebgalVarsRecord = {};
-          const stored = parsedExtra.webgalVars;
-          if (typeof stored === "string") {
-            try {
-              currentVars = JSON.parse(stored) as SpaceWebgalVarsRecord;
-            }
-            catch {
-              currentVars = {};
-            }
-          }
-          else if (stored && typeof stored === "object") {
-            currentVars = stored as SpaceWebgalVarsRecord;
-          }
-
-          const now = Date.now();
-          const nextVars: SpaceWebgalVarsRecord = {
-            ...currentVars,
-            [webgalVarPayload.key]: {
-              expr: webgalVarPayload.expr,
-              updatedAt: now,
-            },
-          };
-
-          await setSpaceExtraMutation.mutateAsync({
-            spaceId,
-            key: "webgalVars",
-            value: JSON.stringify(nextVars),
-          });
-        }
-        catch (error) {
-          console.error("更新 space.extra.webgalVars 失败", error);
-          toast.error("更新空间变量失败，请重试");
-        }
-
-        isFirstMessage = false;
-        textContent = "";
-      }
-      else if (textContent && isCommand(textContent)) {
-        commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
-        isFirstMessage = false;
-        textContent = "";
-      }
-
-      for (const img of uploadedImages) {
-        const imgMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: textContent,
-          messageType: MessageType.IMG,
-          extra: {
-            url: img.url,
-            width: img.width,
-            height: img.height,
-            size: img.size,
-            fileName: img.fileName,
-            background: sendAsBackground,
-          },
-        };
-        await sendMessageWithInsert(imgMsg);
-        textContent = "";
-      }
-
-      if (soundMessageData) {
-        const audioMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
-          content: textContent,
-          messageType: MessageType.SOUND,
-          extra: {
-            ...soundMessageData,
-            purpose: audioPurpose,
-          },
-        };
-        await sendMessageWithInsert(audioMsg);
-        textContent = "";
-      }
-
-      if (textContent) {
-        const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
-        const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
-        const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
-
-        if (isWebgalCommandInput && !normalizedContent) {
-          toast.error("WebGAL 指令不能为空");
-        }
-        else {
-          const textMsg: ChatMessageRequest = {
-            ...getCommonFields() as any,
-            content: normalizedContent,
-            messageType: isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT,
-            extra: {},
-          };
-          await sendMessageWithInsert(textMsg);
-        }
-      }
-
-      setInputText("");
-      useRoomUiStore.getState().setReplyMessage(undefined);
-      setSendAsBackground(false);
-      setAudioPurpose(undefined);
-      useRoomUiStore.getState().setInsertAfterMessageId(undefined);
-    }
-    catch (e: any) {
-      toast.error(e.message + e.stack, { duration: 3000 });
-    }
-    finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  const { handleMessageSubmit } = useChatMessageSubmit({
+    roomId,
+    spaceId,
+    spaceExtra: space?.extra,
+    isSpaceOwner: spaceContext.isSpaceOwner,
+    curRoleId,
+    notMember,
+    noRole,
+    isSubmitting,
+    setIsSubmitting,
+    sendMessageWithInsert,
+    ensureRuntimeAvatarIdForRole,
+    commandExecutor,
+    containsCommandRequestAllToken,
+    stripCommandRequestAllToken,
+    extractFirstCommandText,
+    setInputText,
+    setSpaceExtra: setSpaceExtraMutation.mutateAsync,
+  });
   const handleImportChatText = useCallback(async (
     messages: Array<{ roleId: number; content: string; speakerName?: string; figurePosition?: "left" | "center" | "right" }>,
     onProgress?: (sent: number, total: number) => void,
