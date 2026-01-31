@@ -32,8 +32,12 @@ export default function useRoomSidebarTreeActions({
     if (!item)
       return;
     toCat.items = Array.isArray(toCat.items) ? toCat.items : [];
-    const insert = Math.max(0, Math.min(insertIndex, toCat.items.length));
-    toCat.items.splice(insert, 0, item);
+    const clampedInsertIndex = Math.max(0, Math.min(insertIndex, toCat.items.length));
+    let finalInsertIndex = clampedInsertIndex;
+    if (fromCategoryId === toCategoryId && finalInsertIndex > fromIndex) {
+      finalInsertIndex -= 1;
+    }
+    toCat.items.splice(finalInsertIndex, 0, item);
     normalizeAndSet(next, save);
   }, [normalizeAndSet, treeToRender]);
 
@@ -45,8 +49,12 @@ export default function useRoomSidebarTreeActions({
     const [item] = next.categories.splice(fromIndex, 1);
     if (!item)
       return;
-    const insert = Math.max(0, Math.min(insertIndex, next.categories.length));
-    next.categories.splice(insert, 0, item);
+    const clampedInsertIndex = Math.max(0, Math.min(insertIndex, next.categories.length));
+    let finalInsertIndex = clampedInsertIndex;
+    if (finalInsertIndex > fromIndex) {
+      finalInsertIndex -= 1;
+    }
+    next.categories.splice(finalInsertIndex, 0, item);
     normalizeAndSet(next, true);
   }, [normalizeAndSet, treeToRender]);
 
