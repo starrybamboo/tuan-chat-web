@@ -1,7 +1,7 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
-import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 // hooks (local)
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -21,6 +21,7 @@ import useRoomContextValue from "@/components/chat/room/useRoomContextValue";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomInputController from "@/components/chat/room/useRoomInputController";
+import useRoomMainHistoryMessages from "@/components/chat/room/useRoomMainHistoryMessages";
 import useRoomMemberState from "@/components/chat/room/useRoomMemberState";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
@@ -40,7 +41,6 @@ import {
   useSetSpaceExtraMutation,
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
-import { MessageType } from "../../../../api/wsModels";
 
 function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
@@ -137,15 +137,9 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const chatHistory = useChatHistory(roomId);
   const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
-  const mainHistoryMessages = useMemo(() => {
-    return (historyMessages ?? []).filter((m) => {
-      if (m.message.messageType === MessageType.THREAD_ROOT) {
-        return false;
-      }
-      const threadId = m.message.threadId;
-      return !threadId || threadId === m.message.messageId;
-    });
-  }, [historyMessages]);
+  const mainHistoryMessages = useRoomMainHistoryMessages({
+    historyMessages,
+  });
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const { scrollToGivenMessage } = useRoomMessageScroll({
