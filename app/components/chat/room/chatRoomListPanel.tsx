@@ -7,8 +7,8 @@ import { FileTextIcon } from "@phosphor-icons/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { getSidebarTreeExpandedByCategoryId, setSidebarTreeExpandedByCategoryId } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
+import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
@@ -104,55 +104,11 @@ export default function ChatRoomListPanel({
     return rooms.filter(room => room.spaceId === activeSpaceId);
   }, [activeSpaceId, rooms]);
 
-  const [extraDocMetas, setExtraDocMetas] = useState<MinimalDocMeta[]>([]);
-  useEffect(() => {
-    setExtraDocMetas([]);
-  }, [activeSpaceId]);
-
-  // 侧边栏仅展示“空间内独立文档”，不展示 space/room/clue 绑定的 description 文档。
-  // 独立文档的 docId 规范：`sdoc:<docId>:description`（parseSpaceDocId.kind === 'independent'）
-  const visibleDocMetas = useMemo(() => {
-    if (!isSpaceOwner)
-      return [] as MinimalDocMeta[];
-
-    const merged = new Map<string, MinimalDocMeta>();
-    for (const m of [...(docMetas ?? []), ...(extraDocMetas ?? [])]) {
-      const id = typeof m?.id === "string" ? m.id : "";
-      if (!id)
-        continue;
-      const parsed = parseSpaceDocId(id);
-      if (parsed?.kind !== "independent")
-        continue;
-
-      const title = typeof m?.title === "string" && m.title.trim().length > 0 ? m.title : undefined;
-      const imageUrl = typeof m?.imageUrl === "string" && m.imageUrl.trim().length > 0 ? m.imageUrl : undefined;
-
-      const existing = merged.get(id);
-      if (!existing) {
-        merged.set(id, { id, ...(title ? { title } : {}), ...(imageUrl ? { imageUrl } : {}) });
-        continue;
-      }
-      if (!existing.title && title) {
-        existing.title = title;
-      }
-      if (!existing.imageUrl && imageUrl) {
-        existing.imageUrl = imageUrl;
-      }
-    }
-
-    return [...merged.values()];
-  }, [docMetas, extraDocMetas, isSpaceOwner]);
-
-  const docMetaMap = useMemo(() => {
-    const map = new Map<string, MinimalDocMeta>();
-    for (const m of visibleDocMetas) {
-      if (m?.id) {
-        map.set(m.id, m);
-      }
-    }
-    return map;
-  }, [visibleDocMetas]);
-
+  const { visibleDocMetas, docMetaMap, appendExtraDocMeta } = useRoomSidebarDocMetas({
+    activeSpaceId,
+    isSpaceOwner,
+    docMetas,
+  });
   const docHeaderOverrides = useDocHeaderOverrideStore(state => state.headers);
 
   const roomById = useMemo(() => {
@@ -391,12 +347,7 @@ export default function ChatRoomListPanel({
         title: res.title,
         ...(params.docRef.imageUrl ? { imageUrl: params.docRef.imageUrl } : {}),
       };
-      setExtraDocMetas((prev) => {
-        const base = [...(prev ?? [])];
-        if (base.some(m => m.id === newMeta.id))
-          return base;
-        return [...base, newMeta];
-      });
+      appendExtraDocMeta(newMeta);
 
       const baseTree = treeToRender;
       const nextTree = JSON.parse(JSON.stringify(baseTree)) as SidebarTree;
@@ -445,7 +396,7 @@ export default function ChatRoomListPanel({
       console.error("[DocCopy] drop copy failed", err);
       toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
     }
-  }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas]);
+  }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas, appendExtraDocMeta]);
 
   const moveNode = useCallback((fromCategoryId: string, fromIndex: number, toCategoryId: string, insertIndex: number, save: boolean) => {
     const base = treeToRender;
