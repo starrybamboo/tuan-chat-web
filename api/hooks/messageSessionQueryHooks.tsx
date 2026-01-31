@@ -3,7 +3,7 @@ import {tuanchat} from "../instance";
 import type {SessionReadUpdateRequest} from "../models/SessionReadUpdateRequest";
 
 /**
- * 取消订阅房间
+ * 鍙栨秷璁㈤槄鎴块棿
  */
 export function useUnsubscribeRoomMutation() {
     const queryClient = useQueryClient();
@@ -18,7 +18,7 @@ export function useUnsubscribeRoomMutation() {
 }
 
 /**
- * 订阅房间
+ * 璁㈤槄鎴块棿
  */
 export function useSubscribeRoomMutation() {
     const queryClient = useQueryClient();
@@ -33,7 +33,7 @@ export function useSubscribeRoomMutation() {
 }
 
 /**
- * 更新已读位置
+ * 鏇存柊宸茶浣嶇疆
  */
 export function useUpdateReadPosition1Mutation() {
     const queryClient = useQueryClient();
@@ -48,25 +48,17 @@ export function useUpdateReadPosition1Mutation() {
 }
 
 /**
- * 获取用户在指定房间的会话信息
- * @param roomId 房间ID
+ * 鑾峰彇鐢ㄦ埛鍦ㄦ寚瀹氭埧闂寸殑浼氳瘽淇℃伅
+ * @param roomId 鎴块棿ID
  */
-export function useGetRoomSessionQuery(roomId: number) {
-    return useQuery({
-        queryKey: ['getRoomSession', roomId],
-        queryFn: () => tuanchat.messageSession.getRoomSession(roomId),
-        staleTime: 1800000, // 30分钟缓存
-        enabled: roomId > 0
-    });
-}
 
 /**
- * 获取用户的所有会话列表
+ * 鑾峰彇鐢ㄦ埛鐨勬墍鏈変細璇濆垪琛?
  */
 export function useGetUserSessionsQuery() {
     return useQuery({
         queryKey: ['getUserSessions'],
         queryFn: () => tuanchat.messageSession.getUserSessions(),
-        staleTime: 300000 // 5分钟缓存
+        staleTime: 300000 // 5鍒嗛挓缂撳瓨
     });
 }

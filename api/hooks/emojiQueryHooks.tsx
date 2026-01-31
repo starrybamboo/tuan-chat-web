@@ -3,20 +3,12 @@ import {tuanchat} from "../instance";
 import type {EmojiCreateRequest} from "../models/EmojiCreateRequest";
 
 /**
- * 根据ID获取表情包
- * @param emojiId 表情包ID
+ * 鏍规嵁ID鑾峰彇琛ㄦ儏鍖?
+ * @param emojiId 琛ㄦ儏鍖匢D
  */
-export function useGetEmojiQuery(emojiId: number) {
-    return useQuery({
-        queryKey: ['getEmoji', emojiId],
-        queryFn: () => tuanchat.emojiController.getEmoji(emojiId),
-        staleTime: 300000, // 5分钟缓存
-        enabled: emojiId > 0
-    });
-}
 
 /**
- * 创建表情包
+ * 鍒涘缓琛ㄦ儏鍖?
  */
 export function useCreateEmojiMutation() {
     const queryClient = useQueryClient();
@@ -30,7 +22,7 @@ export function useCreateEmojiMutation() {
 }
 
 /**
- * 删除表情包
+ * 鍒犻櫎琛ㄦ儏鍖?
  */
 export function useDeleteEmojiMutation() {
     const queryClient = useQueryClient();
@@ -44,12 +36,12 @@ export function useDeleteEmojiMutation() {
 }
 
 /**
- * 获取用户表情包列表
+ * 鑾峰彇鐢ㄦ埛琛ㄦ儏鍖呭垪琛?
  */
 export function useGetUserEmojisQuery() {
     return useQuery({
         queryKey: ['getUserEmojis'],
         queryFn: () => tuanchat.emojiController.getUserEmojis(),
-        staleTime: 300000 // 5分钟缓存
+        staleTime: 300000 // 5鍒嗛挓缂撳瓨
     });
 }
