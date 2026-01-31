@@ -17,7 +17,7 @@ interface RoomWindowOverlaysProps {
       speakerName?: string;
       figurePosition?: string;
     }>,
-    onProgress: (progress: number) => void,
+    onProgress?: (sent: number, total: number) => void,
   ) => Promise<void> | void;
   onOpenRoleAddWindow: () => void;
 

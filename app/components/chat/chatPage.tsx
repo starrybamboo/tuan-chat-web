@@ -22,12 +22,14 @@ import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api
 import { tuanchat } from "api/instance";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import ChatPageMainContent from "@/components/chat/chatPageMainContent";
 import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
+import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
 import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import { buildDefaultSidebarTree, extractDocMetasFromSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
@@ -55,102 +57,37 @@ interface ChatPageProps {
 }
 
 export default function ChatPage({ initialMainView, discoverMode }: ChatPageProps) {
-  const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
-  const activeSpaceId = Number(urlSpaceId) || null;
+  const {
+    urlSpaceId,
+    urlRoomId,
+    activeSpaceId,
+    isPrivateChatMode,
+    activeDocId,
+    activeRoomId,
+    targetMessageId,
+    isRoomSettingRoute,
+    spaceDetailRouteTab,
+    isSpaceDetailRoute,
+    navigate,
+  } = useChatPageRoute();
   const [searchParam, _] = useSearchParams();
-  const navigate = useNavigate();
-
-  const isPrivateChatMode = urlSpaceId === "private";
-
-  const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
-  const activeDocId = (() => {
-    if (!isDocRoute)
-      return null;
-
-    const decoded = decodeURIComponent(urlMessageId as string);
-
-    if (/^\d+$/.test(decoded)) {
-      const id = Number(decoded);
-      if (Number.isFinite(id) && id > 0) {
-        return buildSpaceDocId({ kind: "independent", docId: id });
-      }
-    }
-
-    const parsed = parseSpaceDocId(decoded);
-    if (parsed?.kind === "independent") {
-      return null;
-    }
-
-    return decoded;
-  })();
-
-  useEffect(() => {
-    if (!isDocRoute)
-      return;
-    if (!activeSpaceId || activeSpaceId <= 0)
-      return;
-
-    try {
-      const decoded = decodeURIComponent(urlMessageId as string);
-      const parsed = parseSpaceDocId(decoded);
-      if (parsed?.kind === "independent") {
-        toast.error("文档链接无效，已返回空间主页");
-        navigate(`/chat/${activeSpaceId}`);
-      }
-    }
-    catch {
-      // ignore
-    }
-  }, [activeSpaceId, isDocRoute, navigate, urlMessageId]);
-
-  const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
-  const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
-
-  const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
-  const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg"))
-    ? urlRoomId
-    : null;
-  const isSpaceDetailRoute = spaceDetailRouteTab != null;
-
   const screenSize = useScreenSize();
+  const {
+    isOpenLeftDrawer,
+    setIsOpenLeftDrawer,
+    toggleLeftDrawer,
+    closeLeftDrawer,
+  } = useChatPageLeftDrawer({
+    screenSize,
+    isPrivateChatMode,
+    urlSpaceId,
+    urlRoomId,
+  });
 
   useEffect(() => {
     useEntityHeaderOverrideStore.getState().hydrateFromLocalStorage();
     useDocHeaderOverrideStore.getState().hydrateFromLocalStorage();
   }, []);
-
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(() => {
-    if (screenSize !== "sm") {
-      return true;
-    }
-    return !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || !isPrivateChatMode;
-  });
-
-  const toggleLeftDrawer = useCallback(() => {
-    setIsOpenLeftDrawer(prev => !prev);
-  }, []);
-  const closeLeftDrawer = useCallback(() => {
-    if (screenSize === "sm") {
-      setIsOpenLeftDrawer(false);
-    }
-  }, [screenSize]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-    const className = "chat-lock-scroll";
-    const body = document.body;
-    if (screenSize === "sm") {
-      body.classList.add(className);
-    }
-    else {
-      body.classList.remove(className);
-    }
-    return () => {
-      body.classList.remove(className);
-    };
-  }, [screenSize]);
 
   const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
