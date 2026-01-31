@@ -1,4 +1,4 @@
-﻿import type { VirtuosoHandle } from "react-virtuoso";
+import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessageRequest,
   ChatMessageResponse,
@@ -8,7 +8,8 @@ import type {
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { Virtuoso } from "react-virtuoso";
+import ChatFrameList from "@/components/chat/chatFrameList";
+import ChatFrameOverlays from "@/components/chat/chatFrameOverlays";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
@@ -19,9 +20,6 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
-import ExportImageWindow from "@/components/chat/window/exportImageWindow";
-import ForwardWindow from "@/components/chat/window/forwardWindow";
-import { PopWindow } from "@/components/common/popWindow";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
@@ -36,14 +34,6 @@ import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hook
 import { tuanchat } from "../../../api/instance";
 
 const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
-
-function Header() {
-  return (
-    <div className="py-2">
-      <div className="divider text-xs text-base-content/50 m-0">到顶</div>
-    </div>
-  );
-}
 
 /**
  * 聊天框（不带输入部分）
@@ -1235,160 +1225,41 @@ function ChatFrame(props: ChatFrameProps) {
    */
   return (
     <div className="h-full relative">
-      {isDocRefDragOver && (
-        <div className="pointer-events-none absolute inset-2 z-30 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
-          <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
-            松开发送文档卡片
-          </div>
-        </div>
-      )}
-      <div
-        className="overflow-y-auto flex flex-col relative h-full"
+      <ChatFrameList
+        historyMessages={historyMessages}
+        virtuosoRef={virtuosoRef}
+        scrollerRef={scrollerRef}
+        isAtBottomRef={isAtBottomRef}
+        isAtTopRef={isAtTopRef}
+        setCurrentVirtuosoIndex={setCurrentVirtuosoIndex}
+        enableUnreadIndicator={enableUnreadIndicator}
+        unreadMessageNumber={unreadMessageNumber}
+        scrollToBottom={scrollToBottom}
+        updateLastReadSyncId={updateLastReadSyncId}
+        roomId={roomId}
+        renderMessage={renderMessage}
         onContextMenu={handleContextMenu}
-        onDragOver={(e) => {
-          if (isDocRefDrag(e.dataTransfer)) {
-            updateDocRefDragOver(true);
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-            return;
-          }
-          updateDocRefDragOver(false);
-          if (isFileDrag(e.dataTransfer)) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-          }
-        }}
-        onDragLeave={() => {
-          updateDocRefDragOver(false);
-        }}
-        onDrop={(e) => {
-          updateDocRefDragOver(false);
-          const docRef = getDocRefDragData(e.dataTransfer);
-          if (docRef) {
-            e.preventDefault();
-            e.stopPropagation();
-            void sendDocCardFromDrop(docRef);
-            return;
-          }
-
-          if (!isFileDrag(e.dataTransfer))
-            return;
-          e.preventDefault();
-          e.stopPropagation();
-          addDroppedFilesToComposer(e.dataTransfer);
-        }}
-      >
-        {selectedMessageIds.size > 0 && (
-          <div
-            className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-15 flex justify-between items-center rounded"
-          >
-            <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
-            <div className="gap-x-4 flex">
-              <button
-                className="btn btn-sm"
-                onClick={() => updateSelectedMessageIds(new Set())}
-                type="button"
-              >
-                取消
-              </button>
-              <button
-                className="btn btn-sm btn-secondary"
-                onClick={() => setIsExportImageWindowOpen(true)}
-                type="button"
-              >
-                生成图片
-              </button>
-              <button
-                className="btn btn-sm btn-info"
-                onClick={() => setIsForwardWindowOpen(true)}
-                type="button"
-              >
-                转发
-              </button>
-              {
-                spaceContext.isSpaceOwner
-                && (
-                  <button
-                    className="btn btn-sm btn-error"
-                    onClick={() => handleBatchDelete()}
-                    type="button"
-                  >
-                    删除
-                  </button>
-                )
-              }
-            </div>
-          </div>
-        )}
-        <div className="h-full flex-1">
-          <Virtuoso
-            data={historyMessages}
-            firstItemIndex={0}
-            initialTopMostItemIndex={historyMessages.length - 1}
-            followOutput={true}
-            overscan={10} // 不要设得太大，会导致rangeChange更新不及时
-            ref={virtuosoRef}
-            scrollerRef={(ref) => {
-              scrollerRef.current = ref instanceof HTMLElement ? ref : null;
-            }}
-            context={{
-              isAtTopRef,
-            }}
-            rangeChanged={({ endIndex }) => {
-              // Update state with the end-most visible item's index.
-              setCurrentVirtuosoIndex((endIndex));
-            }}
-            itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
-            atBottomStateChange={(atBottom) => {
-              if (enableUnreadIndicator) {
-                atBottom && updateLastReadSyncId(roomId);
-              }
-              isAtBottomRef.current = atBottom;
-            }}
-            atTopStateChange={(atTop) => {
-              isAtTopRef.current = atTop;
-            }}
-            components={{
-              Header,
-            }}
-            atTopThreshold={1200}
-            atBottomThreshold={200}
-          />
-        </div>
-        {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
-        {(enableUnreadIndicator && unreadMessageNumber > 0 && historyMessages.length > 2 && !isAtBottomRef.current) && (
-          <div
-            className="absolute bottom-4 self-end z-50 cursor-pointer"
-            onClick={() => {
-              scrollToBottom();
-            }}
-          >
-            <div className="btn btn-info gap-2 shadow-lg">
-              <span>{unreadMessageNumber}</span>
-              <span>条新消息</span>
-            </div>
-          </div>
-        )}
-      </div>
-      <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
-        <ForwardWindow
-          onClickRoom={roomId => handleForward(roomId)}
-          generateForwardMessage={generateForwardMessage}
-        >
-        </ForwardWindow>
-      </PopWindow>
-      {/* 导出图片窗口 */}
-      <PopWindow isOpen={isExportImageWindowOpen} onClose={() => setIsExportImageWindowOpen(false)}>
-        <ExportImageWindow
-          selectedMessages={Array.from(selectedMessageIds)
-            .map(id => historyMessages.find(m => m.message.messageId === id))
-            .filter((msg): msg is ChatMessageResponse => msg !== undefined)}
-          onClose={() => {
-            setIsExportImageWindowOpen(false);
-            updateSelectedMessageIds(new Set());
-          }}
-        />
-      </PopWindow>
+        selectedMessageIds={selectedMessageIds}
+        updateSelectedMessageIds={updateSelectedMessageIds}
+        setIsExportImageWindowOpen={setIsExportImageWindowOpen}
+        setIsForwardWindowOpen={setIsForwardWindowOpen}
+        handleBatchDelete={handleBatchDelete}
+        isSpaceOwner={spaceContext.isSpaceOwner}
+        isDocRefDragOver={isDocRefDragOver}
+        updateDocRefDragOver={updateDocRefDragOver}
+        onSendDocCardFromDrop={sendDocCardFromDrop}
+      />
+      <ChatFrameOverlays
+        isForwardWindowOpen={isForwardWindowOpen}
+        setIsForwardWindowOpen={setIsForwardWindowOpen}
+        isExportImageWindowOpen={isExportImageWindowOpen}
+        setIsExportImageWindowOpen={setIsExportImageWindowOpen}
+        historyMessages={historyMessages}
+        selectedMessageIds={selectedMessageIds}
+        updateSelectedMessageIds={updateSelectedMessageIds}
+        onForward={handleForward}
+        generateForwardMessage={generateForwardMessage}
+      />
       {/* 右键菜单 */}
       <ChatFrameContextMenu
         contextMenu={contextMenu}
@@ -1416,4 +1287,3 @@ function ChatFrame(props: ChatFrameProps) {
 }
 
 export default memo(ChatFrame);
-
