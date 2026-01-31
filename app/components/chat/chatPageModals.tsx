@@ -58,20 +58,20 @@ export default function ChatPageModals({
 }: ChatPageModalsProps) {
   return (
     <>
-      {/* 闁告帗绋戠紓鎾剁矚濞差亝锛熺€殿喗鎳撻崵顓犵玻濡も偓瑜?*/}
+      
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
         <CreateSpaceWindow
           onSuccess={() => setIsSpaceHandleOpen(false)}
         />
       </PopWindow>
-      {/* 闁告帗绋戠紓鎾诲箣閸ф锛熺€殿喗鎳撻崵顓犵玻濡も偓瑜?*/}
+      
       <PopWindow
         isOpen={isCreateInCategoryOpen}
         onClose={closeCreateInCategory}
       >
         <div className="w-[min(720px,92vw)] p-6">
           <div className="mb-3">
-            <div className="text-sm font-medium opacity-80 mb-2">闁告帗绋戠紓鎾剁尵鐠囪尙鈧?</div>
+            <div className="text-sm font-medium opacity-80 mb-2">闂佸憡甯楃粙鎴犵磽閹惧墎灏甸悹鍥皺閳?</div>
             <div className="grid grid-cols-2 gap-2">
               <label
                 className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${createInCategoryMode === "room" ? "bg-base-200" : "bg-base-100"}`}
@@ -82,11 +82,11 @@ export default function ChatPageModals({
                   className="radio radio-sm mt-1"
                   checked={createInCategoryMode === "room"}
                   onChange={() => setCreateInCategoryMode("room")}
-                  aria-label="闁告帗绋戠紓鎾诲箣閸ф锛?"
+                  aria-label="闂佸憡甯楃粙鎴犵磽閹捐绠ｉ柛褎顨嗛敍?"
                 />
                 <div className="min-w-0">
-                  <div className="font-medium">闁告帗绋戠紓鎾诲箣閸ф锛?</div>
-                  <div className="text-xs opacity-70">闁告帗绋戠紓鎾诲触鎼存繄绐楅柤濂変簻婵晠宕濋悩鎻掑汲鐟滅増鎸告晶鐘诲礆閸℃瑨顫?</div>
+                  <div className="font-medium">闂佸憡甯楃粙鎴犵磽閹捐绠ｉ柛褎顨嗛敍?</div>
+                  <div className="text-xs opacity-70">闂佸憡甯楃粙鎴犵磽閹捐瑙﹂幖瀛樼箘缁愭鏌ゆ總澶夌盎濠殿喒鏅犲畷婵嬫偐閹绘帒姹查悷婊呭閹稿憡鏅堕悩璇茬闁糕剝鐟ㄩ～?</div>
                 </div>
               </label>
 
@@ -100,11 +100,11 @@ export default function ChatPageModals({
                   checked={createInCategoryMode === "doc"}
                   disabled={!isKPInSpace}
                   onChange={() => setCreateInCategoryMode("doc")}
-                  aria-label="闁告帗绋戠紓鎾诲棘閸ャ劊鈧?"
+                  aria-label="闂佸憡甯楃粙鎴犵磽閹捐妫橀柛銉ｅ妸閳?"
                 />
                 <div className="min-w-0">
-                  <div className="font-medium">闁告帗绋戠紓鎾诲棘閸ャ劊鈧?</div>
-                  <div className="text-xs opacity-70">濞?KP 闁告瑯鍨伴崹鍗烆嚈?缂傚倹鐗炵欢顐﹀棘閸ャ劊鈧?</div>
+                  <div className="font-medium">闂佸憡甯楃粙鎴犵磽閹捐妫橀柛銉ｅ妸閳?</div>
+                  <div className="text-xs opacity-70">婵?KP 闂佸憡鐟崹浼村垂閸楃儐鍤?缂傚倸鍊归悧鐐垫椤愶箑妫橀柛銉ｅ妸閳?</div>
                 </div>
               </label>
             </div>
@@ -113,14 +113,14 @@ export default function ChatPageModals({
           {createInCategoryMode === "doc"
             ? (
                 <div className="bg-base-200 p-4 rounded-lg">
-                  <div className="text-sm font-medium opacity-80 mb-2">闁哄倸娲﹂妴鍌炲冀閸ヮ剦鏆?</div>
+                  <div className="text-sm font-medium opacity-80 mb-2">闂佸搫鍊稿ú锕傚Υ閸岀偛鍐€闁搞儺鍓﹂弳?</div>
                   <input
                     className="input input-bordered w-full mb-3"
                     value={createDocTitle}
                     onChange={(e) => {
                       setCreateDocTitle(e.target.value);
                     }}
-                    placeholder="閺傜増鏋冨?"
+                    placeholder="闁哄倻澧楅弸鍐浖?"
                   />
                   <button
                     type="button"
@@ -130,7 +130,7 @@ export default function ChatPageModals({
                       void createDocInSelectedCategory();
                     }}
                   >
-                    闁告帗绋戠紓鎾诲棘閸ャ劊鈧?
+                    闂佸憡甯楃粙鎴犵磽閹捐妫橀柛銉ｅ妸閳?
                   </button>
                 </div>
               )
@@ -143,7 +143,7 @@ export default function ChatPageModals({
               )}
         </div>
       </PopWindow>
-      {/* 闁规潙娼″Λ鍧楁焽閳ь剛鎷犳搴¤礋閻庣懓澧庨悰銉╁矗? */}
+      
       <PopWindow
         isOpen={inviteRoomId !== null}
         onClose={() => setInviteRoomId(null)}
@@ -153,7 +153,7 @@ export default function ChatPageModals({
           showSpace={true}
         />
       </PopWindow>
-      {/* 缂佸本妞藉Λ鍧楀箣閹邦剚鍠呴梺顓涘亾閻犲洭顥撻悰銉╁矗? */}
+      
       <PopWindow
         isOpen={isMemberHandleOpen}
         onClose={() => {
