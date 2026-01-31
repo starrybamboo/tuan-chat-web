@@ -1,5 +1,3 @@
-import React from "react";
-
 import type {
   ChatDiscoverMode,
   ChatPageMainView,
@@ -7,13 +5,15 @@ import type {
   RoomSettingState,
   SpaceDetailTab,
 } from "@/components/chat/chatPage.types";
+import React from "react";
+
 import DiscoverArchivedSpacesView from "@/components/chat/discover/discoverArchivedSpacesView";
+import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import SpaceDetailPanel from "@/components/chat/space/drawers/spaceDetailPanel";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import FriendsPage from "@/components/privateChat/FriendsPage";
 import RightChatView from "@/components/privateChat/RightChatView";
-import RoomWindow from "@/components/chat/room/roomWindow";
 
 interface ChatPageMainContentProps {
   isPrivateChatMode: boolean;
@@ -114,7 +114,7 @@ export default function ChatPageMainContent({
                                       )
                                     : (
                                         <div className="flex items-center justify-center w-full h-full font-bold">
-                                          <span className="text-center">浠匥P鍙煡鐪嬫枃妗?</span>
+                                          <span className="text-center">仅 KP 可查看文档</span>
                                         </div>
                                       )}
                                 </div>
@@ -130,7 +130,7 @@ export default function ChatPageMainContent({
                 )
               : (
                   <div className="flex items-center justify-center w-full h-full font-bold">
-                    <span className="text-center lg:hidden">鐠囪渹绮犻崣鍏呮櫠闁瀚ㄩ幋鍧楁？</span>
+                    <span className="text-center lg:hidden">请在左侧选择空间或房间</span>
                   </div>
                 )
           )}

@@ -1,9 +1,9 @@
 import React from "react";
 
+import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
-import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
 import { PopWindow } from "@/components/common/popWindow";
 
 interface ChatPageModalsProps {
@@ -58,20 +58,20 @@ export default function ChatPageModals({
 }: ChatPageModalsProps) {
   return (
     <>
-      
+
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
         <CreateSpaceWindow
           onSuccess={() => setIsSpaceHandleOpen(false)}
         />
       </PopWindow>
-      
+
       <PopWindow
         isOpen={isCreateInCategoryOpen}
         onClose={closeCreateInCategory}
       >
         <div className="w-[min(720px,92vw)] p-6">
           <div className="mb-3">
-            <div className="text-sm font-medium opacity-80 mb-2">闂佸憡甯楃粙鎴犵磽閹惧墎灏甸悹鍥皺閳?</div>
+            <div className="text-sm font-medium opacity-80 mb-2">选择创建类型</div>
             <div className="grid grid-cols-2 gap-2">
               <label
                 className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${createInCategoryMode === "room" ? "bg-base-200" : "bg-base-100"}`}
@@ -82,11 +82,11 @@ export default function ChatPageModals({
                   className="radio radio-sm mt-1"
                   checked={createInCategoryMode === "room"}
                   onChange={() => setCreateInCategoryMode("room")}
-                  aria-label="闂佸憡甯楃粙鎴犵磽閹捐绠ｉ柛褎顨嗛敍?"
+                  aria-label="创建房间"
                 />
                 <div className="min-w-0">
-                  <div className="font-medium">闂佸憡甯楃粙鎴犵磽閹捐绠ｉ柛褎顨嗛敍?</div>
-                  <div className="text-xs opacity-70">闂佸憡甯楃粙鎴犵磽閹捐瑙﹂幖瀛樼箘缁愭鏌ゆ總澶夌盎濠殿喒鏅犲畷婵嬫偐閹绘帒姹查悷婊呭閹稿憡鏅堕悩璇茬闁糕剝鐟ㄩ～?</div>
+                  <div className="font-medium">创建房间</div>
+                  <div className="text-xs opacity-70">创建新的房间并放入当前分类</div>
                 </div>
               </label>
 
@@ -100,11 +100,11 @@ export default function ChatPageModals({
                   checked={createInCategoryMode === "doc"}
                   disabled={!isKPInSpace}
                   onChange={() => setCreateInCategoryMode("doc")}
-                  aria-label="闂佸憡甯楃粙鎴犵磽閹捐妫橀柛銉ｅ妸閳?"
+                  aria-label="创建文档"
                 />
                 <div className="min-w-0">
-                  <div className="font-medium">闂佸憡甯楃粙鎴犵磽閹捐妫橀柛銉ｅ妸閳?</div>
-                  <div className="text-xs opacity-70">婵?KP 闂佸憡鐟崹浼村垂閸楃儐鍤?缂傚倸鍊归悧鐐垫椤愶箑妫橀柛銉ｅ妸閳?</div>
+                  <div className="font-medium">创建文档</div>
+                  <div className="text-xs opacity-70">仅 KP 可创建文档，文档将放入当前分类</div>
                 </div>
               </label>
             </div>
@@ -113,14 +113,14 @@ export default function ChatPageModals({
           {createInCategoryMode === "doc"
             ? (
                 <div className="bg-base-200 p-4 rounded-lg">
-                  <div className="text-sm font-medium opacity-80 mb-2">闂佸搫鍊稿ú锕傚Υ閸岀偛鍐€闁搞儺鍓﹂弳?</div>
+                  <div className="text-sm font-medium opacity-80 mb-2">文档标题</div>
                   <input
                     className="input input-bordered w-full mb-3"
                     value={createDocTitle}
                     onChange={(e) => {
                       setCreateDocTitle(e.target.value);
                     }}
-                    placeholder="闁哄倻澧楅弸鍐浖?"
+                    placeholder="请输入文档标题"
                   />
                   <button
                     type="button"
@@ -130,7 +130,7 @@ export default function ChatPageModals({
                       void createDocInSelectedCategory();
                     }}
                   >
-                    闂佸憡甯楃粙鎴犵磽閹捐妫橀柛銉ｅ妸閳?
+                    创建文档
                   </button>
                 </div>
               )
@@ -143,7 +143,7 @@ export default function ChatPageModals({
               )}
         </div>
       </PopWindow>
-      
+
       <PopWindow
         isOpen={inviteRoomId !== null}
         onClose={() => setInviteRoomId(null)}
@@ -153,7 +153,7 @@ export default function ChatPageModals({
           showSpace={true}
         />
       </PopWindow>
-      
+
       <PopWindow
         isOpen={isMemberHandleOpen}
         onClose={() => {

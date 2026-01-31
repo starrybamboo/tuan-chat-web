@@ -1,3 +1,11 @@
+import type {
+  ChatDiscoverMode,
+  ChatPageMainView,
+  DocTcHeaderPayload,
+  RoomSettingState,
+  RoomSettingTab,
+  SpaceDetailTab,
+} from "@/components/chat/chatPage.types";
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 import {
@@ -15,18 +23,11 @@ import { tuanchat } from "api/instance";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import type {
-  ChatDiscoverMode,
-  ChatPageMainView,
-  DocTcHeaderPayload,
-  RoomSettingState,
-  RoomSettingTab,
-  SpaceDetailTab,
-} from "@/components/chat/chatPage.types";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
+import ChatPageLayout from "@/components/chat/chatPageLayout";
 import ChatPageMainContent from "@/components/chat/chatPageMainContent";
 import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import { buildDefaultSidebarTree, extractDocMetasFromSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
@@ -39,21 +40,17 @@ import { getDefaultCreateInCategoryMode } from "@/components/chat/utils/createIn
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
 import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
-import { SidebarSimpleIcon } from "@/icons";
 
 /**
- * chat闂傚倸鍊搁崐鎼佸磹妞嬪海鐭嗗〒姘ｅ亾妤犵偞鐗犻、鏇氱秴闁搞儺鍓﹂弫宥夋煟閹邦厽缍戦柍褜鍓濋崺鏍崲濠靛顥堟繛鎴炵懕缁辩偤姊虹紒妯虹瑐缂侇喗鐟╁濠氬Ω閳哄倸浜滈梺鍛婄箓鐎氬懘鏁愭径瀣幈闁硅壈鎻槐鏇熸櫏闂備礁鎼張顒勬儎椤栨凹鍤曢柟缁㈠枛鎯熼梺闈涚墕濞层劌鈻旈崸妤佲拻濞达綁顥撴稉鏌ユ⒒閸曨偄顏柛鎺撳笚閹棃鏁愰崱鈺傜稐闂備浇顫夐崕鎶芥偤閵婏箑鍨旈悗闈涙憸绾惧ジ鎮楅敐搴′航闁稿簺鍎遍湁闁绘ê鐏氶崵鈧梺?
+ * Chat 页面
  */
 interface ChatPageProps {
-  /**
-   * 闂傚倸鍊搁崐鎼佸磹閻戣姤鍊块柨鏇楀亾妞ゎ亜鍟村畷褰掝敋閸涱垰濮洪梻浣侯潒閸曞灚鐣剁紓浣插亾濠㈣埖鍔栭崐鐢告煥濠靛棝顎楀褎褰冮埞鎴︻敊閹稿海褰ч梺闈涙搐鐎氫即鐛幒妤€绠ｆ繝鍨姃閻ヮ亪姊绘担渚劸妞ゆ垵鎳橀、鏍ㄥ緞閹邦剛鐣洪悗鐟板婢瑰寮告惔銊у彄闁搞儯鍔嶉幆鍕圭亸鏍т壕闂傚倸鍊风粈渚€骞栭鈶芥稑鈻庡婵囨そ閹垽鎮℃惔銈嗘啺婵犵數鍋為崹鍓佸垝鎼淬劍鍋柍褜鍓熼弻锝嗘償椤栨粎校婵炲瓨绮嶇划宥夊箞閵婏附鍎熼柕濠忕畱娴狀厼鈹戦悩璇у伐闁瑰啿閰ｉ妴鍌涚附閸涘﹦鍘介梺鍐叉惈閿曘倝鎮橀敂閿亾濞堝灝娅橀柛瀣椤㈡﹢宕楅悡搴ｇ獮婵犵數濮村ú銈夊极鐟欏嫮绡€闁汇垽娼у瓭闂佽绻戝畝绋跨暦濠靛鍐€妞ゆ挾鍋熼?/chat/discover闂傚倸鍊搁崐鎼佸磹閻戣姤鍊块柨鏃堟暜閸嬫挾绮☉妯诲櫧闁活厽鐟╅弻鐔封枎闄囬褍煤椤撱垻宓佺€广儱顦介弫濠囨煟閻旂⒈鏆掑瑙勬礋濮婃椽宕滈懠顒€甯ラ梺绋款儏閹虫﹢骞嗛崘顔肩闁挎梻鏅崢鎾绘偡濠婂嫮鐭掔€规洘绮岄埞鎴犫偓锝呭缁嬪繑绻濋姀锝呯厫闁告梹鐗犲畷鐢典沪鏉炴寧妫冮弫鎰板川椤撶喐顔勯梻浣规偠閸斿矂宕愰崸妤€钃熸繛鎴旀噰閳ь剨绠撻獮瀣攽閸涱垰鍤梻鍌欑閹诧繝鎮烽妷褎宕叉慨妞诲亾妤犵偛鍟灃闁告侗鍠楀▍婊堟⒑缁嬫寧婀扮紒瀣浮閹敻寮崼鐔叉嫼婵炴潙鍚嬮悷鈺侇瀶椤斿墽纾兼い鏃囧Г瀹曞本顨ラ悙鎻掓殭闁伙綇绻濋獮宥夋惞椤愩倐鍋撴繝姘棅妞ゆ劑鍨烘径鍕繆椤愩垻绠伴摶鐐烘煟閹邦厾銈撮柡鈧禒瀣厽闁归偊鍨伴惃娲煙閻ｅ苯鈻堥柡灞诲姂瀵潙螣閾忛€涚棯濠?
-   * 婵犵數濮烽弫鍛婃叏閻戣棄鏋侀柟闂寸绾剧粯绻涢幋鏃€鍤嶉柛銉墻閺佸洭鏌曡箛鏇炐ユい锔诲櫍閹鐛崹顔煎濡炪倧瀵岄崹宕囧垝閸儱閱囨繝銏＄箓缂嶅﹪骞冮埄鍐╁劅闁挎繂妫欓崰鏍⒒娴ｅ憡鎯堥柟宄邦儔瀹曟粌顫濈捄铏圭杽闂侀潧顭堥崕鍝勵焽閵娾晜鐓曢柍鈺佸暔娴狅妇绱掗妸銉吋婵﹦鍎ょ€电厧鈻庨幘鎼偓宥囩磽娓氬洤鏋熼柟鐟版喘閻涱噣宕橀妸褎娈濋梺閫涚祷濞呮洟鎮楁繝姘棅妞ゆ劑鍨烘径鍕繆椤愩垻绠伴摶鐐烘煟閹邦厾銈撮柡鈧禒瀣厽闁归偊鍨伴惃娲煙閻ｅ苯鈻堥柟閿嬪灦濞煎繘鍩￠崘顏庣床闂備胶顭堥張顒傜矙閹寸姷绠旈柟鐑樻尪娴滄粓鏌熼崜褍浠洪柛瀣ㄥ灮閳ь剝顫夊ú婊堝窗閺嶎厹鈧線寮崼婵嗚€垮┑鐐村灦閸╁啴宕戦幘缁樻優闁革富鍘鹃敍婵嬫⒑缁嬫寧婀伴柤褰掔畺閸┾偓妞ゆ帒瀚峰Λ鎴犵磼椤旇偐澧涢柟宄版噽閹即鍨鹃崗鍛棜婵犳鍠楅敃銏犖涚捄銊ㄥС濠电姵纰嶉悡鍐偣閸ャ劎鍙€闁告瑥瀚埞鎴︻敊閻熼澹曢梻鍌欑窔濞佳囨偋閸℃稑绠犻柟鏉垮彄閸ヮ剙惟闁冲搫鍊甸幏娲⒑閸涘﹦鈽夐柨鏇畵閸╁﹪寮撮悢铏诡啎闂佺绻楅崑鎰板箠閸モ斁鍋撶憴鍕缂佽鐗婃穱濠囨倻閽樺鍘搁梺绋挎湰缁矂鐛Δ浣虹瘈缁剧増蓱椤﹪鏌涢妸銈呭祮闁诡喗锚閳规垹鈧綆鍋勬禍妤呮⒑鐟欏嫬顥嬪褎顨婇幃锟犲礃椤忓懎鏋戝┑鐘诧工閻楀棛绮堥崒娑氱闁瑰鍎戞笟娑欑箾閹炬剚鐓奸柡宀€鍠栭幃婊兾熼悜鈺傚闂佽瀛╅懝楣冣€﹂悜钘夎摕闁挎繂顦猾宥夋煕鐏炴崘澹樺ù鐘愁焽缁辨挻鎷呴幓鎺嶅闂備礁鎲″ú锕傚垂闁秵鍋傞柡鍥ュ灪閻撳啴鏌﹀Ο渚Ч妞ゃ儲绮嶉〃銉╂倷閹碱厾鍔风紓浣介哺鐢繝宕洪埀顒併亜閹烘垵顏╃紒鈧€ｎ偁浜滈柟閭﹀枛閺嬫垶銇勯銏⑿ф慨濠呮閹叉挳宕熼銏犘戠紓浣稿⒔閾忓酣宕㈡總鍛婂仱妞ゆ挾鍋愰弨?URL 闂傚倸鍊搁崐鎼佸磹閻戣姤鍤勯柛顐ｆ磵閳ь剨绠撳畷濂稿閳ュ啿绨ラ梻浣稿閸嬩線宕曟潏鈺冪焼濠㈣埖鍔栭悡娆撳级閸繂鈷旈柣锝変憾濮婂宕掗妶鍛画缂備胶绮粙鎴︻敊韫囨侗鏁婇柤濮愬€楀▔鍧楁⒒娴ｅ憡鍟為柣鐔村劦閺佸啴顢旈崼婵婃憰闂佹寧绻傞幉姗€鎮㈤悡搴＄€銈嗘⒒閸嬫捇顢氬Δ浣虹瘈闁汇垽娼ф禒婊堟煟濡も偓閿曨亪鐛崘顔肩＜闁绘劘灏幗鏇㈡⒑闂堟侗鐒鹃柛搴枛鍗遍柛顐ゅ枑閸欏繑淇婇妶鍌氫壕濠碘槅鍋呴悷銊╁磹閹绢喗鈷?
-   */
+  /** 初始主视图 */
   initialMainView?: ChatPageMainView;
+  /** 发现页模式 */
   discoverMode?: ChatDiscoverMode;
 }
 
@@ -97,7 +94,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       const decoded = decodeURIComponent(urlMessageId as string);
       const parsed = parseSpaceDocId(decoded);
       if (parsed?.kind === "independent") {
-        toast.error("闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曢敃鈧懜褰掓煛鐏炶鍔氱紒鈧€ｎ偁浜滈柟鐑樺灥閳ь剛鏁诲畷鎴﹀箻濞茬粯鏅╅梺鐟扮摠鐢偟绮诲顑芥斀閹烘娊宕愰弴銏╂晞闁搞儮鏅濋惌鎾淬亜閺囨浜鹃梺鍝勭灱閸犳牠骞愭繝鍐ㄧ窞闁割偅绻€閸掓帗淇婇妶鍥ラ柛瀣仧閺侇噣鍩勯崘褏绠氶梺缁樺灱濡嫬鏁梻渚€娼чˇ顓㈠磿閺屻儺鏁囬柣鎾崇岸閺€浠嬫煟濮楀棗鏋涢柣蹇ｄ邯閺屾稒鎯旈垾铏€梺闈涙处濡啴鐛弽銊﹀闁告縿鍎查悡锝夋⒒娓氣偓濞佳囁囬锕€鐤炬繝濠傜墕閻ょ偓銇勯幒鎴濃偓鐢稿磻閹捐绀傚璺猴梗婢规洟姊绘担鍛婂暈闁告梹鐗犲畷鏇㈠礃濞村鐏侀梺鍛婄懃椤﹁京绮绘ィ鍐ㄧ骇闁割偅绻傞埛鏃傜磼婢舵ê澧紒缁樼⊕瀵板嫮鈧綆鍋嗛ˇ浼存倵濞堝灝娅橀柛瀣攻娣囧﹪宕奸弴鐐靛€為梺鍐叉惈閸嬪﹦妲愰埄鍐х箚闁绘劦浜滈埀顒佺墵閹兾旈崘顏嗙厯闂佸湱鍎ら崹鐔煎几閺冨牊鐓曟い鎰剁稻缁€鍐煕婵犲倻浠涚紒缁樼洴楠炲鎮欓崹顐㈡婵犵數鍋涢悧濠勫垝閹捐钃熼柣鏂垮悑鐎电姴顭跨捄铏瑰濞寸媭鍠栬灃?);
+        toast.error("文档链接无效，已返回空间主页");
         navigate(`/chat/${activeSpaceId}`);
       }
     }
@@ -397,7 +394,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     if (typeof fromTree === "string" && fromTree.trim().length > 0)
       return fromTree.trim();
 
-    return "闂傚倸鍊搁崐鎼佸磹妞嬪海鐭嗗〒姘ｅ亾妤犵偞鐗犻、鏇㈡晝閳ь剛澹曢崷顓犵＜閻庯綆鍋撶槐鈺傜箾瀹割喕绨奸柡鍛箞閺屾稓浠︾紒銏犳?;
+    return "文档";
   }, [activeDocHeaderOverride?.title, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
 
   const handleDocTcHeaderChange = useCallback((payload: DocTcHeaderPayload) => {
@@ -589,7 +586,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       return;
     if (!isKPInSpace)
       return;
-    const title = (titleOverride ?? "闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曢敃鈧壕鍦磽娴ｈ偂鎴濃枍閻樺厖绻嗛柕鍫濇噺閸ｅ綊鏌涢幋鐘测枅闁哄本鐩獮鍥偨闂堟稑寮楁繝?).trim() || "闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曢敃鈧壕鍦磽娴ｈ偂鎴濃枍閻樺厖绻嗛柕鍫濇噺閸ｅ綊鏌涢幋鐘测枅闁哄本鐩獮鍥偨闂堟稑寮楁繝?;
+    const title = (titleOverride ?? "未命名文档").trim() || "未命名文档";
     let createdDocId: number | null = null;
     try {
       const resp = await tuanchat.request.request<any>({
@@ -608,7 +605,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }
 
     if (!createdDocId) {
-      toast.error("闂傚倸鍊搁崐鎼佸磹妞嬪海鐭嗗〒姘ｅ亾妤犵偛顦甸弫宥夊礋椤掍焦顔囨繝寰锋澘鈧洟宕导瀛樺剹婵炲棙鎸婚悡娆撴倵閻㈡鐒鹃崯鍝ョ磼閹冪稏缂侇喗鐟╁濠氭偄閻撳海顔夐梺閫涘嵆濞佳冣枔椤撶偐鏀介柍钘夋娴滄繈鏌ㄩ弴妯虹伈鐎殿喛顕ч埥澶愬閻樻牓鍔戦弻銊モ攽閸℃ê娅ｉ柟顖滃枛濮婄粯绗熼埀顒勫焵椤掑倸浠滈柤娲诲灡閺呭爼顢氶埀顒勫蓟濞戞瑧绡€闁告洦鍓欏▓灞筋渻閵堝棙纾搁柛搴ㄦ涧閻ｇ兘鎮㈢喊杈ㄦ櫌婵炶揪缍€濞咃綀鍊存繝纰夌磿閸嬫垿宕愰弽顓炵闁硅揪绠戠壕?);
+      toast.error("创建文档失败，请重试");
       return;
     }
 
@@ -774,13 +771,13 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
   const [pendingCreateInCategoryId, setPendingCreateInCategoryId] = useState<string | null>(null);
   const [createInCategoryMode, setCreateInCategoryMode] = useState<"room" | "doc">("room");
-  const [createDocTitle, setCreateDocTitle] = useState("闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曢敃鈧壕鍦磽娴ｈ偂鎴濃枍閻樺厖绻嗛柕鍫濇噺閸ｅ綊鏌涢幋鐘测枅闁哄本鐩獮鍥偨闂堟稑寮楁繝?);
+  const [createDocTitle, setCreateDocTitle] = useState("未命名文档");
   const openCreateInCategory = useCallback((categoryId: string) => {
     if (!activeSpaceId || activeSpaceId <= 0)
       return;
     setPendingCreateInCategoryId(categoryId);
     setCreateInCategoryMode(getDefaultCreateInCategoryMode({ categoryId, isKPInSpace }));
-    setCreateDocTitle("闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曢敃鈧壕鍦磽娴ｈ偂鎴濃枍閻樺厖绻嗛柕鍫濇噺閸ｅ綊鏌涢幋鐘测枅闁哄本鐩獮鍥偨闂堟稑寮楁繝?);
+    setCreateDocTitle("未命名文档");
     setIsCreateInCategoryOpen(true);
   }, [activeSpaceId, isKPInSpace, setIsCreateInCategoryOpen]);
 
@@ -1033,7 +1030,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     return () => {
       window.removeEventListener("click", closeContextMenu);
     };
-  }, [contextMenu]); // 濠电姷鏁告慨鐑藉极閹间礁纾婚柣鎰惈缁犱即鏌ゆ慨鎰偓鏇㈠几閸懇鍋撻獮鍨姎婵炶绠戦悾鐑藉蓟閵夛妇鍘遍梺鏂ユ櫅閸熶即骞婇崨瀛樼厽妞ゆ挾鍎愬Ο鈧梺鍝勬湰閻╊垶宕洪崟顖氱闁告挆鍐ㄐㄥ┑锛勫亼閸婃劙寮查悙鍏哥剨婵炲棙鎸搁悞鍨亜閹哄棗浜惧┑鐘亾闂侇剙绉埀顒婄畵瀹曞ジ濡烽妷褍鎽嬬紓鍌欑閺堫剝鐏抏xtMenu闂傚倸鍊搁崐鎼佸磹閻戣姤鍤勯柛鎾茬閸ㄦ繃銇勯弽顐汗闁逞屽墾缁犳挸鐣锋總绋课ㄩ柕澶涢檮琚ｉ梻鍌欑閹碱偆绮欐笟鈧畷銏＄附閸涘﹤鈧?
+  }, [contextMenu]);
 
   useEffect(() => {
     if (spaceContextMenu) {
@@ -1103,13 +1100,14 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     unreadMessagesNumber,
   ]);
   useEffect(() => {
-    const originalTitle = document.title.replace(/^\d+闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曚綅閸ヮ剦鏁冮柨鏇楀亾缂佲偓閸喓绡€闂傚牊渚楅崕蹇涙煢閸愵亜鏋庨柍瑙勫灴閹晠骞撻幒鍡椾壕闂傚牊鍏氶敐澶婇唶闁靛濡囬崢鍗烆渻閵堝棗濮傞柛濠冩礋瀵顓奸崶鈺冿紲?/, ""); // 濠电姷鏁告慨鐑藉极閹间礁纾婚柣鎰惈缁犱即鏌熼梻瀵割槮缂佺姷濮垫穱濠囶敍濠靛嫧鍋撻埀顒勬煛鐎ｎ亞效妤犵偞鐗滈崚鎺旀喆閸曞灚缍夐梻浣告憸閸犲酣骞婂鈧璇测槈濡攱鐎婚棅顐㈡祫缁茬偓鏅ョ紓鍌氬€烽懗鑸垫叏閻㈠灚鏆滈柨鐔哄Т閽冪喐绻涢幋娆忕仼缂佺姾宕甸埀顒冾潐濞叉牕鈻旈敃鍌毼ч柛銉㈡櫇閿?
+    const originalTitle = document.title.replace(/^\(\d+\)\s*/, "");
     if (totalUnreadMessages > 0) {
-      document.title = `${totalUnreadMessages}闂傚倸鍊搁崐椋庣矆娓氣偓楠炴牠顢曚綅閸ヮ剦鏁冮柨鏇楀亾缂佲偓閸喓绡€闂傚牊渚楅崕蹇涙煢閸愵亜鏋庨柍瑙勫灴閹晠骞撻幒鍡椾壕闂傚牊鍏氶敐澶婇唶闁靛濡囬崢鍗烆渻閵堝棗濮傞柛濠冩礋瀵顓奸崶鈺冿紲?${originalTitle}`;
+      document.title = `(${totalUnreadMessages}) ${originalTitle}`;
+      return () => {
+        document.title = originalTitle;
+      };
     }
-    else {
-      document.title = originalTitle;
-    }
+    document.title = originalTitle;
     return () => {
       document.title = originalTitle;
     };
@@ -1262,154 +1260,65 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       onOpenCreateInCategory={openCreateInCategory}
     />
   );
-  const leftDrawerToggleLabel = isOpenLeftDrawer ? "闂傚倸鍊搁崐宄懊归崶顒€违闁逞屽墴閺屾稓鈧綆鍋呭畷宀勬煛瀹€鈧崰鏍€佸☉姗嗙叆闁告劗鍋撳В澶愭煟鎼淬値娼愭繛鍙夌墵瀹曨垶宕稿Δ鈧繚闂佸湱鍎ら崺鍫濐焽閳哄懏鐓冪憸婊堝礈閻旈鏆﹂柛妤冨亹閺嬪酣鏌熺€涙绠為柣娑橀叄濮? : "闂傚倸鍊峰ù鍥敋瑜忛幑銏ゅ箳濡も偓绾惧鏌ｉ幇顖ｆ⒖婵炲樊浜滈崘鈧銈嗗姧缂嶅棗顭囬悢鍏尖拺闁荤喖鍋婇崵鐔兼煕鐎ｎ剙鏋涢柟顔惧厴瀹曠兘顢橀悢閿嬬€鹃梻浣烘嚀椤曨厽鎱ㄩ悜钘夌婵鍩栭悡鐔兼煛閸愩劌鈧摜鏁崼鏇熺厱闁硅埇鍔屾禍?;
+  const spaceSidebar = (
+    <ChatSpaceSidebar
+      isPrivateChatMode={isPrivateChatMode}
+      spaces={orderedSpaces}
+      spaceOrderIds={orderedSpaceIds}
+      onReorderSpaceIds={setUserSpaceOrder}
+      activeSpaceId={activeSpaceId}
+      getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
+      privateUnreadMessagesNumber={privateEntryBadgeCount}
+      onOpenPrivate={handleOpenPrivate}
+      onToggleLeftDrawer={toggleLeftDrawer}
+      isLeftDrawerOpen={isOpenLeftDrawer}
+      onSelectSpace={setActiveSpaceId}
+      onCreateSpace={() => {
+        setIsSpaceHandleOpen(true);
+      }}
+      onSpaceContextMenu={handleSpaceContextMenu}
+    />
+  );
+  const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
 
   return (
     <SpaceContext value={spaceContext}>
-      <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
-        {shouldShowLeftDrawerToggle && (
-          <div className="tooltip tooltip-right absolute left-2 top-2 z-50" data-tip={leftDrawerToggleLabel}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-square bg-base-100/80"
-              onClick={toggleLeftDrawer}
-              aria-label={leftDrawerToggleLabel}
-              aria-pressed={Boolean(isOpenLeftDrawer)}
-            >
-              <SidebarSimpleIcon />
-            </button>
-          </div>
-        )}
-        {screenSize === "sm"
-          ? (
-              <>
-                
-                <OpenAbleDrawer
-                  isOpen={isOpenLeftDrawer}
-                  className="h-full z-10 w-full bg-base-200"
-                  initialWidth={chatLeftPanelWidth}
-                  minWidth={200}
-                  maxWidth={700}
-                  onWidthChange={setChatLeftPanelWidth}
-                  handlePosition="right"
-                >
-                  <div className="h-full flex flex-col w-full min-w-0 relative">
-                    <div className="flex flex-row w-full min-w-0 flex-1 min-h-0">
-                      
-                      <ChatSpaceSidebar
-                        isPrivateChatMode={isPrivateChatMode}
-                        spaces={orderedSpaces}
-                        spaceOrderIds={orderedSpaceIds}
-                        onReorderSpaceIds={setUserSpaceOrder}
-                        activeSpaceId={activeSpaceId}
-                        getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-                        privateUnreadMessagesNumber={privateEntryBadgeCount}
-                        onOpenPrivate={handleOpenPrivate}
-                        onToggleLeftDrawer={toggleLeftDrawer}
-                        isLeftDrawerOpen={isOpenLeftDrawer}
-                        onSelectSpace={setActiveSpaceId}
-                        onCreateSpace={() => {
-                          setIsSpaceHandleOpen(true);
-                        }}
-                        onSpaceContextMenu={handleSpaceContextMenu}
-                      />
-                      
-                      
-                      {sidePanelContent}
-                    </div>
-                    <div
-                      id="chat-sidebar-user-card"
-                      className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
-                    />
-                  </div>
-                </OpenAbleDrawer>
-                
-                <div
-                  className={`flex-1 min-h-0 min-w-0 transition-opacity ${isOpenLeftDrawer ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-                  aria-hidden={isOpenLeftDrawer}
-                >
-                  {mainContent}
-                </div>
-              </>
-            )
-          : (
-              <>
-                
-                <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
-                  <div className="flex flex-col bg-base-200 h-full relative">
-                    <div className="flex flex-row flex-1 min-h-0">
-                      
-                      <div className="bg-base-200 h-full">
-                        <ChatSpaceSidebar
-                          isPrivateChatMode={isPrivateChatMode}
-                          spaces={orderedSpaces}
-                          spaceOrderIds={orderedSpaceIds}
-                          onReorderSpaceIds={setUserSpaceOrder}
-                          activeSpaceId={activeSpaceId}
-                          getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-                          privateUnreadMessagesNumber={privateEntryBadgeCount}
-                        onOpenPrivate={handleOpenPrivate}
-                          onToggleLeftDrawer={toggleLeftDrawer}
-                          isLeftDrawerOpen={isOpenLeftDrawer}
-                        onSelectSpace={setActiveSpaceId}
-                          onCreateSpace={() => {
-                            setIsSpaceHandleOpen(true);
-                          }}
-                          onSpaceContextMenu={handleSpaceContextMenu}
-                        />
-                      </div>
-
-                      <OpenAbleDrawer
-                        isOpen={isOpenLeftDrawer}
-                        className="h-full z-10 w-full bg-base-200"
-                        initialWidth={chatLeftPanelWidth}
-                        minWidth={200}
-                        maxWidth={700}
-                        onWidthChange={setChatLeftPanelWidth}
-                        handlePosition="right"
-                      >
-                        <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
-                          
-                          {sidePanelContent}
-                        </div>
-                      </OpenAbleDrawer>
-                    </div>
-                    <div
-                      id="chat-sidebar-user-card"
-                      className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
-                    />
-                  </div>
-                  {mainContent}
-                </div>
-              </>
-            )}
-
-                <ChatPageModals
-          isSpaceHandleOpen={isSpaceHandleOpen}
-          setIsSpaceHandleOpen={setIsSpaceHandleOpen}
-          isCreateInCategoryOpen={isCreateInCategoryOpen}
-          closeCreateInCategory={closeCreateInCategory}
-          createInCategoryMode={createInCategoryMode}
-          setCreateInCategoryMode={setCreateInCategoryMode}
-          isKPInSpace={isKPInSpace}
-          createDocTitle={createDocTitle}
-          setCreateDocTitle={setCreateDocTitle}
-          pendingCreateInCategoryId={pendingCreateInCategoryId}
-          createDocInSelectedCategory={createDocInSelectedCategory}
-          activeSpaceId={activeSpaceId}
-          activeSpaceAvatar={activeSpaceAvatar}
-          onRoomCreated={handleRoomCreated}
-          inviteRoomId={inviteRoomId}
-          setInviteRoomId={setInviteRoomId}
-          onAddRoomMember={handleAddRoomMember}
-          isMemberHandleOpen={isMemberHandleOpen}
-          setIsMemberHandleOpen={setIsMemberHandleOpen}
-          onAddSpaceMember={handleAddSpaceMember}
-          onAddSpacePlayer={handleAddSpacePlayer}
-        />
-      </div>
-
+      <ChatPageLayout
+        screenSize={screenSize}
+        isOpenLeftDrawer={isOpenLeftDrawer}
+        shouldShowLeftDrawerToggle={shouldShowLeftDrawerToggle}
+        leftDrawerToggleLabel={leftDrawerToggleLabel}
+        toggleLeftDrawer={toggleLeftDrawer}
+        chatLeftPanelWidth={chatLeftPanelWidth}
+        setChatLeftPanelWidth={setChatLeftPanelWidth}
+        spaceSidebar={spaceSidebar}
+        sidePanelContent={sidePanelContent}
+        mainContent={mainContent}
+      />
+      <ChatPageModals
+        isSpaceHandleOpen={isSpaceHandleOpen}
+        setIsSpaceHandleOpen={setIsSpaceHandleOpen}
+        isCreateInCategoryOpen={isCreateInCategoryOpen}
+        closeCreateInCategory={closeCreateInCategory}
+        createInCategoryMode={createInCategoryMode}
+        setCreateInCategoryMode={setCreateInCategoryMode}
+        isKPInSpace={isKPInSpace}
+        createDocTitle={createDocTitle}
+        setCreateDocTitle={setCreateDocTitle}
+        pendingCreateInCategoryId={pendingCreateInCategoryId}
+        createDocInSelectedCategory={createDocInSelectedCategory}
+        activeSpaceId={activeSpaceId}
+        activeSpaceAvatar={activeSpaceAvatar}
+        onRoomCreated={handleRoomCreated}
+        inviteRoomId={inviteRoomId}
+        setInviteRoomId={setInviteRoomId}
+        onAddRoomMember={handleAddRoomMember}
+        isMemberHandleOpen={isMemberHandleOpen}
+        setIsMemberHandleOpen={setIsMemberHandleOpen}
+        onAddSpaceMember={handleAddSpaceMember}
+        onAddSpacePlayer={handleAddSpacePlayer}
+      />
       <ChatPageContextMenu
         contextMenu={contextMenu}
         unreadMessagesNumber={unreadMessagesNumber}
