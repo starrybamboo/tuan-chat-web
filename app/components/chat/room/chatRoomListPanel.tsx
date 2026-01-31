@@ -5,8 +5,8 @@ import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import { FileTextIcon } from "@phosphor-icons/react";
 import React, { useCallback, useMemo, useState } from "react";
-import toast from "react-hot-toast";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
+import useRoomSidebarDocCopy from "@/components/chat/room/useRoomSidebarDocCopy";
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
 import useRoomSidebarDragState from "@/components/chat/room/useRoomSidebarDragState";
 import useRoomSidebarDropHandler from "@/components/chat/room/useRoomSidebarDropHandler";
@@ -15,8 +15,7 @@ import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeSt
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
-import { copyDocToSpaceDoc } from "@/components/chat/utils/docCopy";
-import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";
+import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import LeftChatList from "@/components/privateChat/LeftChatList";
 import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
@@ -229,96 +228,22 @@ export default function ChatRoomListPanel({
     }
   }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas, setLocalTree]);
 
-  const [docCopyDropCategoryId, setDocCopyDropCategoryId] = useState<string | null>(null);
-
-  const handleDropDocRefToCategory = useCallback(async (params: {
-    categoryId: string;
-    docRef: { docId: string; spaceId?: number; title?: string; imageUrl?: string };
-  }) => {
-    if (!activeSpaceId || activeSpaceId <= 0) {
-      toast.error("鏈€夋嫨绌洪棿");
-      return;
-    }
-    if (!isSpaceOwner) {
-      toast.error("仅KP可复制到空间侧边栏");
-      return;
-    }
-    if (params.docRef.spaceId && params.docRef.spaceId !== activeSpaceId) {
-      toast.error("涓嶅厑璁歌法绌洪棿澶嶅埗鏂囨。");
-      return;
-    }
-
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/descriptionDocId");
-    const key = parseDescriptionDocId(params.docRef.docId);
-    if (!key) {
-      toast.error("仅支持复制空间文档（描述文档/我的文档）");
-      return;
-    }
-
-    const toastId = toast.loading("正在复制到空间侧边栏…");
-    try {
-      const res = await copyDocToSpaceDoc({
-        spaceId: activeSpaceId,
-        sourceDocId: params.docRef.docId,
-        title: params.docRef.title,
-        imageUrl: params.docRef.imageUrl,
-      });
-
-      const newMeta: MinimalDocMeta = {
-        id: res.newDocId,
-        title: res.title,
-        ...(params.docRef.imageUrl ? { imageUrl: params.docRef.imageUrl } : {}),
-      };
-      appendExtraDocMeta(newMeta);
-
-      const baseTree = treeToRender;
-      const nextTree = JSON.parse(JSON.stringify(baseTree)) as SidebarTree;
-      const cat = nextTree.categories.find(c => c.categoryId === params.categoryId) ?? nextTree.categories[0];
-      if (!cat) {
-        toast.error("渚ц竟鏍忓垎绫讳笉瀛樺湪", { id: toastId });
-        return;
-      }
-      cat.items = Array.isArray(cat.items) ? cat.items : [];
-      const nodeId = `doc:${res.newDocId}`;
-      if (!cat.items.some(i => i?.nodeId === nodeId)) {
-        cat.items.push({
-          nodeId,
-          type: "doc",
-          targetId: res.newDocId,
-          fallbackTitle: res.title,
-          ...(params.docRef.imageUrl ? { fallbackImageUrl: params.docRef.imageUrl } : {}),
-        });
-      }
-
-      const docMetasOverride = (() => {
-        const map = new Map<string, MinimalDocMeta>();
-        for (const m of [...visibleDocMetas, newMeta]) {
-          const id = typeof m?.id === "string" ? m.id : "";
-          if (!id)
-            continue;
-          if (!map.has(id)) {
-            map.set(id, { ...m });
-            continue;
-          }
-          const existing = map.get(id)!;
-          if (!existing.title && m.title) {
-            existing.title = m.title;
-          }
-          if (!existing.imageUrl && m.imageUrl) {
-            existing.imageUrl = m.imageUrl;
-          }
-        }
-        return [...map.values()];
-      })();
-
-      normalizeAndSet(nextTree, true, { docMetasOverride });
-      toast.success("已复制到空间侧边栏", { id: toastId });
-    }
-    catch (err) {
-      console.error("[DocCopy] drop copy failed", err);
-      toast.error(err instanceof Error ? err.message : "澶嶅埗澶辫触", { id: toastId });
-    }
-  }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas, appendExtraDocMeta]);
+  const {
+    docCopyDropCategoryId,
+    handleDocCopyCategoryDragLeave,
+    handleDocCopyCategoryDragOver,
+    handleDocCopyCategoryDrop,
+    handleDocCopyDragOverCapture,
+    handleDocCopyDropCapture,
+  } = useRoomSidebarDocCopy({
+    activeSpaceId,
+    isSpaceOwner,
+    treeToRender,
+    visibleDocMetas,
+    appendExtraDocMeta,
+    normalizeAndSet,
+    isDragging: Boolean(dragging),
+  });
 
   const { moveNode, moveCategory, removeNode, addNode } = useRoomSidebarTreeActions({
     treeToRender,
@@ -454,48 +379,8 @@ export default function ChatRoomListPanel({
 
               <div
                 className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full "
-                onDragOverCapture={(e) => {
-                  if (dragging)
-                    return;
-                  if (!activeSpaceId || activeSpaceId <= 0)
-                    return;
-                  if (!isDocRefDrag(e.dataTransfer))
-                    return;
-
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = isSpaceOwner ? "copy" : "none";
-
-                  const targetEl = e.target as HTMLElement | null;
-                  const catEl = targetEl?.closest?.("[data-tc-sidebar-category]") as HTMLElement | null;
-                  const cid = catEl?.getAttribute?.("data-tc-sidebar-category") || "";
-                  if (cid && cid !== docCopyDropCategoryId) {
-                    setDocCopyDropCategoryId(cid);
-                  }
-                }}
-                onDropCapture={(e) => {
-                  if (dragging)
-                    return;
-                  if (!activeSpaceId || activeSpaceId <= 0)
-                    return;
-                  if (!isDocRefDrag(e.dataTransfer))
-                    return;
-
-                  e.preventDefault();
-                  e.stopPropagation();
-
-                  const docRef = getDocRefDragData(e.dataTransfer);
-                  if (!docRef) {
-                    toast.error("鏈瘑鍒埌鏂囨。鎷栨嫿鏁版嵁锛岃浠庢枃妗ｅ崱鐗囩┖鐧藉閲嶆柊鎷栨嫿");
-                    return;
-                  }
-
-                  const targetEl = e.target as HTMLElement | null;
-                  const catEl = targetEl?.closest?.("[data-tc-sidebar-category]") as HTMLElement | null;
-                  const cid = catEl?.getAttribute?.("data-tc-sidebar-category") || "";
-                  const categoryId = cid || docCopyDropCategoryId || treeToRender.categories[0]?.categoryId || "cat:docs";
-                  setDocCopyDropCategoryId(null);
-                  void handleDropDocRefToCategory({ categoryId, docRef });
-                }}
+                onDragOverCapture={handleDocCopyDragOverCapture}
+                onDropCapture={handleDocCopyDropCapture}
               >
                 {canEdit && (
                   <div className="flex items-center gap-2 px-2">
@@ -535,44 +420,9 @@ export default function ChatRoomListPanel({
                       key={cat.categoryId}
                       data-tc-sidebar-category={cat.categoryId}
                       className={`px-1 relative ${docCopyDropCategoryId === cat.categoryId ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
-                      onDragOver={(e) => {
-                        if (dragging)
-                          return;
-                        if (!activeSpaceId || activeSpaceId <= 0)
-                          return;
-                        // 濮嬬粓 preventDefault锛岀‘淇?drop 鑳借Е鍙戯紙閮ㄥ垎鐜 dragover 闃舵 types 涓嶅彲闈狅級銆?
-                        e.preventDefault();
-                        if (!isDocRefDrag(e.dataTransfer)) {
-                          if (docCopyDropCategoryId === cat.categoryId) {
-                            setDocCopyDropCategoryId(null);
-                          }
-                          return;
-                        }
-                        setDocCopyDropCategoryId(cat.categoryId);
-                        e.dataTransfer.dropEffect = isSpaceOwner ? "copy" : "none";
-                      }}
-                      onDragLeave={() => {
-                        if (docCopyDropCategoryId === cat.categoryId) {
-                          setDocCopyDropCategoryId(null);
-                        }
-                      }}
-                      onDrop={(e) => {
-                        if (dragging)
-                          return;
-                        if (!activeSpaceId || activeSpaceId <= 0)
-                          return;
-                        setDocCopyDropCategoryId(null);
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const docRef = getDocRefDragData(e.dataTransfer);
-                        if (!docRef) {
-                          if (isDocRefDrag(e.dataTransfer)) {
-                            toast.error("鏈瘑鍒埌鏂囨。鎷栨嫿鏁版嵁锛岃浠庢枃妗ｅ崱鐗囩┖鐧藉閲嶆柊鎷栨嫿");
-                          }
-                          return;
-                        }
-                        void handleDropDocRefToCategory({ categoryId: cat.categoryId, docRef });
-                      }}
+                      onDragOver={e => handleDocCopyCategoryDragOver(e, cat.categoryId)}
+                      onDragLeave={() => handleDocCopyCategoryDragLeave(cat.categoryId)}
+                      onDrop={e => handleDocCopyCategoryDrop(e, cat.categoryId)}
                     >
                       {showCategoryInsertLine && (
                         <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
