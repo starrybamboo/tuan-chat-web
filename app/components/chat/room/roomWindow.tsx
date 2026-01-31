@@ -1,7 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
-import type { RoomContextType } from "@/components/chat/core/roomContext";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 // hooks (local)
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
@@ -18,6 +17,7 @@ import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderC
 import useRoomChatFrameProps from "@/components/chat/room/useRoomChatFrameProps";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
 import useRoomComposerPanelProps from "@/components/chat/room/useRoomComposerPanelProps";
+import useRoomContextValue from "@/components/chat/room/useRoomContextValue";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomInputController from "@/components/chat/room/useRoomInputController";
@@ -156,22 +156,21 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     virtuosoRef,
   });
 
-  const roomContext: RoomContextType = useMemo((): RoomContextType => {
-    return {
-      roomId,
-      roomMembers: members,
-      curMember,
-      roomRolesThatUserOwn,
-      curRoleId,
-      curAvatarId,
-      spaceId,
-      chatHistory,
-      scrollToGivenMessage,
-      jumpToMessageInWebGAL: isRealtimeRenderActive ? jumpToMessageInWebGAL : undefined,
-      updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
-      rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
-    };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, spaceId, chatHistory, scrollToGivenMessage, isRealtimeRenderActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, rerenderHistoryInWebGAL]);
+  const roomContext = useRoomContextValue({
+    roomId,
+    roomMembers: members,
+    curMember,
+    roomRolesThatUserOwn,
+    curRoleId,
+    curAvatarId,
+    spaceId,
+    chatHistory,
+    scrollToGivenMessage,
+    isRealtimeRenderActive,
+    jumpToMessageInWebGAL,
+    updateAndRerenderMessageInWebGAL,
+    rerenderHistoryInWebGAL,
+  });
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
