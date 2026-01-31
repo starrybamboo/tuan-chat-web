@@ -20,6 +20,7 @@ import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
+import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
@@ -139,6 +140,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     rerenderHistoryInWebGAL,
     clearFigure: clearRealtimeFigure,
   } = useRealtimeRenderControls();
+  const {
+    backgroundUrl,
+    displayedBgUrl,
+    currentEffect,
+    setBackgroundUrl,
+    setCurrentEffect,
+    handleSendEffect,
+    handleClearBackground,
+    handleClearFigure,
+    handleStopBgmForAll,
+  } = useRoomEffectsController({
+    roomId,
+    send,
+    isRealtimeRenderActive,
+    clearRealtimeFigure,
+  });
   const membersQuery = useGetMemberListQuery(roomId);
   const spaceMembers = useMemo(() => {
     return spaceContext.spaceMembers ?? [];
@@ -342,73 +359,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     }
     return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
   })();
-
-  const handleSendEffect = useCallback((effectName: string) => {
-    send({
-      roomId,
-      roleId: undefined,
-      avatarId: undefined,
-      content: `[特效: ${effectName}]`,
-      messageType: MessageType.EFFECT,
-      extra: {
-        effectName,
-      },
-    });
-  }, [roomId, send]);
-
-  const handleClearBackground = useCallback(() => {
-    send({
-      roomId,
-      roleId: undefined,
-      avatarId: undefined,
-      content: "[清除背景]",
-      messageType: MessageType.EFFECT,
-      extra: {
-        effectName: "clearBackground",
-      },
-    });
-    toast.success("已清除背景");
-  }, [roomId, send]);
-
-  const handleClearFigure = useCallback(() => {
-    send({
-      roomId,
-      roleId: undefined,
-      avatarId: undefined,
-      content: "[清除立绘]",
-      messageType: MessageType.EFFECT,
-      extra: {
-        effectName: "clearFigure",
-      },
-    });
-    if (isRealtimeRenderActive) {
-      clearRealtimeFigure();
-    }
-    toast.success("已清除立绘");
-  }, [clearRealtimeFigure, isRealtimeRenderActive, roomId, send]);
-
-  const handleStopBgmForAll = useCallback(() => {
-    send({
-      roomId,
-      roleId: undefined,
-      avatarId: undefined,
-      content: "[停止全员BGM]",
-      messageType: MessageType.SYSTEM,
-      extra: {},
-    });
-    toast.success("已发送停止全员BGM");
-  }, [roomId, send]);
-
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
-  const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
-  const [currentEffect, setCurrentEffect] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (backgroundUrl) {
-      const id = setTimeout(() => setDisplayedBgUrl(backgroundUrl), 0);
-      return () => clearTimeout(id);
-    }
-  }, [backgroundUrl]);
 
   const roomName = roomHeaderOverride?.title ?? room?.name;
 
