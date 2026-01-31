@@ -1,4 +1,4 @@
-﻿// 房间聊天主窗口：负责消息流渲染、导入发送与面板协调。
+// 房间聊天主窗口：负责消息流渲染、导入发送与面板协调。
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, SpaceMember, UserRole } from "../../../../api";
 
@@ -9,11 +9,9 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { SpaceWebgalVarsRecord, WebgalVarMessagePayload } from "@/types/webgalVar";
-// *** 导入新组件及其 Handle 类型 ***
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 // hooks (local)
-import ChatFrame from "@/components/chat/chatFrame";
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -21,13 +19,9 @@ import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
-import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
-import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
-import RoomPopWindows from "@/components/chat/room/roomPopWindows";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
-import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
-import SubRoomWindow from "@/components/chat/room/subRoomWindow";
-import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
+import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
+import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
@@ -38,12 +32,10 @@ import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSele
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
-import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
 import UTILS from "@/components/common/dicer/utils/utils";
 
-import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
@@ -1650,6 +1642,71 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     }
   }, [backgroundUrl]);
 
+  const roomName = roomHeaderOverride?.title ?? room?.name;
+
+  const chatFrameProps = {
+    virtuosoRef,
+    onBackgroundUrlChange: setBackgroundUrl,
+    onEffectChange: setCurrentEffect,
+    onExecuteCommandRequest: handleExecuteCommandRequest,
+    onSendDocCard: handleSendDocCard,
+  };
+
+  const composerPanelProps = {
+    roomId,
+    userId: Number(userId),
+    webSocketUtils,
+    handleSelectCommand,
+    ruleId: space?.ruleId ?? -1,
+    handleMessageSubmit,
+    onAIRewrite: handleQuickRewrite,
+    currentChatStatus: myStatue as any,
+    onChangeChatStatus: handleManualStatusChange,
+    isSpectator,
+    onToggleRealtimeRender: handleToggleRealtimeRender,
+    onSendEffect: handleSendEffect,
+    onClearBackground: handleClearBackground,
+    onClearFigure: handleClearFigure,
+    onSetWebgalVar: handleSetWebgalVar,
+    isKP: spaceContext.isSpaceOwner,
+    onStopBgmForAll: handleStopBgmForAll,
+    noRole,
+    notMember,
+    isSubmitting,
+    placeholderText,
+    onSendDocCard: handleSendDocCard,
+    curRoleId,
+    curAvatarId,
+    setCurRoleId,
+    setCurAvatarId,
+    mentionRoles: roomAllRoles,
+    selectableRoles: roomRolesThatUserOwn,
+    chatInputRef: chatInputRef as any,
+    atMentionRef: atMentionRef as any,
+    onInputSync: handleInputAreaChange,
+    onPasteFiles: handlePasteFiles,
+    onKeyDown: handleKeyDown,
+    onKeyUp: handleKeyUp,
+    onMouseDown: handleMouseDown,
+    onCompositionStart: () => isComposingRef.current = true,
+    onCompositionEnd: () => isComposingRef.current = false,
+    inputDisabled: notMember && noRole,
+  };
+
+  const handleImportChatItems = useCallback(async (items: Array<{
+    roleId: number;
+    content: string;
+    speakerName?: string;
+    figurePosition?: string;
+  }>, onProgress: (progress: number) => void) => {
+    await handleImportChatText(items.map(i => ({
+      roleId: i.roleId,
+      content: i.content,
+      speakerName: i.speakerName,
+      figurePosition: i.figurePosition,
+    })), onProgress);
+  }, [handleImportChatText]);
+
   return (
     <RoomContext value={roomContext}>
       <RoomSideDrawerGuards spaceId={spaceId} />
@@ -1662,124 +1719,26 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         chatHistoryLoading={!!chatHistory?.loading}
         onApiChange={handleRealtimeRenderApiChange}
       />
-      <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-300">
-        {/* 背景图片层：覆盖 header + 主聊天区 + 输入区 */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500 z-0"
-          style={{
-            backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
-            opacity: backgroundUrl ? 1 : 0,
-          }}
-        />
-        <div
-          className="absolute inset-0 bg-white/30 dark:bg-slate-950/40 backdrop-blur-xs transition-opacity duration-500 z-0"
-          style={{
-            opacity: backgroundUrl ? 1 : 0,
-          }}
-        />
-
-        {/* Pixi 特效层：覆盖 header + 主聊天区 + 输入区（在 UI 内容之下） */}
-        <PixiOverlay effectName={currentEffect} />
-
-        <div className="relative z-10 flex h-full min-h-0">
-          {/* 左侧列：Header + 主体（主体内承载 RoomSideDrawers，因此抽屉在 Header 下方） */}
-          <div className="flex-1 min-w-0 flex flex-col h-full min-h-0">
-            <RoomHeaderBar
-              roomName={roomHeaderOverride?.title ?? room?.name}
-              toggleLeftDrawer={spaceContext.toggleLeftDrawer}
-            />
-            <div className="flex-1 w-full flex bg-transparent relative min-h-0">
-              <div className="flex-1 min-w-0 flex flex-col min-h-0">
-                {/* 主聊天区（可点击切换输入目标） */}
-                <div
-                  className={`bg-transparent flex-1 min-w-0 min-h-0 ${composerTarget === "main" ? "" : ""}`}
-                  onMouseDown={() => setComposerTarget("main")}
-                >
-                  <ChatFrame
-                    key={roomId}
-                    virtuosoRef={virtuosoRef}
-                    onBackgroundUrlChange={setBackgroundUrl}
-                    onEffectChange={setCurrentEffect}
-                    onExecuteCommandRequest={handleExecuteCommandRequest}
-                    onSendDocCard={handleSendDocCard}
-                  >
-                  </ChatFrame>
-                </div>
-
-                {/* 共享输入区域（主区 + Thread 共用） */}
-                <RoomComposerPanel
-                  roomId={roomId}
-                  userId={Number(userId)}
-                  webSocketUtils={webSocketUtils}
-                  handleSelectCommand={handleSelectCommand}
-                  ruleId={space?.ruleId ?? -1}
-                  handleMessageSubmit={handleMessageSubmit}
-                  onAIRewrite={handleQuickRewrite}
-                  currentChatStatus={myStatue as any}
-                  onChangeChatStatus={handleManualStatusChange}
-                  isSpectator={isSpectator}
-                  onToggleRealtimeRender={handleToggleRealtimeRender}
-                  onSendEffect={handleSendEffect}
-                  onClearBackground={handleClearBackground}
-                  onClearFigure={handleClearFigure}
-                  onSetWebgalVar={handleSetWebgalVar}
-                  isKP={spaceContext.isSpaceOwner}
-                  onStopBgmForAll={handleStopBgmForAll}
-                  noRole={noRole}
-                  notMember={notMember}
-                  isSubmitting={isSubmitting}
-                  placeholderText={placeholderText}
-                  onSendDocCard={handleSendDocCard}
-                  curRoleId={curRoleId}
-                  curAvatarId={curAvatarId}
-                  setCurRoleId={setCurRoleId}
-                  setCurAvatarId={setCurAvatarId}
-                  mentionRoles={roomAllRoles}
-                  selectableRoles={roomRolesThatUserOwn}
-                  chatInputRef={chatInputRef as any}
-                  atMentionRef={atMentionRef as any}
-                  onInputSync={handleInputAreaChange}
-                  onPasteFiles={handlePasteFiles}
-                  onKeyDown={handleKeyDown}
-                  onKeyUp={handleKeyUp}
-                  onMouseDown={handleMouseDown}
-                  onCompositionStart={() => isComposingRef.current = true}
-                  onCompositionEnd={() => isComposingRef.current = false}
-                  inputDisabled={notMember && noRole}
-                />
-              </div>
-
-              {/* 右侧轻量抽屉：仅影响 Header 下方的主体区域 */}
-              <RoomSideDrawers onClueSend={handleClueSend} />
-            </div>
-          </div>
-
-          {/* 右侧列：SubRoomWindow（重内容面板）与 Header 顶部对齐，并可拖拽宽度 */}
-          <SubRoomWindow onClueSend={handleClueSend} />
-        </div>
-      </div>
-
-      <PopWindow
-        isOpen={isImportChatTextOpen}
-        onClose={() => setIsImportChatTextOpen(false)}
-      >
-        <ImportChatMessagesWindow
-          isKP={Boolean(spaceContext.isSpaceOwner)}
-          availableRoles={roomRolesThatUserOwn}
-          onImport={async (items, onProgress) => {
-            await handleImportChatText(items.map(i => ({
-              roleId: i.roleId,
-              content: i.content,
-              speakerName: i.speakerName,
-              figurePosition: i.figurePosition,
-            })), onProgress);
-          }}
-          onClose={() => setIsImportChatTextOpen(false)}
-          onOpenRoleAddWindow={() => setIsRoleAddWindowOpen(true)}
-        />
-      </PopWindow>
-
-      <RoomPopWindows
+      <RoomWindowLayout
+        roomId={roomId}
+        roomName={roomName}
+        toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+        backgroundUrl={backgroundUrl}
+        displayedBgUrl={displayedBgUrl}
+        currentEffect={currentEffect}
+        composerTarget={composerTarget}
+        setComposerTarget={setComposerTarget}
+        chatFrameProps={chatFrameProps}
+        composerPanelProps={composerPanelProps}
+        onClueSend={handleClueSend}
+      />
+      <RoomWindowOverlays
+        isImportChatTextOpen={isImportChatTextOpen}
+        setIsImportChatTextOpen={setIsImportChatTextOpen}
+        isKP={Boolean(spaceContext.isSpaceOwner)}
+        availableRoles={roomRolesThatUserOwn}
+        onImportChatText={handleImportChatItems}
+        onOpenRoleAddWindow={() => setIsRoleAddWindowOpen(true)}
         isRoleHandleOpen={isRoleHandleOpen}
         setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
         handleAddRole={handleAddRole}
