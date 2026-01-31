@@ -8,7 +8,7 @@ export function base64DataUrl(mime, bytes) {
 }
 
 // 根据文件名推断 MIME 类型
-export function mimeFromFilename(name) {
+function mimeFromFilename(name) {
   const lower = String(name || "").toLowerCase();
   if (lower.endsWith(".png"))
     return "image/png";
@@ -32,7 +32,7 @@ export function firstImageFromZip(zipBytes) {
 }
 
 // 检查字节数组是否以指定前缀开头
-export function startsWithBytes(bytes, prefix) {
+function startsWithBytes(bytes, prefix) {
   if (!bytes || bytes.length < prefix.length)
     return false;
   return prefix.every((b, i) => bytes[i] === b);
