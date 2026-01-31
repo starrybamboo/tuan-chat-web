@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { SidebarSimpleIcon } from "@/icons";
 
-export interface ChatDiscoverNavPanelProps {
+interface ChatDiscoverNavPanelProps {
   onCloseLeftDrawer: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;

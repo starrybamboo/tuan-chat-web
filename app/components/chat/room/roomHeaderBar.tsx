@@ -12,7 +12,7 @@ import {
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
-export interface RoomHeaderBarProps {
+interface RoomHeaderBarProps {
   roomName?: string;
   toggleLeftDrawer: () => void;
 }

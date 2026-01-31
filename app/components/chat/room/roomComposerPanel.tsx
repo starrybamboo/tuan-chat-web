@@ -25,7 +25,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
-export interface RoomComposerPanelProps {
+interface RoomComposerPanelProps {
   roomId: number;
   userId: number;
   webSocketUtils: any;

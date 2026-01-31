@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
 
-export interface ResolvedImportChatMessage {
+interface ResolvedImportChatMessage {
   lineNumber: number;
   speakerName: string;
   roleId: number;
@@ -25,7 +25,7 @@ export interface ResolvedImportChatMessage {
   figurePosition?: Exclude<FigurePosition, undefined>;
 }
 
-export interface ImportChatMessagesWindowProps {
+interface ImportChatMessagesWindowProps {
   isKP: boolean;
   availableRoles: UserRole[];
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
