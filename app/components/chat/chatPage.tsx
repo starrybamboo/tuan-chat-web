@@ -51,10 +51,10 @@ import { SidebarSimpleIcon } from "@/icons";
 /**
  * chat鏉垮潡鐨勪富缁勪欢
  */
-export type ChatPageMainView = "chat" | "spaceDetail" | "roomSetting" | "discover";
-export type ChatDiscoverMode = "square" | "my";
+type ChatPageMainView = "chat" | "spaceDetail" | "roomSetting" | "discover";
+type ChatDiscoverMode = "square" | "my";
 
-export interface ChatPageProps {
+interface ChatPageProps {
   /**
    * 鐢ㄤ簬鐗规畩鍏ュ彛锛堝 /chat/discover锛夋寚瀹氬垵濮嬩富瑙嗗浘銆?
    * 娉ㄦ剰锛氫富瑙嗗浘浠嶄互缁勪欢鍐呴儴鐘舵€佷负鍑嗭紙涓嶅仛 URL 鍏ㄩ噺鏄犲皠锛夈€?
