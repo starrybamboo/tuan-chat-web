@@ -3,21 +3,21 @@ import {tuanchat} from "../instance";
 import type { PageBaseRequest } from '../models/PageBaseRequest';
 
 /**
- * 判断是否关注了某个用户
- * @param targetUserId 目标用户ID
+ * 鍒ゆ柇鏄惁鍏虫敞浜嗘煇涓敤鎴?
+ * @param targetUserId 鐩爣鐢ㄦ埛ID
  */
 
 export const useUserIsFollowedQuery = (targetUserId: number) => {
   return useQuery({
     queryKey: ['userIsFollowed', targetUserId],
     queryFn: () => tuanchat.userFollowController.isFollow(targetUserId),
-    staleTime: 300000, // 5分钟缓存
+    staleTime: 300000, // 5鍒嗛挓缂撳瓨
   })
 }
 
 /**
- * 关注用户
- * @param targetUserId 目标用户ID
+ * 鍏虫敞鐢ㄦ埛
+ * @param targetUserId 鐩爣鐢ㄦ埛ID
  */
 
 export function useUserFollowMutation() {
@@ -33,8 +33,8 @@ export function useUserFollowMutation() {
 }
 
 /**
- * 取消关注用户
- * @param targetUserId 目标用户ID
+ * 鍙栨秷鍏虫敞鐢ㄦ埛
+ * @param targetUserId 鐩爣鐢ㄦ埛ID
  */
 
 export function useUserUnfollowMutation() {
@@ -50,40 +50,33 @@ export function useUserUnfollowMutation() {
 }
 
 /**
- * 获取某人关注列表
- * @param targetUserId 目标用户ID
- * @param requestBody 分页请求参数
+ * 鑾峰彇鏌愪汉鍏虫敞鍒楄〃
+ * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * @param requestBody 鍒嗛〉璇锋眰鍙傛暟
  */
 export function useGetUserFollowingsQuery(targetUserId: number, requestBody: PageBaseRequest) {
     return useQuery({
         queryKey: ['userFollowings', targetUserId, requestBody],
         queryFn: () => tuanchat.userFollowController.followings(targetUserId, requestBody),
-        staleTime: 300000, // 5分钟缓存
+        staleTime: 300000, // 5鍒嗛挓缂撳瓨
     });
 }
 
 /**
- * 获取某人粉丝列表
- * @param targetUserId 目标用户ID
- * @param requestBody 分页请求参数
+ * 鑾峰彇鏌愪汉绮変笣鍒楄〃
+ * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * @param requestBody 鍒嗛〉璇锋眰鍙傛暟
  */
 export function useGetUserFollowersQuery(targetUserId: number, requestBody: PageBaseRequest) {
     return useQuery({
         queryKey: ['userFollowers', targetUserId, requestBody],
         queryFn: () => tuanchat.userFollowController.followers(targetUserId, requestBody),
-        staleTime: 300000, // 5分钟缓存
+        staleTime: 300000, // 5鍒嗛挓缂撳瓨
     });
 }
 
 /**
- * 获取某人互相关注的好友列表
- * @param targetUserId 目标用户ID
- * @param requestBody 分页请求参数
+ * 鑾峰彇鏌愪汉浜掔浉鍏虫敞鐨勫ソ鍙嬪垪琛?
+ * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * @param requestBody 鍒嗛〉璇锋眰鍙傛暟
  */
-export function useGetUserFriendsQuery(targetUserId: number, requestBody: PageBaseRequest) {
-  return useQuery({
-    queryKey: ['userFriends', targetUserId, requestBody],
-    queryFn: () => tuanchat.userFollowController.friends(requestBody),
-    staleTime: 300000, // 5分钟缓存
-  });
-}
