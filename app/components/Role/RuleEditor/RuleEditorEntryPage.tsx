@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { useNavigate } from "react-router";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -53,23 +52,13 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
               <div className="font-semibold text-base md:text-lg">编辑我的规则</div>
               <div className="text-sm text-base-content/60">选择已有规则进行编辑</div>
             </div>
-
-            <Suspense
-              fallback={(
-                <div className="flex items-center gap-2 text-sm text-base-content/60 py-2">
-                  <span className="loading loading-spinner loading-sm" />
-                  正在加载规则列表…
-                </div>
-              )}
-            >
-              <RulesSection
-                large={false}
-                currentRuleId={0}
-                autoSelectFirst={false}
-                authorId={typeof userId === "number" && userId > 0 ? userId : undefined}
-                onRuleChange={handleEdit}
-              />
-            </Suspense>
+            <RulesSection
+              large={false}
+              currentRuleId={0}
+              autoSelectFirst={false}
+              authorId={typeof userId === "number" && userId > 0 ? userId : undefined}
+              onRuleChange={handleEdit}
+            />
           </div>
         </div>
       </div>

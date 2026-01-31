@@ -5,7 +5,7 @@ import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "a
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { ChevronRightIcon, CloseIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, InfoIcon, MicrophoneIcon, RoleListIcon, SaveIcon, SlidersIcon } from "app/icons";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
@@ -685,18 +685,10 @@ function CharacterDetailCardInner({
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">
-                <Suspense fallback={(
-                  <div className="flex flex-col items-center gap-4 py-8">
-                    <span className="loading loading-spinner loading-lg text-primary"></span>
-                    <p className="text-sm text-base-content/60">加载规则列表...</p>
-                  </div>
-                )}
-                >
-                  <RulesSection
-                    currentRuleId={selectedRuleId}
-                    onRuleChange={handleRuleChange}
-                  />
-                </Suspense>
+                <RulesSection
+                  currentRuleId={selectedRuleId}
+                  onRuleChange={handleRuleChange}
+                />
               </div>
             </div>
           </div>

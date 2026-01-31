@@ -5,7 +5,7 @@ import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "a
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { CloseIcon, DiceD6Icon, EditIcon, InfoIcon, RoleListIcon, SaveIcon, SlidersIcon } from "app/icons";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import CharacterDetailLeftPanel from "./CharacterDetailLeftPanel";
@@ -679,18 +679,10 @@ function CharacterDetailInner({
                 </button>
               </div>
               <div className="max-h-102 overflow-y-auto">
-                <Suspense fallback={(
-                  <div className="flex flex-col items-center gap-4 py-8">
-                    <span className="loading loading-spinner loading-lg text-primary"></span>
-                    <p className="text-sm text-base-content/60">加载规则列表...</p>
-                  </div>
-                )}
-                >
-                  <RulesSection
-                    currentRuleId={selectedRuleId}
-                    onRuleChange={handleRuleChange}
-                  />
-                </Suspense>
+                <RulesSection
+                  currentRuleId={selectedRuleId}
+                  onRuleChange={handleRuleChange}
+                />
               </div>
             </div>
           </div>
