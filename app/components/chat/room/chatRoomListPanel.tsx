@@ -8,6 +8,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
+import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTreeActions";
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
@@ -327,137 +328,10 @@ export default function ChatRoomListPanel({
     }
   }, [activeSpaceId, isSpaceOwner, normalizeAndSet, treeToRender, visibleDocMetas, appendExtraDocMeta]);
 
-  const moveNode = useCallback((fromCategoryId: string, fromIndex: number, toCategoryId: string, insertIndex: number, save: boolean) => {
-    const base = treeToRender;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    const fromCat = next.categories.find(c => c.categoryId === fromCategoryId);
-    const toCat = next.categories.find(c => c.categoryId === toCategoryId);
-    if (!fromCat || !toCat)
-      return;
-    if (fromIndex < 0 || fromIndex >= fromCat.items.length)
-      return;
-
-    const clampedInsertIndex = Math.max(0, Math.min(insertIndex, toCat.items.length));
-    const [node] = fromCat.items.splice(fromIndex, 1);
-    if (!node)
-      return;
-
-    let finalInsertIndex = clampedInsertIndex;
-    if (fromCategoryId === toCategoryId && finalInsertIndex > fromIndex) {
-      finalInsertIndex -= 1;
-    }
-
-    toCat.items.splice(finalInsertIndex, 0, node);
-    normalizeAndSet(next, save);
-  }, [normalizeAndSet, treeToRender]);
-
-  const moveCategory = useCallback((fromIndex: number, insertIndex: number) => {
-    const base = treeToRender;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    const categories = next.categories;
-    if (fromIndex < 0 || fromIndex >= categories.length)
-      return;
-
-    const clampedInsertIndex = Math.max(0, Math.min(insertIndex, categories.length));
-    const [cat] = categories.splice(fromIndex, 1);
-    if (!cat)
-      return;
-
-    let finalInsertIndex = clampedInsertIndex;
-    if (finalInsertIndex > fromIndex) {
-      finalInsertIndex -= 1;
-    }
-    categories.splice(finalInsertIndex, 0, cat);
-    normalizeAndSet(next, true);
-  }, [normalizeAndSet, treeToRender]);
-
-  const removeNode = useCallback((categoryId: string, index: number) => {
-    const base = treeToRender;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    const cat = next.categories.find(c => c.categoryId === categoryId);
-    if (!cat)
-      return;
-    if (index < 0 || index >= cat.items.length)
-      return;
-    cat.items.splice(index, 1);
-    normalizeAndSet(next, true);
-  }, [normalizeAndSet, treeToRender]);
-
-  const addNode = useCallback((categoryId: string, node: SidebarLeafNode) => {
-    const base = treeToRender;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    const cat = next.categories.find(c => c.categoryId === categoryId);
-    if (!cat)
-      return;
-    cat.items.push(node);
-    normalizeAndSet(next, true);
-  }, [normalizeAndSet, treeToRender]);
-
-  const openAddCategory = useCallback(() => {
-    setCategoryEditor({ mode: "add", name: "新分类" });
-    setCategoryEditorError("");
-  }, []);
-
-  const openRenameCategory = useCallback((categoryId: string) => {
-    const current = treeToRender.categories.find(c => c.categoryId === categoryId);
-    if (!current)
-      return;
-    setCategoryEditor({ mode: "rename", categoryId, name: current.name ?? "" });
-    setCategoryEditorError("");
-  }, [treeToRender.categories]);
-
-  const submitCategoryEditor = useCallback(() => {
-    if (!categoryEditor)
-      return;
-    const name = categoryEditor.name.trim();
-    if (!name) {
-      setCategoryEditorError("名称不能为空");
-      return;
-    }
-    const base = treeToRender;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    let newCategoryId: string | null = null;
-    if (categoryEditor.mode === "add") {
-      next.categories.push({
-        categoryId: (newCategoryId = `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`),
-        name,
-        items: [],
-      });
-    }
-    else {
-      const cat = next.categories.find(c => c.categoryId === categoryEditor.categoryId);
-      if (!cat)
-        return;
-      cat.name = name;
-    }
-    normalizeAndSet(next, true);
-    setCategoryEditor(null);
-    setCategoryEditorError("");
-
-    // 新增分类默认展开，避免“点一下展开又收回”的体验。
-    if (newCategoryId) {
-      toggleCategoryExpanded(newCategoryId);
-    }
-  }, [categoryEditor, normalizeAndSet, toggleCategoryExpanded, treeToRender]);
-
-  const deleteCategoryCore = useCallback((categoryId: string) => {
-    const base = treeToRender;
-    const idx = base.categories.findIndex(c => c.categoryId === categoryId);
-    if (idx === -1)
-      return;
-    if (base.categories.length <= 1)
-      return;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    const [removed] = next.categories.splice(idx, 1);
-    if (!removed)
-      return;
-    const targetIdx = Math.max(0, Math.min(idx - 1, next.categories.length - 1));
-    const target = next.categories[targetIdx];
-    if (target) {
-      target.items.push(...(removed.items ?? []));
-    }
-    normalizeAndSet(next, true);
-  }, [normalizeAndSet, treeToRender]);
+  const { moveNode, moveCategory, removeNode, addNode } = useRoomSidebarTreeActions({
+    treeToRender,
+    normalizeAndSet,
+  });
 
   const handleDrop = useCallback(() => {
     if (dropHandledRef.current)
