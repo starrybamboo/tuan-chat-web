@@ -12,14 +12,12 @@ import ChatFrameList from "@/components/chat/chatFrameList";
 import ChatFrameOverlays from "@/components/chat/chatFrameOverlays";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
+import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
-import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
@@ -36,9 +34,9 @@ import { tuanchat } from "../../../api/instance";
 const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 
 /**
- * 聊天框（不带输入部分）
- * @param props 组件参数
- * @param props.virtuosoRef 虚拟列表的 ref
+ * 鑱婂ぉ妗嗭紙涓嶅甫杈撳叆閮ㄥ垎锛?
+ * @param props 缁勪欢鍙傛暟
+ * @param props.virtuosoRef 铏氭嫙鍒楄〃鐨?ref
  */
 interface ChatFrameProps {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
@@ -100,7 +98,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   const handleToggleNarrator = useCallback((messageId: number) => {
     if (!spaceContext.isSpaceOwner) {
-      toast.error("只有KP可以切换旁白");
+      toast.error("鍙湁KP鍙互鍒囨崲鏃佺櫧");
       return;
     }
     const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
@@ -114,7 +112,7 @@ function ChatFrame(props: ChatFrameProps) {
         onClose => (
           <RoomContext value={roomContext}>
             <div className="flex flex-col items-center gap-4">
-              <div>选择角色</div>
+              <div>閫夋嫨瑙掕壊</div>
               <RoleChooser
                 handleRoleChange={(role) => {
                   const newMessage = {
@@ -161,32 +159,32 @@ function ChatFrame(props: ChatFrameProps) {
     }
   }, [roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
 
-  // 获取用户自定义表情列表
+  // 鑾峰彇鐢ㄦ埛鑷畾涔夎〃鎯呭垪琛?
   const { data: emojisData } = useGetUserEmojisQuery();
   const emojiList = Array.isArray(emojisData?.data) ? emojisData.data : [];
 
-  // 新增表情
+  // 鏂板琛ㄦ儏
   const createEmojiMutation = useCreateEmojiMutation();
 
   /**
-   * 获取历史消息
-   * 分页获取消息
-   * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
+   * 鑾峰彇鍘嗗彶娑堟伅
+   * 鍒嗛〉鑾峰彇娑堟伅
+   * cursor鐢ㄤ簬鑾峰彇褰撳墠鐨勬秷鎭垪琛? 鍦ㄥ線鍚庣鐨勮姹備腑, 绗竴娆″彂閫乶ull, 鐒跺悗鎺ュ彈鍚庣杩斿洖鐨刢ursor浣滀负鏂扮殑鍊?
    */
   const chatHistory = roomContext.chatHistory;
   const webSocketUtils = globalContext.websocketUtils;
   const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message });
 
-  // 监听 WebSocket 接收到的消息
+  // 鐩戝惉 WebSocket 鎺ユ敹鍒扮殑娑堟伅
   const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
-  // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
+  // roomId ==> 涓婁竴娆″瓨鍌ㄦ秷鎭殑鏃跺€欑殑receivedMessages[roomId].length
   const lastLengthMapRef = useRef<Record<number, number>>({});
   useEffect(() => {
     if (!enableWsSync) {
       return;
     }
-    // 将wsUtils中缓存的消息存到indexDB中，这里需要轮询等待indexDB初始化完成。
-    // 如果在初始化之前就调用了这个函数，会出现初始消息无法加载的错误。
+    // 灏唚sUtils涓紦瀛樼殑娑堟伅瀛樺埌indexDB涓紝杩欓噷闇€瑕佽疆璇㈢瓑寰卛ndexDB鍒濆鍖栧畬鎴愩€?
+    // 濡傛灉鍦ㄥ垵濮嬪寲涔嬪墠灏辫皟鐢ㄤ簡杩欎釜鍑芥暟锛屼細鍑虹幇鍒濆娑堟伅鏃犳硶鍔犺浇鐨勯敊璇€?
     let isCancelled = false;
     let timeoutId: NodeJS.Timeout | null = null;
 
@@ -203,20 +201,20 @@ function ChatFrame(props: ChatFrameProps) {
               }
             }, 30);
           });
-          // 递归检查，直到loading完成或被取消
+          // 閫掑綊妫€鏌ワ紝鐩村埌loading瀹屾垚鎴栬鍙栨秷
           await checkLoading();
         }
       };
       await checkLoading();
 
-      // 如果已取消或chatHistory不存在，直接返回
+      // 濡傛灉宸插彇娑堟垨chatHistory涓嶅瓨鍦紝鐩存帴杩斿洖
       if (isCancelled || !chatHistory)
         return;
       const lastLength = lastLengthMapRef.current[roomId] ?? 0;
       if (lastLength < receivedMessages.length) {
         const newMessages = receivedMessages.slice(lastLength);
 
-        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连续
+        // 琛ユ礊閫昏緫锛氭鏌ユ柊娑堟伅鐨勭涓€鏉℃槸鍚︿笌鍘嗗彶娑堟伅鐨勬渶鍚庝竴鏉¤繛缁?
         const historyMsgs = chatHistory.messages;
         if (historyMsgs.length > 0 && newMessages.length > 0) {
           const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
@@ -246,7 +244,7 @@ function ChatFrame(props: ChatFrameProps) {
 
     syncMessages();
 
-    // 清理函数：取消异步操作和定时器
+    // 娓呯悊鍑芥暟锛氬彇娑堝紓姝ユ搷浣滃拰瀹氭椂鍣?
     return () => {
       isCancelled = true;
       if (timeoutId) {
@@ -260,11 +258,11 @@ function ChatFrame(props: ChatFrameProps) {
     if (messagesOverride) {
       return messagesOverride;
     }
-    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
-    // - root：threadId === messageId（显示）
-    // - reply：threadId !== messageId（隐藏）
+    // Discord 椋庢牸锛歍hread 鍥炲涓嶅嚭鐜板湪涓绘秷鎭祦涓紝鍙湪 Thread 闈㈡澘涓煡鐪?
+    // - root锛歵hreadId === messageId锛堟樉绀猴級
+    // - reply锛歵hreadId !== messageId锛堥殣钘忥級
     return (roomContext.chatHistory?.messages ?? []).filter((m) => {
-      // Thread Root（10001）不在主消息流中单独显示：改为挂在“原消息”下方的提示条
+      // Thread Root锛?0001锛変笉鍦ㄤ富娑堟伅娴佷腑鍗曠嫭鏄剧ず锛氭敼涓烘寕鍦ㄢ€滃師娑堟伅鈥濅笅鏂圭殑鎻愮ず鏉?
       if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
         return false;
       }
@@ -277,7 +275,7 @@ function ChatFrame(props: ChatFrameProps) {
   }, [messagesOverride, roomContext.chatHistory?.messages]);
 
   const threadHintMetaByMessageId = useMemo(() => {
-    // key: parentMessageId（被创建子区的那条原消息）
+    // key: parentMessageId锛堣鍒涘缓瀛愬尯鐨勯偅鏉″師娑堟伅锛?
     const metaMap = new Map<number, ThreadHintMeta>();
     const all = roomContext.chatHistory?.messages ?? [];
     if (all.length === 0) {
@@ -310,7 +308,7 @@ function ChatFrame(props: ChatFrameProps) {
       };
 
       const prev = metaMap.get(parentId);
-      // 极端情况下可能存在多个 root：取 messageId 更新的那个
+      // 鏋佺鎯呭喌涓嬪彲鑳藉瓨鍦ㄥ涓?root锛氬彇 messageId 鏇存柊鐨勯偅涓?
       if (!prev || next.rootId > prev.rootId) {
         metaMap.set(parentId, next);
       }
@@ -319,18 +317,18 @@ function ChatFrame(props: ChatFrameProps) {
     return metaMap;
   }, [roomContext.chatHistory?.messages]);
 
-  // 删除消息（逻辑删除：更新本地消息状态为已删除）
+  // 鍒犻櫎娑堟伅锛堥€昏緫鍒犻櫎锛氭洿鏂版湰鍦版秷鎭姸鎬佷负宸插垹闄わ級
   const deleteMessage = useCallback((messageId: number) => {
     deleteMessageMutation.mutate(messageId, {
       onSuccess: () => {
-        // 找到要删除的消息，更新其 status 为 1（已删除）
+        // 鎵惧埌瑕佸垹闄ょ殑娑堟伅锛屾洿鏂板叾 status 涓?1锛堝凡鍒犻櫎锛?
         const targetMessage = historyMessages.find(m => m.message.messageId === messageId);
         if (targetMessage && roomContext.chatHistory) {
           const updatedMessage = {
             ...targetMessage,
             message: {
               ...targetMessage.message,
-              status: 1, // 逻辑删除状态
+              status: 1, // 閫昏緫鍒犻櫎鐘舵€?
             },
           };
           roomContext.chatHistory.addOrUpdateMessage(updatedMessage);
@@ -340,9 +338,9 @@ function ChatFrame(props: ChatFrameProps) {
   }, [deleteMessageMutation, historyMessages, roomContext.chatHistory]);
 
   /**
-   * 虚拟列表
+   * 铏氭嫙鍒楄〃
    */
-  // 虚拟列表的index到historyMessage中的index的转换
+  // 铏氭嫙鍒楄〃鐨刬ndex鍒癶istoryMessage涓殑index鐨勮浆鎹?
   const isAtBottomRef = useRef(true);
   const lastAutoSyncUnreadRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
@@ -354,13 +352,13 @@ function ChatFrame(props: ChatFrameProps) {
     return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
   }, [historyMessages.length]);
   /**
-   * 新消息提醒
+   * 鏂版秷鎭彁閱?
    */
   const unreadMessageNumber = enableUnreadIndicator
     ? (webSocketUtils.unreadMessagesNumber[roomId] ?? 0)
     : 0;
   const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
-  // 监听新消息，如果在底部，则设置群聊消息为已读；
+  // 鐩戝惉鏂版秷鎭紝濡傛灉鍦ㄥ簳閮紝鍒欒缃兢鑱婃秷鎭负宸茶锛?
   useEffect(() => {
     if (!enableUnreadIndicator) {
       return;
@@ -388,7 +386,7 @@ function ChatFrame(props: ChatFrameProps) {
     updateLastReadSyncId(roomId);
   }, [enableUnreadIndicator, roomId, unreadMessageNumber, updateLastReadSyncId]);
   /**
-   * scroll相关
+   * scroll鐩稿叧
    */
   const scrollToBottom = useCallback(() => {
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
@@ -410,8 +408,8 @@ function ChatFrame(props: ChatFrameProps) {
   }, [chatHistory?.loading, scrollToBottom]);
 
   /**
-   * 背景图片随聊天记录而改变
-   * 注意：已删除的消息（status === 1）不应该显示背景图片
+   * 鑳屾櫙鍥剧墖闅忚亰澶╄褰曡€屾敼鍙?
+   * 娉ㄦ剰锛氬凡鍒犻櫎鐨勬秷鎭紙status === 1锛変笉搴旇鏄剧ず鑳屾櫙鍥剧墖
    */
   const imgNode = useMemo(() => {
     if (!enableEffects) {
@@ -425,8 +423,8 @@ function ChatFrame(props: ChatFrameProps) {
   }, [enableEffects, historyMessages]);
 
   /**
-   * 特效随聊天记录而改变
-   * 注意：已删除的消息（status === 1）不应该显示特效
+   * 鐗规晥闅忚亰澶╄褰曡€屾敼鍙?
+   * 娉ㄦ剰锛氬凡鍒犻櫎鐨勬秷鎭紙status === 1锛変笉搴旇鏄剧ず鐗规晥
    */
   const effectNode = useMemo(() => {
     if (!enableEffects) {
@@ -460,7 +458,7 @@ function ChatFrame(props: ChatFrameProps) {
     // Update Background URL
     let newBgUrl: string | null = null;
 
-    // 找到最后一个清除背景的位置
+    // 鎵惧埌鏈€鍚庝竴涓竻闄よ儗鏅殑浣嶇疆
     let lastClearIndex = -1;
     for (const effect of effectNode) {
       if (effect.index <= currentMessageIndex && effect.effectMessage?.effectName === "clearBackground") {
@@ -468,7 +466,7 @@ function ChatFrame(props: ChatFrameProps) {
       }
     }
 
-    // 从清除背景之后（或从头）开始找最新的背景图片
+    // 浠庢竻闄よ儗鏅箣鍚庯紙鎴栦粠澶达級寮€濮嬫壘鏈€鏂扮殑鑳屾櫙鍥剧墖
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
         newBgUrl = bg.imageMessage?.url ?? null;
@@ -507,7 +505,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   const updateMessage = useCallback((message: Message) => {
     updateMessageMutation.mutate(message);
-    // 从 historyMessages 中找到完整的 ChatMessageResponse，保留 messageMark 等字段
+    // 浠?historyMessages 涓壘鍒板畬鏁寸殑 ChatMessageResponse锛屼繚鐣?messageMark 绛夊瓧娈?
     const existingResponse = historyMessages.find(m => m.message.messageId === message.messageId);
     const newResponse = {
       ...existingResponse,
@@ -517,27 +515,27 @@ function ChatFrame(props: ChatFrameProps) {
   }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
 
   /**
-   * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
-   * 目的是为了让背景图片从url到null的切换时也能触发transition的动画，如果不加，那么，动画部分的css就会变成这样：
+   * 涓轰粈涔堣鍦ㄨ繖閲屽姞涓婁竴涓繖涔堜竴涓帿鍚嶅叾濡欑殑澶氫綑鍙橀噺鍛紵
+   * 鐩殑鏄负浜嗚鑳屾櫙鍥剧墖浠巙rl鍒皀ull鐨勫垏鎹㈡椂涔熻兘瑙﹀彂transition鐨勫姩鐢伙紝濡傛灉涓嶅姞锛岄偅涔堬紝鍔ㄧ敾閮ㄥ垎鐨刢ss灏变細鍙樻垚杩欐牱锛?
    *         style={{
    *           backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
    *           opacity: currentBackgroundUrl ? 1 : 0,
-   *         }}    // 错误代码！
-   * 当currentBackgroundUrl从url变为null时，浏览器会因为backgroundImage已经变成了null，导致动画来不及播放，背景直接就消失了
-   * 而加上这么一给state后
+   *         }}    // 閿欒浠ｇ爜锛?
+   * 褰揷urrentBackgroundUrl浠巙rl鍙樹负null鏃讹紝娴忚鍣ㄤ細鍥犱负backgroundImage宸茬粡鍙樻垚浜唍ull锛屽鑷村姩鐢绘潵涓嶅強鎾斁锛岃儗鏅洿鎺ュ氨娑堝け浜?
+   * 鑰屽姞涓婅繖涔堜竴缁檚tate鍚?
    *         style={{
    *           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
    *           opacity: currentBackgroundUrl ? 1 : 0,
-   *         }}   // 正确的
-   * 当currentBackgroundUrl 从 url_A 变为 null时
-   * 此时，opacity 因为 currentBackgroundUrl 是 null 而变为 0，淡出动画开始。
-   * 但我们故意不更新 displayedBgUrl！它依然保持着 url_A 的值。
-   * 结果就是：背景图层虽然要变透明了，但它的 backgroundImage 样式里依然是上一张图片。这样，动画就有了可以“操作”的视觉内容，能够平滑地将这张图片淡出，直到完全透明。
+   *         }}   // 姝ｇ‘鐨?
+   * 褰揷urrentBackgroundUrl 浠?url_A 鍙樹负 null鏃?
+   * 姝ゆ椂锛宱pacity 鍥犱负 currentBackgroundUrl 鏄?null 鑰屽彉涓?0锛屾贰鍑哄姩鐢诲紑濮嬨€?
+   * 浣嗘垜浠晠鎰忎笉鏇存柊 displayedBgUrl锛佸畠渚濈劧淇濇寔鐫€ url_A 鐨勫€笺€?
+   * 缁撴灉灏辨槸锛氳儗鏅浘灞傝櫧鐒惰鍙橀€忔槑浜嗭紝浣嗗畠鐨?backgroundImage 鏍峰紡閲屼緷鐒舵槸涓婁竴寮犲浘鐗囥€傝繖鏍凤紝鍔ㄧ敾灏辨湁浜嗗彲浠モ€滄搷浣溾€濈殑瑙嗚鍐呭锛岃兘澶熷钩婊戝湴灏嗚繖寮犲浘鐗囨贰鍑猴紝鐩村埌瀹屽叏閫忔槑銆?
    */
-  // 背景图渲染已提升到 RoomWindow，此处仅负责计算并通过 onBackgroundUrlChange 上报。
+  // 鑳屾櫙鍥炬覆鏌撳凡鎻愬崌鍒?RoomWindow锛屾澶勪粎璐熻矗璁＄畻骞堕€氳繃 onBackgroundUrlChange 涓婃姤銆?
 
   /**
-   * 消息选择
+   * 娑堟伅閫夋嫨
    */
   const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const isSelecting = selectedMessageIds.size > 0;
@@ -612,28 +610,28 @@ function ChatFrame(props: ChatFrameProps) {
     });
   }
 
-  // 新增：生成转发消息并返回消息ID
+  // 鏂板锛氱敓鎴愯浆鍙戞秷鎭苟杩斿洖娑堟伅ID
   async function generateForwardMessage(): Promise<number | null> {
-    // 发送提示信息
+    // 鍙戦€佹彁绀轰俊鎭?
     const firstMessageResult = await sendMessageMutation.mutateAsync({
       roomId,
       messageType: 1,
       roleId: curRoleId,
       avatarId: curAvatarId,
-      content: "转发了以下消息到社区",
+      content: "杞彂浜嗕互涓嬫秷鎭埌绀惧尯",
       extra: {},
     });
     if (!firstMessageResult.success)
       return null;
 
-    // 发送转发请求
+    // 鍙戦€佽浆鍙戣姹?
     const forwardResult = await sendMessageMutation.mutateAsync(
       constructForwardRequest(roomId),
     );
     if (!forwardResult.success || !forwardResult.data)
       return null;
 
-    // 清理状态
+    // 娓呯悊鐘舵€?
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
 
@@ -642,7 +640,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   async function handleAddEmoji(imgMessage: ImageMessage) {
     if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
-      toast.error("该表情已存在");
+      toast.error("璇ヨ〃鎯呭凡瀛樺湪");
       return;
     }
     const fileSize = imgMessage.size > 0
@@ -655,401 +653,45 @@ function ChatFrame(props: ChatFrameProps) {
       format: imgMessage.url.split(".").pop() || "webp",
     }, {
       onSuccess: () => {
-        toast.success("表情添加成功");
+        toast.success("琛ㄦ儏娣诲姞鎴愬姛");
       },
     });
   }
 
   /**
-   * 聊天气泡拖拽排序
+   * 鑱婂ぉ姘旀场鎷栨嫿鎺掑簭
    */
-  // -1 代表未拖动
-  const dragStartMessageIdRef = useRef(-1);
-  const isDragging = dragStartMessageIdRef.current >= 0;
-  const indicatorRef = useRef<HTMLDivElement | null>(null);
-  const rafIdRef = useRef<number | null>(null);
-  const pendingDragCheckRef = useRef<{ target: HTMLDivElement; clientY: number } | null>(null);
-  const dragScrollRafRef = useRef<number | null>(null);
-  const dragScrollDirectionRef = useRef<-1 | 0 | 1>(0);
-  const scrollerRef = useRef<HTMLElement | null>(null);
-  const windowDragOverListeningRef = useRef(false);
-  // before代表拖拽到元素上半，after代表拖拽到元素下半
-  const dropPositionRef = useRef<"before" | "after">("before");
-  const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
-  const [isDocRefDragOver, setIsDocRefDragOver] = useState(false);
-  const isDocRefDragOverRef = useRef(false);
-  const updateDocRefDragOver = useCallback((next: boolean) => {
-    if (isDocRefDragOverRef.current === next)
-      return;
-    isDocRefDragOverRef.current = next;
-    setIsDocRefDragOver(next);
-  }, []);
-
-  const sendDocCardFromDrop = useCallback(async (payload: DocRefDragPayload) => {
-    if (onSendDocCard) {
-      try {
-        await onSendDocCard(payload);
-      }
-      catch {
-        toast.error("发送文档失败");
-      }
-      return;
-    }
-
-    const docId = String(payload?.docId ?? "").trim();
-    if (!docId) {
-      toast.error("未检测到可用文档");
-      return;
-    }
-
-    if (!parseDescriptionDocId(docId)) {
-      toast.error("仅支持发送空间文档（我的文档/描述文档）");
-      return;
-    }
-
-    const currentSpaceId = roomContext.spaceId ?? -1;
-    if (payload?.spaceId && payload.spaceId !== currentSpaceId) {
-      toast.error("仅支持在同一空间分享文档");
-      return;
-    }
-
-    const notMember = (roomContext.curMember?.memberType ?? 3) >= 3;
-    const isKP = spaceContext.isSpaceOwner;
-    const curRoleId = roomContext.curRoleId ?? -1;
-    const isNarrator = curRoleId <= 0;
-
-    if (notMember) {
-      toast.error("您是观战，不能发送消息");
-      return;
-    }
-    if (isNarrator && !isKP) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
-      return;
-    }
-
-    const request: ChatMessageRequest = {
-      roomId,
-      roleId: curRoleId,
-      avatarId: roomContext.curAvatarId ?? -1,
-      content: "",
-      messageType: MESSAGE_TYPE.DOC_CARD,
-      extra: {
-        docCard: {
-          docId,
-          ...(currentSpaceId > 0 ? { spaceId: currentSpaceId } : {}),
-          ...(payload?.title ? { title: payload.title } : {}),
-          ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
-        },
-      } as any,
-    };
-
-    const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
-    if (composerTarget === "thread" && threadRootMessageId) {
-      request.threadId = threadRootMessageId;
-    }
-
-    send(request);
-  }, [onSendDocCard, roomContext.curAvatarId, roomContext.curMember?.memberType, roomContext.curRoleId, roomContext.spaceId, roomId, send, spaceContext.isSpaceOwner]);
-  /**
-   * 通用的消息拖拽消息函数
-   * @param targetIndex 将被移动到targetIndex对应的消息的下方
-   * @param messageIds 要移动的消息租
-   */
-  const handleMoveMessages = useCallback((
-    targetIndex: number,
-    messageIds: number[],
-  ) => {
-    const movableMessageIds = isMessageMovable
-      ? messageIds.filter((id) => {
-          const msg = historyMessages.find(m => m.message.messageId === id)?.message;
-          return msg ? isMessageMovable(msg) : false;
-        })
-      : messageIds;
-
-    if (movableMessageIds.length !== messageIds.length) {
-      toast.error("部分消息不支持移动");
-    }
-    if (movableMessageIds.length === 0) {
-      return;
-    }
-
-    const messageIdSet = new Set(movableMessageIds);
-    const selectedMessages = Array.from(movableMessageIds)
-      .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
-      .filter((msg): msg is Message => msg !== undefined)
-      .sort((a, b) => a.position - b.position);
-    // 寻找到不位于 messageIds 中且离 dropPosition 最近的消息
-    let topMessageIndex: number = targetIndex;
-    let bottomMessageIndex: number = targetIndex + 1;
-    while (messageIdSet.has(historyMessages[topMessageIndex]?.message.messageId)) {
-      topMessageIndex--;
-    }
-    while (messageIdSet.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
-      bottomMessageIndex++;
-    }
-    const topMessagePosition = historyMessages[topMessageIndex]?.message.position
-      ?? historyMessages[0].message.position - 1;
-    const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
-      ?? historyMessages[historyMessages.length - 1].message.position + 1;
-
-    const step = (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1);
-    selectedMessages.forEach((selectedMessage, index) => {
-      const nextPosition = step * (index + 1) + topMessagePosition;
-      updateMessage({
-        ...selectedMessage,
-        position: nextPosition,
-      });
-    });
-  }, [historyMessages, isMessageMovable, updateMessage]);
-  const cleanupDragIndicator = useCallback(() => {
-    pendingDragCheckRef.current = null;
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    if (dragScrollRafRef.current !== null) {
-      cancelAnimationFrame(dragScrollRafRef.current);
-      dragScrollRafRef.current = null;
-    }
-    dragScrollDirectionRef.current = 0;
-    indicatorRef.current?.remove();
-    curDragOverMessageRef.current = null;
-    dropPositionRef.current = "before";
-  }, []);
-
-  const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
-    if (dragScrollDirectionRef.current === direction) {
-      return;
-    }
-    dragScrollDirectionRef.current = direction;
-
-    if (direction === 0) {
-      if (dragScrollRafRef.current !== null) {
-        cancelAnimationFrame(dragScrollRafRef.current);
-        dragScrollRafRef.current = null;
-      }
-      return;
-    }
-
-    if (dragScrollRafRef.current !== null) {
-      return;
-    }
-
-    const step = () => {
-      const currentDirection = dragScrollDirectionRef.current;
-      if (currentDirection === 0) {
-        dragScrollRafRef.current = null;
-        return;
-      }
-      virtuosoRef.current?.scrollBy({ top: currentDirection * 18, behavior: "auto" });
-      dragScrollRafRef.current = requestAnimationFrame(step);
-    };
-
-    dragScrollRafRef.current = requestAnimationFrame(step);
-  }, [virtuosoRef]);
-
-  const updateAutoScroll = useCallback((clientY: number) => {
-    if (dragStartMessageIdRef.current === -1) {
-      startAutoScroll(0);
-      return;
-    }
-    const scroller = scrollerRef.current;
-    if (!scroller) {
-      startAutoScroll(0);
-      return;
-    }
-    const rect = scroller.getBoundingClientRect();
-    const topDistance = clientY - rect.top;
-    const bottomDistance = rect.bottom - clientY;
-    const threshold = 80;
-    if (topDistance <= threshold) {
-      startAutoScroll(-1);
-      return;
-    }
-    if (bottomDistance <= threshold) {
-      startAutoScroll(1);
-      return;
-    }
-    startAutoScroll(0);
-  }, [startAutoScroll]);
-
-  const handleWindowDragOver = useCallback((event: DragEvent) => {
-    if (dragStartMessageIdRef.current === -1) {
-      return;
-    }
-    updateAutoScroll(event.clientY);
-  }, [updateAutoScroll]);
-
-  const attachWindowDragOver = useCallback(() => {
-    if (windowDragOverListeningRef.current) {
-      return;
-    }
-    window.addEventListener("dragover", handleWindowDragOver, true);
-    windowDragOverListeningRef.current = true;
-  }, [handleWindowDragOver]);
-
-  const detachWindowDragOver = useCallback(() => {
-    if (!windowDragOverListeningRef.current) {
-      return;
-    }
-    window.removeEventListener("dragover", handleWindowDragOver, true);
-    windowDragOverListeningRef.current = false;
-  }, [handleWindowDragOver]);
+  const {
+    isDragging,
+    scrollerRef,
+    isDocRefDragOver,
+    updateDocRefDragOver,
+    handleMoveMessages,
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragEnd,
+    sendDocCardFromDrop,
+  } = useChatFrameDragAndDrop({
+    historyMessages,
+    isMessageMovable,
+    updateMessage,
+    roomId,
+    spaceId: roomContext.spaceId ?? -1,
+    curRoleId: roomContext.curRoleId ?? -1,
+    curAvatarId: roomContext.curAvatarId ?? -1,
+    curMemberType: roomContext.curMember?.memberType,
+    isSpaceOwner: spaceContext.isSpaceOwner,
+    onSendDocCard,
+    send,
+    virtuosoRef,
+    isSelecting,
+    selectedMessageIds,
+  });
 
   /**
-   * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
-   */
-  const scheduleCheckPosition = useCallback((target: HTMLDivElement, clientY: number) => {
-    if (dragStartMessageIdRef.current === -1) {
-      return;
-    }
-    pendingDragCheckRef.current = { target, clientY };
-    if (rafIdRef.current !== null) {
-      return;
-    }
-    rafIdRef.current = requestAnimationFrame(() => {
-      rafIdRef.current = null;
-      const pending = pendingDragCheckRef.current;
-      pendingDragCheckRef.current = null;
-      if (!pending || dragStartMessageIdRef.current === -1) {
-        return;
-      }
-
-      const { target, clientY } = pending;
-      curDragOverMessageRef.current = target;
-
-      const rect = target.getBoundingClientRect();
-      const relativeY = clientY - rect.top;
-      const nextPosition: "before" | "after" = relativeY < rect.height / 2 ? "before" : "after";
-
-      let indicator = indicatorRef.current;
-      if (!indicator) {
-        indicator = document.createElement("div");
-        indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
-        indicator.style.zIndex = "50";
-        indicatorRef.current = indicator;
-      }
-
-      if (indicator.parentElement !== target) {
-        indicator.remove();
-        target.appendChild(indicator);
-      }
-
-      dropPositionRef.current = nextPosition;
-      if (nextPosition === "before") {
-        indicator.style.top = "-1px";
-        indicator.style.bottom = "auto";
-      }
-      else {
-        indicator.style.top = "auto";
-        indicator.style.bottom = "-1px";
-      }
-    });
-  }, []);
-  /**
-   * 拖拽起始化
-   */
-  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.stopPropagation();
-    e.dataTransfer.effectAllowed = "move";
-    dragStartMessageIdRef.current = historyMessages[index].message.messageId;
-    attachWindowDragOver();
-    // 设置拖动预览图像
-    // 创建轻量拖拽预览元素（避免 clone 大块复杂 DOM 造成拖拽卡顿）
-    const clone = document.createElement("div");
-    clone.className = "p-2 bg-info text-info-content rounded shadow";
-    clone.textContent = isSelecting && selectedMessageIds.size > 0
-      ? `移动${selectedMessageIds.size}条消息`
-      : "移动消息";
-
-    clone.style.position = "fixed";
-    clone.style.top = "-9999px";
-    clone.style.width = `${Math.min(320, e.currentTarget.offsetWidth)}px`;
-    clone.style.opacity = "0.5";
-    document.body.appendChild(clone);
-    e.dataTransfer.setDragImage(clone, 0, 0);
-    setTimeout(() => document.body.removeChild(clone));
-  }, [attachWindowDragOver, historyMessages, isSelecting, selectedMessageIds.size]);
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (isDocRefDrag(e.dataTransfer)) {
-      updateDocRefDragOver(true);
-      e.dataTransfer.dropEffect = "copy";
-      startAutoScroll(0);
-      return;
-    }
-    updateDocRefDragOver(false);
-    if (isFileDrag(e.dataTransfer)) {
-      e.dataTransfer.dropEffect = "copy";
-      startAutoScroll(0);
-      return;
-    }
-    e.dataTransfer.dropEffect = "move";
-    updateAutoScroll(e.clientY);
-    scheduleCheckPosition(e.currentTarget, e.clientY);
-  }, [scheduleCheckPosition, startAutoScroll, updateAutoScroll, updateDocRefDragOver]);
-
-  const handleDragEnd = useCallback(() => {
-    dragStartMessageIdRef.current = -1;
-    detachWindowDragOver();
-    cleanupDragIndicator();
-  }, [cleanupDragIndicator, detachWindowDragOver]);
-
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    updateDocRefDragOver(false);
-    curDragOverMessageRef.current = null;
-    startAutoScroll(0);
-  }, [startAutoScroll, updateDocRefDragOver]);
-
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
-    e.preventDefault();
-    updateDocRefDragOver(false);
-    curDragOverMessageRef.current = null;
-
-    const docRef = getDocRefDragData(e.dataTransfer);
-    if (docRef) {
-      startAutoScroll(0);
-      e.stopPropagation();
-      await sendDocCardFromDrop(docRef);
-      dragStartMessageIdRef.current = -1;
-      detachWindowDragOver();
-      cleanupDragIndicator();
-      return;
-    }
-
-    // 拖拽上传（图片/音频）：优先处理文件拖拽，避免触发现有的“消息拖拽排序”
-    if (isFileDrag(e.dataTransfer)) {
-      startAutoScroll(0);
-      e.stopPropagation();
-      addDroppedFilesToComposer(e.dataTransfer);
-      return;
-    }
-
-    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex - 1;
-
-    // 如果是多选状态，则对选中的所有消息进行移动
-    if (isSelecting && selectedMessageIds.size > 0) {
-      handleMoveMessages(adjustedIndex, Array.from(selectedMessageIds));
-    }
-    else {
-      handleMoveMessages(adjustedIndex, [dragStartMessageIdRef.current]);
-    }
-
-    dragStartMessageIdRef.current = -1;
-    detachWindowDragOver();
-    cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator, sendDocCardFromDrop, startAutoScroll, detachWindowDragOver, updateDocRefDragOver]);
-
-  useEffect(() => {
-    return () => {
-      detachWindowDragOver();
-    };
-  }, [detachWindowDragOver]);
-
-  /**
-   * 右键菜单
+   * 鍙抽敭鑿滃崟
    */
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
 
@@ -1060,11 +702,11 @@ function ChatFrame(props: ChatFrameProps) {
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     const target = e.target as HTMLElement;
-    // 向上查找包含data-message-id属性的父元素
+    // 鍚戜笂鏌ユ壘鍖呭惈data-message-id灞炴€х殑鐖跺厓绱?
     const messageElement = target.closest("[data-message-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
   }
-  // 处理点击外部关闭菜单的逻辑
+  // 澶勭悊鐐瑰嚮澶栭儴鍏抽棴鑿滃崟鐨勯€昏緫
   useEffect(() => {
     if (contextMenu) {
       window.addEventListener("click", closeContextMenu);
@@ -1072,7 +714,7 @@ function ChatFrame(props: ChatFrameProps) {
     return () => {
       window.removeEventListener("click", closeContextMenu);
     };
-  }, [contextMenu]); // 依赖于contextMenu状态
+  }, [contextMenu]); // 渚濊禆浜巆ontextMenu鐘舵€?
 
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
@@ -1094,24 +736,24 @@ function ChatFrame(props: ChatFrameProps) {
     }));
   }
 
-  // 关闭右键菜单
+  // 鍏抽棴鍙抽敭鑿滃崟
   function closeContextMenu() {
     setContextMenu(null);
   }
 
-  // 切换消息样式
+  // 鍒囨崲娑堟伅鏍峰紡
   function toggleChatBubbleStyle() {
     toggleUseChatBubbleStyle();
     closeContextMenu();
   }
 
-  // 处理回复消息
+  // 澶勭悊鍥炲娑堟伅
   function handleReply(message: Message) {
     setReplyMessage(message);
   }
 
   /**
-   * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
+   * @param index 铏氭嫙鍒楄〃涓殑index锛屼负浜嗗疄鐜板弽鍚戞粴鍔紝杩涜浜嗗亸绉?
    * @param chatMessageResponse
    */
   const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
@@ -1143,7 +785,7 @@ function ChatFrame(props: ChatFrameProps) {
               return;
             }
           }
-          // 检查点击目标是否是按钮或其子元素，如果是则不触发跳转
+          // 妫€鏌ョ偣鍑荤洰鏍囨槸鍚︽槸鎸夐挳鎴栧叾瀛愬厓绱狅紝濡傛灉鏄垯涓嶈Е鍙戣烦杞?
           const target = e.target as HTMLElement;
           const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
 
@@ -1151,7 +793,7 @@ function ChatFrame(props: ChatFrameProps) {
             toggleMessageSelection(chatMessageResponse.message.messageId);
           }
           else if (roomContext.jumpToMessageInWebGAL && !isButtonClick) {
-            // 如果实时渲染已激活且不是点击按钮，单击消息跳转到 WebGAL 对应位置
+            // 濡傛灉瀹炴椂娓叉煋宸叉縺娲讳笖涓嶆槸鐐瑰嚮鎸夐挳锛屽崟鍑绘秷鎭烦杞埌 WebGAL 瀵瑰簲浣嶇疆
             roomContext.jumpToMessageInWebGAL(chatMessageResponse.message.messageId);
           }
         }}
@@ -1209,19 +851,19 @@ function ChatFrame(props: ChatFrameProps) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
         <div className="flex flex-col items-center gap-2">
-          {/* 加载动画 */}
+          {/* 鍔犺浇鍔ㄧ敾 */}
           <span className="loading loading-spinner loading-lg text-info"></span>
-          {/* 提示文字 */}
+          {/* 鎻愮ず鏂囧瓧 */}
           <div className="text-center space-y-1">
-            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
-            <p className="text-sm text-base-content/70">请稍候...</p>
+            <h3 className="text-lg font-medium text-base-content">姝ｅ湪鑾峰彇鍘嗗彶娑堟伅</h3>
+            <p className="text-sm text-base-content/70">璇风◢鍊?..</p>
           </div>
         </div>
       </div>
     );
   }
   /**
-   * 渲染
+   * 娓叉煋
    */
   return (
     <div className="h-full relative">
@@ -1260,7 +902,7 @@ function ChatFrame(props: ChatFrameProps) {
         onForward={handleForward}
         generateForwardMessage={generateForwardMessage}
       />
-      {/* 右键菜单 */}
+      {/* 鍙抽敭鑿滃崟 */}
       <ChatFrameContextMenu
         contextMenu={contextMenu}
         historyMessages={historyMessages}
