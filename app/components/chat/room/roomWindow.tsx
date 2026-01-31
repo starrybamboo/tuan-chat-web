@@ -1,9 +1,7 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse, SpaceMember, UserRole } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, SpaceMember } from "../../../../api";
 
-import type { AtMentionHandle } from "@/components/atMentionController";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 // hooks (local)
@@ -15,18 +13,17 @@ import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
-import useAiRewrite from "@/components/chat/room/useAiRewrite";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
+import useRoomInputController from "@/components/chat/room/useRoomInputController";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
-import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
@@ -70,44 +67,18 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const updateMessageMutation = useUpdateMessageMutation();
   const setSpaceExtraMutation = useSetSpaceExtraMutation();
 
-  const chatInputRef = useRef<ChatInputAreaHandle>(null);
-  const atMentionRef = useRef<AtMentionHandle>(null);
-
-  const resetChatInputUi = useChatInputUiStore(state => state.reset);
-  const resetChatComposer = useChatComposerStore(state => state.reset);
-
-  const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
-    useChatInputUiStore.getState().setSnapshot({
-      plainText,
-      textWithoutMentions: inputTextWithoutMentions,
-      mentionedRoles: roles,
-    });
-    atMentionRef.current?.onInput();
-  }, []);
-
-  /**
-   */
-  const setInputText = (text: string) => {
-    chatInputRef.current?.setContent(text);
-    chatInputRef.current?.triggerSync();
-  };
-
   const {
+    chatInputRef,
+    atMentionRef,
+    handleInputAreaChange,
+    handleSelectCommand,
+    setInputText,
     llmMessageRef,
     originalTextBeforeRewriteRef,
     setLLMMessage,
     insertLLMMessageIntoText,
     handleQuickRewrite,
-  } = useAiRewrite({ chatInputRef, setInputText });
-
-  useEffect(() => {
-    resetChatInputUi();
-    resetChatComposer();
-    return () => {
-      resetChatInputUi();
-      resetChatComposer();
-    };
-  }, [resetChatInputUi, resetChatComposer, roomId]);
+  } = useRoomInputController({ roomId });
 
   useLayoutEffect(() => {
     useRoomUiStore.getState().reset();
@@ -232,14 +203,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     },
     isSpectator,
   });
-
-  /**
-   * AI闂佹彃绉撮崯鎾绘晬閸絾鐝撶憸浼翠憾椤ｂ晝鎲撮崼顒傜
-   */
-  const handleSelectCommand = (cmdName: string) => {
-    const prefixChar = useChatInputUiStore.getState().plainText[0] || "."; // 濮掓稒顭堥缁樼▔?.
-    setInputText(`${prefixChar}${cmdName} `);
-  };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3);
