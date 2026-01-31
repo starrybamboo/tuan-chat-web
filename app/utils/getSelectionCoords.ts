@@ -4,70 +4,61 @@
 // }
 
 /**
- * 获取当前光标选区的信息。
- * @param {HTMLElement | null} [contextElement] - 可选。如果提供，函数将只返回完全包含在此上下文元素内部的选区。
- * @returns {{range: Range, selection: Selection} | null} 包含光标选区和选择对象的对象，如果没有有效选区，则返回 null。
+ * 鑾峰彇褰撳墠鍏夋爣閫夊尯鐨勪俊鎭€?
+ * @param {HTMLElement | null} [contextElement] - 鍙€夈€傚鏋滄彁渚涳紝鍑芥暟灏嗗彧杩斿洖瀹屽叏鍖呭惈鍦ㄦ涓婁笅鏂囧厓绱犲唴閮ㄧ殑閫夊尯銆?
+ * @returns {{range: Range, selection: Selection} | null} 鍖呭惈鍏夋爣閫夊尯鍜岄€夋嫨瀵硅薄鐨勫璞★紝濡傛灉娌℃湁鏈夋晥閫夊尯锛屽垯杩斿洖 null銆?
  */
 export function getEditorRange(contextElement?: HTMLElement | null): { range: Range; selection: Selection } | null {
   let range: Range | null = null;
   let selection: Selection | null = null;
 
-  // 检查浏览器是否支持 getSelection
+  // 妫€鏌ユ祻瑙堝櫒鏄惁鏀寔 getSelection
   if (typeof window.getSelection !== "function") {
-    return null; // 不支持
+    return null; // 涓嶆敮鎸?
   }
 
   selection = window.getSelection();
   if (!selection) {
-    return null; // 无法获取选区对象
+    return null; // 鏃犳硶鑾峰彇閫夊尯瀵硅薄
   }
 
-  // 检查是否有选区范围 (这是所有现代浏览器的标准检查方式)
+  // 妫€鏌ユ槸鍚︽湁閫夊尯鑼冨洿 (杩欐槸鎵€鏈夌幇浠ｆ祻瑙堝櫒鐨勬爣鍑嗘鏌ユ柟寮?
   if (selection.rangeCount === 0) {
-    return null; // 当前没有选区
+    return null; // 褰撳墠娌℃湁閫夊尯
   }
 
-  // 获取第一个选区范围
+  // 鑾峰彇绗竴涓€夊尯鑼冨洿
   range = selection.getRangeAt(0);
   if (!range) {
-    return null; // 无法获取范围对象
+    return null; // 鏃犳硶鑾峰彇鑼冨洿瀵硅薄
   }
 
-  // 如果提供了上下文元素（例如我们的聊天输入框 div），
-  // 则验证整个选区是否在该元素内部。
+  // 濡傛灉鎻愪緵浜嗕笂涓嬫枃鍏冪礌锛堜緥濡傛垜浠殑鑱婂ぉ杈撳叆妗?div锛夛紝
+  // 鍒欓獙璇佹暣涓€夊尯鏄惁鍦ㄨ鍏冪礌鍐呴儴銆?
   if (contextElement) {
-    // range.commonAncestorContainer 是包含选区开始和结束点的最深层的共同父节点。
-    // 我们需要检查此节点是否是 contextElement 本身，或者是它的后代节点。
+    // range.commonAncestorContainer 鏄寘鍚€夊尯寮€濮嬪拰缁撴潫鐐圭殑鏈€娣卞眰鐨勫叡鍚岀埗鑺傜偣銆?
+    // 鎴戜滑闇€瑕佹鏌ユ鑺傜偣鏄惁鏄?contextElement 鏈韩锛屾垨鑰呮槸瀹冪殑鍚庝唬鑺傜偣銆?
     const container = range.commonAncestorContainer;
 
-    // Node.contains() 方法检查一个节点是否是另一个节点的后代，
-    // 或者是否是该节点本身。
+    // Node.contains() 鏂规硶妫€鏌ヤ竴涓妭鐐规槸鍚︽槸鍙︿竴涓妭鐐圭殑鍚庝唬锛?
+    // 鎴栬€呮槸鍚︽槸璇ヨ妭鐐规湰韬€?
     if (!contextElement.contains(container)) {
-      // 如果共同父节点不在 contextElement 内部，
-      // 这意味着选区（或其至少一部分）在我们的目标编辑器之外，应将其视为无效。
+      // 濡傛灉鍏卞悓鐖惰妭鐐逛笉鍦?contextElement 鍐呴儴锛?
+      // 杩欐剰鍛崇潃閫夊尯锛堟垨鍏惰嚦灏戜竴閮ㄥ垎锛夊湪鎴戜滑鐨勭洰鏍囩紪杈戝櫒涔嬪锛屽簲灏嗗叾瑙嗕负鏃犳晥銆?
       return null;
     }
   }
 
-  // 验证通过（或不需要上下文验证），返回信息
+  // 楠岃瘉閫氳繃锛堟垨涓嶉渶瑕佷笂涓嬫枃楠岃瘉锛夛紝杩斿洖淇℃伅
   return {
     range,
     selection,
   };
 }
-// 重新设置光标的位置
-export function resetRange(range: Range) {
-  if (range) {
-    const selection = window.getSelection();
-    if (selection) {
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }
-}
+// 閲嶆柊璁剧疆鍏夋爣鐨勪綅缃?
 
 /**
- * 获取光标坐标
+ * 鑾峰彇鍏夋爣鍧愭爣
  */
 export function getSelectionCoords() {
   const win = window;
@@ -86,7 +77,7 @@ export function getSelectionCoords() {
       if (rects.length > 0) {
         rect = rects[0];
       }
-      // 光标在行首时，rect为undefined
+      // 鍏夋爣鍦ㄨ棣栨椂锛宺ect涓簎ndefined
       if (rect) {
         x = rect.left;
         y = rect.top;
