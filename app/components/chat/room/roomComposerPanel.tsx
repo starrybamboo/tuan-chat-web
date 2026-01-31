@@ -704,6 +704,36 @@ function RoomComposerPanelImpl({
   const statusDividerNode = (
     <span className="h-3 w-px bg-base-content/30" aria-hidden />
   );
+  const composerHeaderNode = (
+    <div className="w-full border-b border-base-300 px-2 py-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div ref={avatarPopoverRef} className="relative shrink-0">
+            <button
+              type="button"
+              className={avatarButtonClassName}
+              aria-haspopup="dialog"
+              aria-expanded={isAvatarPopoverOpen}
+              onClick={handleAvatarPopoverToggle}
+            >
+              {avatarContent}
+            </button>
+            {avatarPopoverNode}
+          </div>
+          <div className="min-w-0 flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              {roleNameNode}
+            </div>
+            {selfStatusBarNode && statusDividerNode}
+            {selfStatusBarNode}
+            {otherStatusBarNode && statusDividerNode}
+            {otherStatusBarNode}
+          </div>
+        </div>
+        {webgalToolbarNode}
+      </div>
+    </div>
+  );
   const chatInputAreaNode = isMobile
     ? (
         <div className="flex items-end gap-2">
@@ -765,34 +795,7 @@ function RoomComposerPanelImpl({
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex flex-col border border-base-300 rounded-xl bg-base-100/80">
-                <div className="w-full border-b border-base-300 px-2 py-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div ref={avatarPopoverRef} className="relative shrink-0">
-                        <button
-                          type="button"
-                          className={avatarButtonClassName}
-                          aria-haspopup="dialog"
-                          aria-expanded={isAvatarPopoverOpen}
-                          onClick={handleAvatarPopoverToggle}
-                        >
-                          {avatarContent}
-                        </button>
-                        {avatarPopoverNode}
-                      </div>
-                      <div className="min-w-0 flex items-center gap-2">
-                        <div className="min-w-0 flex-1">
-                          {roleNameNode}
-                        </div>
-                        {selfStatusBarNode && statusDividerNode}
-                        {selfStatusBarNode}
-                        {otherStatusBarNode && statusDividerNode}
-                        {otherStatusBarNode}
-                      </div>
-                    </div>
-                    {webgalToolbarNode}
-                  </div>
-                </div>
+                {composerHeaderNode}
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start p-2">
                   {chatInputAreaNode}
 
