@@ -15,6 +15,7 @@ import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
+import useRoomChatFrameProps from "@/components/chat/room/useRoomChatFrameProps";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
 import useRoomComposerPanelProps from "@/components/chat/room/useRoomComposerPanelProps";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
@@ -295,13 +296,13 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const roomName = roomHeaderOverride?.title ?? room?.name;
 
-  const chatFrameProps = {
+  const chatFrameProps = useRoomChatFrameProps({
     virtuosoRef,
     onBackgroundUrlChange: setBackgroundUrl,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
     onSendDocCard: handleSendDocCard,
-  };
+  });
 
   const composerPanelProps = useRoomComposerPanelProps({
     roomId,
