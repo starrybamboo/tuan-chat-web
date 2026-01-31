@@ -701,6 +701,9 @@ function RoomComposerPanelImpl({
           {displayRoleName || "\u00A0"}
         </div>
       );
+  const statusDividerNode = (
+    <span className="h-3 w-px bg-base-content/30" aria-hidden />
+  );
   const chatInputAreaNode = isMobile
     ? (
         <div className="flex items-end gap-2">
@@ -781,9 +784,9 @@ function RoomComposerPanelImpl({
                         <div className="min-w-0 flex-1">
                           {roleNameNode}
                         </div>
-                        {selfStatusBarNode && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
+                        {selfStatusBarNode && statusDividerNode}
                         {selfStatusBarNode}
-                        {otherStatusBarNode && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
+                        {otherStatusBarNode && statusDividerNode}
                         {otherStatusBarNode}
                       </div>
                     </div>
