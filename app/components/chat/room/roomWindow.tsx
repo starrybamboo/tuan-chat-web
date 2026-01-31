@@ -22,20 +22,20 @@ import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
+import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
-import UTILS from "@/components/common/dicer/utils/utils";
 
+import UTILS from "@/components/common/dicer/utils/utils";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
@@ -46,15 +46,11 @@ import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
-  useGetRoomModuleRoleQuery,
-  useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
   useSendMessageMutation,
   useSetSpaceExtraMutation,
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
-import { tuanchat } from "../../../../api/instance";
-import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
 // const PAGE_SIZE = 50; // 每页消息数量
@@ -134,158 +130,20 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [roomId]);
 
   // 获取用户的所有角色
-  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
-  const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
-  // 获取当前群聊中的所有角色
-  const roomRolesQuery = useGetRoomRoleQuery(roomId);
-  const roomBaseRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
-  // 获取当前群聊中的所有NPC角色
-  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
-  const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
-  // 房间内所有可见角色（玩家角色 + NPC 角色），用于 @ 提及、实时渲染等“需要全量角色表”的场景
-  const roomAllRoles = useMemo(() => {
-    const map = new Map<number, UserRole>();
-    for (const role of roomBaseRoles) {
-      map.set(role.roleId, role);
-    }
-    for (const role of roomNpcRoles) {
-      map.set(role.roleId, role);
-    }
-    return [...map.values()];
-  }, [roomBaseRoles, roomNpcRoles]);
-  // 用户拥有的角色 + 所有NPC角色
-  const roomRolesThatUserOwn = useMemo(() => {
-    // 先获取用户拥有的玩家角色
-    const playerRoles = spaceContext.isSpaceOwner
-      ? roomBaseRoles
-      : roomBaseRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-    // 合并玩家角色和NPC角色
-    return [...playerRoles, ...roomNpcRoles];
-  }, [roomBaseRoles, roomNpcRoles, spaceContext.isSpaceOwner, userRoles]);
+  const {
+    roomAllRoles,
+    roomRolesThatUserOwn,
+    curRoleId,
+    setCurRoleId,
+    curAvatarId,
+    setCurAvatarId,
+    ensureRuntimeAvatarIdForRole,
+  } = useRoomRoleState({
+    roomId,
+    userId,
+    isSpaceOwner: spaceContext.isSpaceOwner,
+  });
 
-  // 房间ID到角色ID、角色ID到头像ID 的映射（持久化）
-  const curRoleIdMap = useRoomRoleSelectionStore(state => state.curRoleIdMap);
-  const curAvatarIdMap = useRoomRoleSelectionStore(state => state.curAvatarIdMap);
-  const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
-  const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
-
-  // 运行时头像兜底（不持久化）：用于在 curAvatarIdMap 缺失时保证“可读”的 avatarId（优先 role.avatarId）
-  const [runtimeAvatarIdMap, setRuntimeAvatarIdMap] = useState<Record<number, number>>({});
-  const runtimeAvatarIdMapRef = useRef(runtimeAvatarIdMap);
-  useEffect(() => {
-    runtimeAvatarIdMapRef.current = runtimeAvatarIdMap;
-  }, [runtimeAvatarIdMap]);
-
-  const roleDefaultAvatarIdMap = useMemo(() => {
-    const out: Record<number, number> = {};
-    for (const role of roomRolesThatUserOwn) {
-      out[role.roleId] = role.avatarId ?? -1;
-    }
-    return out;
-  }, [roomRolesThatUserOwn]);
-
-  useEffect(() => {
-    setRuntimeAvatarIdMap((prev) => {
-      const next: Record<number, number> = { ...prev };
-      for (const role of roomRolesThatUserOwn) {
-        const roleId = role.roleId;
-        const stored = useRoomRoleSelectionStore.getState().curAvatarIdMap[roleId] ?? -1;
-        if (stored > 0) {
-          continue;
-        }
-        const fallback = role.avatarId ?? -1;
-        const existing = next[roleId];
-        if (existing == null || (existing <= 0 && fallback > 0)) {
-          next[roleId] = fallback;
-        }
-      }
-      return next;
-    });
-  }, [roomRolesThatUserOwn]);
-
-  const pickDefaultAvatarId = useCallback((avatars: any[]): number => {
-    const defaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") ?? null;
-    return defaultLabelAvatar?.avatarId ?? (avatars[0]?.avatarId ?? -1);
-  }, []);
-
-  const ensureRuntimeAvatarIdForRole = useCallback(async (roleId: number): Promise<number> => {
-    if (roleId <= 0) {
-      return -1;
-    }
-
-    const stored = useRoomRoleSelectionStore.getState().curAvatarIdMap[roleId] ?? -1;
-    if (stored > 0) {
-      return stored;
-    }
-
-    const runtime = runtimeAvatarIdMapRef.current[roleId] ?? -1;
-    if (runtime > 0) {
-      return runtime;
-    }
-
-    const roleDefault = roleDefaultAvatarIdMap[roleId] ?? -1;
-    if (roleDefault > 0) {
-      setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: roleDefault }));
-      return roleDefault;
-    }
-
-    try {
-      const avatars = (await tuanchat.avatarController.getRoleAvatars(roleId))?.data ?? [];
-      const picked = pickDefaultAvatarId(avatars);
-      if (picked > 0) {
-        setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: picked }));
-        return picked;
-      }
-    }
-    catch {
-      // ignore：发送/导入流程不应因头像列表拉取失败而中断
-    }
-
-    setRuntimeAvatarIdMap(prev => ({ ...prev, [roleId]: -1 }));
-    return -1;
-  }, [pickDefaultAvatarId, roleDefaultAvatarIdMap]);
-
-  const getEffectiveAvatarIdForRole = useCallback((roleId: number): number => {
-    // 旁白（-1）也允许选择并持久化 avatarId（存到 curAvatarIdMap[-1]）
-    if (roleId < 0) {
-      return curAvatarIdMap[roleId] ?? -1;
-    }
-    if (roleId === 0) {
-      return -1;
-    }
-    const stored = curAvatarIdMap[roleId] ?? -1;
-    if (stored > 0) {
-      return stored;
-    }
-    const runtime = runtimeAvatarIdMap[roleId] ?? -1;
-    if (runtime > 0) {
-      return runtime;
-    }
-    const roleDefault = roleDefaultAvatarIdMap[roleId] ?? -1;
-    return roleDefault;
-  }, [curAvatarIdMap, roleDefaultAvatarIdMap, runtimeAvatarIdMap]);
-
-  const storedRoleId = curRoleIdMap[roomId];
-  const fallbackRoleId = roomRolesThatUserOwn[0]?.roleId ?? -1;
-  const curRoleId = (storedRoleId == null)
-    ? fallbackRoleId
-    : (storedRoleId <= 0 && !spaceContext.isSpaceOwner)
-        ? fallbackRoleId
-        : storedRoleId;
-  const setCurRoleId = useCallback((roleId: number) => {
-    if (roleId <= 0 && !spaceContext.isSpaceOwner) {
-      toast.error("只有KP可以使用旁白");
-      return;
-    }
-    setCurRoleIdForRoom(roomId, roleId);
-  }, [roomId, setCurRoleIdForRoom, spaceContext.isSpaceOwner]);
-
-  const curAvatarId = getEffectiveAvatarIdForRole(curRoleId);
-  const setCurAvatarId = useCallback((_avatarId: number) => {
-    setCurAvatarIdForRole(curRoleId, _avatarId);
-  }, [curRoleId, setCurAvatarIdForRole]);
-
-  // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
   const [isImportChatTextOpen, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
 
@@ -1750,4 +1608,3 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 }
 
 export default RoomWindow;
-
