@@ -19,6 +19,7 @@ import useAiRewrite from "@/components/chat/room/useAiRewrite";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
+import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
@@ -29,7 +30,7 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
+import useCommandExecutor from "@/components/common/dicer/cmdPre";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
@@ -227,69 +228,18 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3);
   const noRole = curRoleId <= 0;
 
-  const containsCommandRequestAllToken = useCallback((text: string) => {
-    const raw = String(text ?? "");
-    return /@all\b/i.test(raw)
-      || raw.includes("@全员")
-      || raw.includes("@所有人")
-      || raw.includes("@检定请求");
-  }, []);
-
-  const stripCommandRequestAllToken = useCallback((text: string) => {
-    return String(text ?? "")
-      .replace(/@all\b/gi, " ")
-      .replace(/@全员/g, " ")
-      .replace(/@所有人/g, " ")
-      .replace(/@检定请求/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }, []);
-
-  const extractFirstCommandText = useCallback((text: string): string | null => {
-    const trimmed = String(text ?? "").trim();
-    if (!trimmed) {
-      return null;
-    }
-    if (isCommand(trimmed)) {
-      return trimmed;
-    }
-    const match = trimmed.match(/[.。/][A-Z][^\n]*/i);
-    if (!match) {
-      return null;
-    }
-    const candidate = match[0].trim();
-    return isCommand(candidate) ? candidate : null;
-  }, []);
-
-  const handleExecuteCommandRequest = useCallback((payload: { command: string; threadId?: number; requestMessageId: number }) => {
-    const { command, threadId, requestMessageId } = payload;
-    const rawCommand = String(command ?? "").trim();
-    if (!rawCommand) {
-      toast.error("请输入指令");
-      return;
-    }
-
-    const isKP = spaceContext.isSpaceOwner;
-    if (notMember) {
-      toast.error("您是观战，不能发送消息");
-      return;
-    }
-    if (noRole && !isKP) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
-      return;
-    }
-    if (isSubmitting) {
-      toast.error("正在提交中，请稍后");
-      return;
-    }
-
-    commandExecutor({
-      command: rawCommand,
-      originMessage: rawCommand,
-      threadId,
-      replyMessageId: requestMessageId,
-    });
-  }, [commandExecutor, isSubmitting, noRole, notMember, spaceContext.isSpaceOwner]);
+  const {
+    containsCommandRequestAllToken,
+    stripCommandRequestAllToken,
+    extractFirstCommandText,
+    handleExecuteCommandRequest,
+  } = useRoomCommandRequests({
+    isSpaceOwner: spaceContext.isSpaceOwner,
+    notMember,
+    noRole,
+    isSubmitting,
+    commandExecutor,
+  });
 
   const { sendMessageWithInsert, handleSetWebgalVar } = useRoomMessageActions({
     roomId,
