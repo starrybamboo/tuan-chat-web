@@ -21,7 +21,7 @@ export { useCropCanvas } from "./useCropCanvas";
 
 // 裁剪预览 Hook（完整状态管理）
 export { useCropPreview } from "./useCropPreview";
-export type { CropMode, ImageLoadContext } from "./useCropPreview";
+export type { ImageLoadContext } from "./useCropPreview";
 
 // 防抖 Hook
 export { useDebounceEffect } from "./useDebounceEffect";
