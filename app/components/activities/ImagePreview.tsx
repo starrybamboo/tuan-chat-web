@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+﻿import React, { useCallback, useState } from "react";
 import { RotateLeftIcon, RotateRightIcon } from "@/icons";
 
 interface ImagePreviewProps {
@@ -6,7 +6,7 @@ interface ImagePreviewProps {
   maxPreview?: number;
 }
 
-export const ImagePreview: React.FC<ImagePreviewProps> = ({
+const ImagePreview: React.FC<ImagePreviewProps> = ({
   images,
   maxPreview = 9,
 }) => {
@@ -216,3 +216,4 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
 };
 
 export default ImagePreview;
+

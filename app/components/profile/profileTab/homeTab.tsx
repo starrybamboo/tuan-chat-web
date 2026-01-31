@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { PopWindow } from "@/components/common/popWindow";
 import TagManagement from "@/components/common/userTags";
@@ -19,7 +19,7 @@ interface HomeTabProps {
   userId: number;
 }
 
-export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
+const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const userQuery = useGetUserInfoQuery(userId);
   const loginUserId = useGlobalContext().userId ?? -1;
   const user = userQuery.data?.data;
@@ -161,3 +161,4 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 };
 
 export default HomeTab;
+

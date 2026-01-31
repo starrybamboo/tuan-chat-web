@@ -1,4 +1,4 @@
-import type { MomentFeedRequest } from "../../../../api";
+﻿import type { MomentFeedRequest } from "../../../../api";
 import React, { useEffect, useRef, useState } from "react";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -23,7 +23,7 @@ interface LocalImage {
   size?: number;
 }
 
-export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
+const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const [content, setContent] = useState("");
   const [rows, setRows] = useState(3);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -366,3 +366,4 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 };
 
 export default PublishPostCard;
+

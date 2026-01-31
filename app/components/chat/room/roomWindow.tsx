@@ -1,4 +1,4 @@
-// 房间聊天主窗口：负责消息流渲染、导入发送与面板协调。
+﻿// 房间聊天主窗口：负责消息流渲染、导入发送与面板协调。
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, SpaceMember, UserRole } from "../../../../api";
 
@@ -66,7 +66,7 @@ import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
 // const PAGE_SIZE = 50; // 每页消息数量
-export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
+function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
 
   // BGM：切换/卸载房间时视为“打断”，停止播放但不影响用户是否已主动关闭（dismiss）
@@ -1791,3 +1791,4 @@ export function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: numbe
 }
 
 export default RoomWindow;
+

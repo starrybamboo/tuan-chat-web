@@ -19,6 +19,10 @@
     "build/**",
     "dist/**",
     "node_modules/**",
-    "release/**"
+    "release/**",
+    "api/core/request.ts",
+    "api/novelai/core/request.ts",
+    "api/hooks/RoleAndAvatarHooks.tsx",
+    "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts"
   ]
 }

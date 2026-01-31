@@ -1,4 +1,4 @@
-import type { GameInfoDto } from "@/webGAL/apis";
+﻿import type { GameInfoDto } from "@/webGAL/apis";
 
 import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { getTerreApis } from "@/webGAL/index";
@@ -8,7 +8,7 @@ import { getTerreBaseUrl } from "@/webGAL/terreConfig";
  * WebGAL 调试命令枚举
  * 用于通过 WebSocket 与 WebGAL 引擎通信
  */
-export enum DebugCommand {
+enum DebugCommand {
   // 跳转到指定场景的指定行
   JUMP,
   // 同步自客户端
@@ -27,7 +27,7 @@ export enum DebugCommand {
   SET_FONT_OPTIMIZATION,
 }
 
-export type IFile = {
+type IFile = {
   extName: string;
   isDir: boolean;
   name: string;
@@ -160,7 +160,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   return safeFileName;
 };
 
-export async function readTextFile(game: string, path: string): Promise<string> {
+async function readTextFile(game: string, path: string): Promise<string> {
   const url = `${getTerreBaseUrl()}/games/${game}/game/${path}`;
   const response = await fetch(url);
   if (!response.ok)
@@ -222,3 +222,4 @@ export function getAsyncMsg(sceneName: string, lineNumber: number, forceReload: 
  * 可以用来执行单条 WebGAL 命令而不改变当前场景状态
  * @param command WebGAL 命令字符串
  */
+

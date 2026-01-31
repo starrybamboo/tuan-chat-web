@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from "react";
+﻿import React, { useCallback, useEffect, useRef } from "react";
 
 import { CURRENT_WINDOW_ID, handleWindowBlur, shouldSendStatusUpdate } from "@/utils/windowInstance";
 
@@ -38,7 +38,7 @@ type UseChatInputStatusReturn = {
  * - 活动期且文本非空 => input
  * - 手动切换添加 lockDurationMs 锁，保护期内不被自动覆盖
  */
-export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatusReturn {
+function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatusReturn {
   const {
     roomId,
     userId,
@@ -262,3 +262,4 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
 }
 
 export default useChatInputStatus;
+

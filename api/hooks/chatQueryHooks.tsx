@@ -257,7 +257,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 /**
  * 鑾峰彇绌洪棿涓殑role
  */
-export function useGetSpaceRolesQuery(spaceId: number) {
+function useGetSpaceRolesQuery(spaceId: number) {
     return useQuery({
         queryKey: ['spaceRole', spaceId],
         queryFn: () => tuanchat.spaceModuleController.spaceRole(spaceId),
@@ -336,7 +336,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
  * 鑾峰彇缇よ亰鎵€鏈夋秷鎭紙瀹炴椂鎬ц姹傞珮锛?
  * @param roomId 缇よ亰ID
  */
-export function useGetAllMessageQuery(roomId: number) {
+function useGetAllMessageQuery(roomId: number) {
     return useQuery({
         queryKey: ['getAllMessage', roomId],
         queryFn: () => tuanchat.chatController.getAllMessage(roomId),
@@ -359,7 +359,7 @@ export function useSendMessageMutation(roomId: number) {
  * 鍒嗛〉鑾峰彇娑堟伅
  * @param requestBody 鍒嗛〉璇锋眰鍙傛暟
  */
-export function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
+function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
     return useQuery({
         queryKey: ['getMsgPage', requestBody],
         queryFn: () => tuanchat.chatController.getMsgPage(requestBody),
@@ -393,7 +393,7 @@ export function useUpdateMessageMutation() {
  * 鐢ㄤ簬鍦ㄦ敹鍒皊yncId闂撮殧鐨勬秷鎭椂锛岄噸鏂拌幏鍙栫己澶辩殑娑堟伅
  * @param requestBody 璇锋眰鍙傛暟
  */
-export function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
+function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
     return useQuery({
         queryKey: ['getMessageBySyncId', requestBody],
         queryFn: () => tuanchat.chatController.getMessageBySyncId(requestBody),
@@ -406,7 +406,7 @@ export function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) 
  * 杩斿洖鎴块棿涓媠yncId澶т簬绛変簬璇锋眰涓璼yncId鐨勬秷鎭紝鐢ㄤ簬閲嶆柊涓婄嚎鏃惰幏鍙栧巻鍙叉秷鎭?
  * @param requestBody 璇锋眰鍙傛暟
  */
-export function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
+function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
     return useQuery({
         queryKey: ['getHistoryMessages', requestBody],
         queryFn: () => tuanchat.chatController.getHistoryMessages(requestBody),
@@ -450,7 +450,7 @@ export function useRevokePlayerMutation() {
 /**
  * 杞缇や富
  */
-export function useTransferOwnerMutation() {
+function useTransferOwnerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: SpaceOwnerTransferRequest) => tuanchat.spaceController.transferSpaceOwner(req),
@@ -648,14 +648,14 @@ export function useGetUserActiveSpacesQuery() {
 /**
  * 获取用户加入的已归档 space
  */
-export function useGetUserArchivedSpacesQuery() {
+function useGetUserArchivedSpacesQuery() {
     return useQuery({
         queryKey: ['getUserArchivedSpaces'],
         queryFn: () => tuanchat.spaceController.getUserArchivedSpaces(),
         staleTime: 300000 // 5分钟缓存
     });
 }
-export function useCloneSpaceBySpaceIdMutation() {
+function useCloneSpaceBySpaceIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['cloneSpaceBySpaceId'],
@@ -694,7 +694,7 @@ export function useGetRoomRoleQuery(roomId: number) {
  * 鎵归噺鑾峰彇缇ょ粍瑙掕壊鍒楄〃
  * @param roomIds 缇ょ粍ID鏁扮粍
  */
-export function useGetRoomRolesQueries(roomIds: number[]) {
+function useGetRoomRolesQueries(roomIds: number[]) {
     return useQueries({
         queries: roomIds.map(roomId => ({
             queryKey: ['roomRole', roomId],
@@ -778,7 +778,7 @@ export function useSetRoomExtraMutation() {
 /**
  * 鍒犻櫎鎴块棿鍏朵粬淇℃伅
  */
-export function useDeleteRoomExtraMutation() {
+function useDeleteRoomExtraMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RoomExtraRequest) => tuanchat.roomController.deleteRoomExtra(req),
@@ -788,4 +788,5 @@ export function useDeleteRoomExtraMutation() {
         }
     });
 }
+
 

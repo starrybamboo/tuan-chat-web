@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+﻿import React, { useCallback, useState } from "react";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
@@ -17,7 +17,7 @@ interface MomentDetailViewProps {
 /**
  * 动态详情页面组件 - 显示完整动态内容和评论区
  */
-export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
+const MomentDetailView: React.FC<MomentDetailViewProps> = ({
   feedId,
   loginUserId,
   onClose,
@@ -304,3 +304,4 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 };
 
 export default MomentDetailView;
+

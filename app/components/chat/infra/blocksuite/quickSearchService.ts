@@ -1,4 +1,4 @@
-type MinimalDocMeta = { id: string; title?: string };
+﻿type MinimalDocMeta = { id: string; title?: string };
 
 type MinimalWorkspaceMeta = {
   docMetas?: MinimalDocMeta[];
@@ -30,7 +30,7 @@ function normalizeQuery(input: string) {
   return input.trim().toLowerCase();
 }
 
-export function getDocTitleFromMeta(meta: MinimalWorkspaceMeta | null | undefined, docId: string): string {
+function getDocTitleFromMeta(meta: MinimalWorkspaceMeta | null | undefined, docId: string): string {
   const id = String(docId ?? "").trim();
   if (!id)
     return "";
@@ -324,3 +324,4 @@ export function createBlocksuiteQuickSearchService(params: {
 
   return { searchDoc, dispose, __tuanchatQuickSearchService: true };
 }
+

@@ -1,7 +1,7 @@
-export const REFERENCE_WIDTH = 2560;
+﻿export const REFERENCE_WIDTH = 2560;
 export const REFERENCE_HEIGHT = 1440;
 
-export function getSpriteWidthRef(canvas: HTMLCanvasElement | null): number {
+function getSpriteWidthRef(canvas: HTMLCanvasElement | null): number {
   if (!canvas || !canvas.height) {
     return REFERENCE_WIDTH;
   }
@@ -12,3 +12,4 @@ export function getSpriteWidthRef(canvas: HTMLCanvasElement | null): number {
 export function getAnchorOffsetXRef(): number {
   return 0;
 }
+

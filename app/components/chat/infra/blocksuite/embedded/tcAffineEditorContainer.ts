@@ -1,4 +1,4 @@
-import type { DocMode } from "@blocksuite/affine/model";
+﻿import type { DocMode } from "@blocksuite/affine/model";
 import type { BlockModel, ExtensionType, Store } from "@blocksuite/affine/store";
 
 import { SignalWatcher, WithDisposable } from "@blocksuite/affine/global/lit";
@@ -18,7 +18,7 @@ export const TC_AFFINE_EDITOR_CONTAINER_TAG = "tc-affine-editor-container";
  * Why: the integration-test container always inserts `<doc-title>` in page mode.
  * For TuanChat, page title UI is handled by `tcHeader`, so doc-title should be optional.
  */
-export class TCAffineEditorContainer extends SignalWatcher(
+class TCAffineEditorContainer extends SignalWatcher(
   WithDisposable(ShadowlessElement),
 ) {
   static override styles = css`
@@ -219,3 +219,4 @@ export function ensureTCAffineEditorContainerDefined() {
     customElements.define(TC_AFFINE_EDITOR_CONTAINER_TAG, TCAffineEditorContainer as any);
   }
 }
+

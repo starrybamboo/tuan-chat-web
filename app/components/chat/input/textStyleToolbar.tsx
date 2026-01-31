@@ -1,4 +1,4 @@
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+﻿import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -419,7 +419,7 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
  * 文本样式工具栏
  * 提供快速插入 WebGAL 文本拓展语法的按钮
  */
-export function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: TextStyleToolbarProps) {
+function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: TextStyleToolbarProps) {
   // 保存选区信息的 ref
   const savedSelectionRef = useRef<SavedSelection | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -794,3 +794,4 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
 }
 
 export default TextStyleToolbar;
+

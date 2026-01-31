@@ -1,4 +1,4 @@
-import type { Room } from "api";
+﻿import type { Room } from "api";
 
 export type SidebarLeafNode = {
   nodeId: string;
@@ -317,6 +317,7 @@ export function normalizeSidebarTree(params: {
   };
 }
 
-export function toTreeJson(tree: SidebarTree): string {
+function toTreeJson(tree: SidebarTree): string {
   return JSON.stringify(tree);
 }
+

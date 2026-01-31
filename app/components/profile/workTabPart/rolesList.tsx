@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Link } from "react-router";
 import Pagination from "@/components/common/pagination";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -16,7 +16,7 @@ interface UserRolesListProps {
 /**
  * 在workTab使用的角色列表，卡片本身来源于userRoleCard
  */
-export const RolesList: React.FC<UserRolesListProps> = ({
+const RolesList: React.FC<UserRolesListProps> = ({
   userId,
   roleIds,
   totalRecords,
@@ -116,3 +116,4 @@ export const RolesList: React.FC<UserRolesListProps> = ({
 };
 
 export default RolesList;
+

@@ -1,4 +1,4 @@
-import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
+﻿import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import { ArrowSquareIn } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -97,7 +97,7 @@ interface ChatToolbarProps {
   showRunControls?: boolean;
 }
 
-export function ChatToolbar({
+function ChatToolbar({
   roomId,
   sideDrawerState,
   setSideDrawerState,
@@ -604,3 +604,4 @@ export function ChatToolbar({
 }
 
 export default ChatToolbar;
+

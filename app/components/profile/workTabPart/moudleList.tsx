@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
 
@@ -19,7 +19,7 @@ interface UserModulesListProps {
 /**
  * 在workTab使用的用户模组列表，卡片本身来源于ContentCard，大部分代码直接参考的模组页面
  */
-export const UserModulesList: React.FC<UserModulesListProps> = ({
+const UserModulesList: React.FC<UserModulesListProps> = ({
   userId,
   totalRecords,
   currentPage,
@@ -198,3 +198,4 @@ export const UserModulesList: React.FC<UserModulesListProps> = ({
 };
 
 export default UserModulesList;
+

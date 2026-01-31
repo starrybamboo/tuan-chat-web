@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+﻿import React, { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
@@ -28,7 +28,7 @@ interface PostsCardProps {
 /**
  * 发布的动态，Feed，帖子预览卡片组件（统一版）
  */
-export const PostsCard: React.FC<PostsCardProps> = ({
+const PostsCard: React.FC<PostsCardProps> = ({
   res,
   stats,
   onDislike,
@@ -413,3 +413,4 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 };
 
 export default PostsCard;
+

@@ -1,11 +1,11 @@
-import { tuanchat } from "../../../../../api/instance";
+﻿import { tuanchat } from "../../../../../api/instance";
 
 export type DescriptionEntityType = "space" | "room" | "space_clue" | "user" | "space_user_doc" | "space_doc";
 export type DescriptionDocType = "description" | "readme";
 
 const LEGACY_EXTRA_KEY_PREFIX = "blocksuite_doc";
 
-export function buildLegacyExtraKey(docType: DescriptionDocType) {
+function buildLegacyExtraKey(docType: DescriptionDocType) {
   return `${LEGACY_EXTRA_KEY_PREFIX}:${docType}`;
 }
 
@@ -355,3 +355,4 @@ export async function compactRemoteUpdates(params: {
     mediaType: "application/json",
   });
 }
+

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 /**
  * WebGAL 文本拓展语法渲染器
@@ -217,4 +217,3 @@ export function TextEnhanceRenderer({ content, className }: TextEnhanceRendererP
   );
 }
 
-export default TextEnhanceRenderer;

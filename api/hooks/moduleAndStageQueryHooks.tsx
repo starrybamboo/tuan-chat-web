@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import type {ModulePageRequest} from "../models/ModulePageRequest";
 import type {ModuleUpdateRequest} from "../models/ModuleUpdateRequest";
@@ -10,7 +10,7 @@ import type { StageEntityResponse } from "../deprecated/StageEntityResponse";
 /**
  * 更新剧本
  */
-export function useUpdateModuleMutation() {
+function useUpdateModuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn:  (req: ModuleUpdateRequest) => tuanchat.moduleController.updateModule(req),
@@ -27,7 +27,7 @@ export function useUpdateModuleMutation() {
 /**
  * 添加剧本
  */
-export function useAddModuleMutation() {
+function useAddModuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         // 后端已下线「创建模组」接口；保留占位避免旧页面类型报错。
@@ -45,7 +45,7 @@ export function useAddModuleMutation() {
 /**
  * 分页获取剧本列表
  */
-export function useModuleListQuery(requestBody: ModulePageRequest) {
+function useModuleListQuery(requestBody: ModulePageRequest) {
     return useQuery({
         queryKey: ['moduleList', requestBody],
         queryFn: () => tuanchat.moduleController.page1(requestBody),
@@ -64,7 +64,7 @@ export function useModuleListByUserQuery(requestBody: ModulePageByUserRequest) {
     });
 }
 
-export function useModuleIdQuery(moduleId: number) {
+function useModuleIdQuery(moduleId: number) {
     return useQuery({
         queryKey: ['moduleId', moduleId],
         queryFn: () => tuanchat.moduleController.getById1(moduleId),
@@ -78,7 +78,7 @@ export function useModuleIdQuery(moduleId: number) {
 type DeprecatedStageResult<T> = { success: boolean; data: T };
 
 // 回退文件信息
-export function useStageRollbackMutation() {
+function useStageRollbackMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: unknown) => {
@@ -92,7 +92,7 @@ export function useStageRollbackMutation() {
 }
 
 // 自动查询并显示自己拥有的模组
-export function useStagingQuery() {
+function useStagingQuery() {
     return useQuery({
         queryKey: ['staging'],
         // 后端已下线 staging；返回空数据占位。
@@ -102,7 +102,7 @@ export function useStagingQuery() {
 }
 
 // 提交对应的修改
-export function useCommitMutation() {
+function useCommitMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: unknown) => {
@@ -125,7 +125,7 @@ export function useCommitMutation() {
 // }
 
 // 查询所有的实体
-export function useQueryEntitiesQuery(spaceId: number) {
+function useQueryEntitiesQuery(spaceId: number) {
     return useQuery({
         queryKey: ['queryEntities', spaceId],
         // 后端已下线 stage entities；返回空列表占位，避免旧页面与类型报错。
@@ -135,7 +135,7 @@ export function useQueryEntitiesQuery(spaceId: number) {
 }
 
 // 导入角色实体
-export function useImportRoleMutation() {
+function useImportRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: unknown) => {
@@ -161,7 +161,7 @@ export function useImportRoleMutation() {
 // }
 
 // 添加也可以删除实体
-export function useAddMutation() {
+function useAddMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: { spaceId: number; [key: string]: unknown }) => {
@@ -174,3 +174,4 @@ export function useAddMutation() {
         }
     });
 }
+

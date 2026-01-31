@@ -18,8 +18,6 @@ import { tuanchat } from "../../api/instance";
 import { onWebgalAvatarUpdated } from "./avatarSync";
 import { RealtimeRenderer } from "./realtimeRenderer";
 
-export type { RealtimeTTSConfig };
-
 export type RealtimeRenderStatus = "idle" | "initializing" | "connected" | "disconnected" | "error";
 
 export type InitProgress = {
@@ -90,7 +88,7 @@ type UseRealtimeRenderReturn = {
   updateAndRerenderMessage: (message: ChatMessageResponse, roomId?: number, regenerateTTS?: boolean) => Promise<boolean>;
 };
 
-export function useRealtimeRender({
+function useRealtimeRender({
   spaceId,
   enabled = false,
   roles = [],

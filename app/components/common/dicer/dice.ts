@@ -1,4 +1,4 @@
-// 骰子表达式解析器
+﻿// 骰子表达式解析器
 // TODO: 修复连续d解析问题（因该功能使用较少，暂不修复）
 type TokenType = "number" | "operator" | "paren" | "dice";
 
@@ -554,7 +554,7 @@ export function roll(dice: string, diceSize: number = 100): { result: number; ex
  * @example
  * range("2d6+3") // { min: 5, max: 15 }
  */
-export function range(dice: string, diceSize: number = 100): { min: number; max: number } {
+function range(dice: string, diceSize: number = 100): { min: number; max: number } {
   const parser = new ExpressionParser(diceSize);
   return parser.range(dice);
 }
@@ -598,3 +598,4 @@ export function parseDiceExpression(expr: string, diceSize: number = 100): {
   const possibleRange = parser.range(expr);
   return { result: { value: result.result, expanded: result.expanded }, possibleRange };
 }
+

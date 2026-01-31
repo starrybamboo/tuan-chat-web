@@ -1,4 +1,4 @@
-import type { VirtuosoHandle } from "react-virtuoso";
+﻿import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessageRequest,
   ChatMessageResponse,
@@ -35,7 +35,7 @@ import {
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
 import { tuanchat } from "../../../api/instance";
 
-export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
+const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 
 function Header() {
   return (
@@ -1416,3 +1416,4 @@ function ChatFrame(props: ChatFrameProps) {
 }
 
 export default memo(ChatFrame);
+

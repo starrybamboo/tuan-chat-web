@@ -1,11 +1,8 @@
 # BlockSuite 引入后的样式回归与代码审计要点（仅建议清单）
 
 ## 范围与结论
-- 目标：恢复站点原有 CSS 观感，同时保留 BlockSuite（AFFiNE）编辑器/弹层样式；不处理 `app/components/chat/infra/blocksuite/playground/**` 的工程化治理。
-- 现状：`pnpm typecheck` / `pnpm build` 通过；`pnpm lint` 仍有较多错误（大量来自 playground 命名/规则不匹配）。
 
 ## 已落地修复（CSS 回归）
-- 已将业务侧的 BlockSuite 样式引入从 `playground/style.css` 解耦：`BlocksuiteDescriptionEditor` 改为在初始化时按需加载 `blocksuiteRuntime.css`，避免静态引入 playground 样式。
 - 已为 BlockSuite 容器增加统一 scope：`.tc-blocksuite-scope`（便于后续继续隔离全局副作用）。
 - 已处理 KaTeX 的 `body{counter-reset:...}` 全局副作用：在 blocksuite layer 内覆盖为 `counter-reset:none`，并把 reset 移到 `.tc-blocksuite-scope`。
 - 已移除对 Tailwind `.hidden` 的 `!important` 全局覆写（该覆写会破坏 `hidden lg:flex` 等响应式显示逻辑，导致宽屏菜单/Tab 等元素“永远隐藏”）。
@@ -15,20 +12,16 @@
 
 ## P0：CSS 回归（最优先）
 - 当前 BlockSuite 的样式链路（业务页）来自 `app/components/chat/infra/blocksuite/styles/blocksuiteRuntime.css`（按需加载），其中包含 `@toeverything/theme` 的 `style.css`/`fonts.css` 与 `katex.min.css`。
-- playground 仍由 `app/components/chat/infra/blocksuite/playground/style.css` 引入上述依赖（仅影响 playground 路由）。
 - `@toeverything/theme/dist/style.css` 包含 `:root { --affine-* }` 全局变量；`katex.min.css` 末尾包含 `body{counter-reset:...}` 全局规则（已在 `blocksuiteRuntime.css` 内覆盖/迁移到 scope）。
 - 建议方案（从安全到激进）：
   1) **按需加载**：仅在 BlockSuite 组件挂载时动态注入这些 CSS（不在全站静态 import）。
   2) **作用域化**：把 `:root` 变量与 KaTeX 的 `body{...}` 改为挂到 BlockSuite 容器/portal（例如 `.tc-blocksuite-scope` 与 `.blocksuite-portal`），避免污染站点 `html/body`。
-  3) **拆分资源**：把 “theme/fonts/katex” 从 `playground/style.css` 迁出到独立 `blocksuite-theme.css`，并明确只允许变量/组件级选择器，不允许 `body/html/*` 级别重置。
 
 ## P1：BlockSuite 注入点与潜在风险
-- ✅ 已修复：`app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx` 不再静态引入 `playground/style.css`，改为初始化时按需加载 `app/components/chat/infra/blocksuite/styles/blocksuiteRuntime.css`。
 - `app/root.tsx` 对 `customElements.define` 做了运行时 monkey-patch：建议 **仅 DEV** 启用，生产应避免“静默吞错”掩盖真实重复注册/多版本 Lit 问题。
 - `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.ts` 注册了全局事件监听（`document.addEventListener(..., true)`）：目前用 once-guard 限制重复，但仍建议改为可卸载/更局部的策略。
 
 ## P2：业务代码质量（按模块优先级推进）
-- chat/blocksuite：清理 `console.debug` 与未清理的 `setTimeout`（lint 已提示）；把 playground 相关 lint 规则隔离掉，恢复业务 lint 信号。
 - common：`app/components/common/markdown/markDownViewer.tsx` 使用 `rehype-raw`（已配 `rehype-sanitize`）+ `@ts-expect-error`；建议补充 sanitize schema（按允许的标签/属性）并消除该 TS 忽略。
 - profile：`app/components/profile/cards/GNSSpiderChart.tsx` 存在 `console.error` 与 TODO（建议用统一 toast/日志）。
 
@@ -36,7 +29,6 @@
 
 # 模块扫描（按约定顺序）
 
-## 1) chat（不含 blocksuite playground 治理）
 
 ### 发现的问题（按优先级）
 - P1：计时器较多（`setTimeout/setInterval` 共 22 处，集中在 `chatFrame.tsx`、`roomWindow.tsx`、`chatRoomListPanel.tsx` 等），存在“未清理导致泄漏/重复触发”的风险；与 React 严格模式/重复挂载叠加时更容易出现重复订阅/重复请求。
@@ -54,7 +46,6 @@
 ## 2) blocksuite（含 blocksuite 相关 chat 组件）
 
 ### 发现的问题（按优先级）
-- ✅ 已修复：业务页不再静态引入 `app/components/chat/infra/blocksuite/playground/style.css`，改为按需加载 `app/components/chat/infra/blocksuite/styles/blocksuiteRuntime.css`（仍需继续关注 `:root/body` 级别副作用的长期隔离策略）。
 - P1：`MutationObserver` 用于主题/portal 同步（`blocksuiteDescriptionEditor.tsx` 2 处）——逻辑合理但需要严格的挂载/卸载与触发频率控制，否则会造成性能抖动与隐藏的 event-loop 压力。
 - P1：全局事件监听的注入策略需要更可控：`createEmbeddedAffineEditor.ts` 对 `document` 添加捕获监听（用于 slash menu selection guard），目前通过 once-guard 限制重复，但“不可卸载 + 全局捕获”在复杂页面上仍有潜在副作用。
 - P2：仍存在 TODO（如 link preview endpoint 的 no-op override），需要补齐真正的后端能力或明确产品策略（禁用/自建/白名单）。
@@ -175,11 +166,9 @@
 ## 11) app/routes
 
 ### 发现的问题（按优先级）
-- P2：routes 内 `console.*` 较少，属于好现象；目前主要出现在 blocksuite playground/文档测试相关路由（`blocksuitePlayground.tsx`、`docTest.tsx`）。
 - P2：未发现明显 `dangerouslySetInnerHTML`/`rehype-raw` 使用点（当前扫描结果为 0）。
 
 ### 修复建议
-- 测试/演示路由隔离：对 playground/doc-test 路由添加显式“仅开发环境可用”保护（构建时剔除或权限控制），避免生产暴露。
 
 ## 12) electron（`/electron`）
 

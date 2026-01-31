@@ -1,18 +1,16 @@
 // 嵌入式 Blocksuite 编辑器创建与扩展配置。
-import type { LinkedMenuGroup } from "@blocksuite/affine-widget-linked-doc";
+import type { LinkedMenuGroup } from "@blocksuite/affine/widgets/linked-doc";
 import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 
-import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine-block-embed-doc";
+import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine/blocks/embed-doc";
 import { LinkedDocIcon, LinkedEdgelessIcon } from "@blocksuite/affine-components/icons";
-import { DocTitleViewExtension } from "@blocksuite/affine-fragment-doc-title/view";
+import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import { REFERENCE_NODE } from "@blocksuite/affine-shared/consts";
 import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier, TelemetryProvider } from "@blocksuite/affine-shared/services";
 import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
-import {
-  LinkedWidgetConfigExtension,
-} from "@blocksuite/affine-widget-linked-doc";
-import { LinkedDocViewExtension } from "@blocksuite/affine-widget-linked-doc/view";
+import { LinkedWidgetConfigExtension } from "@blocksuite/affine/widgets/linked-doc";
+import { LinkedDocViewExtension } from "@blocksuite/affine/widgets/linked-doc/view";
 import { RefNodeSlotsProvider } from "@blocksuite/affine/inlines/reference";
 import {
   DocModeProvider as DocModeProviderToken,

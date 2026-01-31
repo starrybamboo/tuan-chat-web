@@ -1,4 +1,4 @@
-import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
+﻿import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 
 // import { useAddEntityWithoutTypeMutation, useAddModuleMutation, useStagingQuery } from "api/hooks/moduleQueryHooks";
 
@@ -26,7 +26,7 @@ export function getEntityListByType(
 }
 
 // 获取所有类型的实体数据
-export function getAllEntityLists(moduleInfo: any) {
+function getAllEntityLists(moduleInfo: any) {
   return {
     itemList: getEntityListByType(moduleInfo, "item"),
     roleList: getEntityListByType(moduleInfo, "role"),
@@ -50,3 +50,4 @@ export function mapEntitiesByVersionId(
 // clone todo
 // 1. 在工作区创建模组
 // 2. 导入实体
+

@@ -1,5 +1,5 @@
-// 事件处理
-export const EventTypes = {
+﻿// 事件处理
+const EventTypes = {
   0: "ERROR",
   2: "", // 发布了Feed
   3: "COMMENT_AND_FOLLOW", // 关注事件
@@ -19,3 +19,4 @@ type EventTypeId = keyof typeof EventTypes;
 export function parseEventType(type: number): string {
   return EventTypes[type as EventTypeId] ?? "ERROR";
 }
+

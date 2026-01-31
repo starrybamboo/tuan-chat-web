@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import UserModulesList from "@/components/profile/workTabPart/moudleList";
 import PostsList from "@/components/profile/workTabPart/postsList";
 import RolesList from "@/components/profile/workTabPart/rolesList";
@@ -10,7 +10,7 @@ interface WorksTabProp {
   userId: number;
 }
 // 在 WorksTab 组件中添加帖子相关内容
-export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
+const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
   const [modulePage, setModulePage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>("posts");
@@ -149,3 +149,4 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
 };
 
 export default WorksTab;
+

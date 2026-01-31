@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import type { Collection } from "../models/Collection";
 import type { CollectionAddRequest } from "../models/CollectionAddRequest";
@@ -21,7 +21,7 @@ import type {CollectionListUpdateRequest} from "../models/CollectionListUpdateRe
  * 获取收藏信息
  * @param id 收藏ID
  */
-export function useGetCollectionQuery(id: number) {
+function useGetCollectionQuery(id: number) {
     return useQuery({
         queryKey: ['getCollection', id],
         queryFn: () => tuanchat.collectionController.getCollection(id),
@@ -51,7 +51,7 @@ export function useGetCollectionCountQuery(resourceId: number, resourceType: str
 /**
  * 更新收藏
  */
-export function useUpdateCollectionMutation() {
+function useUpdateCollectionMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: Collection) => tuanchat.collectionController.updateCollection(req),
@@ -97,7 +97,7 @@ export function useDeleteCollectionMutation() {
 /**
  * 获取当前用户收藏
  */
-export function useGetUserCollectionsQuery(requestBody: CollectionPageRequest) {
+function useGetUserCollectionsQuery(requestBody: CollectionPageRequest) {
     return useQuery({
         queryKey: ['getUserCollections', requestBody],
         queryFn: () => tuanchat.collectionController.getUserCollections(requestBody),
@@ -108,7 +108,7 @@ export function useGetUserCollectionsQuery(requestBody: CollectionPageRequest) {
 /**
  * 分页查询收藏
  */
-export function useGetCollectionPageQuery(requestBody: PageBaseRequest) {
+function useGetCollectionPageQuery(requestBody: PageBaseRequest) {
     return useQuery({
         queryKey: ['getCollectionPage', requestBody],
         queryFn: () => tuanchat.collectionController.getCollectionPage(requestBody),
@@ -339,7 +339,7 @@ export function useGetListCollectionsQuery(requestBody: CollectionListItemPageRe
 /**
  * 批量添加收藏到列表
  */
-export function useBatchAddToListMutation() {
+function useBatchAddToListMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: CollectionListItemBatchAddRequest) => tuanchat.collectionListItemController.batchAddToList(req),
@@ -564,3 +564,4 @@ export function useRemoveFromListMutation() {
 //         staleTime: 300000 // 5分钟缓存
 //     });
 // }
+

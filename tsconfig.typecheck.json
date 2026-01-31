@@ -55,7 +55,6 @@
     "node_modules",
     "dist",
     "build",
-    "doc-test2",
-    "app/components/chat/infra/blocksuite/playground/**"
+    "doc-test2"
   ]
 }

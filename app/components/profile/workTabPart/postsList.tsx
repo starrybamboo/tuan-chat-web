@@ -1,4 +1,4 @@
-import type { PostListWithStatsResponse } from "api";
+﻿import type { PostListWithStatsResponse } from "api";
 import type { PagePostRequest } from "api/models/PagePostRequest";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { useEffect, useMemo } from "react";
@@ -18,7 +18,7 @@ interface UserPostsListProps {
 /**
  * 用户帖子列表组件 - 使用卡片布局
  */
-export const PostsList: React.FC<UserPostsListProps> = ({
+const PostsList: React.FC<UserPostsListProps> = ({
   userId,
   onPostClick,
 }) => {
@@ -150,3 +150,4 @@ export const PostsList: React.FC<UserPostsListProps> = ({
 };
 
 export default PostsList;
+

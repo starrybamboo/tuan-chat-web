@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // WebGAL Terre API Types
 // 完整匹配 WebGAL Terre 后端的 API 类型定义
 //
@@ -41,7 +41,7 @@ export type CreateNewFolderDto = {
   name: string;
 };
 
-export type UploadFilesDto = {
+type UploadFilesDto = {
   /** Target directory for the uploaded files */
   targetDirectory: string;
 };
@@ -200,7 +200,7 @@ export type IconsDto = {
 };
 
 // ===== Directory Info Types =====
-export type DirInfo = {
+type DirInfo = {
   name: string;
   isDir: boolean;
   extName?: string;
@@ -829,3 +829,4 @@ export class Api {
     });
   }
 }
+

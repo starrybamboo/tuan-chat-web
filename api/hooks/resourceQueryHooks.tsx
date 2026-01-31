@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ResourceUpdateRequest } from "../models/ResourceUpdateRequest";
 import type { ResourcePageRequest } from "../models/ResourcePageRequest";
 import type { ResourceUploadRequest } from "../models/ResourceUploadRequest";
@@ -194,7 +194,7 @@ export function useBatchAddResourcesToCollectionMutation() {
 /**
  * 获取资源详情
  */
-export function useGetResourceDetailQuery(resourceId: number) {
+function useGetResourceDetailQuery(resourceId: number) {
     return useQuery({
         queryKey: ["resourceDetail", resourceId],
         queryFn: () => tuanchat.resourceController.getResourceDetail(resourceId),
@@ -365,3 +365,4 @@ export function useCreateResourceCollectionMutation() {
         },
     });
 }
+

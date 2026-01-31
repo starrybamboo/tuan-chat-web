@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+﻿import React, { useEffect, useRef } from "react";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import {
   useGetMomentFeedStatsQuery,
@@ -10,7 +10,7 @@ interface ActivitiesTabProps {
   userId: number;
 }
 
-export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
+const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
   // 获取用户信息
   const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId);
   // 拉取总体统计（总点赞/总评论/总动态）
@@ -262,3 +262,4 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
 };
 
 export default ActivitiesTab;
+

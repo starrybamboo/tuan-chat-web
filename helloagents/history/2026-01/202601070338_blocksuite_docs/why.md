@@ -2,7 +2,7 @@
 
 ## 需求背景
 
-当前项目在 `package.json` 中锁定使用 `@blocksuite/*@0.22.4`（AFFiNE/Blocksuite 生态），并在 `app/components/chat/infra/blocksuite/` 下存在一套集成与 playground 代码。
+当前项目在 `package.json` 中锁定使用 `@blocksuite/*@0.22.4`（AFFiNE/Blocksuite 生态），并在 `app/components/chat/infra/blocksuite/` 下存在一套集成代码。
 
 由于 Blocksuite 包数量多、入口以“子路径导出（subpath exports）”为主，且部分包存在 `src`/`dist` 并存、构建期需转译等情况，开发者在排查问题或新增能力时容易出现：
 - 不清楚应该从哪个包/子路径导入

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 interface VaulSideDrawerProps {
   isOpen: boolean;
@@ -128,4 +128,3 @@ export function VaulSideDrawer({
   );
 }
 
-export default VaulSideDrawer;

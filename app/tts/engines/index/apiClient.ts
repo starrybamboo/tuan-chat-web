@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @author: @starrybamboo
  * TTS API 接口类型定义和客户端,
  * 参考了他们官方提供的GUI进行封装。采用的是index-tts2的API规范。
@@ -49,7 +49,7 @@ export type InferRequest = {
   return_audio_base64?: boolean;
 };
 
-export type InferResponse = {
+type InferResponse = {
   /** 响应代码 */
   code: number;
   /** 响应消息 */
@@ -67,14 +67,14 @@ export type InferResponse = {
   };
 };
 
-export type SegmentRequest = {
+type SegmentRequest = {
   /** 需要分句的文本 */
   text: string;
   /** 分句最大 token 数 */
   max_text_tokens_per_segment?: number;
 };
 
-export type SegmentResponse = {
+type SegmentResponse = {
   /** 响应代码 */
   code: number;
   /** 响应消息 */
@@ -93,7 +93,7 @@ export type SegmentResponse = {
   };
 };
 
-export type HealthResponse = {
+type HealthResponse = {
   /** 响应代码 */
   code: number;
   /** 响应消息 */
@@ -105,7 +105,7 @@ export type HealthResponse = {
   };
 };
 
-export type DebugResponse = {
+type DebugResponse = {
   /** 响应代码 */
   code: number;
   /** 响应消息 */
@@ -163,7 +163,7 @@ export type DebugResponse = {
   };
 };
 
-export type ModelInfoResponse = {
+type ModelInfoResponse = {
   /** 响应代码 */
   code: number;
   /** 响应消息 */
@@ -179,7 +179,7 @@ export type ModelInfoResponse = {
   };
 };
 
-export type ExampleItem = {
+type ExampleItem = {
   /** 示例文本 */
   text?: string;
   /** 音色参考音频路径 */
@@ -194,7 +194,7 @@ export type ExampleItem = {
   [key: string]: any;
 };
 
-export type ExamplesResponse = {
+type ExamplesResponse = {
   /** 响应代码 */
   code: number;
   /** 响应消息 */
@@ -206,7 +206,7 @@ export type ExamplesResponse = {
   };
 };
 
-export type EmoMode = {
+type EmoMode = {
   /** 情感模式 ID */
   id: number;
   /** 中文标签 */
@@ -215,7 +215,7 @@ export type EmoMode = {
   en: string;
 };
 
-export type EmotionLabel = {
+type EmotionLabel = {
   /** 情感 ID */
   id: number;
   /** 中文标签 */
@@ -224,7 +224,7 @@ export type EmotionLabel = {
   en: string;
 };
 
-export type ConfigResponse = {
+type ConfigResponse = {
   /** 响应代码 */
   code: number;
   /** 响应消息 */
@@ -294,9 +294,9 @@ export type ConfigResponse = {
   };
 };
 
-export type QueryParamsType = Record<string | number, any>;
+type QueryParamsType = Record<string | number, any>;
 
-export type FullRequestParams = {
+type FullRequestParams = {
   path: string;
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   query?: QueryParamsType;
@@ -305,12 +305,12 @@ export type FullRequestParams = {
   secure?: boolean;
 };
 
-export type ApiConfig = {
+type ApiConfig = {
   baseURL?: string;
   securityWorker?: () => Promise<HeadersInit>;
 };
 
-export class HttpClient {
+class HttpClient {
   private baseURL: string;
   private securityWorker?: () => Promise<HeadersInit>;
 
@@ -377,7 +377,7 @@ type RequestParams = {
  * IndexTTS2 API 客户端
  * 提供文本转语音相关的 API 接口
  */
-export class TTSApi {
+class TTSApi {
   private httpClient: HttpClient;
 
   constructor(protected http: HttpClient = new HttpClient()) {
@@ -482,3 +482,4 @@ export function createTTSApi(baseURL: string = "http://localhost:9000") {
 // 创建 TTS API 实例,从环境变量获取 URL
 const TTS_API_URL = import.meta.env.VITE_TTS_URL || "http://localhost:9000";
 export const ttsApi = createTTSApi(TTS_API_URL);
+

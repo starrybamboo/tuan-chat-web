@@ -1,4 +1,4 @@
-/* eslint-disable react-dom/no-dangerously-set-innerhtml */
+﻿/* eslint-disable react-dom/no-dangerously-set-innerhtml */
 import { useMemo, useRef } from "react";
 import { renderInlineHtmlUsingWysiwyg } from "./htmlTagWysiwyg"; // 新增：复用只读 HTML 标签安全渲染
 import { markdownToHtmlWithEntities, rawMarkdownToHtml } from "./markdownToHtml";
@@ -35,7 +35,7 @@ interface MentionPreviewProps {
 const WRAP_WIDTH_VW = 17.9;
 const WRAP_HEIGHT_VW = 17.9; // 同宽度形成正方/接近正方区域
 
-export function MentionPreview(props: MentionPreviewProps) {
+function MentionPreview(props: MentionPreviewProps) {
   const { category, name, description, tips, left, top, onMouseEnter, onMouseLeave, entitiesMap } = props;
   const idRef = useRef<number>(++__mpCounter);
   const id = idRef.current;
@@ -312,3 +312,4 @@ export function MentionPreview(props: MentionPreviewProps) {
 }
 
 export default MentionPreview;
+

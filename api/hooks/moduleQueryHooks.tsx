@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
 import type { ItemAddRequest } from "../models/ItemAddRequest";
 import type { ItemUpdateRequest } from "../models/ItemUpdateRequest";
@@ -12,7 +12,7 @@ import type { StageEntityResponse } from "../deprecated/StageEntityResponse";
 /**
  * 更新物品
  */
-export function useUpdateItemMutation() {
+function useUpdateItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: ItemUpdateRequest) => tuanchat.itemController.updateItem(req),
@@ -26,7 +26,7 @@ export function useUpdateItemMutation() {
 /**
  * 添加物品
  */
-export function useAddItemMutation() {
+function useAddItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem(req),
@@ -40,7 +40,7 @@ export function useAddItemMutation() {
 /**
  * 删除物品
  */
-export function useDeleteItemMutation() {
+function useDeleteItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: number) => tuanchat.itemController.deleteItem(id),
@@ -54,7 +54,7 @@ export function useDeleteItemMutation() {
 /**
  * 获取物品列表
  */
-export function useItemsQuery(requestBody: ItemPageRequest) {
+function useItemsQuery(requestBody: ItemPageRequest) {
     return useQuery({
         queryKey: ['items', requestBody],
         queryFn: () => tuanchat.itemController.page(requestBody),
@@ -65,7 +65,7 @@ export function useItemsQuery(requestBody: ItemPageRequest) {
 /**
  * 获取物品详情
  */
-export function useItemDetailQuery(id: number) {
+function useItemDetailQuery(id: number) {
     return useQuery({
         queryKey: ['itemDetail', id],
         queryFn: () => tuanchat.itemController.getById(id),
@@ -77,7 +77,7 @@ export function useItemDetailQuery(id: number) {
 /**
  * 批量获取物品
  */
-export function useItemsBatchQuery(requestBody: ItemsGetRequest) {
+function useItemsBatchQuery(requestBody: ItemsGetRequest) {
     return useQuery({
         queryKey: ['itemsBatch', requestBody],
         queryFn: () => tuanchat.itemController.getByIds(requestBody),
@@ -90,7 +90,7 @@ export function useItemsBatchQuery(requestBody: ItemsGetRequest) {
 /**
  * 更新模组
  */
-export function useUpdateModuleMutation() {
+function useUpdateModuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: ModuleUpdateRequest) => tuanchat.moduleController.updateModule(req),
@@ -173,7 +173,7 @@ export function useModuleInfoQuery(moduleId: number, branchId?: number) {
 /**
  * 根据提交ID获取模组信息
  */
-export function useModuleInfoByCommitIdQuery(commitId: number) {
+function useModuleInfoByCommitIdQuery(commitId: number) {
     return useQuery<DeprecatedApiResult<DeprecatedModuleInfoResponse>>({
         queryKey: ['moduleInfoByCommitId', commitId],
         // 后端已下线 Commit/ModuleInfo；返回占位数据，避免旧页面报错。
@@ -192,7 +192,7 @@ export function useModuleInfoByCommitIdQuery(commitId: number) {
 /**
  * 获取单个模组的基本信息（通过列表查询筛选）
  */
-export function useModuleDetailQuery(moduleId: number) {
+function useModuleDetailQuery(moduleId: number) {
     const { data: listData, ...rest } = useModuleListQuery({
         pageNo: 1,
         pageSize: 100,
@@ -222,7 +222,7 @@ type DeprecatedStageEntityUpdateRequest = { id: number; [key: string]: unknown }
 type DeprecatedStageDeleteEntityRequest = { id: number; spaceId: number; [key: string]: unknown };
 
 // 回退文件信息
-export function useStageRollbackMutation() {
+function useStageRollbackMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: unknown) => {
@@ -236,7 +236,7 @@ export function useStageRollbackMutation() {
 }
 
 // 自动查询并显示自己拥有的模组
-export function useStagingQuery() {
+function useStagingQuery() {
     return useQuery({
         queryKey: ['staging'],
         // 后端已下线 staging；返回空数据占位，避免旧页面报错。
@@ -246,7 +246,7 @@ export function useStagingQuery() {
 }
 
 // 提交对应的修改
-export function useCommitMutation() {
+function useCommitMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: unknown) => {
@@ -260,7 +260,7 @@ export function useCommitMutation() {
 }
 
 // 查询所有的实体
-export function useQueryEntitiesQuery(spaceId: number) {
+function useQueryEntitiesQuery(spaceId: number) {
     return useQuery<DeprecatedStageResult<StageEntityResponse[]>>({
         queryKey: ['queryEntities', spaceId],
         // 后端已下线 stage entities；返回空列表占位，避免旧页面与类型报错。
@@ -273,7 +273,7 @@ export function useQueryEntitiesQuery(spaceId: number) {
 /**
  * @deprecated
  */
-export function useAddMutation() {
+function useAddMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: DeprecatedStageSpaceIdRequest) => {
@@ -287,7 +287,7 @@ export function useAddMutation() {
 }
 
 // 根据entityType添加实体
-export function useAddEntityMutation(entityType: 1 | 2 | 3 | 4 | 5) {
+function useAddEntityMutation(entityType: 1 | 2 | 3 | 4 | 5) {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: DeprecatedStageSpaceIdRequest) => {
@@ -301,7 +301,7 @@ export function useAddEntityMutation(entityType: 1 | 2 | 3 | 4 | 5) {
 }
 
 // 直接传入完整EntityAddRequest对象（包括entityType）
-export function useAddEntityWithoutTypeMutation() {
+function useAddEntityWithoutTypeMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: unknown) => {
@@ -330,7 +330,7 @@ export function useAddEntityWithoutTypeMutation() {
 //     });
 // }
 
-export function useUpdateEntityMutation(spaceId: number, roomId?: number) {
+function useUpdateEntityMutation(spaceId: number, roomId?: number) {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: DeprecatedStageEntityUpdateRequest) => {
@@ -351,7 +351,7 @@ export function useUpdateEntityMutation(spaceId: number, roomId?: number) {
 }
 
 // 删除实体
-export function useDeleteEntityMutation() {
+function useDeleteEntityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (_req: DeprecatedStageDeleteEntityRequest) => {
@@ -365,7 +365,7 @@ export function useDeleteEntityMutation() {
 }
 
 // 增加角色的hook
-export function useAddRoleMutation() {
+function useAddRoleMutation() {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -380,7 +380,7 @@ export function useAddRoleMutation() {
 }
 
 // 模组角色上传头像
-export function useUploadModuleRoleAvatarMutation() {
+function useUploadModuleRoleAvatarMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async ({ avatarUrl, spriteUrl, id }: { avatarUrl: string; spriteUrl: string; id: number }) => {
@@ -401,7 +401,7 @@ export function useUploadModuleRoleAvatarMutation() {
     });
 }
 
-export function useIdToSearchQuery(id: number) {
+function useIdToSearchQuery(id: number) {
     return useQuery<{ data?: StageEntityResponse } | undefined>({
         queryKey: ['idToSearch'],
         queryFn: async () => {
@@ -411,7 +411,7 @@ export function useIdToSearchQuery(id: number) {
     });
 }
 
-export function useVersionIdSearchQuery(spaceId:number, versionId: number) {
+function useVersionIdSearchQuery(spaceId:number, versionId: number) {
     return useQuery<{ data?: StageEntityResponse } | undefined>({
         queryKey: ['versionIdToSearch'],
         queryFn: async () => {
@@ -423,7 +423,7 @@ export function useVersionIdSearchQuery(spaceId:number, versionId: number) {
     });
 }
 
-export function useModuleItemDetailQuery(itemId: number) {
+function useModuleItemDetailQuery(itemId: number) {
     return useQuery<StageEntityResponse | undefined>({
         queryKey: ['item-detail', itemId],
         queryFn: async () => {
@@ -434,7 +434,7 @@ export function useModuleItemDetailQuery(itemId: number) {
     });
 }
 
-export function useLocationDetailQuery(locationId: number) {
+function useLocationDetailQuery(locationId: number) {
     return useQuery<StageEntityResponse | undefined>({
         queryKey: ['location-detail', locationId],
         queryFn: async () => {
@@ -444,3 +444,4 @@ export function useLocationDetailQuery(locationId: number) {
         enabled: locationId > 0,
     });
 }
+
