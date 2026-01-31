@@ -2,13 +2,13 @@ import { create } from "zustand";
 
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 
-export type EntityHeaderOverride = {
+type EntityHeaderOverride = {
   title: string;
   imageUrl: string;
   updatedAt: number;
 };
 
-export type EntityHeaderOverrideKey = `${DescriptionEntityType}:${number}`;
+type EntityHeaderOverrideKey = `${DescriptionEntityType}:${number}`;
 
 type EntityHeaderOverrideState = {
   headers: Record<string, EntityHeaderOverride>;
@@ -127,8 +127,3 @@ export const useEntityHeaderOverrideStore = create<EntityHeaderOverrideState>(se
     });
   },
 }));
-
-export function getEntityHeaderOverride(entityType: DescriptionEntityType, entityId: number): EntityHeaderOverride | undefined {
-  const key = buildKey(entityType, entityId);
-  return useEntityHeaderOverrideStore.getState().headers[key];
-}

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type DocHeaderOverride = {
+type DocHeaderOverride = {
   title: string;
   imageUrl: string;
   updatedAt: number;
@@ -124,10 +124,3 @@ export const useDocHeaderOverrideStore = create<DocHeaderOverrideState>(set => (
     });
   },
 }));
-
-export function getDocHeaderOverride(docId: string): DocHeaderOverride | undefined {
-  const key = normalizeDocId(docId);
-  if (!key)
-    return undefined;
-  return useDocHeaderOverrideStore.getState().headers[key];
-}

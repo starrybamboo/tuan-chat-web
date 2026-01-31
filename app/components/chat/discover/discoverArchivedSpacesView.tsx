@@ -6,9 +6,9 @@ import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
-export type DiscoverArchivedSpacesMode = "square" | "my";
+type DiscoverArchivedSpacesMode = "square" | "my";
 
-export interface DiscoverArchivedSpacesViewProps {
+interface DiscoverArchivedSpacesViewProps {
   mode: DiscoverArchivedSpacesMode;
 }
 

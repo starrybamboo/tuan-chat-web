@@ -19,7 +19,7 @@ import { AddIcon, ChevronDown } from "@/icons";
 import { normalizeSidebarTree } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
-export interface ChatRoomListPanelProps {
+interface ChatRoomListPanelProps {
   isPrivateChatMode: boolean;
 
   currentUserId?: number | null;

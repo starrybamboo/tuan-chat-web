@@ -12,7 +12,7 @@ import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { Detective, WebgalIcon, XMarkICon } from "@/icons";
 
-export interface SubRoomWindowProps {
+interface SubRoomWindowProps {
   onClueSend: (clue: ClueMessage) => void;
 }
 

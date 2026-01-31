@@ -1,11 +1,5 @@
 export type SpaceDocId = string;
 
-export type SpaceDocKind
-  = | "space_description"
-    | "room_description"
-    | "clue_description"
-    | "independent";
-
 export type SpaceDocDescriptor
   = | { kind: "space_description"; spaceId: number }
     | { kind: "room_description"; roomId: number }

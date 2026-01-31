@@ -6,7 +6,7 @@ import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQ
 
 export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 
-export interface SpaceHeaderBarProps {
+interface SpaceHeaderBarProps {
   spaceName?: string;
   isArchived?: boolean;
   isSpaceOwner: boolean;
