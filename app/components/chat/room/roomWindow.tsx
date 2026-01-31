@@ -516,7 +516,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     content: string;
     speakerName?: string;
     figurePosition?: string;
-  }>, onProgress: (progress: number) => void) => {
+  }>, onProgress?: (sent: number, total: number) => void) => {
     await handleImportChatText(items.map(i => ({
       roleId: i.roleId,
       content: i.content,
