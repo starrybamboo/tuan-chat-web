@@ -3,7 +3,6 @@ import type { ChatMessageRequest, ChatMessageResponse, SpaceMember } from "../..
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 // hooks (local)
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -22,17 +21,16 @@ import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomInputController from "@/components/chat/room/useRoomInputController";
 import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions";
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
+import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
-  useAddRoomRoleMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
@@ -97,9 +95,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     userId,
     isSpaceOwner: spaceContext.isSpaceOwner,
   });
-
-  const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
-  const [isImportChatTextOpen, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
 
   // RealtimeRender controls
   const {
@@ -273,6 +268,20 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     sendMessageWithInsert,
     ensureRuntimeAvatarIdForRole,
   });
+  const {
+    isImportChatTextOpen,
+    setIsImportChatTextOpen,
+    isRoleHandleOpen,
+    setIsRoleAddWindowOpen,
+    isRenderWindowOpen,
+    setIsRenderWindowOpen,
+    handleAddRole,
+    handleImportChatItems,
+    openRoleAddWindow,
+  } = useRoomOverlaysController({
+    roomId,
+    handleImportChatText,
+  });
 
   const {
     handlePasteFiles,
@@ -291,15 +300,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     setInputText,
     setLLMMessage,
   });
-  const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
-  const addRoleMutation = useAddRoomRoleMutation();
-
-  const handleAddRole = async (roleId: number) => {
-    addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
-      onSettled: () => { toast("添加角色成功"); },
-    });
-  };
-
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
@@ -374,20 +374,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     inputDisabled: notMember && noRole,
   };
 
-  const handleImportChatItems = useCallback(async (items: Array<{
-    roleId: number;
-    content: string;
-    speakerName?: string;
-    figurePosition?: string;
-  }>, onProgress?: (sent: number, total: number) => void) => {
-    await handleImportChatText(items.map(i => ({
-      roleId: i.roleId,
-      content: i.content,
-      speakerName: i.speakerName,
-      figurePosition: i.figurePosition,
-    })), onProgress);
-  }, [handleImportChatText]);
-
   return (
     <RoomContext value={roomContext}>
       <RoomSideDrawerGuards spaceId={spaceId} />
@@ -419,7 +405,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         isKP={Boolean(spaceContext.isSpaceOwner)}
         availableRoles={roomRolesThatUserOwn}
         onImportChatText={handleImportChatItems}
-        onOpenRoleAddWindow={() => setIsRoleAddWindowOpen(true)}
+        onOpenRoleAddWindow={openRoleAddWindow}
         isRoleHandleOpen={isRoleHandleOpen}
         setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
         handleAddRole={handleAddRole}
