@@ -1,10 +1,9 @@
-// 房间聊天主窗口：负责消息流渲染、导入发送与面板协调。
+// 鎴块棿鑱婂ぉ涓荤獥鍙ｏ細璐熻矗娑堟伅娴佹覆鏌撱€佸鍏ュ彂閫佷笌闈㈡澘鍗忚皟銆?
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, SpaceMember, UserRole } from "../../../../api";
 
 import type { ClueMessage } from "../../../../api/models/ClueMessage";
 import type { AtMentionHandle } from "@/components/atMentionController";
-import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
@@ -22,12 +21,12 @@ import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
+import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
-import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
@@ -53,11 +52,11 @@ import {
 } from "../../../../api/hooks/chatQueryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
-// const PAGE_SIZE = 50; // 每页消息数量
+// const PAGE_SIZE = 50; // 姣忛〉娑堟伅鏁伴噺
 function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
 
-  // BGM：切换/卸载房间时视为“打断”，停止播放但不影响用户是否已主动关闭（dismiss）
+  // BGM锛氬垏鎹?鍗歌浇鎴块棿鏃惰涓衡€滄墦鏂€濓紝鍋滄鎾斁浣嗕笉褰卞搷鐢ㄦ埛鏄惁宸蹭富鍔ㄥ叧闂紙dismiss锛?
   useEffect(() => {
     useBgmStore.getState().setActiveRoomId(roomId);
     return () => {
@@ -73,46 +72,46 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
   const send = useCallback((message: ChatMessageRequest) => {
-    webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
+    webSocketUtils.send({ type: 3, data: message }); // 鍙戦€佺兢鑱婃秷鎭?
   }, [webSocketUtils]);
 
-  // 用于插入消息功能的 mutations
+  // 鐢ㄤ簬鎻掑叆娑堟伅鍔熻兘鐨?mutations
   const sendMessageMutation = useSendMessageMutation(roomId);
   const updateMessageMutation = useUpdateMessageMutation();
-  const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 设置空间 extra 字段 (key/value)
+  const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 璁剧疆绌洪棿 extra 瀛楁 (key/value)
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
 
-  // 输入区编辑态：放入 zustand store，避免 RoomWindow 每次敲字重渲染
+  // 杈撳叆鍖虹紪杈戞€侊細鏀惧叆 zustand store锛岄伩鍏?RoomWindow 姣忔鏁插瓧閲嶆覆鏌?
   const resetChatInputUi = useChatInputUiStore(state => state.reset);
-  // 附件/发送选项：放入 zustand store，避免 RoomWindow 因附件变化整体重渲染
+  // 闄勪欢/鍙戦€侀€夐」锛氭斁鍏?zustand store锛岄伩鍏?RoomWindow 鍥犻檮浠跺彉鍖栨暣浣撻噸娓叉煋
   const resetChatComposer = useChatComposerStore(state => state.reset);
 
   const delayTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // *** ChatInputArea 的回调处理器 ***
+  // *** ChatInputArea 鐨勫洖璋冨鐞嗗櫒 ***
   const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
     useChatInputUiStore.getState().setSnapshot({
       plainText,
       textWithoutMentions: inputTextWithoutMentions,
       mentionedRoles: roles,
     });
-    // 检查 @ 提及触发
+    // 妫€鏌?@ 鎻愬強瑙﹀彂
     atMentionRef.current?.onInput();
-  }, []); // 空依赖，因为 setter 函数是稳定的
+  }, []); // 绌轰緷璧栵紝鍥犱负 setter 鍑芥暟鏄ǔ瀹氱殑
 
   /**
-   * *** setInputText 现在调用 ref API ***
-   * 如果想从外部控制输入框的内容，使用这个函数。
-   * @param text 想要重置的inputText (注意：这里现在只接受纯文本，如果需要 HTML 请修改)
+   * *** setInputText 鐜板湪璋冪敤 ref API ***
+   * 濡傛灉鎯充粠澶栭儴鎺у埗杈撳叆妗嗙殑鍐呭锛屼娇鐢ㄨ繖涓嚱鏁般€?
+   * @param text 鎯宠閲嶇疆鐨刬nputText (娉ㄦ剰锛氳繖閲岀幇鍦ㄥ彧鎺ュ彈绾枃鏈紝濡傛灉闇€瑕?HTML 璇蜂慨鏀?
    */
   const setInputText = (text: string) => {
-    chatInputRef.current?.setContent(text); // 命令子组件更新其 DOM
-    chatInputRef.current?.triggerSync(); // 同步到 store
+    chatInputRef.current?.setContent(text); // 鍛戒护瀛愮粍浠舵洿鏂板叾 DOM
+    chatInputRef.current?.triggerSync(); // 鍚屾鍒?store
   };
 
-  // 切换房间时清空输入区编辑态，避免跨房间串输入
+  // 鍒囨崲鎴块棿鏃舵竻绌鸿緭鍏ュ尯缂栬緫鎬侊紝閬垮厤璺ㄦ埧闂翠覆杈撳叆
   useEffect(() => {
     resetChatInputUi();
     resetChatComposer();
@@ -124,12 +123,12 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
   const uploadUtils = new UploadUtils();
 
-  // 切换房间时清空引用消息 / 插入位置 / Thread 弹窗开关
+  // 鍒囨崲鎴块棿鏃舵竻绌哄紩鐢ㄦ秷鎭?/ 鎻掑叆浣嶇疆 / Thread 寮圭獥寮€鍏?
   useLayoutEffect(() => {
     useRoomUiStore.getState().reset();
   }, [roomId]);
 
-  // 获取用户的所有角色
+  // 鑾峰彇鐢ㄦ埛鐨勬墍鏈夎鑹?
   const {
     roomAllRoles,
     roomRolesThatUserOwn,
@@ -147,19 +146,16 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
   const [isImportChatTextOpen, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
 
-  // RealtimeRender 编排：用独立组件隔离 useEffect/订阅，避免 RoomWindow 被 status/initProgress/previewUrl 等高频变化拖着重渲染
-  const realtimeRenderApiRef = useRef<RealtimeRenderOrchestratorApi | null>(null);
-  const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
-
-  const handleRealtimeRenderApiChange = useCallback((api: RealtimeRenderOrchestratorApi) => {
-    realtimeRenderApiRef.current = api;
-  }, []);
-
-  const handleToggleRealtimeRender = useCallback(async () => {
-    await realtimeRenderApiRef.current?.toggleRealtimeRender();
-  }, []);
-
-  // 获取当前群聊的成员列表
+  // RealtimeRender controls
+  const {
+    isRealtimeRenderActive,
+    handleRealtimeRenderApiChange,
+    handleToggleRealtimeRender,
+    jumpToMessageInWebGAL,
+    updateAndRerenderMessageInWebGAL,
+    rerenderHistoryInWebGAL,
+    clearFigure: clearRealtimeFigure,
+  } = useRealtimeRenderControls();
   const membersQuery = useGetMemberListQuery(roomId);
   const spaceMembers = useMemo(() => {
     return spaceContext.spaceMembers ?? [];
@@ -175,23 +171,23 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     });
   }, [membersQuery.data?.data, spaceMembers]);
 
-  // 全局登录用户对应的member
+  // 鍏ㄥ眬鐧诲綍鐢ㄦ埛瀵瑰簲鐨刴ember
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
   }, [members, userId]);
 
-  // 与 sideDrawer 相关的副作用迁移到独立组件 RoomSideDrawerGuards，避免 RoomWindow 订阅 sideDrawerState
+  // 涓?sideDrawer 鐩稿叧鐨勫壇浣滅敤杩佺Щ鍒扮嫭绔嬬粍浠?RoomSideDrawerGuards锛岄伩鍏?RoomWindow 璁㈤槄 sideDrawerState
 
   /**
-   * 获取历史消息
+   * 鑾峰彇鍘嗗彶娑堟伅
    */
   const chatHistory = useChatHistory(roomId);
   const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
-  // Discord 风格：主消息流不包含 thread 回复
+  // Discord 椋庢牸锛氫富娑堟伅娴佷笉鍖呭惈 thread 鍥炲
   const mainHistoryMessages = useMemo(() => {
     return (historyMessages ?? []).filter((m) => {
-      // Thread Root（10001）不在主消息流中单独显示：改为挂在“原消息”下方的提示条
+      // Thread Root锛?0001锛変笉鍦ㄤ富娑堟伅娴佷腑鍗曠嫭鏄剧ず锛氭敼涓烘寕鍦ㄢ€滃師娑堟伅鈥濅笅鏂圭殑鎻愮ず鏉?
       if (m.message.messageType === MessageType.THREAD_ROOT) {
         return false;
       }
@@ -218,13 +214,13 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     }, 50);
   }, [mainHistoryMessages]);
 
-  // 如果 URL 中有 targetMessageId，自动跳转到该消息
+  // 濡傛灉 URL 涓湁 targetMessageId锛岃嚜鍔ㄨ烦杞埌璇ユ秷鎭?
   const hasScrolledToTargetRef = useRef(false);
   useEffect(() => {
     if (targetMessageId && historyMessages.length > 0 && !chatHistory?.loading && !hasScrolledToTargetRef.current) {
       const messageExists = historyMessages.some(m => m.message.messageId === targetMessageId);
       if (messageExists) {
-        // 延迟一点确保 Virtuoso 已经渲染完成，同时避免重复定时器
+        // 寤惰繜涓€鐐圭‘淇?Virtuoso 宸茬粡娓叉煋瀹屾垚锛屽悓鏃堕伩鍏嶉噸澶嶅畾鏃跺櫒
         if (delayTimer.current) {
           clearTimeout(delayTimer.current);
         }
@@ -243,26 +239,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     };
   }, [targetMessageId, historyMessages, chatHistory?.loading, scrollToGivenMessage]);
 
-  // WebGAL 跳转到指定消息（具体是否可用仍由 isRealtimeRenderActive 控制）
-  const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
-    return realtimeRenderApiRef.current?.jumpToMessage(messageId) ?? false;
-  }, []);
-
-  // WebGAL 更新消息渲染设置并重新渲染跳转（具体是否可用仍由 isRealtimeRenderActive 控制）
-  const updateAndRerenderMessageInWebGAL = useCallback(async (
-    message: ChatMessageResponse,
-    regenerateTTS: boolean = false,
-  ): Promise<boolean> => {
-    return await realtimeRenderApiRef.current?.updateAndRerenderMessage(message, regenerateTTS) ?? false;
-  }, []);
-
-  // WebGAL 全量重建历史消息（用于消息重排导致相对顺序变化的场景）
-  const rerenderHistoryInWebGAL = useCallback(async (
-    messages?: ChatMessageResponse[],
-  ): Promise<boolean> => {
-    return await realtimeRenderApiRef.current?.rerenderHistory(messages) ?? false;
-  }, []);
-
+  // WebGAL 璺宠浆鍒版寚瀹氭秷鎭紙鍏蜂綋鏄惁鍙敤浠嶇敱 isRealtimeRenderActive 鎺у埗锛?
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
       roomId,
@@ -274,17 +251,17 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       spaceId,
       chatHistory,
       scrollToGivenMessage,
-      // WebGAL 跳转功能 - 只有在实时渲染激活时才启用
+      // WebGAL 璺宠浆鍔熻兘 - 鍙湁鍦ㄥ疄鏃舵覆鏌撴縺娲绘椂鎵嶅惎鐢?
       jumpToMessageInWebGAL: isRealtimeRenderActive ? jumpToMessageInWebGAL : undefined,
-      // WebGAL 更新渲染并跳转 - 只有在实时渲染激活时才启用
+      // WebGAL 鏇存柊娓叉煋骞惰烦杞?- 鍙湁鍦ㄥ疄鏃舵覆鏌撴縺娲绘椂鎵嶅惎鐢?
       updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
-      // WebGAL 按顺序重建历史 - 只有在实时渲染激活时才启用
+      // WebGAL 鎸夐『搴忛噸寤哄巻鍙?- 鍙湁鍦ㄥ疄鏃舵覆鏌撴縺娲绘椂鎵嶅惎鐢?
       rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
     };
   }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, spaceId, chatHistory, scrollToGivenMessage, isRealtimeRenderActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, rerenderHistoryInWebGAL]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
-  // 判断是否是观战成员 (memberType >= 3)
+  // 鍒ゆ柇鏄惁鏄鎴樻垚鍛?(memberType >= 3)
   const isSpectator = (curMember?.memberType ?? 3) >= 3;
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
@@ -301,50 +278,50 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         });
       },
     },
-    isSpectator, // 观战成员不发送状态
+    isSpectator, // 瑙傛垬鎴愬憳涓嶅彂閫佺姸鎬?
   });
 
   /**
-   * AI重写（虚影预览）
+   * AI閲嶅啓锛堣櫄褰遍瑙堬級
    */
   const llmMessageRef = useRef("");
   const isAutoCompletingRef = useRef(false);
   const hintNodeRef = useRef<HTMLSpanElement | null>(null); // Ref for the hint span itself
 
-  // AI重写相关状态
-  const originalTextBeforeRewriteRef = useRef(""); // 保存重写前的原文
+  // AI閲嶅啓鐩稿叧鐘舵€?
+  const originalTextBeforeRewriteRef = useRef(""); // 淇濆瓨閲嶅啓鍓嶇殑鍘熸枃
 
   const setLLMMessage = (newLLMMessage: string) => {
     if (hintNodeRef.current) {
-      hintNodeRef.current.remove(); // 移除旧的提示节点
+      hintNodeRef.current.remove(); // 绉婚櫎鏃х殑鎻愮ず鑺傜偣
     }
     llmMessageRef.current = newLLMMessage;
 
-    // 创建容器用于包含 AI 虚影结果和提示词
+    // 鍒涘缓瀹瑰櫒鐢ㄤ簬鍖呭惈 AI 铏氬奖缁撴灉鍜屾彁绀鸿瘝
     const containerNode = document.createElement("span");
     containerNode.contentEditable = "false";
     containerNode.style.pointerEvents = "none";
 
-    // 创建虚影文本节点
+    // 鍒涘缓铏氬奖鏂囨湰鑺傜偣
     const hintNode = document.createElement("span");
     hintNode.textContent = newLLMMessage;
     hintNode.className = "opacity-60";
 
-    // 创建提示词节点 (只在有内容时显示)
+    // 鍒涘缓鎻愮ず璇嶈妭鐐?(鍙湪鏈夊唴瀹规椂鏄剧ず)
     const tipsNode = document.createElement("span");
-    tipsNode.textContent = newLLMMessage ? " [Tab 接受]" : "";
+    tipsNode.textContent = newLLMMessage ? " [Tab 鎺ュ彈]" : "";
     tipsNode.className = "opacity-40 text-xs";
     tipsNode.style.marginLeft = "4px";
 
-    // 将虚影文本和提示词添加到容器
+    // 灏嗚櫄褰辨枃鏈拰鎻愮ず璇嶆坊鍔犲埌瀹瑰櫒
     containerNode.appendChild(hintNode);
     if (newLLMMessage) {
       containerNode.appendChild(tipsNode);
     }
 
-    // *** 调用 ref API 插入节点 ***
+    // *** 璋冪敤 ref API 鎻掑叆鑺傜偣 ***
     chatInputRef.current?.insertNodeAtCursor(containerNode);
-    hintNodeRef.current = containerNode; // 保存对新节点的引用
+    hintNodeRef.current = containerNode; // 淇濆瓨瀵规柊鑺傜偣鐨勫紩鐢?
 
     const handleInput = () => {
       containerNode.remove();
@@ -352,7 +329,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       isAutoCompletingRef.current = false;
       hintNodeRef.current = null;
     };
-    // *** 监听子组件的原始元素 ***
+    // *** 鐩戝惉瀛愮粍浠剁殑鍘熷鍏冪礌 ***
     chatInputRef.current?.getRawElement()?.addEventListener("input", handleInput);
   };
 
@@ -360,38 +337,38 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     if (!chatInputRef.current)
       return;
 
-    // 移除提示 span
+    // 绉婚櫎鎻愮ず span
     if (hintNodeRef.current) {
       hintNodeRef.current.remove();
       hintNodeRef.current = null;
     }
 
-    // 检查是否是重写模式（有原文保存）
+    // 妫€鏌ユ槸鍚︽槸閲嶅啓妯″紡锛堟湁鍘熸枃淇濆瓨锛?
     if (originalTextBeforeRewriteRef.current) {
-      // 重写模式：直接设置为重写后的文本
-      const rewriteText = llmMessageRef.current.replace(/\u200B/g, ""); // 移除零宽字符
+      // 閲嶅啓妯″紡锛氱洿鎺ヨ缃负閲嶅啓鍚庣殑鏂囨湰
+      const rewriteText = llmMessageRef.current.replace(/\u200B/g, ""); // 绉婚櫎闆跺瀛楃
       setInputText(rewriteText);
-      // 同步更新 DOM
+      // 鍚屾鏇存柊 DOM
       if (chatInputRef.current?.getRawElement()) {
         chatInputRef.current.getRawElement()!.textContent = rewriteText;
       }
-      originalTextBeforeRewriteRef.current = ""; // 清空原文记录
+      originalTextBeforeRewriteRef.current = ""; // 娓呯┖鍘熸枃璁板綍
       toast.success("已接受重写");
     }
     else {
-      // 理论上不会进入：当前仅保留重写虚影，但为安全起见仍支持插入
+      // 鐞嗚涓婁笉浼氳繘鍏ワ細褰撳墠浠呬繚鐣欓噸鍐欒櫄褰憋紝浣嗕负瀹夊叏璧疯浠嶆敮鎸佹彃鍏?
       chatInputRef.current.insertNodeAtCursor(llmMessageRef.current, { moveCursorToEnd: true });
     }
 
-    setLLMMessage(""); // 清空虚影状态
-    chatInputRef.current.triggerSync(); // 手动触发同步，更新 store
+    setLLMMessage(""); // 娓呯┖铏氬奖鐘舵€?
+    chatInputRef.current.triggerSync(); // 鎵嬪姩瑙﹀彂鍚屾锛屾洿鏂?store
   };
 
-  // AI重写：显示为虚影预览
+  // AI閲嶅啓锛氭樉绀轰负铏氬奖棰勮
   const handleQuickRewrite = async (prompt: string) => {
     const currentPlainText = useChatInputUiStore.getState().plainText;
     if (!currentPlainText.trim()) {
-      toast.error("请先输入内容");
+      toast.error("璇峰厛杈撳叆鍐呭");
       return;
     }
 
@@ -401,22 +378,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
     isAutoCompletingRef.current = true;
 
-    // 如果已有虚影，先清除
+    // 濡傛灉宸叉湁铏氬奖锛屽厛娓呴櫎
     if (llmMessageRef.current) {
       setLLMMessage("");
     }
 
-    originalTextBeforeRewriteRef.current = currentPlainText; // 保存原文
+    originalTextBeforeRewriteRef.current = currentPlainText; // 淇濆瓨鍘熸枃
 
     try {
-      const fullPrompt = `${prompt}\n\n请根据上述要求重写以下文本：\n${currentPlainText}`;
+      const fullPrompt = `${prompt}\n\n璇锋牴鎹笂杩拌姹傞噸鍐欎互涓嬫枃鏈細\n${currentPlainText}`;
 
-      // 清空输入框，插入零宽字符作为锚点
+      // 娓呯┖杈撳叆妗嗭紝鎻掑叆闆跺瀛楃浣滀负閿氱偣
       const rawElement = chatInputRef.current?.getRawElement();
       if (rawElement) {
-        rawElement.textContent = "\u200B"; // 零宽空格
+        rawElement.textContent = "\u200B"; // 闆跺绌烘牸
         rawElement.focus();
-        // 光标移到末尾
+        // 鍏夋爣绉诲埌鏈熬
         const range = document.createRange();
         const selection = window.getSelection();
         range.selectNodeContents(rawElement);
@@ -427,20 +404,20 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       setInputText("\u200B");
 
       await sendLlmStreamMessage(fullPrompt, (newContent) => {
-        // 先清除零宽字符
+        // 鍏堟竻闄ら浂瀹藉瓧绗?
         if (rawElement && rawElement.textContent === "\u200B") {
           rawElement.textContent = "";
         }
-        // 显示为虚影
+        // 鏄剧ず涓鸿櫄褰?
         setLLMMessage(newContent);
         return true;
       });
 
-      toast.success("重写完成，按 Tab 接受或 Esc 取消");
+      toast.success("閲嶅啓瀹屾垚锛屾寜 Tab 鎺ュ彈鎴?Esc 鍙栨秷");
     }
     catch (error) {
-      toast.error(`AI重写失败: ${error}`);
-      // 恢复原文
+      toast.error(`AI閲嶅啓澶辫触: ${error}`);
+      // 鎭㈠鍘熸枃
       setInputText(originalTextBeforeRewriteRef.current);
       originalTextBeforeRewriteRef.current = "";
     }
@@ -450,27 +427,27 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   };
 
   /**
-   *处理与组件的各种交互
+   *澶勭悊涓庣粍浠剁殑鍚勭浜や簰
    */
   const handleSelectCommand = (cmdName: string) => {
-    const prefixChar = useChatInputUiStore.getState().plainText[0] || "."; // 默认为 .
+    const prefixChar = useChatInputUiStore.getState().plainText[0] || "."; // 榛樿涓?.
     setInputText(`${prefixChar}${cmdName} `);
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 没有权限
+  const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 娌℃湁鏉冮檺
   const noRole = curRoleId <= 0;
 
   const containsCommandRequestAllToken = useCallback((text: string) => {
     const raw = String(text ?? "");
-    return /@all\b/i.test(raw) || raw.includes("@全员") || raw.includes("@检定请求");
+    return /@all\b/i.test(raw) || raw.includes("@全员") || raw.includes("@指定请求");
   }, []);
 
   const stripCommandRequestAllToken = useCallback((text: string) => {
     return String(text ?? "")
       .replace(/@all\b/gi, " ")
       .replace(/@全员/g, " ")
-      .replace(/@检定请求/g, " ")
+      .replace(/@指定请求/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   }, []);
@@ -483,7 +460,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     if (isCommand(trimmed)) {
       return trimmed;
     }
-    const match = trimmed.match(/[.。/][A-Z][^\n]*/i);
+    const match = trimmed.match(/[.銆?][A-Z][^\n]*/i);
     if (!match) {
       return null;
     }
@@ -495,7 +472,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     const { command, threadId, requestMessageId } = payload;
     const rawCommand = String(command ?? "").trim();
     if (!rawCommand) {
-      toast.error("指令为空");
+      toast.error("鎸囦护涓虹┖");
       return;
     }
 
@@ -505,11 +482,11 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       return;
     }
     if (noRole && !isKP) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
       return;
     }
     if (isSubmitting) {
-      toast.error("正在发送中，请稍等");
+      toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
       return;
     }
 
@@ -522,24 +499,24 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [commandExecutor, isSubmitting, noRole, notMember, spaceContext.isSpaceOwner]);
 
   /**
-   * 发送消息的辅助函数
-   * 如果设置了 insertAfterMessageId，则使用 HTTP API 发送并更新 position
-   * 否则使用 WebSocket 发送
+   * 鍙戦€佹秷鎭殑杈呭姪鍑芥暟
+   * 濡傛灉璁剧疆浜?insertAfterMessageId锛屽垯浣跨敤 HTTP API 鍙戦€佸苟鏇存柊 position
+   * 鍚﹀垯浣跨敤 WebSocket 鍙戦€?
    */
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
     const insertAfterMessageId = useRoomUiStore.getState().insertAfterMessageId;
 
     if (insertAfterMessageId && mainHistoryMessages) {
-      // 找到目标消息的索引
+      // 鎵惧埌鐩爣娑堟伅鐨勭储寮?
       const targetIndex = mainHistoryMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
       if (targetIndex === -1) {
-        // 如果找不到目标消息，降级为普通发送
+        // 濡傛灉鎵句笉鍒扮洰鏍囨秷鎭紝闄嶇骇涓烘櫘閫氬彂閫?
         send(message);
         return;
       }
 
       try {
-        // 使用 HTTP API 发送消息
+        // 浣跨敤 HTTP API 鍙戦€佹秷鎭?
         const result = await sendMessageMutation.mutateAsync(message);
         if (!result.success || !result.data) {
           toast.error("发送消息失败");
@@ -548,20 +525,20 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
         const newMessage = result.data;
 
-        // 计算新消息的 position
+        // 璁＄畻鏂版秷鎭殑 position
         const targetMessage = mainHistoryMessages[targetIndex];
         const nextMessage = mainHistoryMessages[targetIndex + 1];
         const targetPosition = targetMessage.message.position;
         const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
         const newPosition = (targetPosition + nextPosition) / 2;
 
-        // 更新消息的 position
+        // 鏇存柊娑堟伅鐨?position
         await updateMessageMutation.mutateAsync({
           ...newMessage,
           position: newPosition,
         });
 
-        // 手动更新本地缓存（构建 ChatMessageResponse 格式）
+        // 鎵嬪姩鏇存柊鏈湴缂撳瓨锛堟瀯寤?ChatMessageResponse 鏍煎紡锛?
         if (chatHistory) {
           const updatedMessage: ChatMessageResponse = {
             message: {
@@ -573,12 +550,12 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         }
       }
       catch (error) {
-        console.error("插入消息失败:", error);
-        toast.error("插入消息失败");
+        console.error("鎻掑叆娑堟伅澶辫触:", error);
+        toast.error("鎻掑叆娑堟伅澶辫触");
       }
     }
     else {
-      // 普通发送
+      // 鏅€氬彂閫?
       send(message);
     }
   }, [mainHistoryMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
@@ -597,20 +574,20 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       return;
     }
     if (isNarrator && !isKP) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
       return;
     }
     if (isSubmitting || webgalVarSendingRef.current) {
-      toast.error("正在设置变量，请稍等");
+      toast.error("姝ｅ湪璁剧疆鍙橀噺锛岃绋嶇瓑");
       return;
     }
 
     if (!rawKey || !rawExpr) {
-      toast.error("变量名/表达式不能为空");
+      toast.error("变量名或表达式不能为空");
       return;
     }
     if (!/^[A-Z_]\w*$/i.test(rawKey)) {
-      toast.error("变量名格式不正确");
+      toast.error("鍙橀噺鍚嶆牸寮忎笉姝ｇ‘");
       return;
     }
 
@@ -636,7 +613,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         },
       };
 
-      // 发送区自定义角色名（与联动模式无关）
+      // 鍙戦€佸尯鑷畾涔夎鑹插悕锛堜笌鑱斿姩妯″紡鏃犲叧锛?
       const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
       if (draftCustomRoleName?.trim()) {
         varMsg.webgal = {
@@ -647,7 +624,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
       await sendMessageWithInsert(varMsg);
 
-      // 空间级持久化：写入 space.extra 的 webgalVars（后端以 key/value 存储）
+      // 绌洪棿绾ф寔涔呭寲锛氬啓鍏?space.extra 鐨?webgalVars锛堝悗绔互 key/value 瀛樺偍锛?
       try {
         const rawExtra = space?.extra || "{}";
         let parsedExtra: Record<string, any> = {};
@@ -688,8 +665,8 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         });
       }
       catch (error) {
-        console.error("写入 space.extra.webgalVars 失败:", error);
-        toast.error("变量已发送，但写入空间持久化失败");
+        console.error("鍐欏叆 space.extra.webgalVars 澶辫触:", error);
+        toast.error("鍙橀噺宸插彂閫侊紝浣嗗啓鍏ョ┖闂存寔涔呭寲澶辫触");
       }
     }
     finally {
@@ -731,7 +708,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     const isKP = spaceContext.isSpaceOwner;
     const isNarrator = noRole;
 
-    // 旁白不再依赖联动模式，但仅KP可用
+    // 鏃佺櫧涓嶅啀渚濊禆鑱斿姩妯″紡锛屼絾浠匥P鍙敤
     const disableSendMessage = (notMember || noInput || isSubmitting)
       || (isNarrator && !isKP);
 
@@ -739,15 +716,15 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       if (notMember)
         toast.error("您是观战，不能发送消息");
       else if (isNarrator && !isKP)
-        toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+        toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
       else if (noInput)
         toast.error("请输入内容");
       else if (isSubmitting)
-        toast.error("正在发送中，请稍等");
+        toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
       return;
     }
     if (inputText.length > 1024) {
-      toast.error("输入内容过长, 最长未1024个字符");
+      toast.error("输入内容过长，最长不超过 1024 个字符");
       return;
     }
 
@@ -756,7 +733,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       const uploadedImages: any[] = [];
       const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
-      // 1. 上传图片
+      // 1. 涓婁紶鍥剧墖
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         const { width, height, size } = await getImageSize(imgFiles[i]);
@@ -764,22 +741,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       }
       setImgFiles([]);
 
-      // 2. 上传表情 (视为图片)
+      // 2. 涓婁紶琛ㄦ儏 (瑙嗕负鍥剧墖)
       for (let i = 0; i < emojiUrls.length; i++) {
         const { width, height, size } = await getImageSize(emojiUrls[i]);
         uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
       }
       setEmojiUrls([]);
 
-      // 3. 上传语音
+      // 3. 涓婁紶璇煶
       let soundMessageData: any = null;
       if (audioFile) {
-        // 0 表示不截断（不再强制 60s 限制）
+        // 0 琛ㄧず涓嶆埅鏂紙涓嶅啀寮哄埗 60s 闄愬埗锛?
         const maxAudioDurationSec = 0;
         const objectUrl = URL.createObjectURL(audioFile);
         const debugEnabled = isAudioUploadDebugEnabled();
         const debugPrefix = "[tc-audio-upload]";
-        const audioToastId = toast.loading("音频处理中（转码/上传中）…");
+        const audioToastId = toast.loading("音频处理中（转码/上传中）...");
 
         if (debugEnabled) {
           console.warn(`${debugPrefix} roomWindow send audio`, {
@@ -854,7 +831,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         }
       }
 
-      // 4. 构建并发送消息
+      // 4. 鏋勫缓骞跺彂閫佹秷鎭?
       const finalReplyId = useRoomUiStore.getState().replyMessage?.messageId || undefined;
       let isFirstMessage = true;
 
@@ -865,13 +842,13 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
           avatarId: resolvedAvatarId,
         };
 
-        // Thread 模式：给本次发送的消息挂上 threadId（root messageId）
+        // Thread 妯″紡锛氱粰鏈鍙戦€佺殑娑堟伅鎸備笂 threadId锛坮oot messageId锛?
         const { threadRootMessageId: activeThreadRootId, composerTarget } = useRoomUiStore.getState();
         if (composerTarget === "thread" && activeThreadRootId) {
           fields.threadId = activeThreadRootId;
         }
 
-        // 发送区自定义角色名（与联动模式无关）
+        // 鍙戦€佸尯鑷畾涔夎鑹插悕锛堜笌鑱斿姩妯″紡鏃犲叧锛?
         const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
         if (draftCustomRoleName?.trim()) {
           fields.webgal = {
@@ -903,14 +880,14 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
       let textContent = inputText.trim();
 
-      // WebGAL 空间变量指令：/var set a=1
+      // WebGAL 绌洪棿鍙橀噺鎸囦护锛?var set a=1
       const trimmedWithoutMentions = inputTextWithoutMentions.trim();
       const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
       const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
 
-      // 如果用户输入了 /var 前缀但格式不正确：不交给骰娘命令系统处理，直接提示
+      // 濡傛灉鐢ㄦ埛杈撳叆浜?/var 鍓嶇紑浣嗘牸寮忎笉姝ｇ‘锛氫笉浜ょ粰楠板鍛戒护绯荤粺澶勭悊锛岀洿鎺ユ彁绀?
       if (isWebgalVarCommandPrefix && !webgalVarPayload) {
-        toast.error("变量指令格式：/var set a=1");
+        toast.error("鍙橀噺鎸囦护鏍煎紡锛?var set a=1");
         return;
       }
 
@@ -934,7 +911,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
         await sendMessageWithInsert(requestMsg);
 
-        // 消耗掉 firstMessage 状态，并防止后续再次作为文本发送
+        // 娑堣€楁帀 firstMessage 鐘舵€侊紝骞堕槻姝㈠悗缁啀娆′綔涓烘枃鏈彂閫?
         isFirstMessage = false;
         textContent = "";
       }
@@ -950,7 +927,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
         await sendMessageWithInsert(varMsg);
 
-        // 空间级持久化：写入 space.extra 的 webgalVars（后端以 key/value 存储）
+        // 绌洪棿绾ф寔涔呭寲锛氬啓鍏?space.extra 鐨?webgalVars锛堝悗绔互 key/value 瀛樺偍锛?
         try {
           const rawExtra = space?.extra || "{}";
           let parsedExtra: Record<string, any> = {};
@@ -991,22 +968,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
           });
         }
         catch (error) {
-          console.error("写入 space.extra.webgalVars 失败:", error);
-          toast.error("变量已发送，但写入空间持久化失败");
+          console.error("鍐欏叆 space.extra.webgalVars 澶辫触:", error);
+          toast.error("鍙橀噺宸插彂閫侊紝浣嗗啓鍏ョ┖闂存寔涔呭寲澶辫触");
         }
 
-        // 消耗掉 firstMessage 状态，并防止后续再次作为文本发送
+        // 娑堣€楁帀 firstMessage 鐘舵€侊紝骞堕槻姝㈠悗缁啀娆′綔涓烘枃鏈彂閫?
         isFirstMessage = false;
         textContent = "";
       }
       else if (textContent && isCommand(textContent)) {
         commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
-        // 指令执行也被视为一次"发送"，消耗掉 firstMessage 状态
+        // 鎸囦护鎵ц涔熻瑙嗕负涓€娆?鍙戦€?锛屾秷鑰楁帀 firstMessage 鐘舵€?
         isFirstMessage = false;
         textContent = "";
       }
 
-      // B. 发送图片
+      // B. 鍙戦€佸浘鐗?
       for (const img of uploadedImages) {
         const imgMsg: ChatMessageRequest = {
           ...getCommonFields() as any,
@@ -1025,7 +1002,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         textContent = "";
       }
 
-      // C. 发送音频
+      // C. 鍙戦€侀煶棰?
       if (soundMessageData) {
         const audioMsg: ChatMessageRequest = {
           ...getCommonFields() as any,
@@ -1040,16 +1017,16 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         textContent = "";
       }
 
-      // A. 发送文本 (如果前面没有被图片或语音消耗掉)
+      // A. 鍙戦€佹枃鏈?(濡傛灉鍓嶉潰娌℃湁琚浘鐗囨垨璇煶娑堣€楁帀)
       if (textContent) {
-        // WebGAL 指令消息：输入以 % 开头时，转为显式的 WEBGAL_COMMAND 类型。
-        // 注意：这里是“发送侧协议转换”，渲染侧不再依赖 % 前缀。
+        // WebGAL 鎸囦护娑堟伅锛氳緭鍏ヤ互 % 寮€澶存椂锛岃浆涓烘樉寮忕殑 WEBGAL_COMMAND 绫诲瀷銆?
+        // 娉ㄦ剰锛氳繖閲屾槸鈥滃彂閫佷晶鍗忚杞崲鈥濓紝娓叉煋渚т笉鍐嶄緷璧?% 鍓嶇紑銆?
         const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
         const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
         const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
 
         if (isWebgalCommandInput && !normalizedContent) {
-          toast.error("WebGAL 指令不能为空");
+          toast.error("WebGAL 鎸囦护涓嶈兘涓虹┖");
         }
         else {
           const textMsg: ChatMessageRequest = {
@@ -1062,11 +1039,11 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         }
       }
 
-      setInputText(""); // 调用重构的 setInputText 来清空
+      setInputText(""); // 璋冪敤閲嶆瀯鐨?setInputText 鏉ユ竻绌?
       useRoomUiStore.getState().setReplyMessage(undefined);
       setSendAsBackground(false);
       setAudioPurpose(undefined);
-      useRoomUiStore.getState().setInsertAfterMessageId(undefined); // 清除插入位置
+      useRoomUiStore.getState().setInsertAfterMessageId(undefined); // 娓呴櫎鎻掑叆浣嶇疆
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -1085,11 +1062,11 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       return;
     }
     if (isSubmitting) {
-      toast.error("正在发送中，请稍等");
+      toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
       return;
     }
     if (!messages.length) {
-      toast.error("没有可导入的有效消息");
+      toast.error("娌℃湁鍙鍏ョ殑鏈夋晥娑堟伅");
       return;
     }
 
@@ -1155,7 +1132,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         let extra: any = {};
         const figurePosition = msg.figurePosition;
 
-        // 文本导入：若发言人映射为“骰娘”，则使用骰娘角色发送，并按 DICE(6) 类型构造消息 extra。
+        // 鏂囨湰瀵煎叆锛氳嫢鍙戣█浜烘槧灏勪负鈥滈濞樷€濓紝鍒欎娇鐢ㄩ濞樿鑹插彂閫侊紝骞舵寜 DICE(6) 绫诲瀷鏋勯€犳秷鎭?extra銆?
         if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
           await ensureDicerSender();
           roleId = dicerRoleId ?? roleId;
@@ -1222,7 +1199,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     }
   }, [ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomContext, roomId, sendMessageWithInsert]);
 
-  // 线索消息发送
+  // 绾跨储娑堟伅鍙戦€?
   const handleClueSend = async (clue: ClueMessage) => {
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
     const clueMessage: ChatMessageRequest = {
@@ -1243,7 +1220,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const handleSendDocCard = useCallback(async (payload: DocRefDragPayload) => {
     const docId = String(payload?.docId ?? "").trim();
     if (!docId) {
-      toast.error("未检测到可用文档");
+      toast.error("鏈娴嬪埌鍙敤鏂囨。");
       return;
     }
 
@@ -1258,7 +1235,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     }
 
     if (payload?.spaceId && payload.spaceId !== spaceId) {
-      toast.error("仅支持在同一空间分享文档");
+      toast.error("浠呮敮鎸佸湪鍚屼竴绌洪棿鍒嗕韩鏂囨。");
       return;
     }
 
@@ -1270,11 +1247,11 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       return;
     }
     if (isNarrator && !isKP) {
-      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
       return;
     }
     if (isSubmitting) {
-      toast.error("正在发送中，请稍等");
+      toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
       return;
     }
 
@@ -1325,7 +1302,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     await sendMessageWithInsert(request);
   }, [curRoleId, ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomId, sendMessageWithInsert, spaceContext.isSpaceOwner, spaceId]);
 
-  // *** 新增: onPasteFiles 的回调处理器 ***
+  // *** 鏂板: onPasteFiles 鐨勫洖璋冨鐞嗗櫒 ***
   const handlePasteFiles = (files: File[]) => {
     useChatComposerStore.getState().updateImgFiles((draft) => {
       draft.push(...files);
@@ -1335,49 +1312,49 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const isComposingRef = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // 检查 @ 控制器是否打开并且是否处理了这个事件
+    // 妫€鏌?@ 鎺у埗鍣ㄦ槸鍚︽墦寮€骞朵笖鏄惁澶勭悊浜嗚繖涓簨浠?
     const isAtOpen = atMentionRef.current?.isDialogOpen() ?? false;
     if (isAtOpen) {
       const handled = atMentionRef.current?.onKeyDown(e) ?? false;
       if (handled) {
-        return; // 事件已被 @ 控制器消耗（例如箭头导航）
+        return; // 浜嬩欢宸茶 @ 鎺у埗鍣ㄦ秷鑰楋紙渚嬪绠ご瀵艰埅锛?
       }
     }
 
-    // Esc 键：取消重写，恢复原文
+    // Esc 閿細鍙栨秷閲嶅啓锛屾仮澶嶅師鏂?
     if (e.key === "Escape" && originalTextBeforeRewriteRef.current) {
       e.preventDefault();
       setInputText(originalTextBeforeRewriteRef.current);
       originalTextBeforeRewriteRef.current = "";
       setLLMMessage("");
-      toast("已取消重写", { icon: "ℹ️" });
+      toast("已取消重写");
       return;
     }
 
-    // 如果 @ 控制器未处理，则继续执行原始逻辑
+    // 濡傛灉 @ 鎺у埗鍣ㄦ湭澶勭悊锛屽垯缁х画鎵ц鍘熷閫昏緫
     if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
       e.preventDefault();
       handleMessageSubmit();
     }
     else if (e.key === "Tab") {
       e.preventDefault();
-      // 1) 若已有 AI 虚影结果，Tab 直接接受
+      // 1) 鑻ュ凡鏈?AI 铏氬奖缁撴灉锛孴ab 鐩存帴鎺ュ彈
       if (llmMessageRef.current) {
         insertLLMMessageIntoText();
         return;
       }
 
-      // 2) 否则 Tab 触发 AI 重写（使用本地保存的提示词）
+      // 2) 鍚﹀垯 Tab 瑙﹀彂 AI 閲嶅啓锛堜娇鐢ㄦ湰鍦颁繚瀛樼殑鎻愮ず璇嶏級
       const prompt = localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅";
       handleQuickRewrite(prompt);
     }
   };
 
   const handleKeyUp = (e: React.KeyboardEvent) => {
-    // 总是通知 @ 控制器关于 keyup 事件
+    // 鎬绘槸閫氱煡 @ 鎺у埗鍣ㄥ叧浜?keyup 浜嬩欢
     atMentionRef.current?.onKeyUp(e);
 
-    // 快捷键阻止 (父组件逻辑)
+    // 蹇嵎閿樆姝?(鐖剁粍浠堕€昏緫)
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
         case "b": case "i": case "u":
@@ -1388,7 +1365,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   };
 
   function handleMouseDown(e: React.MouseEvent) {
-    // 检查 @ 控制器是否处理了 mousedown（以防止失焦）
+    // 妫€鏌?@ 鎺у埗鍣ㄦ槸鍚﹀鐞嗕簡 mousedown锛堜互闃叉澶辩劍锛?
     atMentionRef.current?.onMouseDown(e);
   }
 
@@ -1397,11 +1374,11 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
-      onSettled: () => { toast("添加角色成功"); },
+      onSettled: () => { toast("娣诲姞瑙掕壊鎴愬姛"); },
     });
   };
 
-  // *** 准备 props ***
+  // *** 鍑嗗 props ***
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
@@ -1411,28 +1388,28 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       return "你是观战成员，不能发送消息";
     }
     if (noRole && !isKP) {
-      return "请先拉入你的角色，之后才能发送消息。";
+      return "请先拉入你的角色，之后才能发送消息";
     }
     if (noRole && isKP) {
-      return "旁白模式：在此输入消息...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
+      return "旁白模式：在此输入消息...(shift+enter 换行，tab 触发 AI 重写，上方按钮可修改重写提示词)";
     }
     if (curAvatarId <= 0) {
-      return "请为你的角色添加至少一个表情差分（头像）。";
+      return "请为你的角色添加至少一个表情差分（头像）";
     }
     if (threadRootMessageId && composerTarget === "thread") {
-      return "在 Thread 中回复...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
+      return "在 Thread 中回复...(shift+enter 换行，tab 触发 AI 重写，上方按钮可修改重写提示词)";
     }
-    return "在此输入消息...(shift+enter 换行，tab触发AI重写，上方✨按钮可修改重写提示词)";
+    return "输入消息...(shift+enter 换行，tab 触发 AI 重写，上方按钮可修改重写提示词)";
   })();
 
   const handleSendEffect = useCallback((effectName: string) => {
-    // 特效消息不需要角色信息，类似旁白
-    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
+    // 鐗规晥娑堟伅涓嶉渶瑕佽鑹蹭俊鎭紝绫讳技鏃佺櫧
+    // 娉ㄦ剰锛歟xtra 搴旇鐩存帴鏄?EffectMessage 瀵硅薄锛屽悗绔細鑷姩鍖呰鍒?MessageExtra 涓?
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: `[特效: ${effectName}]`,
+      content: `[鐗规晥: ${effectName}]`,
       messageType: MessageType.EFFECT,
       extra: {
         effectName,
@@ -1441,13 +1418,13 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [roomId, send]);
 
   const handleClearBackground = useCallback(() => {
-    // 清除背景不需要角色信息，类似旁白
-    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
+    // 娓呴櫎鑳屾櫙涓嶉渶瑕佽鑹蹭俊鎭紝绫讳技鏃佺櫧
+    // 娉ㄦ剰锛歟xtra 搴旇鐩存帴鏄?EffectMessage 瀵硅薄锛屽悗绔細鑷姩鍖呰鍒?MessageExtra 涓?
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: "[清除背景]",
+      content: "[娓呴櫎鑳屾櫙]",
       messageType: MessageType.EFFECT,
       extra: {
         effectName: "clearBackground",
@@ -1457,36 +1434,36 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [roomId, send]);
 
   const handleClearFigure = useCallback(() => {
-    // 清除角色立绘不需要角色信息，类似旁白
-    // 注意：extra 应该直接是 EffectMessage 对象，后端会自动包装到 MessageExtra 中
+    // 娓呴櫎瑙掕壊绔嬬粯涓嶉渶瑕佽鑹蹭俊鎭紝绫讳技鏃佺櫧
+    // 娉ㄦ剰锛歟xtra 搴旇鐩存帴鏄?EffectMessage 瀵硅薄锛屽悗绔細鑷姩鍖呰鍒?MessageExtra 涓?
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: "[清除立绘]",
+      content: "[娓呴櫎绔嬬粯]",
       messageType: MessageType.EFFECT,
       extra: {
         effectName: "clearFigure",
       },
     });
-    // 如果实时渲染开启，立即清除立绘
+    // 濡傛灉瀹炴椂娓叉煋寮€鍚紝绔嬪嵆娓呴櫎绔嬬粯
     if (isRealtimeRenderActive) {
-      realtimeRenderApiRef.current?.clearFigure();
+      clearRealtimeFigure();
     }
     toast.success("已清除立绘");
-  }, [isRealtimeRenderActive, roomId, send]);
+  }, [clearRealtimeFigure, isRealtimeRenderActive, roomId, send]);
 
-  // KP：停止全员BGM（广播系统消息）
+  // KP锛氬仠姝㈠叏鍛楤GM锛堝箍鎾郴缁熸秷鎭級
   const handleStopBgmForAll = useCallback(() => {
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: "[停止BGM]",
+      content: "[鍋滄BGM]",
       messageType: MessageType.SYSTEM,
       extra: {},
     });
-    toast.success("已发送停止BGM");
+    toast.success("宸插彂閫佸仠姝GM");
   }, [roomId, send]);
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
