@@ -16,6 +16,7 @@ import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
+import useRoomComposerPanelProps from "@/components/chat/room/useRoomComposerPanelProps";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomInputController from "@/components/chat/room/useRoomInputController";
@@ -292,26 +293,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
-  const placeholderText = (() => {
-    const isKP = spaceContext.isSpaceOwner;
-    if (notMember) {
-      return "观战模式下无法发送消息";
-    }
-    if (noRole && !isKP) {
-      return "请选择/拉入你的角色后再发送";
-    }
-    if (noRole && isKP) {
-      return "旁白模式：输入内容…（Shift+Enter 换行，Tab 触发 AI）";
-    }
-    if (curAvatarId <= 0) {
-      return "请选择角色立绘后发送…（Shift+Enter 换行，Tab 触发 AI）";
-    }
-    if (threadRootMessageId && composerTarget === "thread") {
-      return "线程回复中…（Shift+Enter 换行，Tab 触发 AI）";
-    }
-    return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
-  })();
-
   const roomName = roomHeaderOverride?.title ?? room?.name;
 
   const chatFrameProps = {
@@ -322,7 +303,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     onSendDocCard: handleSendDocCard,
   };
 
-  const composerPanelProps = {
+  const composerPanelProps = useRoomComposerPanelProps({
     roomId,
     userId: Number(userId),
     webSocketUtils,
@@ -343,7 +324,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     noRole,
     notMember,
     isSubmitting,
-    placeholderText,
     onSendDocCard: handleSendDocCard,
     curRoleId,
     curAvatarId,
@@ -360,8 +340,9 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     onMouseDown: handleMouseDown,
     onCompositionStart,
     onCompositionEnd,
-    inputDisabled: notMember && noRole,
-  };
+    composerTarget,
+    threadRootMessageId,
+  });
 
   return (
     <RoomContext value={roomContext}>
