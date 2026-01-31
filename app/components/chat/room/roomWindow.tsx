@@ -1,4 +1,4 @@
-// 鎴块棿鑱婂ぉ涓荤獥鍙ｏ細璐熻矗娑堟伅娴佹覆鏌撱€佸鍏ュ彂閫佷笌闈㈡澘鍗忚皟銆?
+// 閹村潡妫块懕濠傘亯娑撹崵鐛ラ崣锝忕窗鐠愮喕鐭楀☉鍫熶紖濞翠焦瑕嗛弻鎾扁偓浣割嚤閸忋儱褰傞柅浣风瑢闂堛垺婢橀崡蹇氱殶閵?
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, SpaceMember, UserRole } from "../../../../api";
 
@@ -21,6 +21,7 @@ import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
+import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
@@ -52,11 +53,11 @@ import {
 } from "../../../../api/hooks/chatQueryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
-// const PAGE_SIZE = 50; // 姣忛〉娑堟伅鏁伴噺
+// const PAGE_SIZE = 50; // 濮ｅ繘銆夊☉鍫熶紖閺佷即鍣?
 function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
   const spaceContext = use(SpaceContext);
 
-  // BGM锛氬垏鎹?鍗歌浇鎴块棿鏃惰涓衡€滄墦鏂€濓紝鍋滄鎾斁浣嗕笉褰卞搷鐢ㄦ埛鏄惁宸蹭富鍔ㄥ叧闂紙dismiss锛?
+  // BGM閿涙艾鍨忛幑?閸楁瓕娴囬幋鍧楁？閺冩儼顫嬫稉琛♀偓婊勫ⅵ閺傤厸鈧繐绱濋崑婊勵剾閹绢厽鏂佹担鍡曠瑝瑜板崬鎼烽悽銊﹀煕閺勵垰鎯佸韫瘜閸斻劌鍙ч梻顓ㄧ礄dismiss閿?
   useEffect(() => {
     useBgmStore.getState().setActiveRoomId(roomId);
     return () => {
@@ -72,46 +73,46 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
   const send = useCallback((message: ChatMessageRequest) => {
-    webSocketUtils.send({ type: 3, data: message }); // 鍙戦€佺兢鑱婃秷鎭?
+    webSocketUtils.send({ type: 3, data: message }); // 閸欐垿鈧胶鍏㈤懕濠冪Х閹?
   }, [webSocketUtils]);
 
-  // 鐢ㄤ簬鎻掑叆娑堟伅鍔熻兘鐨?mutations
+  // 閻劋绨幓鎺戝弳濞戝牊浼呴崝鐔诲厴閻?mutations
   const sendMessageMutation = useSendMessageMutation(roomId);
   const updateMessageMutation = useUpdateMessageMutation();
-  const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 璁剧疆绌洪棿 extra 瀛楁 (key/value)
+  const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 鐠佸墽鐤嗙粚娲？ extra 鐎涙顔?(key/value)
 
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
   const atMentionRef = useRef<AtMentionHandle>(null);
 
-  // 杈撳叆鍖虹紪杈戞€侊細鏀惧叆 zustand store锛岄伩鍏?RoomWindow 姣忔鏁插瓧閲嶆覆鏌?
+  // 鏉堟挸鍙嗛崠铏圭椽鏉堟垶鈧緤绱伴弨鎯у弳 zustand store閿涘矂浼╅崗?RoomWindow 濮ｅ繑顐奸弫鎻掔摟闁插秵瑕嗛弻?
   const resetChatInputUi = useChatInputUiStore(state => state.reset);
-  // 闄勪欢/鍙戦€侀€夐」锛氭斁鍏?zustand store锛岄伩鍏?RoomWindow 鍥犻檮浠跺彉鍖栨暣浣撻噸娓叉煋
+  // 闂勫嫪娆?閸欐垿鈧線鈧銆嶉敍姘杹閸?zustand store閿涘矂浼╅崗?RoomWindow 閸ョ娀妾禒璺哄綁閸栨牗鏆ｆ担鎾诲櫢濞撳弶鐓?
   const resetChatComposer = useChatComposerStore(state => state.reset);
 
   const delayTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // *** ChatInputArea 鐨勫洖璋冨鐞嗗櫒 ***
+  // *** ChatInputArea 閻ㄥ嫬娲栫拫鍐槱閻炲棗娅?***
   const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
     useChatInputUiStore.getState().setSnapshot({
       plainText,
       textWithoutMentions: inputTextWithoutMentions,
       mentionedRoles: roles,
     });
-    // 妫€鏌?@ 鎻愬強瑙﹀彂
+    // 濡偓閺?@ 閹绘劕寮风憴锕€褰?
     atMentionRef.current?.onInput();
-  }, []); // 绌轰緷璧栵紝鍥犱负 setter 鍑芥暟鏄ǔ瀹氱殑
+  }, []); // 缁岃桨绶风挧鏍电礉閸ョ姳璐?setter 閸戣姤鏆熼弰顖溓旂€规氨娈?
 
   /**
-   * *** setInputText 鐜板湪璋冪敤 ref API ***
-   * 濡傛灉鎯充粠澶栭儴鎺у埗杈撳叆妗嗙殑鍐呭锛屼娇鐢ㄨ繖涓嚱鏁般€?
-   * @param text 鎯宠閲嶇疆鐨刬nputText (娉ㄦ剰锛氳繖閲岀幇鍦ㄥ彧鎺ュ彈绾枃鏈紝濡傛灉闇€瑕?HTML 璇蜂慨鏀?
+   * *** setInputText 閻滄澘婀拫鍐暏 ref API ***
+   * 婵″倹鐏夐幆鍏呯矤婢舵牠鍎撮幒褍鍩楁潏鎾冲弳濡楀棛娈戦崘鍛啇閿涘奔濞囬悽銊ㄧ箹娑擃亜鍤遍弫鑸偓?
+   * @param text 閹疇顩﹂柌宥囩枂閻ㄥ埇nputText (濞夈劍鍓伴敍姘崇箹闁插瞼骞囬崷銊ュ涧閹恒儱褰堢痪顖涙瀮閺堫剨绱濇俊鍌涚亯闂団偓鐟?HTML 鐠囪渹鎱ㄩ弨?
    */
   const setInputText = (text: string) => {
-    chatInputRef.current?.setContent(text); // 鍛戒护瀛愮粍浠舵洿鏂板叾 DOM
-    chatInputRef.current?.triggerSync(); // 鍚屾鍒?store
+    chatInputRef.current?.setContent(text); // 閸涙垝鎶ょ€涙劗绮嶆禒鑸垫纯閺傛澘鍙?DOM
+    chatInputRef.current?.triggerSync(); // 閸氬本顒為崚?store
   };
 
-  // 鍒囨崲鎴块棿鏃舵竻绌鸿緭鍏ュ尯缂栬緫鎬侊紝閬垮厤璺ㄦ埧闂翠覆杈撳叆
+  // 閸掑洦宕查幋鍧楁？閺冭埖绔荤粚楦跨翻閸忋儱灏紓鏍帆閹緤绱濋柆鍨帳鐠恒劍鍩ч梻缈犺鏉堟挸鍙?
   useEffect(() => {
     resetChatInputUi();
     resetChatComposer();
@@ -123,12 +124,12 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
   const uploadUtils = new UploadUtils();
 
-  // 鍒囨崲鎴块棿鏃舵竻绌哄紩鐢ㄦ秷鎭?/ 鎻掑叆浣嶇疆 / Thread 寮圭獥寮€鍏?
+  // 閸掑洦宕查幋鍧楁？閺冭埖绔荤粚鍝勭穿閻劍绉烽幁?/ 閹绘帒鍙嗘担宥囩枂 / Thread 瀵湱鐛ュ鈧崗?
   useLayoutEffect(() => {
     useRoomUiStore.getState().reset();
   }, [roomId]);
 
-  // 鑾峰彇鐢ㄦ埛鐨勬墍鏈夎鑹?
+  // 閼惧嘲褰囬悽銊﹀煕閻ㄥ嫭澧嶉張澶庮潡閼?
   const {
     roomAllRoles,
     roomRolesThatUserOwn,
@@ -171,23 +172,23 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     });
   }, [membersQuery.data?.data, spaceMembers]);
 
-  // 鍏ㄥ眬鐧诲綍鐢ㄦ埛瀵瑰簲鐨刴ember
+  // 閸忋劌鐪惂璇茬秿閻劍鍩涚€电懓绨查惃鍒磂mber
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
   }, [members, userId]);
 
-  // 涓?sideDrawer 鐩稿叧鐨勫壇浣滅敤杩佺Щ鍒扮嫭绔嬬粍浠?RoomSideDrawerGuards锛岄伩鍏?RoomWindow 璁㈤槄 sideDrawerState
+  // 娑?sideDrawer 閻╃鍙ч惃鍕娴ｆ粎鏁ゆ潻浣盒╅崚鎵缁斿绮嶆禒?RoomSideDrawerGuards閿涘矂浼╅崗?RoomWindow 鐠併垽妲?sideDrawerState
 
   /**
-   * 鑾峰彇鍘嗗彶娑堟伅
+   * 閼惧嘲褰囬崢鍡楀蕉濞戝牊浼?
    */
   const chatHistory = useChatHistory(roomId);
   const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
-  // Discord 椋庢牸锛氫富娑堟伅娴佷笉鍖呭惈 thread 鍥炲
+  // Discord 妞嬪孩鐗搁敍姘瘜濞戝牊浼呭ù浣风瑝閸栧懎鎯?thread 閸ョ偛顦?
   const mainHistoryMessages = useMemo(() => {
     return (historyMessages ?? []).filter((m) => {
-      // Thread Root锛?0001锛変笉鍦ㄤ富娑堟伅娴佷腑鍗曠嫭鏄剧ず锛氭敼涓烘寕鍦ㄢ€滃師娑堟伅鈥濅笅鏂圭殑鎻愮ず鏉?
+      // Thread Root閿?0001閿涘绗夐崷銊ゅ瘜濞戝牊浼呭ù浣疯厬閸楁洜瀚弰鍓с仛閿涙碍鏁兼稉鐑樺瘯閸︺劉鈧粌甯☉鍫熶紖閳ユ繀绗呴弬鍦畱閹绘劗銇氶弶?
       if (m.message.messageType === MessageType.THREAD_ROOT) {
         return false;
       }
@@ -214,13 +215,13 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     }, 50);
   }, [mainHistoryMessages]);
 
-  // 濡傛灉 URL 涓湁 targetMessageId锛岃嚜鍔ㄨ烦杞埌璇ユ秷鎭?
+  // 婵″倹鐏?URL 娑擃厽婀?targetMessageId閿涘矁鍤滈崝銊ㄧ儲鏉烆剙鍩岀拠銉︾Х閹?
   const hasScrolledToTargetRef = useRef(false);
   useEffect(() => {
     if (targetMessageId && historyMessages.length > 0 && !chatHistory?.loading && !hasScrolledToTargetRef.current) {
       const messageExists = historyMessages.some(m => m.message.messageId === targetMessageId);
       if (messageExists) {
-        // 寤惰繜涓€鐐圭‘淇?Virtuoso 宸茬粡娓叉煋瀹屾垚锛屽悓鏃堕伩鍏嶉噸澶嶅畾鏃跺櫒
+        // 瀵ゆ儼绻滄稉鈧悙鍦€樻穱?Virtuoso 瀹歌尙绮″〒鍙夌厠鐎瑰本鍨氶敍灞芥倱閺冨爼浼╅崗宥夊櫢婢跺秴鐣鹃弮璺烘珤
         if (delayTimer.current) {
           clearTimeout(delayTimer.current);
         }
@@ -239,7 +240,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     };
   }, [targetMessageId, historyMessages, chatHistory?.loading, scrollToGivenMessage]);
 
-  // WebGAL 璺宠浆鍒版寚瀹氭秷鎭紙鍏蜂綋鏄惁鍙敤浠嶇敱 isRealtimeRenderActive 鎺у埗锛?
+  // WebGAL 鐠哄疇娴嗛崚鐗堝瘹鐎规碍绉烽幁顖ょ礄閸忚渹缍嬮弰顖氭儊閸欘垳鏁ゆ禒宥囨暠 isRealtimeRenderActive 閹貉冨煑閿?
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
       roomId,
@@ -251,17 +252,17 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       spaceId,
       chatHistory,
       scrollToGivenMessage,
-      // WebGAL 璺宠浆鍔熻兘 - 鍙湁鍦ㄥ疄鏃舵覆鏌撴縺娲绘椂鎵嶅惎鐢?
+      // WebGAL 鐠哄疇娴嗛崝鐔诲厴 - 閸欘亝婀侀崷銊ョ杽閺冭埖瑕嗛弻鎾寸负濞茬粯妞傞幍宥呮儙閻?
       jumpToMessageInWebGAL: isRealtimeRenderActive ? jumpToMessageInWebGAL : undefined,
-      // WebGAL 鏇存柊娓叉煋骞惰烦杞?- 鍙湁鍦ㄥ疄鏃舵覆鏌撴縺娲绘椂鎵嶅惎鐢?
+      // WebGAL 閺囧瓨鏌婂〒鍙夌厠楠炴儼鐑︽潪?- 閸欘亝婀侀崷銊ョ杽閺冭埖瑕嗛弻鎾寸负濞茬粯妞傞幍宥呮儙閻?
       updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
-      // WebGAL 鎸夐『搴忛噸寤哄巻鍙?- 鍙湁鍦ㄥ疄鏃舵覆鏌撴縺娲绘椂鎵嶅惎鐢?
+      // WebGAL 閹稿銆庢惔蹇涘櫢瀵ゅ搫宸婚崣?- 閸欘亝婀侀崷銊ョ杽閺冭埖瑕嗛弻鎾寸负濞茬粯妞傞幍宥呮儙閻?
       rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
     };
   }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, spaceId, chatHistory, scrollToGivenMessage, isRealtimeRenderActive, jumpToMessageInWebGAL, updateAndRerenderMessageInWebGAL, rerenderHistoryInWebGAL]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
-  // 鍒ゆ柇鏄惁鏄鎴樻垚鍛?(memberType >= 3)
+  // 閸掋倖鏌囬弰顖氭儊閺勵垵顫囬幋妯诲灇閸?(memberType >= 3)
   const isSpectator = (curMember?.memberType ?? 3) >= 3;
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
@@ -278,50 +279,50 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         });
       },
     },
-    isSpectator, // 瑙傛垬鎴愬憳涓嶅彂閫佺姸鎬?
+    isSpectator, // 鐟欏倹鍨幋鎰喅娑撳秴褰傞柅浣哄Ц閹?
   });
 
   /**
-   * AI閲嶅啓锛堣櫄褰遍瑙堬級
+   * AI闁插秴鍟撻敍鍫ｆ珓瑜伴亶顣╃憴鍫礆
    */
   const llmMessageRef = useRef("");
   const isAutoCompletingRef = useRef(false);
   const hintNodeRef = useRef<HTMLSpanElement | null>(null); // Ref for the hint span itself
 
-  // AI閲嶅啓鐩稿叧鐘舵€?
-  const originalTextBeforeRewriteRef = useRef(""); // 淇濆瓨閲嶅啓鍓嶇殑鍘熸枃
+  // AI闁插秴鍟撻惄绋垮彠閻樿埖鈧?
+  const originalTextBeforeRewriteRef = useRef(""); // 娣囨繂鐡ㄩ柌宥呭晸閸撳秶娈戦崢鐔告瀮
 
   const setLLMMessage = (newLLMMessage: string) => {
     if (hintNodeRef.current) {
-      hintNodeRef.current.remove(); // 绉婚櫎鏃х殑鎻愮ず鑺傜偣
+      hintNodeRef.current.remove(); // 缁夊娅庨弮褏娈戦幓鎰仛閼哄倻鍋?
     }
     llmMessageRef.current = newLLMMessage;
 
-    // 鍒涘缓瀹瑰櫒鐢ㄤ簬鍖呭惈 AI 铏氬奖缁撴灉鍜屾彁绀鸿瘝
+    // 閸掓稑缂撶€圭懓娅掗悽銊ょ艾閸栧懎鎯?AI 閾忔艾濂栫紒鎾寸亯閸滃本褰佺粈楦跨槤
     const containerNode = document.createElement("span");
     containerNode.contentEditable = "false";
     containerNode.style.pointerEvents = "none";
 
-    // 鍒涘缓铏氬奖鏂囨湰鑺傜偣
+    // 閸掓稑缂撻搹姘閺傚洦婀伴懞鍌滃仯
     const hintNode = document.createElement("span");
     hintNode.textContent = newLLMMessage;
     hintNode.className = "opacity-60";
 
-    // 鍒涘缓鎻愮ず璇嶈妭鐐?(鍙湪鏈夊唴瀹规椂鏄剧ず)
+    // 閸掓稑缂撻幓鎰仛鐠囧秷濡悙?(閸欘亜婀張澶婂敶鐎硅妞傞弰鍓с仛)
     const tipsNode = document.createElement("span");
-    tipsNode.textContent = newLLMMessage ? " [Tab 鎺ュ彈]" : "";
+    tipsNode.textContent = newLLMMessage ? " [Tab 閹恒儱褰圿" : "";
     tipsNode.className = "opacity-40 text-xs";
     tipsNode.style.marginLeft = "4px";
 
-    // 灏嗚櫄褰辨枃鏈拰鎻愮ず璇嶆坊鍔犲埌瀹瑰櫒
+    // 鐏忓棜娅勮ぐ杈ㄦ瀮閺堫剙鎷伴幓鎰仛鐠囧秵鍧婇崝鐘插煂鐎圭懓娅?
     containerNode.appendChild(hintNode);
     if (newLLMMessage) {
       containerNode.appendChild(tipsNode);
     }
 
-    // *** 璋冪敤 ref API 鎻掑叆鑺傜偣 ***
+    // *** 鐠嬪啰鏁?ref API 閹绘帒鍙嗛懞鍌滃仯 ***
     chatInputRef.current?.insertNodeAtCursor(containerNode);
-    hintNodeRef.current = containerNode; // 淇濆瓨瀵规柊鑺傜偣鐨勫紩鐢?
+    hintNodeRef.current = containerNode; // 娣囨繂鐡ㄧ€佃鏌婇懞鍌滃仯閻ㄥ嫬绱╅悽?
 
     const handleInput = () => {
       containerNode.remove();
@@ -329,7 +330,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       isAutoCompletingRef.current = false;
       hintNodeRef.current = null;
     };
-    // *** 鐩戝惉瀛愮粍浠剁殑鍘熷鍏冪礌 ***
+    // *** 閻╂垵鎯夌€涙劗绮嶆禒鍓佹畱閸樼喎顫愰崗鍐 ***
     chatInputRef.current?.getRawElement()?.addEventListener("input", handleInput);
   };
 
@@ -337,38 +338,38 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     if (!chatInputRef.current)
       return;
 
-    // 绉婚櫎鎻愮ず span
+    // 缁夊娅庨幓鎰仛 span
     if (hintNodeRef.current) {
       hintNodeRef.current.remove();
       hintNodeRef.current = null;
     }
 
-    // 妫€鏌ユ槸鍚︽槸閲嶅啓妯″紡锛堟湁鍘熸枃淇濆瓨锛?
+    // 濡偓閺屻儲妲搁崥锔芥Ц闁插秴鍟撳Ο鈥崇础閿涘牊婀侀崢鐔告瀮娣囨繂鐡ㄩ敍?
     if (originalTextBeforeRewriteRef.current) {
-      // 閲嶅啓妯″紡锛氱洿鎺ヨ缃负閲嶅啓鍚庣殑鏂囨湰
-      const rewriteText = llmMessageRef.current.replace(/\u200B/g, ""); // 绉婚櫎闆跺瀛楃
+      // 闁插秴鍟撳Ο鈥崇础閿涙氨娲块幒銉啎缂冾喕璐熼柌宥呭晸閸氬海娈戦弬鍥ㄦ拱
+      const rewriteText = llmMessageRef.current.replace(/\u200B/g, ""); // 缁夊娅庨梿璺侯啍鐎涙顑?
       setInputText(rewriteText);
-      // 鍚屾鏇存柊 DOM
+      // 閸氬本顒為弴瀛樻煀 DOM
       if (chatInputRef.current?.getRawElement()) {
         chatInputRef.current.getRawElement()!.textContent = rewriteText;
       }
-      originalTextBeforeRewriteRef.current = ""; // 娓呯┖鍘熸枃璁板綍
+      originalTextBeforeRewriteRef.current = ""; // 濞撳懐鈹栭崢鐔告瀮鐠佹澘缍?
       toast.success("已接受重写");
     }
     else {
-      // 鐞嗚涓婁笉浼氳繘鍏ワ細褰撳墠浠呬繚鐣欓噸鍐欒櫄褰憋紝浣嗕负瀹夊叏璧疯浠嶆敮鎸佹彃鍏?
+      // 閻炲棜顔戞稉濠佺瑝娴兼俺绻橀崗銉窗瑜版挸澧犳禒鍛箽閻ｆ瑩鍣搁崘娆掓珓瑜版唻绱濇担鍡曡礋鐎瑰鍙忕挧鐤潌娴犲秵鏁幐浣瑰絻閸?
       chatInputRef.current.insertNodeAtCursor(llmMessageRef.current, { moveCursorToEnd: true });
     }
 
-    setLLMMessage(""); // 娓呯┖铏氬奖鐘舵€?
-    chatInputRef.current.triggerSync(); // 鎵嬪姩瑙﹀彂鍚屾锛屾洿鏂?store
+    setLLMMessage(""); // 濞撳懐鈹栭搹姘閻樿埖鈧?
+    chatInputRef.current.triggerSync(); // 閹靛濮╃憴锕€褰傞崥灞绢劄閿涘本娲块弬?store
   };
 
-  // AI閲嶅啓锛氭樉绀轰负铏氬奖棰勮
+  // AI闁插秴鍟撻敍姘▔缁€杞拌礋閾忔艾濂栨０鍕潔
   const handleQuickRewrite = async (prompt: string) => {
     const currentPlainText = useChatInputUiStore.getState().plainText;
     if (!currentPlainText.trim()) {
-      toast.error("璇峰厛杈撳叆鍐呭");
+      toast.error("?????");
       return;
     }
 
@@ -378,22 +379,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
     isAutoCompletingRef.current = true;
 
-    // 濡傛灉宸叉湁铏氬奖锛屽厛娓呴櫎
+    // 婵″倹鐏夊鍙夋箒閾忔艾濂栭敍灞藉帥濞撳懘娅?
     if (llmMessageRef.current) {
       setLLMMessage("");
     }
 
-    originalTextBeforeRewriteRef.current = currentPlainText; // 淇濆瓨鍘熸枃
+    originalTextBeforeRewriteRef.current = currentPlainText; // 娣囨繂鐡ㄩ崢鐔告瀮
 
     try {
-      const fullPrompt = `${prompt}\n\n璇锋牴鎹笂杩拌姹傞噸鍐欎互涓嬫枃鏈細\n${currentPlainText}`;
+      const fullPrompt = `${prompt}\n\n鐠囬攱鐗撮幑顔荤瑐鏉╂媽顩﹀Ч鍌炲櫢閸愭瑤浜掓稉瀣瀮閺堫剨绱癨n${currentPlainText}`;
 
-      // 娓呯┖杈撳叆妗嗭紝鎻掑叆闆跺瀛楃浣滀负閿氱偣
+      // 濞撳懐鈹栨潏鎾冲弳濡楀棴绱濋幓鎺戝弳闂嗚泛顔旂€涙顑佹担婊€璐熼柨姘卞仯
       const rawElement = chatInputRef.current?.getRawElement();
       if (rawElement) {
-        rawElement.textContent = "\u200B"; // 闆跺绌烘牸
+        rawElement.textContent = "\u200B"; // 闂嗚泛顔旂粚鐑樼壐
         rawElement.focus();
-        // 鍏夋爣绉诲埌鏈熬
+        // 閸忓鐖ｇ粔璇插煂閺堫偄鐔?
         const range = document.createRange();
         const selection = window.getSelection();
         range.selectNodeContents(rawElement);
@@ -404,20 +405,20 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       setInputText("\u200B");
 
       await sendLlmStreamMessage(fullPrompt, (newContent) => {
-        // 鍏堟竻闄ら浂瀹藉瓧绗?
+        // 閸忓牊绔婚梽銈夋祩鐎硅棄鐡х粭?
         if (rawElement && rawElement.textContent === "\u200B") {
           rawElement.textContent = "";
         }
-        // 鏄剧ず涓鸿櫄褰?
+        // 閺勫墽銇氭稉楦挎珓瑜?
         setLLMMessage(newContent);
         return true;
       });
 
-      toast.success("閲嶅啓瀹屾垚锛屾寜 Tab 鎺ュ彈鎴?Esc 鍙栨秷");
+      toast.success("??????? Tab ???Esc ??");
     }
     catch (error) {
-      toast.error(`AI閲嶅啓澶辫触: ${error}`);
-      // 鎭㈠鍘熸枃
+      toast.error(`AI闁插秴鍟撴径杈Е: ${error}`);
+      // 閹垹顦查崢鐔告瀮
       setInputText(originalTextBeforeRewriteRef.current);
       originalTextBeforeRewriteRef.current = "";
     }
@@ -427,27 +428,27 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   };
 
   /**
-   *澶勭悊涓庣粍浠剁殑鍚勭浜や簰
+   *婢跺嫮鎮婃稉搴ｇ矋娴犲墎娈戦崥鍕潚娴溿倓绨?
    */
   const handleSelectCommand = (cmdName: string) => {
-    const prefixChar = useChatInputUiStore.getState().plainText[0] || "."; // 榛樿涓?.
+    const prefixChar = useChatInputUiStore.getState().plainText[0] || "."; // 姒涙顓绘稉?.
     setInputText(`${prefixChar}${cmdName} `);
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 娌℃湁鏉冮檺
+  const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 濞屸剝婀侀弶鍐
   const noRole = curRoleId <= 0;
 
   const containsCommandRequestAllToken = useCallback((text: string) => {
     const raw = String(text ?? "");
-    return /@all\b/i.test(raw) || raw.includes("@全员") || raw.includes("@指定请求");
+    return /@all\b/i.test(raw) || raw.includes("@鍏ㄥ憳") || raw.includes("@鎸囧畾璇锋眰");
   }, []);
 
   const stripCommandRequestAllToken = useCallback((text: string) => {
     return String(text ?? "")
       .replace(/@all\b/gi, " ")
-      .replace(/@全员/g, " ")
-      .replace(/@指定请求/g, " ")
+      .replace(/@鍏ㄥ憳/g, " ")
+      .replace(/@鎸囧畾璇锋眰/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   }, []);
@@ -460,7 +461,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     if (isCommand(trimmed)) {
       return trimmed;
     }
-    const match = trimmed.match(/[.銆?][A-Z][^\n]*/i);
+    const match = trimmed.match(/[.閵?][A-Z][^\n]*/i);
     if (!match) {
       return null;
     }
@@ -472,21 +473,21 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     const { command, threadId, requestMessageId } = payload;
     const rawCommand = String(command ?? "").trim();
     if (!rawCommand) {
-      toast.error("鎸囦护涓虹┖");
+      toast.error("閹稿洣鎶ゆ稉铏光敄");
       return;
     }
 
     const isKP = spaceContext.isSpaceOwner;
     if (notMember) {
-      toast.error("您是观战，不能发送消息");
+      toast.error("???????????");
       return;
     }
     if (noRole && !isKP) {
-      toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
+      toast.error("??? KP ??????????????");
       return;
     }
     if (isSubmitting) {
-      toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
+      toast.error("濮濓絽婀崣鎴︹偓浣疯厬閿涘矁顕粙宥囩搼");
       return;
     }
 
@@ -499,46 +500,46 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [commandExecutor, isSubmitting, noRole, notMember, spaceContext.isSpaceOwner]);
 
   /**
-   * 鍙戦€佹秷鎭殑杈呭姪鍑芥暟
-   * 濡傛灉璁剧疆浜?insertAfterMessageId锛屽垯浣跨敤 HTTP API 鍙戦€佸苟鏇存柊 position
-   * 鍚﹀垯浣跨敤 WebSocket 鍙戦€?
+   * 閸欐垿鈧焦绉烽幁顖滄畱鏉堝懎濮崙鑺ユ殶
+   * 婵″倹鐏夌拋鍓х枂娴?insertAfterMessageId閿涘苯鍨担璺ㄦ暏 HTTP API 閸欐垿鈧礁鑻熼弴瀛樻煀 position
+   * 閸氾箑鍨担璺ㄦ暏 WebSocket 閸欐垿鈧?
    */
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
     const insertAfterMessageId = useRoomUiStore.getState().insertAfterMessageId;
 
     if (insertAfterMessageId && mainHistoryMessages) {
-      // 鎵惧埌鐩爣娑堟伅鐨勭储寮?
+      // 閹垫儳鍩岄惄顔界垼濞戝牊浼呴惃鍕偍瀵?
       const targetIndex = mainHistoryMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
       if (targetIndex === -1) {
-        // 濡傛灉鎵句笉鍒扮洰鏍囨秷鎭紝闄嶇骇涓烘櫘閫氬彂閫?
+        // 婵″倹鐏夐幍鍙ョ瑝閸掓壆娲伴弽鍥ㄧХ閹垽绱濋梽宥囬獓娑撶儤娅橀柅姘絺闁?
         send(message);
         return;
       }
 
       try {
-        // 浣跨敤 HTTP API 鍙戦€佹秷鎭?
+        // 娴ｈ法鏁?HTTP API 閸欐垿鈧焦绉烽幁?
         const result = await sendMessageMutation.mutateAsync(message);
         if (!result.success || !result.data) {
-          toast.error("发送消息失败");
+          toast.error("??????");
           return;
         }
 
         const newMessage = result.data;
 
-        // 璁＄畻鏂版秷鎭殑 position
+        // 鐠侊紕鐣婚弬鐗堢Х閹垳娈?position
         const targetMessage = mainHistoryMessages[targetIndex];
         const nextMessage = mainHistoryMessages[targetIndex + 1];
         const targetPosition = targetMessage.message.position;
         const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
         const newPosition = (targetPosition + nextPosition) / 2;
 
-        // 鏇存柊娑堟伅鐨?position
+        // 閺囧瓨鏌婂☉鍫熶紖閻?position
         await updateMessageMutation.mutateAsync({
           ...newMessage,
           position: newPosition,
         });
 
-        // 鎵嬪姩鏇存柊鏈湴缂撳瓨锛堟瀯寤?ChatMessageResponse 鏍煎紡锛?
+        // 閹靛濮╅弴瀛樻煀閺堫剙婀寸紓鎾崇摠閿涘牊鐎?ChatMessageResponse 閺嶇厧绱￠敍?
         if (chatHistory) {
           const updatedMessage: ChatMessageResponse = {
             message: {
@@ -550,12 +551,12 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         }
       }
       catch (error) {
-        console.error("鎻掑叆娑堟伅澶辫触:", error);
-        toast.error("鎻掑叆娑堟伅澶辫触");
+        console.error("閹绘帒鍙嗗☉鍫熶紖婢惰精瑙?", error);
+        toast.error("??????");
       }
     }
     else {
-      // 鏅€氬彂閫?
+      // 閺咁噣鈧艾褰傞柅?
       send(message);
     }
   }, [mainHistoryMessages, send, sendMessageMutation, updateMessageMutation, chatHistory]);
@@ -570,24 +571,24 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     const isNarrator = curRoleId <= 0;
 
     if (notMember) {
-      toast.error("您是观战，不能发送消息");
+      toast.error("???????????");
       return;
     }
     if (isNarrator && !isKP) {
-      toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
+      toast.error("??? KP ??????????????");
       return;
     }
     if (isSubmitting || webgalVarSendingRef.current) {
-      toast.error("姝ｅ湪璁剧疆鍙橀噺锛岃绋嶇瓑");
+      toast.error("?????????");
       return;
     }
 
     if (!rawKey || !rawExpr) {
-      toast.error("变量名或表达式不能为空");
+      toast.error("???????????");
       return;
     }
     if (!/^[A-Z_]\w*$/i.test(rawKey)) {
-      toast.error("鍙橀噺鍚嶆牸寮忎笉姝ｇ‘");
+      toast.error("????????");
       return;
     }
 
@@ -613,7 +614,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         },
       };
 
-      // 鍙戦€佸尯鑷畾涔夎鑹插悕锛堜笌鑱斿姩妯″紡鏃犲叧锛?
+      // 閸欐垿鈧礁灏懛顏勭暰娑斿顫楅懝鎻掓倳閿涘牅绗岄懕鏂垮З濡€崇础閺冪姴鍙ч敍?
       const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
       if (draftCustomRoleName?.trim()) {
         varMsg.webgal = {
@@ -624,7 +625,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
       await sendMessageWithInsert(varMsg);
 
-      // 绌洪棿绾ф寔涔呭寲锛氬啓鍏?space.extra 鐨?webgalVars锛堝悗绔互 key/value 瀛樺偍锛?
+      // 缁屾椽妫跨痪褎瀵旀稊鍛閿涙艾鍟撻崗?space.extra 閻?webgalVars閿涘牆鎮楃粩顖欎簰 key/value 鐎涙ê鍋嶉敍?
       try {
         const rawExtra = space?.extra || "{}";
         let parsedExtra: Record<string, any> = {};
@@ -665,8 +666,8 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         });
       }
       catch (error) {
-        console.error("鍐欏叆 space.extra.webgalVars 澶辫触:", error);
-        toast.error("鍙橀噺宸插彂閫侊紝浣嗗啓鍏ョ┖闂存寔涔呭寲澶辫触");
+        console.error("閸愭瑥鍙?space.extra.webgalVars 婢惰精瑙?", error);
+        toast.error("閸欐﹢鍣哄鎻掑絺闁緤绱濇担鍡楀晸閸忋儳鈹栭梻瀛樺瘮娑斿懎瀵叉径杈Е");
       }
     }
     finally {
@@ -708,23 +709,23 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     const isKP = spaceContext.isSpaceOwner;
     const isNarrator = noRole;
 
-    // 鏃佺櫧涓嶅啀渚濊禆鑱斿姩妯″紡锛屼絾浠匥P鍙敤
+    // 閺冧胶娅ф稉宥呭晙娓氭繆绂嗛懕鏂垮З濡€崇础閿涘奔绲炬禒鍖閸欘垳鏁?
     const disableSendMessage = (notMember || noInput || isSubmitting)
       || (isNarrator && !isKP);
 
     if (disableSendMessage) {
       if (notMember)
-        toast.error("您是观战，不能发送消息");
+        toast.error("???????????");
       else if (isNarrator && !isKP)
-        toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
+        toast.error("??? KP ??????????????");
       else if (noInput)
-        toast.error("请输入内容");
+        toast.error("?????");
       else if (isSubmitting)
-        toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
+        toast.error("濮濓絽婀崣鎴︹偓浣疯厬閿涘矁顕粙宥囩搼");
       return;
     }
     if (inputText.length > 1024) {
-      toast.error("输入内容过长，最长不超过 1024 个字符");
+      toast.error("???????????? 1024 ???");
       return;
     }
 
@@ -733,7 +734,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       const uploadedImages: any[] = [];
       const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
-      // 1. 涓婁紶鍥剧墖
+      // 1. 娑撳﹣绱堕崶鍓у
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         const { width, height, size } = await getImageSize(imgFiles[i]);
@@ -741,22 +742,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
       }
       setImgFiles([]);
 
-      // 2. 涓婁紶琛ㄦ儏 (瑙嗕负鍥剧墖)
+      // 2. 娑撳﹣绱剁悰銊﹀剰 (鐟欏棔璐熼崶鍓у)
       for (let i = 0; i < emojiUrls.length; i++) {
         const { width, height, size } = await getImageSize(emojiUrls[i]);
         uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
       }
       setEmojiUrls([]);
 
-      // 3. 涓婁紶璇煶
+      // 3. 娑撳﹣绱剁拠顓㈢叾
       let soundMessageData: any = null;
       if (audioFile) {
-        // 0 琛ㄧず涓嶆埅鏂紙涓嶅啀寮哄埗 60s 闄愬埗锛?
+        // 0 鐞涖劎銇氭稉宥嗗焻閺傤叏绱欐稉宥呭晙瀵搫鍩?60s 闂勬劕鍩楅敍?
         const maxAudioDurationSec = 0;
         const objectUrl = URL.createObjectURL(audioFile);
         const debugEnabled = isAudioUploadDebugEnabled();
         const debugPrefix = "[tc-audio-upload]";
-        const audioToastId = toast.loading("音频处理中（转码/上传中）...");
+        const audioToastId = toast.loading("闊抽澶勭悊涓紙杞爜/涓婁紶涓級...");
 
         if (debugEnabled) {
           console.warn(`${debugPrefix} roomWindow send audio`, {
@@ -831,7 +832,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         }
       }
 
-      // 4. 鏋勫缓骞跺彂閫佹秷鎭?
+      // 4. 閺嬪嫬缂撻獮璺哄絺闁焦绉烽幁?
       const finalReplyId = useRoomUiStore.getState().replyMessage?.messageId || undefined;
       let isFirstMessage = true;
 
@@ -842,13 +843,13 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
           avatarId: resolvedAvatarId,
         };
 
-        // Thread 妯″紡锛氱粰鏈鍙戦€佺殑娑堟伅鎸備笂 threadId锛坮oot messageId锛?
+        // Thread 濡€崇础閿涙氨绮伴張顒侇偧閸欐垿鈧胶娈戝☉鍫熶紖閹稿倷绗?threadId閿涘澁oot messageId閿?
         const { threadRootMessageId: activeThreadRootId, composerTarget } = useRoomUiStore.getState();
         if (composerTarget === "thread" && activeThreadRootId) {
           fields.threadId = activeThreadRootId;
         }
 
-        // 鍙戦€佸尯鑷畾涔夎鑹插悕锛堜笌鑱斿姩妯″紡鏃犲叧锛?
+        // 閸欐垿鈧礁灏懛顏勭暰娑斿顫楅懝鎻掓倳閿涘牅绗岄懕鏂垮З濡€崇础閺冪姴鍙ч敍?
         const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
         if (draftCustomRoleName?.trim()) {
           fields.webgal = {
@@ -880,14 +881,14 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
       let textContent = inputText.trim();
 
-      // WebGAL 绌洪棿鍙橀噺鎸囦护锛?var set a=1
+      // WebGAL 缁屾椽妫块崣姗€鍣洪幐鍥︽姢閿?var set a=1
       const trimmedWithoutMentions = inputTextWithoutMentions.trim();
       const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
       const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
 
-      // 濡傛灉鐢ㄦ埛杈撳叆浜?/var 鍓嶇紑浣嗘牸寮忎笉姝ｇ‘锛氫笉浜ょ粰楠板鍛戒护绯荤粺澶勭悊锛岀洿鎺ユ彁绀?
+      // 婵″倹鐏夐悽銊﹀煕鏉堟挸鍙嗘禍?/var 閸撳秶绱戞担鍡樼壐瀵繋绗夊锝団€橀敍姘瑝娴溿倗绮版鏉款灳閸涙垝鎶ょ化鑽ょ埠婢跺嫮鎮婇敍宀€娲块幒銉﹀絹缁€?
       if (isWebgalVarCommandPrefix && !webgalVarPayload) {
-        toast.error("鍙橀噺鎸囦护鏍煎紡锛?var set a=1");
+        toast.error("閸欐﹢鍣洪幐鍥︽姢閺嶇厧绱￠敍?var set a=1");
         return;
       }
 
@@ -911,7 +912,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
         await sendMessageWithInsert(requestMsg);
 
-        // 娑堣€楁帀 firstMessage 鐘舵€侊紝骞堕槻姝㈠悗缁啀娆′綔涓烘枃鏈彂閫?
+        // 濞戝牐鈧甯€ firstMessage 閻樿埖鈧緤绱濋獮鍫曟Щ濮濄垹鎮楃紒顓炲晙濞嗏€茬稊娑撶儤鏋冮張顒€褰傞柅?
         isFirstMessage = false;
         textContent = "";
       }
@@ -927,7 +928,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
 
         await sendMessageWithInsert(varMsg);
 
-        // 绌洪棿绾ф寔涔呭寲锛氬啓鍏?space.extra 鐨?webgalVars锛堝悗绔互 key/value 瀛樺偍锛?
+        // 缁屾椽妫跨痪褎瀵旀稊鍛閿涙艾鍟撻崗?space.extra 閻?webgalVars閿涘牆鎮楃粩顖欎簰 key/value 鐎涙ê鍋嶉敍?
         try {
           const rawExtra = space?.extra || "{}";
           let parsedExtra: Record<string, any> = {};
@@ -968,22 +969,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
           });
         }
         catch (error) {
-          console.error("鍐欏叆 space.extra.webgalVars 澶辫触:", error);
-          toast.error("鍙橀噺宸插彂閫侊紝浣嗗啓鍏ョ┖闂存寔涔呭寲澶辫触");
+          console.error("閸愭瑥鍙?space.extra.webgalVars 婢惰精瑙?", error);
+          toast.error("閸欐﹢鍣哄鎻掑絺闁緤绱濇担鍡楀晸閸忋儳鈹栭梻瀛樺瘮娑斿懎瀵叉径杈Е");
         }
 
-        // 娑堣€楁帀 firstMessage 鐘舵€侊紝骞堕槻姝㈠悗缁啀娆′綔涓烘枃鏈彂閫?
+        // 濞戝牐鈧甯€ firstMessage 閻樿埖鈧緤绱濋獮鍫曟Щ濮濄垹鎮楃紒顓炲晙濞嗏€茬稊娑撶儤鏋冮張顒€褰傞柅?
         isFirstMessage = false;
         textContent = "";
       }
       else if (textContent && isCommand(textContent)) {
         commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
-        // 鎸囦护鎵ц涔熻瑙嗕负涓€娆?鍙戦€?锛屾秷鑰楁帀 firstMessage 鐘舵€?
+        // 閹稿洣鎶ら幍褑顢戞稊鐔活潶鐟欏棔璐熸稉鈧▎?閸欐垿鈧?閿涘本绉烽懓妤佸竴 firstMessage 閻樿埖鈧?
         isFirstMessage = false;
         textContent = "";
       }
 
-      // B. 鍙戦€佸浘鐗?
+      // B. 閸欐垿鈧礁娴橀悧?
       for (const img of uploadedImages) {
         const imgMsg: ChatMessageRequest = {
           ...getCommonFields() as any,
@@ -1002,7 +1003,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         textContent = "";
       }
 
-      // C. 鍙戦€侀煶棰?
+      // C. 閸欐垿鈧線鐓舵０?
       if (soundMessageData) {
         const audioMsg: ChatMessageRequest = {
           ...getCommonFields() as any,
@@ -1017,16 +1018,16 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         textContent = "";
       }
 
-      // A. 鍙戦€佹枃鏈?(濡傛灉鍓嶉潰娌℃湁琚浘鐗囨垨璇煶娑堣€楁帀)
+      // A. 閸欐垿鈧焦鏋冮張?(婵″倹鐏夐崜宥夋桨濞屸剝婀佺悮顐㈡禈閻楀洦鍨ㄧ拠顓㈢叾濞戝牐鈧甯€)
       if (textContent) {
-        // WebGAL 鎸囦护娑堟伅锛氳緭鍏ヤ互 % 寮€澶存椂锛岃浆涓烘樉寮忕殑 WEBGAL_COMMAND 绫诲瀷銆?
-        // 娉ㄦ剰锛氳繖閲屾槸鈥滃彂閫佷晶鍗忚杞崲鈥濓紝娓叉煋渚т笉鍐嶄緷璧?% 鍓嶇紑銆?
+        // WebGAL 閹稿洣鎶ゅ☉鍫熶紖閿涙俺绶崗銉や簰 % 瀵偓婢跺瓨妞傞敍宀冩祮娑撶儤妯夊蹇曟畱 WEBGAL_COMMAND 缁鐎烽妴?
+        // 濞夈劍鍓伴敍姘崇箹闁插本妲搁垾婊冨絺闁椒鏅堕崡蹇氼唴鏉烆剚宕查垾婵撶礉濞撳弶鐓嬫笟褌绗夐崘宥勭贩鐠?% 閸撳秶绱戦妴?
         const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
         const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
         const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
 
         if (isWebgalCommandInput && !normalizedContent) {
-          toast.error("WebGAL 鎸囦护涓嶈兘涓虹┖");
+          toast.error("WebGAL ??????");
         }
         else {
           const textMsg: ChatMessageRequest = {
@@ -1039,11 +1040,11 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         }
       }
 
-      setInputText(""); // 璋冪敤閲嶆瀯鐨?setInputText 鏉ユ竻绌?
+      setInputText(""); // 鐠嬪啰鏁ら柌宥嗙€惃?setInputText 閺夈儲绔荤粚?
       useRoomUiStore.getState().setReplyMessage(undefined);
       setSendAsBackground(false);
       setAudioPurpose(undefined);
-      useRoomUiStore.getState().setInsertAfterMessageId(undefined); // 娓呴櫎鎻掑叆浣嶇疆
+      useRoomUiStore.getState().setInsertAfterMessageId(undefined); // 濞撳懘娅庨幓鎺戝弳娴ｅ秶鐤?
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -1058,15 +1059,15 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     onProgress?: (sent: number, total: number) => void,
   ) => {
     if (notMember) {
-      toast.error("您是观战，不能发送消息");
+      toast.error("???????????");
       return;
     }
     if (isSubmitting) {
-      toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
+      toast.error("濮濓絽婀崣鎴︹偓浣疯厬閿涘矁顕粙宥囩搼");
       return;
     }
     if (!messages.length) {
-      toast.error("娌℃湁鍙鍏ョ殑鏈夋晥娑堟伅");
+      toast.error("????????");
       return;
     }
 
@@ -1132,7 +1133,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         let extra: any = {};
         const figurePosition = msg.figurePosition;
 
-        // 鏂囨湰瀵煎叆锛氳嫢鍙戣█浜烘槧灏勪负鈥滈濞樷€濓紝鍒欎娇鐢ㄩ濞樿鑹插彂閫侊紝骞舵寜 DICE(6) 绫诲瀷鏋勯€犳秷鎭?extra銆?
+        // 閺傚洦婀扮€电厧鍙嗛敍姘冲閸欐垼鈻堟禍鐑樻Ё鐏忓嫪璐熼垾婊堫€忔繛妯封偓婵撶礉閸掓瑤濞囬悽銊╊€忔繛妯款潡閼规彃褰傞柅渚婄礉楠炶埖瀵?DICE(6) 缁鐎烽弸鍕偓鐘崇Х閹?extra閵?
         if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
           await ensureDicerSender();
           roleId = dicerRoleId ?? roleId;
@@ -1199,7 +1200,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     }
   }, [ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomContext, roomId, sendMessageWithInsert]);
 
-  // 绾跨储娑堟伅鍙戦€?
+  // 缁捐法鍌ㄥ☉鍫熶紖閸欐垿鈧?
   const handleClueSend = async (clue: ClueMessage) => {
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
     const clueMessage: ChatMessageRequest = {
@@ -1220,22 +1221,22 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   const handleSendDocCard = useCallback(async (payload: DocRefDragPayload) => {
     const docId = String(payload?.docId ?? "").trim();
     if (!docId) {
-      toast.error("鏈娴嬪埌鍙敤鏂囨。");
+      toast.error("?????");
       return;
     }
 
     if (!parseDescriptionDocId(docId)) {
-      toast.error("仅支持发送空间文档（我的文档/描述文档）");
+      toast.error("??????????????/?????");
       return;
     }
 
     if (!spaceId || spaceId <= 0) {
-      toast.error("当前不在空间中，无法发送文档");
+      toast.error("??????????????");
       return;
     }
 
     if (payload?.spaceId && payload.spaceId !== spaceId) {
-      toast.error("浠呮敮鎸佸湪鍚屼竴绌洪棿鍒嗕韩鏂囨。");
+      toast.error("?????????");
       return;
     }
 
@@ -1243,15 +1244,15 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     const isNarrator = curRoleId <= 0;
 
     if (notMember) {
-      toast.error("您是观战，不能发送消息");
+      toast.error("???????????");
       return;
     }
     if (isNarrator && !isKP) {
-      toast.error("鏃佺櫧浠匥P鍙敤锛岃鍏堥€夋嫨/鎷夊叆浣犵殑瑙掕壊");
+      toast.error("??? KP ??????????????");
       return;
     }
     if (isSubmitting) {
-      toast.error("姝ｅ湪鍙戦€佷腑锛岃绋嶇瓑");
+      toast.error("濮濓絽婀崣鎴︹偓浣疯厬閿涘矁顕粙宥囩搼");
       return;
     }
 
@@ -1302,114 +1303,65 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     await sendMessageWithInsert(request);
   }, [curRoleId, ensureRuntimeAvatarIdForRole, isSubmitting, notMember, roomId, sendMessageWithInsert, spaceContext.isSpaceOwner, spaceId]);
 
-  // *** 鏂板: onPasteFiles 鐨勫洖璋冨鐞嗗櫒 ***
-  const handlePasteFiles = (files: File[]) => {
-    useChatComposerStore.getState().updateImgFiles((draft) => {
-      draft.push(...files);
-    });
-  };
-
-  const isComposingRef = useRef(false);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // 妫€鏌?@ 鎺у埗鍣ㄦ槸鍚︽墦寮€骞朵笖鏄惁澶勭悊浜嗚繖涓簨浠?
-    const isAtOpen = atMentionRef.current?.isDialogOpen() ?? false;
-    if (isAtOpen) {
-      const handled = atMentionRef.current?.onKeyDown(e) ?? false;
-      if (handled) {
-        return; // 浜嬩欢宸茶 @ 鎺у埗鍣ㄦ秷鑰楋紙渚嬪绠ご瀵艰埅锛?
-      }
-    }
-
-    // Esc 閿細鍙栨秷閲嶅啓锛屾仮澶嶅師鏂?
-    if (e.key === "Escape" && originalTextBeforeRewriteRef.current) {
-      e.preventDefault();
-      setInputText(originalTextBeforeRewriteRef.current);
-      originalTextBeforeRewriteRef.current = "";
-      setLLMMessage("");
-      toast("已取消重写");
-      return;
-    }
-
-    // 濡傛灉 @ 鎺у埗鍣ㄦ湭澶勭悊锛屽垯缁х画鎵ц鍘熷閫昏緫
-    if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
-      e.preventDefault();
-      handleMessageSubmit();
-    }
-    else if (e.key === "Tab") {
-      e.preventDefault();
-      // 1) 鑻ュ凡鏈?AI 铏氬奖缁撴灉锛孴ab 鐩存帴鎺ュ彈
-      if (llmMessageRef.current) {
-        insertLLMMessageIntoText();
-        return;
-      }
-
-      // 2) 鍚﹀垯 Tab 瑙﹀彂 AI 閲嶅啓锛堜娇鐢ㄦ湰鍦颁繚瀛樼殑鎻愮ず璇嶏級
-      const prompt = localStorage.getItem("ai-rewrite-prompt") || "请优化这段文字的表达，使其更加清晰流畅";
-      handleQuickRewrite(prompt);
-    }
-  };
-
-  const handleKeyUp = (e: React.KeyboardEvent) => {
-    // 鎬绘槸閫氱煡 @ 鎺у埗鍣ㄥ叧浜?keyup 浜嬩欢
-    atMentionRef.current?.onKeyUp(e);
-
-    // 蹇嵎閿樆姝?(鐖剁粍浠堕€昏緫)
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
-        case "b": case "i": case "u":
-          e.preventDefault();
-          break;
-      }
-    }
-  };
-
-  function handleMouseDown(e: React.MouseEvent) {
-    // 妫€鏌?@ 鎺у埗鍣ㄦ槸鍚﹀鐞嗕簡 mousedown锛堜互闃叉澶辩劍锛?
-    atMentionRef.current?.onMouseDown(e);
-  }
-
+  // *** 閺傛澘顤? onPasteFiles 閻ㄥ嫬娲栫拫鍐槱閻炲棗娅?***
+  const {
+    handlePasteFiles,
+    handleKeyDown,
+    handleKeyUp,
+    handleMouseDown,
+    onCompositionStart,
+    onCompositionEnd,
+  } = useChatInputHandlers({
+    atMentionRef,
+    handleMessageSubmit,
+    handleQuickRewrite,
+    insertLLMMessageIntoText,
+    llmMessageRef,
+    originalTextBeforeRewriteRef,
+    setInputText,
+    setLLMMessage,
+  });
   const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
   const addRoleMutation = useAddRoomRoleMutation();
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
-      onSettled: () => { toast("娣诲姞瑙掕壊鎴愬姛"); },
+      onSettled: () => { toast("?????????"); },
     });
   };
 
-  // *** 鍑嗗 props ***
+  // *** 閸戝棗顦?props ***
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const placeholderText = (() => {
     const isKP = spaceContext.isSpaceOwner;
     if (notMember) {
-      return "你是观战成员，不能发送消息";
+      return "?????????????";
     }
     if (noRole && !isKP) {
-      return "请先拉入你的角色，之后才能发送消息";
+      return "?????????????????";
     }
     if (noRole && isKP) {
-      return "旁白模式：在此输入消息...(shift+enter 换行，tab 触发 AI 重写，上方按钮可修改重写提示词)";
+      return "鏃佺櫧妯″紡锛氬湪姝よ緭鍏ユ秷鎭?..(shift+enter 鎹㈣锛宼ab 瑙﹀彂 AI 閲嶅啓锛屼笂鏂规寜閽彲淇敼閲嶅啓鎻愮ず璇?";
     }
     if (curAvatarId <= 0) {
-      return "请为你的角色添加至少一个表情差分（头像）";
+      return "???????????...(shift+enter ???tab ?? AI ???????????????)";
     }
     if (threadRootMessageId && composerTarget === "thread") {
-      return "在 Thread 中回复...(shift+enter 换行，tab 触发 AI 重写，上方按钮可修改重写提示词)";
+      return "鍦?Thread 涓洖澶?..(shift+enter 鎹㈣锛宼ab 瑙﹀彂 AI 閲嶅啓锛屼笂鏂规寜閽彲淇敼閲嶅啓鎻愮ず璇?";
     }
-    return "输入消息...(shift+enter 换行，tab 触发 AI 重写，上方按钮可修改重写提示词)";
+    return "杈撳叆娑堟伅...(shift+enter 鎹㈣锛宼ab 瑙﹀彂 AI 閲嶅啓锛屼笂鏂规寜閽彲淇敼閲嶅啓鎻愮ず璇?";
   })();
 
   const handleSendEffect = useCallback((effectName: string) => {
-    // 鐗规晥娑堟伅涓嶉渶瑕佽鑹蹭俊鎭紝绫讳技鏃佺櫧
-    // 娉ㄦ剰锛歟xtra 搴旇鐩存帴鏄?EffectMessage 瀵硅薄锛屽悗绔細鑷姩鍖呰鍒?MessageExtra 涓?
+    // 閻楄鏅ュ☉鍫熶紖娑撳秹娓剁憰浣筋潡閼硅弓淇婇幁顖ょ礉缁鎶€閺冧胶娅?
+    // 濞夈劍鍓伴敍姝焫tra 鎼存棁顕氶惄瀛樺复閺?EffectMessage 鐎电钖勯敍灞芥倵缁旑垯绱伴懛顏勫З閸栧懓顥婇崚?MessageExtra 娑?
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: `[鐗规晥: ${effectName}]`,
+      content: `[閻楄鏅? ${effectName}]`,
       messageType: MessageType.EFFECT,
       extra: {
         effectName,
@@ -1418,52 +1370,52 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   }, [roomId, send]);
 
   const handleClearBackground = useCallback(() => {
-    // 娓呴櫎鑳屾櫙涓嶉渶瑕佽鑹蹭俊鎭紝绫讳技鏃佺櫧
-    // 娉ㄦ剰锛歟xtra 搴旇鐩存帴鏄?EffectMessage 瀵硅薄锛屽悗绔細鑷姩鍖呰鍒?MessageExtra 涓?
+    // 濞撳懘娅庨懗灞炬珯娑撳秹娓剁憰浣筋潡閼硅弓淇婇幁顖ょ礉缁鎶€閺冧胶娅?
+    // 濞夈劍鍓伴敍姝焫tra 鎼存棁顕氶惄瀛樺复閺?EffectMessage 鐎电钖勯敍灞芥倵缁旑垯绱伴懛顏勫З閸栧懓顥婇崚?MessageExtra 娑?
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: "[娓呴櫎鑳屾櫙]",
+      content: "[濞撳懘娅庨懗灞炬珯]",
       messageType: MessageType.EFFECT,
       extra: {
         effectName: "clearBackground",
       },
     });
-    toast.success("已清除背景");
+    toast.success("?????");
   }, [roomId, send]);
 
   const handleClearFigure = useCallback(() => {
-    // 娓呴櫎瑙掕壊绔嬬粯涓嶉渶瑕佽鑹蹭俊鎭紝绫讳技鏃佺櫧
-    // 娉ㄦ剰锛歟xtra 搴旇鐩存帴鏄?EffectMessage 瀵硅薄锛屽悗绔細鑷姩鍖呰鍒?MessageExtra 涓?
+    // 濞撳懘娅庣憴鎺曞缁斿绮稉宥夋付鐟曚浇顫楅懝韫繆閹垽绱濈猾璁虫妧閺冧胶娅?
+    // 濞夈劍鍓伴敍姝焫tra 鎼存棁顕氶惄瀛樺复閺?EffectMessage 鐎电钖勯敍灞芥倵缁旑垯绱伴懛顏勫З閸栧懓顥婇崚?MessageExtra 娑?
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: "[娓呴櫎绔嬬粯]",
+      content: "[濞撳懘娅庣粩瀣帛]",
       messageType: MessageType.EFFECT,
       extra: {
         effectName: "clearFigure",
       },
     });
-    // 濡傛灉瀹炴椂娓叉煋寮€鍚紝绔嬪嵆娓呴櫎绔嬬粯
+    // 婵″倹鐏夌€圭偞妞傚〒鍙夌厠瀵偓閸氼垽绱濈粩瀣祮濞撳懘娅庣粩瀣帛
     if (isRealtimeRenderActive) {
       clearRealtimeFigure();
     }
-    toast.success("已清除立绘");
+    toast.success("?????");
   }, [clearRealtimeFigure, isRealtimeRenderActive, roomId, send]);
 
-  // KP锛氬仠姝㈠叏鍛楤GM锛堝箍鎾郴缁熸秷鎭級
+  // KP閿涙艾浠犲銏犲弿閸涙イGM閿涘牆绠嶉幘顓犻兇缂佺喐绉烽幁顖ょ礆
   const handleStopBgmForAll = useCallback(() => {
     send({
       roomId,
       roleId: undefined,
       avatarId: undefined,
-      content: "[鍋滄BGM]",
+      content: "[閸嬫粍顒汢GM]",
       messageType: MessageType.SYSTEM,
       extra: {},
     });
-    toast.success("宸插彂閫佸仠姝GM");
+    toast.success("瀹告彃褰傞柅浣镐粻濮濐敤GM");
   }, [roomId, send]);
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
@@ -1523,8 +1475,8 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     onKeyDown: handleKeyDown,
     onKeyUp: handleKeyUp,
     onMouseDown: handleMouseDown,
-    onCompositionStart: () => isComposingRef.current = true,
-    onCompositionEnd: () => isComposingRef.current = false,
+    onCompositionStart,
+    onCompositionEnd,
     inputDisabled: notMember && noRole,
   };
 
