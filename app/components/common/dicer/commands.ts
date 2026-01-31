@@ -1,4 +1,4 @@
-export type command = {
+type command = {
   name: string;
   /**
    * 命令的相对重要度，数字越大越重要，越会排在指令提示框的下面
