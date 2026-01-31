@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 export type ScreenSize = "sm" | "md" | "lg";
 
 /**
- * 获取当前屏幕尺寸分类
- * - sm: < 640px
+ * 闁兼儳鍢茶ぐ鍥亹閹惧啿顤呴悘鐐茬箰缁犻浜搁崫鍕靛殶闁告帒妫涚悮? * - sm: < 640px
  * - md: 640px - 1023px
  * - lg: >= 1024px
  */
@@ -20,27 +19,6 @@ export function getScreenSize(): ScreenSize {
   return "lg";
 }
 
-// 以下是角色模块用到的屏幕尺寸检测工具，暂时和 getScreenSize 原有的标准不统一
-
-/**
- * 检测是否为大屏幕 (>= 1024px)
- */
-export function isLgScreen() {
-  return typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
-}
-
-/**
- * 检测是否为中等屏幕及以上 (>= 768px)
- * 对应 getScreenSize 的 md 断点 (>= 640px)
- */
-export function isMdScreen() {
-  return typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
-}
-
-/**
- * 检测是否为移动端 (< 640px)
- * 即 getScreenSize 的 sm
- */
 export function isMobileScreen() {
   if (typeof window === "undefined")
     return false;
@@ -48,16 +26,16 @@ export function isMobileScreen() {
 }
 
 /**
- * 响应式 Hook：监听是否为移动端
- * 会在屏幕尺寸变化时自动更新
- * 注意：初始值固定为 false 以避免 SSR hydration mismatch
+ * 闁告繂绉寸花鎻掝嚕?Hook闁挎稒姘ㄥú鍐触椤掍焦笑闁告熬缂氱拹鐔虹矓鐠囨彃袟缂?
+ * 濞村吋鑹惧﹢顏嗕沪韫囨挾顔庨悘蹇撴惈椤曨參宕ｅΟ鍝勵嚙闁哄啯鍎奸崵婊堝礉閵婏附绾柡?
+ * 婵炲鍔嶉崜浼存晬濮橆剙鐏ュ┑顔碱儏閳ь剛鍘уù鎰偓瑙勭煯鐠?false 濞寸姰鍎垫导鈺呭礂?SSR hydration mismatch
  */
 export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 639px)");
-    // 初始化时立即设置正确的值
+    // 闁告帗绻傞～鎰板礌閺嶃劍顦х紒鏂款儏瀹撳棛鎷嬮崜褏鏋傛慨婵撶悼閳ユ﹢鎯冮崟顐熷亾?
     setIsMobile(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mediaQuery.addEventListener("change", handler);
@@ -65,24 +43,4 @@ export function useIsMobile() {
   }, []);
 
   return isMobile;
-}
-
-/**
- * 响应式 Hook：监听是否为中等屏幕及以上
- * 会在屏幕尺寸变化时自动更新
- * 注意：初始值固定为 true 以避免 SSR hydration mismatch
- */
-export function useIsMdScreen() {
-  const [isMd, setIsMd] = useState(true);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 640px)");
-    // 初始化时立即设置正确的值
-    setIsMd(mediaQuery.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMd(e.matches);
-    mediaQuery.addEventListener("change", handler);
-    return () => mediaQuery.removeEventListener("change", handler);
-  }, []);
-
-  return isMd;
 }

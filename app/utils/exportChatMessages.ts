@@ -156,7 +156,7 @@ function formatMessageContent(
  * @param options 导出选项
  * @returns 格式化的文本内容
  */
-export function formatChatMessages(
+function formatChatMessages(
   messages: ChatMessageResponse[],
   roleMap: Map<number, string> = new Map(),
   userMap: Map<number, string> = new Map(),
@@ -206,7 +206,7 @@ export function formatChatMessages(
  * @param content 文件内容
  * @param filename 文件名
  */
-export function downloadTextFile(content: string, filename: string): void {
+function downloadTextFile(content: string, filename: string): void {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
