@@ -175,7 +175,7 @@ export async function checkGameExist(game: string): Promise<boolean> {
   return gameList.some(item => item.name === game);
 }
 
-export async function fetchFolder(folderPath: string) {
+async function fetchFolder(folderPath: string) {
   const res = await getTerreApis().assetsControllerReadAssets(folderPath);
   const data = res as unknown as object;
   if ("dirInfo" in data && data.dirInfo) {
@@ -222,17 +222,3 @@ export function getAsyncMsg(sceneName: string, lineNumber: number, forceReload: 
  * 可以用来执行单条 WebGAL 命令而不改变当前场景状态
  * @param command WebGAL 命令字符串
  */
-export function getTempSceneMsg(command: string): IDebugMessage {
-  return {
-    event: "message",
-    data: {
-      command: DebugCommand.TEMP_SCENE,
-      sceneMsg: {
-        scene: "",
-        sentence: 0,
-      },
-      stageSyncMsg: {},
-      message: command,
-    },
-  };
-}
