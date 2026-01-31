@@ -657,6 +657,15 @@ function RoomComposerPanelImpl({
         </div>
       )
     : null;
+  const composerDecorationsNode = (
+    <>
+      {docRefDragOverlayNode}
+      <ChatAttachmentsPreviewFromStore />
+      {replyMessageNode}
+      {threadBannerNode}
+      {insertAfterBannerNode}
+    </>
+  );
   const avatarPopoverNode = isAvatarPopoverOpen && !isSpectator
     ? (
         <div className="absolute left-0 bottom-full mb-2 z-50 flex items-stretch">
@@ -784,14 +793,7 @@ function RoomComposerPanelImpl({
           onDragLeave={handleComposerDragLeave}
           onDrop={handleComposerDrop}
         >
-          {docRefDragOverlayNode}
-          <ChatAttachmentsPreviewFromStore />
-
-          {replyMessageNode}
-
-          {threadBannerNode}
-
-          {insertAfterBannerNode}
+          {composerDecorationsNode}
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex flex-col border border-base-300 rounded-xl bg-base-100/80">
