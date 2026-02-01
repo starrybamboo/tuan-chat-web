@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router";
 
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
+import { SPACE_DETAIL_TABS } from "@/components/chat/chatPage.types";
 import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 
 type ChatPageRouteState = {
@@ -27,8 +28,6 @@ type DocRouteInfo = {
   activeDocId: string | null;
   isInvalidSpaceDocId: boolean;
 };
-
-const SPACE_DETAIL_TABS = new Set<SpaceDetailTab>(["members", "workflow", "setting", "trpg"]);
 
 function getDocRouteInfo(params: { isDocRoute: boolean; urlMessageId?: string }): DocRouteInfo {
   if (!params.isDocRoute || typeof params.urlMessageId !== "string") {
