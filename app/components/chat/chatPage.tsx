@@ -1,5 +1,4 @@
 import type { ChatDiscoverMode, ChatPageMainView } from "@/components/chat/chatPage.types";
-import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 import type { SidebarTree } from "@/components/chat/room/sidebarTree";
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
@@ -19,6 +18,7 @@ import useChatPageMemberActions from "@/components/chat/hooks/useChatPageMemberA
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
+import useChatPageSpaceContext from "@/components/chat/hooks/useChatPageSpaceContext";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
@@ -187,9 +187,10 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
   }, [activeSpaceId, navigate, setMainView]);
 
+  const spaceMembers = spaceMembersQuery.data?.data ?? [];
   const isKPInSpace = useMemo(() => {
-    return Boolean(spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1));
-  }, [globalContext.userId, spaceMembersQuery.data?.data]);
+    return Boolean(spaceMembers.some(member => member.userId === globalContext.userId && member.memberType === 1));
+  }, [globalContext.userId, spaceMembers]);
 
   const docMetasFromSidebarTree = useMemo(() => {
     return extractDocMetasFromSidebarTree(sidebarTree).filter((m) => {
@@ -303,30 +304,19 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     closeSpaceContextMenu,
   } = useChatPageContextMenus();
 
-  // spaceContext
-  const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
-    return {
-      spaceId: activeSpaceId ?? -1,
-      isSpaceOwner: !!spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
-      setActiveSpaceId,
-      setActiveRoomId,
-      toggleLeftDrawer,
-      ruleId: spaces.find(space => space.spaceId === activeSpaceId)?.ruleId,
-      spaceMembers: spaceMembersQuery.data?.data ?? [],
-    };
-  }, [activeSpaceId, globalContext.userId, setActiveRoomId, setActiveSpaceId, spaceMembersQuery.data?.data, spaces, toggleLeftDrawer]);
-
-  const isSpaceOwner = Boolean(spaceContext.isSpaceOwner);
-
-  const getSpaceUnreadMessagesNumber = (spaceId: number) => {
-    const roomIds = spaceRoomIdsByUser[String(userId)]?.[String(spaceId)] ?? [];
-    let result = 0;
-    for (const roomId of roomIds) {
-      if (activeRoomId !== roomId)
-        result += unreadMessagesNumber[roomId] ?? 0;
-    }
-    return result;
-  };
+  const { getSpaceUnreadMessagesNumber, isSpaceOwner, spaceContext } = useChatPageSpaceContext({
+    activeRoomId,
+    activeSpaceId,
+    globalUserId: globalContext.userId,
+    setActiveRoomId,
+    setActiveSpaceId,
+    spaces,
+    spaceMembers,
+    spaceRoomIdsByUser,
+    toggleLeftDrawer,
+    unreadMessagesNumber,
+    userId,
+  });
 
   const {
     handleAddRoomMember,
@@ -339,7 +329,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     setIsMemberHandleOpen,
   } = useChatPageMemberActions({
     activeSpaceId,
-    spaceMembers: spaceMembersQuery.data?.data ?? [],
+    spaceMembers,
   });
 
   const mainContent = (
