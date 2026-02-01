@@ -15,7 +15,7 @@ import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeSt
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
-import { normalizeSidebarTree } from "./sidebarTree";
+import { collectExistingDocIds, collectExistingRoomIds, normalizeSidebarTree } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
 interface ChatRoomListPanelProps {
@@ -324,28 +324,12 @@ export default function ChatRoomListPanel({
   }, [normalizeAndSet, treeToRender]);
 
   const existingRoomIdsInTree = useMemo(() => {
-    const ids = new Set<number>();
-    for (const cat of treeToRender.categories) {
-      for (const item of cat.items ?? []) {
-        if (item.type === "room" && typeof (item as any).targetId === "number") {
-          ids.add((item as any).targetId);
-        }
-      }
-    }
-    return ids;
-  }, [treeToRender.categories]);
+    return collectExistingRoomIds(treeToRender);
+  }, [treeToRender]);
 
   const existingDocIdsInTree = useMemo(() => {
-    const ids = new Set<string>();
-    for (const cat of treeToRender.categories) {
-      for (const item of cat.items ?? []) {
-        if (item.type === "doc" && typeof (item as any).targetId === "string") {
-          ids.add((item as any).targetId);
-        }
-      }
-    }
-    return ids;
-  }, [treeToRender.categories]);
+    return collectExistingDocIds(treeToRender);
+  }, [treeToRender]);
 
   return (
     <div

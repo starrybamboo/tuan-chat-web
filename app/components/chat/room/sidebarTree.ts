@@ -1,4 +1,4 @@
-﻿import type { Room } from "api";
+import type { Room } from "api";
 
 export type SidebarLeafNode = {
   nodeId: string;
@@ -42,6 +42,30 @@ export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefi
   }
 
   return list;
+}
+
+export function collectExistingRoomIds(tree: SidebarTree | null | undefined): Set<number> {
+  const ids = new Set<number>();
+  for (const cat of tree?.categories ?? []) {
+    for (const item of cat.items ?? []) {
+      if (item.type === "room" && typeof (item as any).targetId === "number") {
+        ids.add((item as any).targetId);
+      }
+    }
+  }
+  return ids;
+}
+
+export function collectExistingDocIds(tree: SidebarTree | null | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const cat of tree?.categories ?? []) {
+    for (const item of cat.items ?? []) {
+      if (item.type === "doc" && typeof (item as any).targetId === "string") {
+        ids.add((item as any).targetId);
+      }
+    }
+  }
+  return ids;
 }
 
 type SidebarTreeV1 = {
@@ -316,8 +340,3 @@ export function normalizeSidebarTree(params: {
     categories,
   };
 }
-
-function toTreeJson(tree: SidebarTree): string {
-  return JSON.stringify(tree);
-}
-
