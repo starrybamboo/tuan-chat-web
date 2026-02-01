@@ -1,15 +1,7 @@
 import type { ChatDiscoverMode, ChatPageMainView } from "@/components/chat/chatPage.types";
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 import type { SidebarTree } from "@/components/chat/room/sidebarTree";
-import {
-  useAddRoomMemberMutation,
-  useAddSpaceMemberMutation,
-  useGetSpaceInfoQuery,
-  useGetSpaceMembersQuery,
-  useGetUserActiveSpacesQuery,
-  useGetUserRoomsQuery,
-  useSetPlayerMutation,
-} from "api/hooks/chatQueryHooks";
+import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -23,6 +15,7 @@ import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextM
 import useChatPageCreateInCategory from "@/components/chat/hooks/useChatPageCreateInCategory";
 import useChatPageDetailPanels from "@/components/chat/hooks/useChatPageDetailPanels";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
+import useChatPageMemberActions from "@/components/chat/hooks/useChatPageMemberActions";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
@@ -291,8 +284,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     spaceDocMetas,
   });
 
-  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
-  const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
@@ -337,74 +328,19 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     return result;
   };
 
-  const addRoomMemberMutation = useAddRoomMemberMutation();
-  const addSpaceMemberMutation = useAddSpaceMemberMutation();
-  const setPlayerMutation = useSetPlayerMutation();
-
-  const handleInvitePlayer = (roomId: number) => {
-    setInviteRoomId(roomId);
-  };
-
-  const handleAddRoomMember = (userId: number) => {
-    if (inviteRoomId) {
-      addRoomMemberMutation.mutate({
-        roomId: inviteRoomId,
-        userIdList: [userId],
-      }, {
-        onSuccess: () => {
-          setInviteRoomId(null);
-        },
-      });
-    }
-  };
-
-  const handleAddSpaceMember = (userId: number) => {
-    if (activeSpaceId) {
-      addSpaceMemberMutation.mutate({
-        spaceId: activeSpaceId,
-        userIdList: [userId],
-      }, {
-        onSuccess: () => {
-          setIsMemberHandleOpen(false);
-        },
-      });
-    }
-  };
-
-  const handleAddSpacePlayer = (userId: number) => {
-    if (!activeSpaceId)
-      return;
-
-    const isAlreadyMember = (spaceMembersQuery.data?.data ?? []).some(m => m.userId === userId);
-
-    const grantPlayer = () => {
-      setPlayerMutation.mutate({
-        spaceId: activeSpaceId,
-        uidList: [userId],
-      }, {
-        onSettled: () => {
-          setIsMemberHandleOpen(false);
-        },
-      });
-    };
-
-    if (isAlreadyMember) {
-      grantPlayer();
-      return;
-    }
-
-    addSpaceMemberMutation.mutate({
-      spaceId: activeSpaceId,
-      userIdList: [userId],
-    }, {
-      onSuccess: () => {
-        grantPlayer();
-      },
-      onError: () => {
-        grantPlayer();
-      },
-    });
-  };
+  const {
+    handleAddRoomMember,
+    handleAddSpaceMember,
+    handleAddSpacePlayer,
+    handleInvitePlayer,
+    inviteRoomId,
+    isMemberHandleOpen,
+    setInviteRoomId,
+    setIsMemberHandleOpen,
+  } = useChatPageMemberActions({
+    activeSpaceId,
+    spaceMembers: spaceMembersQuery.data?.data ?? [],
+  });
 
   const mainContent = (
     <ChatPageMainContent
