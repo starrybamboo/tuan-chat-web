@@ -15,7 +15,7 @@ import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeSt
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
-import { collectExistingDocIds, collectExistingRoomIds, normalizeSidebarTree } from "./sidebarTree";
+import { applySidebarDocFallbackCache, collectExistingDocIds, collectExistingRoomIds, normalizeSidebarTree } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
 interface ChatRoomListPanelProps {
@@ -181,43 +181,11 @@ export default function ChatRoomListPanel({
     });
 
     // 鏂囨。缂撳瓨锛氭妸 title/cover 鍐欏叆 sidebarTree 鑺傜偣锛堟寔涔呭寲鍒板悗绔級锛岃棣栧睆浼樺厛灞曠ず缂撳瓨锛岃€屼笉鏄瓑寰?meta/缃戠粶鍔犺浇銆?
-    const normalizedWithCache = (() => {
-      const base = JSON.parse(JSON.stringify(normalized)) as SidebarTree;
-      for (const cat of base.categories ?? []) {
-        for (const node of cat.items ?? []) {
-          if (node?.type !== "doc")
-            continue;
-
-          const docId = typeof node.targetId === "string" ? node.targetId : "";
-          if (!docId)
-            continue;
-
-          const meta = docMetaMap.get(docId);
-          const override = docHeaderOverrides[docId];
-
-          const overrideTitle = typeof override?.title === "string" ? override.title.trim() : "";
-          const overrideImageUrl = typeof override?.imageUrl === "string" ? override.imageUrl.trim() : "";
-
-          const metaTitle = typeof meta?.title === "string" ? meta.title.trim() : "";
-          const metaImageUrl = typeof meta?.imageUrl === "string" ? meta.imageUrl.trim() : "";
-
-          const currentFallbackTitle = typeof (node as any)?.fallbackTitle === "string" ? String((node as any).fallbackTitle).trim() : "";
-          const currentFallbackImageUrl = typeof (node as any)?.fallbackImageUrl === "string" ? String((node as any).fallbackImageUrl).trim() : "";
-
-          const nextTitle = overrideTitle || metaTitle || currentFallbackTitle || docId;
-          const nextImageUrl = overrideImageUrl || metaImageUrl || currentFallbackImageUrl;
-
-          (node as any).fallbackTitle = nextTitle;
-          if (nextImageUrl) {
-            (node as any).fallbackImageUrl = nextImageUrl;
-          }
-          else {
-            delete (node as any).fallbackImageUrl;
-          }
-        }
-      }
-      return base;
-    })();
+    const normalizedWithCache = applySidebarDocFallbackCache({
+      tree: normalized,
+      docMetaMap,
+      docHeaderOverrides,
+    });
 
     setLocalTree(normalizedWithCache);
     if (save) {
