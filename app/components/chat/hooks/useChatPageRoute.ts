@@ -28,6 +28,8 @@ type DocRouteInfo = {
   isInvalidSpaceDocId: boolean;
 };
 
+const SPACE_DETAIL_TABS = new Set<SpaceDetailTab>(["members", "workflow", "setting", "trpg"]);
+
 function getDocRouteInfo(params: { isDocRoute: boolean; urlMessageId?: string }): DocRouteInfo {
   if (!params.isDocRoute || typeof params.urlMessageId !== "string") {
     return {
@@ -100,8 +102,8 @@ export default function useChatPageRoute(): ChatPageRouteState {
   const spaceDetailRouteTab: SpaceDetailTab | null = useMemo(() => {
     if (isPrivateChatMode || urlMessageId)
       return null;
-    if (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg")
-      return urlRoomId;
+    if (urlRoomId && SPACE_DETAIL_TABS.has(urlRoomId as SpaceDetailTab))
+      return urlRoomId as SpaceDetailTab;
     return null;
   }, [isPrivateChatMode, urlMessageId, urlRoomId]);
   const isSpaceDetailRoute = spaceDetailRouteTab != null;
