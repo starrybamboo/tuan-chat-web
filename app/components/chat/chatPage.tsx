@@ -6,7 +6,7 @@ import type {
   SpaceDetailTab,
 } from "@/components/chat/chatPage.types";
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
-import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
+import type { SidebarTree } from "@/components/chat/room/sidebarTree";
 import {
   useAddRoomMemberMutation,
   useAddSpaceMemberMutation,
@@ -17,9 +17,7 @@ import {
   useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
-import { tuanchat } from "api/instance";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 import { useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import ChatPageMainContent from "@/components/chat/chatPageMainContent";
@@ -31,9 +29,10 @@ import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
-import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
+import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
+import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
-import { buildDefaultSidebarTree, extractDocMetasFromSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
+import { extractDocMetasFromSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
@@ -228,123 +227,25 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     return "文档";
   }, [activeDocHeaderOverride?.title, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
 
-  const buildTreeBaseForWrite = useCallback((docMetas: MinimalDocMeta[]): SidebarTree => {
-    return sidebarTree ?? buildDefaultSidebarTree({
-      roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
-      docMetas,
-      includeDocs: true,
-    });
-  }, [activeSpaceId, rooms, sidebarTree]);
-
-  const resetSidebarTreeToDefault = useCallback(async () => {
-    if (!activeSpaceId || activeSpaceId <= 0)
-      return;
-
-    const docMetas = isKPInSpace
-      ? mergeDocMetas(
-          spaceDocMetas ?? [],
-          docMetasFromSidebarTree,
-          await loadSpaceDocMetas(),
-        )
-      : [];
-
-    if (isKPInSpace) {
-      setSpaceDocMetas(docMetas);
-    }
-
-    const defaultTree = buildDefaultSidebarTree({
-      roomsInSpace: rooms.filter(r => r.spaceId === activeSpaceId),
-      docMetas,
-      includeDocs: isKPInSpace,
-    });
-
-    setSpaceSidebarTreeMutation.mutate({
-      spaceId: activeSpaceId,
-      expectedVersion: sidebarTreeVersion,
-      treeJson: JSON.stringify(defaultTree),
-    });
-  }, [activeSpaceId, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, rooms, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
-
-  const appendNodeToCategory = useCallback((params: {
-    tree: SidebarTree;
-    categoryId: string;
-    node: SidebarLeafNode;
-  }): SidebarTree => {
-    const next = JSON.parse(JSON.stringify(params.tree)) as SidebarTree;
-    const categories = Array.isArray(next.categories) ? next.categories : [];
-    const target = categories.find(c => c?.categoryId === params.categoryId) ?? categories[0];
-    if (!target)
-      return next;
-    target.items = Array.isArray(target.items) ? target.items : [];
-    if (target.items.some(i => i?.nodeId === params.node.nodeId))
-      return next;
-    target.items.push(params.node);
-    return next;
-  }, []);
-
-  const requestCreateDocInCategory = useCallback(async (categoryId: string, titleOverride?: string) => {
-    if (!activeSpaceId || activeSpaceId <= 0)
-      return;
-    if (!isKPInSpace)
-      return;
-    const title = (titleOverride ?? "未命名文档").trim() || "未命名文档";
-    let createdDocId: number | null = null;
-    try {
-      const resp = await tuanchat.request.request<any>({
-        method: "POST",
-        url: "/space/doc",
-        body: { spaceId: activeSpaceId, title },
-        mediaType: "application/json",
-      });
-      const id = Number((resp as any)?.data?.docId);
-      if (Number.isFinite(id) && id > 0) {
-        createdDocId = id;
-      }
-    }
-    catch (err) {
-      console.error("[SpaceDoc] create failed", err);
-    }
-
-    if (!createdDocId) {
-      toast.error("创建文档失败，请重试");
-      return;
-    }
-
-    const docId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
-
-    const baseDocMetas = mergeDocMetas(
-      spaceDocMetas ?? [],
-      docMetasFromSidebarTree,
-      await loadSpaceDocMetas(),
-    );
-    const nextDocMetas = baseDocMetas.some(m => m.id === docId)
-      ? baseDocMetas
-      : [...baseDocMetas, { id: docId, title }];
-
-    try {
-      const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");
-      registry.ensureSpaceDocMeta({ spaceId: activeSpaceId, docId, title });
-      setSpaceDocMetas(nextDocMetas);
-    }
-    catch {
-      // ignore
-    }
-
-    const base = buildTreeBaseForWrite(nextDocMetas);
-    const next = appendNodeToCategory({
-      tree: base,
-      categoryId,
-      node: { nodeId: `doc:${docId}`, type: "doc", targetId: docId, fallbackTitle: title },
-    });
-    setSpaceSidebarTreeMutation.mutate({
-      spaceId: activeSpaceId,
-      expectedVersion: sidebarTreeVersion,
-      treeJson: JSON.stringify(next),
-    });
-
-    setMainView("chat");
-    navigate(`/chat/${activeSpaceId}/doc/${createdDocId}`);
-  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, docMetasFromSidebarTree, isKPInSpace, loadSpaceDocMetas, mergeDocMetas, navigate, setMainView, setSpaceDocMetas, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+  const {
+    buildTreeBaseForWrite,
+    appendNodeToCategory,
+    resetSidebarTreeToDefault,
+    requestCreateDocInCategory,
+  } = useSpaceSidebarTreeActions({
+    activeSpaceId,
+    rooms,
+    sidebarTree,
+    isKPInSpace,
+    docMetasFromSidebarTree,
+    spaceDocMetas,
+    mergeDocMetas,
+    loadSpaceDocMetas,
+    setSpaceDocMetas,
+    saveSidebarTree: handleSaveSidebarTree,
+    navigate,
+    setMainView,
+  });
 
   const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
     if (roomId == null)
@@ -513,15 +414,11 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
         categoryId,
         node: { nodeId: `room:${roomId}`, type: "room", targetId: roomId },
       });
-      setSpaceSidebarTreeMutation.mutate({
-        spaceId: activeSpaceId,
-        expectedVersion: sidebarTreeVersion,
-        treeJson: JSON.stringify(next),
-      });
+      handleSaveSidebarTree(next);
     }
 
     setIsCreateInCategoryOpen(false);
-  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, pendingCreateInCategoryId, setActiveRoomId, setIsCreateInCategoryOpen, setMainView, setSpaceSidebarTreeMutation, sidebarTreeVersion, spaceDocMetas]);
+  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, handleSaveSidebarTree, pendingCreateInCategoryId, setActiveRoomId, setIsCreateInCategoryOpen, setMainView, spaceDocMetas]);
 
   const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab) => {
     if (activeSpaceId == null || isPrivateChatMode)
