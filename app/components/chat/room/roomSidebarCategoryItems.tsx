@@ -5,6 +5,7 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomSidebarDocItem from "@/components/chat/room/roomSidebarDocItem";
+import RoomSidebarInsertLine from "@/components/chat/room/roomSidebarInsertLine";
 import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
 
 interface RoomSidebarCategoryItemsProps {
@@ -59,7 +60,7 @@ export default function RoomSidebarCategoryItems({
   return (
     <>
       {canEdit && dragging?.kind === "node" && dropTarget?.kind === "node" && dropTarget.toCategoryId === categoryId && dropTarget.insertIndex === 0 && (
-        <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
+        <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
       )}
 
       {items
@@ -86,7 +87,7 @@ export default function RoomSidebarCategoryItems({
             return (
               <div key={nodeId} className="relative">
                 {showInsertBefore && (
-                  <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
+                  <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
                 )}
 
                 <RoomSidebarRoomItem
@@ -114,7 +115,7 @@ export default function RoomSidebarCategoryItems({
           return (
             <div key={nodeId} className="relative">
               {showInsertBefore && (
-                <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
+                <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
               )}
 
               <RoomSidebarDocItem
@@ -141,7 +142,7 @@ export default function RoomSidebarCategoryItems({
         })}
 
       {canEdit && dragging?.kind === "node" && dropTarget?.kind === "node" && dropTarget.toCategoryId === categoryId && dropTarget.insertIndex === items.length && (
-        <div className="pointer-events-none absolute left-3 right-3 bottom-0 translate-y-1/2 h-0.5 bg-primary/60 rounded" />
+        <RoomSidebarInsertLine className="bottom-0 translate-y-1/2" />
       )}
     </>
   );
