@@ -15,6 +15,7 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatFrameContextMenu from "@/components/chat/hooks/useChatFrameContextMenu";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
+import useChatFrameMessageClick from "@/components/chat/hooks/useChatFrameMessageClick";
 import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
@@ -549,6 +550,12 @@ function ChatFrame(props: ChatFrameProps) {
     handleEditMessage,
   } = useChatFrameSelection({ onDeleteMessage: deleteMessage });
 
+  const handleMessageClick = useChatFrameMessageClick({
+    isSelecting,
+    toggleMessageSelection,
+    onJumpToWebGAL: roomContext.jumpToMessageInWebGAL,
+  });
+
   const clearSelection = useCallback(() => {
     updateSelectedMessageIds(new Set());
   }, [updateSelectedMessageIds]);
@@ -661,34 +668,7 @@ function ChatFrame(props: ChatFrameProps) {
         className={`
         pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
-        onClick={(e) => {
-          const selection = window.getSelection();
-          if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
-            const container = e.currentTarget;
-            let hasRangeInContainer = false;
-            for (let i = 0; i < selection.rangeCount; i += 1) {
-              const range = selection.getRangeAt(i);
-              if (range.intersectsNode(container)) {
-                hasRangeInContainer = true;
-                break;
-              }
-            }
-            if (hasRangeInContainer) {
-              return;
-            }
-          }
-          // 妫€鏌ョ偣鍑荤洰鏍囨槸鍚︽槸鎸夐挳鎴栧叾瀛愬厓绱狅紝濡傛灉鏄垯涓嶈Е鍙戣烦杞?
-          const target = e.target as HTMLElement;
-          const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
-
-          if (isSelecting || e.ctrlKey) {
-            toggleMessageSelection(chatMessageResponse.message.messageId);
-          }
-          else if (roomContext.jumpToMessageInWebGAL && !isButtonClick) {
-            // 濡傛灉瀹炴椂娓叉煋宸叉縺娲讳笖涓嶆槸鐐瑰嚮鎸夐挳锛屽崟鍑绘秷鎭烦杞埌 WebGAL 瀵瑰簲浣嶇疆
-            roomContext.jumpToMessageInWebGAL(chatMessageResponse.message.messageId);
-          }
-        }}
+        onClick={e => handleMessageClick(e, chatMessageResponse.message.messageId)}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={e => handleDrop(e, indexInHistoryMessages)}
@@ -729,7 +709,7 @@ function ChatFrame(props: ChatFrameProps) {
     isDragging,
     isSelecting,
     useChatBubbleStyle,
-    toggleMessageSelection,
+    handleMessageClick,
     handleDragOver,
     handleDragLeave,
     handleDrop,
