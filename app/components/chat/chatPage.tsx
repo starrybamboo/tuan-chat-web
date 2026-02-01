@@ -11,13 +11,14 @@ import {
   useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import ChatPageMainContent from "@/components/chat/chatPageMainContent";
 import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageDetailPanels from "@/components/chat/hooks/useChatPageDetailPanels";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
@@ -255,23 +256,16 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     setMainView,
   });
 
-  const hasInitPrivateChatRef = useRef(false);
-  useEffect(() => {
-    if (hasInitPrivateChatRef.current)
-      return;
-    if (!isPrivateChatMode)
-      return;
-    hasInitPrivateChatRef.current = true;
-
-    const targetRoomId = storedIds.roomId ?? rooms[0]?.roomId;
-    if (targetRoomId) {
-      setActiveRoomId(targetRoomId);
-    }
-    const targetSpaceId = storedIds.spaceId;
-    if (targetSpaceId) {
-      setActiveSpaceId(targetSpaceId);
-    }
-  }, [isPrivateChatMode, rooms, setActiveRoomId, setActiveSpaceId, storedIds.roomId, storedIds.spaceId]);
+  useChatPageAutoNavigation({
+    activeSpaceId,
+    isPrivateChatMode,
+    orderedRooms,
+    rooms,
+    setActiveRoomId,
+    setActiveSpaceId,
+    storedIds,
+    urlRoomId,
+  });
 
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
   const [isCreateInCategoryOpen, setIsCreateInCategoryOpen] = useSearchParamsState<boolean>("createInCategoryPop", false);
@@ -328,23 +322,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
-
-  useLayoutEffect(() => {
-    if (isPrivateChatMode)
-      return;
-    if (activeSpaceId == null)
-      return;
-
-    const isRoomIdMissingInUrl = !urlRoomId || urlRoomId === "null";
-    if (!isRoomIdMissingInUrl)
-      return;
-
-    const firstRoomId = orderedRooms[0]?.roomId;
-    if (typeof firstRoomId !== "number" || !Number.isFinite(firstRoomId))
-      return;
-
-    setActiveRoomId(firstRoomId, { replace: true });
-  }, [activeSpaceId, isPrivateChatMode, orderedRooms, setActiveRoomId, urlRoomId]);
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
     globalContext,
