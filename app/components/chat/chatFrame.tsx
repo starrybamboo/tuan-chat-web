@@ -12,6 +12,7 @@ import ChatFrameList from "@/components/chat/chatFrameList";
 import ChatFrameOverlays from "@/components/chat/chatFrameOverlays";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import useChatFrameContextMenu from "@/components/chat/hooks/useChatFrameContextMenu";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
@@ -693,28 +694,11 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 鍙抽敭鑿滃崟
    */
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
+  const { contextMenu, closeContextMenu, handleContextMenu } = useChatFrameContextMenu();
 
   function handleDelete() {
     deleteMessage(contextMenu?.messageId ?? -1);
   }
-
-  function handleContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    // 鍚戜笂鏌ユ壘鍖呭惈data-message-id灞炴€х殑鐖跺厓绱?
-    const messageElement = target.closest("[data-message-id]");
-    setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
-  }
-  // 澶勭悊鐐瑰嚮澶栭儴鍏抽棴鑿滃崟鐨勯€昏緫
-  useEffect(() => {
-    if (contextMenu) {
-      window.addEventListener("click", closeContextMenu);
-    }
-    return () => {
-      window.removeEventListener("click", closeContextMenu);
-    };
-  }, [contextMenu]); // 渚濊禆浜巆ontextMenu鐘舵€?
 
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
@@ -737,11 +721,7 @@ function ChatFrame(props: ChatFrameProps) {
   }
 
   // 鍏抽棴鍙抽敭鑿滃崟
-  function closeContextMenu() {
-    setContextMenu(null);
-  }
 
-  // 鍒囨崲娑堟伅鏍峰紡
   function toggleChatBubbleStyle() {
     toggleUseChatBubbleStyle();
     closeContextMenu();
