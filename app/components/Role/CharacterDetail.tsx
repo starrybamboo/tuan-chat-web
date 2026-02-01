@@ -296,7 +296,7 @@ function CharacterDetailInner({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
-  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing 状态
+  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing ״̬
   const handleSave = () => {
     setIsTransitioning(true);
     const cleanedRole = {

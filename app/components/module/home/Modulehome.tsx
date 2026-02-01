@@ -129,11 +129,11 @@ export function ContentCard({
                   <span className="font-semibold">时长：</span>
                   <span className="ml-1">
                     {minTime && maxTime
-                      ? `${minTime}-${maxTime}小时`
+                      ? `${minTime}-${maxTime}Сʱ`
                       : minTime
-                        ? `${minTime}+小时`
+                        ? `${minTime}+Сʱ`
                         : maxTime
-                          ? `最长${maxTime}小时`
+                          ? `最长${maxTime}Сʱ`
                           : ""}
                   </span>
                 </div>

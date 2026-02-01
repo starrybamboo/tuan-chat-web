@@ -7,7 +7,7 @@
 
 ### 实现要点
 - 优先尝试 top document 以覆盖宿主层级
-- 若 top document 处于全屏且 fullscreenElement 为 iframe 且 contentDocument 为当前文档，则在当前文档挂载
+- 若 top document 处于全屏且 fullscreenElement Ϊ iframe 且 contentDocument 为当前文档，则在当前文档挂载
 - 若 fullscreenElement 为其它元素，则将弹窗挂载到 fullscreenElement 内
 
 ## 架构设计

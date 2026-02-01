@@ -52,7 +52,7 @@ interface WsMessage<T> {
  * @property receivedMessages 已接收的群聊消息，使用方法：receivedMessages[roomId]
  * @property receivedDirectMessages 已接收的私聊消息，使用方法：receivedDirectMessages[userId]
  * @property unreadMessagesNumber 未读消息数量（群聊部分）
- * @property updateLastReadSyncId 更新未读消息 （群聊部分） 如果lastReadSyncId为undefined，则使用latestSyncId
+ * @property updateLastReadSyncId 更新未读消息 （群聊部分） 如果lastReadSyncIdΪundefined，则使用latestSyncId
  * @property chatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  * @property updateChatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  */
@@ -394,7 +394,7 @@ export function useWebSocket() {
       }
       stopHeartbeat();
       if (wsRef.current) {
-        // 设置 onclose 为 null 防止在手动关闭时触发重连逻辑
+        // 设置 onclose Ϊ null 防止在手动关闭时触发重连逻辑
         wsRef.current.onopen = null;
         wsRef.current.onmessage = null;
         wsRef.current.onerror = null;
@@ -639,10 +639,10 @@ export function useWebSocket() {
           }
         }
 
-        // (2) KP 停止全员 BGM：SYSTEM 且 content 包含 [停止BGM]
+        // (2) KP ֹͣȫԱ BGM：SYSTEM 且 content 包含 [ֹͣBGM]
         if (m.messageType === MessageType.SYSTEM) {
           const content = (m.content ?? "").toString();
-          if (content.includes("[停止BGM]")) {
+          if (content.includes("[ֹͣBGM]")) {
             useBgmStore.getState().onBgmStopFromWs(m.roomId);
           }
         }

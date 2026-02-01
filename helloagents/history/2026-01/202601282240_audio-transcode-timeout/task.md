@@ -1,6 +1,6 @@
 # 任务清单: 音频 NaN 定位与转码/上传卡死兜底
 
-目录: `helloagents/history/2026-01/202601282240_audio-transcode-timeout/`
+Ŀ¼: `helloagents/history/2026-01/202601282240_audio-transcode-timeout/`
 
 ---
 

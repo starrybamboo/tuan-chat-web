@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及重复渲染修复（embed 节点插入）
 
-目录: `helloagents/plan/202601171805_blocksuite-mention-embed-node/`
+Ŀ¼: `helloagents/plan/202601171805_blocksuite-mention-embed-node/`
 
 ---
 

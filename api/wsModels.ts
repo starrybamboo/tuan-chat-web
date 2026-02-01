@@ -317,7 +317,7 @@ interface TaskResultConfirmPush extends BaseMessage<null> {
     type: 20005;
 }
 
-// token失效 (type: 100)
+// tokenʧЧ (type: 100)
 interface TokenInvalidPush extends BaseMessage<null> {
     type: 100;
 }

@@ -240,10 +240,10 @@ export default function ModuleDetailComponent({ moduleData: propModuleData }: { 
     (moduleData.minTime || moduleData.maxTime) && {
       label: "游戏时间",
       value: moduleData.minTime && moduleData.maxTime
-        ? `${moduleData.minTime}-${moduleData.maxTime}小时`
+        ? `${moduleData.minTime}-${moduleData.maxTime}Сʱ`
         : moduleData.minTime
-          ? `${moduleData.minTime}+小时`
-          : `最长${moduleData.maxTime}小时`,
+          ? `${moduleData.minTime}+Сʱ`
+          : `最长${moduleData.maxTime}Сʱ`,
     },
     moduleData.authorName && { label: "作者", value: moduleData.authorName },
     moduleData.userId && { label: "上传者ID", value: String(moduleData.userId) },

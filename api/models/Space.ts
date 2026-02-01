@@ -31,7 +31,7 @@ export type Space = {
      */
     userId?: number;
     /**
-     * 状态 0正常 1删除 2归档
+     * ״̬ 0正常 1删除 2归档
      */
     status?: number;
     moduleId?: number;

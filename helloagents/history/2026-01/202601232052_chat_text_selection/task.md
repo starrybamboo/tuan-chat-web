@@ -1,6 +1,6 @@
 ﻿# 任务清单: 聊天气泡文本选区保持
 
-目录: `helloagents/plan/202601232052_chat_text_selection/`
+Ŀ¼: `helloagents/plan/202601232052_chat_text_selection/`
 
 ---
 

@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite 嵌入场景样式隔离（官方兼容方案）
 
-目录: `helloagents/history/2026-01/202601082212_blocksuite_style_isolation_official/`
+Ŀ¼: `helloagents/history/2026-01/202601082212_blocksuite_style_isolation_official/`
 
 ---
 

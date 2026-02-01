@@ -242,7 +242,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                         >
                           <img
                             src={img}
-                            alt={`图片 ${idx + 1}`}
+                            alt={`ͼƬ ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
                         </div>

@@ -11,7 +11,7 @@ import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
  * @param props.className 自定义样式类名
  */
 export function PreviewMessage({ message, className }: {
-  message: Message | number; // 允许message为id
+  message: Message | number; // 允许messageΪid
   className?: string;
 }) {
   // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用

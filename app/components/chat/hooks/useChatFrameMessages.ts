@@ -69,7 +69,7 @@ export default function useChatFrameMessages({
       if (lastLength < receivedMessages.length) {
         const newMessages = receivedMessages.slice(lastLength);
 
-        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连?
+        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连接
         const historyMsgs = chatHistory.messages;
         if (historyMsgs.length > 0 && newMessages.length > 0) {
           const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
@@ -99,7 +99,7 @@ export default function useChatFrameMessages({
 
     syncMessages();
 
-    // 清理函数：取消异步操作和定时?
+    // 清理函数：取消异步操作和定时器
     return () => {
       isCancelled = true;
       if (timeoutId) {
@@ -113,11 +113,11 @@ export default function useChatFrameMessages({
     if (messagesOverride) {
       return messagesOverride;
     }
-    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查?
+    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
     // - root：threadId === messageId（显示）
     // - reply：threadId !== messageId（隐藏）
     return (chatHistory?.messages ?? []).filter((m) => {
-      // Thread Root?0001（不在主消息流中单独显示：改为挂在原消息“下方”的提示?
+      // Thread Root #0001（不在主消息流中单独显示：改为挂在原消息“下方”的提示）
       if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
         return false;
       }
@@ -130,7 +130,7 @@ export default function useChatFrameMessages({
   }, [messagesOverride, chatHistory?.messages]);
 
   const threadHintMetaByMessageId = useMemo(() => {
-    // key: parentMessageId（被创建子区的那条原消息?
+    // key: parentMessageId（被创建子区的那条原消息）
     const metaMap = new Map<number, ThreadHintMeta>();
     const all = chatHistory?.messages ?? [];
     if (all.length === 0) {
@@ -163,7 +163,7 @@ export default function useChatFrameMessages({
       };
 
       const prev = metaMap.get(parentId);
-      // 极端情况下可能存在多?root：取 messageId 更新的那?
+      // 极端情况下可能存在多个 root：取 messageId 更新的那条
       if (!prev || next.rootId > prev.rootId) {
         metaMap.set(parentId, next);
       }

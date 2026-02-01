@@ -55,7 +55,7 @@
 
 **TTS 集成细节**
 - 使用 `app/tts/engines/index` 的 API 规范（`InferRequest` / `infer`）。
-- 生成流程：参考音频（角色 voiceUrl 或上传的参考音频 File）-> 转 base64 -> 组合 `InferRequest`（含 emo_vector、emo_mode 等）-> 调用 TTS 服务 -> 返回 base64 音频 -> 上传到 WebGAL 的 `games/.../game/vocal/`，并缓存文件名。
+- 生成流程：参考音频（角色 voiceUrl 或上传的参考音频 File）-> ת base64 -> 组合 `InferRequest`（含 emo_vector、emo_mode 等）-> 调用 TTS 服务 -> 返回 base64 音频 -> 上传到 WebGAL 的 `games/.../game/vocal/`，并缓存文件名。
 - 使用 `uploadedVocalsMap` 与 `ttsGeneratingMap` 避免重复生成与上传。
 - 情感向量来源：优先使用 `message.webgal.voiceRenderSettings.emotionVector`，否则从 `avatar.avatarTitle` 转换（`convertAvatarTitleToEmotionVector`）。
 

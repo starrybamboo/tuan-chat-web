@@ -77,7 +77,7 @@ interface ResourceSelectorModalProps {
   onClose: () => void;
   onSelect: (resourceUrl: string) => void;
   title?: string;
-  resourceType?: "5" | "6"; // 5: 图片, 6: 音频，默认图片
+  resourceType?: "5" | "6"; // 5: ͼƬ, 6: 音频，默认图片
 }
 
 /**

@@ -33,7 +33,7 @@ export type UserInfoResponse = {
      */
     backgroundUrl?: string;
     /**
-     * 性别: 隐藏(null) 男 女
+     * 性别: 隐藏(null) 男 Ů
      */
     gender?: string;
     /**

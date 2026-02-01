@@ -1322,9 +1322,9 @@ type RoleInfinitePageParam = {
 };
 
 /**
- * 鎸夌被鍨嬭繘琛?Infinite Query 鍔犺浇
+ * 按类型进行 Infinite Query 加载
  *
- * 注意：后端并?type+pageNo 真分页接口，扢以这里对单类型的数据做前端切片分页，
+ * 注意：后端并无 type+pageNo 真分页接口，所以这里对单类型的数据做前端切片分页，
  * 但至少不会出现“骰娘被普通角色挤到后面页”的混合分页问题。
  */
 export function useGetInfiniteUserRolesByTypeQuery(userId: number, type: number) {

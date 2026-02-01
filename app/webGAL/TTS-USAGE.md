@@ -50,7 +50,7 @@ WebGAL 渲染支持两种 TTS 引擎:
 
 **IndexTTS2**:
 ```
-用户上传音频 → 转 base64 → 发送给 IndexTTS2 API → 生成语音
+用户上传音频 → ת base64 → 发送给 IndexTTS2 API → 生成语音
 ```
 
 **GPT-SoVITS**:
@@ -61,7 +61,7 @@ WebGAL 渲染支持两种 TTS 引擎:
 ### 音频存储位置
 
 - **IndexTTS2**: 临时存储在浏览器内存中
-- **GPT-SoVITS**: 上传到 `games/{gameName}/game/vocal/ref/` 目录
+- **GPT-SoVITS**: 上传到 `games/{gameName}/game/vocal/ref/` Ŀ¼
 
 ### 切换引擎
 

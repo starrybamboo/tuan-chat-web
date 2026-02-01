@@ -46,7 +46,7 @@ const diceCommands: command[] = [
   // {
   //   name: "ti",
   //   importance: 2,
-  //   description: "临时疯狂症状（例：.ti 骰1d10获取临时疯狂症状，持续轮数=当前san值/10）",
+  //   description: "临时疯狂症状（例：.ti 骰1d10获取临时疯狂症状，持续轮数=当前sanֵ/10）",
   // },
   // {
   //   name: "li",

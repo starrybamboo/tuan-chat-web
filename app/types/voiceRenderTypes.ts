@@ -5,14 +5,14 @@
 
 /**
  * 情感向量 - 8维情感控制
- * 对应顺序: [喜, 怒, 哀, 惧, 厌恶, 低落, 惊喜, 平静]
+ * 对应顺序: [ϲ, ŭ, 哀, 惧, 厌恶, 低落, 惊喜, 平静]
  */
 type EmotionVector = [number, number, number, number, number, number, number, number];
 
 /**
  * 情感标签名称（与 IndexTTS 接口一致）
  */
-export const EMOTION_LABELS = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"] as const;
+export const EMOTION_LABELS = ["ϲ", "ŭ", "哀", "惧", "厌恶", "低落", "惊喜", "平静"] as const;
 
 type EmotionLabel = typeof EMOTION_LABELS[number];
 

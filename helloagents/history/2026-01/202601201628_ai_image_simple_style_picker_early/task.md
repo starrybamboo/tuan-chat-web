@@ -1,6 +1,6 @@
 # 任务清单: AI 生图（普通模式）画风选择前置展示
 
-目录: `helloagents/plan/202601201628_ai_image_simple_style_picker_early/`
+Ŀ¼: `helloagents/plan/202601201628_ai_image_simple_style_picker_early/`
 
 ---
 

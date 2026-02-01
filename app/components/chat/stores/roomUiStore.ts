@@ -21,7 +21,7 @@ type RoomUiState = {
 
   setComposerTarget: (target: "main" | "thread") => void;
 
-  /** 切换房间时重置临时 UI 状态 */
+  /** 切换房间时重置临时 UI ״̬ */
   reset: () => void;
 };
 

@@ -1,11 +1,11 @@
 # 任务清单: Blocksuite iframe 强隔离
 
-目录: `helloagents/plan/202601082245_blocksuite_iframe_isolation/`
+Ŀ¼: `helloagents/plan/202601082245_blocksuite_iframe_isolation/`
 
 ---
 
 ## 1. 路由与iframe承载
-- [√] 1.1 新增 iframe 路由 `app/routes/blocksuiteFrame.tsx`，在 iframe 内渲染 `BlocksuiteDescriptionEditorRuntime`，并实现 `set-mode`/`theme` 消息处理，验证 why.md#需求-同页-ui-不被-blocksuite-污染-场景-打开任意包含-blocksuite-的页面
+- [√] 1.1 新增 iframe 路由 `app/routes/blocksuiteFrame.tsx`，在 iframe 内渲染 `BlocksuiteDescriptionEditorRuntime`，并实现 `set-mode`/`theme` 消息处理，验证 why.md#需求-ͬҳ-ui-不被-blocksuite-污染-场景-打开任意包含-blocksuite-的页面
 - [√] 1.2 在 `app/routes.ts` 注册 `blocksuite-frame` 顶层路由，确保不进入 dashboard layout
 
 ## 2. BlocksuiteDescriptionEditor 宿主化

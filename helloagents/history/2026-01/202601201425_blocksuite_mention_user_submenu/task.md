@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite `@` 弹窗用户二级入口
 
-目录: `helloagents/plan/202601201425_blocksuite_mention_user_submenu/`
+Ŀ¼: `helloagents/plan/202601201425_blocksuite_mention_user_submenu/`
 
 ---
 

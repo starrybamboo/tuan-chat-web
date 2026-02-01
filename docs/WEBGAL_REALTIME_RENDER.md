@@ -84,8 +84,8 @@
 
 *   **监听机制**: `roomWindow` 中的 `useEffect` 监听 `historyMessages` 的变化。
 *   **过滤条件**:
-    *   `realtimeRender.isActive` 为 true。
-    *   `hasRenderedHistoryRef.current` 为 true (确保历史消息已处理完)。
+    *   `realtimeRender.isActive` Ϊ true。
+    *   `hasRenderedHistoryRef.current` Ϊ true (确保历史消息已处理完)。
     *   新消息 ID 不等于 `lastRenderedMessageIdRef.current` (防止重复渲染)。
 *   **执行动作**:
     *   调用 `realtimeRender.renderMessage(latestMessage, roomId)`。
@@ -207,7 +207,7 @@
 导出模式深度集成了 TTS 功能，支持为角色自动生成语音。
 
 *   **引擎支持**: 支持 GPT-SoVITS 和 IndexTTS 等多种引擎。
-*   **情感映射**: `convertAvatarTitleToEmotionVector` 方法会将角色的情感标签（如"喜", "怒"）自动转换为 TTS 引擎所需的 8 维情感向量。
+*   **情感映射**: `convertAvatarTitleToEmotionVector` 方法会将角色的情感标签（如"ϲ", "ŭ"）自动转换为 TTS 引擎所需的 8 维情感向量。
 *   **参考音频**: 支持为每个角色指定参考音频，以克隆特定声线。
 
 ### 6.4 关键文件清单 (Export)

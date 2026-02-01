@@ -3,7 +3,7 @@ import {tuanchat} from "../instance";
 import type {SessionReadUpdateRequest} from "../models/SessionReadUpdateRequest";
 
 /**
- * 鍙栨秷璁㈤槄鎴块棿
+ * 取消订阅房间
  */
 export function useUnsubscribeRoomMutation() {
     const queryClient = useQueryClient();
@@ -18,7 +18,7 @@ export function useUnsubscribeRoomMutation() {
 }
 
 /**
- * 璁㈤槄鎴块棿
+ * 订阅房间
  */
 export function useSubscribeRoomMutation() {
     const queryClient = useQueryClient();
@@ -49,16 +49,16 @@ export function useUpdateReadPosition1Mutation() {
 
 /**
  * 获取用户在指定房间的会话信息
- * @param roomId 鎴块棿ID
+ * @param roomId 房间ID
  */
 
 /**
- * 获取用户的所有会话列?
+ * 获取用户的所有会话列表
  */
 export function useGetUserSessionsQuery() {
     return useQuery({
         queryKey: ['getUserSessions'],
         queryFn: () => tuanchat.messageSession.getUserSessions(),
-        staleTime: 300000 // 5鍒嗛挓缂撳瓨
+        staleTime: 300000 // 5分钟缓存
     });
 }

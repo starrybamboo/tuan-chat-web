@@ -1,6 +1,6 @@
 # 任务清单: NovelAI OpenAPI 导出与 TS 客户端生成
 
-目录: `helloagents/plan/202601140300_novelai_openapi_codegen/`
+Ŀ¼: `helloagents/plan/202601140300_novelai_openapi_codegen/`
 
 ---
 

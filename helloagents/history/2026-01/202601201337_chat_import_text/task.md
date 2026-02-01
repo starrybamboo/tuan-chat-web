@@ -1,6 +1,6 @@
 # 任务清单: 聊天室文本导入（txt → 多条消息）
 
-目录: `helloagents/plan/202601201337_chat_import_text/`
+Ŀ¼: `helloagents/plan/202601201337_chat_import_text/`
 
 ---
 

@@ -1,6 +1,6 @@
 # 任务清单: 移除聊天发言人名不一致星号提示
 
-目录: `helloagents/plan/202601262154_remove-name-mismatch-star/`
+Ŀ¼: `helloagents/plan/202601262154_remove-name-mismatch-star/`
 
 ---
 

@@ -843,7 +843,7 @@ export class RealtimeRenderer {
    * 将 avatarTitle 转换为情感向量
    */
   private convertAvatarTitleToEmotionVector(avatarTitle: Record<string, string>): number[] {
-    const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
+    const emotionOrder = ["ϲ", "ŭ", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
     const MAX_SUM = 0.5;
 
     let emotionVector = emotionOrder.map((emotion) => {
@@ -1375,8 +1375,8 @@ export class RealtimeRenderer {
     } | undefined;
 
     // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
-    // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
-    // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
+    // autoFigureEnabled Ϊ true 时，没有设置立绘位置的消息会默认显示在左边
+    // autoFigureEnabled Ϊ false（默认）时，没有设置立绘位置的消息不显示立绘
     const rawFigurePosition = voiceRenderSettings?.figurePosition;
     console.error(msg.content, rawFigurePosition);
 
@@ -1392,7 +1392,7 @@ export class RealtimeRenderer {
     const introHold = (msg.webgal as any)?.introHold as boolean ?? false;
 
     // 旁白和黑屏文字不需要显示立绘
-    // 如果 figurePosition 为 undefined，也不显示立绘
+    // 如果 figurePosition Ϊ undefined，也不显示立绘
     const shouldShowFigure = !isNarrator && !isIntroText && !!figurePosition;
 
     // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
@@ -1436,7 +1436,7 @@ export class RealtimeRenderer {
     }
     else if (!isNarrator && !isIntroText) {
       // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
-      // // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
+      // // 普通对话但不显示立绘（figurePosition Ϊ undefined 或 spriteFileName 为空），清除之前的立绘
       // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
       // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
       // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
@@ -1688,7 +1688,7 @@ export class RealtimeRenderer {
     const lineRange = this.messageLineMap.get(key);
 
     if (!lineRange) {
-      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 模式`);
+      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append ģʽ`);
       await this.renderMessage(message, targetRoomId, true);
       return true;
     }

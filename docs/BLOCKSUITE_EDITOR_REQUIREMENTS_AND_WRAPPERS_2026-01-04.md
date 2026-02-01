@@ -7,7 +7,7 @@
 
 ## 1. 结论（共识）
 
-- 大多数编辑能力（段落/列表/代码/图片/表格/画布基础组件/嵌入块等）可以通过引入并注册 `@blocksuite` 现成 block/spec/widget 来实现。
+- 大多数编辑能力（段落/列表/代码/ͼƬ/表格/画布基础组件/嵌入块等）可以通过引入并注册 `@blocksuite` 现成 block/spec/widget 来实现。
 - **需要我们实现的主要是“业务侧 wrapper/集成层”**：
   - `@`（提及）相关：与 TuanChat 的用户/成员体系对接（数据源、UI/选择器、序列化字段等）。
   - **画布内 embed-doc + sync doc 的外层 wrapper**：
@@ -79,7 +79,7 @@
 - 工作：修复 Vite optimize/dedupe、host mount、doc engine 初始化等
 
 2) 替换自研 minimal spec → blocksuite 现成 block/spec
-- 目标：用 `@blocksuite/affine-block-*` 覆盖段落/列表/代码/图片/表格
+- 目标：用 `@blocksuite/affine-block-*` 覆盖段落/列表/代码/ͼƬ/表格
 - 工作：确定需要引入哪些 extension/spec，并在 std scope 里注册
 
 3) 补齐 wrapper（必须自研部分）

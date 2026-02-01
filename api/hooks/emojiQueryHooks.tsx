@@ -3,12 +3,12 @@ import {tuanchat} from "../instance";
 import type {EmojiCreateRequest} from "../models/EmojiCreateRequest";
 
 /**
- * 根据ID获取表情?
+ * 根据 ID 获取表情
  * @param emojiId 表情包ID
  */
 
 /**
- * 创建表情?
+ * 创建表情
  */
 export function useCreateEmojiMutation() {
     const queryClient = useQueryClient();
@@ -22,7 +22,7 @@ export function useCreateEmojiMutation() {
 }
 
 /**
- * 删除表情?
+ * 删除表情
  */
 export function useDeleteEmojiMutation() {
     const queryClient = useQueryClient();
@@ -36,12 +36,12 @@ export function useDeleteEmojiMutation() {
 }
 
 /**
- * 获取用户表情包列?
+ * 获取用户表情包列表
  */
 export function useGetUserEmojisQuery() {
     return useQuery({
         queryKey: ['getUserEmojis'],
         queryFn: () => tuanchat.emojiController.getUserEmojis(),
-        staleTime: 300000 // 5鍒嗛挓缂撳瓨
+        staleTime: 300000 // 5分钟缓存
     });
 }

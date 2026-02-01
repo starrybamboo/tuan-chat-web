@@ -63,7 +63,7 @@ export default function ChatToolbarDock({
         isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
       }`}
     >
-      {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
+      {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % ǰ׺ */}
       {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && !isMobileLinkCompact && (
         <div className="tooltip tooltip-top" data-tip="WebGAL 指令（插入 % 前缀）">
           <button

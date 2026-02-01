@@ -101,7 +101,7 @@
 - P3：文档/示例中出现 `eval(...)`（位于 dicer 的编程文档 markdown），建议显著标注“示例勿用于生产”或改为安全替代，避免被误抄到运行时代码。
 
 ### 修复建议
-- Quill 编辑器体系化：把“日志/调试”与“生产逻辑”彻底分层（logger 在 PROD 默认静默或采样上报）；localStorage 统一 key/版本与容量上限；对持久化选择区/草稿增加迁移与清理策略。
+- Quill 编辑器体系化：把“日志/调试”与“生产逻辑”彻底分层（logger 在 PROD 默认静默或采样上报）；localStorage ͳһ key/版本与容量上限；对持久化选择区/草稿增加迁移与清理策略。
 - Markdown/嵌入安全：为 `rehype-sanitize` 明确 schema（允许标签/属性白名单）；对 iframe 嵌入做域名白名单（bilibili/youtube/pdf）与 URL 规范化；如允许脚本，至少限制来源与 referrerPolicy。
 - TODO 收口：dicer/卡片组件的 TODO 建议转为 issue/任务并明确验收标准；对解析器建议补最小测试（命令样例集）。
 - lint 隔离：对 `*.d.ts` 或生成物单独设置 eslint overrides（降级或忽略），避免迫使业务文件用 `eslint-disable` 自救。

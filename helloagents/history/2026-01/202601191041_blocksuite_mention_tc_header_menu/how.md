@@ -12,7 +12,7 @@
   - 缺失时返回空字符串，避免 Untitled 回退
 - 使用短 TTL 缓存 tc_header 结果，避免频繁加载 doc。
 - 保留 room doc 的过滤逻辑与 member 列表逻辑。
-- 同步更新 workspace.meta.title 为 tc_header，保证后续引用显示一致。
+- 同步更新 workspace.meta.title Ϊ tc_header，保证后续引用显示一致。
 
 ## 架构设计
 无架构变更。

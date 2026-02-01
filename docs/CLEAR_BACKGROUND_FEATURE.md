@@ -11,7 +11,7 @@
 使用现有的特效消息类型 (`EffectMessage`)，发送一个特殊的 `effectName` 来触发背景清除：
 
 1. 发送一个 `messageType: EFFECT` 的消息
-2. 设置 `effectName` 为 `"clearBackground"`
+2. 设置 `effectName` Ϊ `"clearBackground"`
 3. WebGAL 实时渲染系统识别到这个特效名称
 4. 执行 WebGAL 的 `changeBg:none` 指令清除背景
 

@@ -318,7 +318,7 @@ intro:这是黑屏文字;
     ↓
 更新场景文件
     ↓
-通过 WebSocket 通知 WebGAL 刷新
+通过 WebSocket ֪ͨ WebGAL 刷新
     ↓
 WebGAL 引擎重新渲染场景
 ```
@@ -668,7 +668,7 @@ ipcMain.on("launch-webgal", () => {
 3. **同时立绘数**: 最多 3 个（每个位置 1 个）
 4. **TTS 引擎**: 目前仅支持 IndexTTS
 5. **文件格式**:
-   - 图片: webp, png, jpg
+   - ͼƬ: webp, png, jpg
    - 音频: mp3, wav, ogg
 
 ## 调试技巧

@@ -11,8 +11,8 @@
 这是核心的卡片组件，支持多种展示模式：
 
 #### 属性 (Props)
-- `image?: string` - 图片URL
-- `imageAlt?: string` - 图片alt文本
+- `image?: string` - ͼƬURL
+- `imageAlt?: string` - ͼƬalt文本
 - `title?: string` - 卡片标题
 - `content?: string` - 文段内容
 - `className?: string` - 自定义CSS类名
@@ -41,7 +41,7 @@
   size="lg"
 />
 
-// 混合模式卡片 (图片 + 文字)
+// 混合模式卡片 (ͼƬ + 文字)
 <ContentCard
   title="标题"
   image="https://example.com/image.jpg"

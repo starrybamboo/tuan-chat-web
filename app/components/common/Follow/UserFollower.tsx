@@ -62,7 +62,7 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
           {" "}
           {pageState.current}
           {" "}
-          页
+          ҳ
         </button>
         <button
           type="button"

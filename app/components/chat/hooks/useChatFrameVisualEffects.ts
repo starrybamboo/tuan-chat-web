@@ -26,7 +26,7 @@ export default function useChatFrameVisualEffects({
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   /**
-   * 背景图片随聊天记录改?
+   * 背景图片随聊天记录改变
    * 注意：已删除的消息（status === 1）不应该显示背景图片
    */
   const imgNode = useMemo(() => {
@@ -41,7 +41,7 @@ export default function useChatFrameVisualEffects({
   }, [enableEffects, historyMessages]);
 
   /**
-   * 特效随聊天记录改?
+   * 特效随聊天记录改变
    * 注意：已删除的消息（status === 1）不应该显示特效
    */
   const effectNode = useMemo(() => {

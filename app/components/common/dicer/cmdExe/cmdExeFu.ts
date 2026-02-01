@@ -64,7 +64,7 @@ const cmdSt = new CommandExecutor(
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
-    // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }
+    // 修改对象存储变化详情：{ 属性名: { ԭֵ, 操作符, 变化值, 新值 } }
     const abilityChanges: {
       [key: string]: { old: number; op: string; val: number; new: number };
     } = {};
@@ -254,10 +254,10 @@ const cmdFu = new CommandExecutor(
     const diceRes = fuRoll(dice1, dice2, bonus);
     // 如果是强制弹窗，则弹窗显示结果，否则只发送消息
     if (isForceToasted) {
-      cpi.sendToast(`检定结果：${diceRes.expand} , HR为${diceRes.hr}`);
+      cpi.sendToast(`检定结果：${diceRes.expand} , HRΪ${diceRes.hr}`);
       return true;
     }
-    cpi.replyMessage(`检定结果：${diceRes.expand} , HR为${diceRes.hr}`);
+    cpi.replyMessage(`检定结果：${diceRes.expand} , HRΪ${diceRes.hr}`);
     return true;
   },
 );
