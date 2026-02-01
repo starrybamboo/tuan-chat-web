@@ -20,6 +20,7 @@ import useChatFrameMessageClick from "@/components/chat/hooks/useChatFrameMessag
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import useChatFrameScrollState from "@/components/chat/hooks/useChatFrameScrollState";
 import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
+import useChatFrameSelectionHandlers from "@/components/chat/hooks/useChatFrameSelectionHandlers";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
@@ -239,7 +240,7 @@ function ChatFrame(props: ChatFrameProps) {
   }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
 
   /**
-   * 娑堟伅閫夋嫨
+   * ?????????
    */
   const {
     selectedMessageIds,
@@ -250,15 +251,27 @@ function ChatFrame(props: ChatFrameProps) {
     handleEditMessage,
   } = useChatFrameSelection({ onDeleteMessage: deleteMessage });
 
+  const { contextMenu, closeContextMenu, handleContextMenu } = useChatFrameContextMenu();
+
+  const {
+    clearSelection,
+    handleDelete,
+    handleReply,
+    toggleChatBubbleStyle,
+  } = useChatFrameSelectionHandlers({
+    contextMenuMessageId: contextMenu?.messageId,
+    deleteMessage,
+    updateSelectedMessageIds,
+    closeContextMenu,
+    toggleUseChatBubbleStyle,
+    setReplyMessage,
+  });
+
   const handleMessageClick = useChatFrameMessageClick({
     isSelecting,
     toggleMessageSelection,
     onJumpToWebGAL: roomContext.jumpToMessageInWebGAL,
   });
-
-  const clearSelection = useCallback(() => {
-    updateSelectedMessageIds(new Set());
-  }, [updateSelectedMessageIds]);
 
   const {
     handleForward,
@@ -280,7 +293,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   async function handleAddEmoji(imgMessage: ImageMessage) {
     if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
-      toast.error("该表情已存在");
+      toast.error("?????????");
       return;
     }
     const fileSize = imgMessage.size > 0
@@ -293,13 +306,13 @@ function ChatFrame(props: ChatFrameProps) {
       format: imgMessage.url.split(".").pop() || "webp",
     }, {
       onSuccess: () => {
-        toast.success("表情添加成功");
+        toast.success("?????????");
       },
     });
   }
 
   /**
-   * 聊天气泡拖拽排序
+   * ????????????
    */
   const {
     isDragging,
@@ -329,27 +342,6 @@ function ChatFrame(props: ChatFrameProps) {
     isSelecting,
     selectedMessageIds,
   });
-
-  /**
-   * 鍙抽敭鑿滃崟
-   */
-  const { contextMenu, closeContextMenu, handleContextMenu } = useChatFrameContextMenu();
-
-  function handleDelete() {
-    deleteMessage(contextMenu?.messageId ?? -1);
-  }
-
-  // 鍏抽棴鍙抽敭鑿滃崟
-
-  function toggleChatBubbleStyle() {
-    toggleUseChatBubbleStyle();
-    closeContextMenu();
-  }
-
-  // 处理回复消息
-  function handleReply(message: Message) {
-    setReplyMessage(message);
-  }
 
   /**
    * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏?
