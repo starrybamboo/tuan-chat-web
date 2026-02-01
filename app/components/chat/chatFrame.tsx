@@ -6,7 +6,7 @@ import type {
   Message,
 } from "../../../api";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, use, useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import ChatFrameList from "@/components/chat/chatFrameList";
 import ChatFrameMessageItem from "@/components/chat/chatFrameMessageItem";
@@ -18,6 +18,7 @@ import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAnd
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
 import useChatFrameMessageClick from "@/components/chat/hooks/useChatFrameMessageClick";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
+import useChatFrameScrollState from "@/components/chat/hooks/useChatFrameScrollState";
 import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import RoleChooser from "@/components/chat/input/roleChooser";
@@ -195,9 +196,6 @@ function ChatFrame(props: ChatFrameProps) {
     });
   }, [deleteMessageMutation, historyMessages, roomContext.chatHistory]);
 
-  const isAtBottomRef = useRef(true);
-  const lastAutoSyncUnreadRef = useRef<number | null>(null);
-  const isAtTopRef = useRef(false);
   const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
     return virtuosoIndex;
   }, []);
@@ -205,54 +203,22 @@ function ChatFrame(props: ChatFrameProps) {
     return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
   }, [historyMessages.length]);
 
-  const unreadMessageNumber = enableUnreadIndicator
-    ? (webSocketUtils.unreadMessagesNumber[roomId] ?? 0)
-    : 0;
   const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
-  useEffect(() => {
-    if (!enableUnreadIndicator) {
-      return;
-    }
-    if (isAtBottomRef.current) {
-      updateLastReadSyncId(roomId);
-    }
-  }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
-  useEffect(() => {
-    if (!enableUnreadIndicator) {
-      lastAutoSyncUnreadRef.current = null;
-      return;
-    }
-    if (unreadMessageNumber <= 0) {
-      lastAutoSyncUnreadRef.current = null;
-      return;
-    }
-    if (!isAtBottomRef.current) {
-      return;
-    }
-    if (lastAutoSyncUnreadRef.current === unreadMessageNumber) {
-      return;
-    }
-    lastAutoSyncUnreadRef.current = unreadMessageNumber;
-    updateLastReadSyncId(roomId);
-  }, [enableUnreadIndicator, roomId, unreadMessageNumber, updateLastReadSyncId]);
-  const scrollToBottom = useCallback(() => {
-    virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
-    if (enableUnreadIndicator) {
-      updateLastReadSyncId(roomId);
-    }
-  }, [enableUnreadIndicator, historyMessages.length, messageIndexToVirtuosoIndex, roomId, updateLastReadSyncId, virtuosoRef]);
-  useEffect(() => {
-    let timer = null;
-    if (chatHistory?.loading) {
-      timer = setTimeout(() => {
-        scrollToBottom();
-      }, 1000);
-    }
-    return () => {
-      if (timer)
-        clearTimeout(timer);
-    };
-  }, [chatHistory?.loading, scrollToBottom]);
+  const {
+    isAtBottomRef,
+    isAtTopRef,
+    unreadMessageNumber,
+    scrollToBottom,
+  } = useChatFrameScrollState({
+    enableUnreadIndicator,
+    historyMessages,
+    roomId,
+    chatHistory,
+    unreadMessagesNumber: webSocketUtils.unreadMessagesNumber,
+    updateLastReadSyncId,
+    virtuosoRef,
+    messageIndexToVirtuosoIndex,
+  });
 
   const { setCurrentVirtuosoIndex } = useChatFrameVisualEffects({
     enableEffects,
