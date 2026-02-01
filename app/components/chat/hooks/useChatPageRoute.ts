@@ -28,6 +28,44 @@ type DocRouteInfo = {
   isInvalidSpaceDocId: boolean;
 };
 
+function getDocRouteInfo(params: { isDocRoute: boolean; urlMessageId?: string }): DocRouteInfo {
+  if (!params.isDocRoute || typeof params.urlMessageId !== "string") {
+    return {
+      decodedDocId: null,
+      activeDocId: null,
+      isInvalidSpaceDocId: false,
+    };
+  }
+
+  const decoded = decodeURIComponent(params.urlMessageId);
+
+  if (/^\d+$/.test(decoded)) {
+    const id = Number(decoded);
+    if (Number.isFinite(id) && id > 0) {
+      return {
+        decodedDocId: decoded,
+        activeDocId: buildSpaceDocId({ kind: "independent", docId: id }),
+        isInvalidSpaceDocId: false,
+      };
+    }
+  }
+
+  const parsed = parseSpaceDocId(decoded);
+  if (parsed?.kind === "independent") {
+    return {
+      decodedDocId: decoded,
+      activeDocId: null,
+      isInvalidSpaceDocId: true,
+    };
+  }
+
+  return {
+    decodedDocId: decoded,
+    activeDocId: decoded,
+    isInvalidSpaceDocId: false,
+  };
+}
+
 export default function useChatPageRoute(): ChatPageRouteState {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
   const navigate = useNavigate();
@@ -38,41 +76,7 @@ export default function useChatPageRoute(): ChatPageRouteState {
   const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
 
   const docRouteInfo = useMemo<DocRouteInfo>(() => {
-    if (!isDocRoute) {
-      return {
-        decodedDocId: null,
-        activeDocId: null,
-        isInvalidSpaceDocId: false,
-      };
-    }
-
-    const decoded = decodeURIComponent(urlMessageId as string);
-
-    if (/^\d+$/.test(decoded)) {
-      const id = Number(decoded);
-      if (Number.isFinite(id) && id > 0) {
-        return {
-          decodedDocId: decoded,
-          activeDocId: buildSpaceDocId({ kind: "independent", docId: id }),
-          isInvalidSpaceDocId: false,
-        };
-      }
-    }
-
-    const parsed = parseSpaceDocId(decoded);
-    if (parsed?.kind === "independent") {
-      return {
-        decodedDocId: decoded,
-        activeDocId: null,
-        isInvalidSpaceDocId: true,
-      };
-    }
-
-    return {
-      decodedDocId: decoded,
-      activeDocId: decoded,
-      isInvalidSpaceDocId: false,
-    };
+    return getDocRouteInfo({ isDocRoute, urlMessageId });
   }, [isDocRoute, urlMessageId]);
 
   const activeDocId = docRouteInfo.activeDocId;
