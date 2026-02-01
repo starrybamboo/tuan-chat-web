@@ -1,7 +1,5 @@
 import type { ChatDiscoverMode, ChatPageMainView } from "@/components/chat/chatPage.types";
-import type { SidebarTree } from "@/components/chat/room/sidebarTree";
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
-import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
@@ -20,6 +18,7 @@ import useChatPageMemberActions from "@/components/chat/hooks/useChatPageMemberA
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
+import useChatPageSidebarTree from "@/components/chat/hooks/useChatPageSidebarTree";
 import useChatPageSpaceContext from "@/components/chat/hooks/useChatPageSpaceContext";
 import useChatPageSpaceContextMenu from "@/components/chat/hooks/useChatPageSpaceContextMenu";
 import useChatPageSpaceHandle from "@/components/chat/hooks/useChatPageSpaceHandle";
@@ -29,7 +28,7 @@ import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
-import { extractDocMetasFromSidebarTree, parseSidebarTree } from "@/components/chat/room/sidebarTree";
+import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
@@ -133,22 +132,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     rooms,
   });
 
-  const spaceSidebarTreeQuery = useGetSpaceSidebarTreeQuery(activeSpaceId ?? -1);
-  const setSpaceSidebarTreeMutation = useSetSpaceSidebarTreeMutation();
-  const sidebarTreeVersion = spaceSidebarTreeQuery.data?.data?.version ?? 0;
-  const sidebarTree = useMemo(() => {
-    return parseSidebarTree(spaceSidebarTreeQuery.data?.data?.treeJson);
-  }, [spaceSidebarTreeQuery.data?.data?.treeJson]);
-
-  const handleSaveSidebarTree = useCallback((tree: SidebarTree) => {
-    if (!activeSpaceId || activeSpaceId <= 0)
-      return;
-    setSpaceSidebarTreeMutation.mutate({
-      spaceId: activeSpaceId,
-      expectedVersion: sidebarTreeVersion,
-      treeJson: JSON.stringify(tree),
-    });
-  }, [activeSpaceId, setSpaceSidebarTreeMutation, sidebarTreeVersion]);
+  const { sidebarTree, saveSidebarTree: handleSaveSidebarTree } = useChatPageSidebarTree({ activeSpaceId });
 
   const { setActiveSpaceId, setActiveRoomId, handleOpenPrivate } = useChatPageNavigation({
     activeSpaceId,
