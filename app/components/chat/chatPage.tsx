@@ -19,6 +19,7 @@ import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
 import useChatPageSpaceContext from "@/components/chat/hooks/useChatPageSpaceContext";
+import useChatPageSpaceHandle from "@/components/chat/hooks/useChatPageSpaceHandle";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
@@ -187,7 +188,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
   }, [activeSpaceId, navigate, setMainView]);
 
-  const spaceMembers = spaceMembersQuery.data?.data ?? [];
+  const spaceMembers = useMemo(() => spaceMembersQuery.data?.data ?? [], [spaceMembersQuery.data?.data]);
   const isKPInSpace = useMemo(() => {
     return Boolean(spaceMembers.some(member => member.userId === globalContext.userId && member.memberType === 1));
   }, [globalContext.userId, spaceMembers]);
@@ -261,7 +262,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     urlRoomId,
   });
 
-  const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
+  const { isSpaceHandleOpen, openSpaceHandle, setIsSpaceHandleOpen } = useChatPageSpaceHandle();
   const {
     isCreateInCategoryOpen,
     closeCreateInCategory,
@@ -398,9 +399,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       onToggleLeftDrawer={toggleLeftDrawer}
       isLeftDrawerOpen={isOpenLeftDrawer}
       onSelectSpace={setActiveSpaceId}
-      onCreateSpace={() => {
-        setIsSpaceHandleOpen(true);
-      }}
+      onCreateSpace={openSpaceHandle}
       onSpaceContextMenu={handleSpaceContextMenu}
     />
   );
