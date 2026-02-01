@@ -22,6 +22,12 @@ type ChatPageRouteState = {
   navigate: ReturnType<typeof useNavigate>;
 };
 
+type DocRouteInfo = {
+  decodedDocId: string | null;
+  activeDocId: string | null;
+  isInvalidSpaceDocId: boolean;
+};
+
 export default function useChatPageRoute(): ChatPageRouteState {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
   const navigate = useNavigate();
@@ -31,53 +37,69 @@ export default function useChatPageRoute(): ChatPageRouteState {
 
   const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
 
-  const activeDocId = useMemo(() => {
-    if (!isDocRoute)
-      return null;
+  const docRouteInfo = useMemo<DocRouteInfo>(() => {
+    if (!isDocRoute) {
+      return {
+        decodedDocId: null,
+        activeDocId: null,
+        isInvalidSpaceDocId: false,
+      };
+    }
 
     const decoded = decodeURIComponent(urlMessageId as string);
 
     if (/^\d+$/.test(decoded)) {
       const id = Number(decoded);
       if (Number.isFinite(id) && id > 0) {
-        return buildSpaceDocId({ kind: "independent", docId: id });
+        return {
+          decodedDocId: decoded,
+          activeDocId: buildSpaceDocId({ kind: "independent", docId: id }),
+          isInvalidSpaceDocId: false,
+        };
       }
     }
 
     const parsed = parseSpaceDocId(decoded);
     if (parsed?.kind === "independent") {
-      return null;
+      return {
+        decodedDocId: decoded,
+        activeDocId: null,
+        isInvalidSpaceDocId: true,
+      };
     }
 
-    return decoded;
+    return {
+      decodedDocId: decoded,
+      activeDocId: decoded,
+      isInvalidSpaceDocId: false,
+    };
   }, [isDocRoute, urlMessageId]);
+
+  const activeDocId = docRouteInfo.activeDocId;
 
   useEffect(() => {
     if (!isDocRoute)
       return;
     if (!activeSpaceId || activeSpaceId <= 0)
       return;
+    if (!docRouteInfo.isInvalidSpaceDocId)
+      return;
 
-    try {
-      const decoded = decodeURIComponent(urlMessageId as string);
-      const parsed = parseSpaceDocId(decoded);
-      if (parsed?.kind === "independent") {
-        toast.error("文档链接无效，已返回空间主页");
-        navigate(`/chat/${activeSpaceId}`);
-      }
-    }
-    catch {
-      // ignore
-    }
-  }, [activeSpaceId, isDocRoute, navigate, urlMessageId]);
+    toast.error("文档链接无效，已返回空间主页");
+    navigate(`/chat/${activeSpaceId}`);
+  }, [activeSpaceId, docRouteInfo.isInvalidSpaceDocId, isDocRoute, navigate]);
 
   const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
   const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
 
   const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
-  const spaceDetailRouteTab: SpaceDetailTab | null = (!isPrivateChatMode && !urlMessageId && (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg"))
-    ? urlRoomId
-    : null;
+  const spaceDetailRouteTab: SpaceDetailTab | null = useMemo(() => {
+    if (isPrivateChatMode || urlMessageId)
+      return null;
+    if (urlRoomId === "members" || urlRoomId === "workflow" || urlRoomId === "setting" || urlRoomId === "trpg")
+      return urlRoomId;
+    return null;
+  }, [isPrivateChatMode, urlMessageId, urlRoomId]);
   const isSpaceDetailRoute = spaceDetailRouteTab != null;
 
   return {
