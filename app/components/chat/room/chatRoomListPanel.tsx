@@ -1,12 +1,12 @@
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
-import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import React, { useMemo, useState } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import useRoomSidebarAddPanelState from "@/components/chat/room/useRoomSidebarAddPanelState";
 import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
+import useRoomSidebarContextMenu from "@/components/chat/room/useRoomSidebarContextMenu";
 import useRoomSidebarDeleteHandlers from "@/components/chat/room/useRoomSidebarDeleteHandlers";
 import useRoomSidebarDocCopy from "@/components/chat/room/useRoomSidebarDocCopy";
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
@@ -174,7 +174,7 @@ export default function ChatRoomListPanel({
     toggleAddPanel,
   } = useRoomSidebarAddPanelState();
 
-  const [contextMenu, setContextMenu] = useState<SidebarTreeContextMenuState>(null);
+  const { contextMenu, setContextMenu, closeContextMenu } = useRoomSidebarContextMenu();
 
   const normalizeAndSet = useRoomSidebarNormalizer({
     fallbackTextRooms,
@@ -375,7 +375,7 @@ export default function ChatRoomListPanel({
                 onConfirmDeleteCategory={confirmDeleteCategory}
 
                 contextMenu={contextMenu}
-                onCloseContextMenu={() => setContextMenu(null)}
+                onCloseContextMenu={closeContextMenu}
                 onOpenRenameCategory={(categoryId) => {
                   openRenameCategory(categoryId);
                 }}
