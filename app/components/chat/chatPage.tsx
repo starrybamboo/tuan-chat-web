@@ -9,6 +9,7 @@ import ChatPageMainContent from "@/components/chat/chatPageMainContent";
 import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import useChatPageActiveSpaceInfo from "@/components/chat/hooks/useChatPageActiveSpaceInfo";
 import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageCreateInCategory from "@/components/chat/hooks/useChatPageCreateInCategory";
@@ -112,11 +113,18 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     spaces,
     rooms,
   });
-  const activeSpace = activeSpaceInfo ?? spaces.find(space => space.spaceId === activeSpaceId);
-  const activeSpaceIsArchived = activeSpace?.status === 2;
   const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
-  const activeSpaceNameForUi = activeSpaceHeaderOverride?.title ?? activeSpace?.name;
-  const activeSpaceAvatar = activeSpace?.avatar;
+  const {
+    activeSpace,
+    activeSpaceAvatar,
+    activeSpaceIsArchived,
+    activeSpaceNameForUi,
+  } = useChatPageActiveSpaceInfo({
+    activeSpaceHeaderOverride,
+    activeSpaceId,
+    activeSpaceInfo,
+    spaces,
+  });
   const activeDocHeaderOverride = useDocHeaderOverrideStore(state => (activeDocId ? state.headers[activeDocId] : undefined));
 
   useSpaceDocMetaSync({
