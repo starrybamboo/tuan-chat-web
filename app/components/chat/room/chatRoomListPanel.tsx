@@ -1,12 +1,12 @@
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
-import type { DeleteConfirmDocState, SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
+import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
+import useRoomSidebarDeleteHandlers from "@/components/chat/room/useRoomSidebarDeleteHandlers";
 import useRoomSidebarDocCopy from "@/components/chat/room/useRoomSidebarDocCopy";
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
 import useRoomSidebarDragState from "@/components/chat/room/useRoomSidebarDragState";
@@ -166,9 +166,6 @@ export default function ChatRoomListPanel({
   const [pendingAddRoomId, setPendingAddRoomId] = useState<number | null>(null);
   const [pendingAddDocId, setPendingAddDocId] = useState<string>("");
 
-  const [deleteConfirmCategoryId, setDeleteConfirmCategoryId] = useState<string | null>(null);
-  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DeleteConfirmDocState | null>(null);
-
   const [contextMenu, setContextMenu] = useState<SidebarTreeContextMenuState>(null);
 
   const normalizeAndSet = useCallback((next: SidebarTree, save: boolean, options?: { docMetasOverride?: MinimalDocMeta[] }) => {
@@ -239,24 +236,23 @@ export default function ChatRoomListPanel({
     emptyNameError: "鍚嶇О涓嶈兘涓虹┖",
   });
 
-  const deleteCategoryCore = useCallback((categoryId: string) => {
-    const base = treeToRender;
-    const idx = base.categories.findIndex(c => c.categoryId === categoryId);
-    if (idx === -1)
-      return;
-    if (base.categories.length <= 1)
-      return;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    const [removed] = next.categories.splice(idx, 1);
-    if (!removed)
-      return;
-    const targetIdx = Math.max(0, Math.min(idx - 1, next.categories.length - 1));
-    const target = next.categories[targetIdx];
-    if (target) {
-      target.items.push(...(removed.items ?? []));
-    }
-    normalizeAndSet(next, true);
-  }, [normalizeAndSet, treeToRender]);
+  const {
+    deleteConfirmCategoryId,
+    deleteConfirmDoc,
+    openDeleteConfirmCategory,
+    closeDeleteConfirmCategory,
+    confirmDeleteCategory,
+    openDeleteConfirmDoc,
+    closeDeleteConfirmDoc,
+    confirmDeleteDoc,
+    getDocTitle,
+  } = useRoomSidebarDeleteHandlers({
+    treeToRender,
+    normalizeAndSet,
+    activeSpaceId,
+    removeNode,
+    docMetaMap,
+  });
 
   const existingRoomIdsInTree = useMemo(() => {
     return collectExistingRoomIds(treeToRender);
@@ -377,12 +373,9 @@ export default function ChatRoomListPanel({
 
                 deleteConfirmCategoryId={deleteConfirmCategoryId}
                 treeCategoryCount={treeToRender.categories.length}
-                onCloseDeleteConfirmCategory={() => setDeleteConfirmCategoryId(null)}
-                onRequestDeleteConfirmCategory={categoryId => setDeleteConfirmCategoryId(categoryId)}
-                onConfirmDeleteCategory={(categoryId) => {
-                  deleteCategoryCore(categoryId);
-                  setDeleteConfirmCategoryId(null);
-                }}
+                onCloseDeleteConfirmCategory={closeDeleteConfirmCategory}
+                onRequestDeleteConfirmCategory={openDeleteConfirmCategory}
+                onConfirmDeleteCategory={confirmDeleteCategory}
 
                 contextMenu={contextMenu}
                 onCloseContextMenu={() => setContextMenu(null)}
@@ -398,29 +391,12 @@ export default function ChatRoomListPanel({
                   onSelectDoc?.(docId);
                   onCloseLeftDrawer();
                 }}
-                onRequestDeleteDoc={(docId, title, categoryId, index) => {
-                  setDeleteConfirmDoc({ docId, title, categoryId, index });
-                }}
+                onRequestDeleteDoc={openDeleteConfirmDoc}
 
                 deleteConfirmDoc={deleteConfirmDoc}
-                onCloseDeleteConfirmDoc={() => setDeleteConfirmDoc(null)}
-                onConfirmDeleteDoc={(payload) => {
-                  try {
-                    if (activeSpaceId) {
-                      void deleteSpaceDoc({ spaceId: activeSpaceId, docId: payload.docId }).catch((err) => {
-                        console.error("[SidebarTree] deleteSpaceDoc failed", err);
-                      });
-                    }
-                  }
-                  catch (err) {
-                    console.error("[SidebarTree] deleteSpaceDoc failed", err);
-                  }
-                  removeNode(payload.categoryId, payload.index);
-                  setDeleteConfirmDoc(null);
-                }}
-                getDocTitle={(docId) => {
-                  return docMetaMap.get(docId)?.title ?? docId;
-                }}
+                onCloseDeleteConfirmDoc={closeDeleteConfirmDoc}
+                onConfirmDeleteDoc={confirmDeleteDoc}
+                getDocTitle={getDocTitle}
               />
             </>
           )}
