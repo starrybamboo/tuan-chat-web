@@ -17,13 +17,14 @@ import {
   useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import ChatPageMainContent from "@/components/chat/chatPageMainContent";
 import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
@@ -457,51 +458,14 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     urlRoomId,
   });
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
-  const [spaceContextMenu, setSpaceContextMenu] = useState<{ x: number; y: number; spaceId: number } | null>(null);
-
-  function closeContextMenu() {
-    setContextMenu(null);
-  }
-
-  function closeSpaceContextMenu() {
-    setSpaceContextMenu(null);
-  }
-
-  function handleContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    const messageElement = target.closest("[data-room-id]");
-    setContextMenu({ x: e.clientX, y: e.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
-  }
-
-  function handleSpaceContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    const spaceElement = target.closest("[data-space-id]");
-    const rawSpaceId = spaceElement?.getAttribute("data-space-id");
-    if (!rawSpaceId)
-      return;
-    setSpaceContextMenu({ x: e.clientX, y: e.clientY, spaceId: Number(rawSpaceId) });
-  }
-
-  useEffect(() => {
-    if (contextMenu) {
-      window.addEventListener("click", closeContextMenu);
-    }
-    return () => {
-      window.removeEventListener("click", closeContextMenu);
-    };
-  }, [contextMenu]);
-
-  useEffect(() => {
-    if (spaceContextMenu) {
-      window.addEventListener("click", closeSpaceContextMenu);
-    }
-    return () => {
-      window.removeEventListener("click", closeSpaceContextMenu);
-    };
-  }, [spaceContextMenu]);
+  const {
+    contextMenu,
+    spaceContextMenu,
+    handleContextMenu,
+    handleSpaceContextMenu,
+    closeContextMenu,
+    closeSpaceContextMenu,
+  } = useChatPageContextMenus();
 
   // spaceContext
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
