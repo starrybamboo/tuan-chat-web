@@ -67,6 +67,15 @@ function getDocRouteInfo(params: { isDocRoute: boolean; urlMessageId?: string })
   };
 }
 
+function parsePositiveNumber(value?: string): number | null {
+  if (!value)
+    return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0)
+    return null;
+  return numeric;
+}
+
 function getSpaceDetailRouteTab(params: {
   isPrivateChatMode: boolean;
   urlMessageId?: string;
@@ -84,7 +93,7 @@ export default function useChatPageRoute(): ChatPageRouteState {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
   const navigate = useNavigate();
 
-  const activeSpaceId = Number(urlSpaceId) || null;
+  const activeSpaceId = parsePositiveNumber(urlSpaceId);
   const isPrivateChatMode = urlSpaceId === "private";
 
   const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
@@ -107,8 +116,8 @@ export default function useChatPageRoute(): ChatPageRouteState {
     navigate(`/chat/${activeSpaceId}`);
   }, [activeSpaceId, docRouteInfo.isInvalidSpaceDocId, isDocRoute, navigate]);
 
-  const activeRoomId = isDocRoute ? null : (Number(urlRoomId) || null);
-  const targetMessageId = isDocRoute ? null : (Number(urlMessageId) || null);
+  const activeRoomId = isDocRoute ? null : parsePositiveNumber(urlRoomId);
+  const targetMessageId = isDocRoute ? null : parsePositiveNumber(urlMessageId);
 
   const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
   const spaceDetailRouteTab: SpaceDetailTab | null = useMemo(() => {
