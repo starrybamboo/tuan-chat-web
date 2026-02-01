@@ -16,7 +16,6 @@ import {
   useGetUserRoomsQuery,
   useSetPlayerMutation,
 } from "api/hooks/chatQueryHooks";
-import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
 import { tuanchat } from "api/instance";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -29,6 +28,7 @@ import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
+import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -44,8 +44,6 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { usePrivateMessageList } from "@/components/privateChat/hooks/usePrivateMessageList";
-import { useUnreadCount } from "@/components/privateChat/hooks/useUnreadCount";
 
 /**
  * Chat 页面
@@ -670,33 +668,13 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }));
   }, [activeSpaceId, isPrivateChatMode, setRoomOrderByUserAndSpace, userId]);
 
-  const privateMessageList = usePrivateMessageList({ globalContext, userId });
-  const { unreadMessageNumbers: privateUnreadMessageNumbers } = useUnreadCount({
-    realTimeContacts: privateMessageList.realTimeContacts,
-    sortedRealTimeMessages: privateMessageList.sortedRealTimeMessages,
+  const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
+    globalContext,
     userId,
-    urlRoomId: isPrivateChatMode ? urlRoomId : undefined,
+    isPrivateChatMode,
+    activeRoomId,
+    urlRoomId,
   });
-  const privateTotalUnreadMessages = useMemo(() => {
-    return privateMessageList.realTimeContacts.reduce((sum, contactId) => {
-      if (isPrivateChatMode && activeRoomId === contactId) {
-        return sum;
-      }
-      return sum + (privateUnreadMessageNumbers[contactId] ?? 0);
-    }, 0);
-  }, [activeRoomId, isPrivateChatMode, privateMessageList.realTimeContacts, privateUnreadMessageNumbers]);
-
-  const friendRequestPageQuery = useGetFriendRequestPageQuery({ pageNo: 1, pageSize: 50 });
-  const pendingFriendRequestCount = useMemo(() => {
-    const list = friendRequestPageQuery.data?.data?.list ?? [];
-    if (!Array.isArray(list))
-      return 0;
-    return list.filter((r: any) => r?.type === "received" && r?.status === 1).length;
-  }, [friendRequestPageQuery.data?.data?.list]);
-
-  const privateEntryBadgeCount = useMemo(() => {
-    return privateTotalUnreadMessages + pendingFriendRequestCount;
-  }, [pendingFriendRequestCount, privateTotalUnreadMessages]);
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
   const [spaceContextMenu, setSpaceContextMenu] = useState<{ x: number; y: number; spaceId: number } | null>(null);
@@ -743,78 +721,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
       window.removeEventListener("click", closeSpaceContextMenu);
     };
   }, [spaceContextMenu]);
-
-  const websocketUtils = useGlobalContext().websocketUtils;
-  const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
-  const totalUnreadMessages = useMemo(() => {
-    return Object.values(unreadMessagesNumber).reduce((sum, count) => sum + count, 0);
-  }, [unreadMessagesNumber]);
-  const unreadDebugEnabled = typeof window !== "undefined" && localStorage.getItem("tc:unread:debug") === "1";
-  const unreadDebugSnapshotRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!unreadDebugEnabled) {
-      unreadDebugSnapshotRef.current = null;
-      return;
-    }
-
-    const path = `${window.location.pathname}${window.location.search}`;
-    const groupDetails = Object.entries(unreadMessagesNumber)
-      .map(([roomId, unread]) => ({
-        roomId: Number(roomId),
-        unread: unread ?? 0,
-      }))
-      .sort((a, b) => a.roomId - b.roomId);
-    const privateDetails = privateMessageList.realTimeContacts
-      .map(contactId => ({
-        contactId,
-        unread: privateUnreadMessageNumbers[contactId] ?? 0,
-        isActive: isPrivateChatMode && activeRoomId === contactId,
-      }))
-      .sort((a, b) => a.contactId - b.contactId);
-
-    const snapshot = {
-      path,
-      isPrivateChatMode,
-      activeRoomId,
-      totalUnreadMessages,
-      privateTotalUnreadMessages,
-      pendingFriendRequestCount,
-      privateEntryBadgeCount,
-      groupUnreadTotal: totalUnreadMessages,
-      groupDetails,
-      privateDetails,
-    };
-    const nextSnapshot = JSON.stringify(snapshot);
-    if (unreadDebugSnapshotRef.current === nextSnapshot) {
-      return;
-    }
-    unreadDebugSnapshotRef.current = nextSnapshot;
-    console.warn(`[tc:unread] ${path}`, snapshot);
-  }, [
-    activeRoomId,
-    isPrivateChatMode,
-    pendingFriendRequestCount,
-    privateEntryBadgeCount,
-    privateMessageList.realTimeContacts,
-    privateTotalUnreadMessages,
-    privateUnreadMessageNumbers,
-    totalUnreadMessages,
-    unreadDebugEnabled,
-    unreadMessagesNumber,
-  ]);
-  useEffect(() => {
-    const originalTitle = document.title.replace(/^\(\d+\)\s*/, "");
-    if (totalUnreadMessages > 0) {
-      document.title = `(${totalUnreadMessages}) ${originalTitle}`;
-      return () => {
-        document.title = originalTitle;
-      };
-    }
-    document.title = originalTitle;
-    return () => {
-      document.title = originalTitle;
-    };
-  }, [totalUnreadMessages]);
 
   // spaceContext
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
