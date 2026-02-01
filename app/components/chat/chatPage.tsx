@@ -20,6 +20,7 @@ import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
+import useChatPageCreateInCategory from "@/components/chat/hooks/useChatPageCreateInCategory";
 import useChatPageDetailPanels from "@/components/chat/hooks/useChatPageDetailPanels";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
@@ -37,7 +38,6 @@ import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMe
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
-import { getDefaultCreateInCategoryMode } from "@/components/chat/utils/createInCategoryMode";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -268,56 +268,28 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   });
 
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
-  const [isCreateInCategoryOpen, setIsCreateInCategoryOpen] = useSearchParamsState<boolean>("createInCategoryPop", false);
-
-  const [pendingCreateInCategoryId, setPendingCreateInCategoryId] = useState<string | null>(null);
-  const [createInCategoryMode, setCreateInCategoryMode] = useState<"room" | "doc">("room");
-  const [createDocTitle, setCreateDocTitle] = useState("未命名文档");
-  const openCreateInCategory = useCallback((categoryId: string) => {
-    if (!activeSpaceId || activeSpaceId <= 0)
-      return;
-    setPendingCreateInCategoryId(categoryId);
-    setCreateInCategoryMode(getDefaultCreateInCategoryMode({ categoryId, isKPInSpace }));
-    setCreateDocTitle("未命名文档");
-    setIsCreateInCategoryOpen(true);
-  }, [activeSpaceId, isKPInSpace, setIsCreateInCategoryOpen]);
-
-  const closeCreateInCategory = useCallback(() => {
-    setIsCreateInCategoryOpen(false);
-    setPendingCreateInCategoryId(null);
-  }, [setIsCreateInCategoryOpen]);
-
-  const createDocInSelectedCategory = useCallback(async () => {
-    const categoryId = pendingCreateInCategoryId;
-    if (!categoryId)
-      return;
-    if (!isKPInSpace)
-      return;
-    await requestCreateDocInCategory(categoryId, createDocTitle);
-    closeCreateInCategory();
-  }, [closeCreateInCategory, createDocTitle, isKPInSpace, pendingCreateInCategoryId, requestCreateDocInCategory]);
-
-  const handleRoomCreated = useCallback((roomId?: number) => {
-    const categoryId = pendingCreateInCategoryId;
-    setPendingCreateInCategoryId(null);
-
-    if (roomId) {
-      setMainView("chat");
-      setActiveRoomId(roomId);
-    }
-
-    if (roomId && categoryId && activeSpaceId && activeSpaceId > 0) {
-      const base = buildTreeBaseForWrite(spaceDocMetas ?? []);
-      const next = appendNodeToCategory({
-        tree: base,
-        categoryId,
-        node: { nodeId: `room:${roomId}`, type: "room", targetId: roomId },
-      });
-      handleSaveSidebarTree(next);
-    }
-
-    setIsCreateInCategoryOpen(false);
-  }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, handleSaveSidebarTree, pendingCreateInCategoryId, setActiveRoomId, setIsCreateInCategoryOpen, setMainView, spaceDocMetas]);
+  const {
+    isCreateInCategoryOpen,
+    closeCreateInCategory,
+    createDocInSelectedCategory,
+    createDocTitle,
+    createInCategoryMode,
+    handleRoomCreated,
+    openCreateInCategory,
+    pendingCreateInCategoryId,
+    setCreateDocTitle,
+    setCreateInCategoryMode,
+  } = useChatPageCreateInCategory({
+    activeSpaceId,
+    isKPInSpace,
+    buildTreeBaseForWrite,
+    appendNodeToCategory,
+    saveSidebarTree: handleSaveSidebarTree,
+    requestCreateDocInCategory,
+    setActiveRoomId,
+    setMainView,
+    spaceDocMetas,
+  });
 
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
