@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 
+import { computeMoveMessageUpdates } from "@/components/chat/hooks/chatFrameDragUtils";
 import useChatFrameDragAutoScroll from "@/components/chat/hooks/useChatFrameDragAutoScroll";
 import useChatFrameDragIndicator from "@/components/chat/hooks/useChatFrameDragIndicator";
 import useSendDocCardFromDrop from "@/components/chat/hooks/useSendDocCardFromDrop";
@@ -106,46 +107,22 @@ export default function useChatFrameDragAndDrop({
     targetIndex: number,
     messageIds: number[],
   ) => {
-    const movableMessageIds = isMessageMovable
-      ? messageIds.filter((id) => {
-          const msg = historyMessages.find(m => m.message.messageId === id)?.message;
-          return msg ? isMessageMovable(msg) : false;
-        })
-      : messageIds;
+    const { updatedMessages, hasUnmovable } = computeMoveMessageUpdates({
+      historyMessages,
+      isMessageMovable,
+      messageIds,
+      targetIndex,
+    });
 
-    if (movableMessageIds.length !== messageIds.length) {
+    if (hasUnmovable) {
       toast.error("部分消息不支持移动");
     }
-    if (movableMessageIds.length === 0) {
+    if (updatedMessages.length === 0) {
       return;
     }
-
-    const messageIdSet = new Set(movableMessageIds);
-    const selectedMessages = Array.from(movableMessageIds)
-      .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
-      .filter((msg): msg is Message => msg !== undefined)
-      .sort((a, b) => a.position - b.position);
-    let topMessageIndex: number = targetIndex;
-    let bottomMessageIndex: number = targetIndex + 1;
-    while (messageIdSet.has(historyMessages[topMessageIndex]?.message.messageId)) {
-      topMessageIndex--;
+    for (const nextMessage of updatedMessages) {
+      updateMessage(nextMessage);
     }
-    while (messageIdSet.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
-      bottomMessageIndex++;
-    }
-    const topMessagePosition = historyMessages[topMessageIndex]?.message.position
-      ?? historyMessages[0].message.position - 1;
-    const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
-      ?? historyMessages[historyMessages.length - 1].message.position + 1;
-
-    const step = (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1);
-    selectedMessages.forEach((selectedMessage, index) => {
-      const nextPosition = step * (index + 1) + topMessagePosition;
-      updateMessage({
-        ...selectedMessage,
-        position: nextPosition,
-      });
-    });
   }, [historyMessages, isMessageMovable, updateMessage]);
 
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, index: number) => {
