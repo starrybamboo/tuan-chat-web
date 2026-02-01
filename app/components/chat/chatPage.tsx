@@ -1,10 +1,4 @@
-import type {
-  ChatDiscoverMode,
-  ChatPageMainView,
-  RoomSettingState,
-  RoomSettingTab,
-  SpaceDetailTab,
-} from "@/components/chat/chatPage.types";
+import type { ChatDiscoverMode, ChatPageMainView } from "@/components/chat/chatPage.types";
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 import type { SidebarTree } from "@/components/chat/room/sidebarTree";
 import {
@@ -25,6 +19,7 @@ import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
+import useChatPageDetailPanels from "@/components/chat/hooks/useChatPageDetailPanels";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
@@ -161,8 +156,25 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
   const [mainView, setMainView] = useState<ChatPageMainView>(() => initialMainView ?? "chat");
   const discoverModeForUi = discoverMode ?? "square";
-  const [spaceDetailTab, setSpaceDetailTab] = useState<SpaceDetailTab>("members");
-  const [roomSettingState, setRoomSettingState] = useState<RoomSettingState>(null);
+  const {
+    roomSettingState,
+    spaceDetailTab,
+    openRoomSettingPage,
+    closeRoomSettingPage,
+    openSpaceDetailPanel,
+    closeSpaceDetailPanel,
+  } = useChatPageDetailPanels({
+    activeRoomId,
+    activeSpaceId,
+    isPrivateChatMode,
+    isRoomSettingRoute,
+    isSpaceDetailRoute,
+    spaceDetailRouteTab,
+    navigate,
+    searchParam,
+    setMainView,
+    storedIds,
+  });
 
   const handleSelectRoom = useCallback((roomId: number) => {
     setMainView("chat");
@@ -243,83 +255,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     setMainView,
   });
 
-  const openRoomSettingPage = useCallback((roomId: number | null, tab?: RoomSettingTab) => {
-    if (roomId == null)
-      return;
-
-    if (activeSpaceId == null)
-      return;
-
-    const nextTab: RoomSettingTab = tab ?? "setting";
-    const nextSearchParams = new URLSearchParams(searchParam);
-    nextSearchParams.delete("tab");
-    const qs = nextSearchParams.toString();
-    navigate(`/chat/${activeSpaceId}/${roomId}/setting${qs ? `?${qs}` : ""}`);
-
-    setRoomSettingState({ roomId, tab: nextTab });
-    setMainView("roomSetting");
-    (document.activeElement as HTMLElement | null)?.blur?.();
-  }, [activeSpaceId, navigate, searchParam]);
-
-  const closeRoomSettingPage = useCallback(() => {
-    setRoomSettingState(null);
-    setMainView("chat");
-
-    if (activeSpaceId == null || activeRoomId == null)
-      return;
-
-    const nextSearchParams = new URLSearchParams(searchParam);
-    nextSearchParams.delete("tab");
-    const qs = nextSearchParams.toString();
-    navigate(`/chat/${activeSpaceId}/${activeRoomId}${qs ? `?${qs}` : ""}`);
-  }, [activeRoomId, activeSpaceId, navigate, searchParam]);
-
-  const urlDrivenRoomSettingRef = useRef(false);
-  useEffect(() => {
-    if (isPrivateChatMode)
-      return;
-
-    if (isRoomSettingRoute) {
-      urlDrivenRoomSettingRef.current = true;
-      if (activeSpaceId == null || activeRoomId == null)
-        return;
-
-      const urlTab = searchParam.get("tab");
-      const nextTab: RoomSettingTab = urlTab === "role" || urlTab === "setting" ? urlTab : "setting";
-      setRoomSettingState({ roomId: activeRoomId, tab: nextTab });
-      setMainView("roomSetting");
-      return;
-    }
-
-    if (urlDrivenRoomSettingRef.current) {
-      urlDrivenRoomSettingRef.current = false;
-      setRoomSettingState(null);
-      setMainView("chat");
-    }
-  }, [activeRoomId, activeSpaceId, isPrivateChatMode, isRoomSettingRoute, searchParam]);
-
-  const urlDrivenSpaceDetailRef = useRef(false);
-  useEffect(() => {
-    if (isPrivateChatMode)
-      return;
-
-    if (isSpaceDetailRoute) {
-      urlDrivenSpaceDetailRef.current = true;
-      setRoomSettingState(null);
-
-      setSpaceDetailTab(spaceDetailRouteTab ?? "setting");
-      setMainView("spaceDetail");
-      return;
-    }
-
-    if (urlDrivenSpaceDetailRef.current) {
-      urlDrivenSpaceDetailRef.current = false;
-      if (isRoomSettingRoute)
-        return;
-      setMainView("chat");
-    }
-  }, [isPrivateChatMode, isRoomSettingRoute, isSpaceDetailRoute, spaceDetailRouteTab]);
-
   const hasInitPrivateChatRef = useRef(false);
   useEffect(() => {
     if (hasInitPrivateChatRef.current)
@@ -390,35 +325,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     setIsCreateInCategoryOpen(false);
   }, [activeSpaceId, appendNodeToCategory, buildTreeBaseForWrite, handleSaveSidebarTree, pendingCreateInCategoryId, setActiveRoomId, setIsCreateInCategoryOpen, setMainView, spaceDocMetas]);
 
-  const openSpaceDetailPanel = useCallback((tab: SpaceDetailTab) => {
-    if (activeSpaceId == null || isPrivateChatMode)
-      return;
-
-    const nextSearchParams = new URLSearchParams(searchParam);
-    nextSearchParams.delete("tab");
-    const qs = nextSearchParams.toString();
-    navigate(`/chat/${activeSpaceId}/${tab}${qs ? `?${qs}` : ""}`);
-
-    setSpaceDetailTab(tab);
-    setRoomSettingState(null);
-    setMainView("spaceDetail");
-    (document.activeElement as HTMLElement | null)?.blur?.();
-  }, [activeSpaceId, isPrivateChatMode, navigate, searchParam]);
-
-  const closeSpaceDetailPanel = useCallback(() => {
-    setMainView("chat");
-
-    if (activeSpaceId == null || isPrivateChatMode)
-      return;
-
-    const nextSearchParams = new URLSearchParams(searchParam);
-    nextSearchParams.delete("tab");
-    const qs = nextSearchParams.toString();
-
-    const fallbackRoomId = storedIds.spaceId === activeSpaceId ? storedIds.roomId : null;
-    const nextRoomId = (typeof fallbackRoomId === "number" && Number.isFinite(fallbackRoomId)) ? fallbackRoomId : "";
-    navigate(`/chat/${activeSpaceId}/${nextRoomId}${qs ? `?${qs}` : ""}`);
-  }, [activeSpaceId, isPrivateChatMode, navigate, searchParam, storedIds.roomId, storedIds.spaceId]);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("addSpaceMemberPop", false);
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
