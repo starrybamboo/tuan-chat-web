@@ -20,6 +20,7 @@ import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
 import useChatPageSpaceContext from "@/components/chat/hooks/useChatPageSpaceContext";
+import useChatPageSpaceContextMenu from "@/components/chat/hooks/useChatPageSpaceContextMenu";
 import useChatPageSpaceHandle from "@/components/chat/hooks/useChatPageSpaceHandle";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
@@ -293,6 +294,11 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     closeContextMenu,
     closeSpaceContextMenu,
   } = useChatPageContextMenus();
+  const { isSpaceContextArchived, isSpaceContextOwner } = useChatPageSpaceContextMenu({
+    currentUserId: globalContext.userId,
+    spaceContextMenu,
+    spaces,
+  });
 
   const { getSpaceUnreadMessagesNumber, isSpaceOwner, spaceContext } = useChatPageSpaceContext({
     activeRoomId,
@@ -443,16 +449,8 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
       <SpaceContextMenu
         contextMenu={spaceContextMenu}
-        isSpaceOwner={
-          spaceContextMenu
-            ? spaces.find(space => space.spaceId === spaceContextMenu.spaceId)?.userId === globalContext.userId
-            : false
-        }
-        isArchived={
-          spaceContextMenu
-            ? spaces.find(space => space.spaceId === spaceContextMenu.spaceId)?.status === 2
-            : false
-        }
+        isSpaceOwner={isSpaceContextOwner}
+        isArchived={isSpaceContextArchived}
         onClose={closeSpaceContextMenu}
       />
     </SpaceContext>
