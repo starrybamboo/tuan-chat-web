@@ -14,6 +14,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatFrameContextMenu from "@/components/chat/hooks/useChatFrameContextMenu";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
+import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
 import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
@@ -548,90 +549,27 @@ function ChatFrame(props: ChatFrameProps) {
     handleEditMessage,
   } = useChatFrameSelection({ onDeleteMessage: deleteMessage });
 
-  const constructForwardRequest = (forwardRoomId: number) => {
-    const forwardMessages = Array.from(selectedMessageIds)
-      .map(id => historyMessages.find(m => m.message.messageId === id))
-      .filter((msg): msg is ChatMessageResponse => msg !== undefined);
-    const forwardMessageRequest: ChatMessageRequest = {
-      roomId: forwardRoomId,
-      roleId: curRoleId,
-      content: "",
-      avatarId: curAvatarId,
-      messageType: 5,
-      extra: {
-        messageList: forwardMessages,
-      },
-    };
-    return forwardMessageRequest;
-  };
-
-  function handleForward(forwardRoomId: number) {
-    send(constructForwardRequest(forwardRoomId));
-    setIsForwardWindowOpen(false);
+  const clearSelection = useCallback(() => {
     updateSelectedMessageIds(new Set());
-    toast("已转发消息");
-  }
+  }, [updateSelectedMessageIds]);
 
-  function toggleBackground(messageId: number) {
-    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
-    if (!message || !message.extra?.imageMessage)
-      return;
-    updateMessage({
-      ...message,
-      extra: {
-        ...message.extra,
-        imageMessage: {
-          ...message.extra.imageMessage,
-          background: !message.extra.imageMessage.background,
-        },
-      },
-    });
-  }
-
-  function toggleUnlockCg(messageId: number) {
-    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
-    if (!message || message.messageType !== 2)
-      return;
-
-    const currentWebgal = message.webgal || {};
-    const isUnlocked = !!currentWebgal.unlockCg;
-
-    updateMessage({
-      ...message,
-      webgal: {
-        ...currentWebgal,
-        unlockCg: !isUnlocked,
-      },
-    });
-  }
-
-  // 鏂板锛氱敓鎴愯浆鍙戞秷鎭苟杩斿洖娑堟伅ID
-  async function generateForwardMessage(): Promise<number | null> {
-    // 鍙戦€佹彁绀轰俊鎭?
-    const firstMessageResult = await sendMessageMutation.mutateAsync({
-      roomId,
-      messageType: 1,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
-      content: "杞彂浜嗕互涓嬫秷鎭埌绀惧尯",
-      extra: {},
-    });
-    if (!firstMessageResult.success)
-      return null;
-
-    // 鍙戦€佽浆鍙戣姹?
-    const forwardResult = await sendMessageMutation.mutateAsync(
-      constructForwardRequest(roomId),
-    );
-    if (!forwardResult.success || !forwardResult.data)
-      return null;
-
-    // 娓呯悊鐘舵€?
-    setIsForwardWindowOpen(false);
-    updateSelectedMessageIds(new Set());
-
-    return forwardResult.data.messageId;
-  }
+  const {
+    handleForward,
+    toggleBackground,
+    toggleUnlockCg,
+    generateForwardMessage,
+  } = useChatFrameMessageActions({
+    historyMessages,
+    selectedMessageIds,
+    roomId,
+    curRoleId,
+    curAvatarId,
+    send,
+    sendMessageAsync: sendMessageMutation.mutateAsync,
+    updateMessage,
+    setIsForwardWindowOpen,
+    clearSelection,
+  });
 
   async function handleAddEmoji(imgMessage: ImageMessage) {
     if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
