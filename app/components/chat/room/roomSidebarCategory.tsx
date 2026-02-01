@@ -4,13 +4,12 @@ import type { MinimalDocMeta, SidebarCategoryNode, SidebarLeafNode } from "./sid
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
-import { FileTextIcon } from "@phosphor-icons/react";
-import RoomButton from "@/components/chat/shared/components/roomButton";
-import { setDocRefDragData } from "@/components/chat/utils/docRef";
+import RoomSidebarDocItem from "@/components/chat/room/roomSidebarDocItem";
+import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
 import { AddIcon, ChevronDown } from "@/icons";
 
 interface RoomSidebarCategoryProps {
-  cat: SidebarCategoryNode;
+  category: SidebarCategoryNode;
   categoryIndex: number;
   canEdit: boolean;
   isSpaceOwner: boolean;
@@ -53,7 +52,7 @@ interface RoomSidebarCategoryProps {
 }
 
 export default function RoomSidebarCategory({
-  cat,
+  category: cat,
   categoryIndex,
   canEdit,
   isSpaceOwner,
@@ -252,20 +251,7 @@ export default function RoomSidebarCategory({
               return true;
             })
             .map((node, index) => {
-              const isRoom = node.type === "room";
-              const docId = isRoom ? "" : String((node as any).targetId);
-              const docOverride = !isRoom ? docHeaderOverrides[docId] : undefined;
-              const docOverrideTitle = typeof docOverride?.title === "string" ? docOverride.title.trim() : "";
-              const docOverrideImageUrl = typeof docOverride?.imageUrl === "string" ? docOverride.imageUrl.trim() : "";
-              const docFallbackImageUrl = !isRoom && typeof (node as any)?.fallbackImageUrl === "string"
-                ? String((node as any).fallbackImageUrl).trim()
-                : "";
-
-              const title = isRoom
-                ? (roomById.get(Number((node as any).targetId))?.name ?? (node as any)?.fallbackTitle ?? String((node as any).targetId))
-                : (docOverrideTitle || (docMetaMap.get(docId)?.title ?? (node as any)?.fallbackTitle ?? docId));
-
-              const coverUrl = !isRoom ? (docOverrideImageUrl || docFallbackImageUrl) : "";
+              const nodeId = String((node as any).nodeId);
 
               const showInsertBefore = canEdit
                 && dragging?.kind === "node"
@@ -273,188 +259,68 @@ export default function RoomSidebarCategory({
                 && dropTarget.toCategoryId === cat.categoryId
                 && dropTarget.insertIndex === index;
 
+              if (node.type === "room") {
+                const roomId = Number((node as any).targetId);
+                const room = roomById.get(roomId);
+                if (!room)
+                  return null;
+
+                return (
+                  <div key={nodeId} className="relative">
+                    {showInsertBefore && (
+                      <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
+                    )}
+
+                    <RoomSidebarRoomItem
+                      room={room}
+                      roomId={roomId}
+                      nodeId={nodeId}
+                      categoryId={cat.categoryId}
+                      index={index}
+                      canEdit={canEdit}
+                      dragging={dragging}
+                      resetDropHandled={resetDropHandled}
+                      setDragging={setDragging}
+                      setDropTarget={setDropTarget}
+                      handleDrop={handleDrop}
+                      onContextMenu={onContextMenu}
+                      unreadMessageNumber={unreadMessagesNumber[roomId]}
+                      activeRoomId={activeRoomId}
+                      onSelectRoom={onSelectRoom}
+                      onCloseLeftDrawer={onCloseLeftDrawer}
+                    />
+                  </div>
+                );
+              }
+
               return (
-                <div key={(node as any).nodeId} className="relative">
+                <div key={nodeId} className="relative">
                   {showInsertBefore && (
                     <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
                   )}
 
-                  {node.type === "room"
-                    ? (() => {
-                        const rid = Number((node as any).targetId);
-                        const room = roomById.get(rid);
-                        if (!room)
-                          return null;
-
-                        return (
-                          <div
-                            className={`flex items-center gap-1 group w-full ${canEdit ? "" : ""}`}
-                            data-room-id={rid}
-                            onContextMenu={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              // 鎴块棿鍙抽敭鑿滃崟锛氱粺涓€浣跨敤 ChatPageContextMenu
-                              onContextMenu(e);
-                            }}
-                            draggable={canEdit}
-                            onDragStart={(e) => {
-                              if (!canEdit)
-                                return;
-                              const el = e.target as HTMLElement | null;
-                              if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
-                                e.preventDefault();
-                                return;
-                              }
-                              resetDropHandled();
-                              e.dataTransfer.effectAllowed = "move";
-                              e.dataTransfer.setData("text/plain", String(node.nodeId));
-                              setDragging({
-                                kind: "node",
-                                nodeId: String(node.nodeId),
-                                type: "room",
-                                fromCategoryId: cat.categoryId,
-                                fromIndex: index,
-                              });
-                              setDropTarget(null);
-                            }}
-                            onDragEnd={() => {
-                              setDragging(null);
-                              setDropTarget(null);
-                            }}
-                            onDragOver={(e) => {
-                              if (!canEdit)
-                                return;
-                              if (!dragging || dragging.kind !== "node")
-                                return;
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                              const isBefore = (e.clientY - rect.top) < rect.height / 2;
-                              setDropTarget({ kind: "node", toCategoryId: cat.categoryId, insertIndex: isBefore ? index : index + 1 });
-                            }}
-                            onDrop={(e) => {
-                              if (!canEdit)
-                                return;
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDrop();
-                            }}
-                          >
-                            <RoomButton
-                              room={room}
-                              unreadMessageNumber={unreadMessagesNumber[rid]}
-                              onclick={() => {
-                                onSelectRoom(rid);
-                                onCloseLeftDrawer();
-                              }}
-                              isActive={activeRoomId === rid}
-                            >
-                              {/* 鎴块棿鐨勫脊鍑烘搷浣滆彍鍗曞凡鏀逛负鍙抽敭瑙﹀彂 */}
-                            </RoomButton>
-                          </div>
-                        );
-                      })()
-                    : (
-                        <div
-                          className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 ${activeDocId === String((node as any).targetId) ? "bg-info-content/10" : "hover:bg-base-300"}`}
-                          role="button"
-                          tabIndex={0}
-                          aria-pressed={activeDocId === String((node as any).targetId)}
-                          onContextMenu={(e) => {
-                            if (!canEdit)
-                              return;
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setContextMenu({ kind: "doc", x: e.clientX, y: e.clientY, categoryId: cat.categoryId, index, docId: String(node.targetId) });
-                          }}
-                          onClick={() => {
-                            const docId = String(node.targetId);
-                            onSelectDoc?.(docId);
-                            onCloseLeftDrawer();
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              const docId = String(node.targetId);
-                              onSelectDoc?.(docId);
-                              onCloseLeftDrawer();
-                            }
-                          }}
-                          onDragOver={(e) => {
-                            if (!canEdit)
-                              return;
-                            if (!dragging || dragging.kind !== "node")
-                              return;
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                            const isBefore = (e.clientY - rect.top) < rect.height / 2;
-                            setDropTarget({ kind: "node", toCategoryId: cat.categoryId, insertIndex: isBefore ? index : index + 1 });
-                          }}
-                          onDrop={(e) => {
-                            if (!canEdit)
-                              return;
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDrop();
-                          }}
-                          draggable={canEdit}
-                          onDragStart={(e) => {
-                            if (!canEdit)
-                              return;
-                            const el = e.target as HTMLElement | null;
-                            if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
-                              e.preventDefault();
-                              return;
-                            }
-                            resetDropHandled();
-                            e.dataTransfer.effectAllowed = "copyMove";
-                            e.dataTransfer.setData("text/plain", String(node.nodeId));
-                            setDocRefDragData(e.dataTransfer, {
-                              docId: String(node.targetId),
-                              ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
-                              ...(title ? { title } : {}),
-                              ...(coverUrl ? { imageUrl: coverUrl } : {}),
-                            });
-                            setDragging({
-                              kind: "node",
-                              nodeId: String(node.nodeId),
-                              type: "doc",
-                              fromCategoryId: cat.categoryId,
-                              fromIndex: index,
-                            });
-                            setDropTarget(null);
-                          }}
-                          onDragEnd={() => {
-                            setDragging(null);
-                            setDropTarget(null);
-                          }}
-                        >
-                          <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center relative overflow-hidden">
-                            {coverUrl
-                              ? (
-                                  <>
-                                    <img
-                                      src={coverUrl}
-                                      alt={title || "doc"}
-                                      className="w-full h-full object-cover"
-                                    />
-                                    <span className="absolute bottom-0.5 right-0.5 size-4 rounded bg-base-100/80 flex items-center justify-center border border-base-300/60">
-                                      <FileTextIcon className="size-3 opacity-70" />
-                                    </span>
-                                  </>
-                                )
-                              : (
-                                  <FileTextIcon className="size-4 opacity-70" />
-                                )}
-                          </div>
-                          <span className="flex-1 min-w-0 truncate text-left">{title}</span>
-                        </div>
-                      )}
+                  <RoomSidebarDocItem
+                    node={node}
+                    nodeId={nodeId}
+                    categoryId={cat.categoryId}
+                    index={index}
+                    canEdit={canEdit}
+                    dragging={dragging}
+                    resetDropHandled={resetDropHandled}
+                    setDragging={setDragging}
+                    setDropTarget={setDropTarget}
+                    handleDrop={handleDrop}
+                    setContextMenu={setContextMenu}
+                    docHeaderOverrides={docHeaderOverrides}
+                    docMetaMap={docMetaMap}
+                    activeSpaceId={activeSpaceId}
+                    activeDocId={activeDocId}
+                    onSelectDoc={onSelectDoc}
+                    onCloseLeftDrawer={onCloseLeftDrawer}
+                  />
                 </div>
               );
             })}
-
           {canEdit && dragging?.kind === "node" && dropTarget?.kind === "node" && dropTarget.toCategoryId === cat.categoryId && dropTarget.insertIndex === items.length && (
             <div className="pointer-events-none absolute left-3 right-3 bottom-0 translate-y-1/2 h-0.5 bg-primary/60 rounded" />
           )}
