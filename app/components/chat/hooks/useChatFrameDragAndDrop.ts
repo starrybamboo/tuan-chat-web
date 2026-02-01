@@ -1,10 +1,12 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 
+import useChatFrameDragAutoScroll from "@/components/chat/hooks/useChatFrameDragAutoScroll";
+import useChatFrameDragIndicator from "@/components/chat/hooks/useChatFrameDragIndicator";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
@@ -62,17 +64,23 @@ export default function useChatFrameDragAndDrop({
 }: UseChatFrameDragAndDropParams): UseChatFrameDragAndDropResult {
   const dragStartMessageIdRef = useRef(-1);
   const isDragging = dragStartMessageIdRef.current >= 0;
-  const indicatorRef = useRef<HTMLDivElement | null>(null);
-  const rafIdRef = useRef<number | null>(null);
-  const pendingDragCheckRef = useRef<{ target: HTMLDivElement; clientY: number } | null>(null);
-  const dragScrollRafRef = useRef<number | null>(null);
-  const dragScrollDirectionRef = useRef<-1 | 0 | 1>(0);
   const scrollerRef = useRef<HTMLElement | null>(null);
-  const windowDragOverListeningRef = useRef(false);
-  const dropPositionRef = useRef<"before" | "after">("before");
-  const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
   const [isDocRefDragOver, setIsDocRefDragOver] = useState(false);
   const isDocRefDragOverRef = useRef(false);
+  const { cleanupDragIndicator, dropPositionRef, scheduleCheckPosition } = useChatFrameDragIndicator({
+    dragStartMessageIdRef,
+  });
+  const {
+    attachWindowDragOver,
+    detachWindowDragOver,
+    startAutoScroll,
+    stopAutoScroll,
+    updateAutoScroll,
+  } = useChatFrameDragAutoScroll({
+    dragStartMessageIdRef,
+    scrollerRef,
+    virtuosoRef,
+  });
 
   const updateDocRefDragOver = useCallback((next: boolean) => {
     if (isDocRefDragOverRef.current === next)
@@ -80,6 +88,11 @@ export default function useChatFrameDragAndDrop({
     isDocRefDragOverRef.current = next;
     setIsDocRefDragOver(next);
   }, []);
+
+  const cleanupDragState = useCallback(() => {
+    stopAutoScroll();
+    cleanupDragIndicator();
+  }, [cleanupDragIndicator, stopAutoScroll]);
 
   const sendDocCardFromDrop = useCallback(async (payload: DocRefDragPayload) => {
     if (onSendDocCard) {
@@ -190,149 +203,6 @@ export default function useChatFrameDragAndDrop({
     });
   }, [historyMessages, isMessageMovable, updateMessage]);
 
-  const cleanupDragIndicator = useCallback(() => {
-    pendingDragCheckRef.current = null;
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    if (dragScrollRafRef.current !== null) {
-      cancelAnimationFrame(dragScrollRafRef.current);
-      dragScrollRafRef.current = null;
-    }
-    dragScrollDirectionRef.current = 0;
-    indicatorRef.current?.remove();
-    curDragOverMessageRef.current = null;
-    dropPositionRef.current = "before";
-  }, []);
-
-  const startAutoScroll = useCallback((direction: -1 | 0 | 1) => {
-    if (dragScrollDirectionRef.current === direction) {
-      return;
-    }
-    dragScrollDirectionRef.current = direction;
-
-    if (direction === 0) {
-      if (dragScrollRafRef.current !== null) {
-        cancelAnimationFrame(dragScrollRafRef.current);
-        dragScrollRafRef.current = null;
-      }
-      return;
-    }
-
-    if (dragScrollRafRef.current !== null) {
-      return;
-    }
-
-    const step = () => {
-      const currentDirection = dragScrollDirectionRef.current;
-      if (currentDirection === 0) {
-        dragScrollRafRef.current = null;
-        return;
-      }
-      virtuosoRef.current?.scrollBy({ top: currentDirection * 18, behavior: "auto" });
-      dragScrollRafRef.current = requestAnimationFrame(step);
-    };
-
-    dragScrollRafRef.current = requestAnimationFrame(step);
-  }, [virtuosoRef]);
-
-  const updateAutoScroll = useCallback((clientY: number) => {
-    if (dragStartMessageIdRef.current === -1) {
-      startAutoScroll(0);
-      return;
-    }
-    const scroller = scrollerRef.current;
-    if (!scroller) {
-      startAutoScroll(0);
-      return;
-    }
-    const rect = scroller.getBoundingClientRect();
-    const topDistance = clientY - rect.top;
-    const bottomDistance = rect.bottom - clientY;
-    const threshold = 80;
-    if (topDistance <= threshold) {
-      startAutoScroll(-1);
-      return;
-    }
-    if (bottomDistance <= threshold) {
-      startAutoScroll(1);
-      return;
-    }
-    startAutoScroll(0);
-  }, [startAutoScroll]);
-
-  const handleWindowDragOver = useCallback((event: DragEvent) => {
-    if (dragStartMessageIdRef.current === -1) {
-      return;
-    }
-    updateAutoScroll(event.clientY);
-  }, [updateAutoScroll]);
-
-  const attachWindowDragOver = useCallback(() => {
-    if (windowDragOverListeningRef.current) {
-      return;
-    }
-    window.addEventListener("dragover", handleWindowDragOver, true);
-    windowDragOverListeningRef.current = true;
-  }, [handleWindowDragOver]);
-
-  const detachWindowDragOver = useCallback(() => {
-    if (!windowDragOverListeningRef.current) {
-      return;
-    }
-    window.removeEventListener("dragover", handleWindowDragOver, true);
-    windowDragOverListeningRef.current = false;
-  }, [handleWindowDragOver]);
-
-  const scheduleCheckPosition = useCallback((target: HTMLDivElement, clientY: number) => {
-    if (dragStartMessageIdRef.current === -1) {
-      return;
-    }
-    pendingDragCheckRef.current = { target, clientY };
-    if (rafIdRef.current !== null) {
-      return;
-    }
-    rafIdRef.current = requestAnimationFrame(() => {
-      rafIdRef.current = null;
-      const pending = pendingDragCheckRef.current;
-      pendingDragCheckRef.current = null;
-      if (!pending || dragStartMessageIdRef.current === -1) {
-        return;
-      }
-
-      const { target, clientY } = pending;
-      curDragOverMessageRef.current = target;
-
-      const rect = target.getBoundingClientRect();
-      const relativeY = clientY - rect.top;
-      const nextPosition: "before" | "after" = relativeY < rect.height / 2 ? "before" : "after";
-
-      let indicator = indicatorRef.current;
-      if (!indicator) {
-        indicator = document.createElement("div");
-        indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
-        indicator.style.zIndex = "50";
-        indicatorRef.current = indicator;
-      }
-
-      if (indicator.parentElement !== target) {
-        indicator.remove();
-        target.appendChild(indicator);
-      }
-
-      dropPositionRef.current = nextPosition;
-      if (nextPosition === "before") {
-        indicator.style.top = "-1px";
-        indicator.style.bottom = "auto";
-      }
-      else {
-        indicator.style.top = "auto";
-        indicator.style.bottom = "-1px";
-      }
-    });
-  }, []);
-
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
@@ -375,21 +245,19 @@ export default function useChatFrameDragAndDrop({
   const handleDragEnd = useCallback(() => {
     dragStartMessageIdRef.current = -1;
     detachWindowDragOver();
-    cleanupDragIndicator();
-  }, [cleanupDragIndicator, detachWindowDragOver]);
+    cleanupDragState();
+  }, [cleanupDragState, detachWindowDragOver]);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     updateDocRefDragOver(false);
-    curDragOverMessageRef.current = null;
     startAutoScroll(0);
   }, [startAutoScroll, updateDocRefDragOver]);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
     updateDocRefDragOver(false);
-    curDragOverMessageRef.current = null;
 
     const docRef = getDocRefDragData(e.dataTransfer);
     if (docRef) {
@@ -398,7 +266,7 @@ export default function useChatFrameDragAndDrop({
       await sendDocCardFromDrop(docRef);
       dragStartMessageIdRef.current = -1;
       detachWindowDragOver();
-      cleanupDragIndicator();
+      cleanupDragState();
       return;
     }
 
@@ -420,9 +288,9 @@ export default function useChatFrameDragAndDrop({
 
     dragStartMessageIdRef.current = -1;
     detachWindowDragOver();
-    cleanupDragIndicator();
+    cleanupDragState();
   }, [
-    cleanupDragIndicator,
+    cleanupDragState,
     detachWindowDragOver,
     handleMoveMessages,
     isSelecting,
@@ -431,12 +299,6 @@ export default function useChatFrameDragAndDrop({
     startAutoScroll,
     updateDocRefDragOver,
   ]);
-
-  useEffect(() => {
-    return () => {
-      detachWindowDragOver();
-    };
-  }, [detachWindowDragOver]);
 
   return {
     isDragging,
