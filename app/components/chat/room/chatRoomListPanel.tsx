@@ -1,11 +1,12 @@
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
-import type { CategoryEditorState, DeleteConfirmDocState, SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
+import type { DeleteConfirmDocState, SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import React, { useCallback, useMemo, useState } from "react";
 import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/deleteSpaceDoc";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
+import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
 import useRoomSidebarDocCopy from "@/components/chat/room/useRoomSidebarDocCopy";
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
 import useRoomSidebarDragState from "@/components/chat/room/useRoomSidebarDragState";
@@ -165,8 +166,6 @@ export default function ChatRoomListPanel({
   const [pendingAddRoomId, setPendingAddRoomId] = useState<number | null>(null);
   const [pendingAddDocId, setPendingAddDocId] = useState<string>("");
 
-  const [categoryEditor, setCategoryEditor] = useState<CategoryEditorState | null>(null);
-  const [categoryEditorError, setCategoryEditorError] = useState<string>("");
   const [deleteConfirmCategoryId, setDeleteConfirmCategoryId] = useState<string | null>(null);
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DeleteConfirmDocState | null>(null);
 
@@ -224,53 +223,21 @@ export default function ChatRoomListPanel({
     moveCategory,
     moveNode,
   });
-
-  const openAddCategory = useCallback(() => {
-    setCategoryEditor({ mode: "add", name: "新分类" });
-    setCategoryEditorError("");
-  }, []);
-
-  const openRenameCategory = useCallback((categoryId: string) => {
-    const current = treeToRender.categories.find(c => c.categoryId === categoryId);
-    if (!current)
-      return;
-    setCategoryEditor({ mode: "rename", categoryId, name: current.name ?? "" });
-    setCategoryEditorError("");
-  }, [treeToRender.categories]);
-
-  const submitCategoryEditor = useCallback(() => {
-    if (!categoryEditor)
-      return;
-    const name = categoryEditor.name.trim();
-    if (!name) {
-      setCategoryEditorError("鍚嶇О涓嶈兘涓虹┖");
-      return;
-    }
-    const base = treeToRender;
-    const next = JSON.parse(JSON.stringify(base)) as SidebarTree;
-    let newCategoryId: string | null = null;
-    if (categoryEditor.mode === "add") {
-      next.categories.push({
-        categoryId: (newCategoryId = `cat:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`),
-        name,
-        items: [],
-      });
-    }
-    else {
-      const cat = next.categories.find(c => c.categoryId === categoryEditor.categoryId);
-      if (!cat)
-        return;
-      cat.name = name;
-    }
-    normalizeAndSet(next, true);
-    setCategoryEditor(null);
-    setCategoryEditorError("");
-
-    // 鏂板鍒嗙被榛樿灞曞紑锛岄伩鍏嶁€滅偣涓€涓嬪睍寮€鍙堟敹鍥炩€濈殑浣撻獙銆?
-    if (newCategoryId) {
-      toggleCategoryExpanded(newCategoryId);
-    }
-  }, [categoryEditor, normalizeAndSet, toggleCategoryExpanded, treeToRender]);
+  const {
+    categoryEditor,
+    categoryEditorError,
+    openAddCategory,
+    openRenameCategory,
+    submitCategoryEditor,
+    closeCategoryEditor,
+    updateCategoryEditorName,
+  } = useRoomSidebarCategoryEditor({
+    treeToRender,
+    normalizeAndSet,
+    toggleCategoryExpanded,
+    defaultCategoryName: "新分类",
+    emptyNameError: "鍚嶇О涓嶈兘涓虹┖",
+  });
 
   const deleteCategoryCore = useCallback((categoryId: string) => {
     const base = treeToRender;
@@ -404,14 +371,8 @@ export default function ChatRoomListPanel({
                 canEdit={canEdit}
                 categoryEditor={categoryEditor}
                 categoryEditorError={categoryEditorError}
-                onCategoryEditorNameChange={(name) => {
-                  setCategoryEditor(prev => prev ? { ...prev, name } : prev);
-                  setCategoryEditorError("");
-                }}
-                onCloseCategoryEditor={() => {
-                  setCategoryEditor(null);
-                  setCategoryEditorError("");
-                }}
+                onCategoryEditorNameChange={updateCategoryEditorName}
+                onCloseCategoryEditor={closeCategoryEditor}
                 onSubmitCategoryEditor={submitCategoryEditor}
 
                 deleteConfirmCategoryId={deleteConfirmCategoryId}
