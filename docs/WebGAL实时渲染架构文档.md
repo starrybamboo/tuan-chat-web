@@ -289,7 +289,7 @@ intro:这是黑屏文字;
 
 ```webgal
 // 简单注音
-[笑顔](えがお)
+[Ц]()
 
 // 彩色文本
 [重要](style=color:#FF0000\;)
@@ -298,7 +298,7 @@ intro:这是黑屏文字;
 [旁白](style-alltext=font-style:italic\; style=color:inherit\;)
 
 // 复杂样式
-[强调文本](style-alltext=font-size:120%\; style=color:#FF0000\; ruby=ルビ)
+[ǿı](style-alltext=font-size:120%\; style=color:#FF0000\; ruby=)
 ```
 
 ### 4. 实时同步机制

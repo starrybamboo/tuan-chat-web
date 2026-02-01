@@ -1297,15 +1297,15 @@ export function useGetUserRolesQuery(userId: number) {
 async function fetchUserRolesByType(userId: number, type: number): Promise<UserRole[]> {
   const res = await tuanchat.roleController.getUserRolesByType(userId, type);
   if (!res.success) {
-    throw new Error(res.errMsg || "鑾峰彇鐢ㄦ埛瑙掕壊澶辫触");
+    throw new Error(res.errMsg || "获取用户角色失败");
   }
   return (res.data ?? []).sort((a, b) => (b.roleId ?? 0) - (a.roleId ?? 0));
 }
 
 /**
- * 鑾峰彇鐢ㄦ埛鎸夌被鍨嬬殑瑙掕壊
- * @param userId 鐢ㄦ埛ID
- * @param type  0=瑙掕壊,1=楠板,2=NPC
+ * 获取用户按类型的角色
+ * @param userId 用户ID
+ * @param type  0=角色,1=骰娘,2=NPC
  */
 export function useGetUserRolesByTypeQuery(userId: number, type: number) {
   return useQuery({
@@ -1324,7 +1324,7 @@ type RoleInfinitePageParam = {
 /**
  * 鎸夌被鍨嬭繘琛?Infinite Query 鍔犺浇
  *
- * 娉ㄦ剰锛氬悗绔苟鏈?type+pageNo 的鐪熷垎椤垫帴鍙ｏ紝鎵€浠ヨ繖閲屽鍗曠被鍨嬬殑鏁版嵁鍋氣€滃墠绔垏鐗囧垎椤碘€濓紝
+ * 注意：后端并?type+pageNo 真分页接口，扢以这里对单类型的数据做前端切片分页，
  * 但至少不会出现“骰娘被普通角色挤到后面页”的混合分页问题。
  */
 export function useGetInfiniteUserRolesByTypeQuery(userId: number, type: number) {

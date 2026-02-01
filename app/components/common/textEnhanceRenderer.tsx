@@ -1,10 +1,10 @@
-﻿import React from "react";
+import React from "react";
 
 /**
  * WebGAL 文本拓展语法渲染器
  *
  * 支持的语法：
- * 1. 注音语法: [要注音的词](注音) - 例如 [笑顔](えがお)
+ * 1. ע﷨: [ҪעĴ](ע) -  [Ц]()
  * 2. 文本增强语法: [文本](style=color:#66327C\; ruby=注音 style-alltext=font-style:italic\;)
  *
  * 参数说明：
@@ -216,4 +216,3 @@ export function TextEnhanceRenderer({ content, className }: TextEnhanceRendererP
     </span>
   );
 }
-

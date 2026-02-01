@@ -33,7 +33,7 @@ export function useSubscribeRoomMutation() {
 }
 
 /**
- * 鏇存柊宸茶浣嶇疆
+ * 更新已读位置
  */
 export function useUpdateReadPosition1Mutation() {
     const queryClient = useQueryClient();
@@ -48,12 +48,12 @@ export function useUpdateReadPosition1Mutation() {
 }
 
 /**
- * 鑾峰彇鐢ㄦ埛鍦ㄦ寚瀹氭埧闂寸殑浼氳瘽淇℃伅
+ * 获取用户在指定房间的会话信息
  * @param roomId 鎴块棿ID
  */
 
 /**
- * 鑾峰彇鐢ㄦ埛鐨勬墍鏈変細璇濆垪琛?
+ * 获取用户的所有会话列?
  */
 export function useGetUserSessionsQuery() {
     return useQuery({

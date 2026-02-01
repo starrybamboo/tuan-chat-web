@@ -3,8 +3,8 @@ import {tuanchat} from "../instance";
 import type { PageBaseRequest } from '../models/PageBaseRequest';
 
 /**
- * 鍒ゆ柇鏄惁鍏虫敞浜嗘煇涓敤鎴?
- * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * 判断是否关注了某个用?
+ * @param targetUserId 目标用户ID
  */
 
 export const useUserIsFollowedQuery = (targetUserId: number) => {
@@ -16,8 +16,8 @@ export const useUserIsFollowedQuery = (targetUserId: number) => {
 }
 
 /**
- * 鍏虫敞鐢ㄦ埛
- * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * 关注用户
+ * @param targetUserId 目标用户ID
  */
 
 export function useUserFollowMutation() {
@@ -33,8 +33,8 @@ export function useUserFollowMutation() {
 }
 
 /**
- * 鍙栨秷鍏虫敞鐢ㄦ埛
- * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * 取消关注用户
+ * @param targetUserId 目标用户ID
  */
 
 export function useUserUnfollowMutation() {
@@ -51,7 +51,7 @@ export function useUserUnfollowMutation() {
 
 /**
  * 鑾峰彇鏌愪汉鍏虫敞鍒楄〃
- * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * @param targetUserId 目标用户ID
  * @param requestBody 鍒嗛〉璇锋眰鍙傛暟
  */
 export function useGetUserFollowingsQuery(targetUserId: number, requestBody: PageBaseRequest) {
@@ -64,7 +64,7 @@ export function useGetUserFollowingsQuery(targetUserId: number, requestBody: Pag
 
 /**
  * 鑾峰彇鏌愪汉绮変笣鍒楄〃
- * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * @param targetUserId 目标用户ID
  * @param requestBody 鍒嗛〉璇锋眰鍙傛暟
  */
 export function useGetUserFollowersQuery(targetUserId: number, requestBody: PageBaseRequest) {
@@ -76,7 +76,7 @@ export function useGetUserFollowersQuery(targetUserId: number, requestBody: Page
 }
 
 /**
- * 鑾峰彇鏌愪汉浜掔浉鍏虫敞鐨勫ソ鍙嬪垪琛?
- * @param targetUserId 鐩爣鐢ㄦ埛ID
+ * 获取某人互相关注的好友列?
+ * @param targetUserId 目标用户ID
  * @param requestBody 鍒嗛〉璇锋眰鍙傛暟
  */

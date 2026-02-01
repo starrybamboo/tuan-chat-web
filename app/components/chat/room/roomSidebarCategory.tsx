@@ -94,7 +94,7 @@ export default function RoomSidebarCategory({
   visibleDocMetas,
 }: RoomSidebarCategoryProps) {
   const items = Array.isArray(cat.items) ? cat.items : [];
-  // 榛樿鎶樺彔锛氬鏋滄湰鍦拌繕娌″姞杞藉畬锛屽垯鍏堟姌鍙狅紱灞曞紑鐘舵€佷互 IndexedDB 涓哄噯銆?
+  // 默认折叠：如果本地还没加载完，则先折叠；展开状以 IndexedDB 为准?
   const isExpanded = Boolean(expandedByCategoryId?.[cat.categoryId]);
   const isCollapsed = !isExpanded;
   const isAddPanelOpen = canEdit && addPanelCategoryId === cat.categoryId;

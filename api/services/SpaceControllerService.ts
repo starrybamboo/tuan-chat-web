@@ -44,7 +44,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 杞绌洪棿
+     * 转让空间
      * @param requestBody
      * @returns ApiResultBoolean OK
      * @throws ApiError
@@ -92,7 +92,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鏂板鎴栦慨鏀圭┖闂村叾浠栦俊鎭?
+     * 新增或修改空间其他信?
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -136,7 +136,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鏇存柊绌洪棿淇℃伅(鍚嶇О銆佸ご鍍忋€佹弿杩般€佽鍒?
+     * 更新空间信息(名称、头像描述规?
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -270,7 +270,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鑾峰彇褰撳墠鐢ㄦ埛鍔犲叆鐨勬墍鏈夌┖闂?
+     * 获取当前用户加入的所有空?
      * @returns ApiResultListSpace OK
      * @throws ApiError
      */
@@ -339,7 +339,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鍙戠幇-鎴戠殑褰掓。锛氭煡鐪嬫垜涓汉褰掓。鐨勭兢鑱婏紙绌洪棿锛?
+     * 发现-我的归档：查看我个人归档的群聊（空间?
      * @returns ApiResultListSpace OK
      * @throws ApiError
      */

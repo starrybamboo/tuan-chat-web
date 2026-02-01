@@ -38,7 +38,7 @@ import { tuanchat } from "../../../api/instance";
 const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 
 /**
- * 鑱婂ぉ妗嗭紙涓嶅甫杈撳叆閮ㄥ垎锛?
+ * 聊天框（不带输入部分?
  * @param props 缁勪欢鍙傛暟
  * @param props.virtuosoRef 铏氭嫙鍒楄〃鐨?ref
  */
@@ -102,7 +102,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   const handleToggleNarrator = useCallback((messageId: number) => {
     if (!spaceContext.isSpaceOwner) {
-      toast.error("鍙湁KP鍙互鍒囨崲鏃佺櫧");
+      toast.error("只有KP可以切换旁白");
       return;
     }
     const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
@@ -163,32 +163,32 @@ function ChatFrame(props: ChatFrameProps) {
     }
   }, [roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
 
-  // 鑾峰彇鐢ㄦ埛鑷畾涔夎〃鎯呭垪琛?
+  // 获取用户自定义表情列?
   const { data: emojisData } = useGetUserEmojisQuery();
   const emojiList = Array.isArray(emojisData?.data) ? emojisData.data : [];
 
-  // 鏂板琛ㄦ儏
+  // 新增表情
   const createEmojiMutation = useCreateEmojiMutation();
 
   /**
    * 鑾峰彇鍘嗗彶娑堟伅
    * 鍒嗛〉鑾峰彇娑堟伅
-   * cursor鐢ㄤ簬鑾峰彇褰撳墠鐨勬秷鎭垪琛? 鍦ㄥ線鍚庣鐨勮姹備腑, 绗竴娆″彂閫乶ull, 鐒跺悗鎺ュ彈鍚庣杩斿洖鐨刢ursor浣滀负鏂扮殑鍊?
+   * cursor用于获取当前的消息列? 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的?
    */
   const chatHistory = roomContext.chatHistory;
   const webSocketUtils = globalContext.websocketUtils;
   const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message });
 
-  // 鐩戝惉 WebSocket 鎺ユ敹鍒扮殑娑堟伅
+  // 监听 WebSocket 接收到的消息
   const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
-  // roomId ==> 涓婁竴娆″瓨鍌ㄦ秷鎭殑鏃跺€欑殑receivedMessages[roomId].length
+  // roomId ==> 上一次存储消息的时的receivedMessages[roomId].length
   const lastLengthMapRef = useRef<Record<number, number>>({});
   useEffect(() => {
     if (!enableWsSync) {
       return;
     }
-    // 灏唚sUtils涓紦瀛樼殑娑堟伅瀛樺埌indexDB涓紝杩欓噷闇€瑕佽疆璇㈢瓑寰卛ndexDB鍒濆鍖栧畬鎴愩€?
-    // 濡傛灉鍦ㄥ垵濮嬪寲涔嬪墠灏辫皟鐢ㄤ簡杩欎釜鍑芥暟锛屼細鍑虹幇鍒濆娑堟伅鏃犳硶鍔犺浇鐨勯敊璇€?
+    // 将wsUtils中缓存的消息存到indexDB中，这里霢要轮询等待indexDB初始化完成?
+    // 如果在初始化之前就调用了这个函数，会出现初始消息无法加载的错误?
     let isCancelled = false;
     let timeoutId: NodeJS.Timeout | null = null;
 
@@ -205,20 +205,20 @@ function ChatFrame(props: ChatFrameProps) {
               }
             }, 30);
           });
-          // 閫掑綊妫€鏌ワ紝鐩村埌loading瀹屾垚鎴栬鍙栨秷
+          // 递归棢查，直到loading完成或被取消
           await checkLoading();
         }
       };
       await checkLoading();
 
-      // 濡傛灉宸插彇娑堟垨chatHistory涓嶅瓨鍦紝鐩存帴杩斿洖
+      // 如果已取消或chatHistory不存在，直接返回
       if (isCancelled || !chatHistory)
         return;
       const lastLength = lastLengthMapRef.current[roomId] ?? 0;
       if (lastLength < receivedMessages.length) {
         const newMessages = receivedMessages.slice(lastLength);
 
-        // 琛ユ礊閫昏緫锛氭鏌ユ柊娑堟伅鐨勭涓€鏉℃槸鍚︿笌鍘嗗彶娑堟伅鐨勬渶鍚庝竴鏉¤繛缁?
+        // 补洞逻辑：检查新消息的第丢条是否与历史消息的最后一条连?
         const historyMsgs = chatHistory.messages;
         if (historyMsgs.length > 0 && newMessages.length > 0) {
           const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
@@ -248,7 +248,7 @@ function ChatFrame(props: ChatFrameProps) {
 
     syncMessages();
 
-    // 娓呯悊鍑芥暟锛氬彇娑堝紓姝ユ搷浣滃拰瀹氭椂鍣?
+    // 清理函数：取消异步操作和定时?
     return () => {
       isCancelled = true;
       if (timeoutId) {
@@ -262,11 +262,11 @@ function ChatFrame(props: ChatFrameProps) {
     if (messagesOverride) {
       return messagesOverride;
     }
-    // Discord 椋庢牸锛歍hread 鍥炲涓嶅嚭鐜板湪涓绘秷鎭祦涓紝鍙湪 Thread 闈㈡澘涓煡鐪?
+    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查?
     // - root锛歵hreadId === messageId锛堟樉绀猴級
     // - reply锛歵hreadId !== messageId锛堥殣钘忥級
     return (roomContext.chatHistory?.messages ?? []).filter((m) => {
-      // Thread Root锛?0001锛変笉鍦ㄤ富娑堟伅娴佷腑鍗曠嫭鏄剧ず锛氭敼涓烘寕鍦ㄢ€滃師娑堟伅鈥濅笅鏂圭殑鎻愮ず鏉?
+      // Thread Root?0001）不在主消息流中单独显示：改为挂在原消息”下方的提示?
       if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
         return false;
       }
@@ -279,7 +279,7 @@ function ChatFrame(props: ChatFrameProps) {
   }, [messagesOverride, roomContext.chatHistory?.messages]);
 
   const threadHintMetaByMessageId = useMemo(() => {
-    // key: parentMessageId锛堣鍒涘缓瀛愬尯鐨勯偅鏉″師娑堟伅锛?
+    // key: parentMessageId（被创建子区的那条原消息?
     const metaMap = new Map<number, ThreadHintMeta>();
     const all = roomContext.chatHistory?.messages ?? [];
     if (all.length === 0) {
@@ -312,7 +312,7 @@ function ChatFrame(props: ChatFrameProps) {
       };
 
       const prev = metaMap.get(parentId);
-      // 鏋佺鎯呭喌涓嬪彲鑳藉瓨鍦ㄥ涓?root锛氬彇 messageId 鏇存柊鐨勯偅涓?
+      // 极端情况下可能存在多?root：取 messageId 更新的那?
       if (!prev || next.rootId > prev.rootId) {
         metaMap.set(parentId, next);
       }
@@ -321,11 +321,11 @@ function ChatFrame(props: ChatFrameProps) {
     return metaMap;
   }, [roomContext.chatHistory?.messages]);
 
-  // 鍒犻櫎娑堟伅锛堥€昏緫鍒犻櫎锛氭洿鏂版湰鍦版秷鎭姸鎬佷负宸插垹闄わ級
+  // 删除消息（辑删除：更新本地消息状态为已删除）
   const deleteMessage = useCallback((messageId: number) => {
     deleteMessageMutation.mutate(messageId, {
       onSuccess: () => {
-        // 鎵惧埌瑕佸垹闄ょ殑娑堟伅锛屾洿鏂板叾 status 涓?1锛堝凡鍒犻櫎锛?
+        // 找到要删除的消息，更新其 status ?1（已删除?
         const targetMessage = historyMessages.find(m => m.message.messageId === messageId);
         if (targetMessage && roomContext.chatHistory) {
           const updatedMessage = {
@@ -344,7 +344,7 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 铏氭嫙鍒楄〃
    */
-  // 铏氭嫙鍒楄〃鐨刬ndex鍒癶istoryMessage涓殑index鐨勮浆鎹?
+  // 虚拟列表的index到historyMessage中的index的转?
   const isAtBottomRef = useRef(true);
   const lastAutoSyncUnreadRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
@@ -356,13 +356,13 @@ function ChatFrame(props: ChatFrameProps) {
     return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
   }, [historyMessages.length]);
   /**
-   * 鏂版秷鎭彁閱?
+   * 新消息提?
    */
   const unreadMessageNumber = enableUnreadIndicator
     ? (webSocketUtils.unreadMessagesNumber[roomId] ?? 0)
     : 0;
   const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
-  // 鐩戝惉鏂版秷鎭紝濡傛灉鍦ㄥ簳閮紝鍒欒缃兢鑱婃秷鎭负宸茶锛?
+  // 监听新消息，如果在底部，则设置群聊消息为已读?
   useEffect(() => {
     if (!enableUnreadIndicator) {
       return;
@@ -412,8 +412,8 @@ function ChatFrame(props: ChatFrameProps) {
   }, [chatHistory?.loading, scrollToBottom]);
 
   /**
-   * 鑳屾櫙鍥剧墖闅忚亰澶╄褰曡€屾敼鍙?
-   * 娉ㄦ剰锛氬凡鍒犻櫎鐨勬秷鎭紙status === 1锛変笉搴旇鏄剧ず鑳屾櫙鍥剧墖
+   * 背景图片随聊天记录改?
+   * 注意：已删除的消息（status === 1）不应该显示背景图片
    */
   const imgNode = useMemo(() => {
     if (!enableEffects) {
@@ -427,8 +427,8 @@ function ChatFrame(props: ChatFrameProps) {
   }, [enableEffects, historyMessages]);
 
   /**
-   * 鐗规晥闅忚亰澶╄褰曡€屾敼鍙?
-   * 娉ㄦ剰锛氬凡鍒犻櫎鐨勬秷鎭紙status === 1锛変笉搴旇鏄剧ず鐗规晥
+   * 特效随聊天记录改?
+   * 注意：已删除的消息（status === 1）不应该显示特效
    */
   const effectNode = useMemo(() => {
     if (!enableEffects) {
@@ -462,7 +462,7 @@ function ChatFrame(props: ChatFrameProps) {
     // Update Background URL
     let newBgUrl: string | null = null;
 
-    // 鎵惧埌鏈€鍚庝竴涓竻闄よ儗鏅殑浣嶇疆
+    // 找到朢后一个清除背景的位置
     let lastClearIndex = -1;
     for (const effect of effectNode) {
       if (effect.index <= currentMessageIndex && effect.effectMessage?.effectName === "clearBackground") {
@@ -470,7 +470,7 @@ function ChatFrame(props: ChatFrameProps) {
       }
     }
 
-    // 浠庢竻闄よ儗鏅箣鍚庯紙鎴栦粠澶达級寮€濮嬫壘鏈€鏂扮殑鑳屾櫙鍥剧墖
+    // 从清除背景之后（或从头）弢始找朢新的背景图片
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
         newBgUrl = bg.imageMessage?.url ?? null;
@@ -509,7 +509,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   const updateMessage = useCallback((message: Message) => {
     updateMessageMutation.mutate(message);
-    // 浠?historyMessages 涓壘鍒板畬鏁寸殑 ChatMessageResponse锛屼繚鐣?messageMark 绛夊瓧娈?
+    // ?historyMessages 中找到完整的 ChatMessageResponse，保?messageMark 等字?
     const existingResponse = historyMessages.find(m => m.message.messageId === message.messageId);
     const newResponse = {
       ...existingResponse,
@@ -519,24 +519,24 @@ function ChatFrame(props: ChatFrameProps) {
   }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
 
   /**
-   * 涓轰粈涔堣鍦ㄨ繖閲屽姞涓婁竴涓繖涔堜竴涓帿鍚嶅叾濡欑殑澶氫綑鍙橀噺鍛紵
-   * 鐩殑鏄负浜嗚鑳屾櫙鍥剧墖浠巙rl鍒皀ull鐨勫垏鎹㈡椂涔熻兘瑙﹀彂transition鐨勫姩鐢伙紝濡傛灉涓嶅姞锛岄偅涔堬紝鍔ㄧ敾閮ㄥ垎鐨刢ss灏变細鍙樻垚杩欐牱锛?
+   * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
+   * 目的是为了让背景图片从url到null的切换时也能触发transition的动画，如果不加，那么，动画部分的css就会变成这样?
    *         style={{
    *           backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
    *           opacity: currentBackgroundUrl ? 1 : 0,
-   *         }}    // 閿欒浠ｇ爜锛?
-   * 褰揷urrentBackgroundUrl浠巙rl鍙樹负null鏃讹紝娴忚鍣ㄤ細鍥犱负backgroundImage宸茬粡鍙樻垚浜唍ull锛屽鑷村姩鐢绘潵涓嶅強鎾斁锛岃儗鏅洿鎺ュ氨娑堝け浜?
+   *         }}    // 错误代码?
+   * 当currentBackgroundUrl从url变为null时，浏览器会因为backgroundImage已经变成了null，导致动画来不及播放，背景直接就消失?
    * 鑰屽姞涓婅繖涔堜竴缁檚tate鍚?
    *         style={{
    *           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
    *           opacity: currentBackgroundUrl ? 1 : 0,
    *         }}   // 姝ｇ‘鐨?
    * 褰揷urrentBackgroundUrl 浠?url_A 鍙樹负 null鏃?
-   * 姝ゆ椂锛宱pacity 鍥犱负 currentBackgroundUrl 鏄?null 鑰屽彉涓?0锛屾贰鍑哄姩鐢诲紑濮嬨€?
-   * 浣嗘垜浠晠鎰忎笉鏇存柊 displayedBgUrl锛佸畠渚濈劧淇濇寔鐫€ url_A 鐨勫€笺€?
-   * 缁撴灉灏辨槸锛氳儗鏅浘灞傝櫧鐒惰鍙橀€忔槑浜嗭紝浣嗗畠鐨?backgroundImage 鏍峰紡閲屼緷鐒舵槸涓婁竴寮犲浘鐗囥€傝繖鏍凤紝鍔ㄧ敾灏辨湁浜嗗彲浠モ€滄搷浣溾€濈殑瑙嗚鍐呭锛岃兘澶熷钩婊戝湴灏嗚繖寮犲浘鐗囨贰鍑猴紝鐩村埌瀹屽叏閫忔槑銆?
+   * 此时，opacity 因为 currentBackgroundUrl ?null 而变?0，淡出动画开始?
+   * 但我们故意不更新 displayedBgUrl！它依然保持睢 url_A 的?
+   * 结果就是：背景图层虽然要变明了，但它?backgroundImage 样式里依然是上一张图片这样，动画就有了可以操作的视觉内容，能够平滑地将这张图片淡出，直到完全透明?
    */
-  // 鑳屾櫙鍥炬覆鏌撳凡鎻愬崌鍒?RoomWindow锛屾澶勪粎璐熻矗璁＄畻骞堕€氳繃 onBackgroundUrlChange 涓婃姤銆?
+  // 背景图渲染已提升?RoomWindow，此处仅负责计算并过 onBackgroundUrlChange 上报?
 
   /**
    * 娑堟伅閫夋嫨
@@ -580,7 +580,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   async function handleAddEmoji(imgMessage: ImageMessage) {
     if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
-      toast.error("璇ヨ〃鎯呭凡瀛樺湪");
+      toast.error("该表情已存在");
       return;
     }
     const fileSize = imgMessage.size > 0
@@ -593,13 +593,13 @@ function ChatFrame(props: ChatFrameProps) {
       format: imgMessage.url.split(".").pop() || "webp",
     }, {
       onSuccess: () => {
-        toast.success("琛ㄦ儏娣诲姞鎴愬姛");
+        toast.success("表情添加成功");
       },
     });
   }
 
   /**
-   * 鑱婂ぉ姘旀场鎷栨嫿鎺掑簭
+   * 聊天气泡拖拽排序
    */
   const {
     isDragging,
@@ -646,13 +646,13 @@ function ChatFrame(props: ChatFrameProps) {
     closeContextMenu();
   }
 
-  // 澶勭悊鍥炲娑堟伅
+  // 处理回复消息
   function handleReply(message: Message) {
     setReplyMessage(message);
   }
 
   /**
-   * @param index 铏氭嫙鍒楄〃涓殑index锛屼负浜嗗疄鐜板弽鍚戞粴鍔紝杩涜浜嗗亸绉?
+   * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏?
    * @param chatMessageResponse
    */
   const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
@@ -723,9 +723,9 @@ function ChatFrame(props: ChatFrameProps) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
         <div className="flex flex-col items-center gap-2">
-          {/* 鍔犺浇鍔ㄧ敾 */}
+          {/* 加载动画 */}
           <span className="loading loading-spinner loading-lg text-info"></span>
-          {/* 鎻愮ず鏂囧瓧 */}
+          {/* 提示文字 */}
           <div className="text-center space-y-1">
             <h3 className="text-lg font-medium text-base-content">姝ｅ湪鑾峰彇鍘嗗彶娑堟伅</h3>
             <p className="text-sm text-base-content/70">璇风◢鍊?..</p>

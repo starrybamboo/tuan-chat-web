@@ -36,7 +36,7 @@ export default function useRoomSidebarNormalizer({
       includeDocs: isSpaceOwner,
     });
 
-    // 閺傚洦銆傜紓鎾崇摠閿涙碍濡?title/cover 閸愭瑥鍙?sidebarTree 閼哄倻鍋ｉ敍鍫熷瘮娑斿懎瀵查崚鏉挎倵缁旑垽绱氶敍宀冾唨妫ｆ牕鐫嗘导妯哄帥鐏炴洜銇氱紓鎾崇摠閿涘矁鈧奔绗夐弰顖滅搼瀵?meta/缂冩垹绮堕崝鐘烘祰閵?
+    // 文档缓存：?title/cover 写?sidebarTree 节点（持久化到后端），让首屏优先展示缓存，不是等?meta/网络加载?
     const normalizedWithCache = applySidebarDocFallbackCache({
       tree: normalized,
       docMetaMap,

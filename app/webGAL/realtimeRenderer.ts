@@ -1,4 +1,4 @@
-﻿import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 
 /**
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
@@ -29,7 +29,7 @@ import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from
  * WebGAL 文本拓展语法处理工具
  *
  * 支持的语法：
- * 1. 注音语法: [要注音的词](注音) - 例如 [笑顔](えがお)
+ * 1. ע﷨: [ҪעĴ](ע) -  [Ц]()
  * 2. 文本增强语法: [文本](style=color:#66327C\; ruby=注音)
  *
  * 参数说明：
@@ -1791,5 +1791,3 @@ export class RealtimeRenderer {
     this.onStatusChange = undefined;
   }
 }
-
-
