@@ -14,6 +14,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatFrameContextMenu from "@/components/chat/hooks/useChatFrameContextMenu";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
+import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
@@ -538,21 +539,14 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 娑堟伅閫夋嫨
    */
-  const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(() => new Set());
-  const isSelecting = selectedMessageIds.size > 0;
-
-  const toggleMessageSelection = useCallback((messageId: number) => {
-    updateSelectedMessageIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId);
-      }
-      else {
-        newSet.add(messageId);
-      }
-      return newSet;
-    });
-  }, []);
+  const {
+    selectedMessageIds,
+    updateSelectedMessageIds,
+    isSelecting,
+    toggleMessageSelection,
+    handleBatchDelete,
+    handleEditMessage,
+  } = useChatFrameSelection({ onDeleteMessage: deleteMessage });
 
   const constructForwardRequest = (forwardRoomId: number) => {
     const forwardMessages = Array.from(selectedMessageIds)
@@ -698,26 +692,6 @@ function ChatFrame(props: ChatFrameProps) {
 
   function handleDelete() {
     deleteMessage(contextMenu?.messageId ?? -1);
-  }
-
-  function handleBatchDelete() {
-    for (const messageId of selectedMessageIds) {
-      deleteMessage(messageId);
-    }
-    updateSelectedMessageIds(new Set());
-  }
-
-  function handleEditMessage(messageId: number) {
-    const target = document.querySelector(
-      `[data-message-id="${messageId}"] .editable-field`,
-    ) as HTMLElement;
-    target.dispatchEvent(new MouseEvent("dblclick", {
-      bubbles: true,
-      cancelable: true,
-      view: window,
-      clientX: target.offsetLeft + target.offsetWidth / 2,
-      clientY: target.offsetTop + target.offsetHeight / 2,
-    }));
   }
 
   // 鍏抽棴鍙抽敭鑿滃崟
