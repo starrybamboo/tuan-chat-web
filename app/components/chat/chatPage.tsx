@@ -26,6 +26,7 @@ import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
+import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
 import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
@@ -149,25 +150,14 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     });
   }, [activeSpaceId, setSpaceSidebarTreeMutation, sidebarTreeVersion]);
 
-  const setActiveSpaceId = useCallback((spaceId: number | null) => {
-    setStoredChatIds({ spaceId, roomId: null });
-    const newSearchParams = new URLSearchParams(searchParam);
-    screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
-    navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
-  }, [isOpenLeftDrawer, navigate, searchParam, setStoredChatIds, screenSize]);
-  const setActiveRoomId = useCallback((roomId: number | null, options?: { replace?: boolean }) => {
-    setStoredChatIds({ spaceId: activeSpaceId, roomId });
-    const newSearchParams = new URLSearchParams(searchParam);
-    screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
-    const nextRoomId = roomId ?? "";
-    navigate(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}?${newSearchParams.toString()}`, { replace: options?.replace });
-  }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
-
-  const handleOpenPrivate = useCallback(() => {
-    setActiveSpaceId(null);
-    setActiveRoomId(null);
-    navigate("/chat/private");
-  }, [navigate, setActiveRoomId, setActiveSpaceId]);
+  const { setActiveSpaceId, setActiveRoomId, handleOpenPrivate } = useChatPageNavigation({
+    activeSpaceId,
+    isOpenLeftDrawer,
+    navigate,
+    screenSize,
+    searchParam,
+    setStoredChatIds,
+  });
 
   const [mainView, setMainView] = useState<ChatPageMainView>(() => initialMainView ?? "chat");
   const discoverModeForUi = discoverMode ?? "square";
