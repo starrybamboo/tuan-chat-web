@@ -25,6 +25,7 @@ import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
+import useChatPageOrdering from "@/components/chat/hooks/useChatPageOrdering";
 import useChatPageRoute from "@/components/chat/hooks/useChatPageRoute";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
@@ -102,17 +103,21 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
-
-  const [spaceOrderByUser, setSpaceOrderByUser] = useLocalStorage<Record<string, number[]>>("spaceOrderByUser", {});
-  // key: userId -> spaceId -> roomIds
-  const [roomOrderByUserAndSpace, setRoomOrderByUserAndSpace] = useLocalStorage<Record<string, Record<string, number[]>>>(
-    "roomOrderByUserAndSpace",
-    {},
-  );
-  const [spaceRoomIdsByUser, setSpaceRoomIdsByUser] = useLocalStorage<Record<string, Record<string, number[]>>>(
-    "spaceRoomIdsByUser",
-    {},
-  );
+  const {
+    orderedSpaces,
+    orderedSpaceIds,
+    orderedRooms,
+    orderedRoomIds,
+    setUserSpaceOrder,
+    setUserRoomOrder,
+    spaceRoomIdsByUser,
+  } = useChatPageOrdering({
+    userId,
+    activeSpaceId,
+    isPrivateChatMode,
+    spaces,
+    rooms,
+  });
   const activeSpace = activeSpaceInfo ?? spaces.find(space => space.spaceId === activeSpaceId);
   const activeSpaceIsArchived = activeSpace?.status === 2;
   const activeSpaceHeaderOverride = useEntityHeaderOverrideStore(state => (activeSpaceId ? state.headers[`space:${activeSpaceId}`] : undefined));
@@ -342,32 +347,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     }
   }, [isPrivateChatMode, rooms, setActiveRoomId, setActiveSpaceId, storedIds.roomId, storedIds.spaceId]);
 
-  useEffect(() => {
-    if (isPrivateChatMode)
-      return;
-    if (activeSpaceId == null)
-      return;
-    const roomIds = (rooms ?? [])
-      .map(r => r.roomId)
-      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
-    const userKey = String(userId);
-    const spaceKey = String(activeSpaceId);
-    setSpaceRoomIdsByUser((prev) => {
-      const prevUserMap = prev[userKey] ?? {};
-      const prevRoomIds = prevUserMap[spaceKey] ?? [];
-      if (prevRoomIds.length === roomIds.length && prevRoomIds.every((v, i) => v === roomIds[i])) {
-        return prev;
-      }
-      return {
-        ...prev,
-        [userKey]: {
-          ...prevUserMap,
-          [spaceKey]: roomIds,
-        },
-      };
-    });
-  }, [activeSpaceId, isPrivateChatMode, rooms, setSpaceRoomIdsByUser, userId]);
-
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
   const [isCreateInCategoryOpen, setIsCreateInCategoryOpen] = useSearchParamsState<boolean>("createInCategoryPop", false);
 
@@ -453,81 +432,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
-  const spaceOrder = useMemo(() => {
-    return spaceOrderByUser[String(userId)] ?? [];
-  }, [spaceOrderByUser, userId]);
-
-  const orderedSpaces = useMemo(() => {
-    if (!Array.isArray(spaces) || spaces.length <= 1) {
-      return spaces;
-    }
-
-    const orderIndex = new Map<number, number>();
-    for (let i = 0; i < spaceOrder.length; i++) {
-      orderIndex.set(spaceOrder[i]!, i);
-    }
-
-    return [...spaces]
-      .map((space, originalIndex) => {
-        const sid = space.spaceId ?? -1;
-        const order = orderIndex.get(sid);
-        return { space, originalIndex, order };
-      })
-      .sort((a, b) => {
-        const ao = a.order ?? Number.POSITIVE_INFINITY;
-        const bo = b.order ?? Number.POSITIVE_INFINITY;
-        if (ao !== bo)
-          return ao - bo;
-        return a.originalIndex - b.originalIndex;
-      })
-      .map(x => x.space);
-  }, [spaces, spaceOrder]);
-
-  const orderedSpaceIds = useMemo(() => {
-    return orderedSpaces
-      .map(s => s.spaceId)
-      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
-  }, [orderedSpaces]);
-
-  const setUserSpaceOrder = useCallback((nextOrder: number[]) => {
-    setSpaceOrderByUser(prev => ({
-      ...prev,
-      [String(userId)]: nextOrder,
-    }));
-  }, [setSpaceOrderByUser, userId]);
-
-  const roomOrder = useMemo(() => {
-    if (activeSpaceId == null || isPrivateChatMode)
-      return [];
-    return roomOrderByUserAndSpace[String(userId)]?.[String(activeSpaceId)] ?? [];
-  }, [activeSpaceId, isPrivateChatMode, roomOrderByUserAndSpace, userId]);
-
-  const orderedRooms = useMemo(() => {
-    if (!Array.isArray(rooms) || rooms.length <= 1) {
-      return rooms;
-    }
-
-    const orderIndex = new Map<number, number>();
-    for (let i = 0; i < roomOrder.length; i++) {
-      orderIndex.set(roomOrder[i]!, i);
-    }
-
-    return [...rooms]
-      .map((room, originalIndex) => {
-        const rid = room.roomId ?? -1;
-        const order = orderIndex.get(rid);
-        return { room, originalIndex, order };
-      })
-      .sort((a, b) => {
-        const ao = a.order ?? Number.POSITIVE_INFINITY;
-        const bo = b.order ?? Number.POSITIVE_INFINITY;
-        if (ao !== bo)
-          return ao - bo;
-        return a.originalIndex - b.originalIndex;
-      })
-      .map(x => x.room);
-  }, [rooms, roomOrder]);
-
   useLayoutEffect(() => {
     if (isPrivateChatMode)
       return;
@@ -544,26 +448,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
     setActiveRoomId(firstRoomId, { replace: true });
   }, [activeSpaceId, isPrivateChatMode, orderedRooms, setActiveRoomId, urlRoomId]);
-
-  const orderedRoomIds = useMemo(() => {
-    return orderedRooms
-      .map(r => r.roomId)
-      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
-  }, [orderedRooms]);
-
-  const setUserRoomOrder = useCallback((nextOrder: number[]) => {
-    if (activeSpaceId == null || isPrivateChatMode)
-      return;
-    const userKey = String(userId);
-    const spaceKey = String(activeSpaceId);
-    setRoomOrderByUserAndSpace(prev => ({
-      ...prev,
-      [userKey]: {
-        ...(prev[userKey] ?? {}),
-        [spaceKey]: nextOrder,
-      },
-    }));
-  }, [activeSpaceId, isPrivateChatMode, setRoomOrderByUserAndSpace, userId]);
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
     globalContext,
