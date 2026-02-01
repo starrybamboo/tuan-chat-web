@@ -3,7 +3,7 @@ import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
 import useRoomSidebarDeleteHandlers from "@/components/chat/room/useRoomSidebarDeleteHandlers";
@@ -11,12 +11,13 @@ import useRoomSidebarDocCopy from "@/components/chat/room/useRoomSidebarDocCopy"
 import useRoomSidebarDocMetas from "@/components/chat/room/useRoomSidebarDocMetas";
 import useRoomSidebarDragState from "@/components/chat/room/useRoomSidebarDragState";
 import useRoomSidebarDropHandler from "@/components/chat/room/useRoomSidebarDropHandler";
+import useRoomSidebarNormalizer from "@/components/chat/room/useRoomSidebarNormalizer";
 import useRoomSidebarTreeActions from "@/components/chat/room/useRoomSidebarTreeActions";
 import useRoomSidebarTreeState from "@/components/chat/room/useRoomSidebarTreeState";
 import SpaceHeaderBar from "@/components/chat/space/spaceHeaderBar";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
-import { applySidebarDocFallbackCache, collectExistingDocIds, collectExistingRoomIds, normalizeSidebarTree } from "./sidebarTree";
+import { collectExistingDocIds, collectExistingRoomIds } from "./sidebarTree";
 import SidebarTreeOverlays from "./sidebarTreeOverlays";
 
 interface ChatRoomListPanelProps {
@@ -168,26 +169,15 @@ export default function ChatRoomListPanel({
 
   const [contextMenu, setContextMenu] = useState<SidebarTreeContextMenuState>(null);
 
-  const normalizeAndSet = useCallback((next: SidebarTree, save: boolean, options?: { docMetasOverride?: MinimalDocMeta[] }) => {
-    const normalized = normalizeSidebarTree({
-      tree: next,
-      roomsInSpace: fallbackTextRooms,
-      docMetas: options?.docMetasOverride ?? visibleDocMetas,
-      includeDocs: isSpaceOwner,
-    });
-
-    // 鏂囨。缂撳瓨锛氭妸 title/cover 鍐欏叆 sidebarTree 鑺傜偣锛堟寔涔呭寲鍒板悗绔級锛岃棣栧睆浼樺厛灞曠ず缂撳瓨锛岃€屼笉鏄瓑寰?meta/缃戠粶鍔犺浇銆?
-    const normalizedWithCache = applySidebarDocFallbackCache({
-      tree: normalized,
-      docMetaMap,
-      docHeaderOverrides,
-    });
-
-    setLocalTree(normalizedWithCache);
-    if (save) {
-      onSaveSidebarTree?.(normalizedWithCache);
-    }
-  }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, visibleDocMetas, setLocalTree]);
+  const normalizeAndSet = useRoomSidebarNormalizer({
+    fallbackTextRooms,
+    visibleDocMetas,
+    isSpaceOwner,
+    docHeaderOverrides,
+    docMetaMap,
+    setLocalTree,
+    onSaveSidebarTree,
+  });
 
   const {
     docCopyDropCategoryId,
