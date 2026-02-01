@@ -5,6 +5,7 @@ import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
 import React, { useMemo, useState } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
+import useRoomSidebarAddPanelState from "@/components/chat/room/useRoomSidebarAddPanelState";
 import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
 import useRoomSidebarDeleteHandlers from "@/components/chat/room/useRoomSidebarDeleteHandlers";
 import useRoomSidebarDocCopy from "@/components/chat/room/useRoomSidebarDocCopy";
@@ -163,9 +164,15 @@ export default function ChatRoomListPanel({
     isSpaceOwner,
   });
 
-  const [addPanelCategoryId, setAddPanelCategoryId] = useState<string | null>(null);
-  const [pendingAddRoomId, setPendingAddRoomId] = useState<number | null>(null);
-  const [pendingAddDocId, setPendingAddDocId] = useState<string>("");
+  const {
+    addPanelCategoryId,
+    pendingAddRoomId,
+    pendingAddDocId,
+    setAddPanelCategoryId,
+    setPendingAddRoomId,
+    setPendingAddDocId,
+    toggleAddPanel,
+  } = useRoomSidebarAddPanelState();
 
   const [contextMenu, setContextMenu] = useState<SidebarTreeContextMenuState>(null);
 
@@ -372,11 +379,7 @@ export default function ChatRoomListPanel({
                 onOpenRenameCategory={(categoryId) => {
                   openRenameCategory(categoryId);
                 }}
-                onOpenAddPanel={(categoryId) => {
-                  setAddPanelCategoryId(v => (v === categoryId ? null : categoryId));
-                  setPendingAddRoomId(null);
-                  setPendingAddDocId("");
-                }}
+                onOpenAddPanel={toggleAddPanel}
                 onOpenDoc={(docId) => {
                   onSelectDoc?.(docId);
                   onCloseLeftDrawer();
