@@ -5,9 +5,9 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomSidebarAddPanel from "@/components/chat/room/roomSidebarAddPanel";
+import RoomSidebarCategoryHeader from "@/components/chat/room/roomSidebarCategoryHeader";
 import RoomSidebarDocItem from "@/components/chat/room/roomSidebarDocItem";
 import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
-import { AddIcon, ChevronDown } from "@/icons";
 
 interface RoomSidebarCategoryProps {
   category: SidebarCategoryNode;
@@ -125,98 +125,24 @@ export default function RoomSidebarCategory({
         </div>
       )}
 
-      <div
-        className="flex items-center gap-2 px-2 py-1 text-xs font-medium opacity-80 select-none rounded-lg hover:bg-base-300/40"
-        draggable={canEdit}
-        onDragStart={(e) => {
-          if (!canEdit)
-            return;
-          // 閬垮厤浠庤緭鍏ユ帶浠惰Е鍙戞嫋鎷?
-          const el = e.target as HTMLElement | null;
-          if (el && (el.closest("input") || el.closest("select") || el.closest("textarea") || el.closest("button"))) {
-            e.preventDefault();
-            return;
-          }
-          resetDropHandled();
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("text/plain", `category:${cat.categoryId}`);
-          setDragging({ kind: "category", fromIndex: categoryIndex, categoryId: cat.categoryId });
-          setDropTarget(null);
-        }}
-        onDragEnd={() => {
-          setDragging(null);
-          setDropTarget(null);
-        }}
-        onContextMenu={(e) => {
-          // 鍒嗙被鎿嶄綔锛氱敤鍙抽敭鏇夸唬鍘熸潵鐨勪笅鎷夎彍鍗?
-          if (!canEdit)
-            return;
-          e.preventDefault();
-          e.stopPropagation();
-          setContextMenu({
-            kind: "category",
-            x: e.clientX,
-            y: e.clientY,
-            categoryId: cat.categoryId,
-          });
-        }}
-        onDragOver={(e) => {
-          if (!canEdit)
-            return;
-          if (!dragging)
-            return;
-          e.preventDefault();
-          e.stopPropagation();
-
-          if (dragging.kind === "category") {
-            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-            const isBefore = (e.clientY - rect.top) < rect.height / 2;
-            const insertIndex = isBefore ? categoryIndex : categoryIndex + 1;
-            setDropTarget({ kind: "category", insertIndex });
-            return;
-          }
-
-          // node: drop 鍒板垎绫诲ご閮?-> 杩藉姞鍒版湯灏?
-          setDropTarget({ kind: "node", toCategoryId: cat.categoryId, insertIndex: items.length });
-        }}
-        onDrop={(e) => {
-          if (!canEdit)
-            return;
-          e.preventDefault();
-          e.stopPropagation();
-          handleDrop();
-        }}
-      >
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs"
-          onClick={() => {
-            toggleCategoryExpanded(cat.categoryId);
-          }}
-          title={isCollapsed ? "灞曞紑" : "鎶樺彔"}
-        >
-          <ChevronDown className={`size-4 opacity-80 ${isCollapsed ? "-rotate-90" : ""}`} />
-        </button>
-
-        <span className="flex-1 truncate">{cat.name}</span>
-
-        {canEdit && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs"
-            title="创建…"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onOpenCreateInCategory(cat.categoryId);
-            }}
-          >
-            <AddIcon />
-          </button>
-        )}
-
-        {/* 鍒嗙被鐨勫脊鍑烘搷浣滆彍鍗曞凡鏀逛负鍙抽敭瑙﹀彂 */}
-      </div>
+      <RoomSidebarCategoryHeader
+        categoryId={cat.categoryId}
+        categoryName={cat.name}
+        categoryIndex={categoryIndex}
+        canEdit={canEdit}
+        isCollapsed={isCollapsed}
+        itemsLength={items.length}
+        dragging={dragging}
+        resetDropHandled={resetDropHandled}
+        setDragging={setDragging}
+        setDropTarget={setDropTarget}
+        handleDrop={handleDrop}
+        toggleCategoryExpanded={toggleCategoryExpanded}
+        onOpenCreateInCategory={onOpenCreateInCategory}
+        setContextMenu={setContextMenu}
+        toggleTitle={isCollapsed ? "展开" : "折叠"}
+        addTitle="������"
+      />
 
       {!isCollapsed && (
         <div
