@@ -1,5 +1,7 @@
 import type { DragEvent, ReactNode } from "react";
 
+import RoomSidebarInsertLine from "@/components/chat/room/roomSidebarInsertLine";
+
 interface RoomSidebarCategoryContainerProps {
   categoryId: string;
   isSpaceOwner: boolean;
@@ -32,13 +34,13 @@ export default function RoomSidebarCategoryContainer({
       onDrop={e => handleDocCopyCategoryDrop(e, categoryId)}
     >
       {showCategoryInsertLine && (
-        <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
+        <RoomSidebarInsertLine className="top-0 -translate-y-1/2" />
       )}
 
       {isDocCopyDropTarget && (
         <div className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
           <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs font-medium text-primary shadow-sm">
-            {isSpaceOwner ? "\U93C9\U60E7\U7D11\U6FB6\U5D85\U57D7\U9352\U9881\U6676\U6748\U89C4\U722E" : "\U6D60\U5325P\U9359\UE21A\UE632\U9352\U8DFA\U57CC\U6E1A\U0446\U7ADF\U93CD?"}
+            {isSpaceOwner ? "\u93C9\u60E7\u7D11\u6FB6\u5D85\u57D7\u9352\u9881\u6676\u6748\u89C4\u722E" : "\u6D60\u5325P\u9359\uE21A\uE632\u9352\u8DFA\u57CC\u6E1A\u0446\u7ADF\u93CD?"}
           </div>
         </div>
       )}
