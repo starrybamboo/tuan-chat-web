@@ -3,12 +3,12 @@ import {tuanchat} from "../instance";
 import type {EmojiCreateRequest} from "../models/EmojiCreateRequest";
 
 /**
- * 鏍规嵁ID鑾峰彇琛ㄦ儏鍖?
- * @param emojiId 琛ㄦ儏鍖匢D
+ * 根据ID获取表情?
+ * @param emojiId 表情包ID
  */
 
 /**
- * 鍒涘缓琛ㄦ儏鍖?
+ * 创建表情?
  */
 export function useCreateEmojiMutation() {
     const queryClient = useQueryClient();
@@ -22,7 +22,7 @@ export function useCreateEmojiMutation() {
 }
 
 /**
- * 鍒犻櫎琛ㄦ儏鍖?
+ * 删除表情?
  */
 export function useDeleteEmojiMutation() {
     const queryClient = useQueryClient();
@@ -36,7 +36,7 @@ export function useDeleteEmojiMutation() {
 }
 
 /**
- * 鑾峰彇鐢ㄦ埛琛ㄦ儏鍖呭垪琛?
+ * 获取用户表情包列?
  */
 export function useGetUserEmojisQuery() {
     return useQuery({

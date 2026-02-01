@@ -57,7 +57,7 @@ export function useGetSpaceMembersQuery(spaceId: number) {
 }
 
 /**
- * 鏂板绌洪棿鎴愬憳
+ * 新增空间成员
  */
 export function useAddSpaceMemberMutation() {
     const queryClient = useQueryClient();
@@ -86,7 +86,7 @@ export function useSpaceInviteCodeQuery(spaceId: number, type: number = 0, durat
 }
 
 /**
- * 閫氳繃閭€璇烽摼鎺ュ姞鍏ョ┖闂?
+ * 通过邢请链接加入空?
  */
 export function useSpaceInvitedMutation(code: string) {
     return useMutation({
@@ -113,10 +113,10 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
     });
 }
 
-// ==================== 缇ょ粍绠＄悊 ====================
+// ==================== 群组管理 ====================
 /**
- * 鑾峰彇缇ゆ垚鍛樺垪琛?
- * @param roomId 缇よ亰ID
+ * 获取群成员列?
+ * @param roomId 群聊ID
  */
 export function useGetMemberListQuery(roomId: number) {
 
@@ -128,7 +128,7 @@ export function useGetMemberListQuery(roomId: number) {
 }
 
 /**
- * 鏂板缇ゆ垚鍛?
+ * 新增群成?
  */
 // api/queryHooks.ts
 export function useAddRoomMemberMutation() {
@@ -147,7 +147,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 }
 
 /**
- * 鍒犻櫎缇ゆ垚鍛橈紙鎵归噺锛?
+ * 删除群成员（批量?
  */
 export function useDeleteRoomMemberMutation() {
     const queryClient = useQueryClient();
@@ -165,7 +165,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 }
 
 /**
- * 鏇存柊缇や俊鎭?
+ * 更新群信?
  */
 export function useUpdateRoomMutation() {
     const queryClient = useQueryClient();
@@ -197,8 +197,8 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 }
 
 /**
- * 鑾峰彇缇ょ粍淇℃伅
- * @param roomId 缇ょ粍ID
+ * 获取群组信息
+ * @param roomId 群组ID
  */
 export function useGetRoomInfoQuery(roomId: number) {
     return useQuery({
@@ -221,7 +221,7 @@ export function useGetSpaceInfoQuery(spaceId: number) {
 }
 
 /**
- * 璁剧疆绌洪棿 extra 瀛楁
+ * 设置空间 extra 字段
  */
 export function useSetSpaceExtraMutation() {
     const queryClient = useQueryClient();
@@ -255,7 +255,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 }
 
 /**
- * 鑾峰彇绌洪棿涓殑role
+ * 获取空间中的role
  */
 function useGetSpaceRolesQuery(spaceId: number) {
     return useQuery({
@@ -277,14 +277,14 @@ export function useCreateRoomMutation(spaceId: number) {
         mutationKey: ['createRoom'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms', spaceId] });
-            // 鏂版埧闂撮粯璁ゅ紑鍚闃咃細鍒涘缓鍚庨渶瑕佺珛鍒诲埛鏂颁細璇濆垪琛紝鍚﹀垯 UI 浼氬湪缂撳瓨鏈熷唴璇垽涓衡€滄湭璁㈤槄鈥濄€?
+            // 新房间默认开启订阅：创建后需要立刻刷新会话列表，否则 UI 会在缓存期内误判为未订阅”?
             queryClient.invalidateQueries({ queryKey: ['getUserSessions'] });
         },
     });
 }
 
 /**
- * 瑙ｆ暎缇ょ粍
+ * 解散群组
  */
 export function useDissolveRoomMutation() {
     const queryClient = useQueryClient();
@@ -333,8 +333,8 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 
 // ==================== 娑堟伅绯荤粺 ====================
 /**
- * 鑾峰彇缇よ亰鎵€鏈夋秷鎭紙瀹炴椂鎬ц姹傞珮锛?
- * @param roomId 缇よ亰ID
+ * 获取群聊扢有消息（实时性要求高?
+ * @param roomId 群聊ID
  */
 function useGetAllMessageQuery(roomId: number) {
     return useQuery({
@@ -345,7 +345,7 @@ function useGetAllMessageQuery(roomId: number) {
 }
 
 /**
- * 鍙戦€佹秷鎭紙澶囩敤鎺ュ彛锛?
+ * 发消息（备用接口?
  * @param roomId 鍏宠仈鐨勭兢鑱奍D锛堢敤浜庣紦瀛樺埛鏂帮級
  */
 export function useSendMessageMutation(roomId: number) {
@@ -390,7 +390,7 @@ export function useUpdateMessageMutation() {
 
 /**
  * 鏍规嵁syncId鑾峰彇鍗曟潯娑堟伅
- * 鐢ㄤ簬鍦ㄦ敹鍒皊yncId闂撮殧鐨勬秷鎭椂锛岄噸鏂拌幏鍙栫己澶辩殑娑堟伅
+ * 用于在收到syncId间隔的消息时，重新获取缺失的消息
  * @param requestBody 璇锋眰鍙傛暟
  */
 function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
@@ -398,12 +398,12 @@ function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
         queryKey: ['getMessageBySyncId', requestBody],
         queryFn: () => tuanchat.chatController.getMessageBySyncId(requestBody),
         staleTime: 0, // 瀹炴椂鏁版嵁涓嶇紦瀛?
-        enabled: !!requestBody.syncId // 褰撴湁syncId鏃舵墠鍚敤鏌ヨ
+        enabled: !!requestBody.syncId // 当有syncId时才启用查询
     });
 }
 /**
  * 鑾峰彇鍘嗗彶娑堟伅
- * 杩斿洖鎴块棿涓媠yncId澶т簬绛変簬璇锋眰涓璼yncId鐨勬秷鎭紝鐢ㄤ簬閲嶆柊涓婄嚎鏃惰幏鍙栧巻鍙叉秷鎭?
+ * 返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消?
  * @param requestBody 璇锋眰鍙傛暟
  */
 function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
@@ -411,13 +411,13 @@ function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
         queryKey: ['getHistoryMessages', requestBody],
         queryFn: () => tuanchat.chatController.getHistoryMessages(requestBody),
         staleTime: 30000, // 30绉掔紦瀛?
-        enabled: !!requestBody.syncId // 褰撴湁syncId鏃舵墠鍚敤鏌ヨ
+        enabled: !!requestBody.syncId // 当有syncId时才启用查询
     });
 }
 
 // ==================== 鏉冮檺绠＄悊 ====================
 /**
- * 璁剧疆鐢ㄦ埛涓虹帺瀹?
+ * 设置用户为玩?
  * @param roomId 鍏宠仈鐨勭兢鑱奍D锛堢敤浜庣紦瀛樺埛鏂帮級
  */
 export function useSetPlayerMutation() {
@@ -433,7 +433,7 @@ export function useSetPlayerMutation() {
 }
 
 /**
- * 鎾ら攢鐜╁韬唤
+ * 撤销玩家身份
  */
 export function useRevokePlayerMutation() {
     const queryClient = useQueryClient();
@@ -448,7 +448,7 @@ export function useRevokePlayerMutation() {
 }
 
 /**
- * 杞缇や富
+ * 转让群主
  */
 function useTransferOwnerMutation() {
     const queryClient = useQueryClient();
@@ -466,7 +466,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 }
 
 /**
- * 杞KP
+ * 转让KP
  */
 export function useTransferLeader() {
     const queryClient = useQueryClient();
@@ -483,9 +483,9 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
     })
 }
 
-// ==================== 缇ょ粍瑙掕壊绠＄悊 ====================
+// ==================== 群组角色管理 ====================
 /**
- * 娣诲姞缇ょ粍瑙掕壊
+ * 添加群组角色
  */
 export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
@@ -604,7 +604,7 @@ export function useAddRoomRoleMutation() {
 }
 
 /**
- * 鍒犻櫎缇ょ粍瑙掕壊
+ * 删除群组角色
  */
 export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
@@ -620,7 +620,7 @@ export function useDeleteRole1Mutation() {
 
 // ==================== space鐩稿叧 ====================
 /**
- * 鑾峰彇鐢ㄦ埛鍔犲叆鐨勬墍鏈塻pace
+ * 获取用户加入的所有space
  */
 export function useGetUserSpacesQuery() {
     return useQuery({
@@ -668,7 +668,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
     });
 }
 /**
- * 鑾峰彇space涓嬬敤鎴峰姞鍏ョ殑鎵€鏈夌兢缁?
+ * 获取space下用户加入的扢有群?
  */
 export function useGetUserRoomsQuery(spaceId: number) {
     return useQuery({
@@ -680,8 +680,8 @@ export function useGetUserRoomsQuery(spaceId: number) {
 }
 
 /**
- * 鑾峰彇缇ょ粍瑙掕壊鍒楄〃
- * @param roomId 缇ょ粍ID
+ * 获取群组角色列表
+ * @param roomId 群组ID
  */
 export function useGetRoomRoleQuery(roomId: number) {
     return useQuery({
@@ -691,8 +691,8 @@ export function useGetRoomRoleQuery(roomId: number) {
     });
 }
 /**
- * 鎵归噺鑾峰彇缇ょ粍瑙掕壊鍒楄〃
- * @param roomIds 缇ょ粍ID鏁扮粍
+ * 批量获取群组角色列表
+ * @param roomIds 群组ID数组
  */
 function useGetRoomRolesQueries(roomIds: number[]) {
     return useQueries({
@@ -700,15 +700,15 @@ function useGetRoomRolesQueries(roomIds: number[]) {
             queryKey: ['roomRole', roomId],
             queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
             staleTime: 10000,
-            enabled: roomId > 0 // 纭繚roomId鏈夋晥鏃舵墠鍚敤鏌ヨ
+            enabled: roomId > 0 // 确保roomId有效时才启用查询
         }))
     });
 }
 
 
 /**
- * 鑾峰彇缇ょ粍妯＄粍瑙掕壊鍒楄〃
- * @param roomId 缇ょ粍ID
+ * 获取群组模组角色列表
+ * @param roomId 群组ID
  */
 export function useGetRoomModuleRoleQuery(roomId: number) {
     return useQuery({

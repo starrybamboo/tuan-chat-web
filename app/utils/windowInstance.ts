@@ -1,29 +1,29 @@
 /**
- * 绐楀彛瀹炰緥绠＄悊宸ュ叿
- * 鐢ㄤ簬澶氱獥鍙ｇ幆澧冧笅鐨勫疄渚嬫爣璇嗗拰鐘舵€侀殧绂?
+ * 窗口实例管理工具
+ * 用于多窗口环境下的实例标识和状隔?
  */
 
-// 鐢熸垚鍞竴鐨勭獥鍙ｆ爣璇嗙
+// 生成唯一的窗口标识符
 function generateWindowId(): string {
   return `window_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// 鍏ㄥ眬绐楀彛ID锛屽湪搴旂敤鍚姩鏃剁敓鎴?
+// 全局窗口ID，在应用启动时生?
 export const CURRENT_WINDOW_ID = generateWindowId();
 
-// 鐘舵€佹洿鏂伴棿闅旂鐞?
+// 状更新间隔管?
 const lastStatusUpdates = new Map<string, { timestamp: number; status: string; windowId: string }>();
 
-// 瀛樺偍姣忎釜鎴块棿-鐢ㄦ埛鐨勬椿鍔ㄧ姸鎬?
+// 存储每个房间-用户的活动状?
 const activeStatusWindows = new Map<string, { windowId: string; timestamp: number; status: string }>();
 
 /**
- * 妫€鏌ユ槸鍚﹀簲璇ュ彂閫佺姸鎬佹洿鏂?
+ * 棢查是否应该发送状态更?
  * @param roomId 鎴块棿ID
- * @param userId 鐢ㄦ埛ID
+ * @param userId 用户ID
  * @param newStatus 鏂扮姸鎬?
  * @param windowId 绐楀彛ID
- * @returns 鏄惁搴旇鍙戦€佹洿鏂?
+ * @returns 是否应该发更?
  */
 export function shouldSendStatusUpdate(
   roomId: number,
@@ -49,7 +49,7 @@ export function shouldSendStatusUpdate(
       return false;
     }
 
-    // 濡傛灉鏄浉鍚屼紭鍏堢骇鐨勭姸鎬侊紝涓旀椂闂撮棿闅旇緝鐭紙5绉掑唴锛夛紝璺宠繃
+    // 如果是相同优先级的状态，且时间间隔较短（5秒内），跳过
     if (activePriority === newPriority && (now - activeWindow.timestamp < 5_000)) {
       return false;
     }
@@ -57,7 +57,7 @@ export function shouldSendStatusUpdate(
 
   // 闃叉姈閫昏緫锛氱浉鍚岀姸鎬佺殑鏇存柊闂撮殧妫€鏌?
   if (lastUpdate && lastUpdate.status === newStatus) {
-    // 鐩稿悓鐘舵€佺殑鏇存柊锛屽鏋滈棿闅斿お鐭垯璺宠繃
+    // 相同状的更新，如果间隔太短则跳过
     const minInterval = newStatus === "input" ? 2000 : 3000; // input鐘舵€?绉掗棿闅旓紝鍏朵粬3绉?
     if (now - lastUpdate.timestamp < minInterval) {
       return false;
@@ -72,13 +72,13 @@ export function shouldSendStatusUpdate(
 }
 
 /**
- * 娓呯悊杩囨湡鐨勭姸鎬佽褰?
+ * 清理过期的状态记?
  */
 function cleanupExpiredStatusRecords(): void {
   const now = Date.now();
   const expireTime = 5 * 60 * 1000; // 5鍒嗛挓杩囨湡
 
-  // 娓呯悊鐘舵€佹洿鏂拌褰?
+  // 清理状更新记?
   for (const [key, record] of lastStatusUpdates.entries()) {
     if (now - record.timestamp > expireTime) {
       lastStatusUpdates.delete(key);
@@ -94,24 +94,24 @@ function cleanupExpiredStatusRecords(): void {
 }
 
 /**
- * 绐楀彛澶辩劍鏃惰皟鐢紝鐢ㄤ簬娓呯悊褰撳墠绐楀彛鐨勬椿璺冪姸鎬?
+ * 窗口失焦时调用，用于清理当前窗口的活跃状?
  * @param roomId 鎴块棿ID
- * @param userId 鐢ㄦ埛ID
+ * @param userId 用户ID
  */
 export function handleWindowBlur(roomId: number, userId: number): void {
   const key = `${roomId}_${userId}`;
   const activeWindow = activeStatusWindows.get(key);
 
   if (activeWindow && activeWindow.windowId === CURRENT_WINDOW_ID) {
-    // 濡傛灉褰撳墠绐楀彛鏄椿璺冪獥鍙ｏ紝灏嗗叾鏍囪涓洪潪娲昏穬
+    // 如果当前窗口是活跃窗口，将其标记为非活跃
     activeStatusWindows.delete(key);
   }
 }
 
 /**
- * 鑾峰彇鎸囧畾鎴块棿鐢ㄦ埛鐨勫綋鍓嶆椿璺冪獥鍙?
+ * 获取指定房间用户的当前活跃窗?
  * @param roomId 鎴块棿ID
- * @param userId 鐢ㄦ埛ID
+ * @param userId 用户ID
  * @returns 娲昏穬绐楀彛淇℃伅鎴杗ull
  */
 

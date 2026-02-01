@@ -2,7 +2,7 @@ import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import useRoomSidebarAddPanelState from "@/components/chat/room/useRoomSidebarAddPanelState";
 import useRoomSidebarCategoryEditor from "@/components/chat/room/useRoomSidebarCategoryEditor";
@@ -298,7 +298,7 @@ export default function ChatRoomListPanel({
                       className="btn btn-sm btn-ghost"
                       onClick={openAddCategory}
                     >
-                      鏂板鍒嗙被
+                      新增分类
                     </button>
                     <button
                       type="button"
@@ -307,7 +307,7 @@ export default function ChatRoomListPanel({
                         onResetSidebarTreeToDefault?.();
                       }}
                     >
-                      閲嶇疆榛樿
+                      重置默认
                     </button>
                   </div>
                 )}

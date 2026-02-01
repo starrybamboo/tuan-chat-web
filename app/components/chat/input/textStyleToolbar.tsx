@@ -1,4 +1,4 @@
-﻿import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -52,7 +52,7 @@ function RubyInputDialog({ onConfirm, onClose, initialText }: {
           <input
             type="text"
             className="input input-bordered input-sm"
-            placeholder="例如：えがお"
+            placeholder="磺"
             value={ruby}
             onChange={e => setRuby(e.target.value)}
           />
@@ -365,7 +365,7 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
           <input
             type="text"
             className="input input-bordered input-sm"
-            placeholder="例如：えがお"
+            placeholder="磺"
             value={ruby}
             onChange={e => setRuby(e.target.value)}
           />
@@ -765,11 +765,11 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
           type="button"
           className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
           onClick={handleAddRuby}
-          title="添加注音（振り仮名）"
+          title="עꁢ"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <text x="4" y="20" fontSize="12" fill="currentColor" stroke="none">文</text>
-            <text x="14" y="10" fontSize="6" fill="currentColor" stroke="none">あ</text>
+            <text x="14" y="10" fontSize="6" fill="currentColor" stroke="none"></text>
           </svg>
           <span>注音</span>
         </button>
@@ -794,4 +794,3 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
 }
 
 export default TextStyleToolbar;
-
