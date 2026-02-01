@@ -13,6 +13,7 @@ import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNa
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import useChatPageCreateInCategory from "@/components/chat/hooks/useChatPageCreateInCategory";
 import useChatPageDetailPanels from "@/components/chat/hooks/useChatPageDetailPanels";
+import useChatPageDocTitle from "@/components/chat/hooks/useChatPageDocTitle";
 import useChatPageLeftDrawer from "@/components/chat/hooks/useChatPageLeftDrawer";
 import useChatPageMemberActions from "@/components/chat/hooks/useChatPageMemberActions";
 import useChatPageNavigation from "@/components/chat/hooks/useChatPageNavigation";
@@ -212,24 +213,12 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     docMetasFromSidebarTree,
   });
 
-  const activeDocTitleForTcHeader = useMemo(() => {
-    if (!activeDocId)
-      return "";
-
-    const overrideTitle = typeof activeDocHeaderOverride?.title === "string" ? activeDocHeaderOverride.title.trim() : "";
-    if (overrideTitle)
-      return overrideTitle;
-
-    const fromState = (spaceDocMetas ?? []).find(m => m.id === activeDocId)?.title;
-    if (typeof fromState === "string" && fromState.trim().length > 0)
-      return fromState.trim();
-
-    const fromTree = (docMetasFromSidebarTree ?? []).find(m => m.id === activeDocId)?.title;
-    if (typeof fromTree === "string" && fromTree.trim().length > 0)
-      return fromTree.trim();
-
-    return "文档";
-  }, [activeDocHeaderOverride?.title, activeDocId, docMetasFromSidebarTree, spaceDocMetas]);
+  const activeDocTitleForTcHeader = useChatPageDocTitle({
+    activeDocId,
+    activeDocHeaderOverride,
+    docMetasFromSidebarTree,
+    spaceDocMetas,
+  });
 
   const {
     buildTreeBaseForWrite,
