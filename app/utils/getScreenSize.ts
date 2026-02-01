@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 export type ScreenSize = "sm" | "md" | "lg";
 
 /**
- * 获取当前屏幕尺寸分? * - sm: < 640px
+ * 获取当前屏幕尺寸分类：
+ * - sm: < 640px
  * - md: 640px - 1023px
  * - lg: >= 1024px
  */
@@ -26,16 +27,16 @@ export function isMobileScreen() {
 }
 
 /**
- * 响应?Hook：监听是否为移动?
- * 会在屏幕尺寸变化时自动更?
- * 注意：初始固?false 以避?SSR hydration mismatch
+ * 响应式 Hook：监听是否为移动端
+ * 会在屏幕尺寸变化时自动更新
+ * 注意：初始固定为 false 以避免 SSR hydration mismatch
  */
 export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 639px)");
-    // 闁告帗绻傞～鎰板礌閺嶃劍顦х紒鏂款儏瀹撳棛鎷嬮崜褏鏋傛慨婵撶悼閳ユ﹢鎯冮崟顐熷亾?
+    // 初始化媒体查询状态，避免首帧不一致
     setIsMobile(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mediaQuery.addEventListener("change", handler);

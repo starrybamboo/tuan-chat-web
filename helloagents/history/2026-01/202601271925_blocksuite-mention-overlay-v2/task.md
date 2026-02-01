@@ -1,6 +1,6 @@
 ﻿# 任务清单: Blocksuite 全屏 @ 弹窗可见性修复（补充）
 
-目录: `helloagents/plan/202601271925_blocksuite-mention-overlay-v2/`
+Ŀ¼: `helloagents/plan/202601271925_blocksuite-mention-overlay-v2/`
 
 ---
 

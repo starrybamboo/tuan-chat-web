@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite Yjs 同步适配层
 
-目录: `helloagents/plan/202601272308_blocksuite_yjs_sync_adapter/`
+Ŀ¼: `helloagents/plan/202601272308_blocksuite_yjs_sync_adapter/`
 
 ---
 

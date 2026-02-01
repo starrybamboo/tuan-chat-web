@@ -158,7 +158,7 @@ export function CharacterCopper({
     setImgSrc("");
     setisSubmiting(false);
     setPreviewRenderKey(0);
-    // 重置Transform状态
+    // 重置Transform״̬
     setTransform(createDefaultTransform());
     // 重置裁剪状态
     resetCropState();

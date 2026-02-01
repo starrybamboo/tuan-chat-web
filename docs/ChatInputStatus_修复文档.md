@@ -135,7 +135,7 @@ inputDebounceTimerRef.current = setTimeout(() => {
 
 ### 3. 测试覆盖
 
-- 为 `useChatInputStatus` hook 编写单元测试
+- Ϊ `useChatInputStatus` hook 编写单元测试
 - 为状态切换逻辑编写集成测试
 
 ## 注意事项

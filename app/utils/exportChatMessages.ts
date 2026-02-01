@@ -13,7 +13,7 @@ export type ExportOptions = {
   dateFormat?: "full" | "short"; // 日期格式：完整或简短
 };
 
-const UNKNOWN_LABEL = "未知";
+const UNKNOWN_LABEL = "δ֪";
 
 function formatFileSize(bytes?: number): string {
   if (!bytes || Number.isNaN(bytes)) {
@@ -95,7 +95,7 @@ function formatMessageContent(
       if (imageMessage?.background) {
         return "[背景图片]";
       }
-      return "[图片]";
+      return "[ͼƬ]";
     }
     case MessageType.FILE: {
       const fileMessage = extra?.fileMessage;

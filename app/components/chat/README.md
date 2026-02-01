@@ -82,9 +82,9 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 ## 状态管理（Zustand）
 
-为减少跨组件 props 传递与 Context value 变化导致的级联重渲染，Chat 模块逐步把「高频 UI 状态 / 偏好设置」迁移到 zustand store。
+为减少跨组件 props 传递与 Context value 变化导致的级联重渲染，Chat 模块逐步把「高频 UI ״̬ / 偏好设置」迁移到 zustand store。
 
-### 1) roomUiStore：房间内临时 UI 状态
+### 1) roomUiStore：房间内临时 UI ״̬
 
 文件：app/components/chat/stores/roomUiStore.ts
 
@@ -424,7 +424,7 @@ const imgNode = useMemo(() => {
                                 ↓
                         加载角色和立绘信息
                                 ↓
-                        渲染消息内容（文本/图片/音频）
+                        渲染消息内容（文本/ͼƬ/音频）
                                 ↓
                         添加操作按钮（回复/删除/更多）
                                 ↓
@@ -686,7 +686,7 @@ export interface ChatInputAreaHandle {
 
 4. **实时更新**：
    ```
-   WebSocket 接收状态变化 → 更新 chatStatus 状态
+   WebSocket 接收状态变化 → 更新 chatStatus ״̬
                             ↓
                     StatusBar 自动重新渲染
    ```
@@ -1035,7 +1035,7 @@ function MyComponent() {
 2. **图片消息**：
    ```typescript
    // 普通图片
-   `[图片] -src=${imageUrl};`
+   `[ͼƬ] -src=${imageUrl};`
    
    // 背景图片
    `changeBg:${imageUrl} -next;`

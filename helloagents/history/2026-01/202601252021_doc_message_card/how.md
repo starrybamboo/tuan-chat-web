@@ -41,7 +41,7 @@
 **决策:** 新增 `MESSAGE_TYPE.DOC_CARD`，并用 `extra.docId` 表达 Blocksuite 文档引用；卡片渲染在客户端按需拉取/解析远端 snapshot。  
 **理由:**
 - 语义清晰，不复用现有 FILE/CLUE_CARD 避免概念污染
-- 不需要后端立刻升级 openapi schema 即可先跑通（messageType 为 number）
+- 不需要后端立刻升级 openapi schema 即可先跑通（messageType Ϊ number）
 - 卡片预览可以懒加载，性能与可维护性更好  
 **替代方案:** 复用 `FILE` 或 `CLUE_CARD` 展示文档卡片 → 拒绝原因: 语义不一致、后续扩展成本高  
 **影响:** 前端需要维护一套 doc 引用消息渲染与 DnD 协议；后续若后端补齐 schema，可再把 extra 类型正规化

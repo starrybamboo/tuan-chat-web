@@ -517,7 +517,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       );
     }
 
-    // 2. 组合消息内容 (文本 + 图片 + 语音)
+    // 2. 组合消息内容 (文本 + ͼƬ + 语音)
     const contentElements: React.ReactNode[] = [];
 
     // (A) 回复引用

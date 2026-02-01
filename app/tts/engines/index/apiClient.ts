@@ -11,7 +11,7 @@ export type InferRequest = {
   text: string;
   /** 音色参考音频本地路径,与 prompt_audio_base64 二选一 */
   prompt_audio_path?: string;
-  /** 音色参考音频(PCM/WAV)的base64(带或不带data URI头) */
+  /** 音色参考音频(PCM/WAV)的base64(带或不带data URIͷ) */
   prompt_audio_base64?: string;
   /** 情感控制方式枚举值: 0=同音色参考,1=情感参考音频,2=情感向量,3=情感描述文本 */
   emo_mode?: number;

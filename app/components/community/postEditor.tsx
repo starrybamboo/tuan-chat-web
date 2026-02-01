@@ -160,7 +160,7 @@ export default function PostEditor({
                   <div className="text-xs text-base-content/60 mt-1">
                     [
                     {forwardMessage.message.messageType === 2
-                      ? "图片"
+                      ? "ͼƬ"
                       : forwardMessage.message.messageType === 3 ? "文件" : "其他"}
                     ]
                   </div>

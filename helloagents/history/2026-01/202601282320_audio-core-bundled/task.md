@@ -1,6 +1,6 @@
 # 任务清单: 音频转码核心同源加载（避免 CDN 不可达）
 
-目录: `helloagents/history/2026-01/202601282320_audio-core-bundled/`
+Ŀ¼: `helloagents/history/2026-01/202601282320_audio-core-bundled/`
 
 ---
 

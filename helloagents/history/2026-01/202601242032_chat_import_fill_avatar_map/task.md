@@ -1,6 +1,6 @@
 # 任务清单: 聊天导入头像映射兜底（已被后续方案覆盖）
 
-目录: helloagents/history/2026-01/202601242032_chat_import_fill_avatar_map/
+Ŀ¼: helloagents/history/2026-01/202601242032_chat_import_fill_avatar_map/
 
 ---
 

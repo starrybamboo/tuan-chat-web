@@ -1,6 +1,6 @@
 ﻿# 任务清单: 聊天消息拖拽自动上滚
 
-目录: `helloagents/plan/202601231822_chat-drag-scroll/`
+Ŀ¼: `helloagents/plan/202601231822_chat-drag-scroll/`
 
 ---
 

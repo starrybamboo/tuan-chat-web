@@ -18942,7 +18942,7 @@
           },
           "gender": {
             "type": "string",
-            "description": "性别: 隐藏(null) 男 女"
+            "description": "性别: 隐藏(null) 男 Ů"
           },
           "readMe": {
             "type": "string",
@@ -19264,7 +19264,7 @@
           },
           "value": {
             "type": "string",
-            "description": "值"
+            "description": "ֵ"
           }
         }
       },
@@ -19497,7 +19497,7 @@
           },
           "value": {
             "type": "string",
-            "description": "值"
+            "description": "ֵ"
           }
         }
       },
@@ -19687,10 +19687,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -19700,10 +19700,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -19713,10 +19713,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -19726,10 +19726,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -19739,10 +19739,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -19752,10 +19752,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -21471,7 +21471,7 @@
           },
           "status": {
             "type": "integer",
-            "description": "状态 0正常 1删除 2归档",
+            "description": "״̬ 0正常 1删除 2归档",
             "format": "int32"
           },
           "moduleId": {
@@ -22431,10 +22431,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -22444,10 +22444,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -22457,10 +22457,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -22470,10 +22470,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -22483,10 +22483,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -22496,10 +22496,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "新key为null代表删除",
+              "description": "新keyΪnull代表删除",
               "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
             },
-            "description": "新key为null代表删除",
+            "description": "新keyΪnull代表删除",
             "example": {
               "旧key": "新key",
               "旧key2": "新key2"
@@ -23137,7 +23137,7 @@
           },
           "messageType": {
             "type": "integer",
-            "description": "消息类型 1:文本 2:图片 3:文件",
+            "description": "消息类型 1:文本 2:ͼƬ 3:文件",
             "format": "int32",
             "example": 1
           },
@@ -24295,7 +24295,7 @@
           },
           "imageUrl": {
             "type": "string",
-            "description": "图片URL"
+            "description": "ͼƬURL"
           },
           "fileSize": {
             "minimum": 1,

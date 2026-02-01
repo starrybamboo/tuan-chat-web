@@ -46,7 +46,7 @@ KP：
 
 - 固定输出 v2 结构（`schemaVersion=2`），并确保分类字段完整（`categoryId/name/items`）
 - 过滤不存在的 room/doc
-- 统一 `nodeId` 格式（`room:{roomId}` / `doc:{docId}`）并去重
+- ͳһ `nodeId` 格式（`room:{roomId}` / `doc:{docId}`）并去重
 
 同时，`parseSidebarTree` 支持自动将 v1（固定 `TEXT/VOICE/DOC`）迁移到 v2：旧的 `TEXT+VOICE` 会合并到一个默认分类（例如“频道”），`DOC` 会迁移到“文档”分类（非 KP 仍会被隐藏）。
 

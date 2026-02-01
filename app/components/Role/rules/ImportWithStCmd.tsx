@@ -17,7 +17,7 @@ interface ImportWithStCmdProps {
 export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: ImportWithStCmdProps) {
   const handleStCmd = useHandleStCmd(ruleId, roleId);
   const [commandInput, setCommandInput] = useState("");
-  const isCOC7 = ruleId === 1; // COC7规则ID为1
+  const isCOC7 = ruleId === 1; // COC7规则IDΪ1
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
 
   const handleImport = () => {
@@ -72,7 +72,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
       教育: "edu",
       体型: "siz",
       智力: "int",
-      san值: "san",
+      sanֵ: "san",
       幸运: "luck",
       魔法: "mp",
       体力: "hp",
@@ -138,7 +138,7 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
     edu: "教育",
     siz: "体型",
     int: "智力",
-    san: "san值",
+    san: "sanֵ",
     luck: "幸运",
     mp: "魔法",
     hp: "体力",

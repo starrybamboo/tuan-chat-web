@@ -22,7 +22,7 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SpaceControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 鏇存柊绌洪棿褰掓。鐘舵€?
+     * 更新空间归档状态
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -66,7 +66,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鑾峰彇绌洪棿鍏朵粬淇℃伅
+     * 获取空间其他信息
      * @param spaceId
      * @param key
      * @returns ApiResultString OK
@@ -92,7 +92,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 新增或修改空间其他信?
+     * 新增或修改空间其他信息
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -114,7 +114,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鍒犻櫎绌洪棿鍏朵粬淇℃伅
+     * 删除空间其他信息
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -136,7 +136,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 更新空间信息(名称、头像描述规?
+     * 更新空间信息(名称、头像、描述、规则)
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -158,7 +158,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鍒涘缓绌洪棿锛岄個璇风殑鎵€鏈夋垚鍛橀兘涓簆l
+     * 创建空间，邀请的所有成员都会加入
      * @param requestBody
      * @returns ApiResultSpace OK
      * @throws ApiError
@@ -180,7 +180,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鍒涘缓鎴块棿
+     * 创建房间
      * @param requestBody
      * @returns ApiResultRoom OK
      * @throws ApiError
@@ -202,7 +202,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鏍规嵁spaceId鐩存帴鍏嬮殕绌洪棿
+     * 根据spaceId直接克隆空间
      * @param requestBody
      * @returns ApiResultLong OK
      * @throws ApiError
@@ -224,7 +224,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鑾峰彇绌洪棿
+     * 获取空间
      * @param spaceId
      * @returns ApiResultSpace OK
      * @throws ApiError
@@ -247,7 +247,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 瑙ｆ暎绌洪棿
+     * 解散空间
      * @param spaceId
      * @returns ApiResultBoolean OK
      * @throws ApiError
@@ -270,7 +270,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 获取当前用户加入的所有空?
+     * 获取当前用户加入的所有空间
      * @returns ApiResultListSpace OK
      * @throws ApiError
      */
@@ -322,7 +322,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 鍙戠幇-骞垮満锛氭煡鐪嬫墍鏈変汉鐨勫綊妗ｇ兢鑱婏紙绌洪棿锛?
+     * 发现-广场：查看所有人的归档群聊（空间）
      * @returns ApiResultListSpace OK
      * @throws ApiError
      */
@@ -339,7 +339,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 发现-我的归档：查看我个人归档的群聊（空间?
+     * 发现-我的归档：查看我个人归档的群聊（空间）
      * @returns ApiResultListSpace OK
      * @throws ApiError
      */

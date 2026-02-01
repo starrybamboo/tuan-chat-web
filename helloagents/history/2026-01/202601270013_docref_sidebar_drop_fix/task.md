@@ -1,6 +1,6 @@
 # 任务清单: 修复文档拖拽到侧边栏无响应
 
-目录: `helloagents/history/2026-01/202601270013_docref_sidebar_drop_fix/`
+Ŀ¼: `helloagents/history/2026-01/202601270013_docref_sidebar_drop_fix/`
 
 ---
 

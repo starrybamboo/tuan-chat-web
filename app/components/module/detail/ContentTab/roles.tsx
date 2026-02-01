@@ -206,7 +206,7 @@ function RoleDetail(
       return "NPC";
     if (type === 1)
       return "预设卡";
-    return "未知";
+    return "δ֪";
   };
 
   // 渲染能力值

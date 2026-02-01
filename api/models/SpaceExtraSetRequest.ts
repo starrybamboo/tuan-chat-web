@@ -12,7 +12,7 @@ export type SpaceExtraSetRequest = {
      */
     key: string;
     /**
-     * 值
+     * ֵ
      */
     value: string;
 };

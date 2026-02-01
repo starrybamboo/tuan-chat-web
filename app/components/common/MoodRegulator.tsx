@@ -31,8 +31,8 @@ export interface MoodRegulatorHandle {
 }
 
 const DEFAULT_LABELS: string[] = [
-  "喜",
-  "怒",
+  "ϲ",
+  "ŭ",
   "哀",
   "惧",
   "厌恶",
@@ -143,7 +143,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
     }
   }, []);
 
-  // 受控：以 value 为准；非受控：以内部 state 为准
+  // 受控：以 value 为准；非受控：以内部 state Ϊ׼
   const effective = value && !editingRef.current ? normalizeToNumber(value, labelKeys) : inner;
 
   const handleChange = (key: string, next: number) => {

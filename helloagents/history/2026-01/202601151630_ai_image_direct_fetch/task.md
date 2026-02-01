@@ -1,6 +1,6 @@
 # 任务清单: AI 生图 Web 端直连请求 NovelAI
 
-目录: `helloagents/plan/202601151630_ai_image_direct_fetch/`
+Ŀ¼: `helloagents/plan/202601151630_ai_image_direct_fetch/`
 
 ---
 

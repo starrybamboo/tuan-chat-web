@@ -1,6 +1,6 @@
 # 任务清单: 角色头像替换
 
-目录: `helloagents/plan/202601231852_role-avatar-replace/`
+Ŀ¼: `helloagents/plan/202601231852_role-avatar-replace/`
 
 ---
 

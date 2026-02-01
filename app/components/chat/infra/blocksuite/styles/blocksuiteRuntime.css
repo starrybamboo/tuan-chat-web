@@ -5,8 +5,8 @@
 
 @layer blocksuite {
   /*
-   * KaTeX 默认会在 `body` 上做 counter-reset（用?equation numbering）?
-   * 在本项目?KaTeX 目前仅服务于 BlockSuite，因此将其从全局 `body` 移到 blocksuite scope，避免影响站点其他区域?
+   * KaTeX 默认会在 `body` 上做 counter-reset（用于 equation numbering）。
+   * 在本项目中 KaTeX 目前仅服务于 BlockSuite，因此将其从全局 `body` 移到 blocksuite scope，避免影响站点其他区域。
    */
   body {
     counter-reset: none;
@@ -17,8 +17,8 @@
   }
 
   /*
-   * dat.gui 的默认样式里会使?`.dg`；BlockSuite playground 会带这套 DOM?
-   * 这里?overflow 修复限制?blocksuite scope，避免误伤站点其?`.dg`?
+   * dat.gui 的默认样式里会使用 `.dg`；BlockSuite playground 会带这套 DOM。
+   * 这里将 overflow 修复限制在 blocksuite scope，避免误伤站点其他 `.dg`。
    */
   .tc-blocksuite-scope .dg > ul {
     overflow: auto;

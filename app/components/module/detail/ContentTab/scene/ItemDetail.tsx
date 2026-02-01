@@ -77,7 +77,7 @@ function ItemDetail({ itemName, itemList, entityType, moduleInfo }: ItemDetailPr
         </div>
         {normalizedItemInfo?.image && (
           <div className="flex flex-col gap-2">
-            <h4 className="text-xs md:text-sm font-medium text-base-content/60">图片</h4>
+            <h4 className="text-xs md:text-sm font-medium text-base-content/60">ͼƬ</h4>
             <div className="w-32 h-32 rounded-lg overflow-hidden border border-base-300">
               <img
                 src={normalizedItemInfo.image}

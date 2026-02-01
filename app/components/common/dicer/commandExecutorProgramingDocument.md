@@ -72,7 +72,7 @@
 
 #### 2. **灵活的别名系统**
 
-- 支持属性别名映射（如"力量"↔"str"，"理智"↔"san值"）
+- 支持属性别名映射（如"力量"↔"str"，"理智"↔"sanֵ"）
 - 因变量自动计算（如COC中的最大生命值 `hpm = (体型+体质)/10`）
 - 多语言友好，用户可使用中英文混合输入
 
@@ -182,7 +182,7 @@ const cmdRc = new CommandExecutor(
 **支持的表达式:**
 
 ```typescript
-"3d6"           // 投3个6面骰
+"3d6"           // Ͷ3个6面骰
 "d%"            // 投百分骰（1d100）
 "2d6+1d4"       // 复合表达式
 "3d6*5"         // 带乘法
@@ -448,7 +448,7 @@ const copywritingSuffix = `\n${weightedTexts[randomIdx]}`;
 **标签解析规则:**
 
 1. 提取消息中的所有标签（包括文案中的标签）
-2. 取**最后一个**标签作为有效标签
+2. ȡ**最后一个**标签作为有效标签
 3. 从骰娘角色的头像列表中匹配 `avatarTitle.label` 等于该标签的头像
 4. 如果有多个匹配，随机选择一个
 5. 如果没有匹配，回退到"默认"标签头像，再回退到第一个头像
@@ -1409,9 +1409,9 @@ const cmdRollFor = new CommandExecutor("rf", [], "代骰", [], "",
     const target = mentioned[0];  // 第一个是被@的角色（或发送者自己）
   
     const ability = cpi.getRoleAbilityList(target.roleId);
-    // ... 为 target 投骰
+    // ... Ϊ target 投骰
   
-    cpi.replyMessage(`为${target.roleName}投骰：...`);
+    cpi.replyMessage(`Ϊ${target.roleName}投骰：...`);
     return true;
   }
 );
@@ -1603,7 +1603,7 @@ const cmdSet = new CommandExecutor("set", [], "设置属性", [], "",
 const updates = [
   { key: "力量", value: "75" },
   { key: "敏捷", value: "80" },
-  { key: "san值", value: "65" }
+  { key: "sanֵ", value: "65" }
 ];
 
 const ability = cpi.getRoleAbilityList(roleId);
@@ -1924,7 +1924,7 @@ A: 推荐使用 `"auto"` 模式。这样可以：
 - 写入时自动更新已存在的属性，保持数据一致性
 - 只有在明确需要控制字段位置时才指定类型
 
-**Q2: 为什么 setRoleAbilityValue 修改后还要调用 cpi.setRoleAbilityList？**
+**Q2: Ϊʲô setRoleAbilityValue 修改后还要调用 cpi.setRoleAbilityList？**
 
 A: 这是必须的！
 
@@ -2060,7 +2060,7 @@ const cmdMyCheck = new CommandExecutor(
     const finalValue = diceResult.result + Number(attrValue) + modifier;
   
     // 9. 判定结果
-    const success = finalValue >= 15;  // 假设DC为15
+    const success = finalValue >= 15;  // 假设DCΪ15
   
     // 10. 发送结果消息
     cpi.replyMessage(
@@ -2228,13 +2228,13 @@ const ABILITY_MAP: { [key: string]: string } = {
   edu: "教育",
   siz: "体型",
   int: "智力",
-  san: "san值",
+  san: "sanֵ",
   luck: "幸运",
   mp: "魔法",
   // 衍生属性的别名
   体力: "hp",
   生命值: "hp",
-  理智: "san值",
+  理智: "sanֵ",
   运气: "幸运",
   // 技能别名
   计算机: "计算机使用",
@@ -2362,7 +2362,7 @@ const cmdRc = new CommandExecutor(
     }
 
     // ========== 第3步：解析奖惩骰 ==========
-    // 计算加权总和：b为+1，p为-1
+    // 计算加权总和：bΪ+1，pΪ-1
     const bp: number = numWithBp.reduce((sum, item) => {
       const match = item.match(/^([+-]?\d*)([bp])$/);
       if (!match) return 0;
@@ -2576,16 +2576,16 @@ executorCoc.addCmd(cmdSt);
     体质: 0->60
   }
 
-.st 力量+10 san值-5
+.st 力量+10 sanֵ-5
 → {
     力量: 70+10->80
-    san值: 65-5->60
+    sanֵ: 65-5->60
   }
 
-.st show 力量 敏捷 san值
+.st show 力量 敏捷 sanֵ
 → 力量: 80
   敏捷: 80
-  san值: 60
+  sanֵ: 60
 ```
 
 ### 第三部分：工具函数
@@ -2642,15 +2642,15 @@ function connect2D10(tens: number, ones: number): number {
 ```
 场景1：奖励骰（b2，投3个十位取最小）
 - 主骰个位: 5
-- 十位1: 4 → 45
-- 十位2: 7 → 75
-- 十位3: 2 → 25
+- ʮλ1: 4 → 45
+- ʮλ2: 7 → 75
+- ʮλ3: 2 → 25
 → 最终取25（最小）
 
 场景2：惩罚骰（p，投2个十位取最大）
 - 主骰个位: 8
-- 十位1: 3 → 38
-- 十位2: 6 → 68
+- ʮλ1: 3 → 38
+- ʮλ2: 6 → 68
 → 最终取68（最大）
 ```
 

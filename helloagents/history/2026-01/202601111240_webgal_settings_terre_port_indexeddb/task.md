@@ -1,6 +1,6 @@
 # 任务清单: WebGAL 端口可配置并使用 IndexedDB 存储
 
-目录: `helloagents/plan/202601111240_webgal_settings_terre_port_indexeddb/`
+Ŀ¼: `helloagents/plan/202601111240_webgal_settings_terre_port_indexeddb/`
 
 ---
 

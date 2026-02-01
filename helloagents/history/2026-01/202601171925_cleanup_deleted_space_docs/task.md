@@ -1,6 +1,6 @@
 # 任务清单: 解散后清理 Blocksuite 文档
 
-目录: `helloagents/history/2026-01/202601171925_cleanup_deleted_space_docs/`
+Ŀ¼: `helloagents/history/2026-01/202601171925_cleanup_deleted_space_docs/`
 
 ---
 

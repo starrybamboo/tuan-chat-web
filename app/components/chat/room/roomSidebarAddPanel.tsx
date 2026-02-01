@@ -35,7 +35,7 @@ export default function RoomSidebarAddPanel({
       <div className="flex items-center gap-2">
         <select
           className="select select-bordered select-xs flex-1"
-          aria-label="娣诲姞鎴块棿"
+          aria-label="添加房间"
           value={pendingAddRoomId ?? ""}
           onChange={(e) => {
             const v = e.target.value;
@@ -63,7 +63,7 @@ export default function RoomSidebarAddPanel({
           }}
           disabled={!pendingAddRoomId}
         >
-          娣诲姞
+          添加
         </button>
       </div>
 
@@ -71,7 +71,7 @@ export default function RoomSidebarAddPanel({
         <div className="flex items-center gap-2 mt-2">
           <select
             className="select select-bordered select-xs flex-1"
-            aria-label="娣诲姞鏂囨。"
+            aria-label="添加文档"
             value={pendingAddDocId}
             onChange={(e) => {
               setPendingAddDocId(e.target.value);
@@ -98,7 +98,7 @@ export default function RoomSidebarAddPanel({
             }}
             disabled={!pendingAddDocId}
           >
-            娣诲姞
+            添加
           </button>
         </div>
       )}
@@ -113,7 +113,7 @@ export default function RoomSidebarAddPanel({
             setPendingAddDocId("");
           }}
         >
-          鍏抽棴
+          关闭
         </button>
       </div>
     </div>

@@ -39,9 +39,9 @@ import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hook
 const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 
 /**
- * 聊天框（不带输入部分?
- * @param props 缁勪欢鍙傛暟
- * @param props.virtuosoRef 铏氭嫙鍒楄〃鐨?ref
+ * 聊天框（不带输入部分）
+ * @param props 组件参数
+ * @param props.virtuosoRef 虚拟列表的 ref
  */
 interface ChatFrameProps {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
@@ -111,7 +111,7 @@ function ChatFrame(props: ChatFrameProps) {
         onClose => (
           <RoomContext value={roomContext}>
             <div className="flex flex-col items-center gap-4">
-              <div>閫夋嫨瑙掕壊</div>
+              <div>选择角色</div>
               <RoleChooser
                 handleRoleChange={(role) => {
                   const newMessage = {
@@ -158,7 +158,7 @@ function ChatFrame(props: ChatFrameProps) {
     }
   }, [roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
 
-  // 获取用户自定义表情列?
+  // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
   const emojiList = Array.isArray(emojisData?.data) ? emojisData.data : [];
 
@@ -240,7 +240,7 @@ function ChatFrame(props: ChatFrameProps) {
   }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
 
   /**
-   * ?????????
+   * 消息选择
    */
   const {
     selectedMessageIds,
@@ -293,7 +293,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   async function handleAddEmoji(imgMessage: ImageMessage) {
     if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
-      toast.error("?????????");
+      toast.error("表情已存在");
       return;
     }
     const fileSize = imgMessage.size > 0
@@ -306,13 +306,13 @@ function ChatFrame(props: ChatFrameProps) {
       format: imgMessage.url.split(".").pop() || "webp",
     }, {
       onSuccess: () => {
-        toast.success("?????????");
+        toast.success("表情添加成功");
       },
     });
   }
 
   /**
-   * ????????????
+   * 消息拖拽
    */
   const {
     isDragging,
@@ -344,7 +344,7 @@ function ChatFrame(props: ChatFrameProps) {
   });
 
   /**
-   * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏?
+   * @param index 虚拟列表中的 index，为了实现反向滚动，进行了偏移
    * @param chatMessageResponse
    */
   const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
@@ -401,15 +401,15 @@ function ChatFrame(props: ChatFrameProps) {
           <span className="loading loading-spinner loading-lg text-info"></span>
           {/* 提示文字 */}
           <div className="text-center space-y-1">
-            <h3 className="text-lg font-medium text-base-content">姝ｅ湪鑾峰彇鍘嗗彶娑堟伅</h3>
-            <p className="text-sm text-base-content/70">璇风◢鍊?..</p>
+            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
+            <p className="text-sm text-base-content/70">请稍候...</p>
           </div>
         </div>
       </div>
     );
   }
   /**
-   * 娓叉煋
+   * 渲染
    */
   return (
     <div className="h-full relative">
@@ -448,7 +448,7 @@ function ChatFrame(props: ChatFrameProps) {
         onForward={handleForward}
         generateForwardMessage={generateForwardMessage}
       />
-      {/* 鍙抽敭鑿滃崟 */}
+      {/* 右键菜单 */}
       <ChatFrameContextMenu
         contextMenu={contextMenu}
         historyMessages={historyMessages}

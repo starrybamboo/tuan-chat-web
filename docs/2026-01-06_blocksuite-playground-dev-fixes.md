@@ -7,7 +7,7 @@
 
 ### 1) 修复 `lowlight` ESM/CJS 互操作报错
 - 现象：浏览器报错 `lowlight ... does not provide an export named 'default'`，触发 route module reload。
-- 原因：`react-syntax-highlighter` 的 ESM 产物使用 `import lowlight from 'lowlight'`，但 `lowlight@1.x` 为 CJS 导出。
+- 原因：`react-syntax-highlighter` 的 ESM 产物使用 `import lowlight from 'lowlight'`，但 `lowlight@1.x` Ϊ CJS 导出。
 - 处理：在 Vite `optimizeDeps.noDiscovery=true` 的前提下，将 `lowlight`、`react-syntax-highlighter` 显式加入 `optimizeDeps.include`，确保其被预打包并完成 CJS→ESM interop。
 
 ### 2) 修复 BlockSuite dist 的 ES2023 auto-accessor 语法崩溃

@@ -31,7 +31,7 @@ WebGAL(Terre) 服务可用且允许创建游戏目录。
 #### 场景: 创建失败
 WebGAL(Terre) 返回错误或不可用。
 - `RealtimeRenderer.init()` 失败并返回 `false`
-- 上层 UI 负责提示用户检查 WebGAL(Terre) 状态
+- 上层 UI 负责提示用户检查 WebGAL(Terre) ״̬
 
 ## 风险评估
 - **风险:** 去除手动 mkdir 兜底后，WebGAL(Terre) 创建接口异常时不再自动恢复。

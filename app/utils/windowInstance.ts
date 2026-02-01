@@ -1,6 +1,6 @@
 /**
  * 窗口实例管理工具
- * 用于多窗口环境下的实例标识和状隔?
+ * 用于多窗口环境下的实例标识和状态隔离
  */
 
 // 生成唯一的窗口标识符
@@ -8,22 +8,22 @@ function generateWindowId(): string {
   return `window_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// 全局窗口ID，在应用启动时生?
+// 全局窗口 ID，在应用启动时生成
 export const CURRENT_WINDOW_ID = generateWindowId();
 
-// 状更新间隔管?
+// 状态更新间隔管理
 const lastStatusUpdates = new Map<string, { timestamp: number; status: string; windowId: string }>();
 
-// 存储每个房间-用户的活动状?
+// 存储每个房间-用户的活动状态
 const activeStatusWindows = new Map<string, { windowId: string; timestamp: number; status: string }>();
 
 /**
- * 棢查是否应该发送状态更?
- * @param roomId 鎴块棿ID
+ * 检查是否应该发送状态更新
+ * @param roomId 房间ID
  * @param userId 用户ID
- * @param newStatus 鏂扮姸鎬?
- * @param windowId 绐楀彛ID
- * @returns 是否应该发更?
+ * @param newStatus 新状态
+ * @param windowId 窗口ID
+ * @returns 是否应该发送更新
  */
 export function shouldSendStatusUpdate(
   roomId: number,
@@ -36,15 +36,15 @@ export function shouldSendStatusUpdate(
   const lastUpdate = lastStatusUpdates.get(key);
   const activeWindow = activeStatusWindows.get(key);
 
-  // 鐘舵€佷紭鍏堢骇锛歩nput > wait > leave > idle
+  // 状态优先级：input > wait > leave > idle
   const statusPriority = { input: 4, wait: 3, leave: 2, idle: 1 };
   const newPriority = statusPriority[newStatus as keyof typeof statusPriority] || 0;
 
-  // 濡傛灉鏈夊叾浠栫獥鍙ｅ湪娲昏穬涓斿叾鐘舵€佷紭鍏堢骇鏇撮珮锛岃烦杩囪繖娆℃洿鏂?
+  // 如果有其他窗口在活跃且其状态优先级更高，跳过这次更新
   if (activeWindow && activeWindow.windowId !== windowId) {
     const activePriority = statusPriority[activeWindow.status as keyof typeof statusPriority] || 0;
 
-    // 濡傛灉鍏朵粬绐楀彛鐨勭姸鎬佷紭鍏堢骇鏇撮珮锛屼笖鏃堕棿闂撮殧杈冪煭锛?0绉掑唴锛夛紝璺宠繃
+    // 如果其他窗口的状态优先级更高，且时间间隔较短（30 秒内），跳过
     if (activePriority > newPriority && (now - activeWindow.timestamp < 30_000)) {
       return false;
     }
@@ -55,16 +55,16 @@ export function shouldSendStatusUpdate(
     }
   }
 
-  // 闃叉姈閫昏緫锛氱浉鍚岀姸鎬佺殑鏇存柊闂撮殧妫€鏌?
+  // 防抖逻辑：相同状态的更新间隔检查
   if (lastUpdate && lastUpdate.status === newStatus) {
     // 相同状的更新，如果间隔太短则跳过
-    const minInterval = newStatus === "input" ? 2000 : 3000; // input鐘舵€?绉掗棿闅旓紝鍏朵粬3绉?
+    const minInterval = newStatus === "input" ? 2000 : 3000; // input 状态 2 秒间隔，其他 3 秒
     if (now - lastUpdate.timestamp < minInterval) {
       return false;
     }
   }
 
-  // 璁板綍鐘舵€佹洿鏂?
+  // 记录状态更新
   lastStatusUpdates.set(key, { timestamp: now, status: newStatus, windowId });
   activeStatusWindows.set(key, { windowId, timestamp: now, status: newStatus });
 
@@ -72,20 +72,20 @@ export function shouldSendStatusUpdate(
 }
 
 /**
- * 清理过期的状态记?
+ * 清理过期的状态记录
  */
 function cleanupExpiredStatusRecords(): void {
   const now = Date.now();
-  const expireTime = 5 * 60 * 1000; // 5鍒嗛挓杩囨湡
+  const expireTime = 5 * 60 * 1000; // 5分钟过期
 
-  // 清理状更新记?
+  // 清理状态更新记录
   for (const [key, record] of lastStatusUpdates.entries()) {
     if (now - record.timestamp > expireTime) {
       lastStatusUpdates.delete(key);
     }
   }
 
-  // 娓呯悊娲昏穬绐楀彛璁板綍
+  // 清理活跃窗口记录
   for (const [key, record] of activeStatusWindows.entries()) {
     if (now - record.timestamp > expireTime) {
       activeStatusWindows.delete(key);
@@ -94,8 +94,8 @@ function cleanupExpiredStatusRecords(): void {
 }
 
 /**
- * 窗口失焦时调用，用于清理当前窗口的活跃状?
- * @param roomId 鎴块棿ID
+ * 窗口失焦时调用，用于清理当前窗口的活跃状态
+ * @param roomId 房间ID
  * @param userId 用户ID
  */
 export function handleWindowBlur(roomId: number, userId: number): void {
@@ -109,11 +109,11 @@ export function handleWindowBlur(roomId: number, userId: number): void {
 }
 
 /**
- * 获取指定房间用户的当前活跃窗?
- * @param roomId 鎴块棿ID
+ * 获取指定房间用户的当前活跃窗口
+ * @param roomId 房间ID
  * @param userId 用户ID
- * @returns 娲昏穬绐楀彛淇℃伅鎴杗ull
+ * @returns 活跃窗口信息或null
  */
 
-// 瀹氭湡娓呯悊杩囨湡璁板綍
-setInterval(cleanupExpiredStatusRecords, 60 * 1000); // 姣忓垎閽熸竻鐞嗕竴娆?
+// 定期清理过期记录
+setInterval(cleanupExpiredStatusRecords, 60 * 1000); // 每分钟清理一次

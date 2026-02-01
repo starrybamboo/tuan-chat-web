@@ -36,7 +36,7 @@ export default function useRoomSidebarNormalizer({
       includeDocs: isSpaceOwner,
     });
 
-    // 文档缓存：?title/cover 写?sidebarTree 节点（持久化到后端），让首屏优先展示缓存，不是等?meta/网络加载?
+    // 文档缓存：将 title/cover 写入 sidebarTree 节点（持久化到后端），让首屏优先展示缓存，而不是等 meta/网络加载。
     const normalizedWithCache = applySidebarDocFallbackCache({
       tree: normalized,
       docMetaMap,

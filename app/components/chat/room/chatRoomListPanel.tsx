@@ -230,7 +230,7 @@ export default function ChatRoomListPanel({
     normalizeAndSet,
     toggleCategoryExpanded,
     defaultCategoryName: "新分类",
-    emptyNameError: "鍚嶇О涓嶈兘涓虹┖",
+    emptyNameError: "名称不能为空",
   });
 
   const {

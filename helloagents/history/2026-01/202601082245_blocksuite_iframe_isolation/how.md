@@ -19,7 +19,7 @@
   - iframe 宿主同步站点主题到 iframe（`data-theme` / `dark` class）
 - 通信约束：
   - 使用 `instanceId` 区分多个 editor 实例
-  - 同源校验：优先校验 `origin`；在 `file://`（origin 为 `null`）场景下降级为 `source` + `instanceId` 校验
+  - 同源校验：优先校验 `origin`；在 `file://`（origin Ϊ `null`）场景下降级为 `source` + `instanceId` 校验
 
 ## 架构决策 ADR
 

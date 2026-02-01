@@ -56,7 +56,7 @@ export default function RoleCreationPage() {
       navigate(`/role/${newRole.id}?rule=${ruleId}`);
     }
     else {
-      // 默认规则ID为1，也保存到存储
+      // 默认规则IDΪ1，也保存到存储
       setRoleRule(newRole.id, 1);
       navigate(`/role/${newRole.id}`);
     }

@@ -79,7 +79,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
     if (file.size > maxFileSize) {
       // TODO: 更优 UI 提示
-      // alert(`图片 ${file.name} 超过 20MB，无法添加`);
+      // alert(`ͼƬ ${file.name} 超过 20MB，无法添加`);
       return;
     }
     // if (images.length >= maxImages) {

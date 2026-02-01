@@ -1,8 +1,8 @@
 # 任务清单: Blocksuite 0.22.4 文档入库（可直接用于本项目）
 
-目录: `helloagents/history/2026-01/202601070431_blocksuite_docs_0_22_4/`
+Ŀ¼: `helloagents/history/2026-01/202601070431_blocksuite_docs_0_22_4/`
 
-状态: [-] 已跳过（方案重复/已合并到 `helloagents/history/2026-01/202601070338_blocksuite_docs/`）
+״̬: [-] 已跳过（方案重复/已合并到 `helloagents/history/2026-01/202601070338_blocksuite_docs/`）
 
 ---
 

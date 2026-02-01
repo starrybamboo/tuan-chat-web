@@ -85,7 +85,7 @@ export function createCenteredAspectCrop(
 // ============================================================
 
 /**
- * Canvas 转 Blob（统一处理 HTMLCanvasElement 和 OffscreenCanvas）
+ * Canvas ת Blob（统一处理 HTMLCanvasElement 和 OffscreenCanvas）
  */
 export async function canvasToBlob(
   canvas: HTMLCanvasElement | OffscreenCanvas,

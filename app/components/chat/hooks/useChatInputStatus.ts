@@ -32,7 +32,7 @@ type UseChatInputStatusReturn = {
 
 /**
  * 统一聊天输入状态管理：
- * - 每 snapshotIntervalMs 评估一次状态
+ * - ÿ snapshotIntervalMs 评估一次状态
  * - > leaveThresholdMs 无活动 => leave
  * - > idleThresholdMs 无活动 => idle
  * - 活动期且文本非空 => input

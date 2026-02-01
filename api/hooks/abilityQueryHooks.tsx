@@ -116,7 +116,7 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
         try {
           const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
           if (res.success && res.data) {
-                      // 解析后端返回的 extra.copywriting 为 Record<string, string[]>
+                      // 解析后端返回的 extra.copywriting Ϊ Record<string, string[]>
                       let extraCopywriting: Record<string, string[]> | undefined = undefined;
                       const extra = (res.data as any)?.extra as Record<string, unknown> | undefined;
                       const cw = extra && (extra as any).copywriting;

@@ -540,7 +540,7 @@ function useRealtimeRender({
     return rendererRef.current.updateAndRerenderMessage(message, roomId, regenerateTTS);
   }, [status, queryClient]);
 
-  // 自动启动（如果 enabled 为 true）
+  // 自动启动（如果 enabled Ϊ true）
   useEffect(() => {
     if (enabled && status === "idle") {
       start();
