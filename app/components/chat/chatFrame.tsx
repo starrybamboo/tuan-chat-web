@@ -9,6 +9,7 @@ import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import ChatFrameList from "@/components/chat/chatFrameList";
+import ChatFrameMessageItem from "@/components/chat/chatFrameMessageItem";
 import ChatFrameOverlays from "@/components/chat/chatFrameOverlays";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -20,13 +21,11 @@ import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import RoleChooser from "@/components/chat/input/roleChooser";
-import { ChatBubble } from "@/components/chat/message/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { DraggableIcon } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import {
   useDeleteMessageMutation,
@@ -397,43 +396,25 @@ function ChatFrame(props: ChatFrameProps) {
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
     const threadHintMeta = threadHintMetaByMessageId.get(chatMessageResponse.message.messageId);
-    return ((
-      <div
+    return (
+      <ChatFrameMessageItem
         key={chatMessageResponse.message.messageId}
-        className={`
-        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
-        data-message-id={chatMessageResponse.message.messageId}
-        onClick={e => handleMessageClick(e, chatMessageResponse.message.messageId)}
+        chatMessageResponse={chatMessageResponse}
+        isSelected={isSelected}
+        isDragging={isDragging}
+        canJumpToWebGAL={canJumpToWebGAL}
+        useChatBubbleStyle={useChatBubbleStyle}
+        movable={movable}
+        isSelecting={isSelecting}
+        threadHintMeta={threadHintMeta}
+        onExecuteCommandRequest={onExecuteCommandRequest}
+        onMessageClick={e => handleMessageClick(e, chatMessageResponse.message.messageId)}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={e => handleDrop(e, indexInHistoryMessages)}
-        draggable={isSelecting && movable}
         onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
         onDragEnd={handleDragEnd}
-      >
-        {
-          movable
-          && (
-            <div
-              className={`absolute left-0 ${useChatBubbleStyle ? "top-[12px]" : "top-[30px]"}
-                      opacity-0 transition-opacity flex items-center pr-2 cursor-move
-                      group-hover:opacity-100 z-100`}
-              draggable={movable}
-              onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
-              onDragEnd={handleDragEnd}
-            >
-              <DraggableIcon className="size-6 "></DraggableIcon>
-            </div>
-          )
-        }
-        <ChatBubble
-          chatMessageResponse={chatMessageResponse}
-          useChatBubbleStyle={useChatBubbleStyle}
-          threadHintMeta={threadHintMeta}
-          onExecuteCommandRequest={onExecuteCommandRequest}
-        />
-      </div>
-    )
+      />
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
