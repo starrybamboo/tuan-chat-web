@@ -67,6 +67,19 @@ function getDocRouteInfo(params: { isDocRoute: boolean; urlMessageId?: string })
   };
 }
 
+function getSpaceDetailRouteTab(params: {
+  isPrivateChatMode: boolean;
+  urlMessageId?: string;
+  urlRoomId?: string;
+}): SpaceDetailTab | null {
+  if (params.isPrivateChatMode || params.urlMessageId)
+    return null;
+  if (!params.urlRoomId)
+    return null;
+  const maybeTab = params.urlRoomId as SpaceDetailTab;
+  return SPACE_DETAIL_TABS.has(maybeTab) ? maybeTab : null;
+}
+
 export default function useChatPageRoute(): ChatPageRouteState {
   const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
   const navigate = useNavigate();
@@ -99,11 +112,7 @@ export default function useChatPageRoute(): ChatPageRouteState {
 
   const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
   const spaceDetailRouteTab: SpaceDetailTab | null = useMemo(() => {
-    if (isPrivateChatMode || urlMessageId)
-      return null;
-    if (urlRoomId && SPACE_DETAIL_TABS.has(urlRoomId as SpaceDetailTab))
-      return urlRoomId as SpaceDetailTab;
-    return null;
+    return getSpaceDetailRouteTab({ isPrivateChatMode, urlMessageId, urlRoomId });
   }, [isPrivateChatMode, urlMessageId, urlRoomId]);
   const isSpaceDetailRoute = spaceDetailRouteTab != null;
 
