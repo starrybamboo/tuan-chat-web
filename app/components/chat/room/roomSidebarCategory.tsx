@@ -5,6 +5,7 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomSidebarCategoryBody from "@/components/chat/room/roomSidebarCategoryBody";
+import RoomSidebarCategoryContainer from "@/components/chat/room/roomSidebarCategoryContainer";
 import RoomSidebarCategoryHeader from "@/components/chat/room/roomSidebarCategoryHeader";
 
 interface RoomSidebarCategoryProps {
@@ -104,25 +105,15 @@ export default function RoomSidebarCategory({
     && dropTarget.insertIndex === categoryIndex;
 
   return (
-    <div
-      data-tc-sidebar-category={cat.categoryId}
-      className={`px-1 relative ${docCopyDropCategoryId === cat.categoryId ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
-      onDragOver={e => handleDocCopyCategoryDragOver(e, cat.categoryId)}
-      onDragLeave={() => handleDocCopyCategoryDragLeave(cat.categoryId)}
-      onDrop={e => handleDocCopyCategoryDrop(e, cat.categoryId)}
+    <RoomSidebarCategoryContainer
+      categoryId={cat.categoryId}
+      isSpaceOwner={isSpaceOwner}
+      docCopyDropCategoryId={docCopyDropCategoryId}
+      showCategoryInsertLine={showCategoryInsertLine}
+      handleDocCopyCategoryDragOver={handleDocCopyCategoryDragOver}
+      handleDocCopyCategoryDragLeave={handleDocCopyCategoryDragLeave}
+      handleDocCopyCategoryDrop={handleDocCopyCategoryDrop}
     >
-      {showCategoryInsertLine && (
-        <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
-      )}
-
-      {docCopyDropCategoryId === cat.categoryId && (
-        <div className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
-          <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs font-medium text-primary shadow-sm">
-            {isSpaceOwner ? "松开复制到侧边栏" : "仅KP可复制到侧边栏"}
-          </div>
-        </div>
-      )}
-
       <RoomSidebarCategoryHeader
         categoryId={cat.categoryId}
         categoryName={cat.name}
@@ -179,6 +170,6 @@ export default function RoomSidebarCategory({
           setAddPanelCategoryId={setAddPanelCategoryId}
         />
       )}
-    </div>
+    </RoomSidebarCategoryContainer>
   );
 }
