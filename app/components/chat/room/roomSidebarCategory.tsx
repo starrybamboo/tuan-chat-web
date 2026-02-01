@@ -4,10 +4,8 @@ import type { MinimalDocMeta, SidebarCategoryNode, SidebarLeafNode } from "./sid
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
-import RoomSidebarAddPanel from "@/components/chat/room/roomSidebarAddPanel";
+import RoomSidebarCategoryBody from "@/components/chat/room/roomSidebarCategoryBody";
 import RoomSidebarCategoryHeader from "@/components/chat/room/roomSidebarCategoryHeader";
-import RoomSidebarDocItem from "@/components/chat/room/roomSidebarDocItem";
-import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
 
 interface RoomSidebarCategoryProps {
   category: SidebarCategoryNode;
@@ -141,135 +139,45 @@ export default function RoomSidebarCategory({
         onOpenCreateInCategory={onOpenCreateInCategory}
         setContextMenu={setContextMenu}
         toggleTitle={isCollapsed ? "展开" : "折叠"}
-        addTitle="������"
+        addTitle="创建"
       />
 
       {!isCollapsed && (
-        <div
-          className={`rounded-lg border ${canEdit ? "border-base-300" : "border-transparent"} px-1 py-1 relative`}
-          onDragOver={(e) => {
-            if (!canEdit)
-              return;
-            if (!dragging)
-              return;
-            if (dragging.kind !== "node")
-              return;
-            e.preventDefault();
-            e.stopPropagation();
-            setDropTarget({ kind: "node", toCategoryId: cat.categoryId, insertIndex: items.length });
-          }}
-          onDrop={(e) => {
-            if (!canEdit)
-              return;
-            e.preventDefault();
-            e.stopPropagation();
-            handleDrop();
-          }}
-        >
-          {canEdit && dragging?.kind === "node" && dropTarget?.kind === "node" && dropTarget.toCategoryId === cat.categoryId && dropTarget.insertIndex === 0 && (
-            <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
-          )}
-
-          {items
-            .filter((node) => {
-              // 闈?KP锛氶殣钘?doc 鑺傜偣锛堢洰鍓?doc 璺敱涔熶細 gate锛?
-              if (!isSpaceOwner && node.type === "doc")
-                return false;
-              return true;
-            })
-            .map((node, index) => {
-              const nodeId = String((node as any).nodeId);
-
-              const showInsertBefore = canEdit
-                && dragging?.kind === "node"
-                && dropTarget?.kind === "node"
-                && dropTarget.toCategoryId === cat.categoryId
-                && dropTarget.insertIndex === index;
-
-              if (node.type === "room") {
-                const roomId = Number((node as any).targetId);
-                const room = roomById.get(roomId);
-                if (!room)
-                  return null;
-
-                return (
-                  <div key={nodeId} className="relative">
-                    {showInsertBefore && (
-                      <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
-                    )}
-
-                    <RoomSidebarRoomItem
-                      room={room}
-                      roomId={roomId}
-                      nodeId={nodeId}
-                      categoryId={cat.categoryId}
-                      index={index}
-                      canEdit={canEdit}
-                      dragging={dragging}
-                      resetDropHandled={resetDropHandled}
-                      setDragging={setDragging}
-                      setDropTarget={setDropTarget}
-                      handleDrop={handleDrop}
-                      onContextMenu={onContextMenu}
-                      unreadMessageNumber={unreadMessagesNumber[roomId]}
-                      activeRoomId={activeRoomId}
-                      onSelectRoom={onSelectRoom}
-                      onCloseLeftDrawer={onCloseLeftDrawer}
-                    />
-                  </div>
-                );
-              }
-
-              return (
-                <div key={nodeId} className="relative">
-                  {showInsertBefore && (
-                    <div className="pointer-events-none absolute left-3 right-3 top-0 -translate-y-1/2 h-0.5 bg-primary/60 rounded" />
-                  )}
-
-                  <RoomSidebarDocItem
-                    node={node}
-                    nodeId={nodeId}
-                    categoryId={cat.categoryId}
-                    index={index}
-                    canEdit={canEdit}
-                    dragging={dragging}
-                    resetDropHandled={resetDropHandled}
-                    setDragging={setDragging}
-                    setDropTarget={setDropTarget}
-                    handleDrop={handleDrop}
-                    setContextMenu={setContextMenu}
-                    docHeaderOverrides={docHeaderOverrides}
-                    docMetaMap={docMetaMap}
-                    activeSpaceId={activeSpaceId}
-                    activeDocId={activeDocId}
-                    onSelectDoc={onSelectDoc}
-                    onCloseLeftDrawer={onCloseLeftDrawer}
-                  />
-                </div>
-              );
-            })}
-          {canEdit && dragging?.kind === "node" && dropTarget?.kind === "node" && dropTarget.toCategoryId === cat.categoryId && dropTarget.insertIndex === items.length && (
-            <div className="pointer-events-none absolute left-3 right-3 bottom-0 translate-y-1/2 h-0.5 bg-primary/60 rounded" />
-          )}
-
-          {isAddPanelOpen && (
-            <RoomSidebarAddPanel
-              categoryId={cat.categoryId}
-              isSpaceOwner={isSpaceOwner}
-              pendingAddRoomId={pendingAddRoomId}
-              setPendingAddRoomId={setPendingAddRoomId}
-              pendingAddDocId={pendingAddDocId}
-              setPendingAddDocId={setPendingAddDocId}
-              addNode={addNode}
-              fallbackTextRooms={fallbackTextRooms}
-              existingRoomIdsInTree={existingRoomIdsInTree}
-              visibleDocMetas={visibleDocMetas}
-              existingDocIdsInTree={existingDocIdsInTree}
-              setAddPanelCategoryId={setAddPanelCategoryId}
-            />
-          )}
-
-        </div>
+        <RoomSidebarCategoryBody
+          categoryId={cat.categoryId}
+          canEdit={canEdit}
+          isSpaceOwner={isSpaceOwner}
+          items={items}
+          dragging={dragging}
+          dropTarget={dropTarget}
+          resetDropHandled={resetDropHandled}
+          setDragging={setDragging}
+          setDropTarget={setDropTarget}
+          handleDrop={handleDrop}
+          setContextMenu={setContextMenu}
+          onContextMenu={onContextMenu}
+          docHeaderOverrides={docHeaderOverrides}
+          docMetaMap={docMetaMap}
+          roomById={roomById}
+          activeSpaceId={activeSpaceId}
+          activeRoomId={activeRoomId}
+          activeDocId={activeDocId}
+          unreadMessagesNumber={unreadMessagesNumber}
+          onSelectRoom={onSelectRoom}
+          onSelectDoc={onSelectDoc}
+          onCloseLeftDrawer={onCloseLeftDrawer}
+          isAddPanelOpen={isAddPanelOpen}
+          pendingAddRoomId={pendingAddRoomId}
+          setPendingAddRoomId={setPendingAddRoomId}
+          pendingAddDocId={pendingAddDocId}
+          setPendingAddDocId={setPendingAddDocId}
+          addNode={addNode}
+          fallbackTextRooms={fallbackTextRooms}
+          existingRoomIdsInTree={existingRoomIdsInTree}
+          visibleDocMetas={visibleDocMetas}
+          existingDocIdsInTree={existingDocIdsInTree}
+          setAddPanelCategoryId={setAddPanelCategoryId}
+        />
       )}
     </div>
   );
