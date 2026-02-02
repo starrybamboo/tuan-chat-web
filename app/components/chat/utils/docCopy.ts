@@ -1,4 +1,4 @@
-﻿import { tuanchat } from "../../../../api/instance";
+import { tuanchat } from "../../../../api/instance";
 
 async function getDocUpdateForCopy(params: {
   spaceId: number;

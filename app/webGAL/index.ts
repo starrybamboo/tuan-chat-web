@@ -1,10 +1,11 @@
-﻿import { Api, HttpClient } from "@/webGAL/apis";
+import { Api, HttpClient } from "@/webGAL/apis";
+
+import type { WebGalSyncClient } from "./webgalSync";
+
 import { getTerreBaseUrl } from "./terreConfig";
-import { createWebGalSyncClient, WebGalSyncClient } from "./webgalSync";
+import { createWebGalSyncClient } from "./webgalSync";
 
 export { checkGameExist } from "./fileOperator";
-
-
 
 let _terreApis: Api | null = null;
 let _terreApisBaseUrl: string | null = null;
@@ -20,7 +21,7 @@ export function getTerreApis(): Api {
 // 创建 WebGAL Sync 客户端实例（懒加载）
 let _syncClient: WebGalSyncClient | null = null;
 let _syncClientBaseUrl: string | null = null;
-function getWebGalSyncClient(): WebGalSyncClient {
+export function getWebGalSyncClient(): WebGalSyncClient {
   const baseUrl = getTerreBaseUrl();
   if (!_syncClient || _syncClientBaseUrl !== baseUrl) {
     _syncClient?.disconnect();
@@ -29,4 +30,3 @@ function getWebGalSyncClient(): WebGalSyncClient {
   }
   return _syncClient;
 }
-

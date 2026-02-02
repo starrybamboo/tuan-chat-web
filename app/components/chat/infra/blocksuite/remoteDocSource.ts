@@ -1,4 +1,4 @@
-﻿import type { DocSource } from "@blocksuite/sync";
+import type { DocSource } from "@blocksuite/sync";
 
 import { debounce } from "lodash";
 import { diffUpdate, encodeStateVectorFromUpdate, mergeUpdates } from "yjs";
@@ -308,4 +308,3 @@ class RemoteYjsLogDocSource implements DocSource {
 
 // Backward-compat name: existing call sites can switch gradually.
 export class RemoteSnapshotDocSource extends RemoteYjsLogDocSource {}
-

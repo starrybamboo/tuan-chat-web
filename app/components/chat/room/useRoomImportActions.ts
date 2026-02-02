@@ -13,7 +13,6 @@ import UTILS from "@/components/common/dicer/utils/utils";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest } from "../../../../api";
-import type { ClueMessage } from "../../../../api/models/ClueMessage";
 
 import { MessageType } from "../../../../api/wsModels";
 
@@ -26,7 +25,6 @@ type UseRoomImportActionsParams = {
   isSubmitting: boolean;
   setIsSubmitting: (value: boolean) => void;
   roomContext: RoomContextType;
-  send: (message: ChatMessageRequest) => void;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<void>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
 };
@@ -40,7 +38,6 @@ type ImportMessageItem = {
 
 type UseRoomImportActionsResult = {
   handleImportChatText: (messages: ImportMessageItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
-  handleClueSend: (clue: ClueMessage) => Promise<void>;
   handleSendDocCard: (payload: DocRefDragPayload) => Promise<void>;
 };
 
@@ -53,7 +50,6 @@ export default function useRoomImportActions({
   isSubmitting,
   setIsSubmitting,
   roomContext,
-  send,
   sendMessageWithInsert,
   ensureRuntimeAvatarIdForRole,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
@@ -210,23 +206,6 @@ export default function useRoomImportActions({
     setIsSubmitting,
   ]);
 
-  const handleClueSend = useCallback(async (clue: ClueMessage) => {
-    const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
-    const clueMessage: ChatMessageRequest = {
-      roomId,
-      roleId: curRoleId,
-      messageType: 1000,
-      content: "",
-      avatarId: resolvedAvatarId,
-      extra: {
-        img: clue.img,
-        name: clue.name,
-        description: clue.description,
-      },
-    };
-    send(clueMessage);
-  }, [curRoleId, ensureRuntimeAvatarIdForRole, roomId, send]);
-
   const handleSendDocCard = useCallback(async (payload: DocRefDragPayload) => {
     const docId = String(payload?.docId ?? "").trim();
     if (!docId) {
@@ -323,7 +302,6 @@ export default function useRoomImportActions({
 
   return {
     handleImportChatText,
-    handleClueSend,
     handleSendDocCard,
   };
 }

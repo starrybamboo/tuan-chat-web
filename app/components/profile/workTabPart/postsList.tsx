@@ -1,4 +1,4 @@
-﻿import type { PostListWithStatsResponse } from "api";
+import type { PostListWithStatsResponse } from "api";
 import type { PagePostRequest } from "api/models/PagePostRequest";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { useEffect, useMemo } from "react";
@@ -150,4 +150,3 @@ const PostsList: React.FC<UserPostsListProps> = ({
 };
 
 export default PostsList;
-

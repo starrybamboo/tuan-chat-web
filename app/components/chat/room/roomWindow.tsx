@@ -8,6 +8,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
+import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
 import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
@@ -16,7 +17,7 @@ import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
 import useRoomChatFrameProps from "@/components/chat/room/useRoomChatFrameProps";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
-import useRoomComposerPanelProps from "@/components/chat/room/useRoomComposerPanelProps";
+import getRoomComposerPanelProps from "@/components/chat/room/useRoomComposerPanelProps";
 import useRoomContextValue from "@/components/chat/room/useRoomContextValue";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
@@ -237,7 +238,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   });
   const {
     handleImportChatText,
-    handleClueSend,
     handleSendDocCard,
   } = useRoomImportActions({
     roomId,
@@ -248,7 +248,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     isSubmitting,
     setIsSubmitting,
     roomContext,
-    send,
     sendMessageWithInsert,
     ensureRuntimeAvatarIdForRole,
   });
@@ -294,10 +293,9 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     onBackgroundUrlChange: setBackgroundUrl,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
-    onSendDocCard: handleSendDocCard,
   });
 
-  const composerPanelProps = useRoomComposerPanelProps({
+  const composerPanelProps = getRoomComposerPanelProps({
     roomId,
     userId: Number(userId),
     webSocketUtils,
@@ -318,7 +316,6 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     noRole,
     notMember,
     isSubmitting,
-    onSendDocCard: handleSendDocCard,
     curRoleId,
     curAvatarId,
     setCurRoleId,
@@ -350,19 +347,20 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
         chatHistoryLoading={!!chatHistory?.loading}
         onApiChange={handleRealtimeRenderApiChange}
       />
-      <RoomWindowLayout
-        roomId={roomId}
-        roomName={roomName}
-        toggleLeftDrawer={spaceContext.toggleLeftDrawer}
-        backgroundUrl={backgroundUrl}
-        displayedBgUrl={displayedBgUrl}
-        currentEffect={currentEffect}
-        composerTarget={composerTarget}
-        setComposerTarget={setComposerTarget}
-        chatFrameProps={chatFrameProps}
-        composerPanelProps={composerPanelProps}
-        onClueSend={handleClueSend}
-      />
+      <RoomDocRefDropLayer onSendDocCard={handleSendDocCard}>
+        <RoomWindowLayout
+          roomId={roomId}
+          roomName={roomName}
+          toggleLeftDrawer={spaceContext.toggleLeftDrawer}
+          backgroundUrl={backgroundUrl}
+          displayedBgUrl={displayedBgUrl}
+          currentEffect={currentEffect}
+          composerTarget={composerTarget}
+          setComposerTarget={setComposerTarget}
+          chatFrameProps={chatFrameProps}
+          composerPanelProps={composerPanelProps}
+        />
+      </RoomDocRefDropLayer>
       <RoomWindowOverlays
         isImportChatTextOpen={isImportChatTextOpen}
         setIsImportChatTextOpen={setIsImportChatTextOpen}

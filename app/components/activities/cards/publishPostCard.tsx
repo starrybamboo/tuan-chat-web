@@ -1,4 +1,4 @@
-﻿import type { MomentFeedRequest } from "../../../../api";
+import type { MomentFeedRequest } from "../../../../api";
 import React, { useEffect, useRef, useState } from "react";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -366,4 +366,3 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 };
 
 export default PublishPostCard;
-

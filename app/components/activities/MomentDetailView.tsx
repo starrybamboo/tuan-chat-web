@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
@@ -304,4 +304,3 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 };
 
 export default MomentDetailView;
-

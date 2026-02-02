@@ -1,6 +1,4 @@
-﻿import type { ClueMessage } from "../../../../api/models/ClueMessage";
 import React from "react";
-import ClueListForPL from "@/components/chat/room/drawers/clueListForPL";
 import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
@@ -9,11 +7,7 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { VaulSideDrawer } from "@/components/common/vaulSideDrawer";
 
-interface RoomSideDrawersProps {
-  onClueSend: (clue: ClueMessage) => void;
-}
-
-function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
+function RoomSideDrawersImpl() {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
   const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
@@ -76,15 +70,6 @@ function RoomSideDrawersImpl({ onClueSend }: RoomSideDrawersProps) {
         </div>
       </VaulSideDrawer>
 
-      <VaulSideDrawer
-        isOpen={sideDrawerState === "clue"}
-        width={fixedMemberDrawerWidth}
-        panelClassName={sidebarPanelClassName}
-      >
-        <div className="overflow-auto flex-1 min-h-0">
-          <ClueListForPL onSend={onClueSend} />
-        </div>
-      </VaulSideDrawer>
     </>
   );
 }

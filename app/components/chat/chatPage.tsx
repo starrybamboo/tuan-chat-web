@@ -2,10 +2,7 @@ import type { ChatDiscoverMode, ChatPageMainView } from "@/components/chat/chatP
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import ChatPageLayout from "@/components/chat/chatPageLayout";
-import ChatPageMainContent from "@/components/chat/chatPageMainContent";
-import ChatPageModals from "@/components/chat/chatPageModals";
-import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
+import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageActiveSpaceInfo from "@/components/chat/hooks/useChatPageActiveSpaceInfo";
 import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
@@ -27,10 +24,7 @@ import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceDocMetaSync from "@/components/chat/hooks/useSpaceDocMetaSync";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
-import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
-import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
-import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
@@ -320,130 +314,131 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     spaceMembers,
   });
 
-  const mainContent = (
-    <ChatPageMainContent
-      isPrivateChatMode={isPrivateChatMode}
-      activeRoomId={activeRoomId}
-      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-      mainView={mainView}
-      discoverMode={discoverModeForUi}
-      activeSpaceId={activeSpaceId}
-      spaceDetailTab={spaceDetailTab}
-      onCloseSpaceDetail={closeSpaceDetailPanel}
-      roomSettingState={roomSettingState}
-      onCloseRoomSetting={closeRoomSettingPage}
-      activeDocId={activeDocId}
-      isKPInSpace={isKPInSpace}
-      activeDocTitleForTcHeader={activeDocTitleForTcHeader}
-      onDocTcHeaderChange={handleDocTcHeaderChange}
-      targetMessageId={targetMessageId}
-    />
-  );
-  const sidePanelContent = (
-    <ChatPageSidePanelContent
-      isPrivateChatMode={isPrivateChatMode}
-      mainView={mainView}
-      discoverMode={discoverModeForUi}
-      onCloseLeftDrawer={closeLeftDrawer}
-      onToggleLeftDrawer={toggleLeftDrawer}
-      isLeftDrawerOpen={isOpenLeftDrawer}
-      currentUserId={userId}
-      activeSpaceId={activeSpaceId}
-      activeSpaceName={activeSpaceNameForUi}
-      activeSpaceIsArchived={activeSpaceIsArchived}
-      isSpaceOwner={isSpaceOwner}
-      isKPInSpace={isKPInSpace}
-      rooms={orderedRooms}
-      roomOrderIds={orderedRoomIds}
-      onReorderRoomIds={setUserRoomOrder}
-      sidebarTree={sidebarTree}
-      onSaveSidebarTree={handleSaveSidebarTree}
-      onResetSidebarTreeToDefault={resetSidebarTreeToDefault}
-      docMetas={spaceDocMetas ?? []}
-      onSelectDoc={handleSelectDoc}
-      activeRoomId={activeRoomId}
-      activeDocId={activeDocId}
-      unreadMessagesNumber={unreadMessagesNumber}
-      onContextMenu={handleContextMenu}
-      onInviteMember={() => setIsMemberHandleOpen(true)}
-      onOpenSpaceDetailPanel={openSpaceDetailPanel}
-      onSelectRoom={handleSelectRoom}
-      onOpenRoomSetting={openRoomSettingPage}
-      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-      onOpenCreateInCategory={openCreateInCategory}
-    />
-  );
-  const spaceSidebar = (
-    <ChatSpaceSidebar
-      isPrivateChatMode={isPrivateChatMode}
-      spaces={orderedSpaces}
-      spaceOrderIds={orderedSpaceIds}
-      onReorderSpaceIds={setUserSpaceOrder}
-      activeSpaceId={activeSpaceId}
-      getSpaceUnreadMessagesNumber={getSpaceUnreadMessagesNumber}
-      privateUnreadMessagesNumber={privateEntryBadgeCount}
-      onOpenPrivate={handleOpenPrivate}
-      onToggleLeftDrawer={toggleLeftDrawer}
-      isLeftDrawerOpen={isOpenLeftDrawer}
-      onSelectSpace={setActiveSpaceId}
-      onCreateSpace={openSpaceHandle}
-      onSpaceContextMenu={handleSpaceContextMenu}
-    />
-  );
+  const mainContentProps = {
+    isPrivateChatMode,
+    activeRoomId,
+    setIsOpenLeftDrawer,
+    mainView,
+    discoverMode: discoverModeForUi,
+    activeSpaceId,
+    spaceDetailTab,
+    onCloseSpaceDetail: closeSpaceDetailPanel,
+    roomSettingState,
+    onCloseRoomSetting: closeRoomSettingPage,
+    activeDocId,
+    isKPInSpace,
+    activeDocTitleForTcHeader,
+    onDocTcHeaderChange: handleDocTcHeaderChange,
+    targetMessageId,
+  };
+  const sidePanelProps = {
+    isPrivateChatMode,
+    mainView,
+    discoverMode: discoverModeForUi,
+    onCloseLeftDrawer: closeLeftDrawer,
+    onToggleLeftDrawer: toggleLeftDrawer,
+    isLeftDrawerOpen: isOpenLeftDrawer,
+    currentUserId: userId,
+    activeSpaceId,
+    activeSpaceName: activeSpaceNameForUi,
+    activeSpaceIsArchived,
+    isSpaceOwner,
+    isKPInSpace,
+    rooms: orderedRooms,
+    roomOrderIds: orderedRoomIds,
+    onReorderRoomIds: setUserRoomOrder,
+    sidebarTree,
+    onSaveSidebarTree: handleSaveSidebarTree,
+    onResetSidebarTreeToDefault: resetSidebarTreeToDefault,
+    docMetas: spaceDocMetas ?? [],
+    onSelectDoc: handleSelectDoc,
+    activeRoomId,
+    activeDocId,
+    unreadMessagesNumber,
+    onContextMenu: handleContextMenu,
+    onInviteMember: () => setIsMemberHandleOpen(true),
+    onOpenSpaceDetailPanel: openSpaceDetailPanel,
+    onSelectRoom: handleSelectRoom,
+    onOpenRoomSetting: openRoomSettingPage,
+    setIsOpenLeftDrawer,
+    onOpenCreateInCategory: openCreateInCategory,
+  };
+  const spaceSidebarProps = {
+    isPrivateChatMode,
+    spaces: orderedSpaces,
+    spaceOrderIds: orderedSpaceIds,
+    onReorderSpaceIds: setUserSpaceOrder,
+    activeSpaceId,
+    getSpaceUnreadMessagesNumber,
+    privateUnreadMessagesNumber: privateEntryBadgeCount,
+    onOpenPrivate: handleOpenPrivate,
+    onToggleLeftDrawer: toggleLeftDrawer,
+    isLeftDrawerOpen: isOpenLeftDrawer,
+    onSelectSpace: setActiveSpaceId,
+    onCreateSpace: openSpaceHandle,
+    onSpaceContextMenu: handleSpaceContextMenu,
+  };
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer;
+  const layoutProps = {
+    screenSize,
+    isOpenLeftDrawer,
+    shouldShowLeftDrawerToggle,
+    leftDrawerToggleLabel,
+    toggleLeftDrawer,
+    chatLeftPanelWidth,
+    setChatLeftPanelWidth,
+  };
+  const modalsProps = {
+    isSpaceHandleOpen,
+    setIsSpaceHandleOpen,
+    isCreateInCategoryOpen,
+    closeCreateInCategory,
+    createInCategoryMode,
+    setCreateInCategoryMode,
+    isKPInSpace,
+    createDocTitle,
+    setCreateDocTitle,
+    pendingCreateInCategoryId,
+    createDocInSelectedCategory,
+    activeSpaceId,
+    activeSpaceAvatar,
+    onRoomCreated: handleRoomCreated,
+    inviteRoomId,
+    setInviteRoomId,
+    onAddRoomMember: handleAddRoomMember,
+    isMemberHandleOpen,
+    setIsMemberHandleOpen,
+    onAddSpaceMember: handleAddSpaceMember,
+    onAddSpacePlayer: handleAddSpacePlayer,
+  };
+  const contextMenuProps = {
+    contextMenu,
+    unreadMessagesNumber,
+    activeRoomId,
+    onClose: closeContextMenu,
+    onInvitePlayer: handleInvitePlayer,
+    onOpenRoomSetting: openRoomSettingPage,
+  };
+  const spaceContextMenuProps = {
+    contextMenu: spaceContextMenu,
+    isSpaceOwner: isSpaceContextOwner,
+    isArchived: isSpaceContextArchived,
+    onClose: closeSpaceContextMenu,
+  };
 
   return (
     <SpaceContext value={spaceContext}>
-      <ChatPageLayout
-        screenSize={screenSize}
-        isOpenLeftDrawer={isOpenLeftDrawer}
-        shouldShowLeftDrawerToggle={shouldShowLeftDrawerToggle}
-        leftDrawerToggleLabel={leftDrawerToggleLabel}
-        toggleLeftDrawer={toggleLeftDrawer}
-        chatLeftPanelWidth={chatLeftPanelWidth}
-        setChatLeftPanelWidth={setChatLeftPanelWidth}
-        spaceSidebar={spaceSidebar}
-        sidePanelContent={sidePanelContent}
-        mainContent={mainContent}
+      <ChatPagePanels
+        layoutProps={layoutProps}
+        mainContentProps={mainContentProps}
+        sidePanelProps={sidePanelProps}
+        spaceSidebarProps={spaceSidebarProps}
       />
-      <ChatPageModals
-        isSpaceHandleOpen={isSpaceHandleOpen}
-        setIsSpaceHandleOpen={setIsSpaceHandleOpen}
-        isCreateInCategoryOpen={isCreateInCategoryOpen}
-        closeCreateInCategory={closeCreateInCategory}
-        createInCategoryMode={createInCategoryMode}
-        setCreateInCategoryMode={setCreateInCategoryMode}
-        isKPInSpace={isKPInSpace}
-        createDocTitle={createDocTitle}
-        setCreateDocTitle={setCreateDocTitle}
-        pendingCreateInCategoryId={pendingCreateInCategoryId}
-        createDocInSelectedCategory={createDocInSelectedCategory}
-        activeSpaceId={activeSpaceId}
-        activeSpaceAvatar={activeSpaceAvatar}
-        onRoomCreated={handleRoomCreated}
-        inviteRoomId={inviteRoomId}
-        setInviteRoomId={setInviteRoomId}
-        onAddRoomMember={handleAddRoomMember}
-        isMemberHandleOpen={isMemberHandleOpen}
-        setIsMemberHandleOpen={setIsMemberHandleOpen}
-        onAddSpaceMember={handleAddSpaceMember}
-        onAddSpacePlayer={handleAddSpacePlayer}
-      />
-      <ChatPageContextMenu
-        contextMenu={contextMenu}
-        unreadMessagesNumber={unreadMessagesNumber}
-        activeRoomId={activeRoomId}
-        onClose={closeContextMenu}
-        onInvitePlayer={handleInvitePlayer}
-        onOpenRoomSetting={openRoomSettingPage}
-      />
-
-      <SpaceContextMenu
-        contextMenu={spaceContextMenu}
-        isSpaceOwner={isSpaceContextOwner}
-        isArchived={isSpaceContextArchived}
-        onClose={closeSpaceContextMenu}
+      <ChatPageOverlays
+        modalsProps={modalsProps}
+        contextMenuProps={contextMenuProps}
+        spaceContextMenuProps={spaceContextMenuProps}
       />
     </SpaceContext>
   );

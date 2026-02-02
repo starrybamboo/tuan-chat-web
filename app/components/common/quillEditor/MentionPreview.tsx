@@ -1,4 +1,4 @@
-﻿/* eslint-disable react-dom/no-dangerously-set-innerhtml */
+/* eslint-disable react-dom/no-dangerously-set-innerhtml */
 import { useMemo, useRef } from "react";
 import { renderInlineHtmlUsingWysiwyg } from "./htmlTagWysiwyg"; // 新增：复用只读 HTML 标签安全渲染
 import { markdownToHtmlWithEntities, rawMarkdownToHtml } from "./markdownToHtml";
@@ -312,4 +312,3 @@ function MentionPreview(props: MentionPreviewProps) {
 }
 
 export default MentionPreview;
-

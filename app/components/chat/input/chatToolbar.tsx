@@ -1,4 +1,3 @@
-﻿import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 import { ArrowSquareIn } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -30,8 +29,6 @@ interface ChatToolbarProps {
   onStopBgmForAll?: () => void;
 
   // 侧边栏状态
-  sideDrawerState: SideDrawerState;
-  setSideDrawerState: (state: SideDrawerState) => void;
 
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
@@ -99,8 +96,6 @@ interface ChatToolbarProps {
 
 function ChatToolbar({
   roomId,
-  sideDrawerState,
-  setSideDrawerState,
   updateEmojiUrls,
   updateImgFiles,
   disableSendMessage,
@@ -177,15 +172,15 @@ function ChatToolbar({
     onToggleWebgalLinkMode();
   }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, webgalLinkMode]);
 
-  const openRunClue = useCallback(() => {
-    if (onToggleWebgalLinkMode && webgalLinkMode) {
+  const handleToggleRunMode = useCallback(() => {
+    if (!onToggleRunMode) {
+      return;
+    }
+    if (!runModeEnabled && onToggleWebgalLinkMode && webgalLinkMode) {
       onToggleWebgalLinkMode();
     }
-    if (onToggleRunMode && !runModeEnabled) {
-      onToggleRunMode();
-    }
-    setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue");
-  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, setSideDrawerState, sideDrawerState, webgalLinkMode]);
+    onToggleRunMode();
+  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, webgalLinkMode]);
 
   const blurAiPromptFocus = useCallback(() => {
     const active = document.activeElement;
@@ -502,11 +497,11 @@ function ChatToolbar({
               {showRunModeToggle && onToggleRunMode && !isStacked && (
                 <div
                   className="tooltip tooltip-top"
-                  data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
+                  data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
                 >
                   <DiceD6Icon
                     className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
-                    onClick={openRunClue}
+                    onClick={handleToggleRunMode}
                   />
                 </div>
               )}
@@ -540,11 +535,11 @@ function ChatToolbar({
                 {showRunModeToggle && onToggleRunMode && (
                   <div
                     className="tooltip tooltip-top"
-                    data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/线索/先攻/角色"}
+                    data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
                   >
                     <DiceD6Icon
                       className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
-                      onClick={openRunClue}
+                      onClick={handleToggleRunMode}
                     />
                   </div>
                 )}
@@ -604,4 +599,3 @@ function ChatToolbar({
 }
 
 export default ChatToolbar;
-

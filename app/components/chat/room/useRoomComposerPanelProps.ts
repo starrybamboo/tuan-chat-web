@@ -9,7 +9,7 @@ type UseRoomComposerPanelPropsParams = Omit<RoomComposerPanelProps, "placeholder
   threadRootMessageId?: number | null;
 };
 
-export default function useRoomComposerPanelProps({
+export default function getRoomComposerPanelProps({
   composerTarget,
   threadRootMessageId,
   ...props

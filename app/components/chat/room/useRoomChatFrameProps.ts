@@ -8,7 +8,7 @@ type ChatFrameProps = ComponentProps<typeof ChatFrame>;
 
 type UseRoomChatFramePropsParams = Pick<
   ChatFrameProps,
-  "virtuosoRef" | "onBackgroundUrlChange" | "onEffectChange" | "onExecuteCommandRequest" | "onSendDocCard"
+  "virtuosoRef" | "onBackgroundUrlChange" | "onEffectChange" | "onExecuteCommandRequest"
 >;
 
 export default function useRoomChatFrameProps({
@@ -16,19 +16,16 @@ export default function useRoomChatFrameProps({
   onBackgroundUrlChange,
   onEffectChange,
   onExecuteCommandRequest,
-  onSendDocCard,
 }: UseRoomChatFramePropsParams): ChatFrameProps {
   return useMemo(() => ({
     virtuosoRef,
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
-    onSendDocCard,
   }), [
     virtuosoRef,
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
-    onSendDocCard,
   ]);
 }

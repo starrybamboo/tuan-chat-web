@@ -3,7 +3,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
@@ -198,7 +198,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     try {
       const inIframe = isProbablyInIframe();
       const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
-      console.debug("[BlocksuiteMentionHost] runtime mount", msg);
+      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
       try {
         (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
       }
@@ -589,7 +589,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
           const first = paragraphs?.[0];
           const firstText = first?.props?.text;
-          console.debug("[BlocksuiteDescriptionEditor] store ready", {
+          console.warn("[BlocksuiteDescriptionEditor] store ready", {
             docId,
             rootId,
             paragraphCount: paragraphs?.length ?? 0,
@@ -793,7 +793,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           delete g.blocksuiteStore;
       }
     };
-  }, [docId, docModeProvider, isFull, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
+  }, [docId, docModeProvider, instanceId, isFull, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
 
   useEffect(() => {
     const editor = editorRef.current as any;
@@ -1283,7 +1283,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const mentionProfilePopoverOpenTimerRef = useRef<number | null>(null);
   const mentionProfilePopoverCloseTimerRef = useRef<number | null>(null);
 
-  const clearMentionProfilePopoverOpenTimer = () => {
+  const clearMentionProfilePopoverOpenTimer = useCallback(() => {
     const t = mentionProfilePopoverOpenTimerRef.current;
     if (t !== null) {
       mentionProfilePopoverOpenTimerRef.current = null;
@@ -1294,9 +1294,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         // ignore
       }
     }
-  };
+  }, []);
 
-  const clearMentionProfilePopoverCloseTimer = () => {
+  const clearMentionProfilePopoverCloseTimer = useCallback(() => {
     const t = mentionProfilePopoverCloseTimerRef.current;
     if (t !== null) {
       mentionProfilePopoverCloseTimerRef.current = null;
@@ -1307,18 +1307,18 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         // ignore
       }
     }
-  };
+  }, []);
 
-  const scheduleMentionProfilePopoverClose = () => {
+  const scheduleMentionProfilePopoverClose = useCallback(() => {
     clearMentionProfilePopoverCloseTimer();
     mentionProfilePopoverCloseTimerRef.current = window.setTimeout(() => {
       if (mentionProfilePopoverHoveredRef.current)
         return;
       setMentionProfilePopover(null);
     }, 160);
-  };
+  }, [clearMentionProfilePopoverCloseTimer]);
 
-  const scheduleMentionProfilePopoverOpen = (next: BlocksuiteMentionProfilePopoverState) => {
+  const scheduleMentionProfilePopoverOpen = useCallback((next: BlocksuiteMentionProfilePopoverState) => {
     clearMentionProfilePopoverOpenTimer();
     clearMentionProfilePopoverCloseTimer();
     mentionProfilePopoverOpenTimerRef.current = window.setTimeout(() => {
@@ -1326,7 +1326,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       mentionProfilePopoverHoveredRef.current = false;
       setMentionProfilePopover(next);
     }, 240);
-  };
+  }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer]);
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
   useEffect(() => {
@@ -1335,10 +1335,79 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   useEffect(() => {
     mentionProfilePopoverStateRef.current = mentionProfilePopover;
-  }, [mentionProfilePopover]);
+  }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer, mentionProfilePopover]);
 
   // 画布全屏状态由 frame 回传的 mode 驱动（宿主不再下发 set-mode）。
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
+
+  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
+  const frozenTcHeaderFallbackRef = useRef<{
+    workspaceId: string;
+    docId: string;
+    title?: string;
+    imageUrl?: string;
+  } | null>(null);
+
+  if (tcHeaderEnabled) {
+    const prev = frozenTcHeaderFallbackRef.current;
+    if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
+      frozenTcHeaderFallbackRef.current = {
+        workspaceId,
+        docId,
+        title: tcHeader?.fallbackTitle,
+        imageUrl: tcHeader?.fallbackImageUrl,
+      };
+    }
+  }
+  else if (frozenTcHeaderFallbackRef.current) {
+    frozenTcHeaderFallbackRef.current = null;
+  }
+
+  const frozenTcHeaderTitle = frozenTcHeaderFallbackRef.current?.title;
+  const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
+
+  const postFrameParams = useCallback(() => {
+    try {
+      const win = iframeRef.current?.contentWindow;
+      if (!win)
+        return;
+      win.postMessage(
+        {
+          tc: "tc-blocksuite-frame",
+          instanceId,
+          type: "sync-params",
+          workspaceId,
+          spaceId,
+          docId,
+          variant,
+          readOnly,
+          allowModeSwitch,
+          fullscreenEdgeless,
+          mode: forcedMode,
+          tcHeader: tcHeaderEnabled,
+          tcHeaderTitle: frozenTcHeaderTitle,
+          tcHeaderImageUrl: frozenTcHeaderImageUrl,
+        },
+        getPostMessageTargetOrigin(),
+      );
+    }
+    catch {
+      // ignore
+    }
+  }, [
+    allowModeSwitch,
+    docId,
+    forcedMode,
+    fullscreenEdgeless,
+    frozenTcHeaderImageUrl,
+    frozenTcHeaderTitle,
+    instanceId,
+    readOnly,
+    spaceId,
+    tcHeaderEnabled,
+    variant,
+    workspaceId,
+  ]);
 
   // 父子窗口通信：mode 同步、导航委托、主题同步。
   useEffect(() => {
@@ -1547,7 +1616,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
                   roleListbox: document.querySelectorAll("[role='listbox']").length,
                   roleMenu: document.querySelectorAll("[role='menu']").length,
                 };
-                console.debug("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
+                console.warn("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
               }
               catch {
                 // ignore
@@ -1557,10 +1626,10 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
           if (isBlocksuiteDebugEnabled()) {
             if (payload && typeof payload === "object") {
-              console.debug("[BlocksuiteFrameDebug]", source, message, payload);
+              console.warn("[BlocksuiteFrameDebug]", source, message, payload);
             }
             else {
-              console.debug("[BlocksuiteFrameDebug]", source, message);
+              console.warn("[BlocksuiteFrameDebug]", source, message);
             }
           }
         }
@@ -1574,7 +1643,19 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     return () => {
       window.removeEventListener("message", onMessage);
     };
-  }, [docId, forcedMode, instanceId, navigate, onModeChange, onTcHeaderChange]);
+  }, [
+    clearMentionProfilePopoverCloseTimer,
+    clearMentionProfilePopoverOpenTimer,
+    docId,
+    forcedMode,
+    instanceId,
+    navigate,
+    onModeChange,
+    onTcHeaderChange,
+    postFrameParams,
+    scheduleMentionProfilePopoverClose,
+    scheduleMentionProfilePopoverOpen,
+  ]);
 
   useEffect(() => {
     if (!mentionProfilePopover)
@@ -1594,7 +1675,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       window.removeEventListener("scroll", close, true);
       window.removeEventListener("resize", close, true);
     };
-  }, [mentionProfilePopover]);
+  }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer, mentionProfilePopover]);
 
   // 宿主侧捕获 click/pointerdown：用于定位 mention 弹窗是否是 portal 到 iframe 外。
   useEffect(() => {
@@ -1638,7 +1719,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         const nodes = Array.isArray(path)
           ? path.map(summarizeNode).filter(Boolean).slice(0, 10)
           : [];
-        console.debug("[BlocksuiteHostDebug]", type, {
+        console.warn("[BlocksuiteHostDebug]", type, {
           targetTag: toLower((e.target as any)?.tagName),
           nodes,
         });
@@ -1720,32 +1801,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     };
   }, [instanceId]);
 
-  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
-  const frozenTcHeaderFallbackRef = useRef<{
-    workspaceId: string;
-    docId: string;
-    title?: string;
-    imageUrl?: string;
-  } | null>(null);
-
-  if (tcHeaderEnabled) {
-    const prev = frozenTcHeaderFallbackRef.current;
-    if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
-      frozenTcHeaderFallbackRef.current = {
-        workspaceId,
-        docId,
-        title: tcHeader?.fallbackTitle,
-        imageUrl: tcHeader?.fallbackImageUrl,
-      };
-    }
-  }
-  else if (frozenTcHeaderFallbackRef.current) {
-    frozenTcHeaderFallbackRef.current = null;
-  }
-
-  const frozenTcHeaderTitle = frozenTcHeaderFallbackRef.current?.title;
-  const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
-
   const initParams = useMemo(() => {
     return {
       instanceId,
@@ -1826,36 +1881,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         .filter(Boolean)
         .join(" ");
 
-  function postFrameParams() {
-    try {
-      const win = iframeRef.current?.contentWindow;
-      if (!win)
-        return;
-      win.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "sync-params",
-          workspaceId,
-          spaceId,
-          docId,
-          variant,
-          readOnly,
-          allowModeSwitch,
-          fullscreenEdgeless,
-          mode: forcedMode,
-          tcHeader: tcHeaderEnabled,
-          tcHeaderTitle: frozenTcHeaderTitle,
-          tcHeaderImageUrl: frozenTcHeaderImageUrl,
-        },
-        getPostMessageTargetOrigin(),
-      );
-    }
-    catch {
-      // ignore
-    }
-  }
-
   const syncFrameBasics = () => {
     try {
       const win = iframeRef.current?.contentWindow;
@@ -1895,6 +1920,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     tcHeaderEnabled,
     frozenTcHeaderImageUrl,
     frozenTcHeaderTitle,
+    postFrameParams,
     variant,
     workspaceId,
   ]);

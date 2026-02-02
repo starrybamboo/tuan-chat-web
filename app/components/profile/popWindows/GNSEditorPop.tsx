@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
 
@@ -201,4 +201,3 @@ function getGNSOrder(ratings: Ratings): string {
 }
 
 export default GNSPreferenceEditor;
-

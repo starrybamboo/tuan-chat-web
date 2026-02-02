@@ -1,4 +1,3 @@
-import type { ClueMessage } from "../../../../api/models/ClueMessage";
 import React from "react";
 
 import ChatFrame from "@/components/chat/chatFrame";
@@ -22,7 +21,6 @@ interface RoomWindowLayoutProps {
   setComposerTarget: (target: "main" | "thread") => void;
   chatFrameProps: ChatFrameProps;
   composerPanelProps: RoomComposerPanelProps;
-  onClueSend: (clue: ClueMessage) => void;
 }
 
 export default function RoomWindowLayout({
@@ -36,7 +34,6 @@ export default function RoomWindowLayout({
   setComposerTarget,
   chatFrameProps,
   composerPanelProps,
-  onClueSend,
 }: RoomWindowLayoutProps) {
   return (
     <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-300">
@@ -77,11 +74,11 @@ export default function RoomWindowLayout({
               <RoomComposerPanel {...composerPanelProps} />
             </div>
 
-            <RoomSideDrawers onClueSend={onClueSend} />
+            <RoomSideDrawers />
           </div>
         </div>
 
-        <SubRoomWindow onClueSend={onClueSend} />
+        <SubRoomWindow />
       </div>
     </div>
   );

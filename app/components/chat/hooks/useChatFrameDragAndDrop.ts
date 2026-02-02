@@ -1,31 +1,19 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import toast from "react-hot-toast";
-
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 
 import { computeMoveMessageUpdates } from "@/components/chat/hooks/chatFrameDragUtils";
 import useChatFrameDragAutoScroll from "@/components/chat/hooks/useChatFrameDragAutoScroll";
 import useChatFrameDragIndicator from "@/components/chat/hooks/useChatFrameDragIndicator";
-import useSendDocCardFromDrop from "@/components/chat/hooks/useSendDocCardFromDrop";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
-import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 
-import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
+import type { ChatMessageResponse, Message } from "../../../api";
 
 type UseChatFrameDragAndDropParams = {
   historyMessages: ChatMessageResponse[];
   isMessageMovable?: (message: Message) => boolean;
   updateMessage: (message: Message) => void;
-  roomId: number;
-  spaceId: number;
-  curRoleId: number;
-  curAvatarId: number;
-  curMemberType?: number;
-  isSpaceOwner: boolean;
-  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
-  send: (message: ChatMessageRequest) => void;
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   isSelecting: boolean;
   selectedMessageIds: Set<number>;
@@ -34,29 +22,18 @@ type UseChatFrameDragAndDropParams = {
 type UseChatFrameDragAndDropResult = {
   isDragging: boolean;
   scrollerRef: React.MutableRefObject<HTMLElement | null>;
-  isDocRefDragOver: boolean;
-  updateDocRefDragOver: (next: boolean) => void;
   handleMoveMessages: (targetIndex: number, messageIds: number[]) => void;
   handleDragStart: (e: React.DragEvent<HTMLDivElement>, index: number) => void;
   handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => Promise<void>;
   handleDragEnd: () => void;
-  sendDocCardFromDrop: (payload: DocRefDragPayload) => Promise<void>;
 };
 
 export default function useChatFrameDragAndDrop({
   historyMessages,
   isMessageMovable,
   updateMessage,
-  roomId,
-  spaceId,
-  curRoleId,
-  curAvatarId,
-  curMemberType,
-  isSpaceOwner,
-  onSendDocCard,
-  send,
   virtuosoRef,
   isSelecting,
   selectedMessageIds,
@@ -64,8 +41,6 @@ export default function useChatFrameDragAndDrop({
   const dragStartMessageIdRef = useRef(-1);
   const isDragging = dragStartMessageIdRef.current >= 0;
   const scrollerRef = useRef<HTMLElement | null>(null);
-  const [isDocRefDragOver, setIsDocRefDragOver] = useState(false);
-  const isDocRefDragOverRef = useRef(false);
   const { cleanupDragIndicator, dropPositionRef, scheduleCheckPosition } = useChatFrameDragIndicator({
     dragStartMessageIdRef,
   });
@@ -81,27 +56,10 @@ export default function useChatFrameDragAndDrop({
     virtuosoRef,
   });
 
-  const updateDocRefDragOver = useCallback((next: boolean) => {
-    if (isDocRefDragOverRef.current === next)
-      return;
-    isDocRefDragOverRef.current = next;
-    setIsDocRefDragOver(next);
-  }, []);
-
   const cleanupDragState = useCallback(() => {
     stopAutoScroll();
     cleanupDragIndicator();
   }, [cleanupDragIndicator, stopAutoScroll]);
-  const sendDocCardFromDrop = useSendDocCardFromDrop({
-    roomId,
-    spaceId,
-    curRoleId,
-    curAvatarId,
-    curMemberType,
-    isSpaceOwner,
-    onSendDocCard,
-    send,
-  });
 
   const handleMoveMessages = useCallback((
     targetIndex: number,
@@ -146,23 +104,20 @@ export default function useChatFrameDragAndDrop({
   }, [attachWindowDragOver, historyMessages, isSelecting, selectedMessageIds.size]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (isDocRefDrag(e.dataTransfer)) {
-      updateDocRefDragOver(true);
-      e.dataTransfer.dropEffect = "copy";
-      startAutoScroll(0);
-      return;
-    }
-    updateDocRefDragOver(false);
     if (isFileDrag(e.dataTransfer)) {
+      e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
       startAutoScroll(0);
       return;
     }
+    if (dragStartMessageIdRef.current < 0) {
+      return;
+    }
+    e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     updateAutoScroll(e.clientY);
     scheduleCheckPosition(e.currentTarget, e.clientY);
-  }, [scheduleCheckPosition, startAutoScroll, updateAutoScroll, updateDocRefDragOver]);
+  }, [scheduleCheckPosition, startAutoScroll, updateAutoScroll]);
 
   const handleDragEnd = useCallback(() => {
     dragStartMessageIdRef.current = -1;
@@ -173,31 +128,21 @@ export default function useChatFrameDragAndDrop({
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    updateDocRefDragOver(false);
     startAutoScroll(0);
-  }, [startAutoScroll, updateDocRefDragOver]);
+  }, [startAutoScroll]);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
-    e.preventDefault();
-    updateDocRefDragOver(false);
-
-    const docRef = getDocRefDragData(e.dataTransfer);
-    if (docRef) {
-      startAutoScroll(0);
-      e.stopPropagation();
-      await sendDocCardFromDrop(docRef);
-      dragStartMessageIdRef.current = -1;
-      detachWindowDragOver();
-      cleanupDragState();
-      return;
-    }
-
     if (isFileDrag(e.dataTransfer)) {
+      e.preventDefault();
       startAutoScroll(0);
       e.stopPropagation();
       addDroppedFilesToComposer(e.dataTransfer);
       return;
     }
+    if (dragStartMessageIdRef.current < 0) {
+      return;
+    }
+    e.preventDefault();
 
     const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex - 1;
 
@@ -218,22 +163,17 @@ export default function useChatFrameDragAndDrop({
     handleMoveMessages,
     isSelecting,
     selectedMessageIds,
-    sendDocCardFromDrop,
     startAutoScroll,
-    updateDocRefDragOver,
   ]);
 
   return {
     isDragging,
     scrollerRef,
-    isDocRefDragOver,
-    updateDocRefDragOver,
     handleMoveMessages,
     handleDragStart,
     handleDragOver,
     handleDragLeave,
     handleDrop,
     handleDragEnd,
-    sendDocCardFromDrop,
   };
 }

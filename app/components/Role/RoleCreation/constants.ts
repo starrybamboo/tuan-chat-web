@@ -1,4 +1,4 @@
-﻿import type { Step } from "./types";
+import type { Step } from "./types";
 
 // 统一的创建步骤
 export const UNIFIED_STEPS: Step[] = [
@@ -10,7 +10,6 @@ export const UNIFIED_STEPS: Step[] = [
 ];
 
 // 保留旧的步骤定义以兼容（可选，后续可移除）
-const STEPS: Step[] = UNIFIED_STEPS;
-const AI_STEPS: Step[] = UNIFIED_STEPS;
-const ST_STEPS: Step[] = UNIFIED_STEPS;
-
+export const STEPS: Step[] = UNIFIED_STEPS;
+export const AI_STEPS: Step[] = UNIFIED_STEPS;
+export const ST_STEPS: Step[] = UNIFIED_STEPS;

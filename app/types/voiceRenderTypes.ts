@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 语音渲染相关的类型定义
  * 用于消息级别的情感向量和立绘位置控制
  */
@@ -7,14 +7,14 @@
  * 情感向量 - 8维情感控制
  * 对应顺序: [ϲ, ŭ, 哀, 惧, 厌恶, 低落, 惊喜, 平静]
  */
-type EmotionVector = [number, number, number, number, number, number, number, number];
+export type EmotionVector = [number, number, number, number, number, number, number, number];
 
 /**
  * 情感标签名称（与 IndexTTS 接口一致）
  */
 export const EMOTION_LABELS = ["ϲ", "ŭ", "哀", "惧", "厌恶", "低落", "惊喜", "平静"] as const;
 
-type EmotionLabel = typeof EMOTION_LABELS[number];
+export type EmotionLabel = typeof EMOTION_LABELS[number];
 
 /**
  * WebGAL 立绘位置
@@ -72,14 +72,14 @@ export type PredefinedAnimation = typeof PREDEFINED_ANIMATIONS[number];
 /**
  * WebGAL 动画目标（自动根据立绘位置推断）
  */
-const ANIMATION_TARGETS = [
+export const ANIMATION_TARGETS = [
   "fig-left", // 左侧立绘
   "fig-center", // 中间立绘
   "fig-right", // 右侧立绘
   "bg-main", // 主背景
 ] as const;
 
-type AnimationTarget = typeof ANIMATION_TARGETS[number] | string;
+export type AnimationTarget = typeof ANIMATION_TARGETS[number] | string;
 
 /**
  * 立绘动画设置
@@ -109,7 +109,7 @@ export type FigureAnimationSettings = {
  * 语音渲染设置（WebGAL 渲染配置）
  * 可以添加到 MessageExtra 中，控制消息的渲染效果
  */
-type VoiceRenderSettings = {
+export type VoiceRenderSettings = {
   /**
    * 情感向量 - 8维数组
    * 如果设置，渲染时会使用这个向量而不是从 avatarTitle 推断
@@ -133,7 +133,7 @@ type VoiceRenderSettings = {
  * 扩展的 MessageExtra 类型（本地使用）
  * 与后端 MessageExtra 合并使用
  */
-type ExtendedMessageExtra = {
+export type ExtendedMessageExtra = {
   voiceRenderSettings?: VoiceRenderSettings;
 };
 
@@ -154,7 +154,7 @@ export function emotionRecordToVector(record: Record<string, string | number>): 
 /**
  * 将情感向量数组转换为对象
  */
-function emotionVectorToRecord(vector: number[]): Record<EmotionLabel, number> {
+export function emotionVectorToRecord(vector: number[]): Record<EmotionLabel, number> {
   const record: Record<string, number> = {};
   EMOTION_LABELS.forEach((label, index) => {
     record[label] = vector[index] ?? 0;
@@ -176,7 +176,6 @@ export function normalizeEmotionVector(vector: number[], maxSum = 1.5): number[]
 /**
  * 创建默认的情感向量（平静）
  */
-function createDefaultEmotionVector(): number[] {
+export function createDefaultEmotionVector(): number[] {
   return [0, 0, 0, 0, 0, 0, 0, 0.5]; // 默认平静
 }
-

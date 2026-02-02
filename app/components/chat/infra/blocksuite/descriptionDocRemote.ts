@@ -1,6 +1,6 @@
-﻿import { tuanchat } from "../../../../../api/instance";
+import { tuanchat } from "../../../../../api/instance";
 
-export type DescriptionEntityType = "space" | "room" | "space_clue" | "user" | "space_user_doc" | "space_doc";
+export type DescriptionEntityType = "space" | "room" | "user" | "space_user_doc" | "space_doc";
 export type DescriptionDocType = "description" | "readme";
 
 const LEGACY_EXTRA_KEY_PREFIX = "blocksuite_doc";
@@ -121,8 +121,7 @@ export async function getRemoteSnapshot(params: {
 
     // 仅 space/room 的 description 做 legacy extra 兼容
     if (
-      params.entityType === "space_clue"
-      || params.entityType === "user"
+      params.entityType === "user"
       || params.entityType === "space_user_doc"
       || params.entityType === "space_doc"
       || params.docType !== "description"
@@ -355,4 +354,3 @@ export async function compactRemoteUpdates(params: {
     mediaType: "application/json",
   });
 }
-

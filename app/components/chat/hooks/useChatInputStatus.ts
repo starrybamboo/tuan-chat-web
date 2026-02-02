@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 import { CURRENT_WINDOW_ID, handleWindowBlur, shouldSendStatusUpdate } from "@/utils/windowInstance";
 
@@ -262,4 +262,3 @@ function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatu
 }
 
 export default useChatInputStatus;
-

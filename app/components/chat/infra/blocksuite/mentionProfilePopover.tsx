@@ -115,6 +115,8 @@ export function BlocksuiteMentionProfilePopover(props: {
 
   const src = `/profile/${encodeURIComponent(state.userId)}`;
 
+  // Profile page needs scripts + same-origin to reuse auth/session state.
+  /* eslint-disable react-dom/no-unsafe-iframe-sandbox */
   return createPortal(
     <div
       ref={rootRef}

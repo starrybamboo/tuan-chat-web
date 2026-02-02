@@ -1,4 +1,4 @@
-﻿// 简单 HTML 标签识别（所见即所得预处理阶段）
+// 简单 HTML 标签识别（所见即所得预处理阶段）
 // 需求：在输入空格时（空格可位于标签中间或末尾），识别用户正在输入的部分/完整标签
 // 仅支持标签: span, div, a, img
 // 仅关注属性: src, href, id, width, height （其它属性忽略）
@@ -87,7 +87,7 @@ function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | null {
 }
 
 // 调用入口：在空格插入后，提供当前行(到空格前)文本进行检测并输出
-function logHtmlTagIfAny(lineLeft: string): void {
+export function logHtmlTagIfAny(lineLeft: string): void {
   const r = detectHtmlTagOnSpace(lineLeft);
   if (r) {
     // 暂时只输出
@@ -104,7 +104,7 @@ function logHtmlTagIfAny(lineLeft: string): void {
 //  lineLeft: 当前行（到空格前）文本
 //  globalIndex: 空格的文档 index（即刚刚插入的空格位置）
 // 返回：true 表示已处理并替换；false 表示未处理
-function convertHtmlTagIfAny(
+export function convertHtmlTagIfAny(
   quillInstance: any,
   lineLeft: string,
   globalIndex: number,
@@ -465,4 +465,3 @@ export function renderInlineHtmlUsingWysiwyg(html: string): string {
 
   return html;
 }
-

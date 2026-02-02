@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
@@ -413,4 +413,3 @@ const PostsCard: React.FC<PostsCardProps> = ({
 };
 
 export default PostsCard;
-

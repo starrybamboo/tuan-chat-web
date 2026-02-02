@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from "react";
+import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import Pagination from "@/components/common/pagination";
 
@@ -198,4 +198,3 @@ const UserModulesList: React.FC<UserModulesListProps> = ({
 };
 
 export default UserModulesList;
-

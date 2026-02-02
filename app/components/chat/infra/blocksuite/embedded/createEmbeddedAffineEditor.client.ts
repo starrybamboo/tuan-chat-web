@@ -1,16 +1,14 @@
+import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 // 嵌入式 Blocksuite 编辑器创建与扩展配置。
 import type { LinkedMenuGroup } from "@blocksuite/affine/widgets/linked-doc";
-import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 
-import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine/blocks/embed-doc";
 import { LinkedDocIcon, LinkedEdgelessIcon } from "@blocksuite/affine-components/icons";
-import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
 import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
 import { REFERENCE_NODE } from "@blocksuite/affine-shared/consts";
 import { DocDisplayMetaProvider, LinkPreviewServiceIdentifier, TelemetryProvider } from "@blocksuite/affine-shared/services";
 import { isFuzzyMatch } from "@blocksuite/affine-shared/utils";
-import { LinkedWidgetConfigExtension } from "@blocksuite/affine/widgets/linked-doc";
-import { LinkedDocViewExtension } from "@blocksuite/affine/widgets/linked-doc/view";
+import { EmbedSyncedDocConfigExtension } from "@blocksuite/affine/blocks/embed-doc";
+import { DocTitleViewExtension } from "@blocksuite/affine/fragments/doc-title/view";
 import { RefNodeSlotsProvider } from "@blocksuite/affine/inlines/reference";
 import {
   DocModeProvider as DocModeProviderToken,
@@ -20,6 +18,8 @@ import {
   QuickSearchExtension,
   UserServiceExtension,
 } from "@blocksuite/affine/shared/services";
+import { LinkedWidgetConfigExtension } from "@blocksuite/affine/widgets/linked-doc";
+import { LinkedDocViewExtension } from "@blocksuite/affine/widgets/linked-doc/view";
 import { getTestViewManager } from "@blocksuite/integration-test/view";
 import { ZERO_WIDTH_FOR_EMBED_NODE } from "@blocksuite/std/inline";
 import { html } from "lit";
@@ -86,10 +86,10 @@ function logMentionMenu(message: string, payload?: Record<string, unknown>) {
   if (!mentionMenuDebugEnabled)
     return;
   if (payload) {
-    console.debug("[BlocksuiteMentionMenu]", message, payload);
+    console.warn("[BlocksuiteMentionMenu]", message, payload);
   }
   else {
-    console.debug("[BlocksuiteMentionMenu]", message);
+    console.warn("[BlocksuiteMentionMenu]", message);
   }
   forwardMentionMenu(message, payload);
 }

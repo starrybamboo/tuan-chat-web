@@ -1,4 +1,4 @@
-﻿import type { Store, Workspace } from "@blocksuite/store";
+import type { Store, Workspace } from "@blocksuite/store";
 
 import { getOrCreateSpaceDocStore, getOrCreateSpaceWorkspaceRuntime } from "@/components/chat/infra/blocksuite/runtime/spaceWorkspace";
 
@@ -44,4 +44,3 @@ export function getOrCreateSpaceDoc(params: { spaceId: number; docId: string }):
 export function ensureSpaceDocMeta(params: { spaceId: number; docId: string; title?: string }) {
   ensureDocMeta({ workspaceId: `space:${params.spaceId}`, docId: params.docId, title: params.title });
 }
-

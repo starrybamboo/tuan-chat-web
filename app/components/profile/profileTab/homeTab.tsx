@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { PopWindow } from "@/components/common/popWindow";
 import TagManagement from "@/components/common/userTags";
@@ -161,4 +161,3 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 };
 
 export default HomeTab;
-

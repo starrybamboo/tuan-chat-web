@@ -1,4 +1,4 @@
-﻿import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
+import type { StageEntityResponse } from "api/deprecated/StageEntityResponse";
 
 // import { useAddEntityWithoutTypeMutation, useAddModuleMutation, useStagingQuery } from "api/hooks/moduleQueryHooks";
 
@@ -25,16 +25,6 @@ export function getEntityListByType(
   return responses.filter((entity: StageEntityResponse) => entity.entityType === numericType);
 }
 
-// 获取所有类型的实体数据
-function getAllEntityLists(moduleInfo: any) {
-  return {
-    itemList: getEntityListByType(moduleInfo, "item"),
-    roleList: getEntityListByType(moduleInfo, "role"),
-    locationList: getEntityListByType(moduleInfo, "location"),
-    sceneList: getEntityListByType(moduleInfo, "scene"),
-  };
-}
-
 // 将实体按照 versionId 做索引，方便在引用关系中快速查找
 export function mapEntitiesByVersionId(
   entities: StageEntityResponse[],
@@ -50,4 +40,3 @@ export function mapEntitiesByVersionId(
 // clone todo
 // 1. 在工作区创建模组
 // 2. 导入实体
-

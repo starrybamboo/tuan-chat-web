@@ -1,4 +1,4 @@
-﻿import type { DocMode } from "@blocksuite/affine/model";
+import type { DocMode } from "@blocksuite/affine/model";
 import type { BlockModel, ExtensionType, Store } from "@blocksuite/affine/store";
 
 import { SignalWatcher, WithDisposable } from "@blocksuite/affine/global/lit";
@@ -219,4 +219,3 @@ export function ensureTCAffineEditorContainerDefined() {
     customElements.define(TC_AFFINE_EDITOR_CONTAINER_TAG, TCAffineEditorContainer as any);
   }
 }
-

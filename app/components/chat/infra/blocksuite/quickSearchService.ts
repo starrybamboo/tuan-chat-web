@@ -1,4 +1,4 @@
-﻿type MinimalDocMeta = { id: string; title?: string };
+type MinimalDocMeta = { id: string; title?: string };
 
 type MinimalWorkspaceMeta = {
   docMetas?: MinimalDocMeta[];
@@ -28,15 +28,6 @@ function isProbablyUrl(input: string) {
 
 function normalizeQuery(input: string) {
   return input.trim().toLowerCase();
-}
-
-function getDocTitleFromMeta(meta: MinimalWorkspaceMeta | null | undefined, docId: string): string {
-  const id = String(docId ?? "").trim();
-  if (!id)
-    return "";
-  const metas = meta?.docMetas ?? [];
-  const hit = metas.find(m => m?.id === id);
-  return (hit?.title ?? "").trim();
 }
 
 export function createBlocksuiteQuickSearchService(params: {
@@ -324,4 +315,3 @@ export function createBlocksuiteQuickSearchService(params: {
 
   return { searchDoc, dispose, __tuanchatQuickSearchService: true };
 }
-

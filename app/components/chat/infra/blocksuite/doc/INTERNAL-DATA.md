@@ -1,6 +1,6 @@
 # Blocksuite 内部数据结构与术语对照（实现视角）
 
-本文档用于解释 Blocksuite/Yjs/AFFiNE 在项目中的概念对应，帮助把业务模型（Space/Room/线索/文档）映射到 Blocksuite 的内部结构。
+本文档用于解释 Blocksuite/Yjs/AFFiNE 在项目中的概念对应，帮助把业务模型（Space/Room/文档）映射到 Blocksuite 的内部结构。
 
 > 版本背景：本项目依赖 Blocksuite `0.22.4`。
 

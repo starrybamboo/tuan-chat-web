@@ -1,4 +1,4 @@
-﻿type command = {
+type command = {
   name: string;
   /**
    * 命令的相对重要度，数字越大越重要，越会排在指令提示框的下面
@@ -7,7 +7,7 @@
   description: string;
 };
 
-const diceCommands: command[] = [
+export const diceCommands: command[] = [
   {
     name: "r",
     importance: 5,
@@ -82,4 +82,3 @@ export const webgalCommands: Map<string, CommandInfo> = new Map([
     },
   ],
 ]);
-

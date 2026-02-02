@@ -1,4 +1,4 @@
-﻿import type { SVGProps } from "react";
+import type { SVGProps } from "react";
 import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
@@ -24,25 +24,25 @@ export function QQIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function UserSwitchIcon(props: SVGProps<SVGSVGElement>) {
+export function UserSwitchIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <UserSwitch {...props} />
   );
 }
 
-function GraphIcon(props: SVGProps<SVGSVGElement>) {
+export function GraphIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Graph {...props} />
   );
 }
 
-function FolderIcon(props: SVGProps<SVGSVGElement>) {
+export function FolderIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Folder {...props} />
   );
 }
 
-function BookOpenTextIcon(props: SVGProps<SVGSVGElement>) {
+export function BookOpenTextIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <BookOpenText {...props} />
   );
@@ -50,7 +50,7 @@ function BookOpenTextIcon(props: SVGProps<SVGSVGElement>) {
 
 // 文档图标
 // 其他关键词：文章，doc，资料
-function ArticleIcon(props: SVGProps<SVGSVGElement>) {
+export function ArticleIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <FileText {...props} />
   );
@@ -58,13 +58,13 @@ function ArticleIcon(props: SVGProps<SVGSVGElement>) {
 
 // 卡片图标
 // 其他关键词：卡片，收起，列表
-function CardsIcon(props: SVGProps<SVGSVGElement>) {
+export function CardsIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <PhosphorCardsIcon {...props} />
   );
 }
 
-function CommandSolid(props: SVGProps<SVGSVGElement>) {
+export function CommandSolid(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -83,10 +83,9 @@ function CommandSolid(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 // 二十面骰子图标
 // 其他关键词：骰子，D20，桌游，DND，跑团
-function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
+export function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -103,7 +102,6 @@ function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 // 六面骰子图标（自绘）
 // 其他关键词：骰子，D6，桌游，跑团，随机
 export function DiceD6Icon(props: SVGProps<SVGSVGElement>) {
@@ -165,7 +163,7 @@ export function Setting(props: SVGProps<SVGSVGElement>) {
 
 // 更多菜单图标
 // 其他关键词：菜单，选项，三点，更多操作
-function MoreMenu(props: SVGProps<SVGSVGElement>) {
+export function MoreMenu(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -202,7 +200,7 @@ export function IdentificationCardIcon(props: SVGProps<SVGSVGElement>) {
 
 // 聊天气泡图标2
 // 其他关键词：对话，消息，通讯，交流
-function Bubble2(props: SVGProps<SVGSVGElement>) {
+export function Bubble2(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -621,7 +619,7 @@ export function MemberIcon(props: SVGProps<SVGSVGElement>) {
 
 // 剑刃挥舞图标
 // 其他关键词：武器，战斗，攻击，游戏
-function SwordSwing(props: SVGProps<SVGSVGElement>) {
+export function SwordSwing(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -651,7 +649,7 @@ export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
 
 // 向下箭头图标
 // 其他关键词：展开，下拉，向下
-function AngleDownOutline(props: SVGProps<SVGSVGElement>) {
+export function AngleDownOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -675,7 +673,7 @@ function AngleDownOutline(props: SVGProps<SVGSVGElement>) {
 
 // 水平省略号图标
 // 其他关键词：更多，菜单，选项
-function DotsHorizontalOutline(props: SVGProps<SVGSVGElement>) {
+export function DotsHorizontalOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -785,7 +783,7 @@ export function EllipsisVertical(props: SVGProps<SVGSVGElement>) {
 
 // 六边形骰子图标
 // 其他关键词：游戏，骰子，桌游
-function HexagonDice(props: SVGProps<SVGSVGElement>) {
+export function HexagonDice(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -815,7 +813,7 @@ function HexagonDice(props: SVGProps<SVGSVGElement>) {
 
 // 命令行终端图标
 // 其他关键词：控制台，shell，终端
-function CommandLine(props: SVGProps<SVGSVGElement>) {
+export function CommandLine(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -839,7 +837,7 @@ function CommandLine(props: SVGProps<SVGSVGElement>) {
 
 // 应用用户角色图标
 // 其他关键词：权限，用户组，角色管理
-function AppUsersRoles(props: SVGProps<SVGSVGElement>) {
+export function AppUsersRoles(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -865,7 +863,7 @@ function AppUsersRoles(props: SVGProps<SVGSVGElement>) {
 
 // 在线用户同步图标
 // 其他关键词：在线状态，用户同步，实时
-function UserSyncOnlineInPerson(props: SVGProps<SVGSVGElement>) {
+export function UserSyncOnlineInPerson(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -955,7 +953,7 @@ export function Search(props: SVGProps<SVGSVGElement>) {
 
 // 地图定位点图标
 // 其他关键词：位置，坐标，地图标记
-function PointOnMapPerspectiveLinear(props: SVGProps<SVGSVGElement>) {
+export function PointOnMapPerspectiveLinear(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1043,7 +1041,7 @@ export function ContentIcon(props: SVGProps<SVGSVGElement>) {
 
 // 舞台图标
 // 其他关键词：场景，演示，展示
-function StageIcon(props: SVGProps<SVGSVGElement>) {
+export function StageIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1066,7 +1064,7 @@ function StageIcon(props: SVGProps<SVGSVGElement>) {
 
 // 历史记录图标
 // 其他关键词：时间，记录，日志
-function HistoryIcon(props: SVGProps<SVGSVGElement>) {
+export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1089,7 +1087,7 @@ function HistoryIcon(props: SVGProps<SVGSVGElement>) {
 
 // 分支图标
 // 其他关键词：分叉，版本，Git
-function BranchIcon(props: SVGProps<SVGSVGElement>) {
+export function BranchIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1132,7 +1130,7 @@ export function SparklesOutline(props: SVGProps<SVGSVGElement>) {
 
 // 柱状统计图标
 // 其他关键词：数据可视化，图表，分析，投票
-function BarChartOutlineIcon(props: SVGProps<SVGSVGElement>) {
+export function BarChartOutlineIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1212,7 +1210,7 @@ export function NarratorIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 // 物品图标
-function Items(
+export function Items(
   props: SVGProps<SVGSVGElement>,
 ) {
   return (
@@ -1302,7 +1300,7 @@ export function WebgalIcon(
 
 // 放大图标
 // 其他关键词：加号，增加，放大镜，缩放，放大操作
-function ZoomInIcon() {
+export function ZoomInIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="11" cy="11" r="8" />
@@ -1315,7 +1313,7 @@ function ZoomInIcon() {
 
 // 缩小图标
 // 其他关键词：减号，减少，缩小镜，缩放，缩小操作
-function ZoomOutIcon() {
+export function ZoomOutIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="11" cy="11" r="8" />
@@ -1349,7 +1347,7 @@ export function RotateRightIcon() {
 
 // 连接点图标（被动态组件复用）
 // 其他关键词：节点，链接，关系图，网络，拓扑，动态
-function ConnectionIcon() {
+export function ConnectionIcon() {
   return (
     <svg
       width="20"
@@ -1463,7 +1461,7 @@ export function CheckIcon(props: SVGProps<SVGSVGElement>) {
 }
 // 返回箭头图标（粗体填充样式）
 // 其他关键词：后退，返回上一级，撤销
-function ArrowBackThickFill(props: SVGProps<SVGSVGElement>) {
+export function ArrowBackThickFill(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1523,7 +1521,7 @@ export function Link(props: SVGProps<SVGSVGElement>) {
 }
 // 三个向上小箭头图标（带动画效果）
 // 其他关键词：更多，展开，加载更多，提交
-function ChevronSmallTripleUp(props: SVGProps<SVGSVGElement>) {
+export function ChevronSmallTripleUp(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1577,7 +1575,7 @@ function ChevronSmallTripleUp(props: SVGProps<SVGSVGElement>) {
 
 // 小方块图标
 // 其他关键词：更多，拓展
-function BaselineAutoAwesomeMotion(props: SVGProps<SVGSVGElement>) {
+export function BaselineAutoAwesomeMotion(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1727,7 +1725,7 @@ export function BaselineDeleteOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 // 任务提醒图标
-function BaselineAnnouncement(props: SVGProps<SVGSVGElement>) {
+export function BaselineAnnouncement(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1745,7 +1743,7 @@ function BaselineAnnouncement(props: SVGProps<SVGSVGElement>) {
   );
 }
 // 提交的图标
-function BaselineBackup(props: SVGProps<SVGSVGElement>) {
+export function BaselineBackup(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1763,7 +1761,7 @@ function BaselineBackup(props: SVGProps<SVGSVGElement>) {
   );
 }
 // 发布图标
-function BaselineAssistant(props: SVGProps<SVGSVGElement>) {
+export function BaselineAssistant(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1782,7 +1780,7 @@ function BaselineAssistant(props: SVGProps<SVGSVGElement>) {
 }
 
 // 播放图标
-function PlayIcon(props: SVGProps<SVGSVGElement>) {
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1797,7 +1795,7 @@ function PlayIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 // 暂停图标
-function PauseIcon(props: SVGProps<SVGSVGElement>) {
+export function PauseIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1943,7 +1941,7 @@ export function CloseIcon(props: SVGProps<SVGSVGElement>) {
 
 // 星星收藏图标
 // 其他关键词：收藏，喜欢，星标，favorite，star
-function StarIcon(props: SVGProps<SVGSVGElement>) {
+export function StarIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1960,7 +1958,7 @@ function StarIcon(props: SVGProps<SVGSVGElement>) {
 
 // 警告/提示图标
 // 其他关键词：警告，提醒，注意，warning，alert
-function AlertIcon(props: SVGProps<SVGSVGElement>) {
+export function AlertIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -2054,7 +2052,7 @@ export function DiceFiveIcon(props: SVGProps<SVGSVGElement>) {
 
 // 富文本编辑器的icon
 // 其他关键词：文本，编辑，文章，document，text
-function BaselineAssignment(props: SVGProps<SVGSVGElement>) {
+export function BaselineAssignment(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -2071,4 +2069,3 @@ function BaselineAssignment(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-

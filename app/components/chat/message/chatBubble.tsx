@@ -25,7 +25,6 @@ import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import ClueMessage from "./clue/clueMessage";
 import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
@@ -498,9 +497,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     // 1. 特殊类型消息（独占显示）
     if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
-    }
-    else if (message.messageType === 1000) {
-      return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
     }
     else if (isDocCardLikeMessage) {
       return <DocCardMessage messageResponse={chatMessageResponse}></DocCardMessage>;
@@ -1226,10 +1222,6 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     }
 
     if (JSON.stringify(prevExtra.forwardMessage) !== JSON.stringify(nextExtra.forwardMessage)) {
-      return false;
-    }
-
-    if (JSON.stringify(prevExtra.clueMessage) !== JSON.stringify(nextExtra.clueMessage)) {
       return false;
     }
 

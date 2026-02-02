@@ -1,4 +1,4 @@
-﻿const DOC_REF_MIME = "application/x-tc-doc-ref";
+const DOC_REF_MIME = "application/x-tc-doc-ref";
 const DOC_REF_FALLBACK_PREFIX = "tc-doc-ref:";
 
 export type DocRefDragPayload = {
@@ -131,4 +131,3 @@ export function isDocRefDrag(dataTransfer: DataTransfer | null | undefined): boo
     return false;
   }
 }
-

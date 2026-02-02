@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import {
   useGetMomentFeedStatsQuery,
@@ -262,4 +262,3 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
 };
 
 export default ActivitiesTab;
-

@@ -1,42 +1,30 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import type {
-  ChatMessageRequest,
-  ChatMessageResponse,
-  ImageMessage,
-  Message,
-} from "../../../api";
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import React, { memo, use, useCallback, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import ChatFrameList from "@/components/chat/chatFrameList";
-import ChatFrameMessageItem from "@/components/chat/chatFrameMessageItem";
-import ChatFrameOverlays from "@/components/chat/chatFrameOverlays";
+import type { ChatMessageResponse, Message } from "../../../api";
+import React, { memo, use } from "react";
+import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
+import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import useChatFrameContextMenu from "@/components/chat/hooks/useChatFrameContextMenu";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
+import useChatFrameEmojiActions from "@/components/chat/hooks/useChatFrameEmojiActions";
+import useChatFrameIndexing from "@/components/chat/hooks/useChatFrameIndexing";
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
-import useChatFrameMessageClick from "@/components/chat/hooks/useChatFrameMessageClick";
+import useChatFrameMessageMutations from "@/components/chat/hooks/useChatFrameMessageMutations";
+import useChatFrameMessageRenderer from "@/components/chat/hooks/useChatFrameMessageRenderer";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
+import useChatFrameNarratorToggle from "@/components/chat/hooks/useChatFrameNarratorToggle";
+import useChatFrameOverlayState from "@/components/chat/hooks/useChatFrameOverlayState";
 import useChatFrameScrollState from "@/components/chat/hooks/useChatFrameScrollState";
-import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
-import useChatFrameSelectionHandlers from "@/components/chat/hooks/useChatFrameSelectionHandlers";
+import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSelectionContext";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
-import RoleChooser from "@/components/chat/input/roleChooser";
-import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
+import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { getImageSize } from "@/utils/getImgSize";
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
-import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
-
-const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 
 /**
  * 聊天框（不带输入部分）
@@ -52,7 +40,6 @@ interface ChatFrameProps {
   isMessageMovable?: (message: Message) => boolean;
   onBackgroundUrlChange?: (url: string | null) => void;
   onEffectChange?: (effectName: string | null) => void;
-  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
   onExecuteCommandRequest?: (payload: {
     command: string;
     threadId?: number;
@@ -70,10 +57,8 @@ function ChatFrame(props: ChatFrameProps) {
     isMessageMovable,
     onBackgroundUrlChange,
     onEffectChange,
-    onSendDocCard,
     onExecuteCommandRequest,
   } = props;
-  const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
@@ -84,92 +69,33 @@ function ChatFrame(props: ChatFrameProps) {
   const curRoleId = roomContext.curRoleId ?? -1;
   const curAvatarId = roomContext.curAvatarId ?? -1;
 
-  // const hasNewMessages = websocketUtils.messagesNumber[roomId];
-  const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
-  const [isExportImageWindowOpen, setIsExportImageWindowOpen] = useState(false);
+  const {
+    isForwardWindowOpen,
+    isExportImageWindowOpen,
+    setIsForwardWindowOpen,
+    setIsExportImageWindowOpen,
+  } = useChatFrameOverlayState();
 
   const sendMessageMutation = useSendMessageMutation(roomId);
 
   // Mutations
-  // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
   const updateMessageMutation = useUpdateMessageMutation();
 
-  const handleToggleNarrator = useCallback((messageId: number) => {
-    if (!spaceContext.isSpaceOwner) {
-      toast.error("只有KP可以切换旁白");
-      return;
-    }
-    const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
-    if (!message)
-      return;
+  const { handleToggleNarrator } = useChatFrameNarratorToggle({
+    roomContext,
+    spaceContext,
+    updateMessageMutation,
+  });
 
-    const isNarrator = !message.roleId || message.roleId <= 0;
-
-    if (isNarrator) {
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col items-center gap-4">
-              <div>选择角色</div>
-              <RoleChooser
-                handleRoleChange={(role) => {
-                  const newMessage = {
-                    ...message,
-                    roleId: role.roleId,
-                    avatarId: roomContext.roomRolesThatUserOwn.find(r => r.roleId === role.roleId)?.avatarId ?? -1,
-                  };
-                  updateMessageMutation.mutate(newMessage, {
-                    onSuccess: (response) => {
-                      if (response?.data && roomContext.chatHistory) {
-                        const updatedChatMessageResponse = {
-                          ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
-                          message: response.data,
-                        };
-                        roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-                      }
-                    },
-                  });
-                  onClose();
-                }}
-                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
-    }
-    else {
-      const newMessage = {
-        ...message,
-        roleId: -1,
-      };
-      updateMessageMutation.mutate(newMessage, {
-        onSuccess: (response) => {
-          if (response?.data && roomContext.chatHistory) {
-            const updatedChatMessageResponse = {
-              ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
-              message: response.data,
-            };
-            roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-          }
-        },
-      });
-    }
-  }, [roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
-
-  // 获取用户自定义表情列表
-  const { data: emojisData } = useGetUserEmojisQuery();
-  const emojiList = Array.isArray(emojisData?.data) ? emojisData.data : [];
-
-  // 新增表情
-  const createEmojiMutation = useCreateEmojiMutation();
-
+  const { handleAddEmoji } = useChatFrameEmojiActions();
   const chatHistory = roomContext.chatHistory;
-  const webSocketUtils = globalContext.websocketUtils;
-  const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message });
-
-  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
+  const {
+    send,
+    receivedMessages,
+    unreadMessagesNumber,
+    updateLastReadSyncId,
+  } = useChatFrameWebSocket(roomId);
 
   const { historyMessages, threadHintMetaByMessageId } = useChatFrameMessages({
     messagesOverride,
@@ -179,32 +105,15 @@ function ChatFrame(props: ChatFrameProps) {
     receivedMessages,
   });
 
-  const deleteMessage = useCallback((messageId: number) => {
-    deleteMessageMutation.mutate(messageId, {
-      onSuccess: () => {
-        const targetMessage = historyMessages.find(m => m.message.messageId === messageId);
-        if (targetMessage && roomContext.chatHistory) {
-          const updatedMessage = {
-            ...targetMessage,
-            message: {
-              ...targetMessage.message,
-              status: 1,
-            },
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedMessage);
-        }
-      },
-    });
-  }, [deleteMessageMutation, historyMessages, roomContext.chatHistory]);
+  const { deleteMessage, updateMessage } = useChatFrameMessageMutations({
+    historyMessages,
+    roomContext,
+    deleteMessageMutation,
+    updateMessageMutation,
+  });
 
-  const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
-    return virtuosoIndex;
-  }, []);
-  const messageIndexToVirtuosoIndex = useCallback((messageIndex: number) => {
-    return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
-  }, [historyMessages.length]);
+  const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(historyMessages.length);
 
-  const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
   const {
     isAtBottomRef,
     isAtTopRef,
@@ -215,7 +124,7 @@ function ChatFrame(props: ChatFrameProps) {
     historyMessages,
     roomId,
     chatHistory,
-    unreadMessagesNumber: webSocketUtils.unreadMessagesNumber,
+    unreadMessagesNumber,
     updateLastReadSyncId,
     virtuosoRef,
     messageIndexToVirtuosoIndex,
@@ -229,16 +138,6 @@ function ChatFrame(props: ChatFrameProps) {
     virtuosoIndexToMessageIndex,
   });
 
-  const updateMessage = useCallback((message: Message) => {
-    updateMessageMutation.mutate(message);
-    const existingResponse = historyMessages.find(m => m.message.messageId === message.messageId);
-    const newResponse = {
-      ...existingResponse,
-      message,
-    };
-    roomContext.chatHistory?.addOrUpdateMessage(newResponse as ChatMessageResponse);
-  }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
-
   /**
    * 消息选择
    */
@@ -249,27 +148,18 @@ function ChatFrame(props: ChatFrameProps) {
     toggleMessageSelection,
     handleBatchDelete,
     handleEditMessage,
-  } = useChatFrameSelection({ onDeleteMessage: deleteMessage });
-
-  const { contextMenu, closeContextMenu, handleContextMenu } = useChatFrameContextMenu();
-
-  const {
+    contextMenu,
+    closeContextMenu,
+    handleContextMenu,
     clearSelection,
     handleDelete,
     handleReply,
     toggleChatBubbleStyle,
-  } = useChatFrameSelectionHandlers({
-    contextMenuMessageId: contextMenu?.messageId,
+    handleMessageClick,
+  } = useChatFrameSelectionContext({
     deleteMessage,
-    updateSelectedMessageIds,
-    closeContextMenu,
     toggleUseChatBubbleStyle,
     setReplyMessage,
-  });
-
-  const handleMessageClick = useChatFrameMessageClick({
-    isSelecting,
-    toggleMessageSelection,
     onJumpToWebGAL: roomContext.jumpToMessageInWebGAL,
   });
 
@@ -291,186 +181,111 @@ function ChatFrame(props: ChatFrameProps) {
     clearSelection,
   });
 
-  async function handleAddEmoji(imgMessage: ImageMessage) {
-    if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
-      toast.error("表情已存在");
-      return;
-    }
-    const fileSize = imgMessage.size > 0
-      ? imgMessage.size
-      : (await getImageSize(imgMessage.url)).size;
-    createEmojiMutation.mutate({
-      name: imgMessage.fileName,
-      imageUrl: imgMessage.url,
-      fileSize,
-      format: imgMessage.url.split(".").pop() || "webp",
-    }, {
-      onSuccess: () => {
-        toast.success("表情添加成功");
-      },
-    });
-  }
-
   /**
    * 消息拖拽
    */
   const {
     isDragging,
     scrollerRef,
-    isDocRefDragOver,
-    updateDocRefDragOver,
     handleMoveMessages,
     handleDragStart,
     handleDragOver,
     handleDragLeave,
     handleDrop,
     handleDragEnd,
-    sendDocCardFromDrop,
   } = useChatFrameDragAndDrop({
     historyMessages,
     isMessageMovable,
     updateMessage,
-    roomId,
-    spaceId: roomContext.spaceId ?? -1,
-    curRoleId: roomContext.curRoleId ?? -1,
-    curAvatarId: roomContext.curAvatarId ?? -1,
-    curMemberType: roomContext.curMember?.memberType,
-    isSpaceOwner: spaceContext.isSpaceOwner,
-    onSendDocCard,
-    send,
     virtuosoRef,
     isSelecting,
     selectedMessageIds,
   });
 
   /**
-   * @param index 虚拟列表中的 index，为了实现反向滚动，进行了偏移
-   * @param chatMessageResponse
+   * 消息渲染
    */
-  const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
-    const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
-    const baseDraggable = (roomContext.curMember?.memberType ?? 3) < 3;
-    const movable = baseDraggable && (!isMessageMovable || isMessageMovable(chatMessageResponse.message));
-    const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
-    const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
-    const threadHintMeta = threadHintMetaByMessageId.get(chatMessageResponse.message.messageId);
-    return (
-      <ChatFrameMessageItem
-        key={chatMessageResponse.message.messageId}
-        chatMessageResponse={chatMessageResponse}
-        isSelected={isSelected}
-        isDragging={isDragging}
-        canJumpToWebGAL={canJumpToWebGAL}
-        useChatBubbleStyle={useChatBubbleStyle}
-        movable={movable}
-        isSelecting={isSelecting}
-        threadHintMeta={threadHintMeta}
-        onExecuteCommandRequest={onExecuteCommandRequest}
-        onMessageClick={e => handleMessageClick(e, chatMessageResponse.message.messageId)}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={e => handleDrop(e, indexInHistoryMessages)}
-        onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
-        onDragEnd={handleDragEnd}
-      />
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  const baseDraggable = (roomContext.curMember?.memberType ?? 3) < 3;
+  const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
+
+  const renderMessage = useChatFrameMessageRenderer({
     selectedMessageIds,
-    roomContext.curMember?.memberType,
-    roomContext.jumpToMessageInWebGAL,
-    virtuosoIndexToMessageIndex,
     isDragging,
     isSelecting,
     useChatBubbleStyle,
-    handleMessageClick,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    handleDragStart,
-    handleDragEnd,
+    baseDraggable,
+    canJumpToWebGAL,
     isMessageMovable,
     threadHintMetaByMessageId,
-  ]);
-
+    onExecuteCommandRequest,
+    onMessageClick: handleMessageClick,
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+    virtuosoIndexToMessageIndex,
+  });
   if (chatHistory?.loading) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
-        <div className="flex flex-col items-center gap-2">
-          {/* 加载动画 */}
-          <span className="loading loading-spinner loading-lg text-info"></span>
-          {/* 提示文字 */}
-          <div className="text-center space-y-1">
-            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
-            <p className="text-sm text-base-content/70">请稍候...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <ChatFrameLoadingState />;
   }
   /**
    * 渲染
    */
   return (
-    <div className="h-full relative">
-      <ChatFrameList
-        historyMessages={historyMessages}
-        virtuosoRef={virtuosoRef}
-        scrollerRef={scrollerRef}
-        isAtBottomRef={isAtBottomRef}
-        isAtTopRef={isAtTopRef}
-        setCurrentVirtuosoIndex={setCurrentVirtuosoIndex}
-        enableUnreadIndicator={enableUnreadIndicator}
-        unreadMessageNumber={unreadMessageNumber}
-        scrollToBottom={scrollToBottom}
-        updateLastReadSyncId={updateLastReadSyncId}
-        roomId={roomId}
-        renderMessage={renderMessage}
-        onContextMenu={handleContextMenu}
-        selectedMessageIds={selectedMessageIds}
-        updateSelectedMessageIds={updateSelectedMessageIds}
-        setIsExportImageWindowOpen={setIsExportImageWindowOpen}
-        setIsForwardWindowOpen={setIsForwardWindowOpen}
-        handleBatchDelete={handleBatchDelete}
-        isSpaceOwner={spaceContext.isSpaceOwner}
-        isDocRefDragOver={isDocRefDragOver}
-        updateDocRefDragOver={updateDocRefDragOver}
-        onSendDocCardFromDrop={sendDocCardFromDrop}
-      />
-      <ChatFrameOverlays
-        isForwardWindowOpen={isForwardWindowOpen}
-        setIsForwardWindowOpen={setIsForwardWindowOpen}
-        isExportImageWindowOpen={isExportImageWindowOpen}
-        setIsExportImageWindowOpen={setIsExportImageWindowOpen}
-        historyMessages={historyMessages}
-        selectedMessageIds={selectedMessageIds}
-        updateSelectedMessageIds={updateSelectedMessageIds}
-        onForward={handleForward}
-        generateForwardMessage={generateForwardMessage}
-      />
-      {/* 右键菜单 */}
-      <ChatFrameContextMenu
-        contextMenu={contextMenu}
-        historyMessages={historyMessages}
-        isSelecting={isSelecting}
-        selectedMessageIds={selectedMessageIds}
-        useChatBubbleStyle={useChatBubbleStyle}
-        onClose={closeContextMenu}
-        onDelete={handleDelete}
-        onToggleSelection={toggleMessageSelection}
-        onReply={handleReply}
-        onMoveMessages={handleMoveMessages}
-        onToggleChatBubbleStyle={toggleChatBubbleStyle}
-        onEditMessage={handleEditMessage}
-        onToggleBackground={toggleBackground}
-        onUnlockCg={toggleUnlockCg}
-        onAddEmoji={handleAddEmoji}
-        onInsertAfter={(messageId) => {
-          setInsertAfterMessageId(messageId);
-        }}
-        onToggleNarrator={handleToggleNarrator}
-      />
-    </div>
+    <ChatFrameView
+      listProps={{
+        historyMessages,
+        virtuosoRef,
+        scrollerRef,
+        isAtBottomRef,
+        isAtTopRef,
+        setCurrentVirtuosoIndex,
+        enableUnreadIndicator,
+        unreadMessageNumber,
+        scrollToBottom,
+        updateLastReadSyncId,
+        roomId,
+        renderMessage,
+        onContextMenu: handleContextMenu,
+        selectedMessageIds,
+        updateSelectedMessageIds,
+        setIsExportImageWindowOpen,
+        setIsForwardWindowOpen,
+        handleBatchDelete,
+        isSpaceOwner: spaceContext.isSpaceOwner,
+      }}
+      overlaysProps={{
+        isForwardWindowOpen,
+        setIsForwardWindowOpen,
+        isExportImageWindowOpen,
+        setIsExportImageWindowOpen,
+        historyMessages,
+        selectedMessageIds,
+        updateSelectedMessageIds,
+        onForward: handleForward,
+        generateForwardMessage,
+      }}
+      contextMenuProps={{
+        contextMenu,
+        historyMessages,
+        isSelecting,
+        selectedMessageIds,
+        useChatBubbleStyle,
+        onClose: closeContextMenu,
+        onDelete: handleDelete,
+        onToggleSelection: toggleMessageSelection,
+        onReply: handleReply,
+        onMoveMessages: handleMoveMessages,
+        onToggleChatBubbleStyle: toggleChatBubbleStyle,
+        onEditMessage: handleEditMessage,
+        onToggleBackground: toggleBackground,
+        onUnlockCg: toggleUnlockCg,
+        onAddEmoji: handleAddEmoji,
+        onInsertAfter: setInsertAfterMessageId,
+        onToggleNarrator: handleToggleNarrator,
+      }}
+    />
   );
 }
 

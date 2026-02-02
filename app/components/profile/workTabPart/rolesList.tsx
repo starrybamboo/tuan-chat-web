@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Link } from "react-router";
 import Pagination from "@/components/common/pagination";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -116,4 +116,3 @@ const RolesList: React.FC<UserRolesListProps> = ({
 };
 
 export default RolesList;
-

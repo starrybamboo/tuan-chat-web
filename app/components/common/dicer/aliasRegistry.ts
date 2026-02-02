@@ -1,4 +1,4 @@
-﻿import type { RuleNameSpace } from "@/components/common/dicer/cmd";
+import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 
 import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
@@ -29,10 +29,9 @@ export function initAliasMapOnce(): void {
 }
 
 // 可选：动态注册新规则执行器，同时更新别名映射集
-function registerExecutor(ruleId: number, executor: RuleNameSpace): void {
+export function registerExecutor(ruleId: number, executor: RuleNameSpace): void {
   RULES.set(ruleId, executor);
   ALIAS_MAP_SET[String(ruleId)] = executor.aliasMap;
   // 标记为未初始化，下一次显式调用 initAliasMapOnce 时会重新初始化
   initialized = false;
 }
-

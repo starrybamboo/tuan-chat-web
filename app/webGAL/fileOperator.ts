@@ -1,4 +1,4 @@
-﻿import type { GameInfoDto } from "@/webGAL/apis";
+import type { GameInfoDto } from "@/webGAL/apis";
 
 import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { getTerreApis } from "@/webGAL/index";
@@ -160,7 +160,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   return safeFileName;
 };
 
-async function readTextFile(game: string, path: string): Promise<string> {
+export async function readTextFile(game: string, path: string): Promise<string> {
   const url = `${getTerreBaseUrl()}/games/${game}/game/${path}`;
   const response = await fetch(url);
   if (!response.ok)
@@ -222,4 +222,3 @@ export function getAsyncMsg(sceneName: string, lineNumber: number, forceReload: 
  * 可以用来执行单条 WebGAL 命令而不改变当前场景状态
  * @param command WebGAL 命令字符串
  */
-

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @author: @starrybamboo
  * TTS API 接口类型定义和客户端,
  * 参考了他们官方提供的GUI进行封装。采用的是index-tts2的API规范。
@@ -482,4 +482,3 @@ export function createTTSApi(baseURL: string = "http://localhost:9000") {
 // 创建 TTS API 实例,从环境变量获取 URL
 const TTS_API_URL = import.meta.env.VITE_TTS_URL || "http://localhost:9000";
 export const ttsApi = createTTSApi(TTS_API_URL);
-

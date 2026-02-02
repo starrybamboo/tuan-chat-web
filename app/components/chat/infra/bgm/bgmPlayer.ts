@@ -1,4 +1,4 @@
-﻿// BGM 播放器封装，维护单例 Audio 与 WebAudio 增益控制。
+// BGM 播放器封装，维护单例 Audio 与 WebAudio 增益控制。
 // 使用 metadata 预加载策略以支持边播边加载。
 type BgmPlayOptions = {
   loop?: boolean;
@@ -101,10 +101,6 @@ function ensureWebAudioGraph(a: HTMLAudioElement) {
   }
 }
 
-function getBgmAudioElement(): HTMLAudioElement {
-  return ensureAudio();
-}
-
 export async function playBgm(src: string, options: BgmPlayOptions = {}): Promise<void> {
   const a = ensureAudio();
   const nextLoop = options.loop ?? true;
@@ -196,7 +192,6 @@ export function stopBgm(): void {
     // ignore
   }
 }
-
 export function pauseBgm(): void {
   if (!audio)
     return;
@@ -210,10 +205,3 @@ export function pauseBgm(): void {
     // ignore
   }
 }
-
-function isBgmPlaying(): boolean {
-  if (!audio)
-    return false;
-  return !audio.paused;
-}
-

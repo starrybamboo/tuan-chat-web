@@ -1,10 +1,10 @@
 import type { Room } from "api";
-import React from "react";
-
 import type { ChatDiscoverMode, ChatPageMainView, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
+
+import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
+import React from "react";
 import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
-import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 
 interface ChatPageSidePanelContentProps {
   isPrivateChatMode: boolean;

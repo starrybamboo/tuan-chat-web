@@ -1,5 +1,11 @@
 import type { ExtensionType } from "@blocksuite/store";
 
+import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
+import {
+  FeatureFlagService,
+  LinkPreviewCache,
+  LinkPreviewService,
+} from "@blocksuite/affine-shared/services";
 import { AttachmentStoreExtension } from "@blocksuite/affine/blocks/attachment/store";
 import { BookmarkStoreExtension } from "@blocksuite/affine/blocks/bookmark/store";
 import { DataViewStoreExtension } from "@blocksuite/affine/blocks/data-view/store";
@@ -23,12 +29,6 @@ import { LatexStoreExtension } from "@blocksuite/affine/inlines/latex/store";
 import { LinkStoreExtension } from "@blocksuite/affine/inlines/link/store";
 import { InlinePresetStoreExtension } from "@blocksuite/affine/inlines/preset/store";
 import { ReferenceStoreExtension } from "@blocksuite/affine/inlines/reference/store";
-import { ImageProxyService } from "@blocksuite/affine-shared/adapters";
-import {
-  FeatureFlagService,
-  LinkPreviewCache,
-  LinkPreviewService,
-} from "@blocksuite/affine-shared/services";
 
 // 注意：这个文件必须保持「无 DOM 依赖」，不要 import `lit` / `lit-html`。
 // React Router dev + Vite 在开发时可能会用 SSR 模式评估模块，
