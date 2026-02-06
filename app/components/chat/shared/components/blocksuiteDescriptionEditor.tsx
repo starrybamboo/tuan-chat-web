@@ -172,6 +172,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     readOnlyRef.current = readOnly;
   }, [readOnly]);
 
+  const instanceIdRef = useRef(instanceId);
+  useEffect(() => {
+    instanceIdRef.current = instanceId;
+  }, [instanceId]);
+
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
   const currentModeRef = useRef<DocMode>(forcedMode);
 
@@ -198,7 +203,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     try {
       const inIframe = isProbablyInIframe();
       const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
-      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
+      console.debug("[BlocksuiteMentionHost] runtime mount", msg);
       try {
         (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
       }
@@ -589,7 +594,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
           const first = paragraphs?.[0];
           const firstText = first?.props?.text;
-          console.warn("[BlocksuiteDescriptionEditor] store ready", {
+          console.debug("[BlocksuiteDescriptionEditor] store ready", {
             docId,
             rootId,
             paragraphCount: paragraphs?.length ?? 0,
@@ -675,7 +680,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       if (isProbablyInIframe()) {
         requestAnimationFrame(() => {
           try {
-            postToParent({ tc: "tc-blocksuite-frame", instanceId, type: "render-ready" });
+            postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
           }
           catch {
             // ignore
@@ -793,7 +798,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           delete g.blocksuiteStore;
       }
     };
-  }, [docId, docModeProvider, instanceId, isFull, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
+  }, [docId, docModeProvider, isFull, spaceId, tcHeader?.fallbackImageUrl, tcHeader?.fallbackTitle, tcHeaderEnabled, workspaceId]);
 
   useEffect(() => {
     const editor = editorRef.current as any;
@@ -1271,6 +1276,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const instanceId = useId();
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const postFrameParamsRef = useRef<() => void>(() => {});
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
@@ -1335,79 +1341,10 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
   useEffect(() => {
     mentionProfilePopoverStateRef.current = mentionProfilePopover;
-  }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer, mentionProfilePopover]);
+  }, [mentionProfilePopover]);
 
   // 画布全屏状态由 frame 回传的 mode 驱动（宿主不再下发 set-mode）。
   const isEdgelessFullscreenActive = allowModeSwitch && fullscreenEdgeless && frameMode === "edgeless";
-
-  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
-  const frozenTcHeaderFallbackRef = useRef<{
-    workspaceId: string;
-    docId: string;
-    title?: string;
-    imageUrl?: string;
-  } | null>(null);
-
-  if (tcHeaderEnabled) {
-    const prev = frozenTcHeaderFallbackRef.current;
-    if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
-      frozenTcHeaderFallbackRef.current = {
-        workspaceId,
-        docId,
-        title: tcHeader?.fallbackTitle,
-        imageUrl: tcHeader?.fallbackImageUrl,
-      };
-    }
-  }
-  else if (frozenTcHeaderFallbackRef.current) {
-    frozenTcHeaderFallbackRef.current = null;
-  }
-
-  const frozenTcHeaderTitle = frozenTcHeaderFallbackRef.current?.title;
-  const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
-
-  const postFrameParams = useCallback(() => {
-    try {
-      const win = iframeRef.current?.contentWindow;
-      if (!win)
-        return;
-      win.postMessage(
-        {
-          tc: "tc-blocksuite-frame",
-          instanceId,
-          type: "sync-params",
-          workspaceId,
-          spaceId,
-          docId,
-          variant,
-          readOnly,
-          allowModeSwitch,
-          fullscreenEdgeless,
-          mode: forcedMode,
-          tcHeader: tcHeaderEnabled,
-          tcHeaderTitle: frozenTcHeaderTitle,
-          tcHeaderImageUrl: frozenTcHeaderImageUrl,
-        },
-        getPostMessageTargetOrigin(),
-      );
-    }
-    catch {
-      // ignore
-    }
-  }, [
-    allowModeSwitch,
-    docId,
-    forcedMode,
-    fullscreenEdgeless,
-    frozenTcHeaderImageUrl,
-    frozenTcHeaderTitle,
-    instanceId,
-    readOnly,
-    spaceId,
-    tcHeaderEnabled,
-    variant,
-    workspaceId,
-  ]);
 
   // 父子窗口通信：mode 同步、导航委托、主题同步。
   useEffect(() => {
@@ -1447,7 +1384,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       if (data.type === "ready") {
         // iframe 侧可能比 onLoad 更晚才真正 ready；此时再同步一次 mode/theme/height，确保体验稳定。
         try {
-          postFrameParams();
+          postFrameParamsRef.current();
           const win = iframeRef.current?.contentWindow;
           if (!win)
             return;
@@ -1616,7 +1553,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
                   roleListbox: document.querySelectorAll("[role='listbox']").length,
                   roleMenu: document.querySelectorAll("[role='menu']").length,
                 };
-                console.warn("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
+                console.debug("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
               }
               catch {
                 // ignore
@@ -1626,10 +1563,10 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
           if (isBlocksuiteDebugEnabled()) {
             if (payload && typeof payload === "object") {
-              console.warn("[BlocksuiteFrameDebug]", source, message, payload);
+              console.debug("[BlocksuiteFrameDebug]", source, message, payload);
             }
             else {
-              console.warn("[BlocksuiteFrameDebug]", source, message);
+              console.debug("[BlocksuiteFrameDebug]", source, message);
             }
           }
         }
@@ -1652,7 +1589,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     navigate,
     onModeChange,
     onTcHeaderChange,
-    postFrameParams,
     scheduleMentionProfilePopoverClose,
     scheduleMentionProfilePopoverOpen,
   ]);
@@ -1719,7 +1655,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         const nodes = Array.isArray(path)
           ? path.map(summarizeNode).filter(Boolean).slice(0, 10)
           : [];
-        console.warn("[BlocksuiteHostDebug]", type, {
+        console.debug("[BlocksuiteHostDebug]", type, {
           targetTag: toLower((e.target as any)?.tagName),
           nodes,
         });
@@ -1801,6 +1737,32 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     };
   }, [instanceId]);
 
+  const tcHeaderEnabled = Boolean(tcHeader?.enabled);
+  const frozenTcHeaderFallbackRef = useRef<{
+    workspaceId: string;
+    docId: string;
+    title?: string;
+    imageUrl?: string;
+  } | null>(null);
+
+  if (tcHeaderEnabled) {
+    const prev = frozenTcHeaderFallbackRef.current;
+    if (!prev || prev.workspaceId !== workspaceId || prev.docId !== docId) {
+      frozenTcHeaderFallbackRef.current = {
+        workspaceId,
+        docId,
+        title: tcHeader?.fallbackTitle,
+        imageUrl: tcHeader?.fallbackImageUrl,
+      };
+    }
+  }
+  else if (frozenTcHeaderFallbackRef.current) {
+    frozenTcHeaderFallbackRef.current = null;
+  }
+
+  const frozenTcHeaderTitle = frozenTcHeaderFallbackRef.current?.title;
+  const frozenTcHeaderImageUrl = frozenTcHeaderFallbackRef.current?.imageUrl;
+
   const initParams = useMemo(() => {
     return {
       instanceId,
@@ -1881,6 +1843,38 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         .filter(Boolean)
         .join(" ");
 
+  function postFrameParams() {
+    try {
+      const win = iframeRef.current?.contentWindow;
+      if (!win)
+        return;
+      win.postMessage(
+        {
+          tc: "tc-blocksuite-frame",
+          instanceId,
+          type: "sync-params",
+          workspaceId,
+          spaceId,
+          docId,
+          variant,
+          readOnly,
+          allowModeSwitch,
+          fullscreenEdgeless,
+          mode: forcedMode,
+          tcHeader: tcHeaderEnabled,
+          tcHeaderTitle: frozenTcHeaderTitle,
+          tcHeaderImageUrl: frozenTcHeaderImageUrl,
+        },
+        getPostMessageTargetOrigin(),
+      );
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  postFrameParamsRef.current = postFrameParams;
+
   const syncFrameBasics = () => {
     try {
       const win = iframeRef.current?.contentWindow;
@@ -1909,7 +1903,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   };
 
   useEffect(() => {
-    postFrameParams();
+    postFrameParamsRef.current();
   }, [
     allowModeSwitch,
     docId,
@@ -1920,7 +1914,6 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     tcHeaderEnabled,
     frozenTcHeaderImageUrl,
     frozenTcHeaderTitle,
-    postFrameParams,
     variant,
     workspaceId,
   ]);

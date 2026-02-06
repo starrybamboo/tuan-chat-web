@@ -67,8 +67,10 @@ function getBlocksuiteMeasuredScrollHeight(): number {
     "affine-page-root",
     ".page-editor",
     "editor-host",
-    "doc-title",
+  ];
+  const docTitleCandidates = [
     ".doc-title-container",
+    "doc-title",
   ];
 
   const fallbackCandidates = [
@@ -80,6 +82,12 @@ function getBlocksuiteMeasuredScrollHeight(): number {
   for (const sel of primaryCandidates) {
     const el = querySelectorDeep<HTMLElement>(rootForQuery, sel);
     primaryMax = Math.max(primaryMax, measureElement(el));
+  }
+
+  let docTitleHeight = 0;
+  for (const sel of docTitleCandidates) {
+    const el = querySelectorDeep<HTMLElement>(rootForQuery, sel);
+    docTitleHeight = Math.max(docTitleHeight, measureElement(el));
   }
 
   let fallbackMax = 0;
@@ -94,10 +102,13 @@ function getBlocksuiteMeasuredScrollHeight(): number {
     document.body?.scrollHeight ?? 0,
   );
 
-  if (primaryMax > 0) {
+  if (primaryMax > 0 || docTitleHeight > 0) {
+    const combinedPrimary = primaryMax > 0 && docTitleHeight > 0
+      ? (primaryMax + docTitleHeight)
+      : Math.max(primaryMax, docTitleHeight);
     // primary 为准；fallback 不应把高度“撑到比内容还大”。
-    const cappedFallback = fallbackMax > 0 ? Math.min(fallbackMax, primaryMax) : 0;
-    return Math.max(primaryMax, cappedFallback);
+    const cappedFallback = fallbackMax > 0 ? Math.min(fallbackMax, combinedPrimary) : 0;
+    return Math.max(combinedPrimary, cappedFallback);
   }
 
   return Math.max(fallbackMax, docH);

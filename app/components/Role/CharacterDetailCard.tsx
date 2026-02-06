@@ -4,14 +4,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, DiceD6Icon, EditIcon, InfoIcon, RoleListIcon, SaveIcon, SlidersIcon } from "app/icons";
+import { ChevronRightIcon, CloseIcon, DiceD6Icon, DiceFiveIcon, EditIcon, GearOutline, InfoIcon, MicrophoneIcon, RoleListIcon, SaveIcon, SlidersIcon } from "app/icons";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useOutletContext } from "react-router";
-import CharacterDetailLeftPanel from "./CharacterDetailLeftPanel";
-import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
+import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
+import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
@@ -22,25 +22,21 @@ interface CharacterDetailProps {
   onSave: (updatedRole: Role) => void;
   selectedRuleId: number;
   onRuleChange: (newRuleId: number) => void;
-  layout?: "page" | "popup";
-  canKickOut?: boolean;
-  onKickOut?: () => void;
+  className?: string;
 }
 
-export default function CharacterDetail(props: CharacterDetailProps) {
-  return <CharacterDetailInner key={props.role.id} {...props} />;
+export default function CharacterDetailCard(props: CharacterDetailProps) {
+  return <CharacterDetailCardInner key={props.role.id} {...props} />;
 }
 /**
- * 角色详情组件
+ * 角色详情卡片组件
  */
-function CharacterDetailInner({
+function CharacterDetailCardInner({
   role,
   onSave,
   selectedRuleId,
   onRuleChange,
-  layout = "page",
-  canKickOut = false,
-  onKickOut,
+  className,
 }: CharacterDetailProps) {
   // 从 Outlet Context 获取 setRoles 用于手动更新角色列表
   const context = useOutletContext<{ setRoles?: React.Dispatch<React.SetStateAction<Role[]>> }>();
@@ -296,7 +292,7 @@ function CharacterDetailInner({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
-  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing ״̬
+  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing 状态
   const handleSave = () => {
     setIsTransitioning(true);
     const cleanedRole = {
@@ -424,121 +420,62 @@ function CharacterDetailInner({
     }
   };
 
-  const rightPanel = (
-    <>
-      {/* 扩展模块（右侧） */}
-      {isQueryLoading
-        ? (
-            <div className="space-y-6">
-              {/* 骨架屏 - 模拟扩展模块 */}
-              <div className="flex gap-2">
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
-                <div className="skeleton h-10 w-20 rounded-lg"></div>
-              </div>
-              <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
-                <div className="card-body">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="skeleton h-6 w-32"></div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="skeleton h-10 w-full"></div>
-                      <div className="skeleton h-10 w-full"></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="skeleton h-10 w-full"></div>
-                      <div className="skeleton h-10 w-full"></div>
-                    </div>
-                    <div className="skeleton h-20 w-full"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        : (
-            <ExpansionModule
-              roleId={localRole.id}
-              ruleId={selectedRuleId}
-              isStImportModalOpen={isStImportModalOpen}
-              onStImportModalClose={() => setIsStImportModalOpen(false)}
-            />
-          )}
-    </>
-  );
-
   return (
-    <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
-    }`}
+    <div
+      className={`bg-base-100 border border-base-200 rounded-xl shadow-sm p-3 sm:p-4 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}${className ? ` ${className}` : ""}`}
     >
-
-      {/* 桌面端显示的头部区域 */}
-      <div className="hidden md:flex items-center justify-between gap-3">
-        <div className="flex items-center gap-4">
-          {layout === "popup"
-            ? (
-                <button
-                  type="button"
-                  className="btn btn-error btn-sm md:btn-lg rounded-md mr-4"
-                  onClick={onKickOut}
-                  disabled={!canKickOut}
-                >
-                  踢出角色
-                </button>
-              )
-            : (
-                <Link to="/role" type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4">
-                  ← 返回
-                </Link>
-              )}
-          <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">
-              {localRole.name || "未命名角色"}
-            </h1>
-            <p className="text-base-content/60">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold truncate min-w-0">
+                {localRole.name || "未命名角色"}
+              </h1>
+              <span className="badge badge-outline badge-xs font-mono">
+                ID
+                {" "}
+                {localRole.id}
+              </span>
+            </div>
+            <p className="text-xs text-base-content/60">
               {isDiceMaiden ? "骰娘展示" : "角色展示"}
               {" "}
               ·
+              {" "}
               {currentRuleData?.ruleName || "未选择规则"}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速配置角色数据">
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <Link to="/role" type="button" className="btn btn-ghost btn-xs">
+              角色页
+            </Link>
+            {!isDiceMaiden && (
               <button
                 type="button"
                 onClick={() => setIsStImportModalOpen(true)}
-                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+                className="btn btn-secondary btn-xs"
               >
-                <span className="flex items-center gap-1">
-                  ST指令
-                </span>
+                ST导入
               </button>
-            </div>
-          )}
-          {isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="查看和导出骰娘文案配置的JSON格式">
+            )}
+            {isDiceMaiden && (
               <button
                 type="button"
                 onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+                className="btn btn-info btn-xs"
               >
                 <span className="flex items-center gap-1">
-                  <SlidersIcon className="w-4 h-4" />
+                  <SlidersIcon className="w-3.5 h-3.5" />
                   配置
                 </span>
               </button>
-            </div>
-          )}
-          {isEditing
-            ? (
-                <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
+            )}
+            {isEditing
+              ? (
                   <button
                     type="button"
                     onClick={handleSave}
-                    className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
+                    className={`btn btn-primary btn-xs ${isTransitioning ? "scale-95" : ""}`}
                     disabled={isTransitioning}
                   >
                     {isTransitioning
@@ -547,126 +484,195 @@ function CharacterDetailInner({
                         )
                       : (
                           <span className="flex items-center gap-1">
-                            <SaveIcon className="w-4 h-4" />
+                            <SaveIcon className="w-3.5 h-3.5" />
                             保存
                           </span>
                         )}
                   </button>
-                </div>
-              )
-            : (
-                <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
-                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
+                )
+              : (
+                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-xs">
                     <span className="flex items-center gap-1">
-                      <EditIcon className="w-4 h-4" />
+                      <EditIcon className="w-3.5 h-3.5" />
                       编辑
                     </span>
                   </button>
+                )}
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 rounded-lg border border-base-200 bg-base-100 p-2 sm:p-3">
+            <div className="flex justify-center">
+              {isQueryLoading
+                ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="skeleton w-20 h-20 rounded-full"></div>
+                      <div className="skeleton h-3 w-16"></div>
+                    </div>
+                  )
+                : (
+                    <CharacterAvatar
+                      role={localRole} // 当前角色基本信息
+                      roleAvatars={roleAvatars} // 当前角色的头像列表
+                      selectedAvatarId={selectedAvatarId} // 选中的头像ID
+                      selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL
+                      selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL
+                      avatarSizeClassName="w-36"
+                      onchange={handleAvatarChange}// 头像变化的回调
+                      onAvatarSelect={handleAvatarSelect} // 头像选择的回调
+                      onAvatarDelete={handleAvatarDelete} // 头像删除的回调
+                      onAvatarUpload={handleAvatarUpload} // 头像上传的回调
+                      useUrlState={false}
+                    />
+                  )}
+            </div>
+          </div>
+
+          <div className="flex flex-1 min-w-0 flex-col gap-2">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg border border-base-200 bg-base-100 px-3 py-2 text-left hover:bg-base-200 transition-colors"
+              onClick={handleOpenRuleModal}
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <GearOutline className="w-4 h-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold">当前规则</h3>
+                <p className="text-primary font-medium text-[11px] truncate max-w-35">
+                  {currentRuleData?.ruleName || "未选择规则"}
+                </p>
+              </div>
+              <ChevronRightIcon className="w-4 h-4 text-base-content/50 ml-auto" />
+            </button>
+
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg border border-base-200 bg-base-100 px-3 py-2 text-left hover:bg-base-200 transition-colors"
+              onClick={handleOpenAudioModal}
+            >
+              <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                <MicrophoneIcon className="w-4 h-4 text-secondary" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold">上传音频</h3>
+                <p className="text-secondary font-medium text-[11px]">
+                  {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
+                </p>
+              </div>
+              <ChevronRightIcon className="w-4 h-4 text-base-content/50 ml-auto" />
+            </button>
+
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg border border-base-200 bg-base-100 px-3 py-2 text-left hover:bg-base-200 transition-colors"
+              onClick={handleOpenDiceMaidenLinkModal}
+            >
+              <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                <DiceFiveIcon className="w-4 h-4 text-accent" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold">关联骰娘</h3>
+                <p className={`font-medium text-[11px] ${
+                  dicerRoleError ? "text-error" : "text-accent"
+                }`}
+                >
+                  {currentDicerRoleId
+                    ? dicerRoleError || linkedDicerRoleData?.data?.roleName || `ID: ${currentDicerRoleId}`
+                    : "选择使用的骰娘角色"}
+                </p>
+              </div>
+              <ChevronRightIcon className="w-4 h-4 text-base-content/50 ml-auto" />
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-base-200 bg-base-100 p-2">
+          {isEditing
+            ? (
+                <div>
+                  <label className="input input-sm rounded-md w-full">
+                    <input
+                      type="text"
+                      value={localRole.name}
+                      onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="角色名称"
+                    />
+                  </label>
+                  <textarea
+                    value={localRole.description}
+                    onChange={(e) => {
+                      setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                    }}
+                    placeholder="角色描述"
+                    className="textarea textarea-sm w-full h-20 resize-none mt-3 rounded-md"
+                  />
+                  <div className="text-right mt-1">
+                    <span className={`text-xs font-semibold ${charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
+                    }`}
+                    >
+                      {charCount}
+                      /
+                      {MAX_DESCRIPTION_LENGTH}
+                      {charCount > MAX_DESCRIPTION_LENGTH && (
+                        <span className="ml-2">(已超出描述字数上限)</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
+              )
+            : (
+                <p className="text-sm text-base-content/80 wrap-break-words line-clamp-5">
+                  {localRole.description || "暂无描述"}
+                </p>
+              )}
+        </div>
+
+        <div className="rounded-lg border border-base-200 bg-base-100 p-2">
+          <AudioPlayer
+            size="compact"
+            role={localRole}
+            onRoleUpdate={(updatedRole) => {
+              setLocalRole(updatedRole);
+              updateRole(updatedRole);
+            }}
+            onDelete={() => {
+              const updatedRole = { ...localRole, voiceUrl: undefined };
+              setLocalRole(updatedRole);
+              updateRole(updatedRole);
+            }}
+          />
+        </div>
+
+        <div className="rounded-lg border border-base-200 bg-base-100 p-2">
+          {isQueryLoading
+            ? (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <div className="skeleton h-8 w-16 rounded-lg"></div>
+                    <div className="skeleton h-8 w-16 rounded-lg"></div>
+                    <div className="skeleton h-8 w-16 rounded-lg"></div>
+                  </div>
+                  <div className="skeleton h-24 w-full rounded-lg"></div>
+                </div>
+              )
+            : (
+                <ExpansionModule
+                  roleId={localRole.id}
+                  ruleId={selectedRuleId}
+                  isStImportModalOpen={isStImportModalOpen}
+                  onStImportModalClose={() => setIsStImportModalOpen(false)}
+                  size="small"
+                />
               )}
         </div>
       </div>
 
-      <div className="max-md:hidden divider"></div>
-      {layout === "popup"
-        ? (
-            <div className="space-y-6">
-              <CharacterDetailLeftPanelHorizontal
-                isQueryLoading={isQueryLoading}
-                isEditing={isEditing}
-                isTransitioning={isTransitioning}
-                isDiceMaiden={isDiceMaiden}
-                localRole={localRole}
-                roleAvatars={roleAvatars}
-                selectedAvatarId={selectedAvatarId}
-                selectedAvatarUrl={selectedAvatarUrl}
-                selectedSpriteUrl={selectedSpriteUrl}
-                charCount={charCount}
-                maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
-                currentRuleName={currentRuleData?.ruleName}
-                currentDicerRoleId={currentDicerRoleId}
-                dicerRoleError={dicerRoleError}
-                linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                onSave={handleSave}
-                onEditStart={() => setIsEditing(true)}
-                onOpenStImportModal={() => setIsStImportModalOpen(true)}
-                onOpenRuleModal={handleOpenRuleModal}
-                onOpenAudioModal={handleOpenAudioModal}
-                onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
-                onAvatarChange={handleAvatarChange}
-                onAvatarSelect={handleAvatarSelect}
-                onAvatarDelete={handleAvatarDelete}
-                onAvatarUpload={handleAvatarUpload}
-                setLocalRole={setLocalRole}
-                onAudioRoleUpdate={(updatedRole) => {
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
-                onAudioDelete={() => {
-                  const updatedRole = { ...localRole, voiceUrl: undefined };
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
-                showActions={false}
-                showStImport={false}
-              />
-              <div className="space-y-6">
-                {rightPanel}
-              </div>
-            </div>
-          )
-        : (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* 左侧：立绘与简介、规则选择（固定） */}
-              <CharacterDetailLeftPanel
-                isQueryLoading={isQueryLoading}
-                isEditing={isEditing}
-                isTransitioning={isTransitioning}
-                isDiceMaiden={isDiceMaiden}
-                localRole={localRole}
-                roleAvatars={roleAvatars}
-                selectedAvatarId={selectedAvatarId}
-                selectedAvatarUrl={selectedAvatarUrl}
-                selectedSpriteUrl={selectedSpriteUrl}
-                charCount={charCount}
-                maxDescriptionLength={MAX_DESCRIPTION_LENGTH}
-                currentRuleName={currentRuleData?.ruleName}
-                currentDicerRoleId={currentDicerRoleId}
-                dicerRoleError={dicerRoleError}
-                linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                onSave={handleSave}
-                onEditStart={() => setIsEditing(true)}
-                onOpenStImportModal={() => setIsStImportModalOpen(true)}
-                onOpenRuleModal={handleOpenRuleModal}
-                onOpenAudioModal={handleOpenAudioModal}
-                onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
-                onAvatarChange={handleAvatarChange}
-                onAvatarSelect={handleAvatarSelect}
-                onAvatarDelete={handleAvatarDelete}
-                onAvatarUpload={handleAvatarUpload}
-                setLocalRole={setLocalRole}
-                onAudioRoleUpdate={(updatedRole) => {
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
-                onAudioDelete={() => {
-                  const updatedRole = { ...localRole, voiceUrl: undefined };
-                  setLocalRole(updatedRole);
-                  updateRole(updatedRole);
-                }}
-              />
-
-              {/* 右侧：编辑信息、预览、扩展模块 */}
-              <div className="lg:col-span-3 space-y-6">
-                {rightPanel}
-              </div>
-            </div>
-          )}
-
       {/* 规则选择弹窗 */}
       {isRuleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setIsRuleModalOpen(false)}>
-          <div className="bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">选择规则系统</h3>
@@ -678,10 +684,12 @@ function CharacterDetailInner({
                   <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
-              <RulesSection
-                currentRuleId={selectedRuleId}
-                onRuleChange={handleRuleChange}
-              />
+              <div className="max-h-96 overflow-y-auto">
+                <RulesSection
+                  currentRuleId={selectedRuleId}
+                  onRuleChange={handleRuleChange}
+                />
+              </div>
             </div>
           </div>
         </div>
