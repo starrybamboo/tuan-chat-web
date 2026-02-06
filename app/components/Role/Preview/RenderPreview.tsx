@@ -9,7 +9,7 @@ import { getAnchorOffsetXRef, REFERENCE_HEIGHT, REFERENCE_WIDTH } from "./previe
 interface RenderPreviewProps {
   // 预览Canvas引用
   previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
-  // Transform状态
+  // Transform״̬
   transform: Transform;
   // 角色名称，用于遮罩中的显示
   characterName?: string;

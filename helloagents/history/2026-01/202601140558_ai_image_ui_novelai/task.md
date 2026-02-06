@@ -1,6 +1,6 @@
 # 任务清单: AI 生图（/ai-image）UI 重构，对齐 NovelAI Image Generation
 
-目录: `helloagents/plan/202601140558_ai_image_ui_novelai/`
+Ŀ¼: `helloagents/plan/202601140558_ai_image_ui_novelai/`
 
 ---
 

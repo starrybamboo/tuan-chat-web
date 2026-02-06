@@ -1087,7 +1087,7 @@ export default function AiImagePage() {
             className={`btn btn-sm join-item ${uiMode === "pro" ? "btn-primary" : "btn-ghost"}`}
             onClick={() => setUiMode("pro")}
           >
-            专业模式
+            רҵģʽ
           </button>
         </div>
 

@@ -60,7 +60,7 @@
 
 ## 3. Quill 实现模块（内部目录）
 
-目录: `app/components/common/quillEditor/`
+Ŀ¼: `app/components/common/quillEditor/`
 
 文件清单（实现/工具/文档混合）：
 - `htmlTagWysiwyg.ts`

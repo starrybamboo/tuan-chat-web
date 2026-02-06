@@ -61,7 +61,7 @@ export function Pagination({
             {" "}
             {currentPage}
             {" "}
-            页
+            ҳ
           </div>
           <button
             type="button"

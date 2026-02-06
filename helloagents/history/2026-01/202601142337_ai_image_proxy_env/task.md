@@ -1,6 +1,6 @@
 # 任务清单: NovelAPI 同源代理支持本机代理（修复 502 超时）
 
-目录: `helloagents/plan/202601142337_ai_image_proxy_env/`
+Ŀ¼: `helloagents/plan/202601142337_ai_image_proxy_env/`
 
 ---
 

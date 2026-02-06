@@ -38,10 +38,10 @@ export function VaulSideDrawer({
   const widthNumber = typeof width === "number" ? width : null;
   const resolvedMin = Number.isFinite(minWidth) ? Math.max(0, minWidth!) : (widthNumber ?? 0);
   const resolvedMax = Number.isFinite(maxWidth) ? Math.max(resolvedMin, maxWidth!) : (widthNumber ?? resolvedMin);
-  const clamp = (value: number) => {
+  const clamp = React.useCallback((value: number) => {
     const safeValue = Number.isFinite(value) ? value : resolvedMin;
     return Math.min(resolvedMax, Math.max(resolvedMin, safeValue));
-  };
+  }, [resolvedMax, resolvedMin]);
   const renderedWidthNumber = widthNumber != null ? clamp(widthNumber) : null;
   const widthStyle = renderedWidthNumber != null ? `${renderedWidthNumber}px` : width;
   const mobileMaxWidth = "calc(100vw - 1rem)";
@@ -127,5 +127,3 @@ export function VaulSideDrawer({
     </div>
   );
 }
-
-export default VaulSideDrawer;

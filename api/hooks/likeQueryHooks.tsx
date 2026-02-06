@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+﻿import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import type {BatchLikeRecordRequest} from "../models/BatchLikeRecordRequest";
 import type {LikeRecordRequest} from "../models/LikeRecordRequest";
 import type {PageBaseRequest} from "../models/PageBaseRequest";
@@ -35,7 +35,7 @@ export function useGetLikeCountQuery(request: LikeRecordRequest) {
  * 批量获取点赞数量
  * @param requestBody 批量查询请求
  */
-export function useBatchGetLikeCountQuery(requestBody: LikeCountRequest) {
+function useBatchGetLikeCountQuery(requestBody: LikeCountRequest) {
     return useQuery({
         queryKey: ['batchGetLikeCount', requestBody],
         queryFn: () => tuanchat.likeRecordController.batchGetLikeCount(requestBody),
@@ -83,7 +83,7 @@ export function useUnlikeMutation() {
  * 获取用户点赞的内容分页
  * @param requestBody 分页请求参数
  */
-export function useGetUserLikedPageQuery(requestBody: PageBaseRequest) {
+function useGetUserLikedPageQuery(requestBody: PageBaseRequest) {
     return useQuery({
         queryKey: ['getUserLikedPage', requestBody],
         queryFn: () => tuanchat.likeRecordController.getUserLikedPage(requestBody),
@@ -95,10 +95,11 @@ export function useGetUserLikedPageQuery(requestBody: PageBaseRequest) {
  * 批量查询是否点赞过
  * @param requestBody 批量查询请求
  */
-export function useBatchIsLikedQuery(requestBody: BatchLikeRecordRequest) {
+function useBatchIsLikedQuery(requestBody: BatchLikeRecordRequest) {
     return useQuery({
         queryKey: ['batchIsLiked', requestBody],
         queryFn: () => tuanchat.likeRecordController.batchIsLiked(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
 }
+

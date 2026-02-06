@@ -76,7 +76,7 @@ jobs:
                     tag: "div",
                     text: {
                       tag: "lark_md",
-                      content: `**状态**: ${context.payload.pull_request.state}`
+                      content: `**״̬**: ${context.payload.pull_request.state}`
                     }
                   },
                   {

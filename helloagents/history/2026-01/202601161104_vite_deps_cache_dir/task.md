@@ -1,6 +1,6 @@
 # 任务清单: Vite optimize deps chunk 缺失（dev）
 
-目录: `helloagents/plan/202601161104_vite_deps_cache_dir/`
+Ŀ¼: `helloagents/plan/202601161104_vite_deps_cache_dir/`
 
 ---
 

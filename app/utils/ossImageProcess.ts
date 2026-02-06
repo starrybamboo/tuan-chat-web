@@ -1,4 +1,4 @@
-export function withOssProcess(url: string, process: string): string {
+function withOssProcess(url: string, process: string): string {
   // Avoid touching non-http(s) URLs.
   if (!url || url.startsWith("blob:") || url.startsWith("data:"))
     return url;

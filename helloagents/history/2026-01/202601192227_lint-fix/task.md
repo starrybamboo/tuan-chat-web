@@ -1,6 +1,6 @@
 ﻿# 任务清单: Lint 问题修复
 
-目录: `helloagents/plan/202601192227_lint-fix/`
+Ŀ¼: `helloagents/plan/202601192227_lint-fix/`
 
 ---
 

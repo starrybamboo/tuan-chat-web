@@ -79,7 +79,7 @@ linked-doc popover 的 `abort()`（内部实现名为 `_abort`）会：
 浏览器会认为“sandbox 的隔离效果被大幅削弱”，因此给出安全提示。
 
 ### 处理建议（按需求取舍）
-- 如果你只想“限制表单/弹窗/导航”等行为，而 iframe 仍需要同源（localStorage/cookie/同源 fetch 等）：保留 `allow-same-origin` 是合理的，但不要把它当作强隔离安全边界。
+- 如果你只想“限制表单/弹窗/导航”等行为，而 iframe 仍需要同源（localStorage/cookie/ͬԴ fetch 等）：保留 `allow-same-origin` 是合理的，但不要把它当作强隔离安全边界。
 - 如果你确实需要“强隔离安全边界”：通常不应同时开启 `allow-scripts` 与 `allow-same-origin`，但这会显著限制编辑器能力（需要按实际功能逐项验证）。
 
 ---

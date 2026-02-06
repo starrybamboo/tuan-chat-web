@@ -1,13 +1,13 @@
 # 任务清单: Blocksuite @ 菜单标题使用 tc_header
 
-目录: `helloagents/plan/202601191041_blocksuite_mention_tc_header_menu/`
+Ŀ¼: `helloagents/plan/202601191041_blocksuite_mention_tc_header_menu/`
 
 ---
 
 ## 1. @ 菜单标题来源改造
 - [√] 1.1 在 `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts` 中新增 tc_header 读取与缓存逻辑，验证 why.md#需求-@-菜单标题使用-tc_header-场景-打开-@-弹窗即显示-tc_header
 - [√] 1.2 在 `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts` 中改写 doc 菜单构建与搜索逻辑，验证 why.md#需求-@-菜单标题使用-tc_header-场景-搜索使用-tc_header
-- [√] 1.3 在 `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts` 中保证缺失 tc_header 不回退 Untitled，验证 why.md#需求-@-菜单标题使用-tc_header-场景-缺失-tc_header-不回退
+- [√] 1.3 在 `app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.client.ts` 中保证缺失 tc_header 不回退 Untitled，验证 why.md#需求-@-菜单标题使用-tc_header-场景-ȱʧ-tc_header-不回退
 
 ## 2. 安全检查
 - [√] 2.1 执行安全检查（按G9: 输入验证、敏感信息处理、权限控制、EHRB风险规避）

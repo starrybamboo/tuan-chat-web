@@ -1,6 +1,6 @@
 ﻿# 任务清单: 合并冲突自动解决与rerere启用
 
-目录: `helloagents/plan/202601192104_merge-rerere/`
+Ŀ¼: `helloagents/plan/202601192104_merge-rerere/`
 
 ---
 

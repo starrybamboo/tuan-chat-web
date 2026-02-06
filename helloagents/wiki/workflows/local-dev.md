@@ -26,7 +26,7 @@
 
 ## 4. 常见问题
 
-- Vite optimizeDeps chunk 缺失/React hooks 异常：优先执行 `pnpm dev:force`，必要时清理浏览器对 `localhost:5177` 的站点缓存（详见 [modules/tooling.md](../modules/tooling.md)）。
+- Vite optimizeDeps chunk ȱʧ/React hooks 异常：优先执行 `pnpm dev:force`，必要时清理浏览器对 `localhost:5177` 的站点缓存（详见 [modules/tooling.md](../modules/tooling.md)）。
 
 ## 5. Worktree 开发
 

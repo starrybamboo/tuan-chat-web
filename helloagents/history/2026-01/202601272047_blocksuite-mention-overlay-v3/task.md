@@ -1,6 +1,6 @@
 ﻿# 任务清单: Blocksuite 画布全屏遮挡 @ 弹窗修复（CSS 全屏兜底）
 
-目录: `helloagents/plan/202601272047_blocksuite-mention-overlay-v3/`
+Ŀ¼: `helloagents/plan/202601272047_blocksuite-mention-overlay-v3/`
 
 ---
 

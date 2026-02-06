@@ -18,7 +18,7 @@
 
 ### 需求: 导出 OpenAPI 规范并生成 TS 客户端
 **模块:** api
-为 NovelAI API 导出 OpenAPI JSON，并生成 TS Fetch 客户端代码，便于在前端/桌面端代码中直接复用。
+Ϊ NovelAI API 导出 OpenAPI JSON，并生成 TS Fetch 客户端代码，便于在前端/桌面端代码中直接复用。
 
 #### 场景: 开发者一键更新上游 API
 在上游文档更新后，开发者运行脚本即可刷新 `api/novelai_OpenAPI.json` 与 `api/novelai/*`，避免手工维护带来的不一致。

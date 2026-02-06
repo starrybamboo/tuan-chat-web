@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite 集成豆知识沉淀（@ 提及）
 
-目录: `helloagents/plan/202601171843_blocksuite-kb-notes/`
+Ŀ¼: `helloagents/plan/202601171843_blocksuite-kb-notes/`
 
 ---
 

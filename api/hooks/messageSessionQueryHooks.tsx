@@ -51,14 +51,6 @@ export function useUpdateReadPosition1Mutation() {
  * 获取用户在指定房间的会话信息
  * @param roomId 房间ID
  */
-export function useGetRoomSessionQuery(roomId: number) {
-    return useQuery({
-        queryKey: ['getRoomSession', roomId],
-        queryFn: () => tuanchat.messageSession.getRoomSession(roomId),
-        staleTime: 1800000, // 30分钟缓存
-        enabled: roomId > 0
-    });
-}
 
 /**
  * 获取用户的所有会话列表

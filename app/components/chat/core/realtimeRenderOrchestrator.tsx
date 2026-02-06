@@ -5,10 +5,25 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { isImageMessageBackground } from "@/types/messageAnnotations";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
+
+function sortMessagesForRender(messages: ChatMessageResponse[]) {
+  return [...messages].sort((a, b) => {
+    const positionDiff = (a.message.position ?? 0) - (b.message.position ?? 0);
+    if (positionDiff !== 0) {
+      return positionDiff;
+    }
+    const syncIdDiff = (a.message.syncId ?? 0) - (b.message.syncId ?? 0);
+    if (syncIdDiff !== 0) {
+      return syncIdDiff;
+    }
+    return a.message.messageId - b.message.messageId;
+  });
+}
 
 export interface RealtimeRenderOrchestratorApi {
   toggleRealtimeRender: () => Promise<void>;
@@ -107,23 +122,30 @@ export default function RealtimeRenderOrchestrator({
 
   const isRenderingHistoryRef = useRef(false);
   const orderedHistoryMessages = useMemo(() => {
-    return [...(historyMessages ?? [])].sort((a, b) => {
-      const positionDiff = (a.message.position ?? 0) - (b.message.position ?? 0);
-      if (positionDiff !== 0) {
-        return positionDiff;
-      }
-      const syncIdDiff = (a.message.syncId ?? 0) - (b.message.syncId ?? 0);
-      if (syncIdDiff !== 0) {
-        return syncIdDiff;
-      }
-      return a.message.messageId - b.message.messageId;
-    });
+    return sortMessagesForRender(historyMessages ?? []);
   }, [historyMessages]);
 
   const prevHistoryOrderIdsRef = useRef<number[] | null>(null);
   const prevHistoryUpdateTimeMapRef = useRef<Map<number, string | undefined>>(new Map());
   const pendingFullRerenderRef = useRef<ChatMessageResponse[] | null>(null);
   const fullRerenderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearFullRerenderTimer = useCallback(() => {
+    if (!fullRerenderTimerRef.current) {
+      return;
+    }
+    clearTimeout(fullRerenderTimerRef.current);
+    fullRerenderTimerRef.current = null;
+  }, []);
+  const resetHistoryTracking = useCallback(() => {
+    hasRenderedHistoryRef.current = false;
+    lastRenderedMessageIdRef.current = null;
+    isRenderingHistoryRef.current = false;
+    lastBackgroundMessageIdRef.current = null;
+    prevHistoryOrderIdsRef.current = null;
+    prevHistoryUpdateTimeMapRef.current = new Map();
+    pendingFullRerenderRef.current = null;
+    clearFullRerenderTimer();
+  }, [clearFullRerenderTimer]);
   const renderHistoryMessages = useCallback(async () => {
     if (!orderedHistoryMessages || orderedHistoryMessages.length === 0) {
       return;
@@ -171,29 +193,12 @@ export default function RealtimeRenderOrchestrator({
     if (prevRoomIdRef.current !== roomId) {
       prevRoomIdRef.current = roomId;
       setIsRealtimeRenderEnabled(false);
-      hasRenderedHistoryRef.current = false;
-      lastRenderedMessageIdRef.current = null;
-      isRenderingHistoryRef.current = false;
-      lastBackgroundMessageIdRef.current = null;
-      prevHistoryOrderIdsRef.current = null;
-      prevHistoryUpdateTimeMapRef.current = new Map();
-      pendingFullRerenderRef.current = null;
-      if (fullRerenderTimerRef.current) {
-        clearTimeout(fullRerenderTimerRef.current);
-        fullRerenderTimerRef.current = null;
-      }
+      resetHistoryTracking();
       if (sideDrawerState === "webgal") {
         setSideDrawerState("none");
       }
-      prevHistoryOrderIdsRef.current = null;
-      prevHistoryUpdateTimeMapRef.current = new Map();
-      pendingFullRerenderRef.current = null;
-      if (fullRerenderTimerRef.current) {
-        clearTimeout(fullRerenderTimerRef.current);
-        fullRerenderTimerRef.current = null;
-      }
     }
-  }, [roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
+  }, [resetHistoryTracking, roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
 
   useEffect(() => {
     if (!realtimeRender.isActive || realtimeRender.status !== "connected" || hasRenderedHistoryRef.current || isRenderingHistoryRef.current) {
@@ -214,18 +219,8 @@ export default function RealtimeRenderOrchestrator({
       return;
     }
 
-    hasRenderedHistoryRef.current = false;
-    lastRenderedMessageIdRef.current = null;
-    isRenderingHistoryRef.current = false;
-    lastBackgroundMessageIdRef.current = null;
-    prevHistoryOrderIdsRef.current = null;
-    prevHistoryUpdateTimeMapRef.current = new Map();
-    pendingFullRerenderRef.current = null;
-    if (fullRerenderTimerRef.current) {
-      clearTimeout(fullRerenderTimerRef.current);
-      fullRerenderTimerRef.current = null;
-    }
-  }, [realtimeRender.isActive]);
+    resetHistoryTracking();
+  }, [realtimeRender.isActive, resetHistoryTracking]);
 
   useEffect(() => {
     if (!realtimeRender.isActive || !hasRenderedHistoryRef.current) {
@@ -237,7 +232,8 @@ export default function RealtimeRenderOrchestrator({
     }
 
     const backgroundMessages = orderedHistoryMessages
-      .filter(msg => msg.message.messageType === 2 && msg.message.extra?.imageMessage?.background);
+      .filter(msg => msg.message.messageType === 2
+        && isImageMessageBackground(msg.message.annotations, msg.message.extra?.imageMessage));
 
     const latestBackgroundMessage = backgroundMessages[backgroundMessages.length - 1];
     const latestBackgroundMessageId = latestBackgroundMessage?.message.messageId ?? null;
@@ -350,17 +346,7 @@ export default function RealtimeRenderOrchestrator({
       return false;
     }
 
-    const messagesToRender = [...(messages ?? orderedHistoryMessages)].sort((a, b) => {
-      const positionDiff = (a.message.position ?? 0) - (b.message.position ?? 0);
-      if (positionDiff !== 0) {
-        return positionDiff;
-      }
-      const syncIdDiff = (a.message.syncId ?? 0) - (b.message.syncId ?? 0);
-      if (syncIdDiff !== 0) {
-        return syncIdDiff;
-      }
-      return a.message.messageId - b.message.messageId;
-    });
+    const messagesToRender = sortMessagesForRender(messages ?? orderedHistoryMessages);
     if (messagesToRender.length === 0) {
       return true;
     }
@@ -381,7 +367,8 @@ export default function RealtimeRenderOrchestrator({
         lastRenderedMessageIdRef.current = lastMessage.message.messageId;
       }
       const backgroundMessages = messagesToRender
-        .filter(msg => msg.message.messageType === 2 && msg.message.extra?.imageMessage?.background);
+        .filter(msg => msg.message.messageType === 2
+          && isImageMessageBackground(msg.message.annotations, msg.message.extra?.imageMessage));
       lastBackgroundMessageIdRef.current = backgroundMessages[backgroundMessages.length - 1]?.message.messageId ?? null;
 
       hasRenderedHistoryRef.current = true;
@@ -402,9 +389,7 @@ export default function RealtimeRenderOrchestrator({
 
   const scheduleFullRerender = useCallback((messages: ChatMessageResponse[]) => {
     pendingFullRerenderRef.current = messages;
-    if (fullRerenderTimerRef.current) {
-      clearTimeout(fullRerenderTimerRef.current);
-    }
+    clearFullRerenderTimer();
     fullRerenderTimerRef.current = setTimeout(() => {
       fullRerenderTimerRef.current = null;
       const pending = pendingFullRerenderRef.current;
@@ -414,16 +399,13 @@ export default function RealtimeRenderOrchestrator({
       }
       void rerenderHistoryInWebGAL(pending);
     }, 350);
-  }, [rerenderHistoryInWebGAL]);
+  }, [clearFullRerenderTimer, rerenderHistoryInWebGAL]);
 
   useEffect(() => {
     return () => {
-      if (fullRerenderTimerRef.current) {
-        clearTimeout(fullRerenderTimerRef.current);
-        fullRerenderTimerRef.current = null;
-      }
+      clearFullRerenderTimer();
     };
-  }, []);
+  }, [clearFullRerenderTimer]);
 
   useEffect(() => {
     if (!realtimeRender.isActive || realtimeRender.status !== "connected") {

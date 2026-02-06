@@ -1,6 +1,6 @@
-# 任务清单: Blocksuite mention 移除 `@` 前缀
+# 任务清单: Blocksuite mention 移除 `@` ǰ׺
 
-目录: `helloagents/plan/202601201622_blocksuite_mention_remove_at/`
+Ŀ¼: `helloagents/plan/202601201622_blocksuite_mention_remove_at/`
 
 ---
 

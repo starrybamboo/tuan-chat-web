@@ -9,7 +9,7 @@ import MoreBetterImg from "../utils/MoreBetterImg";
 
 interface ResourceCardProps {
   resource: ResourceResponse;
-  type: "5" | "6"; // 5: 图片, 6: 音频
+  type: "5" | "6"; // 5: ͼƬ, 6: 音频
   isPublic: boolean;
   onDelete?: (resourceId: number) => void;
   onAddToCollection?: (resourceId: number) => void;

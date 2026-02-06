@@ -26,7 +26,7 @@ export default function ChatToolbarFromStore({
   const plainText = useChatInputUiStore(state => state.plainText);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
-  const hasAttachments = useChatComposerStore(state => state.imgFiles.length > 0 || state.emojiUrls.length > 0 || !!state.audioFile);
+  const hasAttachments = useChatComposerStore(state => (state.imgFiles.length > 0 || state.emojiUrls.length > 0 || !!state.audioFile));
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);

@@ -6,7 +6,7 @@
 
     * 当你在浏览器中访问 `http://your-domain.com/user/profile` 时，这个请求会发送到 Nginx 服务器。
     * Nginx 查看它的配置，发现 `try_files $uri $uri/ /index.html;` 这条规则。
-    * 它首先尝试寻找一个叫做 `/user/profile` 的**文件**，找不到。然后尝试寻找一个叫 `/user/profile/` 的**目录**，也找不到。
+    * 它首先尝试寻找一个叫做 `/user/profile` 的**文件**，找不到。然后尝试寻找一个叫 `/user/profile/` 的**Ŀ¼**，也找不到。
     * 最后，作为备选方案 (fallback)，它将服务器根目录下的 `index.html` 文件返回给浏览器。
     * 浏览器加载 `index.html`，里面的 React Router 代码开始执行，它看到 URL 是 `/user/profile`，于是就渲染出对应的用户个人资料组件。**整个过程，路由是由前端代码控制的。**
 
@@ -100,8 +100,8 @@ fs.stat(filePath, (err, stats) => {
 
 * **步骤 1 & 2**: 当收到一个请求（比如 `app://./assets/main.css`），我们先把它转换成一个完整的本地文件系统路径（比如 `C:\YourApp\build\client\assets\main.css`），然后用 `fs.stat` 检查这个路径。
 * **步骤 3 (Fallback)**: `fs.stat` 如果返回错误 `err`，说明这个路径在磁盘上不存在。这完美对应了用户访问一个虚拟路由（如 `/user/profile`）的情况。此时，我们的代码会忽略用户请求的路径，**直接返回 `index.html` 的路径**。这和 Nginx 的 `try_files` 备选方案一模一样！
-* **步骤 4 (目录)**: 当应用初次加载 `app://./` 时，`filePath` 会指向 `.../build/client` 目录。`stats.isDirectory()` 会是 `true`，于是我们返回该目录下的 `index.html`。
-* **步骤 5 (文件)**: 当 `index.html` 被加载后，它会请求 JS、CSS、图片等资源，例如 `app://./assets/main.css`。这时 `filePath` 指向一个真实存在的文件，`stats.isDirectory()` 为 `false`，于是我们就直接返回这个文件的路径。
+* **步骤 4 (Ŀ¼)**: 当应用初次加载 `app://./` 时，`filePath` 会指向 `.../build/client` 目录。`stats.isDirectory()` 会是 `true`，于是我们返回该目录下的 `index.html`。
+* **步骤 5 (文件)**: 当 `index.html` 被加载后，它会请求 JS、CSS、图片等资源，例如 `app://./assets/main.css`。这时 `filePath` 指向一个真实存在的文件，`stats.isDirectory()` Ϊ `false`，于是我们就直接返回这个文件的路径。
 
 ### 总结
 

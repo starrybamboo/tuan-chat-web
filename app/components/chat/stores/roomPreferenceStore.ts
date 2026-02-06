@@ -124,6 +124,9 @@ export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => 
   ...INITIAL_STATE,
 
   setUseChatBubbleStyle: (value) => {
+    if (get().useChatBubbleStyle === value) {
+      return;
+    }
     writeBool("useChatBubbleStyle", value);
     set({ useChatBubbleStyle: value });
   },
@@ -134,6 +137,9 @@ export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => 
   },
 
   setWebgalLinkMode: (value) => {
+    if (get().webgalLinkMode === value) {
+      return;
+    }
     writeBool("webgalLinkMode", value);
     set({ webgalLinkMode: value });
   },
@@ -144,6 +150,9 @@ export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => 
   },
 
   setAutoReplyMode: (value) => {
+    if (get().autoReplyMode === value) {
+      return;
+    }
     writeBool("autoReplyMode", value);
     set({ autoReplyMode: value });
   },
@@ -154,12 +163,18 @@ export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => 
   },
 
   setRunModeEnabled: (value) => {
+    if (get().runModeEnabled === value) {
+      return;
+    }
     writeBool("runModeEnabled", value);
     set({ runModeEnabled: value });
   },
 
   setDefaultFigurePositionForRole: (roleId, position) => {
     set((state) => {
+      if (state.defaultFigurePositionMap[roleId] === position) {
+        return state;
+      }
       const nextMap: Record<number, FigurePosition> = {
         ...state.defaultFigurePositionMap,
         [roleId]: position,
@@ -169,24 +184,44 @@ export const useRoomPreferenceStore = create<RoomPreferenceState>((set, get) => 
     });
   },
 
-  setDialogNotend: value => set({ dialogNotend: value }),
+  setDialogNotend: (value) => {
+    if (get().dialogNotend === value) {
+      return;
+    }
+    set({ dialogNotend: value });
+  },
   toggleDialogNotend: () => set({ dialogNotend: !get().dialogNotend }),
 
-  setDialogConcat: value => set({ dialogConcat: value }),
+  setDialogConcat: (value) => {
+    if (get().dialogConcat === value) {
+      return;
+    }
+    set({ dialogConcat: value });
+  },
   toggleDialogConcat: () => set({ dialogConcat: !get().dialogConcat }),
 
   setDraftCustomRoleNameForRole: (roleId, customRoleName) => {
     set((state) => {
-      const nextMap: Record<number, string> = { ...state.draftCustomRoleNameMap };
       const trimmed = (customRoleName ?? "").trim();
+      const prevValue = state.draftCustomRoleNameMap[roleId];
       if (!trimmed) {
+        if (prevValue == null) {
+          return state;
+        }
+        const nextMap: Record<number, string> = { ...state.draftCustomRoleNameMap };
         delete nextMap[roleId];
+        writeJson("draftCustomRoleNameMap", nextMap);
+        return { draftCustomRoleNameMap: nextMap };
       }
       else {
+        if (prevValue === trimmed) {
+          return state;
+        }
+        const nextMap: Record<number, string> = { ...state.draftCustomRoleNameMap };
         nextMap[roleId] = trimmed;
+        writeJson("draftCustomRoleNameMap", nextMap);
+        return { draftCustomRoleNameMap: nextMap };
       }
-      writeJson("draftCustomRoleNameMap", nextMap);
-      return { draftCustomRoleNameMap: nextMap };
     });
   },
 }));

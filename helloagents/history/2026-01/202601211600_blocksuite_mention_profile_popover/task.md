@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite 文档内用户 mention 个人主页（点击跳转 + 悬浮预览）
 
-目录: `helloagents/plan/202601211600_blocksuite_mention_profile_popover/`
+Ŀ¼: `helloagents/plan/202601211600_blocksuite_mention_profile_popover/`
 
 ---
 

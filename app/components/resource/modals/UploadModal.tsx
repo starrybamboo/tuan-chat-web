@@ -10,7 +10,7 @@ interface UploadModalProps {
 }
 
 export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
-  const [selectedType, setSelectedType] = useState<"5" | "6">("5"); // 5: 图片, 6: 音频
+  const [selectedType, setSelectedType] = useState<"5" | "6">("5"); // 5: ͼƬ, 6: 音频
   const [isUploading, setIsUploading] = useState(false);
   const [resourceName, setResourceName] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -97,7 +97,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
       setSelectedFile(validFile);
     }
     else if (files.length > 0) {
-      const fileType = selectedType === "5" ? "图片" : "音频";
+      const fileType = selectedType === "5" ? "ͼƬ" : "音频";
       const formats = selectedType === "5" ? "JPG、PNG、GIF、WEBP" : "MP3、WAV、M4A、AAC、OGG";
       toast.error(`请选择${fileType}文件（${formats}）`);
     }
@@ -116,7 +116,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 
       // 根据类型上传
       if (selectedType === "5") {
-        // 图片
+        // ͼƬ
         url = await uploadUtils.uploadImg(selectedFile, 1);
       }
       else {
@@ -157,7 +157,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
       setSelectedFile(file);
     }
     else {
-      const fileType = selectedType === "5" ? "图片" : "音频";
+      const fileType = selectedType === "5" ? "ͼƬ" : "音频";
       const formats = selectedType === "5" ? "JPG、PNG、GIF、WEBP" : "MP3、WAV、M4A、AAC、OGG";
       toast.error(`请选择${fileType}文件（${formats}）`);
     }
@@ -198,7 +198,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                     selectedType === "5" ? "btn-primary" : "btn-outline"
                   }`}
                 >
-                  图片
+                  ͼƬ
                 </button>
                 <button
                   type="button"
@@ -357,7 +357,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                         </div>
                         <div>
                           <p className="font-medium">
-                            {isDragOver ? "释放文件以上传" : `选择${selectedType === "5" ? "图片" : "音频"}文件`}
+                            {isDragOver ? "释放文件以上传" : `选择${selectedType === "5" ? "ͼƬ" : "音频"}文件`}
                           </p>
                           <p className="text-sm text-base-content/60">
                             {isDragOver

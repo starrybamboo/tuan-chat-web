@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及宿主点击链路调试
 
-目录: `helloagents/plan/202601171657_blocksuite-mention-host-click-debug/`
+Ŀ¼: `helloagents/plan/202601171657_blocksuite-mention-host-click-debug/`
 
 ---
 

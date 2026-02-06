@@ -18,7 +18,7 @@ export const TC_AFFINE_EDITOR_CONTAINER_TAG = "tc-affine-editor-container";
  * Why: the integration-test container always inserts `<doc-title>` in page mode.
  * For TuanChat, page title UI is handled by `tcHeader`, so doc-title should be optional.
  */
-export class TCAffineEditorContainer extends SignalWatcher(
+class TCAffineEditorContainer extends SignalWatcher(
   WithDisposable(ShadowlessElement),
 ) {
   static override styles = css`

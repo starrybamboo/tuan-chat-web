@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及点击链路调试日志
 
-目录: `helloagents/plan/202601171622_blocksuite-mention-click-debug/`
+Ŀ¼: `helloagents/plan/202601171622_blocksuite-mention-click-debug/`
 
 ---
 

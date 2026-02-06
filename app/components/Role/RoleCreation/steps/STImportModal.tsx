@@ -19,7 +19,7 @@ const ABILITY_MAP: { [key: string]: string } = {
   edu: "教育",
   siz: "体型",
   int: "智力",
-  san值: "san",
+  sanֵ: "san",
   luck: "幸运",
   魔法: "mp",
   体力: "hp",

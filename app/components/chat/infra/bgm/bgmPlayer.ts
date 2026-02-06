@@ -101,10 +101,6 @@ function ensureWebAudioGraph(a: HTMLAudioElement) {
   }
 }
 
-export function getBgmAudioElement(): HTMLAudioElement {
-  return ensureAudio();
-}
-
 export async function playBgm(src: string, options: BgmPlayOptions = {}): Promise<void> {
   const a = ensureAudio();
   const nextLoop = options.loop ?? true;
@@ -196,7 +192,6 @@ export function stopBgm(): void {
     // ignore
   }
 }
-
 export function pauseBgm(): void {
   if (!audio)
     return;
@@ -209,10 +204,4 @@ export function pauseBgm(): void {
   catch {
     // ignore
   }
-}
-
-export function isBgmPlaying(): boolean {
-  if (!audio)
-    return false;
-  return !audio.paused;
 }

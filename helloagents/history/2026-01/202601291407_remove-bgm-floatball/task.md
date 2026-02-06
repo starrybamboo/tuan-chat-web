@@ -1,6 +1,6 @@
 # 任务清单: 移除房间级 BGM 悬浮球
 
-目录: `helloagents/plan/202601291407_remove-bgm-floatball/`
+Ŀ¼: `helloagents/plan/202601291407_remove-bgm-floatball/`
 
 ---
 

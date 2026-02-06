@@ -1,6 +1,6 @@
 # 任务清单: tcHeader 编辑不触发 blocksuite iframe 重载
 
-目录: `helloagents/plan/202601171911_tc_header_no_reload/`
+Ŀ¼: `helloagents/plan/202601171911_tc_header_no_reload/`
 
 ---
 

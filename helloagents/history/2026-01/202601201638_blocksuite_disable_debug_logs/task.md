@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite 关闭默认 debug 控制台输出
 
-目录: `helloagents/plan/202601201638_blocksuite_disable_debug_logs/`
+Ŀ¼: `helloagents/plan/202601201638_blocksuite_disable_debug_logs/`
 
 ---
 

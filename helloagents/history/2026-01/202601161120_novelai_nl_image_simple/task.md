@@ -1,6 +1,6 @@
 # 任务清单: NovelAI 自然语言生图（简单形态）
 
-目录: `helloagents/plan/202601161120_novelai_nl_image_simple/`
+Ŀ¼: `helloagents/plan/202601161120_novelai_nl_image_simple/`
 
 ---
 

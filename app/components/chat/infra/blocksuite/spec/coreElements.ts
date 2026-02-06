@@ -75,9 +75,9 @@ export async function ensureBlocksuiteCoreElementsDefined(): Promise<void> {
     bookmarkBlocksMod,
     embedBlocksMod,
   ] = await Promise.all([
-    import("@blocksuite/affine-block-attachment/view"),
-    import("@blocksuite/affine-block-bookmark/view"),
-    import("@blocksuite/affine-block-embed/view"),
+    import("@blocksuite/affine/blocks/attachment/view"),
+    import("@blocksuite/affine/blocks/bookmark/view"),
+    import("@blocksuite/affine/blocks/embed/view"),
     import("@blocksuite/affine-block-root/effects"),
     import("@blocksuite/affine-components/caption"),
     import("@blocksuite/affine-components/color-picker"),
@@ -93,8 +93,8 @@ export async function ensureBlocksuiteCoreElementsDefined(): Promise<void> {
     import("@blocksuite/affine-components/toggle-button"),
     import("@blocksuite/affine-components/toolbar"),
     import("@blocksuite/affine-components/view-dropdown-menu"),
-    import("@blocksuite/affine-rich-text/effects"),
-    import("@blocksuite/data-view/effects"),
+    import("@blocksuite/affine/rich-text/effects"),
+    import("@blocksuite/affine/data-view/effects"),
     import("@blocksuite/integration-test/effects"),
     import("@blocksuite/std/effects"),
     // Ensure AFFiNE block modules are loaded so their schemas/specs are registered.

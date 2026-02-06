@@ -69,7 +69,7 @@ export default function PostEditor({
     try {
       setIsUploadingImage(true);
       setCoverImageFile(file); // 设置文件用于预览
-      const imageUrl = await uploadUtils.uploadImg(file, 4); // scene 4 表示模组图片
+      const imageUrl = await uploadUtils.uploadImg(file, 4); // scene 4 表示仓库图片
       setCoverImage(imageUrl);
     }
     catch (error) {
@@ -160,7 +160,7 @@ export default function PostEditor({
                   <div className="text-xs text-base-content/60 mt-1">
                     [
                     {forwardMessage.message.messageType === 2
-                      ? "图片"
+                      ? "ͼƬ"
                       : forwardMessage.message.messageType === 3 ? "文件" : "其他"}
                     ]
                   </div>

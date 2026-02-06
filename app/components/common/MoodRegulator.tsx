@@ -3,7 +3,7 @@ import { memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from 
 export type MoodMap = Record<string, string>;
 type MoodNumberMap = Record<string, number>;
 
-export interface MoodRegulatorProps {
+interface MoodRegulatorProps {
   value?: MoodMap | null | undefined;
   defaultValue?: MoodMap;
   onChange?: (next: MoodMap) => void;
@@ -31,8 +31,8 @@ export interface MoodRegulatorHandle {
 }
 
 const DEFAULT_LABELS: string[] = [
-  "喜",
-  "怒",
+  "ϲ",
+  "ŭ",
   "哀",
   "惧",
   "厌恶",

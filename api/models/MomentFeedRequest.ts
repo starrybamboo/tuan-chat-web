@@ -17,6 +17,6 @@ export type MomentFeedRequest = {
     /**
      * 相关模组id
      */
-    moduleId?: number;
+    repositoryId?: number;
 };
 

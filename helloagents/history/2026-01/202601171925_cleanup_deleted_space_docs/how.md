@@ -31,4 +31,4 @@
 ## 风险与规避
 
 - 风险：在缓存缺失时对多个 space 做 best-effort 删除，可能带来少量额外开销。
-- 规避：优先使用 `getRoomInfo` 缓存；best-effort 使用 `Promise.allSettled`，且删除不存在 doc 为 no-op。
+- 规避：优先使用 `getRoomInfo` 缓存；best-effort 使用 `Promise.allSettled`，且删除不存在 doc Ϊ no-op。

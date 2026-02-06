@@ -6,7 +6,7 @@ interface ImagePreviewProps {
   maxPreview?: number;
 }
 
-export const ImagePreview: React.FC<ImagePreviewProps> = ({
+const ImagePreview: React.FC<ImagePreviewProps> = ({
   images,
   maxPreview = 9,
 }) => {
@@ -101,7 +101,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           <img
             key={`pic-${enlargedIndex}`}
             src={currentImage}
-            alt={`图片 ${enlargedIndex + 1}`}
+            alt={`ͼƬ ${enlargedIndex + 1}`}
             className="w-full h-full object-contain"
             style={{
               transform: `rotate(${rotation}deg)`,
@@ -177,7 +177,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           <div key={img} className="relative">
             <img
               src={img}
-              alt={`图片 ${idx + 1}`}
+              alt={`ͼƬ ${idx + 1}`}
               className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => handleImageClick(idx)}
             />

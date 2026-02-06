@@ -49,7 +49,7 @@ export function AvatarSettingsTab({
   }, [currentAvatar]);
   // 情绪调节器兜底标签
   const DEFAULT_MOOD_LABELS = useMemo(
-    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
+    () => ["ϲ", "ŭ", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
     [],
   );
 

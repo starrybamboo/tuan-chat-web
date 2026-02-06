@@ -1,6 +1,6 @@
 # 任务清单: AI 生图 Web 默认切回同源代理
 
-目录: `helloagents/plan/202601151809_ai_image_default_proxy/`
+Ŀ¼: `helloagents/plan/202601151809_ai_image_default_proxy/`
 
 ---
 

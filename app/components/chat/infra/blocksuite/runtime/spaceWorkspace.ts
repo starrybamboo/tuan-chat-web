@@ -432,7 +432,7 @@ export class SpaceWorkspace implements Workspace {
       const metas = this.meta.docMetas;
       // linked-doc uses `workspace.meta.docMetas` as its data source.
       // For business docIds, the title should prefer `tc_header.title` (instead of blocksuite native title).
-      const isBusinessDocId = (id: string) => /^(?:room|space|clue|user):/.test(id);
+      const isBusinessDocId = (id: string) => /^(?:room|space|user):/.test(id);
       const pendingIds = metas
         .filter(m => !m.title || isBusinessDocId(m.id))
         .map(m => m.id);

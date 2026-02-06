@@ -3,7 +3,7 @@ import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import { PopWindow } from "@/components/common/popWindow";
 
-export interface RoomPopWindowsProps {
+interface RoomPopWindowsProps {
   isRoleHandleOpen: boolean;
   setIsRoleAddWindowOpen: (open: boolean) => void;
   handleAddRole: (roleId: number) => void;

@@ -21,7 +21,7 @@
 
 ## OpenAPI 与客户端生成
 
-- **OpenAPI 源:** `api/tuanchat_OpenAPI.json`
+- **OpenAPI Դ:** `api/tuanchat_OpenAPI.json`
 - **生成命令:** `pnpm openapi`
 - **生成输出:** `api/core`、`api/models`、`api/services`
 

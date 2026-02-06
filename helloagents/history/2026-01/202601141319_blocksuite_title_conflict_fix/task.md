@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite 标题冲突修复
 
-目录: `helloagents/plan/202601141319_blocksuite_title_conflict_fix/`
+Ŀ¼: `helloagents/plan/202601141319_blocksuite_title_conflict_fix/`
 
 ---
 

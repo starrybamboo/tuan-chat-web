@@ -3,7 +3,7 @@ export function meta(_args: any) {
     { title: "工作室" },
     {
       name: "description",
-      content: "欢迎来到tuan chat工作室, 你可以在这里自由创建和修改模组!",
+      content: "欢迎来到tuan chat工作室, 你可以在这里自由创建和修改仓库!",
     },
   ];
 }

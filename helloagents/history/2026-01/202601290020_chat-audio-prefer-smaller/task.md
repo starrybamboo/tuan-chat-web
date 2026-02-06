@@ -1,6 +1,6 @@
 # 任务清单: 聊天音频转码尽量更小（否则阻止上传）
 
-目录: `helloagents/history/2026-01/202601290020_chat-audio-prefer-smaller/`
+Ŀ¼: `helloagents/history/2026-01/202601290020_chat-audio-prefer-smaller/`
 
 ---
 

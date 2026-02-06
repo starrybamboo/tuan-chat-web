@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 interface DisplayChatBubbleProps {
   /** 角色名称 */
   roleName: string;
-  /** 源 avatar canvas 引用（优先） */
+  /** Դ avatar canvas 引用（优先） */
   avatarCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
   /** 角色头像 URL 备用，当没有提供源 canvas 时使用 */
   avatarUrl?: string;

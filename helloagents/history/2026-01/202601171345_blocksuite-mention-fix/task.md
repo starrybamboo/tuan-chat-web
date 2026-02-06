@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及弹窗重复插入修复
 
-目录: `helloagents/plan/202601171345_blocksuite-mention-fix/`
+Ŀ¼: `helloagents/plan/202601171345_blocksuite-mention-fix/`
 
 ---
 

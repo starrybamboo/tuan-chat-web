@@ -1,6 +1,6 @@
 # 任务清单: AI 生图模块（NovelAI）重写
 
-目录: `helloagents/plan/202601141920_ai_image_novelai/`
+Ŀ¼: `helloagents/plan/202601141920_ai_image_novelai/`
 
 ---
 

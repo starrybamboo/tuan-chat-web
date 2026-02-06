@@ -43,7 +43,7 @@ interface ImgUploaderWithCopperProps {
   children: React.ReactNode;
   // 上传文件的文件名
   fileName: string;
-  // 上传场景：1.聊天室,2.表情包，3.角色差分 4.模组图片
+  // 上传场景：1.聊天室,2.表情包，3.角色差分 4.仓库图片
   scene: 1 | 2 | 3 | 4;
   // 数据更新回调函数
   mutate?: (data: any, context?: UploadContext) => void | Promise<void>;
@@ -158,7 +158,7 @@ export function CharacterCopper({
     setImgSrc("");
     setisSubmiting(false);
     setPreviewRenderKey(0);
-    // 重置Transform状态
+    // 重置Transform״̬
     setTransform(createDefaultTransform());
     // 重置裁剪状态
     resetCropState();

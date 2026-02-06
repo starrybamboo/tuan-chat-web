@@ -29,17 +29,9 @@ export type UserInfoResponse = {
      */
     description?: string;
     /**
-     * 用户背景图的url
-     */
-    backgroundUrl?: string;
-    /**
-     * 性别: 隐藏(null) 男 女
+     * 性别: 隐藏(null) 男 Ů
      */
     gender?: string;
-    /**
-     * 用户的README
-     */
-    readMe?: string;
     /**
      * 用户邮箱
      */

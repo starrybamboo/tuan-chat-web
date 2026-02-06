@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient, useInfiniteQuery} from "@tanstack/react-query";
+﻿import {useMutation, useQuery, useQueryClient, useInfiniteQuery} from "@tanstack/react-query";
 import type {CommunityCreateRequest} from "../models/CommunityCreateRequest";
 import type {CommunityUpdateRequest} from "../models/CommunityUpdateRequest";
 import type {PagePostRequest} from "../models/PagePostRequest";
@@ -9,7 +9,7 @@ import {tuanchat} from "../instance";
 /**
  * 更新社区信息
  */
-export function useUpdateCommunityMutation() {
+function useUpdateCommunityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: CommunityUpdateRequest) => tuanchat.community.updateCommunity(req),
@@ -37,7 +37,7 @@ export function useGetCommunityInfoQuery(communityId: number) {
 /**
  * 启用社区
  */
-export function useEnableCommunityMutation() {
+function useEnableCommunityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (communityId: number) => tuanchat.community.enableCommunity(communityId),
@@ -52,7 +52,7 @@ export function useEnableCommunityMutation() {
 /**
  * 禁用社区
  */
-export function useDisableCommunityMutation() {
+function useDisableCommunityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (communityId: number) => tuanchat.community.disableCommunity(communityId),
@@ -67,7 +67,7 @@ export function useDisableCommunityMutation() {
 /**
  * 创建社区
  */
-export function useCreateCommunityMutation() {
+function useCreateCommunityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: CommunityCreateRequest) => tuanchat.community.createCommunity(req),
@@ -125,7 +125,7 @@ export function usePageCommunityPostsInfiniteQuery(requestBody: PagePostRequest)
     });
 }
 
-export function usePageCommunityPostsQuery(requestBody: PagePostRequest) {
+function usePageCommunityPostsQuery(requestBody: PagePostRequest) {
     return useQuery({
         queryKey: ['pageCommunityPosts', requestBody],
         queryFn: () => tuanchat.communityPostController.pageCommunityPosts(requestBody),
@@ -137,7 +137,7 @@ export function usePageCommunityPostsQuery(requestBody: PagePostRequest) {
 /**
  * 分页获取用户帖子
  */
-export function usePageUserPostsQuery(requestBody: PagePostRequest) {
+function usePageUserPostsQuery(requestBody: PagePostRequest) {
     return useQuery({
         queryKey: ['pageUserPosts', requestBody],
         queryFn: () => tuanchat.communityPostController.pageUserPosts(requestBody),
@@ -195,3 +195,4 @@ export function useDeletePostMutation() {
         }
     });
 }
+

@@ -120,7 +120,7 @@ const audioBlob = await generateTTS("http://127.0.0.1:9880", params);
 
 ### 情感控制模式
 
-| 模式 | 说明 |
+| ģʽ | 说明 |
 |------|------|
 | 0 | 与音色参考音频相同的情感 |
 | 1 | 使用情感参考音频 |
@@ -130,8 +130,8 @@ const audioBlob = await generateTTS("http://127.0.0.1:9880", params);
 ### 情感向量维度
 
 8 维向量对应以下情感:
-- `[0]` 喜 (joy)
-- `[1]` 怒 (anger)
+- `[0]` ϲ (joy)
+- `[1]` ŭ (anger)
 - `[2]` 哀 (sadness)
 - `[3]` 惧 (fear)
 - `[4]` 厌恶 (disgust)

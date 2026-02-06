@@ -37,7 +37,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   }, [roomId]);
 
   /**
-   * 批量添加或更新消息到当前房间，并同步更新UI状态
+   * 批量添加或更新消息到当前房间，并同步更新UI״̬
    * @param newMessages 要处理的消息数组
    */
   const addOrUpdateMessages = useCallback(

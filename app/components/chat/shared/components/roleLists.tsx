@@ -5,11 +5,11 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 export default function RoleList({
   roles,
   className,
-  isModuleRole = false,
+  isNpcRole = false,
 }: {
   roles: UserRole[];
   className?: string;
-  isModuleRole?: boolean;
+  isNpcRole?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -25,7 +25,7 @@ export default function RoleList({
               width={10}
               isRounded={true}
               withTitle={false}
-              allowKickOut={!isModuleRole}
+              allowKickOut={!isNpcRole}
             />
           </div>
           <span>{role.roleName}</span>

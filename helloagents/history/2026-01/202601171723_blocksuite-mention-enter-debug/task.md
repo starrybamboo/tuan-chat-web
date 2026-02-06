@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及 Enter 链路调试增强
 
-目录: `helloagents/plan/202601171723_blocksuite-mention-enter-debug/`
+Ŀ¼: `helloagents/plan/202601171723_blocksuite-mention-enter-debug/`
 
 ---
 

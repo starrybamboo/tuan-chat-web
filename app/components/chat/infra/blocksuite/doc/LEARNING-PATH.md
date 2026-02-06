@@ -68,8 +68,6 @@
    - `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
    - 你要理解：React 只负责挂载宿主与传参，编辑器核心是 Web Components + std 渲染树
 
-4. **Demo/路由入口（方便你断点调试）**
-   - `app/routes/docTest.tsx`
 
 配套阅读：
 - `INTERNAL-DATA.md`（术语对照）
@@ -81,8 +79,7 @@
 
 建议你按顺序做，不要跳：
 
-1. 在 `docTest` 页面里把 `spaceId/docId` 固定成你方便复现的值，确保刷新后数据仍在（验证 IndexedDB）
-2. 在 `blocksuiteDescriptionEditor.tsx` 里加一个“只读/可编辑”的切换（理解编辑器的受控边界）
-3. 给 `affineSpec.ts` 加/减一个 widget view extension，然后观察 UI 变化（标题/toolbar/SlashMenu）
-4. 追踪一次“输入一个字符”从 DOM → selection/rich-text → Yjs update → 存储的链路（只要能画出数据流就算成功）
+1. 在 `blocksuiteDescriptionEditor.tsx` 里加一个“只读/可编辑”的切换（理解编辑器的受控边界）
+2. 给 `affineSpec.ts` 加/减一个 widget view extension，然后观察 UI 变化（标题/toolbar/SlashMenu）
+3. 追踪一次“输入一个字符”从 DOM → selection/rich-text → Yjs update → 存储的链路（只要能画出数据流就算成功）
 

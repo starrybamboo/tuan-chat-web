@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 
+import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { CURRENT_WINDOW_ID, handleWindowBlur, shouldSendStatusUpdate } from "@/utils/windowInstance";
 
 import type { ChatStatusEvent, ChatStatusType } from "../../../../api/wsModels";
@@ -13,7 +14,7 @@ type UseChatInputStatusParams = {
     updateChatStatus: (evt: ChatStatusEvent) => void;
     send: (payload: any) => void; // payload: { type: 4, data: ChatStatusEvent }
   };
-  inputTextSource: {
+  inputTextSource?: {
     get: () => string;
     subscribe: (listener: (text: string) => void) => () => void;
   };
@@ -38,18 +39,32 @@ type UseChatInputStatusReturn = {
  * - 活动期且文本非空 => input
  * - 手动切换添加 lockDurationMs 锁，保护期内不被自动覆盖
  */
-export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatusReturn {
+function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatusReturn {
   const {
     roomId,
     userId,
     webSocketUtils,
-    inputTextSource,
     snapshotIntervalMs = 10_000,
     idleThresholdMs = 10_000,
     leaveThresholdMs = 5 * 60_000,
     lockDurationMs = 3_000,
     isSpectator = false,
   } = params;
+  const inputTextSource = React.useMemo(() => {
+    if (params.inputTextSource) {
+      return params.inputTextSource;
+    }
+    return {
+      get: () => useChatInputUiStore.getState().plainText,
+      subscribe: (listener: (text: string) => void) => {
+        return useChatInputUiStore.subscribe((state, prev) => {
+          if (state.plainText !== prev.plainText) {
+            listener(state.plainText);
+          }
+        });
+      },
+    };
+  }, [params.inputTextSource]);
 
   const lastActivityRef = useRef<number>(Date.now());
   const lastNonEmptyInputRef = useRef<string>("");

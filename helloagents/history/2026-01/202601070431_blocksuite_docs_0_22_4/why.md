@@ -2,7 +2,6 @@
 
 ## 需求背景
 
-当前仓库已引入 Blocksuite 生态（`@blocksuite/*@0.22.4`），并在 `app/components/chat/infra/blocksuite/` 下存在嵌入式编辑器、playground、同步等相关实现与内部说明文档，但信息分散在代码与局部 Markdown 中，缺少一套“对外可用内容”视角的系统文档（包职责、入口、常用能力、典型场景用法），导致后续接入/维护成本偏高。
 
 本变更将把 Blocksuite 相关知识沉淀到知识库（`helloagents/wiki/`）中，形成可检索、可对照代码验证、可随版本升级迭代的文档集合。
 

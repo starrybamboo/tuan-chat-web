@@ -1,3 +1,4 @@
+import { isImageMessageBackground } from "@/types/messageAnnotations";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 
 import type { ChatMessageResponse, Message } from "../../api";
@@ -13,7 +14,7 @@ export type ExportOptions = {
   dateFormat?: "full" | "short"; // 日期格式：完整或简短
 };
 
-const UNKNOWN_LABEL = "未知";
+const UNKNOWN_LABEL = "δ֪";
 
 function formatFileSize(bytes?: number): string {
   if (!bytes || Number.isNaN(bytes)) {
@@ -92,10 +93,10 @@ function formatMessageContent(
       return content || "[空白文本]";
     case MessageType.IMG: {
       const imageMessage = extra?.imageMessage;
-      if (imageMessage?.background) {
+      if (isImageMessageBackground(message.annotations, imageMessage)) {
         return "[背景图片]";
       }
-      return "[图片]";
+      return "[ͼƬ]";
     }
     case MessageType.FILE: {
       const fileMessage = extra?.fileMessage;
@@ -156,7 +157,7 @@ function formatMessageContent(
  * @param options 导出选项
  * @returns 格式化的文本内容
  */
-export function formatChatMessages(
+function formatChatMessages(
   messages: ChatMessageResponse[],
   roleMap: Map<number, string> = new Map(),
   userMap: Map<number, string> = new Map(),
@@ -206,7 +207,7 @@ export function formatChatMessages(
  * @param content 文件内容
  * @param filename 文件名
  */
-export function downloadTextFile(content: string, filename: string): void {
+function downloadTextFile(content: string, filename: string): void {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

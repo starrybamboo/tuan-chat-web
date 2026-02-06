@@ -2,17 +2,19 @@ import { ArrowSquareIn, ExportIcon } from "@phosphor-icons/react";
 import React, { useEffect, useRef, useState } from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import {
   BaselineArrowBackIosNew,
+  Bubble2,
   MemberIcon,
   RoleListIcon,
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
-export interface RoomHeaderBarProps {
+interface RoomHeaderBarProps {
   roomName?: string;
   toggleLeftDrawer: () => void;
 }
@@ -25,6 +27,8 @@ function RoomHeaderBarImpl({
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+  const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
   const exportDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -113,6 +117,15 @@ function RoomHeaderBarImpl({
             <div className="dropdown-content z-9999 shadow bg-base-100 rounded-box w-80 mt-2 max-h-[70vh] overflow-y-auto">
               <ExportChatDrawer />
             </div>
+          </div>
+          <div
+            className="tooltip tooltip-bottom hover:text-info relative z-50"
+            data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
+            onClick={() => {
+              toggleUseChatBubbleStyle();
+            }}
+          >
+            <Bubble2 className="size-6" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"

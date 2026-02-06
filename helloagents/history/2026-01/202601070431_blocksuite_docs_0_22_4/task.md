@@ -1,8 +1,8 @@
 # 任务清单: Blocksuite 0.22.4 文档入库（可直接用于本项目）
 
-目录: `helloagents/history/2026-01/202601070431_blocksuite_docs_0_22_4/`
+Ŀ¼: `helloagents/history/2026-01/202601070431_blocksuite_docs_0_22_4/`
 
-状态: [-] 已跳过（方案重复/已合并到 `helloagents/history/2026-01/202601070338_blocksuite_docs/`）
+״̬: [-] 已跳过（方案重复/已合并到 `helloagents/history/2026-01/202601070338_blocksuite_docs/`）
 
 ---
 
@@ -24,7 +24,6 @@
 
 ## 3. 知识库文档（场景级）
 - [-] 3.1 新增 `helloagents/wiki/blocksuite/usage-embed-editor-react.md`：嵌入编辑器（对齐本项目 `createEmbeddedAffineEditor.ts`）
-- [-] 3.2 新增 `helloagents/wiki/blocksuite/usage-collaboration-sync.md`：协同同步（对齐本项目 `infra/blocksuite/playground/.../sync`）
 - [-] 3.3 新增 `helloagents/wiki/blocksuite/usage-render-blocks.md`：块渲染与 specs 组合（page/edgeless）
 - [-] 3.4 新增 `helloagents/wiki/blocksuite/usage-import-export.md`：导入导出/转换（以 0.22.4 实际导出为准）
 

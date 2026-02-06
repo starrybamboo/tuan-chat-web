@@ -1,6 +1,6 @@
 # 任务清单: 检定请求升级为独立消息类型
 
-目录: `helloagents/plan/202601151614_command_request_message_type/`
+Ŀ¼: `helloagents/plan/202601151614_command_request_message_type/`
 
 ---
 

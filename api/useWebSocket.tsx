@@ -3,7 +3,7 @@ import type { ChatMessageResponse } from "./models/ChatMessageResponse";
 import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import toast from "react-hot-toast";
@@ -52,7 +52,7 @@ interface WsMessage<T> {
  * @property receivedMessages 已接收的群聊消息，使用方法：receivedMessages[roomId]
  * @property receivedDirectMessages 已接收的私聊消息，使用方法：receivedDirectMessages[userId]
  * @property unreadMessagesNumber 未读消息数量（群聊部分）
- * @property updateLastReadSyncId 更新未读消息 （群聊部分） 如果lastReadSyncId为undefined，则使用latestSyncId
+ * @property updateLastReadSyncId 更新未读消息 （群聊部分） 如果lastReadSyncIdΪundefined，则使用latestSyncId
  * @property chatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  * @property updateChatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  */
@@ -67,6 +67,8 @@ export interface WebsocketUtils {
   chatStatus: Record<number, ChatStatus[]>;
   updateChatStatus: (chatStatusEvent:ChatStatusEvent)=> void;
 }
+
+const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
 
@@ -181,8 +183,8 @@ export function useWebSocket() {
   }, []);
 
   const wsRef = useRef<WebSocket | null>(null);
-  const isConnected = () => wsRef.current?.readyState === WebSocket.OPEN;
-  const isConnecting = () => wsRef.current?.readyState === WebSocket.CONNECTING;
+  const isConnected = useCallback(() => wsRef.current?.readyState === WebSocket.OPEN, []);
+  const isConnecting = useCallback(() => wsRef.current?.readyState === WebSocket.CONNECTING, []);
   // 标记“组件主动关闭”（例如 React StrictMode 的 effect cleanup），避免误判为网络错误并触发重连/报错。
   const closingRef = useRef(false);
   const connectTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -238,20 +240,20 @@ export function useWebSocket() {
   /**
    * 群聊的未读消息数
    */
-  const roomSessions : MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? [];
-  const updateReadPosition1Mutation = useUpdateReadPosition1Mutation();
-  const unreadMessagesNumber: Record<number, number> = roomSessions.reduce((acc, session) => {
-    // 订阅状态由「是否存在 session」决定，不应依赖 syncId 是否有值。
-    // 新房间在没有任何消息时，latestSyncId/lastReadSyncId 可能为 0 或 undefined。
-    // 这里仍然需要写入 acc[roomId] = 0，保证 UI 能正确判断“已订阅”。
-    if (session.roomId != null) {
-      const latestSyncId = session.latestSyncId ?? 0;
-      const lastReadSyncId = session.lastReadSyncId ?? 0;
-      acc[session.roomId] = Math.max(0, latestSyncId - lastReadSyncId);
-    }
-    return acc;
-  }, {} as Record<number, number>)
-  const updateLatestSyncId = (roomId: number, latestSyncId: number) => {
+  const roomSessions: MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? EMPTY_SESSIONS;
+  const { mutate: updateReadPosition1 } = useUpdateReadPosition1Mutation();
+  const unreadMessagesNumber: Record<number, number> = useMemo(() => {
+    return roomSessions.reduce((acc, session) => {
+      // Keep 0 for rooms without messages so UI can treat them as subscribed.
+      if (session.roomId != null) {
+        const latestSyncId = session.latestSyncId ?? 0;
+        const lastReadSyncId = session.lastReadSyncId ?? 0;
+        acc[session.roomId] = Math.max(0, latestSyncId - lastReadSyncId);
+      }
+      return acc;
+    }, {} as Record<number, number>);
+  }, [roomSessions]);
+  const updateLatestSyncId = useCallback((roomId: number, latestSyncId: number) => {
     queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
       if (!oldData?.data) return oldData;
       const hasSession = oldData.data.some(session => session.roomId === roomId);
@@ -279,30 +281,30 @@ export function useWebSocket() {
         data: nextData,
       };
     });
-  };
+  }, [queryClient]);
   /**
    * 更新群聊的最后阅读的消息位置
    * @param roomId
    * @param lastReadSyncId
    */
-  const updateLastReadSyncId = (roomId: number,lastReadSyncId?: number) => {
-    // 减少更新次数，防止出现死循环
-    const oldData = queryClient.getQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"])
-    if (!oldData?.data) return
+  const updateLastReadSyncId = useCallback((roomId: number, lastReadSyncId?: number) => {
+    // Reduce updates to avoid render loops.
+    const oldData = queryClient.getQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"]);
+    if (!oldData?.data) return;
     const session = oldData.data.find(session => session.roomId === roomId);
-    if (!session) return
+    if (!session) return;
 
-    // 如果没有指定lastReadSyncId，则使用latestSyncId更新，也就是读到最后一条消息
+    // If lastReadSyncId is missing, fall back to latestSyncId.
     const targetReadySyncId = lastReadSyncId ?? session.latestSyncId ?? session.lastReadSyncId ?? 0;
     if (targetReadySyncId === (session.lastReadSyncId ?? 0))
-      return
+      return;
 
     queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
-      if (!oldData?.data) return
-      //未读消息直接异步更改，漏了也没关系。
-      updateReadPosition1Mutation.mutate({
+      if (!oldData?.data) return;
+      // Best-effort async update; ok if it occasionally misses.
+      updateReadPosition1({
         roomId,
-        syncId: targetReadySyncId
+        syncId: targetReadySyncId,
       });
       return {
         ...oldData,
@@ -310,14 +312,14 @@ export function useWebSocket() {
           if (session.roomId === roomId) {
             return {
               ...session,
-              lastReadSyncId: targetReadySyncId
+              lastReadSyncId: targetReadySyncId,
             };
           }
           return session;
-        })
+        }),
       };
     });
-  };
+  }, [queryClient, updateReadPosition1]);
   // 输入状态, 按照roomId进行分组
   const [chatStatus, updateChatStatus] = useImmer<Record<number, ChatStatus[]>>({});
 
@@ -394,7 +396,7 @@ export function useWebSocket() {
       }
       stopHeartbeat();
       if (wsRef.current) {
-        // 设置 onclose 为 null 防止在手动关闭时触发重连逻辑
+        // 设置 onclose Ϊ null 防止在手动关闭时触发重连逻辑
         wsRef.current.onopen = null;
         wsRef.current.onmessage = null;
         wsRef.current.onerror = null;
@@ -639,10 +641,10 @@ export function useWebSocket() {
           }
         }
 
-        // (2) KP 停止全员 BGM：SYSTEM 且 content 包含 [停止BGM]
+        // (2) KP ֹͣȫԱ BGM：SYSTEM 且 content 包含 [ֹͣBGM]
         if (m.messageType === MessageType.SYSTEM) {
           const content = (m.content ?? "").toString();
-          if (content.includes("[停止BGM]")) {
+          if (content.includes("[ֹͣBGM]")) {
             useBgmStore.getState().onBgmStopFromWs(m.roomId);
           }
         }
@@ -718,19 +720,19 @@ export function useWebSocket() {
   /**
    * 处理群聊成员状态变动
    */
-  const handleChatStatusChange = (chatStatusEvent: ChatStatusEvent) => {
+  const handleChatStatusChange = useCallback((chatStatusEvent: ChatStatusEvent) => {
     const {roomId, userId, status} = chatStatusEvent
     updateChatStatus(draft => {
       if (!draft[roomId]) draft[roomId] = [];
       const userIndex = draft[roomId].findIndex(u => u.userId === userId);
-      if (status === "idle") { // 代表Idle，去除
+      if (status === "idle") { // Idle -> remove
         if (userIndex !== -1) draft[roomId].splice(userIndex, 1);
       } else {
         if (userIndex !== -1) draft[roomId][userIndex].status = status;
         else draft[roomId].push({ userId, status });
       }
     });
-  }
+  }, [updateChatStatus]);
   /**
    * 心跳逻辑
    */
@@ -753,9 +755,9 @@ export function useWebSocket() {
    * 发送聊天消息到指定房间(type: 3)
    * 聊天状态控制 (type: 4)
    */
-  async function send(request: WsMessage<any>) {
+  const send = useCallback(async (request: WsMessage<any>) => {
     if (!isConnected()) {
-      connect()
+      connect();
     }
     console.log("发送消息: ",request);
     for (let i = 0; i < 1000; i++) {
@@ -764,9 +766,9 @@ export function useWebSocket() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     wsRef?.current?.send(JSON.stringify(request));
-  }
+  }, [connect, isConnected]);
 
-  const webSocketUtils: WebsocketUtils = {
+  const webSocketUtils: WebsocketUtils = useMemo(() => ({
     connect,
     send,
     isConnected,
@@ -776,6 +778,16 @@ export function useWebSocket() {
     updateLastReadSyncId,
     chatStatus,
     updateChatStatus: handleChatStatusChange,
-  };
+  }), [
+    connect,
+    send,
+    isConnected,
+    receivedMessages,
+    receivedDirectMessages,
+    unreadMessagesNumber,
+    updateLastReadSyncId,
+    chatStatus,
+    handleChatStatusChange,
+  ]);
   return webSocketUtils;
 }

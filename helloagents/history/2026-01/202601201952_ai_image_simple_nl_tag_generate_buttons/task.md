@@ -1,6 +1,6 @@
 # 任务清单: AI 生图（普通模式）一键出图 + 按 tag 出图
 
-目录: `helloagents/plan/202601201952_ai_image_simple_nl_tag_generate_buttons/`
+Ŀ¼: `helloagents/plan/202601201952_ai_image_simple_nl_tag_generate_buttons/`
 
 ---
 

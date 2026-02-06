@@ -32,7 +32,7 @@ export class UploadUtils {
   /**
    * 上传音频文件
    * @param file 音频文件
-   * @param scene 上传场景 1.聊天室,2.表情包，3.角色差分 4.模组图片（暂时使用场景1）
+   * @param scene 上传场景 1.聊天室,2.表情包，3.角色差分 4.仓库图片（暂时使用场景1）
    * @param maxDuration 最大时长（秒），默认30秒
    */
   async uploadAudio(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<string> {
@@ -155,7 +155,7 @@ export class UploadUtils {
   /**
    * 上传图片
    * @param file img文件
-   * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.模组图片
+   * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.仓库图片
    * @param quality 质量
    * @param maxSize 最大的宽高（px）
    */

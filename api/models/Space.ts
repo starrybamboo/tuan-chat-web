@@ -31,10 +31,10 @@ export type Space = {
      */
     userId?: number;
     /**
-     * 状态 0正常 1删除 2归档
+     * ״̬ 0正常 1删除 2归档
      */
     status?: number;
-    moduleId?: number;
+    repositoryId?: number;
     /**
      * fork来源ID（克隆来源归档快照引用；直接克隆时写入原spaceId，与commitId语义一致）
      */

@@ -1,6 +1,6 @@
 # 任务清单: 完善现有项目知识库（模块化补齐）
 
-目录: `helloagents/plan/202601171905_project_kb_expand/`
+Ŀ¼: `helloagents/plan/202601171905_project_kb_expand/`
 
 ---
 

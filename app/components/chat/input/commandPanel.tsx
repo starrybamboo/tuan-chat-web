@@ -8,7 +8,7 @@ import { webgalCommands } from "@/components/common/dicer/commands";
  * - 'webgal': WebGal命令模式
  * - 'none': 无命令模式
  */
-export type commandModeType = "dice" | "webgal" | "none";
+type commandModeType = "dice" | "webgal" | "none";
 /**
  * 命令面板组件，用于显示和选择命令建议
  * @param prefix 当前输入的命令前缀（包含触发字符如/或.）

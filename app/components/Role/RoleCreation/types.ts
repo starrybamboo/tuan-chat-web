@@ -16,12 +16,6 @@ export type CharacterData = {
   skill: Record<string, string>;
 };
 
-export type RuleSystem = {
-  id: string;
-  name: string;
-  description: string;
-};
-
 export type Step = {
   id: number;
   title: string;

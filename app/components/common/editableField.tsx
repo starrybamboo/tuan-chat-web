@@ -143,6 +143,10 @@ export function EditableField({
   const chWidth = Math.min(maxCh, Math.max(minCh, (textForWidth?.length ?? 0) + padCh));
   const widthStyle = autoWidth ? { width: `${chWidth}ch` } : undefined;
 
+  const cursorClass = className?.includes("cursor-")
+    ? ""
+    : (canEdit ? "cursor-text" : "cursor-default");
+
   return isEditing
     ? (
         usingInput
@@ -189,7 +193,7 @@ export function EditableField({
       )
     : (
         <div
-          className={`${className}`}
+          className={`${className} ${cursorClass}`}
           style={widthStyle}
           onDoubleClick={handleDoubleClick}
         >

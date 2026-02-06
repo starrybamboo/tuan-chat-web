@@ -97,7 +97,7 @@ A. 识别“新插入的 @”
 - 在本次 text-change 的 delta.ops 中收集 inserted，并定位最后一个 “@” 的相对位置 lastAtRelative。
 - 由当前 selection 与 lastAtRelative 计算全局索引 globalIdx 并校验该处确为 “@”（兼容 IME 合并/换行偏移）。
 
-B. 激活 mention 模式
+B. 激活 mention ģʽ
 - 记录起点：mentionStart = globalIdx，mentionQuery = ""。
 - 计算弹窗位置：const b = editor.getBounds(globalIdx, 0)；根据编辑器容器 rect 得出 top/left，setMentionPos。
 - setMentionActive(true)，弹出候选面板（初始“分类/列表”阶段）。

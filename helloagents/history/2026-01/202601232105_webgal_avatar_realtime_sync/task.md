@@ -1,6 +1,6 @@
 ﻿# 任务清单: WebGAL 实时渲染立绘同步
 
-目录: `helloagents/plan/202601232105_webgal_avatar_realtime_sync/`
+Ŀ¼: `helloagents/plan/202601232105_webgal_avatar_realtime_sync/`
 
 ---
 

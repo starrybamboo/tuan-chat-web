@@ -1,15 +1,8 @@
 export type SpaceDocId = string;
 
-export type SpaceDocKind
-  = | "space_description"
-    | "room_description"
-    | "clue_description"
-    | "independent";
-
 export type SpaceDocDescriptor
   = | { kind: "space_description"; spaceId: number }
     | { kind: "room_description"; roomId: number }
-    | { kind: "clue_description"; clueId: number }
     | { kind: "independent"; docId: number };
 
 /**
@@ -25,9 +18,6 @@ export function buildSpaceDocId(desc: SpaceDocDescriptor): SpaceDocId {
 
   if (desc.kind === "room_description")
     return `room:${desc.roomId}:description`;
-
-  if (desc.kind === "clue_description")
-    return `clue:${desc.clueId}:description`;
 
   // independent
   return `sdoc:${desc.docId}:description`;
@@ -56,13 +46,6 @@ export function parseSpaceDocId(docId: string): SpaceDocDescriptor | null {
     if (!Number.isFinite(roomId) || roomId <= 0)
       return null;
     return { kind: "room_description", roomId };
-  }
-
-  if (type === "clue" && rest.join(":") === "description") {
-    const clueId = Number(idRaw);
-    if (!Number.isFinite(clueId) || clueId <= 0)
-      return null;
-    return { kind: "clue_description", clueId };
   }
 
   if (type === "sdoc" && rest.join(":") === "description") {

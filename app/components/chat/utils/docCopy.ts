@@ -1,6 +1,6 @@
 import { tuanchat } from "../../../../api/instance";
 
-export async function getDocUpdateForCopy(params: {
+async function getDocUpdateForCopy(params: {
   spaceId: number;
   docId: string;
 }): Promise<Uint8Array> {

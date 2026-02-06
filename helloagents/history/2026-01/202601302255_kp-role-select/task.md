@@ -1,6 +1,6 @@
 ﻿# 任务清单: KP 可选择所有角色发言
 
-目录: `helloagents/plan/202601302255_kp-role-select/`
+Ŀ¼: `helloagents/plan/202601302255_kp-role-select/`
 
 ---
 

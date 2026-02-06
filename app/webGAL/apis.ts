@@ -200,7 +200,7 @@ export type IconsDto = {
 };
 
 // ===== Directory Info Types =====
-export type DirInfo = {
+type DirInfo = {
   name: string;
   isDir: boolean;
   extName?: string;

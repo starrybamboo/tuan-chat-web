@@ -19,7 +19,7 @@ export interface DeleteConfirmDocState {
   index: number;
 }
 
-export interface SidebarTreeOverlaysProps {
+interface SidebarTreeOverlaysProps {
   canEdit: boolean;
 
   // category editor modal

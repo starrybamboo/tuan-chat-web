@@ -1,6 +1,6 @@
 ﻿# 任务清单: 房间角色头像兜底显示
 
-目录: `helloagents/plan/202601231851_role_avatar_fallback/`
+Ŀ¼: `helloagents/plan/202601231851_role_avatar_fallback/`
 
 ---
 

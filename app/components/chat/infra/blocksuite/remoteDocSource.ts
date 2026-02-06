@@ -44,7 +44,7 @@ const COMPACT_DEBOUNCE_MS = 12_000;
  * - stateVector diff 在前端完成：pull 时把 snapshot + updates 合并为 mergedUpdate，再 diffUpdate(mergedUpdate, stateVector)。
  * - 定期合并 snapshot：当检测到 updates 积累较多时，客户端会写回 v2 snapshot 并调用 compact 删除旧 updates。
  */
-export class RemoteYjsLogDocSource implements DocSource {
+class RemoteYjsLogDocSource implements DocSource {
   name = "remote-yjs-log";
 
   private readonly flushDebouncers = new Map<string, ReturnType<typeof debounce>>();

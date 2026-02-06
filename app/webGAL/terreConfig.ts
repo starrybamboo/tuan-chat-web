@@ -15,7 +15,7 @@ function getDefaultTerreBaseUrlRaw(): string {
   return (import.meta.env.VITE_TERRE_URL as string | undefined) || "http://localhost:3001";
 }
 
-export function getDefaultTerreBaseUrl(): string {
+function getDefaultTerreBaseUrl(): string {
   return normalizeBaseUrl(getDefaultTerreBaseUrlRaw());
 }
 
@@ -34,7 +34,7 @@ function getDefaultTerreWsPath(): string {
 
 let terrePortOverride: number | null = null;
 
-export function getTerrePortOverride(): number | null {
+function getTerrePortOverride(): number | null {
   return terrePortOverride;
 }
 
@@ -60,14 +60,6 @@ export function getTerreBaseUrl(): string {
 
   parsed.port = String(overridePort);
   return normalizeBaseUrl(parsed.toString());
-}
-
-export function getTerrePort(): number {
-  const overridePort = getTerrePortOverride();
-  if (overridePort != null) {
-    return overridePort;
-  }
-  return getDefaultTerrePort();
 }
 
 export function getTerreWsUrl(): string {

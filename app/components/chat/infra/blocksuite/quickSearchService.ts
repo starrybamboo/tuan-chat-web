@@ -30,15 +30,6 @@ function normalizeQuery(input: string) {
   return input.trim().toLowerCase();
 }
 
-export function getDocTitleFromMeta(meta: MinimalWorkspaceMeta | null | undefined, docId: string): string {
-  const id = String(docId ?? "").trim();
-  if (!id)
-    return "";
-  const metas = meta?.docMetas ?? [];
-  const hit = metas.find(m => m?.id === id);
-  return (hit?.title ?? "").trim();
-}
-
 export function createBlocksuiteQuickSearchService(params: {
   meta: MinimalWorkspaceMeta;
 }): BlocksuiteQuickSearchService {

@@ -12,7 +12,7 @@ RULES.set(2, executorDnd);
 RULES.set(3, executorFu);
 
 // 统一维护别名映射集，供 AliasMap 初始化使用
-export const ALIAS_MAP_SET: { [key: string]: Map<string, string> } = {
+const ALIAS_MAP_SET: { [key: string]: Map<string, string> } = {
   1: executorCoc.aliasMap,
   2: executorDnd.aliasMap,
   3: executorFu.aliasMap,

@@ -23,7 +23,7 @@
 
 ## 核心场景
 
-### 需求: 同页 UI 不被 Blocksuite 污染
+### 需求: ͬҳ UI 不被 Blocksuite 污染
 **模块:** app / Blocksuite 集成
 
 #### 场景: 打开任意包含 Blocksuite 的页面

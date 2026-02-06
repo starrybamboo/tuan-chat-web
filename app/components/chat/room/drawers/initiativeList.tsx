@@ -7,7 +7,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
 
-export interface Initiative {
+interface Initiative {
   name: string;
   value: number;
   // 新增：当前 HP 和最大 HP（可为空）

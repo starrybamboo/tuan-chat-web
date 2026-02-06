@@ -150,7 +150,7 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
 
   // 未配置状态的引导界面
   if (isNotConfigured) {
-    // 只有登录用户本人才显示设置引导，其他人显示"未设置"状态
+    // 只有登录用户本人才显示设置引导，其他人显示"未设置"״̬
     if (loginUserId === userId) {
       return (
         <div className="flex flex-col items-center p-4 rounded-lg shadow-md bg-gradient-to-br from-blue-50 to-indigo-50">

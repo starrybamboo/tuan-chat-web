@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
+﻿import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
 import type {AbilityUpdateRequest} from "../models/AbilityUpdateRequest";
 import {tuanchat} from "../instance";
 import type {AbilityFieldUpdateRequest} from "../models/AbilityFieldUpdateRequest";
@@ -49,7 +49,7 @@ export function useSetRoleAbilityMutation() {
     });
 }
 
-export function useDeleteRoleAbilityMutation() {
+function useDeleteRoleAbilityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (abilityId: number) => tuanchat.abilityController.deleteRoleAbility(abilityId),
@@ -84,7 +84,7 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
     })
 }
 
-export function useUpdateKeyFieldMutation() {
+function useUpdateKeyFieldMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn:  (req: AbilityFieldUpdateRequest) => tuanchat.abilityController.updateRoleAbilityField(req),
@@ -116,7 +116,7 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
         try {
           const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
           if (res.success && res.data) {
-                      // 解析后端返回的 extra.copywriting 为 Record<string, string[]>
+                      // 解析后端返回的 extra.copywriting Ϊ Record<string, string[]>
                       let extraCopywriting: Record<string, string[]> | undefined = undefined;
                       const extra = (res.data as any)?.extra as Record<string, unknown> | undefined;
                       const cw = extra && (extra as any).copywriting;
@@ -195,3 +195,4 @@ export function useGenerateAbilityByRuleMutation() {
         }
     })
 }
+

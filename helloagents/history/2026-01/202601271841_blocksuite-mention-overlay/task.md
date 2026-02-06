@@ -1,6 +1,6 @@
 ﻿# 任务清单: Blocksuite @ 弹窗层级修复
 
-目录: `helloagents/plan/202601271841_blocksuite-mention-overlay/`
+Ŀ¼: `helloagents/plan/202601271841_blocksuite-mention-overlay/`
 
 ---
 

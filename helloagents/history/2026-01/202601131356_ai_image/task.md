@@ -1,6 +1,6 @@
 # 任务清单: AI生图（NovelAI）测试页
 
-目录: `helloagents/history/2026-01/202601131356_ai_image/`
+Ŀ¼: `helloagents/history/2026-01/202601131356_ai_image/`
 
 ---
 

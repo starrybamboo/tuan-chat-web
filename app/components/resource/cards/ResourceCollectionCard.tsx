@@ -38,7 +38,7 @@ export function ResourceCollectionCard({
                 alt={collectionList.collectionListName}
                 className="w-full h-full object-cover transition-transform duration-200 rounded-t-lg"
                 onError={(e) => {
-                  e.currentTarget.src = "/moduleDefaultImage.webp";
+                  e.currentTarget.src = "/repositoryDefaultImage.webp";
                 }}
               />
             )

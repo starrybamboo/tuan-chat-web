@@ -50,7 +50,7 @@ export function getCommandList(ruleId: number): Map<string, CommandInfo> {
 
 /**
  * 命令执行器钩子函数
- * @param roleId roleId，会根据ruleId来获取对应角色的ability值
+ * @param roleId roleId，会根据ruleId来获取对应角色的abilityֵ
  * @param ruleId 规则ID，会根据ruleId来获取对应角色对应规则下的能力组
  * @param roomContext
  */

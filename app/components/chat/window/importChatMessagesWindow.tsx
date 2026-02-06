@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
 
-export interface ResolvedImportChatMessage {
+interface ResolvedImportChatMessage {
   lineNumber: number;
   speakerName: string;
   roleId: number;
@@ -25,7 +25,7 @@ export interface ResolvedImportChatMessage {
   figurePosition?: Exclude<FigurePosition, undefined>;
 }
 
-export interface ImportChatMessagesWindowProps {
+interface ImportChatMessagesWindowProps {
   isKP: boolean;
   availableRoles: UserRole[];
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
@@ -204,7 +204,7 @@ export default function ImportChatMessagesWindow({
             <h2 className="text-lg font-bold flex items-center gap-2">
               导入对话
               <span className={`badge badge-sm ${isKP ? "badge-info" : "badge-ghost"} font-normal`}>
-                {isKP ? "KP模式" : "玩家模式"}
+                {isKP ? "KPģʽ" : "玩家模式"}
               </span>
             </h2>
             <div className="text-xs text-base-content/60 flex items-center gap-2">
@@ -384,7 +384,7 @@ export default function ImportChatMessagesWindow({
                           <th className="bg-base-200/50 w-1/3">文本中的名字</th>
                           <th className="bg-base-200/50 w-1/3">对应房间角色</th>
                           <th className="bg-base-200/50 w-1/4">显示位置</th>
-                          <th className="bg-base-200/50 w-12 text-center">状态</th>
+                          <th className="bg-base-200/50 w-12 text-center">״̬</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -414,7 +414,7 @@ export default function ImportChatMessagesWindow({
                                   <option value="">-- 请选择 --</option>
                                   <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 特殊角色 -</option>
                                   {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>📝 旁白 (KP)</option>}
-                                  <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (系统)</option>
+                                  <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (ϵͳ)</option>
                                   <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 房间角色 -</option>
                                   {roleOptions.map(o => (
                                     <option key={o.roleId} value={String(o.roleId)}>

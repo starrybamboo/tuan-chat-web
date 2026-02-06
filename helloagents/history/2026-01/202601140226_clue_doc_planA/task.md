@@ -1,6 +1,6 @@
 # 任务清单: clue_doc_planA
 
-目录: `helloagents/history/2026-01/202601140226_clue_doc_planA/`
+Ŀ¼: `helloagents/history/2026-01/202601140226_clue_doc_planA/`
 
 > 轻量迭代：按方案A将线索正文统一为 Blocksuite 文档入口，移除线索 UI 中的 description/note 编辑入口（保留后端字段不强制清空）。
 

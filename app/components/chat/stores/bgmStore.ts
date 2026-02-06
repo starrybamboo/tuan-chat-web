@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { pauseBgm, playBgm, stopBgm } from "@/components/chat/infra/bgm/bgmPlayer";
 
-export type BgmTrack = {
+type BgmTrack = {
   url: string;
   /** 0-100 */
   volume?: number;

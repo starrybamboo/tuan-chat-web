@@ -1,6 +1,6 @@
 # 任务清单: Vite 预打包缺失 chunk（dev）
 
-目录: `helloagents/plan/202601161044_vite_deps_missing_chunk/`
+Ŀ¼: `helloagents/plan/202601161044_vite_deps_missing_chunk/`
 
 ---
 

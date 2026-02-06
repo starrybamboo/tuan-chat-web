@@ -20,7 +20,7 @@
 
 ## 2. 模块索引
 
-| 模块名称 | 职责 | 状态 | 文档 |
+| 模块名称 | 职责 | ״̬ | 文档 |
 |---------|------|------|------|
 | app | 前端 UI、路由、组件与业务页面 | ?开发中 | [modules/app.md](modules/app.md) |
 | api | OpenAPI 客户端、请求封装、WS 工具与 hooks | ?开发中 | [modules/api.md](modules/api.md) |

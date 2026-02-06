@@ -51,7 +51,7 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
   };
 
   return {
-    // 状态
+    // ״̬
     isEditingProfile,
     editingUsername,
     editingDescription,
@@ -66,7 +66,7 @@ export function useProfileEditing(user: UserInfoResponse | undefined) {
     cancelEditingProfile,
     handleAvatarUpdate,
 
-    // API状态
+    // API״̬
     isSaving: updateUserInfoMutation.isPending,
   };
 }

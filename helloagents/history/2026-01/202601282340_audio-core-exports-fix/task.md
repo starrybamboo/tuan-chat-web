@@ -1,6 +1,6 @@
 # 任务清单: 修复 Vite 对 @ffmpeg/core exports 的解析
 
-目录: `helloagents/history/2026-01/202601282340_audio-core-exports-fix/`
+Ŀ¼: `helloagents/history/2026-01/202601282340_audio-core-exports-fix/`
 
 ---
 

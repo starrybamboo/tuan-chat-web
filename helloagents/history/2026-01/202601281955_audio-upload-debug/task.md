@@ -1,6 +1,6 @@
 # 任务清单: 音频上传/发送调试日志开关
 
-目录: `helloagents/plan/202601281955_audio-upload-debug/`
+Ŀ¼: `helloagents/plan/202601281955_audio-upload-debug/`
 
 ---
 

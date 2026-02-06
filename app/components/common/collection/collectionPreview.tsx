@@ -41,8 +41,8 @@ export default function CollectionPreview({ collectionId, resourceId, collection
         break;
 
       case 3:
-      // 类型为模组
-        targetUrl = `/module/detail/${resourceId}`;
+      // 类型为仓库
+        targetUrl = `/repository/detail/${resourceId}`;
         break;
 
       case 4:

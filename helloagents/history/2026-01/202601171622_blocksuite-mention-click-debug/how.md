@@ -2,7 +2,7 @@
 
 ## 技术方案
 ### 核心技术
-- iframe 内捕获 DOM 事件（pointerdown/click），提取 composedPath 摘要
+- iframe 内捕获 DOM 事件（pointerdown/click），提取 composedPath ժҪ
 - 通过 blocksuite-frame 的 postMessage debug-log 通道转发到宿主控制台
 
 ### 实现要点

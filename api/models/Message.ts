@@ -32,6 +32,14 @@ export type Message = {
      */
     content: string;
     /**
+     * 自定义角色名（为空则使用角色名）
+     */
+    customRoleName?: string;
+    /**
+     * Message annotations
+     */
+    annotations?: Array<string>;
+    /**
      * 说话人的这个时候的立绘
      */
     avatarId?: number;

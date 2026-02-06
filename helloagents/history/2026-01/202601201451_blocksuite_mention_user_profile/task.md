@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite `@` 用户候选展示头像与名称
 
-目录: `helloagents/plan/202601201451_blocksuite_mention_user_profile/`
+Ŀ¼: `helloagents/plan/202601201451_blocksuite_mention_user_profile/`
 
 ---
 

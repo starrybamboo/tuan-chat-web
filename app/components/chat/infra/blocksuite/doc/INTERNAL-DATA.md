@@ -1,6 +1,6 @@
 # Blocksuite 内部数据结构与术语对照（实现视角）
 
-本文档用于解释 Blocksuite/Yjs/AFFiNE 在项目中的概念对应，帮助把业务模型（Space/Room/线索/文档）映射到 Blocksuite 的内部结构。
+本文档用于解释 Blocksuite/Yjs/AFFiNE 在项目中的概念对应，帮助把业务模型（Space/Room/文档）映射到 Blocksuite 的内部结构。
 
 > 版本背景：本项目依赖 Blocksuite `0.22.4`。
 
@@ -72,7 +72,7 @@
 
 由于服务端不提供版本与撤销：
 - 版本历史可以通过 IndexedDB 按 docId 存储周期性快照（例如 full update + 时间戳 + 标题）
-- 跨会话撤销通常需要持久化 undo 栈/操作日志；如果实现复杂，可以先提供“版本回滚（restore version）”作为替代，并在 BUSINESS.md 标注降级。
+- 跨会话撤销通常需要持久化 undo ջ/操作日志；如果实现复杂，可以先提供“版本回滚（restore version）”作为替代，并在 BUSINESS.md 标注降级。
 
 当前 Demo 的落地文件：
 - app/components/chat/infra/blocksuite/runtime/docHistoryDb.ts：IndexedDB 历史库（保存 full update）

@@ -6,7 +6,7 @@ import { Link } from "react-router";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
 
-export interface ChatSpaceSidebarProps {
+interface ChatSpaceSidebarProps {
   isPrivateChatMode: boolean;
   spaces: Space[];
   spaceOrderIds?: number[];

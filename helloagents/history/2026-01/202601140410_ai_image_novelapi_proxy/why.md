@@ -27,7 +27,7 @@
 ## 变更内容
 1. 新增 `/api/novelapi/*` 本地代理：在 Web 环境通过同源代理访问 NovelAI，注入必要的 Referer/User-Agent 并转发二进制结果。
 2. 更新 `/ai-image`：统一请求路径（Web 走代理、Electron 走 IPC），补齐/调整生图参数与模型列表，新增 img2img、历史保存与下载。
-3. 统一错误处理：对 Web 代理与 Electron IPC 的错误进行一致化展示，并增强返回格式识别（ZIP/图片/文本流）。
+3. 统一错误处理：对 Web 代理与 Electron IPC 的错误进行一致化展示，并增强返回格式识别（ZIP/ͼƬ/文本流）。
 
 ## 影响范围
 - **模块:**
@@ -49,7 +49,7 @@
 Web 环境下从 `/api/novelapi/ai/generate-image` 获取结果。
 - 预期结果: 请求不被 CORS/Referer 限制拦截，页面可展示生成结果
 
-### 需求: Electron 环境保持可出图且解析 ZIP/图片
+### 需求: Electron 环境保持可出图且解析 ZIP/ͼƬ
 **模块:** Electron IPC 代理
 
 #### 场景: Electron 内点击“生成”

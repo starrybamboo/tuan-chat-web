@@ -1,6 +1,6 @@
 # 任务清单: 导入文本无角色时快速创建角色
 
-目录: `helloagents/plan/202601201424_chat_import_quick_create_role/`
+Ŀ¼: `helloagents/plan/202601201424_chat_import_quick_create_role/`
 
 ---
 

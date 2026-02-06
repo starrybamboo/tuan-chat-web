@@ -8,7 +8,7 @@
 
 2025-12-31:调整`BaseEditor`为“文档页”嵌入式布局:增加纸张容器(限宽/内边距/背景分层);通过scoped CSS隐藏默认`Title`与`Page info`区块,避免嵌入式场景UI过重
 
-2025-12-31:接入Blocksuite自带所见即所得:在`useBlocksuiteEditor`中改为挂载`simple-affine-editor`,并在下一帧对内部`editor-container`启用`autofocus`与`page`模式;handles.editor改为HTMLElement以兼容自带组件
+2025-12-31:接入Blocksuite自带所见即所得:在`useBlocksuiteEditor`中改为挂载`simple-affine-editor`,并在下一帧对内部`editor-container`启用`autofocus`与`page`ģʽ;handles.editor改为HTMLElement以兼容自带组件
 
 2025-12-31:修复Slash菜单与标题样式:全局引入`@blocksuite/editor/themes/affine.css`以启用块级样式(如H1字号)与菜单样式;移除`BaseEditor`外层`overflow-hidden`避免弹出层被裁切;在内部`editor-container`清空`edgelessPreset`以移除画板模式入口
 

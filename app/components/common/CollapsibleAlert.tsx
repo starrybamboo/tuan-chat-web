@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-export type CollapsibleAlertType = "info" | "success";
+type CollapsibleAlertType = "info" | "success";
 
 export interface CollapsibleAlertProps {
   type: CollapsibleAlertType;

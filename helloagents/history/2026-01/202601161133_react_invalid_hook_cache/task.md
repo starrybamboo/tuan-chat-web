@@ -1,6 +1,6 @@
-# 任务清单: React hooks invalid call（dev 缓存/双 React 实例）
+# 任务清单: React hooks invalid call（dev 缓存/˫ React 实例）
 
-目录: `helloagents/plan/202601161133_react_invalid_hook_cache/`
+Ŀ¼: `helloagents/plan/202601161133_react_invalid_hook_cache/`
 
 ---
 

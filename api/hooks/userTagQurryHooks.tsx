@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { TagGetRequest } from "../models/TagGetRequest";
 import type { TagAddRequest } from "../models/TagAddRequest";
 import type { TagUpdateRequest } from "../models/TagUpdateRequest";
@@ -9,7 +9,7 @@ import { tuanchat } from "../instance";
 /**
  * 获取单个标签信息
  */
-export function useGetTagQuery(id: number) {
+function useGetTagQuery(id: number) {
     return useQuery({
         queryKey: ["getTag", id],
         queryFn: () => tuanchat.tagController.getTag(id),
@@ -33,7 +33,7 @@ export function useGetTagsQuery(request: TagGetRequest) {
 /**
  * 获取标签使用次数
  */
-export function useGetTagUsageCountQuery(request: TagUsageRequest) {
+function useGetTagUsageCountQuery(request: TagUsageRequest) {
     return useQuery({
         queryKey: ["getTagUsageCount", request],
         queryFn: () => tuanchat.tagController.getTagUsageCount(request),
@@ -62,7 +62,7 @@ export function useAddTagMutation() {
 /**
  * 更新标签
  */
-export function useUpdateTagMutation() {
+function useUpdateTagMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: TagUpdateRequest) => tuanchat.tagController.updateTag(req),
@@ -93,4 +93,5 @@ export function useDeleteTagMutation() {
         },
     });
 }
+
 

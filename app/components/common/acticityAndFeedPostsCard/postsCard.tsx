@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";
-import ModuleContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/ModuleContentCard";
 import PostContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/PostContentCard";
+import RepositoryContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/RepositoryContentCard";
 import CollectionIconButton from "@/components/common/collection/collectionIconButton";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import DislikeIconButton from "@/components/common/dislikeIconButton";
@@ -28,7 +28,7 @@ interface PostsCardProps {
 /**
  * 发布的动态，Feed，帖子预览卡片组件（统一版）
  */
-export const PostsCard: React.FC<PostsCardProps> = ({
+const PostsCard: React.FC<PostsCardProps> = ({
   res,
   stats,
   onDislike,
@@ -45,7 +45,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 
   // 根据实际内容类型确定targetType和resourceType
   const hasPostData = res?.postId || res?.communityPostId;
-  const hasModuleData = res?.moduleId;
+  const hasRepositoryData = res?.repositoryId;
 
   let targetType: string;
 
@@ -53,8 +53,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
     // 有帖子ID，是帖子类型
     targetType = "2";
   }
-  else if (hasModuleData) {
-    // 有模组ID，是模组类型
+  else if (hasRepositoryData) {
+    // 有仓库ID，是仓库类型
     targetType = "3";
   }
   else {
@@ -170,38 +170,38 @@ export const PostsCard: React.FC<PostsCardProps> = ({
       );
     }
 
-    if (hasModuleData) {
-      const moduleName = res?.name;
-      const moduleImg = res?.moduleImage;
+    if (hasRepositoryData) {
+      const repositoryName = res?.name;
+      const repositoryImage = res?.repositoryImage;
 
       return (
-        <ModuleContentCard
-          name={moduleName}
+        <RepositoryContentCard
+          name={repositoryName}
           description={description}
-          moduleImage={moduleImg}
-          moduleId={res.moduleId}
+          repositoryImage={repositoryImage}
+          repositoryId={res.repositoryId}
           onClick={() => {
-            if (res?.moduleId) {
-              navigate(`/module/detail/${res.moduleId}`, {
+            if (res?.repositoryId) {
+              navigate(`/repository/detail/${res.repositoryId}`, {
                 state: {
                   // TODO
-                  moduleData: {
-                    moduleId: res.moduleId,
-                    // ruleId: module.ruleId,
-                    // ruleName: module.rule,
-                    moduleName: res.name,
+                  repositoryData: {
+                    repositoryId: res.repositoryId,
+                    // ruleId: repository.ruleId,
+                    // ruleName: repository.rule,
+                    repositoryName: res.name,
                     description: res.description,
                     userId,
-                    // authorName: module.authorName,
-                    image: res.moduleImage,
-                    // createTime: module.createTime,
-                    // updateTime: module.updateTime,
-                    // minPeople: module.minPeople,
-                    // maxPeople: module.maxPeople,
-                    // minTime: module.minTime,
-                    // maxTime: module.maxTime,
-                    // parent: module.parent,
-                    // instruction: module.instruction,
+                    // authorName: repository.authorName,
+                    image: res.repositoryImage,
+                    // createTime: repository.createTime,
+                    // updateTime: repository.updateTime,
+                    // minPeople: repository.minPeople,
+                    // maxPeople: repository.maxPeople,
+                    // minTime: repository.minTime,
+                    // maxTime: repository.maxTime,
+                    // parent: repository.parentRepositoryId,
+                    // instruction: repository.instruction,
                   },
                 },
               });
@@ -218,8 +218,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
     if (hasPostData) {
       return res?.postId || res?.communityPostId;
     }
-    else if (hasModuleData) {
-      return res?.moduleId;
+    else if (hasRepositoryData) {
+      return res?.repositoryId;
     }
   };
 
@@ -385,7 +385,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
           </div>
 
           <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full data-html-image-exclude">
-            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={targetType === "2" ? `http://47.119.147.6:84/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `http://47.119.147.6:84/module/detail/${actualId}` : "http://47.119.147.6:84/chat"} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
+            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={targetType === "2" ? `http://47.119.147.6:84/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `http://47.119.147.6:84/repository/detail/${actualId}` : "http://47.119.147.6:84/chat"} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
 

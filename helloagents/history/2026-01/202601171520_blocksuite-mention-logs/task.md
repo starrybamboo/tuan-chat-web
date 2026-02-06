@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及日志补强
 
-目录: `helloagents/plan/202601171520_blocksuite-mention-logs/`
+Ŀ¼: `helloagents/plan/202601171520_blocksuite-mention-logs/`
 
 ---
 

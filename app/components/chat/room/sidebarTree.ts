@@ -44,6 +44,72 @@ export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefi
   return list;
 }
 
+export function collectExistingRoomIds(tree: SidebarTree | null | undefined): Set<number> {
+  const ids = new Set<number>();
+  for (const cat of tree?.categories ?? []) {
+    for (const item of cat.items ?? []) {
+      if (item.type === "room" && typeof (item as any).targetId === "number") {
+        ids.add((item as any).targetId);
+      }
+    }
+  }
+  return ids;
+}
+
+export function collectExistingDocIds(tree: SidebarTree | null | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const cat of tree?.categories ?? []) {
+    for (const item of cat.items ?? []) {
+      if (item.type === "doc" && typeof (item as any).targetId === "string") {
+        ids.add((item as any).targetId);
+      }
+    }
+  }
+  return ids;
+}
+
+export function applySidebarDocFallbackCache(params: {
+  tree: SidebarTree;
+  docMetaMap: Map<string, MinimalDocMeta>;
+  docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
+}): SidebarTree {
+  const base = JSON.parse(JSON.stringify(params.tree)) as SidebarTree;
+  for (const cat of base.categories ?? []) {
+    for (const node of cat.items ?? []) {
+      if (node?.type !== "doc")
+        continue;
+
+      const docId = typeof node.targetId === "string" ? node.targetId : "";
+      if (!docId)
+        continue;
+
+      const meta = params.docMetaMap.get(docId);
+      const override = params.docHeaderOverrides[docId];
+
+      const overrideTitle = typeof override?.title === "string" ? override.title.trim() : "";
+      const overrideImageUrl = typeof override?.imageUrl === "string" ? override.imageUrl.trim() : "";
+
+      const metaTitle = typeof meta?.title === "string" ? meta.title.trim() : "";
+      const metaImageUrl = typeof meta?.imageUrl === "string" ? meta.imageUrl.trim() : "";
+
+      const currentFallbackTitle = typeof (node as any)?.fallbackTitle === "string" ? String((node as any).fallbackTitle).trim() : "";
+      const currentFallbackImageUrl = typeof (node as any)?.fallbackImageUrl === "string" ? String((node as any).fallbackImageUrl).trim() : "";
+
+      const nextTitle = overrideTitle || metaTitle || currentFallbackTitle || docId;
+      const nextImageUrl = overrideImageUrl || metaImageUrl || currentFallbackImageUrl;
+
+      (node as any).fallbackTitle = nextTitle;
+      if (nextImageUrl) {
+        (node as any).fallbackImageUrl = nextImageUrl;
+      }
+      else {
+        delete (node as any).fallbackImageUrl;
+      }
+    }
+  }
+  return base;
+}
+
 type SidebarTreeV1 = {
   schemaVersion: 1;
   categories: Array<{
@@ -315,8 +381,4 @@ export function normalizeSidebarTree(params: {
     schemaVersion: 2,
     categories,
   };
-}
-
-export function toTreeJson(tree: SidebarTree): string {
-  return JSON.stringify(tree);
 }

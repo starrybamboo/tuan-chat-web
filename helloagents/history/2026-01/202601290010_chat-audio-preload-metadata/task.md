@@ -1,6 +1,6 @@
 # 任务清单: 聊天音频播放器回退 preload=metadata
 
-目录: `helloagents/history/2026-01/202601290010_chat-audio-preload-metadata/`
+Ŀ¼: `helloagents/history/2026-01/202601290010_chat-audio-preload-metadata/`
 
 ---
 

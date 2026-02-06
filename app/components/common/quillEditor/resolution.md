@@ -1,6 +1,6 @@
 ## 背景与目标
 
-当前 `quillEditor.tsx` 约 3.3k 行，集中了 Quill 初始化、Blot 注册、所见即所得与 Markdown/HTML 互转、Mention 与 Slash 语法、工具栏定位、滚动与选区兜底、粘贴接管、键盘补丁、实体接口耦合等多重职责，维护与调试成本高。目标是按“单一职责 + 清晰边界 + 可观测性”的原则，分解为若干可复用的 hooks/modules/utils/ui 组件，同时在各子域加入可控调试日志，不改动对外 API 行为。
+当前 `quillEditor.tsx` Լ 3.3k 行，集中了 Quill 初始化、Blot 注册、所见即所得与 Markdown/HTML 互转、Mention 与 Slash 语法、工具栏定位、滚动与选区兜底、粘贴接管、键盘补丁、实体接口耦合等多重职责，维护与调试成本高。目标是按“单一职责 + 清晰边界 + 可观测性”的原则，分解为若干可复用的 hooks/modules/utils/ui 组件，同时在各子域加入可控调试日志，不改动对外 API 行为。
 
 本文档用于列出分步拆分计划与验收标准。在你说“开始”前，仅写计划不改代码；收到“开始”后按步骤逐一实施并验证。
 
@@ -95,7 +95,7 @@ app/components/common/quillEditor/
 	 - 负责：
 		 - 空标题/空列表退化为段落
 		 - 紧前 mention/embed 删除并触发 onDeleteSpecialKey
-		 - @ 起点删除时退出 mention 状态
+		 - @ 起点删除时退出 mention ״̬
 	 - 调试：触发与否、匹配到的类型与实体。
 
 11) QuillEditor.tsx（瘦包装器）
@@ -106,7 +106,7 @@ app/components/common/quillEditor/
 
 ## 调试与可观测性设计
 
-- 统一 logger：`[Quill/<SCOPE>]` 前缀 + 结构化上下文（index、length、pos、scrollTop 修正、bounds、耗时等）。
+- ͳһ logger：`[Quill/<SCOPE>]` ǰ׺ + 结构化上下文（index、length、pos、scrollTop 修正、bounds、耗时等）。
 - 开关：
 	- 全局：NEXT_PUBLIC_DEBUG_QUILL=1 开启所有域
 	- 分域：NEXT_PUBLIC_DEBUG_QUILL_DOM/MENTION/SLASH/PASTE/MARKDOWN/BACKSPACE/TOOLBAR

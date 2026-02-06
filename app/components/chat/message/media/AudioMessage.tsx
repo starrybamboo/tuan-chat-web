@@ -1,6 +1,6 @@
 // 音频消息播放组件（WaveSurfer 波形播放器）。
 // 为了避免列表渲染/刷新时自动触发下载，WaveSurfer 仅在用户点击播放时才初始化与加载音频。
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { acquireAudioMessageWaveSurfer, hasAudioMessageWaveSurfer } from "@/components/chat/infra/audioMessage/audioMessageWaveSurferCache";
 import { useAudioPlaybackRegistration } from "@/components/common/useAudioPlaybackRegistration";
@@ -73,7 +73,7 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
     }
   };
 
-  const bindWaveSurfer = (ws: any) => {
+  const bindWaveSurfer = useCallback((ws: any) => {
     const unsubs: Array<(() => void) | undefined> = [];
 
     unsubs.push(ws.on?.("ready", () => {
@@ -115,9 +115,9 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
     }));
 
     unsubsRef.current = unsubs.filter(Boolean) as Array<() => void>;
-  };
+  }, [playback]);
 
-  const ensureWaveSurfer = async () => {
+  const ensureWaveSurfer = useCallback(async () => {
     if (waveSurferRef.current)
       return waveSurferRef.current;
     if (!waveContainerRef.current)
@@ -155,7 +155,7 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
     }
 
     return ws;
-  };
+  }, [bindWaveSurfer, url]);
 
   useEffect(() => {
     setIsReady(false);
@@ -183,7 +183,7 @@ export default function AudioMessage({ url, duration, title }: AudioMessageProps
       return;
 
     void ensureWaveSurfer();
-  }, [hasUrl, url]);
+  }, [ensureWaveSurfer, hasUrl, url]);
 
   const durationText = useMemo(() => {
     const d = typeof resolvedDuration === "number" && Number.isFinite(resolvedDuration) && resolvedDuration > 0

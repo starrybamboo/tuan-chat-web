@@ -55,12 +55,12 @@ export class RoomRoleControllerService {
         });
     }
     /**
-     * 获取房间的所有模组角色
+     * 获取房间的所有NPC角色
      * @param roomId
      * @returns ApiResultListUserRole OK
      * @throws ApiError
      */
-    public roomModuleRole(
+    public roomNpcRole(
         roomId: number,
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({

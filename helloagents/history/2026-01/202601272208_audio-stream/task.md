@@ -1,6 +1,6 @@
 # 任务清单: 音频流式播放与进度条
 
-目录: `helloagents/plan/202601272208_audio-stream/`
+Ŀ¼: `helloagents/plan/202601272208_audio-stream/`
 
 ---
 

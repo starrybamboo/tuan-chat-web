@@ -1,6 +1,6 @@
 # 任务清单: 房间角色列表 NPC+ 直接创建 NPC
 
-目录: `helloagents/history/2026-01/202601201439_room_npc_create/`
+Ŀ¼: `helloagents/history/2026-01/202601201439_room_npc_create/`
 
 ---
 

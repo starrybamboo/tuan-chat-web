@@ -1,6 +1,6 @@
 # 任务清单: AI 生图调试增强（token 持久化 + 开发环境路由）
 
-目录: `helloagents/plan/202601142115_ai_image_dev_only/`
+Ŀ¼: `helloagents/plan/202601142115_ai_image_dev_only/`
 
 ---
 

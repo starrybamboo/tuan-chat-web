@@ -1,6 +1,6 @@
 # 任务清单: quill_reference_audit
 
-目录: `helloagents/history/2026-01/202601140107_quill_reference_audit/`
+Ŀ¼: `helloagents/history/2026-01/202601140107_quill_reference_audit/`
 
 > 轻量迭代：仅做引用统计与知识库落档，为后续“去 Quill 化”提供清单依据。
 

@@ -16,7 +16,7 @@ import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateSpaceMutation } fr
 import dagre from "dagre";
 import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
-import SceneNode from "@/components/module/detail/ContentTab/scene/react flow/NewSceneNode";
+import SceneNode from "@/components/repository/detail/ContentTab/scene/react flow/NewSceneNode";
 import { SpaceContext } from "../core/spaceContext";
 import "@xyflow/react/dist/style.css";
 

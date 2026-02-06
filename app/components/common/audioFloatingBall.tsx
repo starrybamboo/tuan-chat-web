@@ -234,9 +234,9 @@ export default function AudioFloatingBall() {
                           type="button"
                           className="btn btn-xs btn-ghost border border-base-300"
                           onClick={() => stop(e.id)}
-                          title="停止"
+                          title="ֹͣ"
                         >
-                          停止
+                          ֹͣ
                         </button>
                       )}
                     </div>

@@ -1,6 +1,6 @@
 # 任务清单: @ 标题刷新与 inline 标题同步
 
-目录: `helloagents/plan/202601171745_mention-title-tc-header-refresh/`
+Ŀ¼: `helloagents/plan/202601171745_mention-title-tc-header-refresh/`
 
 ---
 

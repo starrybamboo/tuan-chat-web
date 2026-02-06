@@ -1,11 +1,8 @@
 // 极简 Markdown/HTML 转换占位实现（保证类型与调用方存在，避免构建错误）
-// 原始 Markdown -> HTML（不做实体存在性校验）
+// ԭʼ Markdown -> HTML（不做实体存在性校验）
 // 空行兼容：旧版本可能序列化为字面 "\\n"、"__BLANK_LINE__" 或私有区哨兵 U+E000。
 // 现在策略：解析阶段统一识别后直接用空字符串标识，不再向下游传递私有区字符，避免渲染字体显示方块。
 const LEGACY_SENTINEL = "\uE000";
-export function isBlankLineSentinel(v: string): boolean {
-  return v === LEGACY_SENTINEL;
-}
 
 export function rawMarkdownToHtml(md: string): string {
   if (!md)
@@ -302,25 +299,4 @@ export function enhanceMentionsInHtml(raw: string, categories: string[] = ["人�
   Array.from(container.childNodes).forEach(c => walk(c));
   const enhanced = container.innerHTML;
   return enhanced;
-}
-
-/**
- * 后端内容 -> HTML（覆盖导入场景）
- */
-export function backendContentToQuillHtml(content: string, format: "markdown" | "html" | "text" = "html"): string {
-  if (!content)
-    return "";
-  let html: string;
-  if (format === "markdown") {
-    html = rawMarkdownToHtml(content);
-  }
-  else if (format === "text") {
-    const safe = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    html = safe.split(/\r?\n/).map(l => l.trim() ? `<p>${l}</p>` : "").join("");
-  }
-  else {
-    html = content;
-  }
-  const finalHtml = enhanceMentionsInHtml(html);
-  return finalHtml;
 }

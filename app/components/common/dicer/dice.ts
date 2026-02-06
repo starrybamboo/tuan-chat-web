@@ -284,7 +284,7 @@ class ExpressionParser {
 
   /**
    * 应用运算符计算
-   * @param values 值栈
+   * @param values ֵջ
    * @param op 运算符
    */
   private applyOp(values: ExpressionValue[], op: string): void {

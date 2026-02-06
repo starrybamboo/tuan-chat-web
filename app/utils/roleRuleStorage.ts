@@ -42,33 +42,3 @@ export function setRoleRule(roleId: number, ruleId: number): void {
     console.error("保存角色规则映射失败:", error);
   }
 }
-
-/**
- * 删除角色的规则映射
- */
-export function removeRoleRule(roleId: number): void {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored)
-      return;
-
-    const mapping: RoleRuleMapping = JSON.parse(stored);
-    delete mapping[roleId];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mapping));
-  }
-  catch (error) {
-    console.error("删除角色规则映射失败:", error);
-  }
-}
-
-/**
- * 清空所有映射
- */
-export function clearRoleRules(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-  catch (error) {
-    console.error("清空角色规则映射失败:", error);
-  }
-}

@@ -2,7 +2,7 @@
 
 > **类型:** 轻量迭代
 
-目录: `helloagents/plan/202601181608_space-setting-doc-fill/`
+Ŀ¼: `helloagents/plan/202601181608_space-setting-doc-fill/`
 
 ---
 

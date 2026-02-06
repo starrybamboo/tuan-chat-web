@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export type AudioPlaybackKind = "bgm" | "chat" | "resource" | "role" | "unknown";
 
-export type AudioPlaybackEntry = {
+type AudioPlaybackEntry = {
   id: string;
   kind: AudioPlaybackKind;
   title?: string;

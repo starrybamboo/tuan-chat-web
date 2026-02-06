@@ -2,6 +2,7 @@ import type { ChatMessageResponse } from "../../../api";
 import React, { useMemo } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { isImageMessageBackground } from "@/types/messageAnnotations";
 import { useGetRoleQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import BetterImg from "../common/betterImg";
 
@@ -140,13 +141,14 @@ function ChatMessageItem({
     if (message.messageType === 2) {
       // 图片消息
       const imgMsg = message.extra?.imageMessage;
+      const isBackground = isImageMessageBackground(message.annotations, imgMsg);
       return (
         <div className="text-xs text-base-content/70">
           <BetterImg
             src={imgMsg?.url}
             className="max-h-24 max-w-32 rounded"
           />
-          {imgMsg?.background && <span className="ml-1">(已设为背景)</span>}
+          {isBackground && <span className="ml-1">(已设为背景)</span>}
         </div>
       );
     }
