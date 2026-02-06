@@ -1,6 +1,6 @@
 # 任务清单: blocksuite_ssr_doc_metas
 
-目录: `helloagents/plan/202601110311_blocksuite_ssr_doc_metas/`
+Ŀ¼: `helloagents/plan/202601110311_blocksuite_ssr_doc_metas/`
 
 ---
 

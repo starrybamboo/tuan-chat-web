@@ -1,5 +1,6 @@
 import type { ApiResultUserRole } from "../../../../../api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { tuanchat } from "../../../../../api/instance";
 
 /**
@@ -7,7 +8,7 @@ import { tuanchat } from "../../../../../api/instance";
  */
 export default function useGetRoleSmartly() {
   const queryClient = useQueryClient();
-  return async (roleId: number) => {
+  return useCallback(async (roleId: number) => {
     if (roleId <= 0)
       return null;
     const roleResponse = await queryClient.fetchQuery<ApiResultUserRole>({
@@ -16,5 +17,5 @@ export default function useGetRoleSmartly() {
       staleTime: 5 * 60 * 1000, // 5 分钟
     });
     return roleResponse.data;
-  };
+  }, [queryClient]);
 }

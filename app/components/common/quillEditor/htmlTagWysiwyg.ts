@@ -5,7 +5,7 @@
 // 当前阶段功能：匹配后在控制台输出解析结果，不做内容转换
 // 后续阶段可以在此基础上做真正的插入 / 富文本结构化
 
-export type DetectedHtmlTagResult = {
+type DetectedHtmlTagResult = {
   tag: string; // 标签名
   raw: string; // 原始匹配到的片段（不含触发空格自身）
   closed: boolean; // 是否自闭合（img 或 以 /> 结束）
@@ -18,7 +18,7 @@ const TAG_ALLOW = new Set(["span", "div", "a", "img"]);
 const ATTR_ALLOW = new Set(["src", "href", "id", "width", "height"]);
 
 // 在行文本（到当前空格位置为止）中，向左回溯找到最近的 '<' 开头片段尝试解析
-export function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | null {
+function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | null {
   // lineLeft: 截止当前输入空格(不含本次空格字符)之前的整行文本
   const ltPos = lineLeft.lastIndexOf("<");
   if (ltPos < 0) {

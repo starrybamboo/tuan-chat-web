@@ -1,6 +1,6 @@
 # 任务清单: BlockSuite 嵌入场景样式强隔离
 
-目录: `helloagents/plan/202601082056_blocksuite_strict_style_isolation/`
+Ŀ¼: `helloagents/plan/202601082056_blocksuite_strict_style_isolation/`
 
 ---
 
@@ -15,9 +15,9 @@
 - [√] 3.1 新增 `app/components/chat/infra/blocksuite/styles/ensureBlocksuiteScopedStyles.ts`：将 blocksuite 运行时 CSS 以文本方式注入 ShadowRoot，并将 `:root{}` 重写为 `:host{}`，验证 why.md#需求-blocksuite-加载期间不再出现全局样式闪烁
 
 ## 4. 上游副作用补丁（pnpm patchedDependencies）
-- [√] 4.1 为 `@blocksuite/affine-block-table@0.22.4` 增加补丁：移除 `document.body.style.pointerEvents` 的全局写入，验证 why.md#需求-打开-blocksuite-页面不影响同页其它-ui
-- [√] 4.2 为 `@blocksuite/affine-inline-link@0.22.4` 增加补丁：将 `document.body.style.overflow` 重定向到 ShadowHost（fallback 到 body），验证 why.md#需求-打开-blocksuite-页面不影响同页其它-ui
-- [√] 4.3 为 `@blocksuite/data-view@0.22.4` 增加补丁：将 `document.body.style.cursor` 重定向到 ShadowHost（fallback 到 body），验证 why.md#需求-打开-blocksuite-页面不影响同页其它-ui
+- [√] 4.1 Ϊ `@blocksuite/affine-block-table@0.22.4` 增加补丁：移除 `document.body.style.pointerEvents` 的全局写入，验证 why.md#需求-打开-blocksuite-页面不影响同页其它-ui
+- [√] 4.2 Ϊ `@blocksuite/affine-inline-link@0.22.4` 增加补丁：将 `document.body.style.overflow` 重定向到 ShadowHost（fallback 到 body），验证 why.md#需求-打开-blocksuite-页面不影响同页其它-ui
+- [√] 4.3 Ϊ `@blocksuite/data-view@0.22.4` 增加补丁：将 `document.body.style.cursor` 重定向到 ShadowHost（fallback 到 body），验证 why.md#需求-打开-blocksuite-页面不影响同页其它-ui
 - [√] 4.4 更新 `package.json` 的 `pnpm.patchedDependencies` 指向新增补丁文件
 
 ## 5. 安全检查

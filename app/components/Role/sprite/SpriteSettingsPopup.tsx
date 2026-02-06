@@ -67,7 +67,7 @@ export function SpriteSettingsPopup({
   onSpriteIndexChange,
   role,
 }: SpriteSettingsPopupProps) {
-  // 内部维护 tab 状态
+  // 内部维护 tab ״̬
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
 
   // ========== 内部共享的立绘索引 ==========
@@ -311,7 +311,7 @@ export function SpriteSettingsPopup({
                           ? "取消全选"
                           : selectedIndices.size > 0 && selectedIndices.size < spritesAvatars.length
                             ? `已选 ${selectedIndices.size}`
-                            : "全选"
+                            : "ȫѡ"
                       }
                     >
                       <ChecksIcon className="h-5 w-5" aria-hidden="true" />

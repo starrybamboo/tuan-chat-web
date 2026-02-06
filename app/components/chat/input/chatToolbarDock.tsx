@@ -2,10 +2,7 @@ import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, SwordIcon } from "@phosp
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import {
-  Detective,
-  WebgalIcon,
-} from "@/icons";
+import { WebgalIcon } from "@/icons";
 
 interface ChatToolbarDockProps {
   isInline: boolean;
@@ -63,7 +60,7 @@ export default function ChatToolbarDock({
         isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
       }`}
     >
-      {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
+      {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % ǰ׺ */}
       {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && !isMobileLinkCompact && (
         <div className="tooltip tooltip-top" data-tip="WebGAL 指令（插入 % 前缀）">
           <button
@@ -186,10 +183,6 @@ export default function ChatToolbarDock({
             onClick={() => setSideDrawerState(sideDrawerState === "docFolder" ? "none" : "docFolder")}
           >
             <FileTextIcon className="size-6" />
-          </div>
-
-          <div className="tooltip tooltip-top hover:text-info" data-tip="查看线索" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}>
-            <Detective className="size-6" />
           </div>
 
           <div className="tooltip tooltip-top" data-tip="展示先攻表" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}>

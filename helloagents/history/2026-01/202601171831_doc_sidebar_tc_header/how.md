@@ -16,7 +16,7 @@
 ## 安全与性能
 
 - **安全:** 仅缓存图片 URL 与标题到 localStorage，不落地敏感信息/令牌。
-- **性能:** 侧边栏读取本地 store 为 O(1)，避免为每个条目打开 Blocksuite doc store。
+- **性能:** 侧边栏读取本地 store Ϊ O(1)，避免为每个条目打开 Blocksuite doc store。
 
 ## 测试与验证
 

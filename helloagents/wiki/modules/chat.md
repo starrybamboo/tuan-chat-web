@@ -7,7 +7,7 @@
 ## 模块概述
 
 - **职责:** Chat 页面与布局、房间列表与分类、消息渲染与发送、房间资料与文档入口、跑团相关交互
-- **状态:** ?开发中
+- **״̬:** ?开发中
 - **最后更新:** 2026-01-30
 
 
@@ -106,13 +106,13 @@ KP 在角色选择面板可选择房间内所有角色（含其他玩家角色�
 - 入口位于房间顶部“聊天记录”下拉（导入/导出合并入口）：支持选择 `.txt` 文件或粘贴文本
 - 解析规则：每行一条消息，格式为 `[角色名]：对话内容`（支持中文/英文冒号）
 - 角色映射：优先按“角色名精确匹配”自动映射；无法唯一匹配时要求用户手动指定映射后再发送
-- 导入消息会写入 `message.webgal.customRoleName`，显示时保留导入文本中的发言人名
+- 导入消息会写入 `message.customRoleName`，显示时保留导入文本中的发言人名
 - 发言人名展示：优先展示 `customRoleName`（如有），否则展示 `role.roleName`；不再用 `*` 标记“名称不一致/自定义名称”
 - KP 可选择“旁白（roleId=-1）”作为导入目标
 - 若发言人映射为“骰娘（系统）”，发送时会解析实际骰娘角色并按 `DICE(6)` 类型发送（`extra.result=content`）
 - 导入/发送会在运行时为相关角色解析 `avatarId`：优先使用 `curAvatarIdMap`（用户选择），否则回退 `role.avatarId`，再回退头像列表“默认”标签/首个头像（不强制持久化）
 - 消息头像渲染：当 `avatarId<=0` 且无法找到可用头像时，不再回退到 `/favicon.ico`（显示为空占位）
-- 立绘位置：可为每个发言人选择左/中/右位置，导入发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
+- 立绘位置：可为每个发言人选择左/中/右位置，导入发送时写入 `message.annotations`（`figure.pos.left/center/right`）
 - 若当前房间无可用角色（非KP），导入弹窗提供“创建/导入角色”快捷入口
 - 导入弹窗 UI：双栏布局与单层容器，避免双层滚动，缺失角色高亮与快捷引导
 
@@ -121,7 +121,7 @@ KP 在角色选择面板可选择房间内所有角色（含其他玩家角色�
 - 播放组件使用 WaveSurfer（波形播放器）
 - 为避免列表渲染/刷新时触发 Range 拉取：WaveSurfer **仅在点击播放时**才初始化并加载音频
 - 发送侧会填充 `extra.soundMessage.second`（音频时长，秒）；当浏览器无法解析本地音频时长导致 `duration=NaN` 时，会进行兜底（避免 second 非法导致发送失败）
-- ⚠️ Hooks 规则：不要在调用 React Hooks 之前 `return null`（例如 `url` 为空时）；应在 Hooks 之后再做条件返回，避免 `react-hooks/rules-of-hooks`
+- ⚠️ Hooks 规则：不要在调用 React Hooks ֮ǰ `return null`（例如 `url` 为空时）；应在 Hooks 之后再做条件返回，避免 `react-hooks/rules-of-hooks`
 
 ### 4.2) 全局音频播放聚合（悬浮球）
 

@@ -2,11 +2,8 @@ import type { UserRole } from "../../../../api";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
-import ChatStatusBar from "@/components/chat/chatStatusBar";
-import AvatarDropdownContent from "@/components/chat/input/avatarDropdownContent";
 import AvatarSwitch from "@/components/chat/input/avatarSwitch";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
@@ -14,18 +11,15 @@ import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttachmentsPreviewFromStore";
 import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
+import RoomComposerHeader from "@/components/chat/room/roomComposerHeader";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
-import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { NarratorIcon } from "@/icons";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
-export interface RoomComposerPanelProps {
+interface RoomComposerPanelProps {
   roomId: number;
   userId: number;
   webSocketUtils: any;
@@ -58,11 +52,6 @@ export interface RoomComposerPanelProps {
   notMember: boolean;
   isSubmitting: boolean;
 
-  placeholderText: string;
-
-  /** 拖拽投放文档引用后直接发送文档卡片消息 */
-  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
-
   curRoleId: number;
   curAvatarId: number;
   setCurRoleId: (roleId: number) => void;
@@ -85,8 +74,6 @@ export interface RoomComposerPanelProps {
 
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
-
-  inputDisabled: boolean;
 }
 
 function RoomComposerPanelImpl({
@@ -111,8 +98,6 @@ function RoomComposerPanelImpl({
   noRole,
   notMember,
   isSubmitting,
-  placeholderText,
-  onSendDocCard,
   curRoleId,
   curAvatarId,
   setCurRoleId,
@@ -128,21 +113,12 @@ function RoomComposerPanelImpl({
   onMouseDown,
   onCompositionStart,
   onCompositionEnd,
-  inputDisabled,
 }: RoomComposerPanelProps) {
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const composerRootRef = React.useRef<HTMLDivElement | null>(null);
-  const [isDocRefDragOver, setIsDocRefDragOver] = React.useState(false);
-  const isDocRefDragOverRef = React.useRef(false);
-  const updateDocRefDragOver = React.useCallback((next: boolean) => {
-    if (isDocRefDragOverRef.current === next)
-      return;
-    isDocRefDragOverRef.current = next;
-    setIsDocRefDragOver(next);
-  }, []);
   const screenSize = useScreenSize();
-  const toolbarLayout = screenSize === "sm" ? "stacked" : "inline";
+  const toolbarLayout: "inline" | "stacked" = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
   const mentionRoles = React.useMemo(() => {
     if (!isKP) {
@@ -155,7 +131,7 @@ function RoomComposerPanelImpl({
       avatarId: -1,
       type: 0,
       extra: {
-        mentionNote: "发送检定按钮",
+        mentionNote: "发送检定请求",
       },
     };
     return [atAllRole, ...mentionRolesProp];
@@ -208,27 +184,21 @@ function RoomComposerPanelImpl({
     };
   }, []);
 
-  const sideDrawerState = useSideDrawerStore(state => state.state);
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
-
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const toggleWebgalLinkMode = useRoomPreferenceStore(state => state.toggleWebgalLinkMode);
-
   const autoReplyMode = useRoomPreferenceStore(state => state.autoReplyMode);
   const toggleAutoReplyMode = useRoomPreferenceStore(state => state.toggleAutoReplyMode);
-
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const setRunModeEnabled = useRoomPreferenceStore(state => state.setRunModeEnabled);
-
   const dialogNotend = useRoomPreferenceStore(state => state.dialogNotend);
   const toggleDialogNotend = useRoomPreferenceStore(state => state.toggleDialogNotend);
   const dialogConcat = useRoomPreferenceStore(state => state.dialogConcat);
   const toggleDialogConcat = useRoomPreferenceStore(state => state.toggleDialogConcat);
-
-  const defaultFigurePosition = useRoomPreferenceStore(state => state.defaultFigurePositionMap[curRoleId]);
+  const defaultFigurePositionMap = useRoomPreferenceStore(state => state.defaultFigurePositionMap);
   const setDefaultFigurePositionForRole = useRoomPreferenceStore(state => state.setDefaultFigurePositionForRole);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
+  const defaultFigurePosition = defaultFigurePositionMap[curRoleId];
 
   const onToggleRunMode = React.useCallback(() => {
     setRunModeEnabled(!runModeEnabled);
@@ -262,31 +232,6 @@ function RoomComposerPanelImpl({
     return draftName || currentRole?.roleName || "未选择角色";
   }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator]);
 
-  const [isEditingName, setIsEditingName] = React.useState(false);
-  const [editingName, setEditingName] = React.useState("");
-  const [isAvatarPopoverOpen, setIsAvatarPopoverOpen] = React.useState(false);
-  const avatarPopoverRef = React.useRef<HTMLDivElement | null>(null);
-  const showSelfStatus = Boolean(currentChatStatus && !isSpectator);
-  const showOtherStatus = React.useMemo(() => {
-    const raw = (webSocketUtils?.chatStatus?.[roomId] ?? []) as { userId: number; status: "input" | "wait" | "leave" | "idle" }[];
-    if (!raw.length) {
-      return false;
-    }
-    const others = userId != null ? raw.filter(s => s.userId !== userId) : raw;
-    return others.some(s => s.status === "input" || s.status === "wait" || s.status === "leave");
-  }, [roomId, userId, webSocketUtils?.chatStatus]);
-
-  React.useEffect(() => {
-    setIsEditingName(false);
-    setEditingName("");
-  }, [curRoleId, isSpectator]);
-
-  React.useEffect(() => {
-    if (isSpectator) {
-      setIsAvatarPopoverOpen(false);
-    }
-  }, [isSpectator]);
-
   React.useEffect(() => {
     if (isSpectator || curRoleId <= 0) {
       return;
@@ -319,30 +264,6 @@ function RoomComposerPanelImpl({
     setCurAvatarId,
   ]);
 
-  React.useEffect(() => {
-    if (!isAvatarPopoverOpen) {
-      return;
-    }
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target) {
-        return;
-      }
-      if (avatarPopoverRef.current?.contains(target)) {
-        return;
-      }
-      const modalRoot = document.getElementById("modal-root");
-      if (modalRoot?.contains(target)) {
-        return;
-      }
-      setIsAvatarPopoverOpen(false);
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [isAvatarPopoverOpen]);
-
   const replyMessage = useRoomUiStore(state => state.replyMessage);
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
@@ -350,6 +271,25 @@ function RoomComposerPanelImpl({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
+  const inputDisabled = notMember && noRole;
+  const placeholderText = React.useMemo(() => {
+    if (notMember) {
+      return "观战模式下无法发送消息";
+    }
+    if (noRole && !isKP) {
+      return "请选择/拉入你的角色后再发送";
+    }
+    if (noRole && isKP) {
+      return "旁白模式：输入内容…（Shift+Enter 换行，Tab 触发 AI）";
+    }
+    if (curAvatarId <= 0) {
+      return "请选择角色立绘后发送…（Shift+Enter 换行，Tab 触发 AI）";
+    }
+    if (threadRootMessageId && composerTarget === "thread") {
+      return "线程回复中…（Shift+Enter 换行，Tab 触发 AI）";
+    }
+    return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
+  }, [composerTarget, curAvatarId, isKP, noRole, notMember, threadRootMessageId]);
 
   const onInsertWebgalCommandPrefix = React.useCallback(() => {
     const inputHandle = chatInputRef.current;
@@ -363,6 +303,101 @@ function RoomComposerPanelImpl({
     inputHandle.focus();
     inputHandle.triggerSync();
   }, [chatInputRef]);
+  const toolbarCommonProps = React.useMemo(() => ({
+    roomId,
+    statusUserId: userId,
+    statusWebSocketUtils: webSocketUtils,
+    statusExcludeSelf: false,
+    handleMessageSubmit,
+    onAIRewrite,
+    currentChatStatus,
+    onChangeChatStatus,
+    isSpectator,
+    onToggleRealtimeRender,
+    onToggleWebgalLinkMode: toggleWebgalLinkMode,
+    onInsertWebgalCommandPrefix,
+    autoReplyMode,
+    onToggleAutoReplyMode: toggleAutoReplyMode,
+    runModeEnabled,
+    onToggleRunMode,
+    defaultFigurePosition,
+    onSetDefaultFigurePosition,
+    dialogNotend,
+    onToggleDialogNotend: toggleDialogNotend,
+    dialogConcat,
+    onToggleDialogConcat: toggleDialogConcat,
+    onSendEffect,
+    onClearBackground,
+    onClearFigure,
+    onSetWebgalVar,
+    isKP,
+    onStopBgmForAll,
+    noRole,
+    notMember,
+    isSubmitting,
+    layout: toolbarLayout,
+    showStatusBar: false,
+  }), [
+    autoReplyMode,
+    currentChatStatus,
+    defaultFigurePosition,
+    dialogConcat,
+    dialogNotend,
+    handleMessageSubmit,
+    isKP,
+    isSpectator,
+    isSubmitting,
+    noRole,
+    notMember,
+    onAIRewrite,
+    onChangeChatStatus,
+    onClearBackground,
+    onClearFigure,
+    onInsertWebgalCommandPrefix,
+    onSendEffect,
+    onSetDefaultFigurePosition,
+    onSetWebgalVar,
+    onStopBgmForAll,
+    onToggleRealtimeRender,
+    runModeEnabled,
+    roomId,
+    toggleAutoReplyMode,
+    toggleDialogConcat,
+    toggleDialogNotend,
+    toggleWebgalLinkMode,
+    userId,
+    webSocketUtils,
+    onToggleRunMode,
+    toolbarLayout,
+  ]);
+  const headerToolbar = (webgalLinkMode || runModeEnabled)
+    ? (
+        <ChatToolbarFromStore
+          {...toolbarCommonProps}
+          showWebgalLinkToggle={false}
+          showRunModeToggle={false}
+          showMainActions={false}
+          showSendButton={false}
+          showWebgalControls={true}
+          showRunControls={true}
+        />
+      )
+    : null;
+  const inputArea = (
+    <ChatInputArea
+      ref={chatInputRef}
+      onInputSync={onInputSync}
+      onPasteFiles={onPasteFiles}
+      onKeyDown={onKeyDown}
+      onKeyUp={onKeyUp}
+      onMouseDown={onMouseDown}
+      onCompositionStart={onCompositionStart}
+      onCompositionEnd={onCompositionEnd}
+      disabled={inputDisabled}
+      placeholder={placeholderText}
+      className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
+    />
+  );
 
   return (
     <div ref={composerRootRef} className="bg-transparent z-20">
@@ -377,34 +412,14 @@ function RoomComposerPanelImpl({
           className="relative flex flex-col gap-2 rounded-md"
           onDragOver={(e) => {
             // 注意：部分浏览器在 dragover 阶段无法读取 getData 的自定义 MIME 内容。
-            // 因此这里仅基于 types 判定并 preventDefault，让 drop 一定能触发；
+            // 因此这里只基于 types 判定并 preventDefault，让 drop 一定能触发。
             // 具体 payload 在 onDrop 再读取。
-            if (isDocRefDrag(e.dataTransfer)) {
-              updateDocRefDragOver(true);
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-              return;
-            }
-            updateDocRefDragOver(false);
-
             if (isFileDrag(e.dataTransfer)) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
             }
           }}
-          onDragLeave={() => {
-            updateDocRefDragOver(false);
-          }}
           onDrop={(e) => {
-            updateDocRefDragOver(false);
-            const docRef = getDocRefDragData(e.dataTransfer);
-            if (docRef) {
-              e.preventDefault();
-              e.stopPropagation();
-              void onSendDocCard?.(docRef);
-              return;
-            }
-
             if (!isFileDrag(e.dataTransfer))
               return;
             e.preventDefault();
@@ -412,13 +427,6 @@ function RoomComposerPanelImpl({
             addDroppedFilesToComposer(e.dataTransfer);
           }}
         >
-          {isDocRefDragOver && (
-            <div className="pointer-events-none absolute inset-0 z-20 rounded-md border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
-              <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-sm font-medium text-primary shadow-sm">
-                松开发送文档卡片
-              </div>
-            </div>
-          )}
           <ChatAttachmentsPreviewFromStore />
 
           {replyMessage && (
@@ -473,7 +481,7 @@ function RoomComposerPanelImpl({
           {insertAfterMessageId && (
             <div className="p-2 pb-1">
               <div className="flex flex-row gap-2 items-center bg-info/20 rounded-md shadow-sm text-sm p-2 justify-between">
-                <span className="text-info-content">📍 将在消息后插入</span>
+                <span className="text-info-content">将插入到消息后</span>
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost"
@@ -488,216 +496,27 @@ function RoomComposerPanelImpl({
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex flex-col border border-base-300 rounded-xl bg-base-100/80">
-                <div className="w-full border-b border-base-300 px-2 py-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div ref={avatarPopoverRef} className="relative shrink-0">
-                        <button
-                          type="button"
-                          className={`flex items-center justify-center leading-none ${isSpectator ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                          aria-haspopup="dialog"
-                          aria-expanded={isAvatarPopoverOpen}
-                          onClick={() => {
-                            if (isSpectator) {
-                              return;
-                            }
-                            setIsAvatarPopoverOpen(prev => !prev);
-                          }}
-                        >
-                          {curRoleId <= 0
-                            ? (
-                                curAvatarId > 0
-                                  ? (
-                                      <RoleAvatarComponent
-                                        avatarId={curAvatarId}
-                                        width={8}
-                                        isRounded={true}
-                                        withTitle={false}
-                                        stopPopWindow={true}
-                                        useDefaultAvatarFallback={false}
-                                        alt="旁白"
-                                      />
-                                    )
-                                  : (
-                                      <div className="size-8 rounded-full bg-transparent flex items-center justify-center shrink-0">
-                                        <NarratorIcon className="size-5 text-base-content/60" />
-                                      </div>
-                                    )
-                              )
-                            : (
-                                <RoleAvatarComponent
-                                  avatarId={curAvatarId}
-                                  roleId={curRoleId}
-                                  width={8}
-                                  isRounded={true}
-                                  withTitle={false}
-                                  stopPopWindow={true}
-                                  alt={displayRoleName || "无头像"}
-                                />
-                              )}
-                        </button>
-                        {isAvatarPopoverOpen && !isSpectator && (
-                          <div className="absolute left-0 bottom-full mb-2 z-50 flex items-stretch">
-                            <div className="w-[92vw] md:w-120 min-w-100 max-w-[92vw] rounded-box bg-base-100 border border-base-300 shadow-lg p-2 self-stretch flex flex-col">
-                              <div className="flex-1 min-h-0">
-                                <AvatarDropdownContent
-                                  roleId={curRoleId}
-                                  onAvatarChange={setCurAvatarId}
-                                  onRoleChange={setCurRoleId}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex items-center gap-2">
-                        <div className="min-w-0 flex-1">
-                          {!isEditingName && (
-                            <div
-                              className={`text-sm font-medium truncate ${isSpectator || curRoleId <= 0 ? "text-base-content/50 select-none" : "cursor-text"}`}
-                              title={isSpectator || curRoleId <= 0 ? undefined : "点击编辑显示名称"}
-                              onClick={(e) => {
-                                if (isSpectator || curRoleId <= 0) {
-                                  return;
-                                }
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setEditingName(displayRoleName);
-                                setIsEditingName(true);
-                              }}
-                            >
-                              {displayRoleName || "\u00A0"}
-                            </div>
-                          )}
-                          {isEditingName && (
-                            <input
-                              className="input input-xs input-bordered bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info w-full max-w-48"
-                              value={editingName}
-                              autoFocus
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                              onChange={e => setEditingName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setIsEditingName(false);
-                                  setEditingName("");
-                                }
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setDraftCustomRoleNameForRole(curRoleId, editingName);
-                                  setIsEditingName(false);
-                                }
-                              }}
-                              onBlur={() => {
-                                setDraftCustomRoleNameForRole(curRoleId, editingName);
-                                setIsEditingName(false);
-                              }}
-                              placeholder={currentRole?.roleName || ""}
-                            />
-                          )}
-                        </div>
-                        {showSelfStatus && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
-                        {showSelfStatus && (
-                          <ChatStatusBar
-                            roomId={roomId}
-                            userId={userId}
-                            webSocketUtils={webSocketUtils}
-                            excludeSelf={true}
-                            showGrouped={false}
-                            currentChatStatus={currentChatStatus}
-                            onChangeChatStatus={onChangeChatStatus}
-                            isSpectator={isSpectator}
-                            compact={true}
-                            className="shrink-0"
-                          />
-                        )}
-                        {showOtherStatus && <span className="h-3 w-px bg-base-content/30" aria-hidden />}
-                        {showOtherStatus && (
-                          <ChatStatusBar
-                            roomId={roomId}
-                            userId={userId}
-                            webSocketUtils={webSocketUtils}
-                            excludeSelf={true}
-                            showGrouped={true}
-                            showGroupDivider={false}
-                            isSpectator={isSpectator}
-                            compact={true}
-                            className="shrink-0"
-                          />
-                        )}
-                      </div>
-                    </div>
-                    {(webgalLinkMode || runModeEnabled) && (
-                      <div className="flex items-start gap-2">
-                        <ChatToolbarFromStore
-                          roomId={roomId}
-                          statusUserId={userId}
-                          statusWebSocketUtils={webSocketUtils}
-                          statusExcludeSelf={false}
-                          sideDrawerState={sideDrawerState}
-                          setSideDrawerState={setSideDrawerState}
-                          handleMessageSubmit={handleMessageSubmit}
-                          onAIRewrite={onAIRewrite}
-                          currentChatStatus={currentChatStatus}
-                          onChangeChatStatus={onChangeChatStatus}
-                          isSpectator={isSpectator}
-                          onToggleRealtimeRender={onToggleRealtimeRender}
-                          onToggleWebgalLinkMode={toggleWebgalLinkMode}
-                          onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-                          autoReplyMode={autoReplyMode}
-                          onToggleAutoReplyMode={toggleAutoReplyMode}
-                          runModeEnabled={runModeEnabled}
-                          onToggleRunMode={onToggleRunMode}
-                          defaultFigurePosition={defaultFigurePosition}
-                          onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-                          dialogNotend={dialogNotend}
-                          onToggleDialogNotend={toggleDialogNotend}
-                          dialogConcat={dialogConcat}
-                          onToggleDialogConcat={toggleDialogConcat}
-                          onSendEffect={onSendEffect}
-                          onClearBackground={onClearBackground}
-                          onClearFigure={onClearFigure}
-                          onSetWebgalVar={onSetWebgalVar}
-                          isKP={isKP}
-                          onStopBgmForAll={onStopBgmForAll}
-                          noRole={noRole}
-                          notMember={notMember}
-                          isSubmitting={isSubmitting}
-                          layout={toolbarLayout}
-                          showStatusBar={false}
-                          showWebgalLinkToggle={false}
-                          showRunModeToggle={false}
-                          showMainActions={false}
-                          showSendButton={false}
-                          showWebgalControls={true}
-                          showRunControls={true}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <RoomComposerHeader
+                  roomId={roomId}
+                  userId={userId}
+                  webSocketUtils={webSocketUtils}
+                  isSpectator={isSpectator}
+                  curRoleId={curRoleId}
+                  curAvatarId={curAvatarId}
+                  displayRoleName={displayRoleName}
+                  currentRoleName={currentRole?.roleName}
+                  setCurRoleId={setCurRoleId}
+                  setCurAvatarId={setCurAvatarId}
+                  setDraftCustomRoleNameForRole={setDraftCustomRoleNameForRole}
+                  currentChatStatus={currentChatStatus}
+                  onChangeChatStatus={onChangeChatStatus}
+                  headerToolbar={headerToolbar}
+                />
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start p-2">
                   {isMobile
                     ? (
                         <div className="flex items-end gap-2">
-                          <ChatInputArea
-                            ref={chatInputRef}
-                            onInputSync={onInputSync}
-                            onPasteFiles={onPasteFiles}
-                            onKeyDown={onKeyDown}
-                            onKeyUp={onKeyUp}
-                            onMouseDown={onMouseDown}
-                            onCompositionStart={onCompositionStart}
-                            onCompositionEnd={onCompositionEnd}
-                            disabled={inputDisabled}
-                            placeholder={placeholderText}
-                            className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
-                          />
+                          {inputArea}
                           <AvatarSwitch
                             curRoleId={curRoleId}
                             curAvatarId={curAvatarId}
@@ -712,59 +531,13 @@ function RoomComposerPanelImpl({
                         </div>
                       )
                     : (
-                        <ChatInputArea
-                          ref={chatInputRef}
-                          onInputSync={onInputSync}
-                          onPasteFiles={onPasteFiles}
-                          onKeyDown={onKeyDown}
-                          onKeyUp={onKeyUp}
-                          onMouseDown={onMouseDown}
-                          onCompositionStart={onCompositionStart}
-                          onCompositionEnd={onCompositionEnd}
-                          disabled={inputDisabled}
-                          placeholder={placeholderText}
-                          className="min-h-10 max-h-[20dvh] overflow-y-auto min-w-0 flex-1"
-                        />
+                        inputArea
                       )}
 
                   <div className="w-full sm:w-auto flex justify-end sm:block mb-1 sm:mb-0 mt-0 sm:mt-2">
                     <ChatToolbarFromStore
-                      roomId={roomId}
-                      statusUserId={userId}
-                      statusWebSocketUtils={webSocketUtils}
-                      statusExcludeSelf={false}
-                      sideDrawerState={sideDrawerState}
-                      setSideDrawerState={setSideDrawerState}
-                      handleMessageSubmit={handleMessageSubmit}
-                      onAIRewrite={onAIRewrite}
-                      currentChatStatus={currentChatStatus}
-                      onChangeChatStatus={onChangeChatStatus}
-                      isSpectator={isSpectator}
-                      onToggleRealtimeRender={onToggleRealtimeRender}
-                      onToggleWebgalLinkMode={toggleWebgalLinkMode}
-                      onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-                      autoReplyMode={autoReplyMode}
-                      onToggleAutoReplyMode={toggleAutoReplyMode}
-                      runModeEnabled={runModeEnabled}
-                      onToggleRunMode={onToggleRunMode}
-                      defaultFigurePosition={defaultFigurePosition}
-                      onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-                      dialogNotend={dialogNotend}
-                      onToggleDialogNotend={toggleDialogNotend}
-                      dialogConcat={dialogConcat}
-                      onToggleDialogConcat={toggleDialogConcat}
-                      onSendEffect={onSendEffect}
-                      onClearBackground={onClearBackground}
-                      onClearFigure={onClearFigure}
-                      onSetWebgalVar={onSetWebgalVar}
+                      {...toolbarCommonProps}
                       onOpenImportChatText={onOpenImportChatText}
-                      isKP={isKP}
-                      onStopBgmForAll={onStopBgmForAll}
-                      noRole={noRole}
-                      notMember={notMember}
-                      isSubmitting={isSubmitting}
-                      layout={toolbarLayout}
-                      showStatusBar={false}
                       showWebgalLinkToggle={true}
                       showRunModeToggle={true}
                       showWebgalControls={false}

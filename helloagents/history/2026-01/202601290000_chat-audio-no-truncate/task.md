@@ -1,6 +1,6 @@
 # 任务清单: 聊天音频取消 60s 截断并减少预加载
 
-目录: `helloagents/history/2026-01/202601290000_chat-audio-no-truncate/`
+Ŀ¼: `helloagents/history/2026-01/202601290000_chat-audio-no-truncate/`
 
 ---
 

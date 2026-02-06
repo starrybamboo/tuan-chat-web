@@ -1,6 +1,6 @@
 # 任务清单: 房间加载时运行时补齐头像选择
 
-目录: helloagents/history/2026-01/202601242230_chat_avatar_runtime_default/
+Ŀ¼: helloagents/history/2026-01/202601242230_chat_avatar_runtime_default/
 
 ---
 

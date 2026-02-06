@@ -1,8 +1,5 @@
-import type { ClueMessage } from "../../../../api/models/ClueMessage";
-
 import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
-import ClueListForPL from "@/components/chat/room/drawers/clueListForPL";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
 import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
@@ -10,15 +7,11 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { Detective, WebgalIcon, XMarkICon } from "@/icons";
+import { WebgalIcon, XMarkICon } from "@/icons";
 
-export interface SubRoomWindowProps {
-  onClueSend: (clue: ClueMessage) => void;
-}
+type SubPane = "map" | "initiative" | "webgal";
 
-type SubPane = "map" | "clue" | "initiative" | "webgal";
-
-function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
+function SubRoomWindowImpl() {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
@@ -43,8 +36,9 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
     }
   }, [sideDrawerState]);
 
-  // 预留左侧聊天区的“最小可用宽度”。当左侧已经无法继续缩小时，SubRoomWindow 也不允许继续拖宽，避免整体溢出。
-  // 这里额外考虑了 RoomSideDrawers（user/role/export）可能占据的固定宽度。
+  // 预留左侧聊天区的“最小可用宽度”。当左侧已经无法继续缩小时，
+  // SubRoomWindow 也不允许继续拖宽，避免整体溢出。
+  // 这里额外考虑了 RoomSideDrawers（user/role/export）可能占用的固定宽度。
   const minRemainingWidth = React.useMemo(() => {
     const baseMinChatWidth = 520;
     const fixedMemberDrawerWidth = 270;
@@ -72,11 +66,6 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
         const max = 640;
         return { minWidth: min, maxWidth: max };
       }
-      case "clue": {
-        const min = 320;
-        const max = 480;
-        return { minWidth: min, maxWidth: max };
-      }
       case "webgal":
       default: {
         const min = 560;
@@ -89,10 +78,8 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
   const title = activePane === "map"
     ? "地图"
     : activePane === "initiative"
-      ? "先攻表"
-      : activePane === "webgal"
-        ? "WebGAL 预览"
-        : "线索";
+      ? "先攻栏"
+      : "WebGAL 预览";
 
   const close = React.useCallback(() => {
     setIsOpen(false);
@@ -118,7 +105,6 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
             <div className="flex items-center gap-2 min-w-0">
               {activePane === "map" && <CheckerboardIcon className="size-5 opacity-80" />}
               {activePane === "initiative" && <SwordIcon className="size-5 opacity-80" />}
-              {activePane === "clue" && <Detective className="size-5 opacity-80" />}
               {activePane === "webgal" && <WebgalIcon className="size-5 opacity-80" />}
               <span className="text-center font-semibold line-clamp-1 truncate min-w-0 text-sm sm:text-base">
                 {title}
@@ -146,23 +132,10 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs"
-                    aria-label="先攻表"
+                    aria-label="先攻栏"
                     onClick={() => setActivePane("initiative")}
                   >
                     <SwordIcon className="size-5" />
-                  </button>
-                </div>
-                <div
-                  className={`tooltip tooltip-bottom ${activePane === "clue" ? "text-primary" : "hover:text-info"}`}
-                  data-tip="线索"
-                >
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
-                    aria-label="线索"
-                    onClick={() => setActivePane("clue")}
-                  >
-                    <Detective className="size-5" />
                   </button>
                 </div>
                 <div
@@ -201,11 +174,6 @@ function SubRoomWindowImpl({ onClueSend }: SubRoomWindowProps) {
           {activePane === "initiative" && (
             <div className="overflow-auto h-full">
               <InitiativeList />
-            </div>
-          )}
-          {activePane === "clue" && (
-            <div className="overflow-auto h-full">
-              <ClueListForPL onSend={onClueSend} />
             </div>
           )}
           {activePane === "webgal" && (

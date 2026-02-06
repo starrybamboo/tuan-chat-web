@@ -7,6 +7,7 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
+import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
@@ -29,7 +30,7 @@ import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from
  * WebGAL 文本拓展语法处理工具
  *
  * 支持的语法：
- * 1. 注音语法: [要注音的词](注音) - 例如 [笑顔](えがお)
+ * 1. ע﷨: [ҪעĴ](ע) -  [Ц]()
  * 2. 文本增强语法: [文本](style=color:#66327C\; ruby=注音)
  *
  * 参数说明：
@@ -37,7 +38,7 @@ import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, uploadFile } from
  * - style-alltext: 作用于所有层（文本、描边、占位）的样式，如斜体、字体大小
  * - ruby: 注音文本
  */
-export const TextEnhanceSyntax = {
+const TextEnhanceSyntax = {
   /**
    * 匹配文本拓展语法的正则表达式
    * 匹配 [文本](参数) 格式
@@ -843,7 +844,7 @@ export class RealtimeRenderer {
    * 将 avatarTitle 转换为情感向量
    */
   private convertAvatarTitleToEmotionVector(avatarTitle: Record<string, string>): number[] {
-    const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
+    const emotionOrder = ["ϲ", "ŭ", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
     const MAX_SUM = 0.5;
 
     let emotionVector = emotionOrder.map((emotion) => {
@@ -1197,7 +1198,7 @@ export class RealtimeRenderer {
     if (msg.messageType === 2) {
       const imageMessage = msg.extra?.imageMessage;
       if (imageMessage) {
-        if (imageMessage.background) {
+        if (isImageMessageBackground(msg.annotations, imageMessage)) {
           const bgFileName = await this.uploadBackground(imageMessage.url);
           if (bgFileName) {
             await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
@@ -1206,7 +1207,7 @@ export class RealtimeRenderer {
           }
         }
         // 处理解锁CG
-        const unlockCg = (msg.webgal as any)?.unlockCg;
+        const unlockCg = hasAnnotation(msg.annotations, ANNOTATION_IDS.CG);
         if (unlockCg) {
           const cgFileName = await this.uploadBackground(imageMessage.url);
           if (cgFileName) {
@@ -1353,7 +1354,7 @@ export class RealtimeRenderer {
       ? messageAvatarId
       : (roleAvatarId > 0 ? roleAvatarId : 0);
     // 优先使用自定义角色名
-    const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
+    const customRoleName = msg.customRoleName as string | undefined;
     const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
@@ -1365,19 +1366,16 @@ export class RealtimeRenderer {
       : null;
 
     console.error(msg.content, msg.webgal?.voiceRenderSettings);
-    // 获取 voiceRenderSettings 中的立绘位置
+    // 获取 annotations 中的立绘位置
     const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
       emotionVector?: number[];
-      figurePosition?: string;
-      notend?: boolean;
-      concat?: boolean;
       figureAnimation?: FigureAnimationSettings;
     } | undefined;
 
     // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
     // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
     // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
-    const rawFigurePosition = voiceRenderSettings?.figurePosition;
+    const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
     console.error(msg.content, rawFigurePosition);
 
     // 只有 "left", "center", "right" 才是有效的立绘位置
@@ -1389,7 +1387,7 @@ export class RealtimeRenderer {
     const figureAnimation = voiceRenderSettings?.figureAnimation;
 
     // 获取黑屏文字的 -hold 设置
-    const introHold = (msg.webgal as any)?.introHold as boolean ?? false;
+    const introHold = hasAnnotation(msg.annotations, ANNOTATION_IDS.INTRO_HOLD);
 
     // 旁白和黑屏文字不需要显示立绘
     // 如果 figurePosition 为 undefined，也不显示立绘
@@ -1468,9 +1466,9 @@ export class RealtimeRenderer {
     // 获取 voiceRenderSettings 中的情感向量
     const customEmotionVector = voiceRenderSettings?.emotionVector;
 
-    // 获取 WebGAL 对话参数：-notend 和 -concat
-    const dialogNotend = voiceRenderSettings?.notend ?? false;
-    const dialogConcat = voiceRenderSettings?.concat ?? false;
+    // 获取对话参数：-notend 和 -concat（来自 annotations）
+    const dialogNotend = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
+    const dialogConcat = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_CONCAT);
 
     // 根据消息类型生成不同的指令
     if (isIntroText) {
@@ -1656,9 +1654,6 @@ export class RealtimeRenderer {
     if (regenerateTTS && msg.content && msg.roleId) {
       const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
         emotionVector?: number[];
-        figurePosition?: string;
-        notend?: boolean;
-        concat?: boolean;
       } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
       const roleId = msg.roleId ?? 0;
@@ -1688,7 +1683,7 @@ export class RealtimeRenderer {
     const lineRange = this.messageLineMap.get(key);
 
     if (!lineRange) {
-      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 模式`);
+      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append ģʽ`);
       await this.renderMessage(message, targetRoomId, true);
       return true;
     }
@@ -1791,5 +1786,3 @@ export class RealtimeRenderer {
     this.onStatusChange = undefined;
   }
 }
-
-export default RealtimeRenderer;

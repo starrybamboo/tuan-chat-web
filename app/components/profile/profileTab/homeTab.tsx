@@ -19,7 +19,7 @@ interface HomeTabProps {
   userId: number;
 }
 
-export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
+const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const userQuery = useGetUserInfoQuery(userId);
   const loginUserId = useGlobalContext().userId ?? -1;
   const user = userQuery.data?.data;

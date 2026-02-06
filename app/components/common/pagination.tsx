@@ -136,7 +136,7 @@ const Pagination: React.FC<PaginationProps> = ({
               }
             }}
             aria-current={page === currentPage ? "page" : undefined}
-            aria-label={isEllipsis ? "更多页码" : `第 ${page} 页`}
+            aria-label={isEllipsis ? "更多页码" : `第 ${page} ҳ`}
           >
             {page}
           </button>

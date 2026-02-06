@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+﻿import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type {RuleCloneRequest} from "../models/RuleCloneRequest";
 import type {RuleCreateRequest} from "../models/RuleCreateRequest";
@@ -77,7 +77,7 @@ export function useCreateRuleMutation() {
 /**
  * 克隆规则
  */
-export function useCloneRuleMutation() {
+function useCloneRuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RuleCloneRequest) => tuanchat.ruleController.cloneRule(req),
@@ -100,7 +100,7 @@ export function useGetRuleDetailQuery(ruleId: number) {
         enabled: ruleId > 0 // 只有ruleId有效时才启用查询
     });
 }
-export function useGetRuleDetailQueries(ruleIds: number[]) {
+function useGetRuleDetailQueries(ruleIds: number[]) {
     return useQueries({
         queries: ruleIds.map(ruleId => ({
             queryKey: ['getRuleDetail', ruleId],
@@ -186,7 +186,7 @@ async function fetchRules(page: number, keyword?: string, pageSize: number = 4, 
  * @param keyword 搜索关键词
  * @param pageSize 每页大小
  */
-export function useRulePageQuery(page: number, keyword?: string, pageSize: number = 8) {
+function useRulePageQuery(page: number, keyword?: string, pageSize: number = 8) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -256,3 +256,4 @@ export function useRuleListQuery() {
     staleTime: 300000, // 5分钟缓存
   });
 }
+

@@ -20,7 +20,7 @@
 - **SidebarTree drop 触发保障**
   - 当前实现对 `isDocRefDrag(e.dataTransfer)` 的依赖可能导致 `preventDefault` 未执行，从而 drop 不触发。
   - 调整 `chatRoomListPanel.tsx` 的 dragover/drop：
-    - dragover：在非内部拖拽（`dragging` 为空）且识别为 DocRef 时 `preventDefault`，并根据 `isSpaceOwner` 设置 `dropEffect` 为 `copy/none`
+    - dragover：在非内部拖拽（`dragging` 为空）且识别为 DocRef ʱ `preventDefault`，并根据 `isSpaceOwner` 设置 `dropEffect` Ϊ `copy/none`
     - drop：优先读取 `getDocRefDragData`，识别成功后再 `preventDefault + stopPropagation` 并调用 `handleDropDocRefToCategory`
     - 非 KP：允许触发 drop，从 `handleDropDocRefToCategory` 给出 toast 提示（不发请求）
 

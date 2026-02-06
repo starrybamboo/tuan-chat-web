@@ -36,7 +36,7 @@ export default function ExpansionModule({
   onStImportModalClose,
   size = "default",
 }: ExpansionModuleProps) {
-  // 状态
+  // ״̬
   const selectedRuleId = ruleId ?? 1;
 
   // 角色类型查询（用于条件渲染Tab）

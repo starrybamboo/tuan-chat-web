@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MessageDirectReadUpdateRequest, MessageDirectRecallRequest, MessageDirectSendRequest } from "api";
 import { tuanchat } from "../instance";
 import { useMemo } from "react";
@@ -46,7 +46,7 @@ export function useGetInboxMessageWithUserQuery(userId: number, targetUserId: nu
 /**
  * 发送私聊消息
  */
-export function useSendMessageDirectMutation() {
+function useSendMessageDirectMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: MessageDirectSendRequest) => tuanchat.messageDirectController.sendMessage(requestBody),
@@ -92,7 +92,7 @@ export function useUpdateReadPositionMutation() {
 /**
  * 获取所有好友的用户信息
  */
-export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
+function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
   return useQueries({
     queries: friends.map(friendId => ({
       queryKey: ['getAllMyFriendsInfo', friendId],
@@ -101,3 +101,4 @@ export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
     }))
   });
 }
+

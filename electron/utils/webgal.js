@@ -9,8 +9,8 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const WEBGAL_EXE_NAME = "WebGAL_Teree.exe";
-export const WEBGAL_PORT = 3001;
+const WEBGAL_EXE_NAME = "WebGAL_Teree.exe";
+const WEBGAL_PORT = 3001;
 
 let webgalProcess = null;
 let webgalWindow = null;
@@ -23,7 +23,7 @@ function getWebGALPath(app) {
   return path.join(__dirname, "..", "..", "extraResources", WEBGAL_EXE_NAME);
 }
 
-export function startWebGAL(app) {
+function startWebGAL(app) {
   const webgalPath = getWebGALPath(app);
 
   if (webgalProcess) {

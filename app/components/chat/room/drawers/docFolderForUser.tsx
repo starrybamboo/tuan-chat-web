@@ -170,6 +170,45 @@ function normalizeTree(params: {
   return { schemaVersion: 1, categories };
 }
 
+function isSameDocFolderTree(a: DocFolderTree | null, b: DocFolderTree | null): boolean {
+  if (a === b)
+    return true;
+  if (!a || !b)
+    return false;
+  if (a.schemaVersion !== b.schemaVersion)
+    return false;
+
+  const aCats = a.categories ?? [];
+  const bCats = b.categories ?? [];
+  if (aCats.length !== bCats.length)
+    return false;
+
+  for (let i = 0; i < aCats.length; i++) {
+    const ac = aCats[i];
+    const bc = bCats[i];
+    if (!ac || !bc)
+      return false;
+    if (ac.categoryId !== bc.categoryId || ac.name !== bc.name || Boolean(ac.collapsed) !== Boolean(bc.collapsed))
+      return false;
+
+    const aItems = ac.items ?? [];
+    const bItems = bc.items ?? [];
+    if (aItems.length !== bItems.length)
+      return false;
+
+    for (let j = 0; j < aItems.length; j++) {
+      const ai = aItems[j];
+      const bi = bItems[j];
+      if (!ai || !bi)
+        return false;
+      if (ai.nodeId !== bi.nodeId || ai.type !== bi.type || ai.targetId !== bi.targetId)
+        return false;
+    }
+  }
+
+  return true;
+}
+
 function formatDateTime(raw: string | null | undefined): string {
   if (!raw)
     return "";
@@ -230,7 +269,7 @@ export default function DocFolderForUser() {
   }, [serverVersion]);
 
   useEffect(() => {
-    setTree(normalizedFromServer);
+    setTree(prev => (isSameDocFolderTree(prev, normalizedFromServer) ? prev : normalizedFromServer));
   }, [normalizedFromServer, spaceId]);
 
   useEffect(() => {

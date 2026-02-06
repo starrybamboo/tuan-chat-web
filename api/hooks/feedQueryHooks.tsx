@@ -145,9 +145,9 @@ export function useFeedPrefetch() {
     lastTimeRef.current = now;
 
     const postId = feed.response?.communityPostId;
-    const moduleId = feed.response?.moduleId;
+    const repositoryId = feed.response?.repositoryId;
 
-    if (!postId && !moduleId) return;
+    if (!postId && !repositoryId) return;
 
     if (postId) {
       queryClient.prefetchQuery({
@@ -157,10 +157,10 @@ export function useFeedPrefetch() {
       });
     }
 
-    if (moduleId) {
+    if (repositoryId) {
       queryClient.prefetchQuery({
-        queryKey: ['moduleDetail', moduleId],
-        queryFn: () => tuanchat.moduleController.getById1(moduleId),
+        queryKey: ['repositoryDetail', repositoryId],
+        queryFn: () => tuanchat.repositoryController.getById(repositoryId),
         staleTime: 5 * 60 * 1000,
       });
     }

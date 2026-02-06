@@ -28,6 +28,14 @@ export type ChatMessageRequest = {
      */
     content?: string;
     /**
+     * 消息标注
+     */
+    annotations?: Array<string>;
+    /**
+     * 自定义角色名（为空则使用角色名）
+     */
+    customRoleName?: string;
+    /**
      * 回复的消息id,如果没有别传就好
      */
     replayMessageId?: number;

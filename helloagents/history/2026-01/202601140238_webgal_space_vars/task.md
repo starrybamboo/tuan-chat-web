@@ -1,6 +1,6 @@
 # 任务清单: WebGAL 空间变量系统（聊天指令驱动）
 
-目录: `tuan-chat-web/helloagents/plan/202601140238_webgal_space_vars/`
+Ŀ¼: `tuan-chat-web/helloagents/plan/202601140238_webgal_space_vars/`
 
 ---
 

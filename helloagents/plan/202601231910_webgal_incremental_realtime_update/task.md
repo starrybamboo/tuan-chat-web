@@ -1,6 +1,6 @@
 ﻿# 任务清单: WebGAL 实时渲染增量更新
 
-目录: helloagents/plan/202601231910_webgal_incremental_realtime_update/
+Ŀ¼: helloagents/plan/202601231910_webgal_incremental_realtime_update/
 
 ---
 

@@ -7,7 +7,7 @@
 本变更的目标是：在本仓库知识库（`helloagents/wiki/`）内提供一组“能直接用”的文档，覆盖以下主题：
 
 1. **嵌入编辑器（React + TS）**：如何在 React 组件中挂载 editor-host，如何组织 workspace/doc。
-2. **协同/同步**：sync 管线（DocEngine/BlobEngine 等）在本项目的使用边界与可扩展点。
+2. **Эͬ/同步**：sync 管线（DocEngine/BlobEngine 等）在本项目的使用边界与可扩展点。
 3. **块渲染**：store + std 的关系、block schema / view extension 的基本拼装方式。
 4. **导入/导出**：在 BlockSuite 能力边界内，如何做内容序列化/快照/持久化与对外导出（按 0.22.4 现状给出可行路径）。
 

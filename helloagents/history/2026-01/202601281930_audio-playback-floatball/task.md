@@ -1,6 +1,6 @@
 # 任务清单: 全局音频悬浮球与播放聚合
 
-目录: `helloagents/plan/202601281930_audio-playback-floatball/`
+Ŀ¼: `helloagents/plan/202601281930_audio-playback-floatball/`
 
 ---
 

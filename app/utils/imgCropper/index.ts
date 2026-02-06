@@ -1,27 +1,22 @@
 /**
- * 图片裁剪工具模块
- * 整合了所有与图片裁剪相关的工具函数和 Hooks
+ * Image crop utilities.
  */
 
-// Canvas 预览
+// Canvas preview
 export { canvasPreview } from "./canvasPreview";
 
-// 裁剪工具函数
+// Crop utilities
 export {
   canvasToBlob,
   createCenteredAspectCrop,
-  createCenteredSquareCrop,
   createFullImageCrop,
   createTopCenteredSquareCrop,
   getCroppedImageFile,
 } from "./cropUtils";
 
-// 裁剪 Canvas 防抖更新 Hook
-export { useCropCanvas } from "./useCropCanvas";
-
-// 裁剪预览 Hook（完整状态管理）
+// Preview hook
 export { useCropPreview } from "./useCropPreview";
-export type { CropMode, ImageLoadContext } from "./useCropPreview";
+export type { ImageLoadContext } from "./useCropPreview";
 
-// 防抖 Hook
+// Debounce hook
 export { useDebounceEffect } from "./useDebounceEffect";

@@ -1,6 +1,6 @@
 # 任务清单: tc_header 图片上传修复 + 空间文档懒加载
 
-目录: `helloagents/plan/202601172234_tc_header_upload_and_doc_lazy/`
+Ŀ¼: `helloagents/plan/202601172234_tc_header_upload_and_doc_lazy/`
 
 ---
 

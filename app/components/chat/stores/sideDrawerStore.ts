@@ -8,12 +8,11 @@ export type SideDrawerState
     | "search"
     | "initiative"
     | "map"
-    | "clue"
     | "docFolder"
     | "export"
     | "webgal";
 
-export type SubRoomDrawerState = "none" | "map" | "webgal" | "doc";
+type SubRoomDrawerState = "none" | "map" | "webgal" | "doc";
 
 type SideDrawerStore = {
   state: SideDrawerState;
@@ -26,7 +25,11 @@ type SideDrawerStore = {
 export const useSideDrawerStore = create<SideDrawerStore>(set => ({
   state: "none",
   subState: "none",
-  setState: next => set({ state: next }),
-  setSubState: next => set({ subState: next }),
-  reset: () => set({ state: "none", subState: "none" }),
+  setState: next => set(state => (state.state === next ? state : { state: next })),
+  setSubState: next => set(state => (state.subState === next ? state : { subState: next })),
+  reset: () => set(state => (
+    state.state === "none" && state.subState === "none"
+      ? state
+      : { state: "none", subState: "none" }
+  )),
 }));

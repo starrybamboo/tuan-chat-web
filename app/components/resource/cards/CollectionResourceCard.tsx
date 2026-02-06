@@ -128,5 +128,3 @@ export function CollectionResourceCard({
     </div>
   );
 }
-
-export default CollectionResourceCard;

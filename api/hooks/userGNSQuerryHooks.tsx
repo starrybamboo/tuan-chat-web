@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UserPreferenceRequest } from "../models/UserPreferenceRequest";
 import { tuanchat } from "../instance";
 
@@ -21,7 +21,7 @@ export function useGetGNSQuery(userId: number) {
 /**
  * 更新用户偏好 (GNS) 请求
  */
-export function useUpdateGNSMutation() {
+function useUpdateGNSMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ userId, ...req }: UserPreferenceRequest & { userId: number }) =>
@@ -38,7 +38,7 @@ export function useUpdateGNSMutation() {
 /**
  * 创建用户偏好 (GNS) 请求
  */
-export function useCreateGNSMutation() {
+function useCreateGNSMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ userId, ...req }: UserPreferenceRequest & { userId: number }) =>
@@ -70,3 +70,4 @@ export function useUpsertGNSMutation() {
         error: updateMutation.error || createMutation.error,
     };
 }
+

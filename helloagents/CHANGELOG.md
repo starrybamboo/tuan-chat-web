@@ -110,14 +110,14 @@
 - 修复聊天文档卡片拖拽被“消息拖拽移动”接管：dragstart 阻止冒泡，保持 `effectAllowed=copy`
 - 修复我的文档（docFolder）列表项“⋮”菜单被后续列表项遮挡：提升操作区 `z-index`
 - 调整我的文档（docFolder）文档重命名：移除列表侧重命名入口，标题在文档内修改并自动同步
-- 修复文档卡片消息在消息列表不显示：当 `extra.docCard` 存在但 `messageType` 缺失/不匹配时，按文档卡片兜底渲染
+- 修复文档卡片消息在消息列表不显示：当 `extra.docCard` 存在但 `messageType` ȱʧ/不匹配时，按文档卡片兜底渲染
 - 修复房间角色导入后 avatarId 为空导致头像不显示：前端兜底为该角色头像列表首个头像
 - 修复聊天导入/发送时未选择立绘导致消息头像回退默认图标：运行时解析 `avatarId`（不强制持久化），仍缺失时显示为空占位
 - 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复房间初次导入无头像：房间头像缺失时用 `/favicon.ico` 兜底，并在头像加载失败时自动回退
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
 - 修复 eslint 错误：`AudioMessage` 避免条件调用 Hooks；`SpaceWorkspace` WS 更新回调移除未使用的 `serverTime` 解构
-- 修复 CI `pnpm install` 失败：通过 `pnpm.overrides` 固定 `@electron/node-gyp` 为 registry 版本，避免通过 SSH clone GitHub
+- 修复 CI `pnpm install` 失败：通过 `pnpm.overrides` 固定 `@electron/node-gyp` Ϊ registry 版本，避免通过 SSH clone GitHub
 - 修复聊天页面未读数在进入时持续累加：底部状态下对齐已读位置，标签仅显示实时未读
 - 修复未读来源难以定位：新增 `tc:unread:debug` 调试日志开关，输出未读统计细节
 - 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
@@ -137,7 +137,7 @@
 - 增加 Blocksuite @ 提及调试日志（菜单/插入路径）
 - 加固空间描述 Blocksuite @ 提及弹窗关闭与重复触发
 - 修复空间描述 Blocksuite @ 提及重复插入且弹窗不关闭
-- 修复开发环境 React hooks 报错（invalid hook call / `useEffect` 为 null）：dev 启动清理遗留 `node_modules/.vite/`，并补充 `resolve.dedupe` 覆盖 `react/jsx-*`
+- 修复开发环境 React hooks 报错（invalid hook call / `useEffect` Ϊ null）：dev 启动清理遗留 `node_modules/.vite/`，并补充 `resolve.dedupe` 覆盖 `react/jsx-*`
 - 修复开发环境偶发 Vite optimize deps 缓存/浏览器缓存不一致导致的 deps chunk 缺失报错：使用独立 `cacheDir`（`node_modules/.vite-tuan-chat-web`）并提供 `pnpm dev:force` 作为兜底命令
 - 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）
 - BlockSuite 相关样式改为按需注入，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的全局 `body{counter-reset}` 重写为 `.tc-blocksuite-scope`/`.blocksuite-portal` 范围内生效
@@ -152,7 +152,7 @@
 - 调整 Blocksuite 在个人主页/房间设置等场景默认使用 `variant=embedded` 自动高度，以便由外层页面滚动（如需固定高度再显式传入 `variant=full`）
 - 优化 Blocksuite iframe 宿主 DOM：非全屏场景直接渲染 iframe，减少额外包裹层级，避免布局/高度被多层容器干扰
 - 修复 Chat 抽屉宽度在 hydration 时不一致导致的警告：`drawerPreferenceStore` 延迟从 localStorage hydrate，`OpenAbleDrawer` 首屏统一按 `lg` 渲染避免 SSR/客户端屏幕尺寸分支不一致
-- 为 `app/root.tsx` 的 `Layout` 增加默认 `data-theme="light"`，避免未挂载主题切换组件时 DaisyUI 主题变量缺失导致 UI 样式异常
+- Ϊ `app/root.tsx` 的 `Layout` 增加默认 `data-theme="light"`，避免未挂载主题切换组件时 DaisyUI 主题变量缺失导致 UI 样式异常
 - 统一包管理器为 pnpm：移除 `package-lock.json`，在 `package.json` 标注 `packageManager`，并在知识库中移除 npm/Docker 相关说明
 - WebGAL 实时渲染创建游戏不再使用 `WebGAL Black` 模板（不传 `templateDir`），创建失败直接返回失败
 - 修复房间列表右键菜单“房间资料”无法打开：为 `ChatPageContextMenu` 传入 `onOpenRoomSetting` 回调并跳转到房间资料页
@@ -161,7 +161,7 @@
 - 修复空间模式首次进入可能落到 `/chat/<spaceId>/null`：房间列表就绪后按自定义排序自动进入首个房间（并使用 `replace` 回填路由）
 - 修复空间抽屉面板“跑团设置”打开后空白：`SpaceDetailPanel` 增加 `trpg` tab 渲染 `SpaceTrpgSettingWindow`
 - 修复 ESLint 报错/告警：补全 Blocksuite 描述文档相关 `useEffect` 依赖；移除未使用的 Zustand `get` 参数；`/var set` 解析改为非正则解析避免回溯；`novelai-openapi.mjs` 显式引入 `node:process`
-- 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page 模式 `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
+- 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page ģʽ `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
 - 修复 AI 生图页运行时拉取模型列表的 502：`/user/*` 元数据接口固定走 `https://api.novelai.net`，避免误发到 `image.novelai.net`
 - 修复 AI 生图页使用 `pst-*` token 拉取 `/user/clientsettings` 返回 403：检测到 persistent token 时直接降级为内置模型列表
 - AI 生图页模型锁定为 NAI v4.5 Full：`nai-diffusion-4-5-full`（UI 的 “4.5 FULL” 对应该模型 ID）

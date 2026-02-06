@@ -80,10 +80,3 @@ export function useGetUserFollowersQuery(targetUserId: number, requestBody: Page
  * @param targetUserId 目标用户ID
  * @param requestBody 分页请求参数
  */
-export function useGetUserFriendsQuery(targetUserId: number, requestBody: PageBaseRequest) {
-  return useQuery({
-    queryKey: ['userFriends', targetUserId, requestBody],
-    queryFn: () => tuanchat.userFollowController.friends(requestBody),
-    staleTime: 300000, // 5分钟缓存
-  });
-}

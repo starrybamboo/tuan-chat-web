@@ -1,6 +1,6 @@
 # 任务清单: 跑团检定请求按钮消息
 
-目录: `helloagents/plan/202601142250_command_request_button/`
+Ŀ¼: `helloagents/plan/202601142250_command_request_button/`
 
 ---
 

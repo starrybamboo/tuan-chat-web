@@ -21,7 +21,7 @@ type RoomUiState = {
 
   setComposerTarget: (target: "main" | "thread") => void;
 
-  /** 切换房间时重置临时 UI 状态 */
+  /** 切换房间时重置临时 UI ״̬ */
   reset: () => void;
 };
 
@@ -30,9 +30,21 @@ export const useRoomUiStore = create<RoomUiState>(set => ({
   threadRootMessageId: undefined,
   composerTarget: "main",
   insertAfterMessageId: undefined,
-  setReplyMessage: message => set({ replyMessage: message }),
-  setThreadRootMessageId: messageId => set({ threadRootMessageId: messageId }),
-  setInsertAfterMessageId: messageId => set({ insertAfterMessageId: messageId }),
-  setComposerTarget: target => set({ composerTarget: target }),
-  reset: () => set({ replyMessage: undefined, threadRootMessageId: undefined, composerTarget: "main", insertAfterMessageId: undefined }),
+  setReplyMessage: message => set(state => (state.replyMessage === message ? state : { replyMessage: message })),
+  setThreadRootMessageId: messageId => set(state => (state.threadRootMessageId === messageId ? state : { threadRootMessageId: messageId })),
+  setInsertAfterMessageId: messageId => set(state => (state.insertAfterMessageId === messageId ? state : { insertAfterMessageId: messageId })),
+  setComposerTarget: target => set(state => (state.composerTarget === target ? state : { composerTarget: target })),
+  reset: () => set(state => (
+    state.replyMessage === undefined
+    && state.threadRootMessageId === undefined
+    && state.composerTarget === "main"
+    && state.insertAfterMessageId === undefined
+      ? state
+      : {
+          replyMessage: undefined,
+          threadRootMessageId: undefined,
+          composerTarget: "main",
+          insertAfterMessageId: undefined,
+        }
+  )),
 }));

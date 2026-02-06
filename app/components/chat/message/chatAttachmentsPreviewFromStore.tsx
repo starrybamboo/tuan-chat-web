@@ -10,7 +10,6 @@ export default function ChatAttachmentsPreviewFromStore() {
   const audioFile = useChatComposerStore(state => state.audioFile);
   const sendAsBackground = useChatComposerStore(state => state.sendAsBackground);
   const audioPurpose = useChatComposerStore(state => state.audioPurpose);
-
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
