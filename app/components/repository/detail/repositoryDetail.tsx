@@ -4,19 +4,36 @@ import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/ho
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useImportFromRepositoryMutation } from "api/hooks/spaceRepositoryHooks";
 import { tuanchat } from "api/instance";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import ChatPageLayout from "@/components/chat/chatPageLayout";
+import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
+import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { PopWindow } from "@/components/common/popWindow";
 import Author from "./author";
 // import IssueTab from "./issueTab";
 
-export default function RepositoryDetailComponent({ repositoryData: propRepositoryData }: { repositoryData?: RepositoryData }) {
+export default function RepositoryDetailComponent({
+  repositoryData: propRepositoryData,
+  repositoryId: repositoryIdProp,
+}: {
+  repositoryData?: RepositoryData;
+  repositoryId?: number;
+}) {
   const navigate = useNavigate();
   const params = useParams();
-  const repositoryId = Number(params.id);
+  const repositoryIdFromParams = Number(params.id);
+  const repositoryId = Number.isFinite(repositoryIdProp) && repositoryIdProp > 0
+    ? repositoryIdProp
+    : (Number.isFinite(repositoryIdFromParams) && repositoryIdFromParams > 0
+        ? repositoryIdFromParams
+        : (propRepositoryData?.repositoryId ?? -1));
 
   // ===== 所有 Hooks 必须在最前面调用 =====
   // 如果没有传入 repositoryData，则通过 ID 获取
@@ -71,14 +88,54 @@ export default function RepositoryDetailComponent({ repositoryData: propReposito
   const roomsQuery = useGetUserRoomsQuery(linkedSpaceId ?? -1);
   const linkedRooms = useMemo(() => roomsQuery.data?.data?.rooms ?? [], [roomsQuery.data?.data?.rooms]);
   const viewRoomId = linkedRooms[0]?.roomId ?? null;
+  const [previewRoomId, setPreviewRoomId] = useState<number | null>(viewRoomId);
+  const screenSize = useScreenSize();
+  const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
+  const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
+  const [isPreviewLeftDrawerOpen, setIsPreviewLeftDrawerOpen] = useState(screenSize !== "sm");
+
+  useEffect(() => {
+    setPreviewRoomId(viewRoomId);
+  }, [viewRoomId]);
+
+  useEffect(() => {
+    if (screenSize !== "sm") {
+      setIsPreviewLeftDrawerOpen(true);
+    }
+  }, [screenSize]);
+
+  const togglePreviewLeftDrawer = useCallback(() => {
+    setIsPreviewLeftDrawerOpen(prev => !prev);
+  }, []);
+
+  const closePreviewLeftDrawer = useCallback(() => {
+    if (screenSize === "sm") {
+      setIsPreviewLeftDrawerOpen(false);
+    }
+  }, [screenSize]);
+
+  const previewLeftDrawerLabel = isPreviewLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
+  const previewShouldShowLeftToggle = screenSize === "sm" && !isPreviewLeftDrawerOpen;
+  const previewSpaces = useMemo(() => (linkedSpace ? [linkedSpace] : []), [linkedSpace]);
+  const previewSpaceOrderIds = useMemo(() => (linkedSpaceId ? [linkedSpaceId] : []), [linkedSpaceId]);
+  const previewRoomOrderIds = useMemo(() => {
+    return linkedRooms
+      .map(room => room.roomId)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  }, [linkedRooms]);
+  const previewSpaceContextValue = useMemo(() => ({
+    spaceId: linkedSpaceId ?? -1,
+    ruleId: linkedSpace?.ruleId,
+    isSpaceOwner: false,
+    setActiveSpaceId: () => {},
+    setActiveRoomId: () => {},
+    toggleLeftDrawer: togglePreviewLeftDrawer,
+    spaceMembers: [],
+  }), [linkedSpace?.ruleId, linkedSpaceId, togglePreviewLeftDrawer]);
 
   // 图片加载状态
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-
-  // 背景图片加载状态
-  const [bgImageLoaded, setBgImageLoaded] = useState(false);
-  const [bgImageError, setBgImageError] = useState(false);
 
   // ===== 数据处理逻辑 =====
   // 使用传入的数据或获取的数据
@@ -120,14 +177,10 @@ export default function RepositoryDetailComponent({ repositoryData: propReposito
     if (!repositoryImage) {
       setImageLoading(false);
       setImageError(false);
-      setBgImageLoaded(false);
-      setBgImageError(false);
       return;
     }
     setImageLoading(true);
     setImageError(false);
-    setBgImageLoaded(false);
-    setBgImageError(false);
   }, [repositoryImage]);
 
   const isRootRepository = useMemo(() => repositoryData?.parent == null, [repositoryData]);
@@ -267,35 +320,10 @@ export default function RepositoryDetailComponent({ repositoryData: propReposito
 
   return (
     <>
-      <div className="bg-base-100 relative">
-        {/* 背景层容器 - 限制模糊效果范围，仅在大屏显示 */}
-        <div className="hidden lg:block absolute top-0 left-0 w-full h-100 overflow-hidden z-0">
-          {/* 无数据或加载失败时的占位背景 */}
-          {(!repositoryData || !repositoryImage || bgImageError) && (
-            <div className="absolute inset-0 bg-base-200 z-0"></div>
-          )}
-          {/* 背景图 - 有数据且未出错时显示（包括加载中） */}
-          {repositoryData && repositoryImage && !bgImageError && (
-            <img
-              src={repositoryImage}
-              className={`absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] object-cover blur-sm z-0 ${bgImageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-500`}
-              onLoad={() => setBgImageLoaded(true)}
-              onError={() => {
-                setBgImageLoaded(false);
-                setBgImageError(true);
-              }}
-              alt="背景"
-            />
-          )}
-          {/* 遮罩层 - 只在图片加载完成后显示 */}
-          {repositoryData && repositoryImage && !bgImageError && bgImageLoaded && (
-            <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10 pointer-events-none" />
-          )}
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 py-4 relative z-10">
-          <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-            <div className="w-full md:w-[32%] lg:w-[28%] flex flex-col gap-4">
+      <div className="bg-base-100 relative min-h-screen overflow-x-hidden">
+        <div className="mx-auto max-w-7xl px-4 py-4 relative z-10 flex flex-col min-h-0">
+          <div className="flex flex-col gap-6 md:flex-row md:gap-8 flex-1 min-h-0">
+            <div className="w-full md:w-[26%] lg:w-[22%] flex flex-col gap-4">
               <div className="rounded-2xl border border-base-300 bg-base-100 p-4 flex flex-col gap-4">
                 <div className="w-full flex items-center justify-center relative">
                   {repositoryImage
@@ -418,36 +446,26 @@ export default function RepositoryDetailComponent({ repositoryData: propReposito
               </div>
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="rounded-2xl border border-base-300 bg-base-100 p-4 min-h-[280px]">
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div>
-                    <div className="text-lg font-semibold">空间资料</div>
-                    {linkedSpace?.name && (
-                      <div className="text-xs text-base-content/60">{linkedSpace.name}</div>
-                    )}
-                  </div>
-                  {linkedSpaceId && (
-                    <span className="text-xs text-base-content/50">
-                      #
-                      {linkedSpaceId}
-                    </span>
-                  )}
-                </div>
+            <div className="flex-1 min-w-0 flex flex-col">
+              <div className="rounded-2xl border border-base-300 bg-base-100 p-4 flex-1 flex flex-col min-h-0">
                 {linkedSpaceId
                   ? (
-                      <BlocksuiteDescriptionEditor
-                        workspaceId={`space:${linkedSpaceId}`}
-                        spaceId={linkedSpaceId}
-                        docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
-                        readOnly
-                        mode="page"
-                        tcHeader={{
-                          enabled: true,
-                          fallbackTitle: linkedSpace?.name ?? repositoryData.repositoryName,
-                          fallbackImageUrl: linkedSpace?.avatar ?? repositoryData.image,
-                        }}
-                      />
+                      <div className="flex-1 min-h-0">
+                        <BlocksuiteDescriptionEditor
+                          workspaceId={`space:${linkedSpaceId}`}
+                          spaceId={linkedSpaceId}
+                          docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
+                          readOnly
+                          mode="page"
+                          variant="full"
+                          className="h-full min-h-0"
+                          tcHeader={{
+                            enabled: true,
+                            fallbackTitle: linkedSpace?.name ?? repositoryData.repositoryName,
+                            fallbackImageUrl: linkedSpace?.avatar ?? repositoryData.image,
+                          }}
+                        />
+                      </div>
                     )
                   : (
                       <div className="flex flex-col items-center justify-center text-base-content/60 text-sm py-12">
@@ -526,13 +544,74 @@ export default function RepositoryDetailComponent({ repositoryData: propReposito
                 <div className="text-base">当前空间暂无可查看的房间</div>
               </div>
             )}
-            {linkedSpaceId && viewRoomId && (
+            {linkedSpaceId && viewRoomId && previewRoomId && (
               <div className="h-full min-h-0">
-                <RoomWindow
-                  roomId={viewRoomId}
-                  spaceId={linkedSpaceId}
-                  viewMode
-                />
+                <SpaceContext value={previewSpaceContextValue}>
+                  <ChatPageLayout
+                    screenSize={screenSize}
+                    isOpenLeftDrawer={isPreviewLeftDrawerOpen}
+                    shouldShowLeftDrawerToggle={previewShouldShowLeftToggle}
+                    leftDrawerToggleLabel={previewLeftDrawerLabel}
+                    toggleLeftDrawer={togglePreviewLeftDrawer}
+                    chatLeftPanelWidth={chatLeftPanelWidth}
+                    setChatLeftPanelWidth={setChatLeftPanelWidth}
+                    spaceSidebar={(
+                      <ChatSpaceSidebar
+                        isPrivateChatMode={false}
+                        spaces={previewSpaces}
+                        spaceOrderIds={previewSpaceOrderIds}
+                        activeSpaceId={linkedSpaceId}
+                        getSpaceUnreadMessagesNumber={() => 0}
+                        privateUnreadMessagesNumber={0}
+                        onOpenPrivate={() => {}}
+                        onSelectSpace={() => {}}
+                        onCreateSpace={() => {}}
+                        onSpaceContextMenu={() => {}}
+                        onToggleLeftDrawer={togglePreviewLeftDrawer}
+                        isLeftDrawerOpen={isPreviewLeftDrawerOpen}
+                      />
+                    )}
+                    sidePanelContent={(
+                      <ChatPageSidePanelContent
+                        isPrivateChatMode={false}
+                        activeSpaceId={linkedSpaceId}
+                        onToggleLeftDrawer={togglePreviewLeftDrawer}
+                        isLeftDrawerOpen={isPreviewLeftDrawerOpen}
+                        onCloseLeftDrawer={closePreviewLeftDrawer}
+                        currentUserId={null}
+                        activeSpaceName={linkedSpace?.name ?? repositoryData.repositoryName}
+                        activeSpaceIsArchived={false}
+                        isSpaceOwner={false}
+                        isKPInSpace={false}
+                        rooms={linkedRooms}
+                        roomOrderIds={previewRoomOrderIds}
+                        onReorderRoomIds={() => {}}
+                        sidebarTree={null}
+                        docMetas={[]}
+                        onSelectDoc={() => {}}
+                        onSaveSidebarTree={() => {}}
+                        onResetSidebarTreeToDefault={() => {}}
+                        activeRoomId={previewRoomId}
+                        activeDocId={null}
+                        unreadMessagesNumber={{}}
+                        onContextMenu={() => {}}
+                        onInviteMember={() => {}}
+                        onOpenSpaceDetailPanel={() => {}}
+                        onSelectRoom={setPreviewRoomId}
+                        onOpenRoomSetting={() => {}}
+                        setIsOpenLeftDrawer={setIsPreviewLeftDrawerOpen}
+                        onOpenCreateInCategory={() => {}}
+                      />
+                    )}
+                    mainContent={(
+                      <RoomWindow
+                        roomId={previewRoomId}
+                        spaceId={linkedSpaceId}
+                        viewMode
+                      />
+                    )}
+                  />
+                </SpaceContext>
               </div>
             )}
           </div>

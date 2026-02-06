@@ -17,6 +17,7 @@ import {
   SendIcon,
   SparklesOutline,
 } from "@/icons";
+import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
 const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
 
@@ -65,25 +66,15 @@ interface ChatToolbarProps {
   // 跑团模式
   runModeEnabled?: boolean;
   onToggleRunMode?: () => void;
-  // 默认立绘位置
-  defaultFigurePosition?: "left" | "center" | "right";
-  onSetDefaultFigurePosition?: (position: "left" | "center" | "right" | undefined) => void;
-  // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
-  dialogNotend?: boolean;
-  onToggleDialogNotend?: () => void;
-  dialogConcat?: boolean;
-  onToggleDialogConcat?: () => void;
-
   // WebGAL 控制
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
   /** WebGAL 空间变量：由导演控制台弹窗触发 */
   onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
-  /** 插入 WebGAL 指令前缀（发送侧会把 %xxx 转为 WEBGAL_COMMAND） */
-  onInsertWebgalCommandPrefix?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
+  onAddTempAnnotations?: (ids: string[]) => void;
   layout?: "stacked" | "inline";
   showStatusBar?: boolean;
   showWebgalLinkToggle?: boolean;
@@ -112,17 +103,13 @@ function ChatToolbar({
   onToggleWebgalLinkMode,
   runModeEnabled = false,
   onToggleRunMode,
-  onInsertWebgalCommandPrefix,
   onSendEffect,
   onClearBackground,
   onClearFigure,
   onSetWebgalVar,
   onToggleRealtimeRender,
-  defaultFigurePosition,
-  onSetDefaultFigurePosition,
-  onToggleDialogNotend,
-  onToggleDialogConcat,
   setAudioFile,
+  onAddTempAnnotations,
   layout = "stacked",
   showStatusBar = true,
   showWebgalLinkToggle = true,
@@ -231,6 +218,7 @@ function ChatToolbar({
       return;
 
     setAudioFile(file);
+    onAddTempAnnotations?.([ANNOTATION_IDS.BGM]);
     // 重置 input value，允许重复选择同一文件
     e.target.value = "";
   };
@@ -440,9 +428,12 @@ function ChatToolbar({
               </div>
 
               {/* 发送图片 */}
-              <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-                draft.push(newImg);
-              })}
+              <ImgUploader setImg={(newImg) => {
+                updateImgFiles((draft) => {
+                  draft.push(newImg);
+                });
+                onAddTempAnnotations?.([ANNOTATION_IDS.BACKGROUND]);
+              }}
               >
                 <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送图片"}>
                   <GalleryBroken className="size-6 cursor-pointer jump_icon mt-1 md:mt-0"></GalleryBroken>
@@ -576,13 +567,7 @@ function ChatToolbar({
           <ChatToolbarDock
             isInline={isInline}
             isRunModeOnly={runModeEnabled && !webgalLinkMode}
-            isMobileLinkCompact={isMobile && webgalLinkMode}
             showWebgalControls={showWebgalControls}
-            onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-            defaultFigurePosition={defaultFigurePosition}
-            onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-            onToggleDialogNotend={onToggleDialogNotend}
-            onToggleDialogConcat={onToggleDialogConcat}
             onSendEffect={onSendEffect}
             onClearBackground={onClearBackground}
             onClearFigure={onClearFigure}

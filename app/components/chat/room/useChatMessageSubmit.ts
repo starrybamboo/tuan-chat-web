@@ -8,7 +8,7 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
-import { ANNOTATION_IDS, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
+import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
@@ -82,13 +82,12 @@ export default function useChatMessageSubmit({
       imgFiles,
       emojiUrls,
       audioFile,
-      sendAsBackground,
-      audioPurpose,
+      annotations: composerAnnotations,
+      tempAnnotations,
       setImgFiles,
       setEmojiUrls,
       setAudioFile,
-      setSendAsBackground,
-      setAudioPurpose,
+      setTempAnnotations,
     } = useChatComposerStore.getState();
 
     const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile);
@@ -101,6 +100,24 @@ export default function useChatMessageSubmit({
     } = useRoomPreferenceStore.getState();
 
     const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
+    const normalizedComposerAnnotations = normalizeAnnotations(composerAnnotations);
+    const normalizedTempAnnotations = normalizeAnnotations(tempAnnotations);
+    const tempFigurePosition = getFigurePositionFromAnnotations(normalizedTempAnnotations);
+    const roleFigurePosition = getFigurePositionFromAnnotations(normalizedComposerAnnotations);
+    let mergedComposerAnnotations = normalizeAnnotations([...normalizedComposerAnnotations, ...normalizedTempAnnotations]);
+    if (tempFigurePosition) {
+      mergedComposerAnnotations = setFigurePositionAnnotation(mergedComposerAnnotations, tempFigurePosition);
+    }
+    else if (roleFigurePosition) {
+      mergedComposerAnnotations = setFigurePositionAnnotation(mergedComposerAnnotations, roleFigurePosition);
+    }
+    const useBackgroundAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BACKGROUND);
+    const useCgAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.CG);
+    const composerAudioPurpose = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)
+      ? "bgm"
+      : hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)
+        ? "se"
+        : undefined;
 
     const isKP = isSpaceOwner;
     const isNarrator = noRole;
@@ -245,14 +262,20 @@ export default function useChatMessageSubmit({
 
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
+          let nextAnnotations = mergedComposerAnnotations;
           if (webgalLinkMode) {
-            let nextAnnotations: string[] = [];
-            nextAnnotations = setFigurePositionAnnotation(nextAnnotations, currentDefaultFigurePosition);
-            nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_NOTEND, dialogNotend);
-            nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_CONCAT, dialogConcat);
-            if (nextAnnotations.length > 0) {
-              fields.annotations = nextAnnotations;
+            if (!getFigurePositionFromAnnotations(nextAnnotations)) {
+              nextAnnotations = setFigurePositionAnnotation(nextAnnotations, currentDefaultFigurePosition);
             }
+            if (dialogNotend) {
+              nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_NOTEND, true);
+            }
+            if (dialogConcat) {
+              nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_CONCAT, true);
+            }
+          }
+          if (nextAnnotations.length > 0) {
+            fields.annotations = nextAnnotations;
           }
           isFirstMessage = false;
         }
@@ -359,12 +382,12 @@ export default function useChatMessageSubmit({
 
       for (const img of uploadedImages) {
         const commonFields = getCommonFields() as ChatMessageRequest;
-        let nextAnnotations = commonFields.annotations;
-        if (sendAsBackground) {
+        let nextAnnotations = mergedComposerAnnotations;
+        if (useBackgroundAnnotation) {
           nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, true);
         }
-        else if (Array.isArray(nextAnnotations) && nextAnnotations.includes(ANNOTATION_IDS.BACKGROUND)) {
-          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, false);
+        if (useCgAnnotation) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.CG, true);
         }
 
         const imgMsg: ChatMessageRequest = {
@@ -378,7 +401,7 @@ export default function useChatMessageSubmit({
             height: img.height,
             size: img.size,
             fileName: img.fileName,
-            background: sendAsBackground,
+            background: useBackgroundAnnotation,
           },
         };
         await sendMessageWithInsert(imgMsg);
@@ -386,13 +409,22 @@ export default function useChatMessageSubmit({
       }
 
       if (soundMessageData) {
+        const commonFields = getCommonFields() as ChatMessageRequest;
+        let nextAnnotations = mergedComposerAnnotations;
+        if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BGM, true);
+        }
+        if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.SE, true);
+        }
         const audioMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
+          ...commonFields,
+          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
           content: textContent,
           messageType: MessageType.SOUND,
           extra: {
             ...soundMessageData,
-            purpose: audioPurpose,
+            purpose: composerAudioPurpose,
           },
         };
         await sendMessageWithInsert(audioMsg);
@@ -419,9 +451,8 @@ export default function useChatMessageSubmit({
       }
 
       setInputText("");
+      setTempAnnotations([]);
       useRoomUiStore.getState().setReplyMessage(undefined);
-      setSendAsBackground(false);
-      setAudioPurpose(undefined);
       useRoomUiStore.getState().setInsertAfterMessageId(undefined);
     }
     catch (e: any) {

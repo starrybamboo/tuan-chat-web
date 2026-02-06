@@ -4,11 +4,14 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
+import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/indexedDB/composerAnnotationsDb";
 import AvatarSwitch from "@/components/chat/input/avatarSwitch";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
 import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
+import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttachmentsPreviewFromStore";
 import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
 import RoomComposerHeader from "@/components/chat/room/roomComposerHeader";
@@ -17,6 +20,7 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
+import { getFigurePositionFromAnnotationId, isFigurePositionAnnotationId, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface RoomComposerPanelProps {
@@ -116,7 +120,10 @@ function RoomComposerPanelImpl({
 }: RoomComposerPanelProps) {
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
+  const composerAnnotations = useChatComposerStore(state => state.annotations);
+  const setComposerAnnotations = useChatComposerStore(state => state.setAnnotations);
   const composerRootRef = React.useRef<HTMLDivElement | null>(null);
+  const composerAnnotationsLoadingKeyRef = React.useRef<string | null>(null);
   const screenSize = useScreenSize();
   const toolbarLayout: "inline" | "stacked" = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
@@ -190,23 +197,12 @@ function RoomComposerPanelImpl({
   const toggleAutoReplyMode = useRoomPreferenceStore(state => state.toggleAutoReplyMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const setRunModeEnabled = useRoomPreferenceStore(state => state.setRunModeEnabled);
-  const dialogNotend = useRoomPreferenceStore(state => state.dialogNotend);
-  const toggleDialogNotend = useRoomPreferenceStore(state => state.toggleDialogNotend);
-  const dialogConcat = useRoomPreferenceStore(state => state.dialogConcat);
-  const toggleDialogConcat = useRoomPreferenceStore(state => state.toggleDialogConcat);
-  const defaultFigurePositionMap = useRoomPreferenceStore(state => state.defaultFigurePositionMap);
-  const setDefaultFigurePositionForRole = useRoomPreferenceStore(state => state.setDefaultFigurePositionForRole);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
-  const defaultFigurePosition = defaultFigurePositionMap[curRoleId];
 
   const onToggleRunMode = React.useCallback(() => {
     setRunModeEnabled(!runModeEnabled);
   }, [runModeEnabled, setRunModeEnabled]);
-
-  const onSetDefaultFigurePosition = React.useCallback((position: "left" | "center" | "right" | undefined) => {
-    setDefaultFigurePositionForRole(curRoleId, position);
-  }, [curRoleId, setDefaultFigurePositionForRole]);
 
   const currentRole = React.useMemo(() => {
     return selectableRoles.find(role => role.roleId === curRoleId);
@@ -291,18 +287,63 @@ function RoomComposerPanelImpl({
     return "输入消息…（Shift+Enter 换行，Tab 触发 AI）";
   }, [composerTarget, curAvatarId, isKP, noRole, notMember, threadRootMessageId]);
 
-  const onInsertWebgalCommandPrefix = React.useCallback(() => {
-    const inputHandle = chatInputRef.current;
-    if (!inputHandle)
+  React.useEffect(() => {
+    let isActive = true;
+    const key = `${roomId}:${curRoleId}`;
+    composerAnnotationsLoadingKeyRef.current = key;
+    setComposerAnnotations([]);
+    getComposerAnnotations({ roomId, roleId: curRoleId })
+      .then((stored) => {
+        if (!isActive) {
+          return;
+        }
+        setComposerAnnotations(normalizeAnnotations(stored ?? []));
+      })
+      .finally(() => {
+        if (!isActive) {
+          return;
+        }
+        if (composerAnnotationsLoadingKeyRef.current === key) {
+          composerAnnotationsLoadingKeyRef.current = null;
+        }
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [curRoleId, roomId, setComposerAnnotations]);
+
+  React.useEffect(() => {
+    if (isSpectator) {
       return;
+    }
+    const key = `${roomId}:${curRoleId}`;
+    if (composerAnnotationsLoadingKeyRef.current === key) {
+      return;
+    }
+    const next = normalizeAnnotations(composerAnnotations);
+    persistComposerAnnotations({ roomId, roleId: curRoleId, annotations: next })
+      .catch(() => {});
+  }, [composerAnnotations, curRoleId, isSpectator, roomId]);
 
-    const currentText = inputHandle.getPlainText() ?? "";
-    const nextText = currentText.startsWith("%") ? currentText : `%${currentText}`;
+  const handleToggleComposerAnnotation = React.useCallback((id: string) => {
+    if (isFigurePositionAnnotationId(id)) {
+      const alreadySelected = composerAnnotations.includes(id);
+      const nextPosition = alreadySelected ? undefined : getFigurePositionFromAnnotationId(id);
+      setComposerAnnotations(setFigurePositionAnnotation(composerAnnotations, nextPosition));
+      return;
+    }
+    setComposerAnnotations(toggleAnnotation(composerAnnotations, id));
+  }, [composerAnnotations, setComposerAnnotations]);
 
-    inputHandle.setContent(nextText);
-    inputHandle.focus();
-    inputHandle.triggerSync();
-  }, [chatInputRef]);
+  const handleOpenComposerAnnotations = React.useCallback(() => {
+    openMessageAnnotationPicker({
+      initialSelected: composerAnnotations,
+      onChange: (next) => {
+        setComposerAnnotations(normalizeAnnotations(next));
+      },
+    });
+  }, [composerAnnotations, setComposerAnnotations]);
+
   const toolbarCommonProps = React.useMemo(() => ({
     roomId,
     statusUserId: userId,
@@ -315,17 +356,10 @@ function RoomComposerPanelImpl({
     isSpectator,
     onToggleRealtimeRender,
     onToggleWebgalLinkMode: toggleWebgalLinkMode,
-    onInsertWebgalCommandPrefix,
     autoReplyMode,
     onToggleAutoReplyMode: toggleAutoReplyMode,
     runModeEnabled,
     onToggleRunMode,
-    defaultFigurePosition,
-    onSetDefaultFigurePosition,
-    dialogNotend,
-    onToggleDialogNotend: toggleDialogNotend,
-    dialogConcat,
-    onToggleDialogConcat: toggleDialogConcat,
     onSendEffect,
     onClearBackground,
     onClearFigure,
@@ -340,9 +374,6 @@ function RoomComposerPanelImpl({
   }), [
     autoReplyMode,
     currentChatStatus,
-    defaultFigurePosition,
-    dialogConcat,
-    dialogNotend,
     handleMessageSubmit,
     isKP,
     isSpectator,
@@ -353,24 +384,20 @@ function RoomComposerPanelImpl({
     onChangeChatStatus,
     onClearBackground,
     onClearFigure,
-    onInsertWebgalCommandPrefix,
     onSendEffect,
-    onSetDefaultFigurePosition,
     onSetWebgalVar,
     onStopBgmForAll,
     onToggleRealtimeRender,
     runModeEnabled,
     roomId,
     toggleAutoReplyMode,
-    toggleDialogConcat,
-    toggleDialogNotend,
     toggleWebgalLinkMode,
     userId,
     webSocketUtils,
     onToggleRunMode,
     toolbarLayout,
   ]);
-  const headerToolbar = (webgalLinkMode || runModeEnabled)
+  const headerToolbarControls = (webgalLinkMode || runModeEnabled)
     ? (
         <ChatToolbarFromStore
           {...toolbarCommonProps}
@@ -383,6 +410,23 @@ function RoomComposerPanelImpl({
         />
       )
     : null;
+
+  const shouldShowComposerAnnotations = !isSpectator || composerAnnotations.length > 0;
+  const composerAnnotationsBar = shouldShowComposerAnnotations
+    ? (
+        <MessageAnnotationsBar
+          annotations={composerAnnotations}
+          canEdit={!isSpectator}
+          onToggle={handleToggleComposerAnnotation}
+          onOpenPicker={handleOpenComposerAnnotations}
+          showWhenEmpty={true}
+          alwaysShowAddButton={true}
+          className="mt-0"
+        />
+      )
+    : null;
+
+  const headerToolbar = headerToolbarControls ?? null;
   const inputArea = (
     <ChatInputArea
       ref={chatInputRef}
@@ -510,6 +554,7 @@ function RoomComposerPanelImpl({
                   setDraftCustomRoleNameForRole={setDraftCustomRoleNameForRole}
                   currentChatStatus={currentChatStatus}
                   onChangeChatStatus={onChangeChatStatus}
+                  leftToolbar={composerAnnotationsBar}
                   headerToolbar={headerToolbar}
                 />
                 <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-start p-2">

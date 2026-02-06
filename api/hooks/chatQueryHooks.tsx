@@ -38,7 +38,6 @@ export function useCreateSpaceMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
         }
     });
@@ -69,7 +68,6 @@ export function useAddSpaceMemberMutation() {
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         },
     });
 }
@@ -108,7 +106,6 @@ export function useDeleteSpaceMemberMutation() {
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         },
     });
 }
@@ -141,7 +138,6 @@ export function useAddRoomMemberMutation() {
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList', variables.roomId]});
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         },
     });
 }
@@ -159,7 +155,6 @@ export function useDeleteRoomMemberMutation() {
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList', variables.roomId] });
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         }
     });
 }
@@ -191,7 +186,6 @@ export function useUpdateSpaceMutation() {
             queryClient.invalidateQueries({ queryKey: ['getSpaceInfo', variables.spaceId] });
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         }
     })
 }
@@ -249,7 +243,6 @@ export function useExitSpaceMutation() {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         },
     });
 }
@@ -308,7 +301,6 @@ export function useDissolveSpaceMutation() {
         onSuccess: (data) => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         }
     })
 }
@@ -324,7 +316,6 @@ export function useUpdateSpaceArchiveStatusMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
         }
@@ -460,7 +451,6 @@ function useTransferOwnerMutation() {
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         }
     });
 }
@@ -478,7 +468,6 @@ export function useTransferLeader() {
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         }
     })
 }
@@ -645,16 +634,7 @@ export function useGetUserActiveSpacesQuery() {
     });
 }
 
-/**
- * 获取用户加入的已归档 space
- */
-function useGetUserArchivedSpacesQuery() {
-    return useQuery({
-        queryKey: ['getUserArchivedSpaces'],
-        queryFn: () => tuanchat.spaceController.getUserArchivedSpaces(),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
+ 
 function useCloneSpaceBySpaceIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -663,7 +643,6 @@ function useCloneSpaceBySpaceIdMutation() {
         onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
-queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
         },
     });
 }

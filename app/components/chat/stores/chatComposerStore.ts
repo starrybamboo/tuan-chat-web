@@ -1,8 +1,6 @@
 import { produce } from "immer";
 import { create } from "zustand";
 
-type AudioPurpose = "bgm" | "se" | undefined;
-
 function isSameFileList(a: File[], b: File[]): boolean {
   if (a === b)
     return true;
@@ -34,12 +32,10 @@ type ChatComposerState = {
   emojiUrls: string[];
   /** 聊天框中包含的语音 */
   audioFile: File | null;
-
-  /** 发送选项：将图片设为背景 */
-  sendAsBackground: boolean;
-
-  /** 音频用途：undefined=普通语音, "bgm"=背景音乐, "se"=音效 */
-  audioPurpose: AudioPurpose;
+  /** 即将发送消息的标注 */
+  annotations: string[];
+  /** 临时标注：仅本次消息有效 */
+  tempAnnotations: string[];
 
   updateImgFiles: (updater: (draft: File[]) => void) => void;
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
@@ -47,9 +43,8 @@ type ChatComposerState = {
   setImgFiles: (files: File[]) => void;
   setEmojiUrls: (urls: string[]) => void;
   setAudioFile: (file: File | null) => void;
-
-  setSendAsBackground: (value: boolean) => void;
-  setAudioPurpose: (purpose: AudioPurpose) => void;
+  setAnnotations: (annotations: string[]) => void;
+  setTempAnnotations: (annotations: string[]) => void;
 
   /** 切换房间或发送完成后重置 */
   reset: () => void;
@@ -59,8 +54,8 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
   imgFiles: [],
   emojiUrls: [],
   audioFile: null,
-  sendAsBackground: false,
-  audioPurpose: undefined,
+  annotations: [],
+  tempAnnotations: [],
 
   updateImgFiles: updater => set((state) => {
     const next = produce(state.imgFiles, (draft) => {
@@ -83,23 +78,22 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
   setImgFiles: files => set(state => (isSameFileList(state.imgFiles, files) ? state : { imgFiles: files })),
   setEmojiUrls: urls => set(state => (isSameStringList(state.emojiUrls, urls) ? state : { emojiUrls: urls })),
   setAudioFile: file => set(state => (state.audioFile === file ? state : { audioFile: file })),
-
-  setSendAsBackground: value => set(state => (state.sendAsBackground === value ? state : { sendAsBackground: value })),
-  setAudioPurpose: purpose => set(state => (state.audioPurpose === purpose ? state : { audioPurpose: purpose })),
+  setAnnotations: annotations => set(state => (isSameStringList(state.annotations, annotations) ? state : { annotations })),
+  setTempAnnotations: annotations => set(state => (isSameStringList(state.tempAnnotations, annotations) ? state : { tempAnnotations: annotations })),
 
   reset: () => set(state => (
     state.imgFiles.length === 0
     && state.emojiUrls.length === 0
     && state.audioFile == null
-    && state.sendAsBackground === false
-    && state.audioPurpose == null
+    && state.annotations.length === 0
+    && state.tempAnnotations.length === 0
       ? state
       : {
           imgFiles: [],
           emojiUrls: [],
           audioFile: null,
-          sendAsBackground: false,
-          audioPurpose: undefined,
+          annotations: [],
+          tempAnnotations: [],
         }
   )),
 }));

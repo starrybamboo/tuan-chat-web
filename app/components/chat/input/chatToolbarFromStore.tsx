@@ -4,6 +4,7 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
 
 type ChatToolbarProps = React.ComponentProps<typeof ChatToolbar>;
 
@@ -30,6 +31,25 @@ export default function ChatToolbarFromStore({
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
+  const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
+
+  const addTempAnnotations = React.useCallback((ids: string[]) => {
+    const current = useChatComposerStore.getState().tempAnnotations;
+    const next = [...current];
+    let hasAudioAnnotation = next.includes(ANNOTATION_IDS.BGM) || next.includes(ANNOTATION_IDS.SE);
+    ids.forEach((id) => {
+      if ((id === ANNOTATION_IDS.BGM || id === ANNOTATION_IDS.SE) && hasAudioAnnotation) {
+        return;
+      }
+      if (!next.includes(id)) {
+        next.push(id);
+        if (id === ANNOTATION_IDS.BGM || id === ANNOTATION_IDS.SE) {
+          hasAudioAnnotation = true;
+        }
+      }
+    });
+    setTempAnnotations(normalizeAnnotations(next));
+  }, [setTempAnnotations]);
 
   const disableSendMessage = React.useMemo(() => {
     const noInput = !(plainText.trim() || hasAttachments);
@@ -50,6 +70,7 @@ export default function ChatToolbarFromStore({
       updateEmojiUrls={updateEmojiUrls}
       updateImgFiles={updateImgFiles}
       setAudioFile={setAudioFile}
+      onAddTempAnnotations={addTempAnnotations}
       disableSendMessage={disableSendMessage}
       disableImportChatText={disableImportChatText}
       isRealtimeRenderActive={isRealtimeRenderActive}

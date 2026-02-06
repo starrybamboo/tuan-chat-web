@@ -203,7 +203,6 @@ function ChatFrame(props: ChatFrameProps) {
     clearSelection,
     handleDelete,
     handleReply,
-    toggleChatBubbleStyle,
     handleMessageClick,
   } = useChatFrameSelectionContext({
     deleteMessage,
@@ -214,8 +213,6 @@ function ChatFrame(props: ChatFrameProps) {
 
   const {
     handleForward,
-    toggleBackground,
-    toggleUnlockCg,
     generateForwardMessage,
   } = useChatFrameMessageActions({
     historyMessages,
@@ -325,10 +322,7 @@ function ChatFrame(props: ChatFrameProps) {
         onToggleSelection: toggleMessageSelection,
         onReply: handleReply,
         onMoveMessages: handleMoveMessages,
-        onToggleChatBubbleStyle: toggleChatBubbleStyle,
         onEditMessage: handleEditMessage,
-        onToggleBackground: toggleBackground,
-        onUnlockCg: toggleUnlockCg,
         onAddEmoji: handleAddEmoji,
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
