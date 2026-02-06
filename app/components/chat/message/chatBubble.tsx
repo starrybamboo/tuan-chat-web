@@ -1,17 +1,14 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
-import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
 import React, { use, useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
-import RoleChooser from "@/components/chat/input/roleChooser";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
-import { VoiceRenderPanel } from "@/components/chat/message/voiceRenderPanel";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -25,7 +22,6 @@ import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
   getFigurePositionFromAnnotationId,
-  getFigurePositionFromAnnotations,
   hasAnnotation,
   isFigurePositionAnnotationId,
   normalizeAnnotations,
@@ -37,7 +33,7 @@ import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalV
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
@@ -70,10 +66,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     return base;
   }, [message.annotations, message.extra?.imageMessage?.background, message.messageType]);
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
-  // 获取头像详情（包含 avatarTitle）
-  const avatarQuery = useGetRoleAvatarQuery(message.avatarId ?? 0);
-  const avatar = avatarQuery.data?.data;
-
   const role = useRoleRequest.data?.data;
 
   const updateMessageMutation = useUpdateMessageMutation();
@@ -89,7 +81,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
-  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
 
@@ -212,13 +203,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const customRoleName = message.customRoleName as string | undefined;
   // 获取黑屏文字的 hold 设置
   const introHold = hasAnnotation(annotations, ANNOTATION_IDS.INTRO_HOLD);
-  const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings as {
-    emotionVector?: number[];
-    figureAnimation?: FigureAnimationSettings;
-  } | undefined;
-  const figurePosition = getFigurePositionFromAnnotations(annotations);
-  const dialogNotend = hasAnnotation(annotations, ANNOTATION_IDS.DIALOG_NOTEND);
-  const dialogConcat = hasAnnotation(annotations, ANNOTATION_IDS.DIALOG_CONCAT);
   // 获取显示的角色名（黑屏文字不显示）
   const displayRoleName = isIntroText
     ? ""
@@ -596,75 +580,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
   }, [message, updateMessageAndSync]);
 
-  // 处理语音渲染设置更新
-  function handleVoiceRenderSettingsChange(
-    emotionVector: number[],
-    figurePosition: FigurePosition,
-    notend: boolean,
-    concat: boolean,
-    figureAnimation?: FigureAnimationSettings,
-  ) {
-    console.warn("[ChatBubble] 保存语音渲染设置:", {
-      messageId: message.messageId,
-      figurePosition,
-      figurePositionType: typeof figurePosition,
-    });
-
-    // 判断情感向量是否改变（用于决定是否重新生成 TTS）
-    const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
-    const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
-
-    const nextAnnotations = setFigurePositionAnnotation(
-      setAnnotation(
-        setAnnotation(annotations, ANNOTATION_IDS.DIALOG_NOTEND, notend),
-        ANNOTATION_IDS.DIALOG_CONCAT,
-        concat,
-      ),
-      figurePosition,
-    );
-
-    const prevVoiceRenderSettings = (message.webgal as any)?.voiceRenderSettings ?? {};
-    const {
-      notend: _legacyNotend,
-      concat: _legacyConcat,
-      figurePosition: _legacyPosition,
-      ...restVoiceRenderSettings
-    } = prevVoiceRenderSettings as Record<string, unknown>;
-
-    const newMessage = {
-      ...message,
-      annotations: nextAnnotations,
-      webgal: {
-        ...message.webgal,
-        voiceRenderSettings: {
-          ...restVoiceRenderSettings,
-          emotionVector,
-          figureAnimation,
-        },
-      },
-    } as Message;
-
-    console.warn("[ChatBubble] 准备发送的消息:", JSON.stringify(newMessage.webgal?.voiceRenderSettings, null, 2));
-
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        // 更新成功后同步到本地 IndexedDB
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          // 如果 WebGAL 联动模式开启，则重渲染并跳转
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, emotionVectorChanged);
-          }
-        }
-      },
-    });
-  }
-
   // 处理音频用途切换（语音/BGM/音效）
   const _handleAudioPurposeChange = useCallback((purpose: string) => {
     const soundMessage = message.extra?.soundMessage;
@@ -776,40 +691,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         }
       },
     });
-  }
-
-  // 切换旁白状态
-  function handleToggleNarrator() {
-    if (!canEdit)
-      return;
-
-    if (isNarrator) {
-      // 如果当前是旁白，切换回普通角色 -> 打开角色选择器
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col items-center gap-4">
-              <div>选择角色</div>
-              <RoleChooser
-                handleRoleChange={(role) => {
-                  handleRoleChange(role.roleId);
-                  onClose();
-                }}
-                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
-    }
-    else {
-      // 如果当前是普通角色，切换为旁白 -> roleId 设为 -1
-      const newMessage = {
-        ...message,
-        roleId: -1,
-      };
-      updateMessageAndSync(newMessage);
-    }
   }
 
   const formatFileSize = (bytes?: number) => {
@@ -1232,22 +1113,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   {renderedContent}
                   {threadHintNode}
                   {annotationsBar}
-                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
-                  {message.messageType === MESSAGE_TYPE.TEXT && (
-                    <VoiceRenderPanel
-                      emotionVector={voiceRenderSettings?.emotionVector}
-                      figurePosition={figurePosition}
-                      avatarTitle={avatar?.avatarTitle}
-                      notend={dialogNotend}
-                      concat={dialogConcat}
-                      figureAnimation={voiceRenderSettings?.figureAnimation}
-                      onChange={handleVoiceRenderSettingsChange}
-                      canEdit={canEdit}
-                      isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
-                    />
-                  )}
                 </div>
               </div>
             </div>
@@ -1332,22 +1197,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   {renderedContent}
                   {threadHintNode}
                   {annotationsBar}
-                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
-                  {message.messageType === MESSAGE_TYPE.TEXT && (
-                    <VoiceRenderPanel
-                      emotionVector={voiceRenderSettings?.emotionVector}
-                      figurePosition={figurePosition}
-                      avatarTitle={avatar?.avatarTitle}
-                      notend={dialogNotend}
-                      concat={dialogConcat}
-                      figureAnimation={voiceRenderSettings?.figureAnimation}
-                      onChange={handleVoiceRenderSettingsChange}
-                      canEdit={canEdit}
-                      isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
-                    />
-                  )}
                 </div>
               </div>
             </div>

@@ -5,12 +5,10 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ANNOTATION_IDS, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
@@ -25,10 +23,7 @@ interface ContextMenuProps {
   onToggleSelection: (messageId: number) => void;
   onReply: (message: Message) => void;
   onMoveMessages: (targetIndex: number, messageIds: number[]) => void;
-  onToggleChatBubbleStyle: () => void;
   onEditMessage: (messageId: number) => void;
-  onToggleBackground: (messageId: number) => void;
-  onUnlockCg: (messageId: number) => void;
   onAddEmoji: (imgMessage: ImageMessage) => void;
   onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
@@ -41,13 +36,11 @@ export default function ChatFrameContextMenu({
   isSelecting,
   selectedMessageIds,
   onClose,
+  onDelete,
   onToggleSelection,
   onReply,
   onMoveMessages,
-  onToggleChatBubbleStyle,
   onEditMessage,
-  onToggleBackground,
-  onUnlockCg,
   onAddEmoji,
   onOpenAnnotations,
   onInsertAfter,
@@ -55,7 +48,6 @@ export default function ChatFrameContextMenu({
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
   const roomContext = use(RoomContext);
-  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -330,11 +322,6 @@ export default function ChatFrameContextMenu({
   if (!contextMenu)
     return null;
 
-  const isBackgroundMessage = isImageMessageBackground(
-    message?.message.annotations,
-    message?.message.extra?.imageMessage,
-  );
-
   const handleOpenThread = (rootId: number) => {
     // 打开 Thread 时，清除“插入消息”模式，避免错位。
     setInsertAfterMessageId(undefined);
@@ -435,6 +422,20 @@ export default function ChatFrameContextMenu({
             <a
               onClick={(e) => {
                 e.preventDefault();
+                onDelete();
+                onClose();
+              }}
+            >
+              删除
+            </a>
+          </li>
+        )}
+
+        {canEditMessage && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
                 onOpenAnnotations(contextMenu.messageId);
                 onClose();
               }}
@@ -496,17 +497,6 @@ export default function ChatFrameContextMenu({
             </li>
           )
         }
-        <li>
-          <a onClick={(e) => {
-            e.preventDefault();
-            onToggleChatBubbleStyle();
-          }}
-          >
-            切换到
-            {useChatBubbleStyle ? "传统" : "气泡"}
-            样式
-          </a>
-        </li>
         {(() => {
           if (!canEditMessage) {
             return null;
@@ -530,32 +520,6 @@ export default function ChatFrameContextMenu({
           if (message.message.messageType === 2) {
             return (
               <>
-                <li>
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onToggleBackground(contextMenu.messageId);
-                      onClose();
-                    }}
-                  >
-                    {
-                      isBackgroundMessage ? "取消设置为背景" : "设为背景"
-                    }
-                  </a>
-                </li>
-                <li>
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onUnlockCg(contextMenu.messageId);
-                      onClose();
-                    }}
-                  >
-                    {
-                      hasAnnotation(message?.message.annotations, ANNOTATION_IDS.CG) ? "取消CG（解锁）" : "CG（解锁）"
-                    }
-                  </a>
-                </li>
                 <li>
                   <a
                     onClick={(e) => {

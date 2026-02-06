@@ -19,6 +19,7 @@ interface RoomComposerHeaderProps {
   setDraftCustomRoleNameForRole: (roleId: number, name: string) => void;
   currentChatStatus: any;
   onChangeChatStatus: (status: any) => void;
+  leftToolbar?: React.ReactNode;
   headerToolbar?: React.ReactNode;
 }
 
@@ -36,6 +37,7 @@ export default function RoomComposerHeader({
   setDraftCustomRoleNameForRole,
   currentChatStatus,
   onChangeChatStatus,
+  leftToolbar,
   headerToolbar,
 }: RoomComposerHeaderProps) {
   const [isEditingName, setIsEditingName] = React.useState(false);
@@ -231,6 +233,11 @@ export default function RoomComposerHeader({
               />
             )}
           </div>
+          {leftToolbar && (
+            <div className="flex items-center gap-2">
+              {leftToolbar}
+            </div>
+          )}
         </div>
         {headerToolbar && (
           <div className="flex items-start gap-2">

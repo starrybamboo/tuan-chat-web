@@ -76,7 +76,7 @@ const TextEnhanceSyntax = {
 
     // 处理普通文本部分
     processed = processed
-      .replace(/\n/g, " ")
+      .replace(/\r?\n+/g, "|")
       .replace(/;/g, "；")
       .replace(/:/g, "：");
 
@@ -620,8 +620,13 @@ export class RealtimeRenderer {
   /**
    * 添加一行到指定房间的场景
    */
-  private async appendLine(roomId: number, line: string, syncToFile: boolean = true): Promise<void> {
-    if (!line.trim())
+  private async appendLine(
+    roomId: number,
+    line: string,
+    syncToFile: boolean = true,
+    allowEmpty: boolean = false,
+  ): Promise<void> {
+    if (!allowEmpty && !line.trim())
       return;
 
     let context = this.sceneContextMap.get(roomId);
@@ -1322,9 +1327,8 @@ export class RealtimeRenderer {
     // WebGAL 指令消息：直接写入场景脚本
     // 约定：msg.content 是一行完整的 WebGAL 脚本（可包含分号结尾）
     if ((msg.messageType as number) === 10) {
-      if (!msg.content?.trim())
-        return;
-      await this.appendLine(targetRoomId, msg.content.trim(), syncToFile);
+      const commandLine = msg.content?.trim() ?? "";
+      await this.appendLine(targetRoomId, commandLine, syncToFile, true);
       if (syncToFile)
         this.sendSyncMessage(targetRoomId);
       return;
@@ -1332,10 +1336,6 @@ export class RealtimeRenderer {
 
     // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
     if (msg.messageType !== 1 && msg.messageType !== 9)
-      return;
-
-    // 跳过空消息
-    if (!msg.content?.trim())
       return;
 
     // 判断消息类型：黑屏文字（messageType === 9）
@@ -1488,6 +1488,7 @@ export class RealtimeRenderer {
       // 生成语音（如果启用了 TTS）
       let vocalFileName: string | null = null;
       if (this.ttsConfig.enabled
+        && msg.content.trim().length > 0
         && roleId !== 0 // 跳过系统角色
         && roleId !== 2 // 跳过骰娘
         && !msg.content.startsWith(".") // 跳过指令

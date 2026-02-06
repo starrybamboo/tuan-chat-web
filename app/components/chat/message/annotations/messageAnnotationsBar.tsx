@@ -9,6 +9,9 @@ interface MessageAnnotationsBarProps {
   canEdit?: boolean;
   onToggle?: (id: string) => void;
   onOpenPicker?: () => void;
+  showWhenEmpty?: boolean;
+  alwaysShowAddButton?: boolean;
+  className?: string;
 }
 
 const DEFAULT_ANNOTATIONS: string[] = [];
@@ -18,6 +21,9 @@ export default function MessageAnnotationsBar({
   canEdit = false,
   onToggle,
   onOpenPicker,
+  showWhenEmpty = false,
+  alwaysShowAddButton = false,
+  className,
 }: MessageAnnotationsBarProps) {
   const items = Array.isArray(annotations) ? annotations : DEFAULT_ANNOTATIONS;
   const annotationMap = buildAnnotationMap();
@@ -34,11 +40,11 @@ export default function MessageAnnotationsBar({
     return toneStyles[tone] ?? toneStyles.neutral;
   };
 
-  if (!items.length)
+  if (!items.length && !(canEdit && showWhenEmpty))
     return null;
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+    <div className={`flex flex-wrap items-center gap-1.5 ${className ?? "mt-2"}`}>
       {items.map((id) => {
         const def = annotationMap.get(id);
         const label = def?.label ?? id;
@@ -60,7 +66,7 @@ export default function MessageAnnotationsBar({
       {canEdit && (
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-full border border-dashed border-base-300 px-2 py-0.5 text-xs text-base-content/70 transition-colors hover:border-primary hover:text-primary opacity-0 group-hover:opacity-100"
+          className={`inline-flex items-center justify-center rounded-full border border-dashed border-base-300 px-2 py-0.5 text-xs text-base-content/70 transition-colors hover:border-primary hover:text-primary ${alwaysShowAddButton ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
           onClick={onOpenPicker}
           title="添加标注"
         >

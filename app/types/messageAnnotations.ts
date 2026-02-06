@@ -3,6 +3,8 @@ import type { FigurePosition } from "@/types/voiceRenderTypes";
 type FigurePositionKey = Exclude<FigurePosition, undefined>;
 
 export const ANNOTATION_IDS = {
+  BGM: "sys:bgm",
+  SE: "sys:se",
   BACKGROUND: "sys:bg",
   CG: "sys:cg",
   INTRO_HOLD: "intro.hold",
