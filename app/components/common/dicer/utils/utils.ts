@@ -39,7 +39,7 @@ const UTILS = {
    * @param role 角色能力对象
    * @param key 要设置的键
    * @param value 要设置的值
-   * @param deafult_type 默认类型，当typeΪ"auto"时，如果没有找到对应的键，则设置到该类型中
+   * @param deafult_type 默认类型，当type为"auto"时，如果没有找到对应的键，则设置到该类型中
    * @param type 设置类型，默认为"auto"，表示自动根据键名判断类型，也可以指定为"skill"、"ability"或"basic"
    */
   setRoleAbilityValue: (role: RoleAbility, key: string, value: string, deafult_type: "skill" | "ability" | "basic", type: "auto" | "skill" | "ability" | "basic" = "auto"): void => {

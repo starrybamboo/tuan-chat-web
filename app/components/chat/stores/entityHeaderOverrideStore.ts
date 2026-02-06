@@ -99,11 +99,18 @@ export const useEntityHeaderOverrideStore = create<EntityHeaderOverrideState>(se
     const key = buildKey(entityType, entityId);
 
     set((prev) => {
+      const existing = prev.headers[key];
       const nextHeaders = { ...prev.headers };
       if (!title && !imageUrl) {
+        if (!existing) {
+          return prev;
+        }
         delete nextHeaders[key];
       }
       else {
+        if (existing && existing.title === title && existing.imageUrl === imageUrl) {
+          return prev;
+        }
         nextHeaders[key] = { title, imageUrl, updatedAt: Date.now() };
       }
 

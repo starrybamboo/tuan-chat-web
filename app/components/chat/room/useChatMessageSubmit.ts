@@ -8,6 +8,7 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
+import { ANNOTATION_IDS, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
@@ -239,26 +240,18 @@ export default function useChatMessageSubmit({
 
         const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
         if (draftCustomRoleName?.trim()) {
-          fields.webgal = {
-            ...(fields.webgal as any),
-            customRoleName: draftCustomRoleName.trim(),
-          } as any;
+          fields.customRoleName = draftCustomRoleName.trim();
         }
 
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
           if (webgalLinkMode) {
-            const voiceRenderSettings = {
-              ...(currentDefaultFigurePosition ? { figurePosition: currentDefaultFigurePosition } : {}),
-              ...(dialogNotend ? { notend: true } : {}),
-              ...(dialogConcat ? { concat: true } : {}),
-            };
-
-            if (Object.keys(voiceRenderSettings).length > 0) {
-              fields.webgal = {
-                ...(fields.webgal as any),
-                voiceRenderSettings,
-              } as any;
+            let nextAnnotations: string[] = [];
+            nextAnnotations = setFigurePositionAnnotation(nextAnnotations, currentDefaultFigurePosition);
+            nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_NOTEND, dialogNotend);
+            nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_CONCAT, dialogConcat);
+            if (nextAnnotations.length > 0) {
+              fields.annotations = nextAnnotations;
             }
           }
           isFirstMessage = false;
@@ -365,8 +358,18 @@ export default function useChatMessageSubmit({
       }
 
       for (const img of uploadedImages) {
+        const commonFields = getCommonFields() as ChatMessageRequest;
+        let nextAnnotations = commonFields.annotations;
+        if (sendAsBackground) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, true);
+        }
+        else if (Array.isArray(nextAnnotations) && nextAnnotations.includes(ANNOTATION_IDS.BACKGROUND)) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, false);
+        }
+
         const imgMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
+          ...commonFields,
+          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
           content: textContent,
           messageType: MessageType.IMG,
           extra: {

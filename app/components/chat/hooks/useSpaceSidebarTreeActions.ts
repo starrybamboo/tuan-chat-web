@@ -3,22 +3,17 @@ import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 import toast from "react-hot-toast";
 
-import type { ChatPageMainView } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import { buildDefaultSidebarTree } from "@/components/chat/room/sidebarTree";
 import { tuanchat } from "api/instance";
 
-type RoomSummary = {
-  roomId?: number | null;
-  name?: string | null;
-  spaceId?: number | null;
-};
+import type { Room } from "../../../../api";
 
 type UseSpaceSidebarTreeActionsParams = {
   activeSpaceId?: number | null;
-  rooms: RoomSummary[];
+  rooms: Room[];
   sidebarTree: SidebarTree | null;
   isKPInSpace: boolean;
   docMetasFromSidebarTree: MinimalDocMeta[];
@@ -28,7 +23,6 @@ type UseSpaceSidebarTreeActionsParams = {
   setSpaceDocMetas: Dispatch<SetStateAction<MinimalDocMeta[] | null>>;
   saveSidebarTree: (tree: SidebarTree) => void;
   navigate: (to: string) => void;
-  setMainView: (view: ChatPageMainView) => void;
 };
 
 export default function useSpaceSidebarTreeActions({
@@ -43,7 +37,6 @@ export default function useSpaceSidebarTreeActions({
   setSpaceDocMetas,
   saveSidebarTree,
   navigate,
-  setMainView,
 }: UseSpaceSidebarTreeActionsParams) {
   const buildTreeBaseForWrite = useCallback((docMetas: MinimalDocMeta[]): SidebarTree => {
     return sidebarTree ?? buildDefaultSidebarTree({
@@ -161,7 +154,6 @@ export default function useSpaceSidebarTreeActions({
     });
     saveSidebarTree(next);
 
-    setMainView("chat");
     navigate(`/chat/${activeSpaceId}/doc/${createdDocId}`);
   }, [
     activeSpaceId,
@@ -173,7 +165,6 @@ export default function useSpaceSidebarTreeActions({
     mergeDocMetas,
     navigate,
     saveSidebarTree,
-    setMainView,
     setSpaceDocMetas,
     spaceDocMetas,
   ]);

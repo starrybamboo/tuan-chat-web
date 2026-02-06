@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
-import { useNavigate, useParams } from "react-router";
+import { useMatch, useNavigate, useParams } from "react-router";
 
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
@@ -23,17 +23,28 @@ type ChatPageRouteState = {
 };
 
 export default function useChatPageRoute(): ChatPageRouteState {
-  const { spaceId: urlSpaceId, roomId: urlRoomId, messageId: urlMessageId } = useParams();
+  const {
+    spaceId: urlSpaceId,
+    roomId: urlRoomId,
+    messageId: urlMessageId,
+    docId: urlDocId,
+  } = useParams();
   const navigate = useNavigate();
 
   const activeSpaceId = parsePositiveNumber(urlSpaceId);
   const isPrivateChatMode = urlSpaceId === "private";
 
-  const isDocRoute = !isPrivateChatMode && urlRoomId === "doc" && typeof urlMessageId === "string" && urlMessageId.length > 0;
+  const docParam = typeof urlDocId === "string" && urlDocId.length > 0
+    ? urlDocId
+    : (urlRoomId === "doc" ? urlMessageId : undefined);
+  const isDocRoute = !isPrivateChatMode
+    && typeof docParam === "string"
+    && docParam.length > 0
+    && (urlRoomId === "doc" || typeof urlDocId === "string");
 
-  const docRouteInfo = useMemo<DocRouteInfo>(() => {
-    return getDocRouteInfo({ isDocRoute, urlMessageId });
-  }, [isDocRoute, urlMessageId]);
+  const docRouteInfo = useMemo(() => {
+    return getDocRouteInfo({ isDocRoute, rawDocId: docParam });
+  }, [docParam, isDocRoute]);
 
   const activeDocId = docRouteInfo.activeDocId;
 
@@ -52,7 +63,8 @@ export default function useChatPageRoute(): ChatPageRouteState {
   const activeRoomId = isDocRoute ? null : parsePositiveNumber(urlRoomId);
   const targetMessageId = isDocRoute ? null : parsePositiveNumber(urlMessageId);
 
-  const isRoomSettingRoute = !isDocRoute && urlMessageId === "setting";
+  const roomSettingMatch = useMatch("/chat/:spaceId/:roomId/setting");
+  const isRoomSettingRoute = !isDocRoute && (urlMessageId === "setting" || Boolean(roomSettingMatch));
   const spaceDetailRouteTab: SpaceDetailTab | null = useMemo(() => {
     return getSpaceDetailRouteTab({ isPrivateChatMode, urlMessageId, urlRoomId });
   }, [isPrivateChatMode, urlMessageId, urlRoomId]);

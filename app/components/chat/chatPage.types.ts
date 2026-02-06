@@ -1,5 +1,3 @@
-export type ChatPageMainView = "chat" | "spaceDetail" | "roomSetting" | "discover";
-export type ChatDiscoverMode = "square" | "my";
 export type RoomSettingTab = "role" | "setting";
 export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 

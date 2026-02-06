@@ -1,9 +1,8 @@
 import type { Room } from "api";
-import type { ChatDiscoverMode, ChatPageMainView, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 import React from "react";
-import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
 import ChatRoomListPanel from "@/components/chat/room/chatRoomListPanel";
 
 interface ChatPageSidePanelContentProps {
@@ -12,8 +11,6 @@ interface ChatPageSidePanelContentProps {
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
 
-  mainView: ChatPageMainView;
-  discoverMode: ChatDiscoverMode;
   onCloseLeftDrawer: () => void;
 
   currentUserId: number | null;
@@ -46,8 +43,6 @@ export default function ChatPageSidePanelContent({
   activeSpaceId,
   onToggleLeftDrawer,
   isLeftDrawerOpen,
-  mainView,
-  discoverMode,
   onCloseLeftDrawer,
   currentUserId,
   activeSpaceName,
@@ -73,45 +68,36 @@ export default function ChatPageSidePanelContent({
   setIsOpenLeftDrawer,
   onOpenCreateInCategory,
 }: ChatPageSidePanelContentProps) {
-  return mainView === "discover"
-    ? (
-        <ChatDiscoverNavPanel
-          onCloseLeftDrawer={onCloseLeftDrawer}
-          onToggleLeftDrawer={onToggleLeftDrawer}
-          isLeftDrawerOpen={isLeftDrawerOpen}
-          activeMode={discoverMode}
-        />
-      )
-    : (
-        <ChatRoomListPanel
-          isPrivateChatMode={isPrivateChatMode}
-          currentUserId={currentUserId}
-          activeSpaceId={activeSpaceId}
-          activeSpaceName={activeSpaceName}
-          activeSpaceIsArchived={activeSpaceIsArchived}
-          isSpaceOwner={isSpaceOwner}
-          isKPInSpace={isKPInSpace}
-          rooms={rooms}
-          roomOrderIds={roomOrderIds}
-          onReorderRoomIds={onReorderRoomIds}
-          sidebarTree={sidebarTree}
-          onSaveSidebarTree={onSaveSidebarTree}
-          onResetSidebarTreeToDefault={onResetSidebarTreeToDefault}
-          docMetas={docMetas}
-          onSelectDoc={onSelectDoc}
-          activeRoomId={activeRoomId}
-          activeDocId={activeDocId}
-          unreadMessagesNumber={unreadMessagesNumber}
-          onContextMenu={onContextMenu}
-          onInviteMember={onInviteMember}
-          onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
-          onSelectRoom={onSelectRoom}
-          onCloseLeftDrawer={onCloseLeftDrawer}
-          onToggleLeftDrawer={onToggleLeftDrawer}
-          isLeftDrawerOpen={isLeftDrawerOpen}
-          onOpenRoomSetting={onOpenRoomSetting}
-          setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-          onOpenCreateInCategory={onOpenCreateInCategory}
-        />
-      );
+  return (
+    <ChatRoomListPanel
+      isPrivateChatMode={isPrivateChatMode}
+      currentUserId={currentUserId}
+      activeSpaceId={activeSpaceId}
+      activeSpaceName={activeSpaceName}
+      activeSpaceIsArchived={activeSpaceIsArchived}
+      isSpaceOwner={isSpaceOwner}
+      isKPInSpace={isKPInSpace}
+      rooms={rooms}
+      roomOrderIds={roomOrderIds}
+      onReorderRoomIds={onReorderRoomIds}
+      sidebarTree={sidebarTree}
+      onSaveSidebarTree={onSaveSidebarTree}
+      onResetSidebarTreeToDefault={onResetSidebarTreeToDefault}
+      docMetas={docMetas}
+      onSelectDoc={onSelectDoc}
+      activeRoomId={activeRoomId}
+      activeDocId={activeDocId}
+      unreadMessagesNumber={unreadMessagesNumber}
+      onContextMenu={onContextMenu}
+      onInviteMember={onInviteMember}
+      onOpenSpaceDetailPanel={onOpenSpaceDetailPanel}
+      onSelectRoom={onSelectRoom}
+      onCloseLeftDrawer={onCloseLeftDrawer}
+      onToggleLeftDrawer={onToggleLeftDrawer}
+      isLeftDrawerOpen={isLeftDrawerOpen}
+      onOpenRoomSetting={onOpenRoomSetting}
+      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+      onOpenCreateInCategory={onOpenCreateInCategory}
+    />
+  );
 }

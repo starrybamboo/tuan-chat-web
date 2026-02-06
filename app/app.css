@@ -189,4 +189,4 @@ body {
   scrollbar-width: none;
 }
 
-/* 不要覆写 Tailwind 的 `.hidden` Ϊ `!important`：会破坏 `hidden lg:flex` 等响应式切换。 */
+/* 不要覆写 Tailwind 的 `.hidden` 为 `!important`：会破坏 `hidden lg:flex` 等响应式切换。 */

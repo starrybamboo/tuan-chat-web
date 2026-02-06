@@ -7,6 +7,7 @@ import type { InferRequest } from "@/tts/engines/index/apiClient";
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
+import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
@@ -1197,7 +1198,7 @@ export class RealtimeRenderer {
     if (msg.messageType === 2) {
       const imageMessage = msg.extra?.imageMessage;
       if (imageMessage) {
-        if (imageMessage.background) {
+        if (isImageMessageBackground(msg.annotations, imageMessage)) {
           const bgFileName = await this.uploadBackground(imageMessage.url);
           if (bgFileName) {
             await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
@@ -1206,7 +1207,7 @@ export class RealtimeRenderer {
           }
         }
         // 处理解锁CG
-        const unlockCg = (msg.webgal as any)?.unlockCg;
+        const unlockCg = hasAnnotation(msg.annotations, ANNOTATION_IDS.CG);
         if (unlockCg) {
           const cgFileName = await this.uploadBackground(imageMessage.url);
           if (cgFileName) {
@@ -1353,7 +1354,7 @@ export class RealtimeRenderer {
       ? messageAvatarId
       : (roleAvatarId > 0 ? roleAvatarId : 0);
     // 优先使用自定义角色名
-    const customRoleName = (msg.webgal as any)?.customRoleName as string | undefined;
+    const customRoleName = msg.customRoleName as string | undefined;
     const roleName = customRoleName || role?.roleName || `角色${msg.roleId ?? 0}`;
 
     // 获取头像信息
@@ -1365,19 +1366,16 @@ export class RealtimeRenderer {
       : null;
 
     console.error(msg.content, msg.webgal?.voiceRenderSettings);
-    // 获取 voiceRenderSettings 中的立绘位置
+    // 获取 annotations 中的立绘位置
     const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
       emotionVector?: number[];
-      figurePosition?: string;
-      notend?: boolean;
-      concat?: boolean;
       figureAnimation?: FigureAnimationSettings;
     } | undefined;
 
     // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
-    // autoFigureEnabled Ϊ true 时，没有设置立绘位置的消息会默认显示在左边
-    // autoFigureEnabled Ϊ false（默认）时，没有设置立绘位置的消息不显示立绘
-    const rawFigurePosition = voiceRenderSettings?.figurePosition;
+    // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
+    // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
+    const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
     console.error(msg.content, rawFigurePosition);
 
     // 只有 "left", "center", "right" 才是有效的立绘位置
@@ -1389,10 +1387,10 @@ export class RealtimeRenderer {
     const figureAnimation = voiceRenderSettings?.figureAnimation;
 
     // 获取黑屏文字的 -hold 设置
-    const introHold = (msg.webgal as any)?.introHold as boolean ?? false;
+    const introHold = hasAnnotation(msg.annotations, ANNOTATION_IDS.INTRO_HOLD);
 
     // 旁白和黑屏文字不需要显示立绘
-    // 如果 figurePosition Ϊ undefined，也不显示立绘
+    // 如果 figurePosition 为 undefined，也不显示立绘
     const shouldShowFigure = !isNarrator && !isIntroText && !!figurePosition;
 
     // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
@@ -1436,7 +1434,7 @@ export class RealtimeRenderer {
     }
     else if (!isNarrator && !isIntroText) {
       // 普通对话但不显示立绘时，不再自动清除立绘，立绘需要手动清除
-      // // 普通对话但不显示立绘（figurePosition Ϊ undefined 或 spriteFileName 为空），清除之前的立绘
+      // // 普通对话但不显示立绘（figurePosition 为 undefined 或 spriteFileName 为空），清除之前的立绘
       // await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
       // await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
       // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
@@ -1468,9 +1466,9 @@ export class RealtimeRenderer {
     // 获取 voiceRenderSettings 中的情感向量
     const customEmotionVector = voiceRenderSettings?.emotionVector;
 
-    // 获取 WebGAL 对话参数：-notend 和 -concat
-    const dialogNotend = voiceRenderSettings?.notend ?? false;
-    const dialogConcat = voiceRenderSettings?.concat ?? false;
+    // 获取对话参数：-notend 和 -concat（来自 annotations）
+    const dialogNotend = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
+    const dialogConcat = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_CONCAT);
 
     // 根据消息类型生成不同的指令
     if (isIntroText) {
@@ -1656,9 +1654,6 @@ export class RealtimeRenderer {
     if (regenerateTTS && msg.content && msg.roleId) {
       const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
         emotionVector?: number[];
-        figurePosition?: string;
-        notend?: boolean;
-        concat?: boolean;
       } | undefined;
       const customEmotionVector = voiceRenderSettings?.emotionVector;
       const roleId = msg.roleId ?? 0;

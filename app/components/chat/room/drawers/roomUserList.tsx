@@ -7,9 +7,9 @@ import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomModuleRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
+import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import RoleList from "../../shared/components/roleLists";
-import { AddModuleRoleWindow } from "../../window/addModuleRoleWindow";
+import { AddNpcRoleWindow } from "../../window/addNpcRoleWindow";
 import { AddRoleWindow } from "../../window/addRoleWindow";
 
 export default function RoomUserList({ type}: { type: string }) {
@@ -39,11 +39,11 @@ export default function RoomUserList({ type}: { type: string }) {
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
 
-  const moduleRolesQuery = useGetRoomModuleRoleQuery(roomId);
-  const moduleRoles = useMemo(() => moduleRolesQuery.data?.data ?? [], [moduleRolesQuery.data?.data]);
+  const npcRolesQuery = useGetRoomNpcRoleQuery(roomId);
+  const npcRoles = useMemo(() => npcRolesQuery.data?.data ?? [], [npcRolesQuery.data?.data]);
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState<boolean>(false);
-  const [isModuleRoleHandleOpen, setIsModuleRoleHandleOpen] = useState<boolean>(false);
+  const [isNpcRoleHandleOpen, setIsNpcRoleHandleOpen] = useState<boolean>(false);
 
   const addRoleMutation = useAddRoomRoleMutation();
 
@@ -58,7 +58,7 @@ export default function RoomUserList({ type}: { type: string }) {
     );
   };
 
-  const handleAddModuleRole = async (roleId: number) => {
+  const handleAddNpcRole = async (roleId: number) => {
     addRoleMutation.mutate(
       { roomId, roleIdList: [roleId] },
       {
@@ -79,7 +79,7 @@ export default function RoomUserList({ type}: { type: string }) {
                   <AddressBookIcon className="size-5" />
                   <p className="text-start font-semibold">
                     角色列表-
-                    {roomRoles.length + moduleRoles.length}
+                    {roomRoles.length + npcRoles.length}
                   </p>
                 </>
               )
@@ -117,7 +117,7 @@ export default function RoomUserList({ type}: { type: string }) {
             <button
               type="button"
               className="btn btn-xs btn-dash btn-info"
-              onClick={() => setIsModuleRoleHandleOpen(true)}
+              onClick={() => setIsNpcRoleHandleOpen(true)}
             >
               NPC+
             </button>
@@ -133,7 +133,7 @@ export default function RoomUserList({ type}: { type: string }) {
           ? (
               <>
                 <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-56"} />
-                <RoleList roles={moduleRoles} className={getScreenSize() === "sm" ? "w-full" : "w-56"} isModuleRole={true} />
+                <RoleList roles={npcRoles} className={getScreenSize() === "sm" ? "w-full" : "w-56"} isNpcRole={true} />
               </>
             )
           : (
@@ -152,8 +152,8 @@ export default function RoomUserList({ type}: { type: string }) {
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole} />
       </PopWindow>
-      <PopWindow isOpen={isModuleRoleHandleOpen} onClose={() => setIsModuleRoleHandleOpen(false)}>
-        <AddModuleRoleWindow handleAddRole={handleAddModuleRole} />
+      <PopWindow isOpen={isNpcRoleHandleOpen} onClose={() => setIsNpcRoleHandleOpen(false)}>
+        <AddNpcRoleWindow handleAddRole={handleAddNpcRole} />
       </PopWindow>
     </div>
   );

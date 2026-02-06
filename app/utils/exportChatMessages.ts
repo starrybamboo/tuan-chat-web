@@ -1,3 +1,4 @@
+import { isImageMessageBackground } from "@/types/messageAnnotations";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 
 import type { ChatMessageResponse, Message } from "../../api";
@@ -92,7 +93,7 @@ function formatMessageContent(
       return content || "[空白文本]";
     case MessageType.IMG: {
       const imageMessage = extra?.imageMessage;
-      if (imageMessage?.background) {
+      if (isImageMessageBackground(message.annotations, imageMessage)) {
         return "[背景图片]";
       }
       return "[ͼƬ]";

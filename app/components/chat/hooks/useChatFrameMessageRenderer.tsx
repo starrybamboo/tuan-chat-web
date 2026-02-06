@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import type { ChatMessageResponse, Message } from "../../../api";
+import type { ChatMessageResponse, Message } from "../../../../api";
 import type { ThreadHintMeta } from "@/components/chat/hooks/useChatFrameMessages";
 import React, { useCallback } from "react";
 
@@ -9,7 +9,6 @@ interface UseChatFrameMessageRendererParams {
   selectedMessageIds: Set<number>;
   isDragging: boolean;
   isSelecting: boolean;
-  useChatBubbleStyle: boolean;
   baseDraggable: boolean;
   canJumpToWebGAL: boolean;
   isMessageMovable?: (message: Message) => boolean;
@@ -20,11 +19,12 @@ interface UseChatFrameMessageRendererParams {
     requestMessageId: number;
   }) => void;
   onMessageClick: (event: MouseEvent<HTMLElement>, messageId: number) => void;
-  onDragOver: (event: React.DragEvent) => void;
-  onDragLeave: (event: React.DragEvent) => void;
-  onDrop: (event: React.DragEvent, indexInHistoryMessages: number) => void;
-  onDragStart: (event: React.DragEvent, indexInHistoryMessages: number) => void;
-  onDragEnd: (event: React.DragEvent) => void;
+  onToggleSelection?: (messageId: number) => void;
+  onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDrop: (event: React.DragEvent<HTMLDivElement>, indexInHistoryMessages: number) => void;
+  onDragStart: (event: React.DragEvent<HTMLDivElement>, indexInHistoryMessages: number) => void;
+  onDragEnd: (event: React.DragEvent<HTMLDivElement>) => void;
   virtuosoIndexToMessageIndex: (virtuosoIndex: number) => number;
 }
 
@@ -32,13 +32,13 @@ export default function useChatFrameMessageRenderer({
   selectedMessageIds,
   isDragging,
   isSelecting,
-  useChatBubbleStyle,
   baseDraggable,
   canJumpToWebGAL,
   isMessageMovable,
   threadHintMetaByMessageId,
   onExecuteCommandRequest,
   onMessageClick,
+  onToggleSelection,
   onDragOver,
   onDragLeave,
   onDrop,
@@ -60,11 +60,11 @@ export default function useChatFrameMessageRenderer({
         isSelected={isSelected}
         isDragging={isDragging}
         canJumpToWebGAL={canJumpToWebGAL}
-        useChatBubbleStyle={useChatBubbleStyle}
         movable={movable}
         isSelecting={isSelecting}
         threadHintMeta={threadHintMeta}
         onExecuteCommandRequest={onExecuteCommandRequest}
+        onToggleSelection={onToggleSelection}
         onMessageClick={event => onMessageClick(event, messageId)}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -86,9 +86,9 @@ export default function useChatFrameMessageRenderer({
     onDrop,
     onExecuteCommandRequest,
     onMessageClick,
+    onToggleSelection,
     selectedMessageIds,
     threadHintMetaByMessageId,
-    useChatBubbleStyle,
     virtuosoIndexToMessageIndex,
   ]);
 }

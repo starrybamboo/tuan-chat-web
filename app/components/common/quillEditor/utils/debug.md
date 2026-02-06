@@ -119,5 +119,5 @@ delete window.QUILL_DEBUG_TOOLBAR;
 - Quill 预加载模块（域：`LOADER`）：`app/components/common/quillEditor/modules/quillLoader.ts`
 - 自定义 Blot 注册（域：`BLOTS`）：`app/components/common/quillEditor/modules/quillBlots.ts`
 
-如需新增域，只需在调用 `createLogger` ʱΪ `domainKey` 传入新的域名，并按上述方式开启即可。
+如需新增域，只需在调用 `createLogger` 时为 `domainKey` 传入新的域名，并按上述方式开启即可。
 

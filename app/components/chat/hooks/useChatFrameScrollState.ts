@@ -37,6 +37,7 @@ export default function useChatFrameScrollState({
 }: UseChatFrameScrollStateParams): UseChatFrameScrollStateResult {
   const isAtBottomRef = useRef(true);
   const lastAutoSyncUnreadRef = useRef<number | null>(null);
+  const lastSyncedMessageSyncIdRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
 
   const unreadMessageNumber = enableUnreadIndicator
@@ -48,6 +49,14 @@ export default function useChatFrameScrollState({
       return;
     }
     if (isAtBottomRef.current) {
+      const lastMessage = historyMessages[historyMessages.length - 1];
+      const lastSyncId = typeof lastMessage?.message?.syncId === "number"
+        ? lastMessage.message.syncId
+        : null;
+      if (lastSyncId != null && lastSyncedMessageSyncIdRef.current === lastSyncId) {
+        return;
+      }
+      lastSyncedMessageSyncIdRef.current = lastSyncId;
       updateLastReadSyncId(roomId);
     }
   }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);

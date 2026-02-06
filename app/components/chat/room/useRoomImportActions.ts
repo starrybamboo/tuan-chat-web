@@ -10,6 +10,7 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import UTILS from "@/components/common/dicer/utils/utils";
+import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest } from "../../../../api";
@@ -158,29 +159,17 @@ export default function useRoomImportActions({
 
         const importedSpeakerName = (msg.speakerName ?? "").trim();
         if (importedSpeakerName) {
-          request.webgal = {
-            ...(request.webgal as any),
-            customRoleName: importedSpeakerName,
-          } as any;
+          request.customRoleName = importedSpeakerName;
         }
         else {
           const draftCustomRoleName = draftCustomRoleNameMap[roleId];
           if (draftCustomRoleName?.trim()) {
-            request.webgal = {
-              ...(request.webgal as any),
-              customRoleName: draftCustomRoleName.trim(),
-            } as any;
+            request.customRoleName = draftCustomRoleName.trim();
           }
         }
 
         if (messageType === MessageType.TEXT && roleId > 0 && figurePosition) {
-          request.webgal = {
-            ...(request.webgal as any),
-            voiceRenderSettings: {
-              ...((request.webgal as any)?.voiceRenderSettings ?? {}),
-              figurePosition,
-            },
-          } as any;
+          request.annotations = setFigurePositionAnnotation(request.annotations, figurePosition);
         }
 
         await sendMessageWithInsert(request);

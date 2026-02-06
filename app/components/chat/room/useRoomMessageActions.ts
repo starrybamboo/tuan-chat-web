@@ -150,10 +150,7 @@ export default function useRoomMessageActions({
 
       const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
       if (draftCustomRoleName?.trim()) {
-        varMsg.webgal = {
-          ...(varMsg.webgal as any),
-          customRoleName: draftCustomRoleName.trim(),
-        } as any;
+        varMsg.customRoleName = draftCustomRoleName.trim();
       }
 
       await sendMessageWithInsert(varMsg);

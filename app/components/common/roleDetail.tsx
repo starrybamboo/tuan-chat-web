@@ -11,7 +11,7 @@ import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 /**
  * 角色的详情界面
  * @param roleId
- * @param allowKickOut 是否允许被踢出，模组角色是不可以的
+ * @param allowKickOut 是否允许被踢出，仓库角色是不可以的
  */
 export function RoleDetail({
   roleId,
@@ -174,7 +174,7 @@ export function RoleDetail({
                       disabled
                       onClick={() => setIsKickConfirmOpen(true)}
                     >
-                      模组角色不能被踢出
+                      仓库角色不能被踢出
                     </button>
                   )}
             </div>

@@ -28,13 +28,13 @@ const sizeMap = {
 /**
  * 用户头像组件
  * @param avatarId
- * @param roleId 角色ID，如果使用stopPopWindowΪfalse需要添加，模组角色的avatar
+ * @param roleId 角色ID，如果使用stopPopWindow为false需要添加，仓库角色的avatar
  * @param width 头像宽度尺寸
  * @param isRounded 是否显示为圆形头像（true的时候是rounded-full，false的时候是rounded）
  * @param withTitle 是否显示头像对应的标题（并非roleName）
  * @param stopPopWindow 是否禁用点击弹出角色详情窗口，默认为false
  * @param alt
- * @param allowKickOut 是否允许被踢出，模组角色是不可以的
+ * @param allowKickOut 是否允许被踢出，仓库角色是不可以的
  * @param hoverToScale 是否允许鼠标悬停时放大
  * @param detailVariant 详情弹窗形态：simple(旧) / page(复用角色页面)
  */

@@ -146,7 +146,7 @@ function mergeMessages(
     const wsContactMessages = wsMessages[contactId] || [];
     const historyMessages = sortedMessages[contactId] || [];
 
-    // 使用 Map 进行去重，key Ϊ messageId
+    // 使用 Map 进行去重，key 为 messageId
     const messageMap = new Map<number, MessageDirectType>();
 
     wsContactMessages.forEach((msg) => {

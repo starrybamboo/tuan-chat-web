@@ -1,6 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse, Message } from "../../../api";
-import React, { memo, use } from "react";
+import React, { memo, use, useCallback } from "react";
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -18,8 +18,11 @@ import useChatFrameScrollState from "@/components/chat/hooks/useChatFrameScrollS
 import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSelectionContext";
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
+import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
@@ -63,7 +66,6 @@ function ChatFrame(props: ChatFrameProps) {
   const spaceContext = use(SpaceContext);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
-  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const roomId = roomContext.roomId ?? -1;
   const curRoleId = roomContext.curRoleId ?? -1;
@@ -111,6 +113,53 @@ function ChatFrame(props: ChatFrameProps) {
     deleteMessageMutation,
     updateMessageMutation,
   });
+
+  const handleOpenAnnotations = useCallback((messageId: number) => {
+    const target = historyMessages.find(message => message.message.messageId === messageId);
+    if (!target)
+      return;
+    const initialSelected = Array.isArray(target.message.annotations) ? target.message.annotations : [];
+    openMessageAnnotationPicker({
+      initialSelected,
+      onChange: (next) => {
+        const latest = historyMessages.find(message => message.message.messageId === messageId);
+        if (!latest)
+          return;
+        const nextAnnotations = normalizeAnnotations(next);
+        const annotationsChanged = !areAnnotationsEqual(latest.message.annotations, nextAnnotations);
+        const isImageMessage = latest.message.messageType === MESSAGE_TYPE.IMG;
+        const imageMessage = latest.message.extra?.imageMessage;
+        const currentBackground = Boolean(imageMessage?.background);
+        const nextBackground = isImageMessage
+          ? hasAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND)
+          : currentBackground;
+        const backgroundChanged = Boolean(imageMessage) && nextBackground !== currentBackground;
+        if (!annotationsChanged && !backgroundChanged) {
+          return;
+        }
+
+        const nextMessage: Message = {
+          ...latest.message,
+          annotations: nextAnnotations,
+          ...(backgroundChanged
+            ? {
+                extra: {
+                  ...latest.message.extra,
+                  imageMessage: {
+                    ...imageMessage,
+                    background: nextBackground,
+                  },
+                },
+              }
+            : {}),
+        };
+        updateMessage(nextMessage);
+        if (roomContext.updateAndRerenderMessageInWebGAL) {
+          roomContext.updateAndRerenderMessageInWebGAL({ ...latest, message: nextMessage }, false);
+        }
+      },
+    });
+  }, [historyMessages, roomContext, updateMessage]);
 
   const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(historyMessages.length);
 
@@ -212,13 +261,13 @@ function ChatFrame(props: ChatFrameProps) {
     selectedMessageIds,
     isDragging,
     isSelecting,
-    useChatBubbleStyle,
     baseDraggable,
     canJumpToWebGAL,
     isMessageMovable,
     threadHintMetaByMessageId,
     onExecuteCommandRequest,
     onMessageClick: handleMessageClick,
+    onToggleSelection: toggleMessageSelection,
     onDragOver: handleDragOver,
     onDragLeave: handleDragLeave,
     onDrop: handleDrop,
@@ -253,7 +302,7 @@ function ChatFrame(props: ChatFrameProps) {
         setIsExportImageWindowOpen,
         setIsForwardWindowOpen,
         handleBatchDelete,
-        isSpaceOwner: spaceContext.isSpaceOwner,
+        isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
       }}
       overlaysProps={{
         isForwardWindowOpen,
@@ -271,7 +320,6 @@ function ChatFrame(props: ChatFrameProps) {
         historyMessages,
         isSelecting,
         selectedMessageIds,
-        useChatBubbleStyle,
         onClose: closeContextMenu,
         onDelete: handleDelete,
         onToggleSelection: toggleMessageSelection,
@@ -282,6 +330,7 @@ function ChatFrame(props: ChatFrameProps) {
         onToggleBackground: toggleBackground,
         onUnlockCg: toggleUnlockCg,
         onAddEmoji: handleAddEmoji,
+        onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
         onToggleNarrator: handleToggleNarrator,
       }}

@@ -196,26 +196,26 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                   {feed?.content ?? ""}
                 </div>
 
-                {/* 模组信息 */}
-                {feed?.moduleVO && (
+                {/* 仓库信息 */}
+                {feed?.repositoryVO && (
                   <div className="mt-4 p-4 bg-base-200 rounded-lg border border-base-300">
                     <div className="flex items-center gap-3">
-                      {feed.moduleVO.imageUrl && (
+                      {feed.repositoryVO.imageUrl && (
                         <img
-                          src={feed.moduleVO.imageUrl}
-                          alt={feed.moduleVO.moduleName}
+                          src={feed.repositoryVO.imageUrl}
+                          alt={feed.repositoryVO.repositoryName}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-base-content">{feed.moduleVO.moduleName}</h4>
+                        <h4 className="font-semibold text-base-content">{feed.repositoryVO.repositoryName}</h4>
                         <p className="text-sm text-base-content/60">
                           作者：
-                          {feed.moduleVO.authorName}
+                          {feed.repositoryVO.authorName}
                         </p>
-                        {feed.moduleVO.moduleDescription && (
+                        {feed.repositoryVO.repositoryDescription && (
                           <p className="text-sm text-base-content/80 mt-1 line-clamp-2">
-                            {feed.moduleVO.moduleDescription}
+                            {feed.repositoryVO.repositoryDescription}
                           </p>
                         )}
                       </div>

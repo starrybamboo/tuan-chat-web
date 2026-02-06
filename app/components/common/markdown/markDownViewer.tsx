@@ -60,7 +60,7 @@ const MARKDOWN_STYLES = `
 /**
  * 嵌入markdown渲染器中的组件
  * @param type 媒体类型
- * @param src 对于bilibili与youtube，src为视频id，对于pdf，srcΪpdf链接
+ * @param src 对于bilibili与youtube，src为视频id，对于pdf，src为pdf链接
  * @constructor
  */
 function MediaEmbed({ type, src }: { type: string; src: string }) {

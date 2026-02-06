@@ -1,18 +1,18 @@
 import React, { useMemo, useState } from "react";
-import UserModulesList from "@/components/profile/workTabPart/moudleList";
 import PostsList from "@/components/profile/workTabPart/postsList";
+import UserRepositoriesList from "@/components/profile/workTabPart/repositoryList";
 import RolesList from "@/components/profile/workTabPart/rolesList";
-import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
+import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
-type TabType = "modules" | "posts" | "roles";
+type TabType = "repositories" | "posts" | "roles";
 interface WorksTabProp {
   userId: number;
 }
 // 在 WorksTab 组件中添加帖子相关内容
 const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
-  const [modulePage, setModulePage] = useState(1);
+  const [repositoryPage, setRepositoryPage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>("posts");
   const { isLoading } = useGetUserRolesQuery(userId);
 
@@ -22,9 +22,9 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
     pageSize: 10,
   });
 
-  const { data: modulesResponse, isLoading: modulesLoading } = useModuleListByUserQuery({
+  const { data: repositoriesResponse, isLoading: repositoriesLoading } = useRepositoryListByUserQuery({
     userId,
-    pageNo: modulePage,
+    pageNo: repositoryPage,
     pageSize: 10,
   });
 
@@ -36,14 +36,14 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "modules":
+      case "repositories":
         return (
-          <UserModulesList
+          <UserRepositoriesList
             userId={userId}
-            totalRecords={modulesResponse?.data?.totalRecords || 0}
-            currentPage={modulePage}
-            onPageChange={setModulePage}
-            isLoading={modulesLoading}
+            totalRecords={repositoriesResponse?.data?.totalRecords || 0}
+            currentPage={repositoryPage}
+            onPageChange={setRepositoryPage}
+            isLoading={repositoriesLoading}
           />
         );
       case "posts":
@@ -70,16 +70,16 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
 
   const renderTitle = () => {
     switch (activeTab) {
-      case "modules":
+      case "repositories":
         return (
           <>
-            <h2 className="text-2xl font-bold">创建的模组</h2>
+            <h2 className="text-2xl font-bold">创建的仓库</h2>
             <span className="text-gray-500">
               共
               {" "}
-              {modulesResponse?.data?.totalRecords || 0}
+              {repositoriesResponse?.data?.totalRecords || 0}
               {" "}
-              个模组
+              个仓库
             </span>
           </>
         );
@@ -121,7 +121,7 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
       <div className="md:hidden overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200">
         <nav className="flex space-x-2">
           {renderTabButton("posts", "帖子")}
-          {renderTabButton("modules", "模组")}
+          {renderTabButton("repositories", "仓库")}
           {renderTabButton("roles", "角色")}
         </nav>
       </div>
@@ -131,7 +131,7 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         <div className="hidden md:flex md:flex-col w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10">
           <nav className="space-y-2 flex flex-col">
             {renderTabButton("posts", "帖子")}
-            {renderTabButton("modules", "模组")}
+            {renderTabButton("repositories", "仓库")}
             {renderTabButton("roles", "角色")}
           </nav>
         </div>

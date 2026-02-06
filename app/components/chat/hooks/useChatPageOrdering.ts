@@ -2,27 +2,20 @@ import { useCallback, useEffect, useMemo } from "react";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
-type SpaceSummary = {
-  spaceId?: number | null;
-};
-
-type RoomSummary = {
-  roomId?: number | null;
-  spaceId?: number | null;
-};
+import type { Room, Space } from "../../../../api";
 
 type UseChatPageOrderingParams = {
   userId: number;
   activeSpaceId?: number | null;
   isPrivateChatMode: boolean;
-  spaces: SpaceSummary[];
-  rooms: RoomSummary[];
+  spaces: Space[];
+  rooms: Room[];
 };
 
 type UseChatPageOrderingResult = {
-  orderedSpaces: SpaceSummary[];
+  orderedSpaces: Space[];
   orderedSpaceIds: number[];
-  orderedRooms: RoomSummary[];
+  orderedRooms: Room[];
   orderedRoomIds: number[];
   setUserSpaceOrder: (nextOrder: number[]) => void;
   setUserRoomOrder: (nextOrder: number[]) => void;

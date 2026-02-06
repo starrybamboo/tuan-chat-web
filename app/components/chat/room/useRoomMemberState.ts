@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { SpaceMember } from "../../../../api";
+import type { RoomMember, SpaceMember } from "../../../../api";
 
 import { useGetMemberListQuery } from "../../../../api/hooks/chatQueryHooks";
 
@@ -11,11 +11,13 @@ type UseRoomMemberStateParams = {
 };
 
 type UseRoomMemberStateResult = {
-  members: SpaceMember[];
-  curMember: SpaceMember | undefined;
+  members: RoomMemberWithSpace[];
+  curMember: RoomMemberWithSpace | undefined;
   isSpectator: boolean;
   notMember: boolean;
 };
+
+type RoomMemberWithSpace = RoomMember & SpaceMember;
 
 export default function useRoomMemberState({
   roomId,
@@ -23,10 +25,10 @@ export default function useRoomMemberState({
   spaceMembers,
 }: UseRoomMemberStateParams): UseRoomMemberStateResult {
   const membersQuery = useGetMemberListQuery(roomId);
-  const members = useMemo(() => {
+  const members = useMemo<RoomMemberWithSpace[]>(() => {
     const roomMembers = membersQuery.data?.data ?? [];
     if (!spaceMembers.length) {
-      return roomMembers;
+      return roomMembers as RoomMemberWithSpace[];
     }
     return roomMembers.map((member) => {
       const spaceMember = spaceMembers.find(m => m.userId === member.userId);

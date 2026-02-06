@@ -3,7 +3,7 @@ import useChatFrameMessageClick from "@/components/chat/hooks/useChatFrameMessag
 import useChatFrameSelection from "@/components/chat/hooks/useChatFrameSelection";
 import useChatFrameSelectionHandlers from "@/components/chat/hooks/useChatFrameSelectionHandlers";
 
-import type { Message } from "../../../api";
+import type { Message } from "../../../../api";
 
 type UseChatFrameSelectionContextParams = {
   deleteMessage: (messageId: number) => void;

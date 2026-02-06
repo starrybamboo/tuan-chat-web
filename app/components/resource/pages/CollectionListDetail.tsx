@@ -247,7 +247,7 @@ function CoverImage({
               alt={collectionList.collectionListName}
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.currentTarget.src = "/moduleDefaultImage.webp";
+                e.currentTarget.src = "/repositoryDefaultImage.webp";
               }}
             />
           )

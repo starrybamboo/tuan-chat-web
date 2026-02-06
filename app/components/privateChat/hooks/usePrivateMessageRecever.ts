@@ -17,8 +17,8 @@ export function usePrivateMessageReceiver(userId: number, currentContactUserId: 
   const currentContactMessages = useMemo(() => {
     if (!currentContactUserId)
       return [];
-    const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId Ϊ userId
-    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId Ϊ currentContactUserId
+    const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
+    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId 为 currentContactUserId
     // 筛选出与当前联系人相关的消息
     const filteredUserMessages = userMessages.filter(msg =>
       msg.receiverId === currentContactUserId, // 用户发给当前联系人的消息

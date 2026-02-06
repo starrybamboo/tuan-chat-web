@@ -6,6 +6,7 @@ import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
 import SubRoomWindow from "@/components/chat/room/subRoomWindow";
 import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
+import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 
 type ChatFrameProps = React.ComponentProps<typeof ChatFrame>;
 type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
@@ -17,10 +18,9 @@ interface RoomWindowLayoutProps {
   backgroundUrl: string | null;
   displayedBgUrl: string | null;
   currentEffect: string | null;
-  composerTarget: "main" | "thread";
-  setComposerTarget: (target: "main" | "thread") => void;
   chatFrameProps: ChatFrameProps;
   composerPanelProps: RoomComposerPanelProps;
+  hideComposer?: boolean;
 }
 
 export default function RoomWindowLayout({
@@ -30,11 +30,12 @@ export default function RoomWindowLayout({
   backgroundUrl,
   displayedBgUrl,
   currentEffect,
-  composerTarget,
-  setComposerTarget,
   chatFrameProps,
   composerPanelProps,
+  hideComposer = false,
 }: RoomWindowLayoutProps) {
+  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+
   return (
     <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-300">
       <div
@@ -60,9 +61,9 @@ export default function RoomWindowLayout({
             toggleLeftDrawer={toggleLeftDrawer}
           />
           <div className="flex-1 w-full flex bg-transparent relative min-h-0">
-            <div className="flex-1 min-w-0 flex flex-col min-h-0">
+            <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
               <div
-                className={`bg-transparent flex-1 min-w-0 min-h-0 ${composerTarget === "main" ? "" : ""}`}
+                className="bg-transparent flex-1 min-w-0 min-h-0"
                 onMouseDown={() => setComposerTarget("main")}
               >
                 <ChatFrame
@@ -71,7 +72,7 @@ export default function RoomWindowLayout({
                 />
               </div>
 
-              <RoomComposerPanel {...composerPanelProps} />
+              {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
             </div>
 
             <RoomSideDrawers />

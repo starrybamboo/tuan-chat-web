@@ -8,7 +8,7 @@ import useChatFrameDragAutoScroll from "@/components/chat/hooks/useChatFrameDrag
 import useChatFrameDragIndicator from "@/components/chat/hooks/useChatFrameDragIndicator";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 
-import type { ChatMessageResponse, Message } from "../../../api";
+import type { ChatMessageResponse, Message } from "../../../../api";
 
 type UseChatFrameDragAndDropParams = {
   historyMessages: ChatMessageResponse[];

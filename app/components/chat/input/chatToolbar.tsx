@@ -80,7 +80,7 @@ interface ChatToolbarProps {
   onClearFigure?: () => void;
   /** WebGAL 空间变量：由导演控制台弹窗触发 */
   onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
-  /** 插入 WebGAL 指令前缀（发送侧会把 %xxx תΪ WEBGAL_COMMAND） */
+  /** 插入 WebGAL 指令前缀（发送侧会把 %xxx 转为 WEBGAL_COMMAND） */
   onInsertWebgalCommandPrefix?: () => void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;

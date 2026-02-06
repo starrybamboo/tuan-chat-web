@@ -30,6 +30,7 @@ const DEFAULT_LOAD_TIMEOUT_MS = 45_000;
 const DEFAULT_EXEC_TIMEOUT_MS = 120_000;
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
+let ffmpegDebugConfigLogged = false;
 
 function normalizeErrorMessage(error: unknown): string {
   if (error instanceof Error)
@@ -55,11 +56,77 @@ async function terminateFfmpegAndResetSingleton(ffmpeg: import("@ffmpeg/ffmpeg")
 }
 
 function getFfmpegCoreBaseUrlCandidates(): string[] {
-  const env = (import.meta as any)?.env;
+  const env = import.meta.env as any;
   const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
   if (fromEnv)
     return [fromEnv.replace(/\/+$/, "")];
   return DEFAULT_FFMPEG_CORE_BASE_URLS.map(u => u.replace(/\/+$/, ""));
+}
+
+function shouldUseBundledFfmpegCore(): boolean {
+  const env = import.meta.env as any;
+  const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
+  const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
+    ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
+    : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
+  return !fromEnv && !skipBundled;
+}
+
+function getFfmpegWrapperUrl(): string | null {
+  const env = import.meta.env as any;
+  const fromEnv = typeof env?.VITE_FFMPEG_WRAPPER_URL === "string" ? env.VITE_FFMPEG_WRAPPER_URL.trim() : "";
+  return fromEnv || null;
+}
+
+function isFfmpegWrapperStrict(): boolean {
+  const env = import.meta.env as any;
+  if (typeof env?.VITE_FFMPEG_WRAPPER_STRICT === "string")
+    return env.VITE_FFMPEG_WRAPPER_STRICT.toLowerCase() === "true";
+  return env?.VITE_FFMPEG_WRAPPER_STRICT === true;
+}
+
+async function loadFfmpegModule(debugEnabled: boolean, debugPrefix: string): Promise<typeof import("@ffmpeg/ffmpeg")> {
+  const wrapperUrl = getFfmpegWrapperUrl();
+  const strict = isFfmpegWrapperStrict();
+  if (wrapperUrl) {
+    try {
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg wrapper url`, wrapperUrl);
+      return await import(/* @vite-ignore */ wrapperUrl);
+    }
+    catch (e) {
+      if (strict) {
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new Error(`FFmpeg wrapper 加载失败（严格模式，不回退）：${msg}`);
+      }
+      if (debugEnabled) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn(`${debugPrefix} ffmpeg wrapper url failed`, { wrapperUrl, msg });
+      }
+    }
+  }
+  return await import("@ffmpeg/ffmpeg");
+}
+
+function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string): void {
+  if (!debugEnabled || ffmpegDebugConfigLogged)
+    return;
+  ffmpegDebugConfigLogged = true;
+  const env = import.meta.env as any;
+  const mode = typeof env?.MODE === "string" ? env.MODE : "unknown";
+  const wrapperUrl = getFfmpegWrapperUrl();
+  const strict = isFfmpegWrapperStrict();
+  const coreBase = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
+  const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
+    ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
+    : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
+  console.warn(`${debugPrefix} ffmpeg config`, {
+    mode,
+    wrapperUrl: wrapperUrl || "(empty)",
+    wrapperStrict: strict,
+    coreBaseUrl: coreBase || "(empty)",
+    coreSkipBundled: skipBundled,
+  });
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -125,19 +192,20 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
 
       const debugEnabled = isAudioUploadDebugEnabled();
       const debugPrefix = "[tc-audio-upload]";
+      logFfmpegDebugConfig(debugEnabled, debugPrefix);
 
-      const [{ FFmpeg }] = await Promise.all([
-        import("@ffmpeg/ffmpeg"),
-      ]);
+      const { FFmpeg } = await loadFfmpegModule(debugEnabled, debugPrefix);
 
       const candidates = getFfmpegCoreBaseUrlCandidates();
-      const bundledCandidates = [
-        {
-          label: "bundled",
-          coreJs: bundledCoreJsUrl,
-          wasm: bundledCoreWasmUrl,
-        },
-      ];
+      const bundledCandidates = shouldUseBundledFfmpegCore()
+        ? [
+            {
+              label: "bundled",
+              coreJs: bundledCoreJsUrl,
+              wasm: bundledCoreWasmUrl,
+            },
+          ]
+        : [];
 
       const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
 

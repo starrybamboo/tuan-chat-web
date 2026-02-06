@@ -18,7 +18,7 @@ interface RoomWindowOverlaysProps {
       figurePosition?: string;
     }>,
     onProgress?: (sent: number, total: number) => void,
-  ) => Promise<void> | void;
+  ) => Promise<void>;
   onOpenRoleAddWindow: () => void;
 
   isRoleHandleOpen: boolean;

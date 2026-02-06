@@ -4,9 +4,9 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
-import { useAddRoomRoleMutation, useGetRoomModuleRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
+import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import { useGetSpaceModuleRoleQuery } from "../../../../api/hooks/spaceModuleHooks";
+import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
 import CreateNpcRoleWindow from "./createNpcRoleWindow";
 
 export function AddRoleWindow({
@@ -23,10 +23,10 @@ export function AddRoleWindow({
   const roomRolesQuery = useGetRoomRoleQuery(roomId ?? -1);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
 
-  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId ?? -1);
+  const roomNpcRolesQuery = useGetRoomNpcRoleQuery(roomId ?? -1);
   const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
 
-  const spaceRolesQuery = useGetSpaceModuleRoleQuery(spaceId);
+  const spaceRolesQuery = useGetSpaceRepositoryRoleQuery(spaceId);
   const spaceRoles = useMemo(() => spaceRolesQuery.data?.data ?? [], [spaceRolesQuery.data?.data]);
 
   const roleIdInRoomSet = useMemo(() => {

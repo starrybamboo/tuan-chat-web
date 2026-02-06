@@ -1,6 +1,6 @@
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import DocRefDragOverlay from "@/components/chat/shared/components/docRefDragOverlay";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
@@ -13,6 +13,10 @@ interface RoomDocRefDropLayerProps {
 export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDocRefDropLayerProps) {
   const [isDocRefDragOver, setIsDocRefDragOver] = useState(false);
   const isDocRefDragOverRef = useRef(false);
+  const getDragOverTargetZone = useCallback((target: EventTarget | null) => {
+    const el = target as HTMLElement | null;
+    return el?.closest?.("[data-tc-doc-ref-drop-zone]") as HTMLElement | null;
+  }, []);
   const updateDocRefDragOver = useCallback((next: boolean) => {
     if (isDocRefDragOverRef.current === next)
       return;
@@ -25,10 +29,15 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
       updateDocRefDragOver(false);
       return;
     }
+    const targetZone = getDragOverTargetZone(event.target);
+    if (!targetZone) {
+      updateDocRefDragOver(false);
+      return;
+    }
     updateDocRefDragOver(true);
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
-  }, [updateDocRefDragOver]);
+  }, [getDragOverTargetZone, updateDocRefDragOver]);
 
   const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     const relatedTarget = event.relatedTarget as Node | null;
@@ -41,6 +50,12 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     updateDocRefDragOver(false);
+    if (!getDragOverTargetZone(event.target)) {
+      if (isDocRefDrag(event.dataTransfer)) {
+        event.preventDefault();
+      }
+      return;
+    }
     const docRef = getDocRefDragData(event.dataTransfer);
     if (!docRef) {
       return;
@@ -48,12 +63,27 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
     event.preventDefault();
     event.stopPropagation();
     void onSendDocCard(docRef);
-  }, [onSendDocCard, updateDocRefDragOver]);
+  }, [getDragOverTargetZone, onSendDocCard, updateDocRefDragOver]);
+
+  useEffect(() => {
+    const handleGlobalDragEnd = () => {
+      updateDocRefDragOver(false);
+    };
+    const handleGlobalDrop = () => {
+      updateDocRefDragOver(false);
+    };
+    window.addEventListener("dragend", handleGlobalDragEnd, true);
+    window.addEventListener("drop", handleGlobalDrop, true);
+    return () => {
+      window.removeEventListener("dragend", handleGlobalDragEnd, true);
+      window.removeEventListener("drop", handleGlobalDrop, true);
+    };
+  }, [updateDocRefDragOver]);
 
   return (
     <div
       className="relative h-full min-h-0 w-full"
-      onDragOver={handleDragOver}
+      onDragOverCapture={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >

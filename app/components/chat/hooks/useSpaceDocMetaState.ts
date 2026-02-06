@@ -12,6 +12,30 @@ type UseSpaceDocMetaStateParams = {
   docMetasFromSidebarTree: MinimalDocMeta[];
 };
 
+function isSameDocMetaList(a: MinimalDocMeta[] | null, b: MinimalDocMeta[] | null): boolean {
+  if (a === b)
+    return true;
+  if (!a || !b)
+    return false;
+  if (a.length !== b.length)
+    return false;
+
+  for (let i = 0; i < a.length; i++) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right)
+      return false;
+    if (left.id !== right.id)
+      return false;
+    if ((left.title ?? "") !== (right.title ?? ""))
+      return false;
+    if ((left.imageUrl ?? "") !== (right.imageUrl ?? ""))
+      return false;
+  }
+
+  return true;
+}
+
 export default function useSpaceDocMetaState({
   activeSpaceId,
   isKPInSpace,
@@ -169,7 +193,7 @@ export default function useSpaceDocMetaState({
       const merged = mergeDocMetas(fromWorkspace, docMetasFromSidebarTree);
       if (cancelled)
         return;
-      setSpaceDocMetas(merged);
+      setSpaceDocMetas(prev => (isSameDocMetaList(prev, merged) ? prev : merged));
 
       try {
         const registry = await import("@/components/chat/infra/blocksuite/spaceWorkspaceRegistry");

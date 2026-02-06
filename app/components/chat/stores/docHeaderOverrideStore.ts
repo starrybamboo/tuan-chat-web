@@ -96,11 +96,18 @@ export const useDocHeaderOverrideStore = create<DocHeaderOverrideState>(set => (
     const imageUrl = String(header.imageUrl ?? "").trim();
 
     set((prev) => {
+      const existing = prev.headers[key];
       const nextHeaders = { ...prev.headers };
       if (!title && !imageUrl) {
+        if (!existing) {
+          return prev;
+        }
         delete nextHeaders[key];
       }
       else {
+        if (existing && existing.title === title && existing.imageUrl === imageUrl) {
+          return prev;
+        }
         nextHeaders[key] = { title, imageUrl, updatedAt: Date.now() };
       }
 

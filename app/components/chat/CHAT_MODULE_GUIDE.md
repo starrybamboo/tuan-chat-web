@@ -78,7 +78,7 @@
   - **Overlays**：弹窗 + 右键菜单 + 其他覆盖层
 
 当前拆分点：
-- `ChatPagePanels`：包装 `ChatPageLayout`、`ChatPageMainContent`、`ChatPageSidePanelContent`、`ChatSpaceSidebar`。
+- `ChatPagePanels`：包装 `ChatPageLayout`、侧栏与面板；`mainContent` 由子路由 `<Outlet />` 提供（如 `ChatPageMainContent` / 文档 / 房间设置）。
 - `ChatPageOverlays`：包装 `ChatPageModals`、`ChatPageContextMenu`、`SpaceContextMenu`。
 
 ### 3.2 Space / Sidebar 层
@@ -222,6 +222,42 @@ RealtimeRender 的职责是：
 - 管理 WebGAL 的连接状态
 - 按消息顺序渲染
 - 处理“插入/重排”引发的全量重渲染
+
+### 4.6 消息标注（Annotations）
+
+> 目标：在消息下方展示一组“可编辑的标签”，仅作者与 KP 可编辑；不计数、不记录来源；属于消息本体的一部分。
+
+**数据结构**
+- 后端：`message.annotations: string[]`（顶层字段，JSON/JSONB）。
+- 前端：`api/models/Message.ts` 中同步字段。
+- 语义：仅保存**标注 ID 列表**，不存展示文本/图标。
+
+**标注目录（catalog）**
+- 入口：`app/components/chat/message/annotations/annotationCatalog.ts`
+- 内置标注：`BUILTIN_ANNOTATIONS`，包含 `id / label / category`。
+- 自定义标注：本地 `localStorage`（key: `tc:message-annotations:custom`），仅当前设备。
+- 常用统计：本地 `localStorage`（key: `tc:message-annotations:usage`）。
+
+**交互入口**
+- 右键消息：`ChatFrameContextMenu` → “添加标注”。
+- 标注条右侧 “+”：同样打开选择器。
+- 标注条点击已有标注：仅作者/KP可 toggle。
+
+**渲染位置**
+- 消息气泡内部渲染：`app/components/chat/message/chatBubble.tsx`
+- 标注条组件：`app/components/chat/message/annotations/messageAnnotationsBar.tsx`
+
+**选择器**
+- 选择器组件：`AnnotationPicker.tsx`
+- 打开方式：`openMessageAnnotationPicker`
+- 支持：分类分组、搜索、常用、自定义添加（本地）。
+
+**权限**
+- 仅消息作者或 KP 可编辑（KP = `spaceContext.isSpaceOwner`）。
+- 无权限时只展示，不提供交互入口。
+
+**注意**
+- 目前标注定义是前端本地目录；如需多端一致或可管理，需要迁移到服务端字典表。
 
 ## 5. 状态管理全景
 

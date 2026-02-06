@@ -14,8 +14,8 @@ type UseRoomInputControllerParams = {
 };
 
 type UseRoomInputControllerResult = {
-  chatInputRef: React.RefObject<ChatInputAreaHandle>;
-  atMentionRef: React.RefObject<AtMentionHandle>;
+  chatInputRef: React.RefObject<ChatInputAreaHandle | null>;
+  atMentionRef: React.RefObject<AtMentionHandle | null>;
   handleInputAreaChange: (plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => void;
   setInputText: (text: string) => void;
   handleSelectCommand: (cmdName: string) => void;

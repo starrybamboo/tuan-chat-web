@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 
-import type { ChatPageMainView } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 
 import { getDefaultCreateInCategoryMode } from "@/components/chat/utils/createInCategoryMode";
@@ -18,7 +17,6 @@ type UseChatPageCreateInCategoryParams = {
   saveSidebarTree: (tree: SidebarTree) => void;
   requestCreateDocInCategory: (categoryId: string, titleOverride?: string) => Promise<void>;
   setActiveRoomId: (roomId: number | null) => void;
-  setMainView: (view: ChatPageMainView) => void;
   spaceDocMetas: MinimalDocMeta[] | null;
 };
 
@@ -43,7 +41,6 @@ export default function useChatPageCreateInCategory({
   saveSidebarTree,
   requestCreateDocInCategory,
   setActiveRoomId,
-  setMainView,
   spaceDocMetas,
 }: UseChatPageCreateInCategoryParams): UseChatPageCreateInCategoryResult {
   const [isCreateInCategoryOpen, setIsCreateInCategoryOpen] = useSearchParamsState<boolean>("createInCategoryPop", false);
@@ -80,7 +77,6 @@ export default function useChatPageCreateInCategory({
     setPendingCreateInCategoryId(null);
 
     if (roomId) {
-      setMainView("chat");
       setActiveRoomId(roomId);
     }
 
@@ -103,7 +99,6 @@ export default function useChatPageCreateInCategory({
     saveSidebarTree,
     setActiveRoomId,
     setIsCreateInCategoryOpen,
-    setMainView,
     spaceDocMetas,
   ]);
 

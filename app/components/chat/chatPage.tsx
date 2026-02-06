@@ -1,8 +1,8 @@
-import type { ChatDiscoverMode, ChatPageMainView } from "@/components/chat/chatPage.types";
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useCallback, useEffect, useMemo } from "react";
+import { Outlet, useSearchParams } from "react-router";
 import { ChatPageOverlays, ChatPagePanels } from "@/components/chat/chatPageContainers";
+import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import useChatPageActiveSpaceInfo from "@/components/chat/hooks/useChatPageActiveSpaceInfo";
 import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
@@ -33,17 +33,12 @@ import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
+const EMPTY_ARRAY: never[] = [];
+
 /**
  * Chat 页面
  */
-interface ChatPageProps {
-  /** 初始主视图 */
-  initialMainView?: ChatPageMainView;
-  /** 发现页模式 */
-  discoverMode?: ChatDiscoverMode;
-}
-
-export default function ChatPage({ initialMainView, discoverMode }: ChatPageProps) {
+export default function ChatPage() {
   const {
     urlSpaceId,
     urlRoomId,
@@ -57,7 +52,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     isSpaceDetailRoute,
     navigate,
   } = useChatPageRoute();
-  const [searchParam, _] = useSearchParams();
+  const [searchParam] = useSearchParams();
   const screenSize = useScreenSize();
   const {
     isOpenLeftDrawer,
@@ -80,17 +75,18 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
   const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
 
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
-  const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
-  const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
-  const rooms = useMemo(() => userRoomQuery.data?.data?.rooms ?? [], [userRoomQuery.data?.data?.rooms]);
+  const activeSpaceIdForQuery = activeSpaceId ?? -1;
+  const userRoomQuery = useGetUserRoomsQuery(activeSpaceIdForQuery);
+  const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceIdForQuery);
+  const rooms = userRoomQuery.data?.data?.rooms ?? EMPTY_ARRAY;
   const userSpacesQuery = useGetUserActiveSpacesQuery();
-  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
+  const spaces = userSpacesQuery.data?.data ?? EMPTY_ARRAY;
 
-  const activeSpaceInfoQuery = useGetSpaceInfoQuery(activeSpaceId ?? -1);
-  const activeSpaceInfo = useMemo(() => activeSpaceInfoQuery.data?.data, [activeSpaceInfoQuery.data?.data]);
+  const activeSpaceInfoQuery = useGetSpaceInfoQuery(activeSpaceIdForQuery);
+  const activeSpaceInfo = activeSpaceInfoQuery.data?.data;
 
   const globalContext = useGlobalContext();
-  const userId = globalContext.userId || -1;
+  const userId = globalContext.userId ?? -1;
   const {
     orderedSpaces,
     orderedSpaceIds,
@@ -137,8 +133,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     setStoredChatIds,
   });
 
-  const [mainView, setMainView] = useState<ChatPageMainView>(() => initialMainView ?? "chat");
-  const discoverModeForUi = discoverMode ?? "square";
   const {
     roomSettingState,
     spaceDetailTab,
@@ -151,35 +145,31 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     activeSpaceId,
     isPrivateChatMode,
     isRoomSettingRoute,
-    isSpaceDetailRoute,
     spaceDetailRouteTab,
     navigate,
     searchParam,
-    setMainView,
     storedIds,
   });
 
   const handleSelectRoom = useCallback((roomId: number) => {
-    setMainView("chat");
     setActiveRoomId(roomId);
-  }, [setActiveRoomId, setMainView]);
+  }, [setActiveRoomId]);
 
   const handleSelectDoc = useCallback((docId: string) => {
     if (!activeSpaceId || activeSpaceId <= 0)
       return;
-    setMainView("chat");
     const parsed = parseSpaceDocId(docId);
     if (parsed?.kind === "independent") {
       navigate(`/chat/${activeSpaceId}/doc/${parsed.docId}`);
       return;
     }
     navigate(`/chat/${activeSpaceId}/doc/${encodeURIComponent(docId)}`);
-  }, [activeSpaceId, navigate, setMainView]);
+  }, [activeSpaceId, navigate]);
 
-  const spaceMembers = useMemo(() => spaceMembersQuery.data?.data ?? [], [spaceMembersQuery.data?.data]);
+  const spaceMembers = spaceMembersQuery.data?.data ?? EMPTY_ARRAY;
   const isKPInSpace = useMemo(() => {
-    return Boolean(spaceMembers.some(member => member.userId === globalContext.userId && member.memberType === 1));
-  }, [globalContext.userId, spaceMembers]);
+    return Boolean(spaceMembers.some(member => member.userId === userId && member.memberType === 1));
+  }, [spaceMembers, userId]);
 
   const docMetasFromSidebarTree = useMemo(() => {
     return extractDocMetasFromSidebarTree(sidebarTree).filter((m) => {
@@ -199,6 +189,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     isKPInSpace,
     docMetasFromSidebarTree,
   });
+  const spaceDocMetasList = spaceDocMetas ?? EMPTY_ARRAY;
 
   const activeDocTitleForTcHeader = useChatPageDocTitle({
     activeDocId,
@@ -224,7 +215,6 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     setSpaceDocMetas,
     saveSidebarTree: handleSaveSidebarTree,
     navigate,
-    setMainView,
   });
 
   useChatPageAutoNavigation({
@@ -258,11 +248,10 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     saveSidebarTree: handleSaveSidebarTree,
     requestCreateDocInCategory,
     setActiveRoomId,
-    setMainView,
     spaceDocMetas,
   });
 
-  const [_sideDrawerState, _setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
     globalContext,
@@ -314,27 +303,41 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     spaceMembers,
   });
 
-  const mainContentProps = {
-    isPrivateChatMode,
-    activeRoomId,
-    setIsOpenLeftDrawer,
-    mainView,
-    discoverMode: discoverModeForUi,
-    activeSpaceId,
-    spaceDetailTab,
-    onCloseSpaceDetail: closeSpaceDetailPanel,
-    roomSettingState,
-    onCloseRoomSetting: closeRoomSettingPage,
+  const layoutContextValue = useMemo(() => {
+    return {
+      isPrivateChatMode,
+      activeSpaceId,
+      activeRoomId,
+      activeDocId,
+      targetMessageId,
+      setIsOpenLeftDrawer,
+      isSpaceDetailRoute,
+      spaceDetailTab,
+      closeSpaceDetailPanel,
+      roomSettingState,
+      closeRoomSettingPage,
+      isKPInSpace,
+      activeDocTitleForTcHeader,
+      onDocTcHeaderChange: handleDocTcHeaderChange,
+    };
+  }, [
     activeDocId,
-    isKPInSpace,
     activeDocTitleForTcHeader,
-    onDocTcHeaderChange: handleDocTcHeaderChange,
+    activeRoomId,
+    activeSpaceId,
+    closeRoomSettingPage,
+    closeSpaceDetailPanel,
+    handleDocTcHeaderChange,
+    isKPInSpace,
+    isPrivateChatMode,
+    isSpaceDetailRoute,
+    roomSettingState,
+    setIsOpenLeftDrawer,
+    spaceDetailTab,
     targetMessageId,
-  };
+  ]);
   const sidePanelProps = {
     isPrivateChatMode,
-    mainView,
-    discoverMode: discoverModeForUi,
     onCloseLeftDrawer: closeLeftDrawer,
     onToggleLeftDrawer: toggleLeftDrawer,
     isLeftDrawerOpen: isOpenLeftDrawer,
@@ -350,7 +353,7 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
     sidebarTree,
     onSaveSidebarTree: handleSaveSidebarTree,
     onResetSidebarTreeToDefault: resetSidebarTreeToDefault,
-    docMetas: spaceDocMetas ?? [],
+    docMetas: spaceDocMetasList,
     onSelectDoc: handleSelectDoc,
     activeRoomId,
     activeDocId,
@@ -429,17 +432,19 @@ export default function ChatPage({ initialMainView, discoverMode }: ChatPageProp
 
   return (
     <SpaceContext value={spaceContext}>
-      <ChatPagePanels
-        layoutProps={layoutProps}
-        mainContentProps={mainContentProps}
-        sidePanelProps={sidePanelProps}
-        spaceSidebarProps={spaceSidebarProps}
-      />
-      <ChatPageOverlays
-        modalsProps={modalsProps}
-        contextMenuProps={contextMenuProps}
-        spaceContextMenuProps={spaceContextMenuProps}
-      />
+      <ChatPageLayoutProvider value={layoutContextValue}>
+        <ChatPagePanels
+          layoutProps={layoutProps}
+          mainContent={<Outlet />}
+          sidePanelProps={sidePanelProps}
+          spaceSidebarProps={spaceSidebarProps}
+        />
+        <ChatPageOverlays
+          modalsProps={modalsProps}
+          contextMenuProps={contextMenuProps}
+          spaceContextMenuProps={spaceContextMenuProps}
+        />
+      </ChatPageLayoutProvider>
     </SpaceContext>
   );
 }

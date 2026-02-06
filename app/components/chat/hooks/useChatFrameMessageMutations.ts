@@ -4,7 +4,7 @@ import { useCallback } from "react";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 
-import type { ApiResultMessage, ApiResultVoid, ChatMessageResponse, Message } from "../../../api";
+import type { ApiResultMessage, ApiResultVoid, ChatMessageResponse, Message } from "../../../../api";
 
 type UseChatFrameMessageMutationsParams = {
   historyMessages: ChatMessageResponse[];

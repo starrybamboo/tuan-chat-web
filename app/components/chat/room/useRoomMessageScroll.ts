@@ -9,7 +9,7 @@ type UseRoomMessageScrollParams = {
   historyMessages: ChatMessageResponse[];
   mainHistoryMessages: ChatMessageResponse[];
   isHistoryLoading?: boolean;
-  virtuosoRef: React.RefObject<VirtuosoHandle>;
+  virtuosoRef: React.RefObject<VirtuosoHandle | null>;
 };
 
 type UseRoomMessageScrollResult = {

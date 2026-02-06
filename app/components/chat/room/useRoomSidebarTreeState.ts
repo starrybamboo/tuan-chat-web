@@ -25,6 +25,52 @@ type UseRoomSidebarTreeStateResult = {
   toggleCategoryExpanded: (categoryId: string) => void;
 };
 
+function isSameSidebarTree(a: SidebarTree | null, b: SidebarTree | null): boolean {
+  if (a === b)
+    return true;
+  if (!a || !b)
+    return false;
+  if (a.schemaVersion !== b.schemaVersion)
+    return false;
+
+  const aCats = a.categories ?? [];
+  const bCats = b.categories ?? [];
+  if (aCats.length !== bCats.length)
+    return false;
+
+  for (let i = 0; i < aCats.length; i++) {
+    const ac = aCats[i];
+    const bc = bCats[i];
+    if (!ac || !bc)
+      return false;
+    if (ac.categoryId !== bc.categoryId || ac.name !== bc.name || Boolean(ac.collapsed) !== Boolean(bc.collapsed))
+      return false;
+
+    const aItems = ac.items ?? [];
+    const bItems = bc.items ?? [];
+    if (aItems.length !== bItems.length)
+      return false;
+
+    for (let j = 0; j < aItems.length; j++) {
+      const ai = aItems[j];
+      const bi = bItems[j];
+      if (!ai || !bi)
+        return false;
+      if (
+        ai.nodeId !== bi.nodeId
+        || ai.type !== bi.type
+        || ai.targetId !== bi.targetId
+        || ai.fallbackTitle !== bi.fallbackTitle
+        || ai.fallbackImageUrl !== bi.fallbackImageUrl
+      ) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 export default function useRoomSidebarTreeState({
   activeSpaceId,
   currentUserId,
@@ -56,7 +102,12 @@ export default function useRoomSidebarTreeState({
     if (isDragging) {
       return;
     }
-    setLocalTree(displayTree);
+    setLocalTree((prev) => {
+      if (isSameSidebarTree(prev, displayTree)) {
+        return prev;
+      }
+      return displayTree;
+    });
   }, [canEdit, displayTree, isDragging]);
 
   useEffect(() => {

@@ -877,7 +877,7 @@ const cmdLi = new CommandExecutor(
     ];
     const res = boutsOfMadnessForSummaryList[rollDice(boutsOfMadnessForSummaryList.length) - 1];
     const timeOfDuration = rollDice(10);
-    cpi.replyMessage(`疯狂发作-总结症状：\n${res.name}\n已略过时间：${timeOfDuration}Сʱ\n${res.desc}`);
+    cpi.replyMessage(`疯狂发作-总结症状：\n${res.name}\n已略过时间：${timeOfDuration}小时\n${res.desc}`);
     return true;
   },
 );

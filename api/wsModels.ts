@@ -50,6 +50,10 @@ interface ChatMessage extends BaseMessage<{
     roleId: number;
     avatarId: number;
     content: string;
+    /** 消息标注 */
+    annotations?: string[];
+    /** 自定义角色名（为空则使用角色名） */
+    customRoleName?: string;
     replayMessageId?: number;
     /** WebGAL 相关演出设置/指令等（后端为 JSON 字段，透传即可） */
     webgal?: any;

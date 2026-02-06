@@ -17,8 +17,8 @@ type SpaceContextMenuState = {
 type UseChatPageContextMenusResult = {
   contextMenu: ChatContextMenuState | null;
   spaceContextMenu: SpaceContextMenuState | null;
-  handleContextMenu: (event: MouseEvent<HTMLElement>) => void;
-  handleSpaceContextMenu: (event: MouseEvent<HTMLElement>) => void;
+  handleContextMenu: (event: MouseEvent<Element>) => void;
+  handleSpaceContextMenu: (event: MouseEvent<Element>) => void;
   closeContextMenu: () => void;
   closeSpaceContextMenu: () => void;
 };
@@ -35,14 +35,14 @@ export default function useChatPageContextMenus(): UseChatPageContextMenusResult
     setSpaceContextMenu(null);
   }, []);
 
-  const handleContextMenu = useCallback((event: MouseEvent<HTMLElement>) => {
+  const handleContextMenu = useCallback((event: MouseEvent<Element>) => {
     event.preventDefault();
     const target = event.target as HTMLElement;
     const messageElement = target.closest("[data-room-id]");
     setContextMenu({ x: event.clientX, y: event.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
   }, []);
 
-  const handleSpaceContextMenu = useCallback((event: MouseEvent<HTMLElement>) => {
+  const handleSpaceContextMenu = useCallback((event: MouseEvent<Element>) => {
     event.preventDefault();
     const target = event.target as HTMLElement;
     const spaceElement = target.closest("[data-space-id]");

@@ -143,7 +143,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
     }
   }, []);
 
-  // 受控：以 value 为准；非受控：以内部 state Ϊ׼
+  // 受控：以 value 为准；非受控：以内部 state 为准
   const effective = value && !editingRef.current ? normalizeToNumber(value, labelKeys) : inner;
 
   const handleChange = (key: string, next: number) => {

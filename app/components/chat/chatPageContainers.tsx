@@ -2,7 +2,6 @@ import type { ComponentProps } from "react";
 import React from "react";
 
 import ChatPageLayout from "@/components/chat/chatPageLayout";
-import ChatPageMainContent from "@/components/chat/chatPageMainContent";
 import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
@@ -11,14 +10,14 @@ import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMe
 
 interface ChatPagePanelsProps {
   layoutProps: Omit<ComponentProps<typeof ChatPageLayout>, "mainContent" | "sidePanelContent" | "spaceSidebar">;
-  mainContentProps: ComponentProps<typeof ChatPageMainContent>;
+  mainContent: React.ReactNode;
   sidePanelProps: ComponentProps<typeof ChatPageSidePanelContent>;
   spaceSidebarProps: ComponentProps<typeof ChatSpaceSidebar>;
 }
 
 export function ChatPagePanels({
   layoutProps,
-  mainContentProps,
+  mainContent,
   sidePanelProps,
   spaceSidebarProps,
 }: ChatPagePanelsProps) {
@@ -27,7 +26,7 @@ export function ChatPagePanels({
       {...layoutProps}
       spaceSidebar={<ChatSpaceSidebar {...spaceSidebarProps} />}
       sidePanelContent={<ChatPageSidePanelContent {...sidePanelProps} />}
-      mainContent={<ChatPageMainContent {...mainContentProps} />}
+      mainContent={mainContent}
     />
   );
 }

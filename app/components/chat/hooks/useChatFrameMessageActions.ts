@@ -1,7 +1,9 @@
 import { useCallback } from "react";
 import toast from "react-hot-toast";
 
-import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
+import { ANNOTATION_IDS, hasAnnotation, isImageMessageBackground, setAnnotation } from "@/types/messageAnnotations";
+
+import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 
 type SendMessageAsync = (request: ChatMessageRequest) => Promise<{ success?: boolean; data?: { messageId?: number } }>;
 
@@ -61,13 +63,17 @@ export default function useChatFrameMessageActions({
     const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
     if (!message || !message.extra?.imageMessage)
       return;
+    const isBackground = isImageMessageBackground(message.annotations, message.extra.imageMessage);
+    const nextBackground = !isBackground;
+    const nextAnnotations = setAnnotation(message.annotations, ANNOTATION_IDS.BACKGROUND, nextBackground);
     updateMessage({
       ...message,
+      annotations: nextAnnotations,
       extra: {
         ...message.extra,
         imageMessage: {
           ...message.extra.imageMessage,
-          background: !message.extra.imageMessage.background,
+          background: nextBackground,
         },
       },
     });
@@ -78,15 +84,12 @@ export default function useChatFrameMessageActions({
     if (!message || message.messageType !== 2)
       return;
 
-    const currentWebgal = message.webgal || {};
-    const isUnlocked = !!currentWebgal.unlockCg;
+    const isUnlocked = hasAnnotation(message.annotations, ANNOTATION_IDS.CG);
+    const nextAnnotations = setAnnotation(message.annotations, ANNOTATION_IDS.CG, !isUnlocked);
 
     updateMessage({
       ...message,
-      webgal: {
-        ...currentWebgal,
-        unlockCg: !isUnlocked,
-      },
+      annotations: nextAnnotations,
     });
   }, [historyMessages, updateMessage]);
 

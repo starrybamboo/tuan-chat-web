@@ -17,7 +17,7 @@ interface ImportWithStCmdProps {
 export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: ImportWithStCmdProps) {
   const handleStCmd = useHandleStCmd(ruleId, roleId);
   const [commandInput, setCommandInput] = useState("");
-  const isCOC7 = ruleId === 1; // COC7规则IDΪ1
+  const isCOC7 = ruleId === 1; // COC7规则ID为1
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
 
   const handleImport = () => {

@@ -43,7 +43,7 @@ function MoreBetterImg({ src, className, onClose, size, transparent = true }: {
         alt="img"
         onClick={() => openToastWindow()}
         onError={(e) => {
-          e.currentTarget.src = "/moduleDefaultImage.webp";
+          e.currentTarget.src = "/repositoryDefaultImage.webp";
         }}
       />
 

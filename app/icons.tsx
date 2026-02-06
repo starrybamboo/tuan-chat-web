@@ -994,6 +994,27 @@ export function PlusOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 插入一行图标
+// 其他关键词：插入、增加一行、下方新增
+export function InsertLineBelow(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6">
+        <path d="M4 6h16"></path>
+        <path d="M4 12h10"></path>
+        <path d="M12 16v4"></path>
+        <path d="M10 18h4"></path>
+      </g>
+    </svg>
+  );
+}
+
 // 齿轮轮廓图标
 // 其他关键词：设置，配置，选项
 export function GearOutline(props: SVGProps<SVGSVGElement>) {
@@ -1058,6 +1079,23 @@ export function StageIcon(props: SVGProps<SVGSVGElement>) {
         strokeWidth={2}
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
       />
+    </svg>
+  );
+}
+
+// 屏幕图标
+// 其他关键词：黑屏，显示器，窗口，画面
+export function ScreenIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="currentColor"
+      {...props}
+    >
+      <rect x="4" y="6" width="16" height="12" rx="2.5" />
     </svg>
   );
 }

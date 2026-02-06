@@ -1,4 +1,4 @@
-import type { ChatMessageResponse, Message } from "../../../api";
+import type { ChatMessageResponse, Message } from "../../../../api";
 
 type ComputeMoveMessageUpdatesParams = {
   historyMessages: ChatMessageResponse[];

@@ -2,15 +2,7 @@ import { useCallback, useMemo } from "react";
 
 import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 
-type SpaceSummary = {
-  spaceId?: number | null;
-  ruleId?: number | null;
-};
-
-type SpaceMemberSummary = {
-  userId?: number | null;
-  memberType?: number | null;
-};
+import type { Space, SpaceMember } from "../../../../api";
 
 type UseChatPageSpaceContextParams = {
   activeRoomId?: number | null;
@@ -18,8 +10,8 @@ type UseChatPageSpaceContextParams = {
   globalUserId?: number | null;
   setActiveRoomId: (roomId: number | null) => void;
   setActiveSpaceId: (spaceId: number | null) => void;
-  spaces: SpaceSummary[];
-  spaceMembers: SpaceMemberSummary[];
+  spaces: Space[];
+  spaceMembers: SpaceMember[];
   spaceRoomIdsByUser: Record<string, Record<string, number[]>>;
   toggleLeftDrawer: () => void;
   unreadMessagesNumber: Record<number, number>;

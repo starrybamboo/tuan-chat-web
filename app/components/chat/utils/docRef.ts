@@ -124,7 +124,7 @@ export function isDocRefDrag(dataTransfer: DataTransfer | null | undefined): boo
     if (types.includes("text/plain") && !types.includes("Files"))
       return true;
 
-    // 兜底：部分环境 dragover ʱ types 可能为空或不可靠，尝试用 payload 识别。
+    // 兜底：部分环境 dragover 时 types 可能为空或不可靠，尝试用 payload 识别。
     return Boolean(getDocRefDragData(dataTransfer));
   }
   catch {

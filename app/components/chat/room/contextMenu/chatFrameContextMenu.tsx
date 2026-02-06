@@ -5,10 +5,12 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { ANNOTATION_IDS, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useSendMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
@@ -18,7 +20,6 @@ interface ContextMenuProps {
   historyMessages: ChatMessageResponse[];
   isSelecting: boolean;
   selectedMessageIds: Set<number>;
-  useChatBubbleStyle: boolean;
   onClose: () => void;
   onDelete: () => void;
   onToggleSelection: (messageId: number) => void;
@@ -29,6 +30,7 @@ interface ContextMenuProps {
   onToggleBackground: (messageId: number) => void;
   onUnlockCg: (messageId: number) => void;
   onAddEmoji: (imgMessage: ImageMessage) => void;
+  onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
   onToggleNarrator?: (messageId: number) => void;
 }
@@ -38,7 +40,6 @@ export default function ChatFrameContextMenu({
   historyMessages,
   isSelecting,
   selectedMessageIds,
-  useChatBubbleStyle,
   onClose,
   onToggleSelection,
   onReply,
@@ -48,11 +49,13 @@ export default function ChatFrameContextMenu({
   onToggleBackground,
   onUnlockCg,
   onAddEmoji,
+  onOpenAnnotations,
   onInsertAfter,
 }: ContextMenuProps) {
   const globalContext = useGlobalContext();
   const spaceContext = use(SpaceContext);
   const roomContext = use(RoomContext);
+  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -67,22 +70,29 @@ export default function ChatFrameContextMenu({
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!contextMenu) {
+    if (!contextMenu || !menuRef.current) {
       return;
     }
-    const top = `${contextMenu.y}px`;
-    const left = `${contextMenu.x}px`;
 
-    if (menuRef.current) {
-      menuRef.current.style.top = top;
-      menuRef.current.style.left = left;
-    }
+    const menu = menuRef.current;
+    const padding = 8;
+    const menuWidth = menu.offsetWidth || menu.getBoundingClientRect().width;
+    const menuHeight = menu.offsetHeight || menu.getBoundingClientRect().height;
+    const maxLeft = Math.max(padding, window.innerWidth - menuWidth - padding);
+    const maxTop = Math.max(padding, window.innerHeight - menuHeight - padding);
+
+    const left = Math.min(Math.max(padding, contextMenu.x), maxLeft);
+    const top = Math.min(Math.max(padding, contextMenu.y), maxTop);
+
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
   }, [contextMenu]);
 
   const contextMenuMessageId = contextMenu?.messageId;
   const message = contextMenuMessageId
     ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
     : undefined;
+  const canEditMessage = !!message && (message.message.userId === globalContext.userId || spaceContext.isSpaceOwner);
 
   const docCard = useMemo(() => {
     const extraAny = (message?.message as any)?.extra ?? null;
@@ -320,6 +330,11 @@ export default function ChatFrameContextMenu({
   if (!contextMenu)
     return null;
 
+  const isBackgroundMessage = isImageMessageBackground(
+    message?.message.annotations,
+    message?.message.extra?.imageMessage,
+  );
+
   const handleOpenThread = (rootId: number) => {
     // 打开 Thread 时，清除“插入消息”模式，避免错位。
     setInsertAfterMessageId(undefined);
@@ -415,6 +430,19 @@ export default function ChatFrameContextMenu({
             回复
           </a>
         </li>
+        {canEditMessage && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                onOpenAnnotations(contextMenu.messageId);
+                onClose();
+              }}
+            >
+              添加标注
+            </a>
+          </li>
+        )}
         {canCopyDoc && (
           <li>
             <a
@@ -480,7 +508,7 @@ export default function ChatFrameContextMenu({
           </a>
         </li>
         {(() => {
-          if (message?.message.userId !== globalContext.userId && !spaceContext.isSpaceOwner) {
+          if (!canEditMessage) {
             return null;
           }
           if (!message || message.message.messageType !== 2) {
@@ -511,7 +539,7 @@ export default function ChatFrameContextMenu({
                     }}
                   >
                     {
-                      message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
+                      isBackgroundMessage ? "取消设置为背景" : "设为背景"
                     }
                   </a>
                 </li>
@@ -524,7 +552,7 @@ export default function ChatFrameContextMenu({
                     }}
                   >
                     {
-                      (message?.message.webgal as any)?.unlockCg ? "取消解锁CG" : "解锁CG"
+                      hasAnnotation(message?.message.annotations, ANNOTATION_IDS.CG) ? "取消CG（解锁）" : "CG（解锁）"
                     }
                   </a>
                 </li>

@@ -1,10 +1,6 @@
 import { useMemo } from "react";
 
-type SpaceSummary = {
-  spaceId?: number | null;
-  userId?: number | null;
-  status?: number | null;
-};
+import type { Space } from "../../../../api";
 
 type SpaceContextMenuState = {
   spaceId: number;
@@ -13,7 +9,7 @@ type SpaceContextMenuState = {
 type UseChatPageSpaceContextMenuParams = {
   currentUserId?: number | null;
   spaceContextMenu: SpaceContextMenuState;
-  spaces: SpaceSummary[];
+  spaces: Space[];
 };
 
 type UseChatPageSpaceContextMenuResult = {

@@ -254,10 +254,10 @@ const cmdFu = new CommandExecutor(
     const diceRes = fuRoll(dice1, dice2, bonus);
     // 如果是强制弹窗，则弹窗显示结果，否则只发送消息
     if (isForceToasted) {
-      cpi.sendToast(`检定结果：${diceRes.expand} , HRΪ${diceRes.hr}`);
+      cpi.sendToast(`检定结果：${diceRes.expand} , HR为${diceRes.hr}`);
       return true;
     }
-    cpi.replyMessage(`检定结果：${diceRes.expand} , HRΪ${diceRes.hr}`);
+    cpi.replyMessage(`检定结果：${diceRes.expand} , HR为${diceRes.hr}`);
     return true;
   },
 );

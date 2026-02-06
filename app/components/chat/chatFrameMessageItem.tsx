@@ -4,6 +4,7 @@ import type { ThreadHintMeta } from "@/components/chat/hooks/useChatFrameMessage
 
 import React from "react";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
+import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { DraggableIcon } from "@/icons";
 
 interface ChatFrameMessageItemProps {
@@ -11,7 +12,6 @@ interface ChatFrameMessageItemProps {
   isSelected: boolean;
   isDragging: boolean;
   canJumpToWebGAL: boolean;
-  useChatBubbleStyle: boolean;
   movable: boolean;
   isSelecting: boolean;
   threadHintMeta?: ThreadHintMeta;
@@ -21,6 +21,7 @@ interface ChatFrameMessageItemProps {
     requestMessageId: number;
   }) => void;
   onMessageClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onToggleSelection?: (messageId: number) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -33,18 +34,20 @@ export default function ChatFrameMessageItem({
   isSelected,
   isDragging,
   canJumpToWebGAL,
-  useChatBubbleStyle,
   movable,
   isSelecting,
   threadHintMeta,
   onExecuteCommandRequest,
   onMessageClick,
+  onToggleSelection,
   onDragOver,
   onDragLeave,
   onDrop,
   onDragStart,
   onDragEnd,
 }: ChatFrameMessageItemProps) {
+  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
+
   return (
     <div
       className={`
@@ -72,9 +75,9 @@ export default function ChatFrameMessageItem({
       )}
       <ChatBubble
         chatMessageResponse={chatMessageResponse}
-        useChatBubbleStyle={useChatBubbleStyle}
         threadHintMeta={threadHintMeta}
         onExecuteCommandRequest={onExecuteCommandRequest}
+        onToggleSelection={onToggleSelection}
       />
     </div>
   );

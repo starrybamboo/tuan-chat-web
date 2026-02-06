@@ -20,7 +20,7 @@ interface EditableFieldProps {
   canEdit?: boolean;
   /** 使用input元素替代textarea @default false */
   usingInput?: boolean;
-  /** input元素的type属性（只有在usingInputΪtrue时有效） @default "text" */
+  /** input元素的type属性（只有在usingInput为true时有效） @default "text" */
   type?: React.InputHTMLAttributes<HTMLInputElement>["type"];
   /** 可选的唯一标识符，填入后会把是否在编辑的状态保存到queryClient中。这主要是由于virtuoso不会保存内部组件的state。 */
   fieldId?: string;
@@ -143,6 +143,10 @@ export function EditableField({
   const chWidth = Math.min(maxCh, Math.max(minCh, (textForWidth?.length ?? 0) + padCh));
   const widthStyle = autoWidth ? { width: `${chWidth}ch` } : undefined;
 
+  const cursorClass = className?.includes("cursor-")
+    ? ""
+    : (canEdit ? "cursor-text" : "cursor-default");
+
   return isEditing
     ? (
         usingInput
@@ -189,7 +193,7 @@ export function EditableField({
       )
     : (
         <div
-          className={`${className}`}
+          className={`${className} ${cursorClass}`}
           style={widthStyle}
           onDoubleClick={handleDoubleClick}
         >

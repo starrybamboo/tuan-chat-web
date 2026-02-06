@@ -8,7 +8,7 @@ import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSele
 import type { UserRole } from "../../../../api";
 
 import {
-  useGetRoomModuleRoleQuery,
+  useGetRoomNpcRoleQuery,
   useGetRoomRoleQuery,
 } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
@@ -40,7 +40,7 @@ export default function useRoomRoleState({
 
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomBaseRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
-  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
+  const roomNpcRolesQuery = useGetRoomNpcRoleQuery(roomId);
   const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
 
   const roomAllRoles = useMemo(() => {
@@ -83,6 +83,7 @@ export default function useRoomRoleState({
   useEffect(() => {
     setRuntimeAvatarIdMap((prev) => {
       const next: Record<number, number> = { ...prev };
+      let hasChanges = false;
       for (const role of roomRolesThatUserOwn) {
         const roleId = role.roleId;
         const stored = useRoomRoleSelectionStore.getState().curAvatarIdMap[roleId] ?? -1;
@@ -93,7 +94,11 @@ export default function useRoomRoleState({
         const existing = next[roleId];
         if (existing == null || (existing <= 0 && fallback > 0)) {
           next[roleId] = fallback;
+          hasChanges = true;
         }
+      }
+      if (!hasChanges) {
+        return prev;
       }
       return next;
     });

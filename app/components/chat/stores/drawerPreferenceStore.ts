@@ -122,39 +122,75 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   },
 
   setChatLeftPanelWidth: (width) => {
-    writeNumber("chatLeftPanelWidth", width);
-    set({ chatLeftPanelWidth: width });
+    set((state) => {
+      if (state.chatLeftPanelWidth === width)
+        return state;
+      writeNumber("chatLeftPanelWidth", width);
+      return { chatLeftPanelWidth: width };
+    });
   },
   setSubRoomWindowWidth: (width) => {
-    writeNumber("subRoomWindowWidth", width);
-    set({ subRoomWindowWidth: width });
+    set((state) => {
+      if (state.subRoomWindowWidth === width)
+        return state;
+      writeNumber("subRoomWindowWidth", width);
+      return { subRoomWindowWidth: width };
+    });
   },
   setUserDrawerWidth: (width) => {
-    writeNumber("userDrawerWidth", width);
-    set({ userDrawerWidth: width });
+    set((state) => {
+      if (state.userDrawerWidth === width)
+        return state;
+      writeNumber("userDrawerWidth", width);
+      return { userDrawerWidth: width };
+    });
   },
   setRoleDrawerWidth: (width) => {
-    writeNumber("roleDrawerWidth", width);
-    set({ roleDrawerWidth: width });
+    set((state) => {
+      if (state.roleDrawerWidth === width)
+        return state;
+      writeNumber("roleDrawerWidth", width);
+      return { roleDrawerWidth: width };
+    });
   },
   setThreadDrawerWidth: (width) => {
-    writeNumber("threadDrawerWidth", width);
-    set({ threadDrawerWidth: width });
+    set((state) => {
+      if (state.threadDrawerWidth === width)
+        return state;
+      writeNumber("threadDrawerWidth", width);
+      return { threadDrawerWidth: width };
+    });
   },
   setInitiativeDrawerWidth: (width) => {
-    writeNumber("initiativeDrawerWidth", width);
-    set({ initiativeDrawerWidth: width });
+    set((state) => {
+      if (state.initiativeDrawerWidth === width)
+        return state;
+      writeNumber("initiativeDrawerWidth", width);
+      return { initiativeDrawerWidth: width };
+    });
   },
   setMapDrawerWidth: (width) => {
-    writeNumber("mapDrawerWidth", width);
-    set({ mapDrawerWidth: width });
+    set((state) => {
+      if (state.mapDrawerWidth === width)
+        return state;
+      writeNumber("mapDrawerWidth", width);
+      return { mapDrawerWidth: width };
+    });
   },
   setExportDrawerWidth: (width) => {
-    writeNumber("exportDrawerWidth", width);
-    set({ exportDrawerWidth: width });
+    set((state) => {
+      if (state.exportDrawerWidth === width)
+        return state;
+      writeNumber("exportDrawerWidth", width);
+      return { exportDrawerWidth: width };
+    });
   },
   setWebgalDrawerWidth: (width) => {
-    writeNumber("webgalDrawerWidth", width);
-    set({ webgalDrawerWidth: width });
+    set((state) => {
+      if (state.webgalDrawerWidth === width)
+        return state;
+      writeNumber("webgalDrawerWidth", width);
+      return { webgalDrawerWidth: width };
+    });
   },
 }));

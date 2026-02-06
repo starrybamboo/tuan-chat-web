@@ -22,7 +22,7 @@ type UseRoomOverlaysControllerParams = {
       figurePosition?: "left" | "center" | "right";
     }>,
     onProgress?: (sent: number, total: number) => void,
-  ) => Promise<void> | void;
+  ) => Promise<void>;
 };
 
 type UseRoomOverlaysControllerResult = {

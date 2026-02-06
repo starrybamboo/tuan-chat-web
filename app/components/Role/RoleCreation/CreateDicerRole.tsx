@@ -54,7 +54,7 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
       };
 
       // 4. 通知完成
-      onComplete?.(newRole, 1); // 默认规则IDΪ1
+      onComplete?.(newRole, 1); // 默认规则ID为1
     }
     catch (error) {
       console.error("创建骰娘失败:", error);

@@ -18,7 +18,7 @@ export default function ThemeSwitch() {
   useEffect(() => {
     const htmlElement = document.documentElement;
     const isEffectivelyDark = reverseDarkMode !== prefersIsDarkMode;
-    // Ϊ DaisyUI 设置 data-theme 属性
+    // 为 DaisyUI 设置 data-theme 属性
     htmlElement.setAttribute("data-theme", isEffectivelyDark ? darkTheme : lightTheme);
     // 同步 class="dark"，方便其他依赖 class 的逻辑/组件保持一致
     htmlElement.classList.toggle("dark", isEffectivelyDark);

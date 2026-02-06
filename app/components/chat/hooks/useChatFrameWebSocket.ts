@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
 
-import type { ChatMessageRequest, ChatMessageResponse } from "../../../api";
+import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
 type UseChatFrameWebSocketResult = {
   send: (message: ChatMessageRequest) => void;

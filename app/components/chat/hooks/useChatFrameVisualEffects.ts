@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { isImageMessageBackground } from "@/types/messageAnnotations";
+
 import type { ChatMessageResponse } from "../../../../api";
 
 type UseChatFrameVisualEffectsParams = {
@@ -35,9 +37,14 @@ export default function useChatFrameVisualEffects({
     }
     return historyMessages
       .map((msg, index) => {
-        return { index, imageMessage: msg.message.extra?.imageMessage, status: msg.message.status };
+        return {
+          index,
+          imageMessage: msg.message.extra?.imageMessage,
+          annotations: msg.message.annotations,
+          status: msg.message.status,
+        };
       })
-      .filter(item => item.imageMessage && item.imageMessage.background && item.status !== 1);
+      .filter(item => item.imageMessage && isImageMessageBackground(item.annotations, item.imageMessage) && item.status !== 1);
   }, [enableEffects, historyMessages]);
 
   /**

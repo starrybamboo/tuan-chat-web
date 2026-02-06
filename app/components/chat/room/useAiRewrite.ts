@@ -7,7 +7,7 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 
 type UseAiRewriteParams = {
-  chatInputRef: React.RefObject<ChatInputAreaHandle>;
+  chatInputRef: React.RefObject<ChatInputAreaHandle | null>;
   setInputText: (text: string) => void;
 };
 

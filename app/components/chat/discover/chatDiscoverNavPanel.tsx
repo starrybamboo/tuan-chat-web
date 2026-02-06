@@ -35,7 +35,7 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
 
       <div className="px-3 pt-3 pb-2">
         <div className="px-1 pb-2 text-[11px] font-semibold tracking-wider text-base-content/50">
-          已归档群聊
+          归档仓库
         </div>
 
         <div className="space-y-1">

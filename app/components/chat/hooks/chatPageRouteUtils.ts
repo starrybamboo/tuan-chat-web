@@ -9,8 +9,9 @@ export type DocRouteInfo = {
   isInvalidSpaceDocId: boolean;
 };
 
-export function getDocRouteInfo(params: { isDocRoute: boolean; urlMessageId?: string }): DocRouteInfo {
-  if (!params.isDocRoute || typeof params.urlMessageId !== "string") {
+export function getDocRouteInfo(params: { isDocRoute: boolean; rawDocId?: string }): DocRouteInfo {
+  const rawDocId = typeof params.rawDocId === "string" ? params.rawDocId : "";
+  if (!params.isDocRoute || !rawDocId) {
     return {
       decodedDocId: null,
       activeDocId: null,
@@ -18,7 +19,7 @@ export function getDocRouteInfo(params: { isDocRoute: boolean; urlMessageId?: st
     };
   }
 
-  const decoded = decodeURIComponent(params.urlMessageId);
+  const decoded = decodeURIComponent(rawDocId);
 
   if (/^\d+$/.test(decoded)) {
     const id = Number(decoded);

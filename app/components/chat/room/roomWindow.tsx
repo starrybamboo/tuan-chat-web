@@ -1,6 +1,7 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
+import type { RoomContextType } from "@/components/chat/core/roomContext";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 // hooks (local)
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
@@ -15,10 +16,7 @@ import RoomWindowOverlays from "@/components/chat/room/roomWindowOverlays";
 import useChatInputHandlers from "@/components/chat/room/useChatInputHandlers";
 import useChatMessageSubmit from "@/components/chat/room/useChatMessageSubmit";
 import useRealtimeRenderControls from "@/components/chat/room/useRealtimeRenderControls";
-import useRoomChatFrameProps from "@/components/chat/room/useRoomChatFrameProps";
 import useRoomCommandRequests from "@/components/chat/room/useRoomCommandRequests";
-import getRoomComposerPanelProps from "@/components/chat/room/useRoomComposerPanelProps";
-import useRoomContextValue from "@/components/chat/room/useRoomContextValue";
 import useRoomEffectsController from "@/components/chat/room/useRoomEffectsController";
 import useRoomImportActions from "@/components/chat/room/useRoomImportActions";
 import useRoomInputController from "@/components/chat/room/useRoomInputController";
@@ -29,7 +27,6 @@ import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
-import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
@@ -43,7 +40,17 @@ import {
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 
-function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spaceId: number; targetMessageId?: number | null }) {
+function RoomWindow({
+  roomId,
+  spaceId,
+  targetMessageId,
+  viewMode = false,
+}: {
+  roomId: number;
+  spaceId: number;
+  targetMessageId?: number | null;
+  viewMode?: boolean;
+}) {
   const spaceContext = use(SpaceContext);
 
   useEffect(() => {
@@ -96,7 +103,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   } = useRoomRoleState({
     roomId,
     userId,
-    isSpaceOwner: spaceContext.isSpaceOwner,
+    isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
   });
 
   // RealtimeRender controls
@@ -142,7 +149,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     historyMessages,
   });
 
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const virtuosoRef = useRef<VirtuosoHandle | null>(null);
   const { scrollToGivenMessage } = useRoomMessageScroll({
     targetMessageId,
     historyMessages,
@@ -151,7 +158,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     virtuosoRef,
   });
 
-  const roomContext = useRoomContextValue({
+  const roomContext = React.useMemo((): RoomContextType => ({
     roomId,
     roomMembers: members,
     curMember,
@@ -161,27 +168,30 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     spaceId,
     chatHistory,
     scrollToGivenMessage,
+    jumpToMessageInWebGAL: isRealtimeRenderActive ? jumpToMessageInWebGAL : undefined,
+    updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
+    rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
+  }), [
+    chatHistory,
+    curAvatarId,
+    curMember,
+    curRoleId,
     isRealtimeRenderActive,
     jumpToMessageInWebGAL,
-    updateAndRerenderMessageInWebGAL,
+    members,
     rerenderHistoryInWebGAL,
-  });
+    roomId,
+    roomRolesThatUserOwn,
+    scrollToGivenMessage,
+    spaceId,
+    updateAndRerenderMessageInWebGAL,
+  ]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
     roomId,
     userId,
     webSocketUtils,
-    inputTextSource: {
-      get: () => useChatInputUiStore.getState().plainText,
-      subscribe: (listener) => {
-        return useChatInputUiStore.subscribe((state, prev) => {
-          if (state.plainText !== prev.plainText) {
-            listener(state.plainText);
-          }
-        });
-      },
-    },
     isSpectator,
   });
 
@@ -194,7 +204,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     extractFirstCommandText,
     handleExecuteCommandRequest,
   } = useRoomCommandRequests({
-    isSpaceOwner: spaceContext.isSpaceOwner,
+    isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     notMember,
     noRole,
     isSubmitting,
@@ -205,7 +215,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     roomId,
     spaceId,
     spaceExtra: space?.extra,
-    isSpaceOwner: spaceContext.isSpaceOwner,
+    isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     curRoleId,
     isSubmitting,
     notMember,
@@ -221,7 +231,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     roomId,
     spaceId,
     spaceExtra: space?.extra,
-    isSpaceOwner: spaceContext.isSpaceOwner,
+    isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     curRoleId,
     notMember,
     noRole,
@@ -242,7 +252,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
   } = useRoomImportActions({
     roomId,
     spaceId,
-    isSpaceOwner: spaceContext.isSpaceOwner,
+    isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     curRoleId,
     notMember,
     isSubmitting,
@@ -283,19 +293,16 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     setInputText,
     setLLMMessage,
   });
-  const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
-  const composerTarget = useRoomUiStore(state => state.composerTarget);
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const roomName = roomHeaderOverride?.title ?? room?.name;
 
-  const chatFrameProps = useRoomChatFrameProps({
+  const chatFrameProps = React.useMemo(() => ({
     virtuosoRef,
     onBackgroundUrlChange: setBackgroundUrl,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
-  });
+  }), [handleExecuteCommandRequest, setBackgroundUrl, setCurrentEffect, virtuosoRef]);
 
-  const composerPanelProps = getRoomComposerPanelProps({
+  const composerPanelProps = {
     roomId,
     userId: Number(userId),
     webSocketUtils,
@@ -331,9 +338,7 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
     onMouseDown: handleMouseDown,
     onCompositionStart,
     onCompositionEnd,
-    composerTarget,
-    threadRootMessageId,
-  });
+  };
 
   return (
     <RoomContext value={roomContext}>
@@ -355,25 +360,26 @@ function RoomWindow({ roomId, spaceId, targetMessageId }: { roomId: number; spac
           backgroundUrl={backgroundUrl}
           displayedBgUrl={displayedBgUrl}
           currentEffect={currentEffect}
-          composerTarget={composerTarget}
-          setComposerTarget={setComposerTarget}
           chatFrameProps={chatFrameProps}
           composerPanelProps={composerPanelProps}
+          hideComposer={viewMode}
         />
       </RoomDocRefDropLayer>
-      <RoomWindowOverlays
-        isImportChatTextOpen={isImportChatTextOpen}
-        setIsImportChatTextOpen={setIsImportChatTextOpen}
-        isKP={Boolean(spaceContext.isSpaceOwner)}
-        availableRoles={roomRolesThatUserOwn}
-        onImportChatText={handleImportChatItems}
-        onOpenRoleAddWindow={openRoleAddWindow}
-        isRoleHandleOpen={isRoleHandleOpen}
-        setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
-        handleAddRole={handleAddRole}
-        isRenderWindowOpen={isRenderWindowOpen}
-        setIsRenderWindowOpen={setIsRenderWindowOpen}
-      />
+      {!viewMode && (
+        <RoomWindowOverlays
+          isImportChatTextOpen={isImportChatTextOpen}
+          setIsImportChatTextOpen={setIsImportChatTextOpen}
+          isKP={Boolean(spaceContext.isSpaceOwner)}
+          availableRoles={roomRolesThatUserOwn}
+          onImportChatText={handleImportChatItems}
+          onOpenRoleAddWindow={openRoleAddWindow}
+          isRoleHandleOpen={isRoleHandleOpen}
+          setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
+          handleAddRole={handleAddRole}
+          isRenderWindowOpen={isRenderWindowOpen}
+          setIsRenderWindowOpen={setIsRenderWindowOpen}
+        />
+      )}
     </RoomContext>
   );
 }

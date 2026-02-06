@@ -1409,9 +1409,9 @@ const cmdRollFor = new CommandExecutor("rf", [], "代骰", [], "",
     const target = mentioned[0];  // 第一个是被@的角色（或发送者自己）
   
     const ability = cpi.getRoleAbilityList(target.roleId);
-    // ... Ϊ target 投骰
+    // ... 为 target 投骰
   
-    cpi.replyMessage(`Ϊ${target.roleName}投骰：...`);
+    cpi.replyMessage(`为${target.roleName}投骰：...`);
     return true;
   }
 );
@@ -1924,7 +1924,7 @@ A: 推荐使用 `"auto"` 模式。这样可以：
 - 写入时自动更新已存在的属性，保持数据一致性
 - 只有在明确需要控制字段位置时才指定类型
 
-**Q2: Ϊʲô setRoleAbilityValue 修改后还要调用 cpi.setRoleAbilityList？**
+**Q2: 为什么 setRoleAbilityValue 修改后还要调用 cpi.setRoleAbilityList？**
 
 A: 这是必须的！
 
@@ -2060,7 +2060,7 @@ const cmdMyCheck = new CommandExecutor(
     const finalValue = diceResult.result + Number(attrValue) + modifier;
   
     // 9. 判定结果
-    const success = finalValue >= 15;  // 假设DCΪ15
+    const success = finalValue >= 15;  // 假设DC为15
   
     // 10. 发送结果消息
     cpi.replyMessage(
@@ -2362,7 +2362,7 @@ const cmdRc = new CommandExecutor(
     }
 
     // ========== 第3步：解析奖惩骰 ==========
-    // 计算加权总和：bΪ+1，pΪ-1
+    // 计算加权总和：b为+1，p为-1
     const bp: number = numWithBp.reduce((sum, item) => {
       const match = item.match(/^([+-]?\d*)([bp])$/);
       if (!match) return 0;

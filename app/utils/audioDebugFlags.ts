@@ -1,6 +1,10 @@
 export function isAudioUploadDebugEnabled(): boolean {
-  if (!(import.meta as any)?.env?.DEV)
-    return false;
+  const env = import.meta.env as any;
+  const envFlag = typeof env?.VITE_AUDIO_UPLOAD_DEBUG === "string"
+    ? ["1", "true", "yes", "on"].includes(env.VITE_AUDIO_UPLOAD_DEBUG.toLowerCase())
+    : env?.VITE_AUDIO_UPLOAD_DEBUG === true;
+  if (envFlag)
+    return true;
 
   try {
     const g = globalThis as any;
@@ -19,4 +23,10 @@ export function isAudioUploadDebugEnabled(): boolean {
   catch {
     return false;
   }
+
+  // In production we keep debug disabled unless explicitly enabled by env/global/localStorage.
+  if (!env?.DEV)
+    return false;
+
+  return false;
 }

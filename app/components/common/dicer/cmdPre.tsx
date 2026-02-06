@@ -331,7 +331,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           matchedAvatar = matches[0] || null;
         }
       }
-      // 当没有标签或未匹配时，优先使用 label Ϊ"默认"的头像，其次使用第一个头像
+      // 当没有标签或未匹配时，优先使用 label 为"默认"的头像，其次使用第一个头像
       const fallbackDefaultLabelAvatar = avatars.find(a => (a.avatarTitle?.label || "") === "默认") || null;
       const chosenAvatarId = (matchedAvatar?.avatarId)
         ?? (fallbackDefaultLabelAvatar?.avatarId)

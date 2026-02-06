@@ -139,7 +139,7 @@ export default function ResourcePage() {
           <div className="max-w-3xl">
             <h1 className="text-3xl md:text-5xl font-bold mb-4">资源广场</h1>
             <p className="text-lg text-muted-foreground mb-4">
-              为你的跑团模组寻找图片和音频素材
+              为你的跑团仓库寻找图片和音频素材
             </p>
           </div>
         </div>

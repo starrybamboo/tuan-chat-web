@@ -260,7 +260,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserArchivedSpaces'] });
 function useGetSpaceRolesQuery(spaceId: number) {
     return useQuery({
         queryKey: ['spaceRole', spaceId],
-        queryFn: () => tuanchat.spaceModuleController.spaceRole(spaceId),
+        queryFn: () => tuanchat.spaceRepositoryController.spaceRole(spaceId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -520,7 +520,7 @@ export function useAddRoomRoleMutation() {
             queryClient.getQueriesData({ queryKey: ["getUserRoles"] }),
             queryClient.getQueriesData({ queryKey: ["getUserRolesByTypes"] }),
             queryClient.getQueriesData({ queryKey: ["spaceRole"] }),
-            queryClient.getQueriesData({ queryKey: ["spaceModuleRole"] }),
+            queryClient.getQueriesData({ queryKey: ["spaceRepositoryRole"] }),
         ];
 
         for (const group of candidateQueryGroups) {
@@ -546,20 +546,20 @@ export function useAddRoomRoleMutation() {
 
             await Promise.all([
                 queryClient.cancelQueries({ queryKey: ["roomRole", roomId] }),
-                queryClient.cancelQueries({ queryKey: ["roomModuleRole", roomId] }),
+                queryClient.cancelQueries({ queryKey: ["roomNpcRole", roomId] }),
             ]);
 
             const previousRoomRole = queryClient.getQueryData(["roomRole", roomId]);
-            const previousRoomModuleRole = queryClient.getQueryData(["roomModuleRole", roomId]);
+            const previousRoomNpcRole = queryClient.getQueryData(["roomNpcRole", roomId]);
 
             const roomRoleToAdd: UserRole[] = [];
-            const roomModuleRoleToAdd: UserRole[] = [];
+            const roomNpcRoleToAdd: UserRole[] = [];
 
             for (const roleId of roleIds) {
                 const cached = findCachedRoleById(roleId);
                 const optimisticRole: UserRole = cached ?? ({ roleId, roleName: `角色${roleId}`, avatarId: -1 } as any);
                 if (cached?.type === 2)
-                    roomModuleRoleToAdd.push(optimisticRole);
+                    roomNpcRoleToAdd.push(optimisticRole);
                 else
                     roomRoleToAdd.push(optimisticRole);
             }
@@ -586,19 +586,19 @@ export function useAddRoomRoleMutation() {
             };
 
             patchCache(["roomRole", roomId], roomRoleToAdd);
-            patchCache(["roomModuleRole", roomId], roomModuleRoleToAdd);
+            patchCache(["roomNpcRole", roomId], roomNpcRoleToAdd);
 
-            return { previousRoomRole, previousRoomModuleRole, roomId };
+            return { previousRoomRole, previousRoomNpcRole, roomId };
         },
         onError: (_error, _variables, context) => {
             if (!context)
                 return;
             queryClient.setQueryData(["roomRole", context.roomId], context.previousRoomRole);
-            queryClient.setQueryData(["roomModuleRole", context.roomId], context.previousRoomModuleRole);
+            queryClient.setQueryData(["roomNpcRole", context.roomId], context.previousRoomNpcRole);
         },
         onSettled: (_data, _error, variables) => {
             queryClient.invalidateQueries({ queryKey: ["roomRole", variables.roomId] });
-            queryClient.invalidateQueries({ queryKey: ["roomModuleRole", variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ["roomNpcRole", variables.roomId] });
         },
     });
 }
@@ -613,7 +613,7 @@ export function useDeleteRole1Mutation() {
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
-            queryClient.invalidateQueries({ queryKey: ['roomModuleRole', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['roomNpcRole', variables.roomId] });
         }
     });
 }
@@ -710,10 +710,10 @@ function useGetRoomRolesQueries(roomIds: number[]) {
  * 获取群组模组角色列表
  * @param roomId 群组ID
  */
-export function useGetRoomModuleRoleQuery(roomId: number) {
+export function useGetRoomNpcRoleQuery(roomId: number) {
     return useQuery({
-        queryKey: ["roomModuleRole", roomId],
-        queryFn: () => tuanchat.roomRoleController.roomModuleRole(roomId),
+        queryKey: ["roomNpcRole", roomId],
+        queryFn: () => tuanchat.roomRoleController.roomNpcRole(roomId),
         staleTime: 10000,
     });
 }
@@ -724,12 +724,12 @@ export function useGetRoomModuleRoleQuery(roomId: number) {
 export function useAddSpaceRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceRole) => tuanchat.spaceModuleController.addSpaceRole(req),
+        mutationFn: (req: SpaceRole) => tuanchat.spaceRepositoryController.addSpaceRole(req),
         mutationKey: ['addSpaceRole'],
         onSuccess: (_, variables) => {
-            // 注意：useGetSpaceRolesQuery / useGetSpaceModuleRoleQuery 的 queryKey 要保持一致
+            // 注意：useGetSpaceRolesQuery / useGetSpaceRepositoryRoleQuery 的 queryKey 要保持一致
             queryClient.invalidateQueries({ queryKey: ['spaceRole', variables.spaceId] });
-            queryClient.invalidateQueries({ queryKey: ['spaceModuleRole', variables.spaceId] });
+            queryClient.invalidateQueries({ queryKey: ['spaceRepositoryRole', variables.spaceId] });
         }
     });
 }
