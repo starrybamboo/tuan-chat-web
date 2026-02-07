@@ -1,6 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse, Message } from "../../../api";
-import React, { memo, use, useCallback } from "react";
+import React, { memo, use, useCallback, useEffect } from "react";
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -70,6 +70,22 @@ function ChatFrame(props: ChatFrameProps) {
   const roomId = roomContext.roomId ?? -1;
   const curRoleId = roomContext.curRoleId ?? -1;
   const curAvatarId = roomContext.curAvatarId ?? -1;
+  const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const className = "avatar-sampler-active";
+    if (isAvatarSamplerActive) {
+      document.body.classList.add(className);
+      return () => {
+        document.body.classList.remove(className);
+      };
+    }
+    document.body.classList.remove(className);
+    return () => {};
+  }, [isAvatarSamplerActive]);
 
   const {
     isForwardWindowOpen,
@@ -138,21 +154,22 @@ function ChatFrame(props: ChatFrameProps) {
           return;
         }
 
-        const nextMessage: Message = {
-          ...latest.message,
-          annotations: nextAnnotations,
-          ...(backgroundChanged
-            ? {
-                extra: {
-                  ...latest.message.extra,
-                  imageMessage: {
-                    ...imageMessage,
-                    background: nextBackground,
-                  },
+        const nextMessage: Message = backgroundChanged && imageMessage
+          ? {
+              ...latest.message,
+              annotations: nextAnnotations,
+              extra: {
+                ...latest.message.extra,
+                imageMessage: {
+                  ...imageMessage,
+                  background: nextBackground,
                 },
-              }
-            : {}),
-        };
+              },
+            }
+          : {
+              ...latest.message,
+              annotations: nextAnnotations,
+            };
         updateMessage(nextMessage);
         if (roomContext.updateAndRerenderMessageInWebGAL) {
           roomContext.updateAndRerenderMessageInWebGAL({ ...latest, message: nextMessage }, false);

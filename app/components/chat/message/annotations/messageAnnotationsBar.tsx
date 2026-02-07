@@ -1,7 +1,7 @@
-import type { AnnotationDefinition, AnnotationTone } from "@/components/chat/message/annotations/annotationCatalog";
+import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
 import {
-
   buildAnnotationMap,
+  getAnnotationToneClass,
 } from "@/components/chat/message/annotations/annotationCatalog";
 
 interface MessageAnnotationsBarProps {
@@ -27,18 +27,7 @@ export default function MessageAnnotationsBar({
 }: MessageAnnotationsBarProps) {
   const items = Array.isArray(annotations) ? annotations : DEFAULT_ANNOTATIONS;
   const annotationMap = buildAnnotationMap();
-  const toneStyles: Record<AnnotationTone, string> = {
-    neutral: "border-base-300 bg-base-200/70 text-base-content/80 hover:bg-base-300",
-    info: "border-info/30 bg-info/15 text-info hover:bg-info/20",
-    success: "border-success/30 bg-success/15 text-success hover:bg-success/20",
-    warning: "border-warning/30 bg-warning/15 text-warning hover:bg-warning/20",
-    accent: "border-accent/30 bg-accent/15 text-accent hover:bg-accent/20",
-    primary: "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20",
-  };
-  const getToneClass = (def?: AnnotationDefinition) => {
-    const tone = def?.tone ?? "neutral";
-    return toneStyles[tone] ?? toneStyles.neutral;
-  };
+  const getToneClass = (def?: AnnotationDefinition) => getAnnotationToneClass(def?.tone ?? "neutral");
 
   if (!items.length && !(canEdit && showWhenEmpty))
     return null;

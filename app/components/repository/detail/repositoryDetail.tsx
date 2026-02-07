@@ -15,7 +15,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blo
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import Author from "./author";
 // import IssueTab from "./issueTab";
 
@@ -29,11 +29,15 @@ export default function RepositoryDetailComponent({
   const navigate = useNavigate();
   const params = useParams();
   const repositoryIdFromParams = Number(params.id);
-  const repositoryId = Number.isFinite(repositoryIdProp) && repositoryIdProp > 0
-    ? repositoryIdProp
-    : (Number.isFinite(repositoryIdFromParams) && repositoryIdFromParams > 0
-        ? repositoryIdFromParams
-        : (propRepositoryData?.repositoryId ?? -1));
+  const repositoryId = (() => {
+    if (typeof repositoryIdProp === "number" && Number.isFinite(repositoryIdProp) && repositoryIdProp > 0) {
+      return repositoryIdProp;
+    }
+    if (Number.isFinite(repositoryIdFromParams) && repositoryIdFromParams > 0) {
+      return repositoryIdFromParams;
+    }
+    return propRepositoryData?.repositoryId ?? -1;
+  })();
 
   // ===== 所有 Hooks 必须在最前面调用 =====
   // 如果没有传入 repositoryData，则通过 ID 获取
@@ -485,7 +489,7 @@ export default function RepositoryDetailComponent({
         </div>
       </div>
 
-      <PopWindow isOpen={isViewModeOpen} onClose={() => setIsViewModeOpen(false)} fullScreen>
+      <ToastWindow isOpen={isViewModeOpen} onClose={() => setIsViewModeOpen(false)} fullScreen>
         <div className="flex h-full min-h-0 flex-col">
           <div className="flex items-center justify-between gap-3 border-b border-info/20 bg-info/10 px-4 py-2">
             <div className="flex items-center gap-2 text-sm text-info">
@@ -616,9 +620,9 @@ export default function RepositoryDetailComponent({
             )}
           </div>
         </div>
-      </PopWindow>
-      {/* 在现有的 PopWindow 组件后面添加确认弹窗 */}
-      <PopWindow isOpen={showConfirmPopup} onClose={handleCancelNavigate}>
+      </ToastWindow>
+      {/* 在现有的 ToastWindow 组件后面添加确认弹窗 */}
+      <ToastWindow isOpen={showConfirmPopup} onClose={handleCancelNavigate}>
         <div className="flex flex-col items-center p-6 gap-4">
           <div className="text-2xl font-bold text-success">
             <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -650,7 +654,7 @@ export default function RepositoryDetailComponent({
             </button>
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
       {showSuccessToast && (
         <div className="fixed bottom-6 right-6 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
           ✅ 克隆成功！

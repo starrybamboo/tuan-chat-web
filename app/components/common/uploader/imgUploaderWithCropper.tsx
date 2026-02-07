@@ -7,7 +7,7 @@ import type { Crop, PixelCrop } from "react-image-crop";
 import React, { useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
 import "react-image-crop/dist/ReactCrop.css";
@@ -317,7 +317,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       <div onClick={() => fileInputRef.current?.click()}>
         {children}
       </div>
-      <PopWindow isOpen={isOpen} onClose={handleClose}>
+      <ToastWindow isOpen={isOpen} onClose={handleClose}>
         <h2 className="text-2xl mt-4 font-bold">上传图像</h2>
         <div className={isMobile ? "flex flex-col items-center gap-4 max-h-[90vh] p-4" : "flex flex-row items-center justify-center gap-8 overflow-auto p-6"}>
           {!!imgSrc && (
@@ -405,7 +405,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
             </div>
           )}
         </div>
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

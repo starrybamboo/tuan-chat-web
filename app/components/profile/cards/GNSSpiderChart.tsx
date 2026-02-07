@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
-import GNSPreferenceEditor from "@/components/profile/popWindows/GNSEditorPop";
+import GNSPreferenceEditor from "@/components/profile/toastWindows/GNSEditorToastWindow";
 import { useGetGNSQuery, useUpsertGNSMutation } from "../../../../api/hooks/userGNSQuerryHooks";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
@@ -205,14 +205,14 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
           </button>
 
           {/* 编辑弹窗 */}
-          <PopWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
+          <ToastWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
             <GNSPreferenceEditor
               initialRatings={ratings}
               onSave={handleSaveChanges}
               onCancel={handleCloseEditor}
               isLoading={upsertMutation.isPending}
             />
-          </PopWindow>
+          </ToastWindow>
         </div>
       );
     }
@@ -357,14 +357,14 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
       </div>
 
       {/* 编辑弹窗 */}
-      <PopWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
+      <ToastWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
         <GNSPreferenceEditor
           initialRatings={ratings}
           onSave={handleSaveChanges}
           onCancel={handleCloseEditor}
           isLoading={upsertMutation.isPending}
         />
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 };

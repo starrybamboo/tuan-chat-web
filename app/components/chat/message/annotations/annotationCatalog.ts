@@ -9,6 +9,23 @@ export type AnnotationDefinition = {
   source?: "builtin" | "custom";
 };
 
+export const ANNOTATION_TONE_CLASSES: Record<AnnotationTone, string> = {
+  neutral: "border-base-300 bg-base-200/70 text-base-content/80 hover:bg-base-300",
+  info: "border-info/30 bg-info/15 text-info hover:bg-info/20",
+  success: "border-success/30 bg-success/15 text-success hover:bg-success/20",
+  warning: "border-warning/30 bg-warning/15 text-warning hover:bg-warning/20",
+  accent: "border-accent/30 bg-accent/15 text-accent hover:bg-accent/20",
+  primary: "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20",
+};
+
+export function getAnnotationToneClass(tone: AnnotationTone = "neutral", active = false) {
+  const base = ANNOTATION_TONE_CLASSES[tone] ?? ANNOTATION_TONE_CLASSES.neutral;
+  if (!active) {
+    return base;
+  }
+  return `${base} ring-2 ring-primary/30 shadow-sm`;
+}
+
 const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "sys:bgm", label: "BGM", category: "音频", tone: "info", source: "builtin" },
   { id: "sys:se", label: "音效", category: "音频", tone: "info", source: "builtin" },
@@ -24,6 +41,7 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "figure.pos.left", label: "立绘左", category: "动作", tone: "accent", source: "builtin" },
   { id: "figure.pos.center", label: "立绘中", category: "动作", tone: "accent", source: "builtin" },
   { id: "figure.pos.right", label: "立绘右", category: "动作", tone: "accent", source: "builtin" },
+  { id: "figure.clear", label: "清除之前立绘", category: "动作", tone: "warning", source: "builtin" },
 ];
 
 const CUSTOM_STORAGE_KEY = "tc:message-annotations:custom";

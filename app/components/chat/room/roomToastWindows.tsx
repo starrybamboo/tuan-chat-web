@@ -1,9 +1,9 @@
 import React from "react";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
-interface RoomPopWindowsProps {
+interface RoomToastWindowsProps {
   isRoleHandleOpen: boolean;
   setIsRoleAddWindowOpen: (open: boolean) => void;
   handleAddRole: (roleId: number) => void;
@@ -12,28 +12,28 @@ interface RoomPopWindowsProps {
   setIsRenderWindowOpen: (open: boolean) => void;
 }
 
-export default function RoomPopWindows({
+export default function RoomToastWindows({
   isRoleHandleOpen,
   setIsRoleAddWindowOpen,
   handleAddRole,
   isRenderWindowOpen,
   setIsRenderWindowOpen,
-}: RoomPopWindowsProps) {
+}: RoomToastWindowsProps) {
   return (
     <>
-      <PopWindow
+      <ToastWindow
         isOpen={isRoleHandleOpen}
         onClose={() => setIsRoleAddWindowOpen(false)}
       >
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={isRenderWindowOpen}
         onClose={() => setIsRenderWindowOpen(false)}
       >
         <RenderWindow></RenderWindow>
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

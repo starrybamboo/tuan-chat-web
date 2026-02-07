@@ -4,7 +4,7 @@ import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface ChatPageModalsProps {
   isSpaceHandleOpen: boolean;
@@ -59,13 +59,13 @@ export default function ChatPageModals({
   return (
     <>
 
-      <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
+      <ToastWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
         <CreateSpaceWindow
           onSuccess={() => setIsSpaceHandleOpen(false)}
         />
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={isCreateInCategoryOpen}
         onClose={closeCreateInCategory}
       >
@@ -142,9 +142,9 @@ export default function ChatPageModals({
                 />
               )}
         </div>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={inviteRoomId !== null}
         onClose={() => setInviteRoomId(null)}
       >
@@ -152,9 +152,9 @@ export default function ChatPageModals({
           handleAddMember={onAddRoomMember}
           showSpace={true}
         />
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={isMemberHandleOpen}
         onClose={() => {
           setIsMemberHandleOpen(false);
@@ -164,7 +164,7 @@ export default function ChatPageModals({
           onAddSpectator={onAddSpaceMember}
           onAddPlayer={onAddSpacePlayer}
         />
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

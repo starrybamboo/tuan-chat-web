@@ -5,7 +5,9 @@ import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
+import { formatDiceTableMessage } from "@/components/common/dicer/diceTable";
 import UTILS from "@/components/common/dicer/utils/utils";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityByRoleIdMutation,
@@ -142,6 +144,17 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       spaceDicerData = {};
     }
     let spaceDicerDataModified = false;
+    const diceTableDiceSize = (() => {
+      const fromSpace = Number(spaceDicerData.defaultDice);
+      if (Number.isFinite(fromSpace) && fromSpace > 0) {
+        return fromSpace;
+      }
+      const fromLocal = Number(defaultDice.current);
+      if (Number.isFinite(fromLocal) && fromLocal > 0) {
+        return fromLocal;
+      }
+      return 100;
+    })();
 
     // 定义cpi接口
     const replyMessage = (message: string) => {
@@ -339,19 +352,22 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
       const dicerMessageRequest: ChatMessageRequest = {
         roomId,
-        messageType: 1,
+        messageType: MESSAGE_TYPE.DICE,
         roleId: dicerRoleId,
         avatarId: chosenAvatarId,
         content: "",
         threadId: executorProp.threadId,
         replayMessageId: optMsgRes.data?.messageId ?? undefined,
-        extra: {},
+        extra: { result: "" },
       };
       for (const message of dicerMessageQueue) {
         // 移除消息中的所有标签（格式：#标签#）
         const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
         const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
-        dicerMessageRequest.content = cleanMessage + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
+        const formattedDiceTable = formatDiceTableMessage(cleanMessage, diceTableDiceSize);
+        const baseContent = formattedDiceTable ?? cleanMessage;
+        dicerMessageRequest.content = baseContent + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
+        dicerMessageRequest.extra = { result: dicerMessageRequest.content };
         await sendMessageMutation.mutateAsync(dicerMessageRequest);
       }
     }

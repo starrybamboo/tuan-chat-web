@@ -46,7 +46,7 @@ export default function CommentPanel({ targetInfo, className, loginUserId }: Com
               width={10}
               isRounded={true}
               withName={false}
-              stopPopWindow={true}
+              stopToastWindow={true}
               clickEnterProfilePage={false}
             />
           </div>

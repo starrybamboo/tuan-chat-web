@@ -19,7 +19,7 @@ import {
 import { useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarLibraryTab } from "./Tabs/AvatarLibraryTab";
@@ -262,7 +262,7 @@ export function SpriteSettingsPopup({
     return null;
 
   return (
-    <PopWindow
+    <ToastWindow
       isOpen={isOpen}
       onClose={onClose}
       fullScreen={isMobileScreen()}
@@ -574,6 +574,6 @@ export function SpriteSettingsPopup({
           <div className="modal-backdrop" onClick={() => setBatchDeleteConfirmOpen(false)}></div>
         </div>
       )}
-    </PopWindow>
+    </ToastWindow>
   );
 }

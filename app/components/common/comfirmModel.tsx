@@ -1,5 +1,5 @@
 import React from "react";
-import { PopWindow } from "./popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -47,7 +47,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const colors = colorConfig[variant];
 
   return (
-    <PopWindow isOpen={isOpen} onClose={onClose}>
+    <ToastWindow isOpen={isOpen} onClose={onClose}>
       <div className="rounded-xl shadow-xl p-6 max-w-md mx-4 border border-base-300">
         {/* 图标区域 */}
         <div className="flex justify-center mb-4">
@@ -91,7 +91,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </button>
         </div>
       </div>
-    </PopWindow>
+    </ToastWindow>
   );
 };
 

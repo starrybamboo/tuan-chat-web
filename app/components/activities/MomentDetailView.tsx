@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import LikeIconButton from "@/components/common/likeIconButton";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
@@ -295,9 +295,9 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
         </div>
 
         {/* UserDetail 弹窗 */}
-        <PopWindow isOpen={isUserDetailCardOpen} onClose={closeUserCard}>
+        <ToastWindow isOpen={isUserDetailCardOpen} onClose={closeUserCard}>
           <UserDetail userId={userId} />
-        </PopWindow>
+        </ToastWindow>
       </div>
     </div>
   );

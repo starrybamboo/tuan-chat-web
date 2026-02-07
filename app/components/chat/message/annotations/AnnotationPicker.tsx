@@ -1,9 +1,9 @@
-import type { AnnotationDefinition, AnnotationTone } from "@/components/chat/message/annotations/annotationCatalog";
+import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
-
   buildCustomAnnotationId,
+  getAnnotationToneClass,
   getFrequentAnnotations,
   loadAnnotationUsage,
   loadCustomAnnotations,
@@ -23,21 +23,6 @@ function existsByLabel(catalog: AnnotationDefinition[], label: string, category?
   if (!target)
     return true;
   return catalog.some(item => item.label === target && (item.category ?? "") === (category ?? ""));
-}
-
-function getToneStyles(tone?: AnnotationTone, active?: boolean) {
-  if (active) {
-    return "bg-primary text-primary-content border-primary shadow-md";
-  }
-  switch (tone) {
-    case "info": return "bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800";
-    case "success": return "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800";
-    case "warning": return "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
-    case "accent": return "bg-violet-100 text-violet-700 border-violet-200 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800";
-    case "primary": return "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20";
-    case "neutral":
-    default: return "bg-base-200 text-base-content/80 border-base-300 hover:bg-base-300";
-  }
 }
 
 const DEFAULT_SELECTED: string[] = [];
@@ -137,7 +122,7 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, o
   const renderChip = useCallback((item: AnnotationDefinition) => {
     const isActive = selectedSet.has(item.id);
     const base = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all active:scale-95 select-none";
-    const styles = getToneStyles(item.tone, isActive);
+    const styles = getAnnotationToneClass(item.tone ?? "neutral", isActive);
 
     return (
       <button

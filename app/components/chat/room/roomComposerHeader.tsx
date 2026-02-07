@@ -115,7 +115,7 @@ export default function RoomComposerHeader({
                             width={8}
                             isRounded={true}
                             withTitle={false}
-                            stopPopWindow={true}
+                            stopToastWindow={true}
                             useDefaultAvatarFallback={false}
                             alt="旁白"
                           />
@@ -133,7 +133,7 @@ export default function RoomComposerHeader({
                       width={8}
                       isRounded={true}
                       withTitle={false}
-                      stopPopWindow={true}
+                      stopToastWindow={true}
                       alt={displayRoleName || "无头像"}
                     />
                   )}
@@ -146,6 +146,7 @@ export default function RoomComposerHeader({
                       roleId={curRoleId}
                       onAvatarChange={setCurAvatarId}
                       onRoleChange={setCurRoleId}
+                      onRequestClose={() => setIsAvatarPopoverOpen(false)}
                     />
                   </div>
                 </div>

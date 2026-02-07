@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -53,6 +53,14 @@ export default function AvatarSwitch({
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState("");
+  const dropdownTriggerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleCloseDropdown = () => {
+    dropdownTriggerRef.current?.blur();
+    if (typeof document !== "undefined") {
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+  };
 
   useLayoutEffect(() => {
     if (curAvatarId > 0)
@@ -97,7 +105,7 @@ export default function AvatarSwitch({
   if (!hasSelectedIdentity) {
     return (
       <div className={wrapperClassName}>
-        <div role="button" tabIndex={0} className="">
+        <div role="button" tabIndex={0} className="" ref={dropdownTriggerRef}>
           <div
             className={tooltipClassName}
             data-tip="未选择角色，点击选择"
@@ -120,6 +128,7 @@ export default function AvatarSwitch({
             roleId={curRoleId}
             handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
             handleRoleChange={roleId => setCurRoleId(roleId)}
+            onRequestClose={handleCloseDropdown}
           />
         </ul>
       </div>
@@ -132,7 +141,7 @@ export default function AvatarSwitch({
         className={tooltipClassName}
         data-tip={hasSelectedNarrator ? "切换旁白头像/角色" : "切换角色和表情"}
       >
-        <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
+        <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情" ref={dropdownTriggerRef}>
           {hasSelectedNarrator && curAvatarId <= 0
             ? (
                 <div className={`${narratorSizeClass} rounded-full bg-transparent flex items-center justify-center`}>
@@ -146,7 +155,7 @@ export default function AvatarSwitch({
                   width={computedAvatarWidth}
                   isRounded={true}
                   withTitle={false}
-                  stopPopWindow={true}
+                  stopToastWindow={true}
                   useDefaultAvatarFallback={false}
                   alt={hasSelectedRole ? "无可用头像" : "旁白"}
                 />
@@ -214,6 +223,7 @@ export default function AvatarSwitch({
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
+          onRequestClose={handleCloseDropdown}
         />
       </ul>
     </div>

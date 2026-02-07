@@ -1,6 +1,6 @@
 import RepositoryCoverImage from "./components/RepositoryCoverImage";
 import RepositoryForm from "./components/RepositoryForm";
-import RepositoryPopWindow from "./components/RepositoryPopWindow";
+import RepositoryToastWindow from "./components/RepositoryToastWindow";
 import RuleSelector from "./components/RuleSelector";
 import { useGoToWorkSpace } from "./hooks/useGoToWorkSpace";
 import { useRepositoryForm } from "./hooks/useRepositoryForm";
@@ -40,7 +40,7 @@ export default function RepositoryCreateMain() {
         </main>
       </form>
       {/* 仓库创建成功弹窗 */}
-      <RepositoryPopWindow
+      <RepositoryToastWindow
         modalOpen={modalOpen}
         setModalOpen={setModalOpen}
         goToWorkSpace={goToWorkSpace}

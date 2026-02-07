@@ -2,6 +2,7 @@ import type { Message } from "../../../../../api";
 import React, { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { XMarkICon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
@@ -23,8 +24,16 @@ export default function RepliedMessage({ replyMessage, className }: {
   const isTextMessage = replyMessage.messageType === 1;
   const isWebgalVarMessage = replyMessage.messageType === MESSAGE_TYPE.WEBGAL_VAR;
   const isDocCardMessage = replyMessage.messageType === MESSAGE_TYPE.DOC_CARD;
+  const isIntroText = replyMessage.messageType === MESSAGE_TYPE.INTRO_TEXT;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
   const imgMsg = replyMessage.extra?.imageMessage;
+  const displayRoleName = getDisplayRoleName({
+    roleId: replyMessage.roleId,
+    roleName: role?.roleName,
+    customRoleName: replyMessage.customRoleName,
+    isIntroText,
+  });
+  const namePrefix = displayRoleName ? `${displayRoleName}: ` : "";
   const webgalVarSummary = isWebgalVarMessage
     ? (() => {
         const payload = extractWebgalVarPayload(replyMessage.extra);
@@ -58,32 +67,28 @@ export default function RepliedMessage({ replyMessage, className }: {
       {isTextMessage
         ? (
             <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
-              {role?.roleName || "未命名角色"}
-              {": "}
+              {namePrefix}
               {replyMessage.content}
             </span>
           )
         : isWebgalVarMessage
           ? (
               <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
-                {role?.roleName || "未命名角色"}
-                {": "}
+                {namePrefix}
                 {[`[变量]`, webgalVarSummary ?? ""].filter(Boolean).join(" ")}
               </span>
             )
           : isDocCardMessage
             ? (
                 <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
-                  {role?.roleName || "未命名角色"}
-                  {": "}
+                  {namePrefix}
                   {[`[文档]`, docCardTitle ?? ""].filter(Boolean).join(" ")}
                 </span>
               )
             : replyMessage.extra?.imageMessage?.url
               ? (
                   <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
-                    {role?.roleName || "未命名角色"}
-                    {": "}
+                    {namePrefix}
                     <img
                       src={replyMessage.extra?.imageMessage?.url}
                       className="size-8 object-contain"
@@ -95,8 +100,7 @@ export default function RepliedMessage({ replyMessage, className }: {
                 )
               : (
                   <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
-                    {role?.roleName || "未命名角色"}
-                    {": "}
+                    {namePrefix}
                     非文本内容
                   </span>
                 )}
