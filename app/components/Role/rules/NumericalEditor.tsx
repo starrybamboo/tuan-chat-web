@@ -2,7 +2,7 @@ import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 
@@ -19,6 +19,8 @@ interface NumericalEditorProps {
   ruleId: number;
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
+  forcedEditing?: boolean;
+  saveSignal?: number;
 }
 
 // Reducer actions
@@ -73,11 +75,14 @@ export default function NumericalEditor({
   ruleId,
   title = "数值数据",
   fieldType,
+  forcedEditing,
+  saveSignal,
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
 
   // 使用 useReducer 管理本地数据
   const [localData, dispatch] = useReducer(dataReducer, data);
@@ -88,7 +93,7 @@ export default function NumericalEditor({
   }, [data]);
 
   // 处理字段值更新
-  const handleExitEditing = () => {
+  const handleExitEditing = useCallback(() => {
     setIsTransitioning(true);
 
     // 更新前端状态
@@ -126,7 +131,37 @@ export default function NumericalEditor({
         setIsTransitioning(false);
       },
     });
-  };
+  }, [fieldType, localData, onChange, roleId, ruleId, updateFiledAbility]);
+
+  useEffect(() => {
+    if (typeof forcedEditing !== "boolean") {
+      return;
+    }
+
+    if (forcedEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    if (!isTransitioning) {
+      setIsEditing(false);
+    }
+  }, [forcedEditing, isTransitioning]);
+
+  useEffect(() => {
+    if (saveSignal === undefined) {
+      return;
+    }
+
+    if (prevSaveSignalRef.current === saveSignal) {
+      return;
+    }
+
+    prevSaveSignalRef.current = saveSignal;
+    if (isEditing) {
+      handleExitEditing();
+    }
+  }, [handleExitEditing, isEditing, saveSignal]);
 
   // 处理字段值更新
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
@@ -251,37 +286,39 @@ export default function NumericalEditor({
         <h3 className="card-title text-lg flex items-center gap-2">
           {title}
         </h3>
-        <button
-          type="button"
-          onClick={isEditing ? handleExitEditing : () => setIsEditing(true)}
-          className={`btn btn-sm ${isEditing ? "btn-primary" : "btn-accent"
-          } ${isTransitioning ? "scale-95" : ""
-          }`}
-          disabled={isTransitioning}
-        >
-          {isTransitioning
-            ? (
-                <span className="loading loading-spinner loading-xs"></span>
-              )
-            : isEditing
+        {forcedEditing !== true && (
+          <button
+            type="button"
+            onClick={isEditing ? handleExitEditing : () => setIsEditing(true)}
+            className={`btn btn-sm ${isEditing ? "btn-primary" : "btn-accent"
+            } ${isTransitioning ? "scale-95" : ""
+            }`}
+            disabled={isTransitioning}
+          >
+            {isTransitioning
               ? (
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                    保存
-                  </span>
+                  <span className="loading loading-spinner loading-xs"></span>
                 )
-              : (
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                    编辑
-                  </span>
-                )}
-        </button>
+              : isEditing
+                ? (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                      保存
+                    </span>
+                  )
+                : (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                      编辑
+                    </span>
+                  )}
+          </button>
+        )}
       </div>
 
       <div className="bg-base-200 rounded-lg">

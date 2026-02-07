@@ -14,14 +14,12 @@ import {
   useUpdateRoleWithLocalMutation,
   useUploadAvatarMutation,
 } from "api/hooks/RoleAndAvatarHooks";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import RulesSection from "../rules/RulesSection";
-import { UNIFIED_STEPS } from "./constants";
-import RoleCreationLayout from "./RoleCreationLayout";
+import CreatePageHeader from "./CreatePageHeader";
 import AIGenerateModal from "./steps/AIGenerateModal";
-import AttributeStep from "./steps/AttributeStep";
 import BasicInfoStep from "./steps/BasicInfoStep";
 import STImportModal from "./steps/STImportModal";
 import { completeRoleCreation, evaluateCharacterDataExpressions } from "./utils/roleCreationHelpers";
@@ -55,36 +53,17 @@ export default function RoleCreationFlow({
   initialCharacterData,
   hideRuleSelection,
 }: RoleCreationFlowProps) {
-  const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
 
   // 弹窗状态
   const [isSTModalOpen, setIsSTModalOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
-  // Calculate effective steps based on hideRuleSelection
-  const effectiveSteps = useMemo(() => {
-    let steps = UNIFIED_STEPS;
-    if (hideRuleSelection) {
-      steps = steps.filter(step => step.id !== 2);
-    }
-    // Remap IDs for UI consistency (StepIndicator relies on index logic essentially) and keep original ID
-    return steps.map((s, i) => ({
-      ...s,
-      originalId: s.id,
-      id: i + 1, // Remap ID to 1-based index
-    }));
-  }, [hideRuleSelection]);
-
   const {
     characterData,
     setCharacterData,
     selectedRuleId,
     handleCharacterDataChange,
-    handleAttributeChange,
-    handleAddField,
-    handleDeleteField,
-    handleRenameField,
     handleRuleChange,
   } = useCharacterData({ initialData: initialCharacterData });
 
@@ -97,14 +76,7 @@ export default function RoleCreationFlow({
 
   const hasBasicInfo = characterData.name.trim().length > 0 && characterData.description.trim().length > 0;
   const hasRule = characterData.ruleId > 0;
-
-  const currentOriginalStepId = effectiveSteps[currentStep - 1]?.originalId || 1;
-
-  let canProceedCurrent = true;
-  if (currentOriginalStepId === 1)
-    canProceedCurrent = hasBasicInfo;
-  else if (currentOriginalStepId === 2)
-    canProceedCurrent = hasRule;
+  const canComplete = hasBasicInfo && (hideRuleSelection ? true : hasRule) && !isSaving;
 
   // ST导入成功回调
   const handleSTImportSuccess = (importedData: Partial<CharacterData>) => {
@@ -126,19 +98,34 @@ export default function RoleCreationFlow({
   };
 
   const handleComplete = async () => {
-    if (isSaving)
+    if (isSaving) {
       return;
-    if (!characterData.name.trim() || !characterData.description.trim() || characterData.ruleId <= 0)
+    }
+
+    if (!hasBasicInfo) {
       return;
+    }
+
+    if (!hideRuleSelection && !hasRule) {
+      toast.error("请先选择规则", { position: "top-center" });
+      return;
+    }
 
     // 初始化属性别名映射（封装在 aliasRegistry），确保表达式计算前已完成一次性初始化
     initAliasMapOnce();
 
     setIsSaving(true);
     try {
+      const payloadData: CharacterData = (!hideRuleSelection || hasRule)
+        ? characterData
+        : {
+            ...characterData,
+            ruleId: 1,
+          };
+
       await completeRoleCreation(
         {
-          characterData,
+          characterData: payloadData,
           createRole,
           roleCreateDefaults,
           uploadAvatar,
@@ -189,6 +176,7 @@ export default function RoleCreationFlow({
         </svg>
       ),
       onClick: handleSTImportClick,
+      disabled: !hasRule,
     },
     {
       id: "ai-generate",
@@ -200,87 +188,54 @@ export default function RoleCreationFlow({
       ),
       onClick: handleAIGenerateClick,
       variant: "primary" as const,
+      disabled: !hasRule,
     },
   ];
 
-  const renderStepContent = () => {
-    const originalStepId = effectiveSteps[currentStep - 1]?.originalId || 1;
-
-    switch (originalStepId) {
-      case 1:
-        return (
-          <BasicInfoStep characterData={characterData} onCharacterDataChange={handleCharacterDataChange} />
-        );
-      case 2:
-        return (
-          <RulesSection large currentRuleId={characterData.ruleId} onRuleChange={handleRuleChange} />
-        );
-      case 3:
-        return (
-          <AttributeStep
-            title="角色表演能力"
-            attributes={characterData.act}
-            onAttributeChange={(key, value) => handleAttributeChange("act", key, value)}
-            onAddField={(key, value) => handleAddField("act", key, value)}
-            onDeleteField={key => handleDeleteField("act", key)}
-            onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
-          />
-        );
-      case 4:
-        return (
-          <>
-            <AttributeStep
-              title="基础能力值"
-              attributes={characterData.basic}
-              onAttributeChange={(key, value) => handleAttributeChange("basic", key, value)}
-              onAddField={(key, value) => handleAddField("basic", key, value)}
-              onDeleteField={key => handleDeleteField("basic", key)}
-              onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
-            />
-            <div className="mt-6">
-              <AttributeStep
-                title="计算能力值"
-                attributes={characterData.ability}
-                showInfoAlert
-                onAttributeChange={(key, value) => handleAttributeChange("ability", key, value)}
-                onAddField={(key, value) => handleAddField("ability", key, value)}
-                onDeleteField={key => handleDeleteField("ability", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
-              />
-            </div>
-          </>
-        );
-      case 5:
-        return (
-          <AttributeStep
-            title="技能设定"
-            attributes={characterData.skill}
-            onAttributeChange={(key, value) => handleAttributeChange("skill", key, value)}
-            onAddField={(key, value) => handleAddField("skill", key, value)}
-            onDeleteField={key => handleDeleteField("skill", key)}
-            onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <>
-      <RoleCreationLayout
-        title={title ?? "创建角色"}
-        description={description ?? "填写角色信息，完成角色创建"}
-        steps={effectiveSteps}
-        currentStep={currentStep}
-        onStepChange={setCurrentStep}
-        canProceedCurrent={canProceedCurrent}
-        isSaving={isSaving}
-        onComplete={handleComplete}
-        renderContent={renderStepContent}
-        onBack={onBack}
-        toolButtons={toolButtons}
-      />
+      <div className={`max-w-4xl mx-auto p-6 transition-opacity duration-300 ease-in-out ${isSaving ? "opacity-60" : ""}`}>
+        <CreatePageHeader
+          title={title ?? "创建角色"}
+          description={description ?? "填写基础信息与规则，后续能力字段默认继承规则模板"}
+          onBack={onBack}
+          toolButtons={toolButtons}
+        />
+
+        <div className="divider md:hidden" />
+
+        <div className="space-y-6">
+          <BasicInfoStep
+            characterData={characterData}
+            onCharacterDataChange={handleCharacterDataChange}
+          />
+
+          {!hideRuleSelection && (
+            <RulesSection
+              large
+              currentRuleId={characterData.ruleId}
+              onRuleChange={handleRuleChange}
+            />
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className={`btn btn-success rounded-md bg-gradient-to-r from-green-500 to-emerald-500 border-none disabled:opacity-60 disabled:cursor-not-allowed ${isSaving ? "scale-95" : ""}`}
+              onClick={handleComplete}
+              disabled={!canComplete}
+            >
+              {isSaving
+                ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  )
+                : (
+                    <span className="flex items-center gap-1">完成创建</span>
+                  )}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* ST导入弹窗 */}
       <STImportModal

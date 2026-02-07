@@ -11,6 +11,8 @@ interface RulePerformanceEditorProps {
   onSave?: (data: Record<string, string>) => void;
   cloneVersion: number;
   onEditingChange?: (editing: boolean) => void;
+  forcedEditing?: boolean;
+  saveSignal?: number;
 }
 
 // Reducer actions
@@ -65,6 +67,8 @@ export default function RulePerformanceEditor({
   onSave,
   cloneVersion,
   onEditingChange,
+  forcedEditing,
+  saveSignal,
 }: RulePerformanceEditorProps) {
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   // 是否编辑
@@ -73,6 +77,7 @@ export default function RulePerformanceEditor({
   const isMobile = useIsMobile();
 
   const prevCloneVersionRef = useRef(cloneVersion);
+  const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
 
   const longFieldKeys = [""];
   const shortFields = Object.keys(localData)
@@ -95,6 +100,36 @@ export default function RulePerformanceEditor({
     dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     setIsEditing(false);
   }, [cloneVersion, data]);
+
+  useEffect(() => {
+    if (typeof forcedEditing !== "boolean") {
+      return;
+    }
+
+    if (forcedEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    setIsEditing(false);
+  }, [forcedEditing]);
+
+  useEffect(() => {
+    if (saveSignal === undefined) {
+      return;
+    }
+    if (prevSaveSignalRef.current === saveSignal) {
+      return;
+    }
+
+    prevSaveSignalRef.current = saveSignal;
+    if (!isEditing) {
+      return;
+    }
+
+    onSave?.(localData ?? {});
+    setIsEditing(false);
+  }, [isEditing, localData, onSave, saveSignal]);
 
   // 将编辑态变化上报给父组件，用于保存前校验
   useEffect(() => {
@@ -163,7 +198,7 @@ export default function RulePerformanceEditor({
       <div className="flex items-center justify-between gap-3">
         <h3 className="card-title text-lg flex items-center gap-2">{title}</h3>
         <div className="flex items-center gap-2">
-          {!isEditing
+          {typeof forcedEditing !== "boolean" && (!isEditing
             ? (
                 <button type="button" className="btn btn-sm btn-accent" onClick={handleStartEditing}>
                   <span className="flex items-center gap-1">
@@ -201,7 +236,7 @@ export default function RulePerformanceEditor({
                     </span>
                   </button>
                 </>
-              )}
+              ))}
         </div>
       </div>
 

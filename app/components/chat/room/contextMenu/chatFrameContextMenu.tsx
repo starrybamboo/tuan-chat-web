@@ -345,6 +345,13 @@ export default function ChatFrameContextMenu({
     setSubDrawerState("none");
   };
 
+  const handleOpenSubWindow = () => {
+    // 副窗口第一个 tab 为 map：通过 sideDrawerState = "map" 触发 SubRoomWindow 打开并切换到首个 tab。
+    setSideDrawerState("map");
+    setSubDrawerState("none");
+    onClose();
+  };
+
   const handleCreateOrOpenThread = () => {
     const selected = message?.message;
     if (!selected) {
@@ -399,6 +406,15 @@ export default function ChatFrameContextMenu({
       onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-40">
+        <li>
+          <a onClick={(e) => {
+            e.preventDefault();
+            handleOpenSubWindow();
+          }}
+          >
+            打开副窗口
+          </a>
+        </li>
         <li>
           <a onClick={(e) => {
             e.preventDefault();
