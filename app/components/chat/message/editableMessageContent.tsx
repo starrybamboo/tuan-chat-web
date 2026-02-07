@@ -15,15 +15,17 @@ interface EditableMessageContentProps {
   shouldIgnoreBlur?: (relatedTarget: EventTarget | null) => boolean;
 }
 
-const escapeHtml = (value: string) => (
-  value
+function escapeHtml(value: string) {
+  return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-);
+    .replace(/>/g, "&gt;");
+}
 
 // Convert plain text to HTML safe for contentEditable.
-const plainTextToHtml = (value: string) => escapeHtml(value).replace(/\r?\n/g, "<br>");
+function plainTextToHtml(value: string) {
+  return escapeHtml(value).replace(/\r?\n/g, "<br>");
+}
 
 function EditableMessageContent({
   content,

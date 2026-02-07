@@ -1,14 +1,14 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, { use, useCallback, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
-import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";

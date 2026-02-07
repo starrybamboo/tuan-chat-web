@@ -3,7 +3,7 @@ import { roll } from "@/components/common/dicer/dice";
 const DICE_TABLE_HIGHLIGHT_COLOR = "#FF6B00";
 const DICE_TABLE_OPTION_PATTERN = /^\s*(\d+)\s+(\S.*)$/;
 const DICE_TABLE_FORCED_RESULT_PATTERN = /^([^:：=]+)[:：=]\s*(?:\[(\d+)\]|(\d+))$/;
-const DICE_EXPRESSION_ONLY_PATTERN = /^[\dA-Za-z+\-*/()%.\s]+$/;
+const DICE_EXPRESSION_ONLY_PATTERN = /^[\dA-Z+\-*/()%.\s]+$/i;
 const DICE_EXPRESSION_TOKEN_PATTERN = /\d*\s*d\s*(?:\d+|%)/i;
 const DICE_FORCE_RESULT_SEARCH_PATTERN = /\d*\s*d\s*(?:\d+|%)\s*[:：=]\s*(?:\[\d+\]|\d+)/i;
 const DICE_INLINE_WRAPPER_PATTERN = /【([^】\n\r]+)】|\[([^\]\n\r]+)\]/g;
@@ -13,6 +13,7 @@ type ParsedDiceExpression = {
   expression: string;
   forcedResult?: number;
   separator?: string;
+  detail?: string;
 };
 
 function normalizeLineBreaks(text: string) {
@@ -64,7 +65,11 @@ function extractHeaderDiceMatch(line: string): HeaderDiceMatch | null {
 
   const wrapperRegex = new RegExp(DICE_INLINE_WRAPPER_PATTERN.source, "g");
   let wrapperMatch: RegExpExecArray | null = null;
-  while ((wrapperMatch = wrapperRegex.exec(plainLine)) !== null) {
+  for (;;) {
+    wrapperMatch = wrapperRegex.exec(plainLine);
+    if (!wrapperMatch) {
+      break;
+    }
     const inner = (wrapperMatch[1] ?? wrapperMatch[2] ?? "").trim();
     const parsedResult = parseWithTrailingColon(stripTextEnhanceSyntax(inner));
     if (!parsedResult.parsed) {
@@ -85,9 +90,13 @@ function extractHeaderDiceMatch(line: string): HeaderDiceMatch | null {
     return matched;
   }
 
-  const forcedRegex = new RegExp(DICE_FORCE_RESULT_SEARCH_PATTERN.source, "ig");
+  const forcedRegex = new RegExp(DICE_FORCE_RESULT_SEARCH_PATTERN.source, "gi");
   let forcedMatch: RegExpExecArray | null = null;
-  while ((forcedMatch = forcedRegex.exec(plainLine)) !== null) {
+  for (;;) {
+    forcedMatch = forcedRegex.exec(plainLine);
+    if (!forcedMatch) {
+      break;
+    }
     const candidate = forcedMatch[0];
     const parsedResult = parseWithTrailingColon(stripTextEnhanceSyntax(candidate));
     if (!parsedResult.parsed) {
@@ -107,9 +116,13 @@ function extractHeaderDiceMatch(line: string): HeaderDiceMatch | null {
     return matched;
   }
 
-  const exprRegex = /(\d*\s*d\s*(?:\d+|%)[\dA-Za-z+\-*/()%.\s]*)/ig;
+  const exprRegex = /\d*\s*d\s*(?:\d+|%)[\dA-Z+\-*/()%.\s]*/gi;
   let exprMatch: RegExpExecArray | null = null;
-  while ((exprMatch = exprRegex.exec(plainLine)) !== null) {
+  for (;;) {
+    exprMatch = exprRegex.exec(plainLine);
+    if (!exprMatch) {
+      break;
+    }
     const candidate = exprMatch[0];
     const parsedResult = parseWithTrailingColon(stripTextEnhanceSyntax(candidate));
     if (!parsedResult.parsed) {
@@ -146,6 +159,32 @@ function parseDiceExpressionCore(core: string): ParsedDiceExpression | null {
     return { expression, forcedResult, separator };
   }
 
+  const detailMatch = trimmed.match(/^([^:：=]+)([:：=])\s*(.+)$/);
+  if (detailMatch) {
+    const expression = detailMatch[1]?.trim();
+    const detail = detailMatch[3]?.trim() ?? "";
+    if (!expression || !detail) {
+      return null;
+    }
+    if (!DICE_EXPRESSION_TOKEN_PATTERN.test(expression)) {
+      return null;
+    }
+    const detailHighlight = parseDetailHighlight(detail);
+    if (!detailHighlight) {
+      return null;
+    }
+    const forcedResult = Number.parseInt(detailHighlight.resultText, 10);
+    if (!Number.isFinite(forcedResult)) {
+      return null;
+    }
+    return {
+      expression,
+      forcedResult,
+      separator: detailMatch[2] ?? "：",
+      detail,
+    };
+  }
+
   if (!DICE_EXPRESSION_ONLY_PATTERN.test(trimmed)) {
     return null;
   }
@@ -167,6 +206,38 @@ function resolveRollResult(parsed: ParsedDiceExpression, diceSize: number): numb
 
 function buildHighlightToken(value: number | string) {
   return `[${value}](style=color:${DICE_TABLE_HIGHLIGHT_COLOR})`;
+}
+
+function parseDetailHighlight(detail: string) {
+  const trimmed = detail.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  let match = trimmed.match(/^\[(\d+)\]$/);
+  if (match) {
+    return { prefix: "", resultText: match[1], suffix: "" };
+  }
+
+  match = trimmed.match(/^(.*?=)\s*(\d+)\s*$/);
+  if (match) {
+    return { prefix: match[1], resultText: match[2], suffix: "" };
+  }
+
+  match = trimmed.match(/^(.*?)(\d+)\s*$/);
+  if (match) {
+    return { prefix: match[1], resultText: match[2], suffix: "" };
+  }
+
+  return null;
+}
+
+function formatDetailWithHighlight(detail: string, fallbackResult: number | string) {
+  const highlight = parseDetailHighlight(detail);
+  if (!highlight) {
+    return buildHighlightToken(fallbackResult);
+  }
+  return `${highlight.prefix}${buildHighlightToken(highlight.resultText)}${highlight.suffix}`;
 }
 
 // Parse simple dice table text and return highlighted result.
@@ -219,9 +290,11 @@ export function formatDiceTableMessage(message: string, diceSize: number): strin
   const colonChar = headerMatch.parsed.separator
     ?? headerMatch.delimiterHint
     ?? "：";
-  const highlightToken = buildHighlightToken(rollText);
+  const detailText = headerMatch.parsed.detail
+    ? formatDetailWithHighlight(headerMatch.parsed.detail, rollText)
+    : buildHighlightToken(rollText);
   const formattedLines = [
-    `${headerMatch.prefix}${headerMatch.wrapperPrefix}${headerMatch.parsed.expression}${colonChar}${highlightToken}${headerMatch.wrapperSuffix}${headerMatch.suffix}`,
+    `${headerMatch.prefix}${headerMatch.wrapperPrefix}${headerMatch.parsed.expression}${colonChar}${detailText}${headerMatch.wrapperSuffix}${headerMatch.suffix}`,
   ];
 
   for (const line of optionLines) {
@@ -262,10 +335,12 @@ export function formatInlineDiceMessage(message: string, diceSize: number): stri
       return match;
     }
     const delimiter = parsed.separator ?? "：";
-    const highlightToken = buildHighlightToken(String(rollResult));
+    const detailText = parsed.detail
+      ? formatDetailWithHighlight(parsed.detail, String(rollResult))
+      : buildHighlightToken(String(rollResult));
     const wrapperPrefix = fullWidthInner !== undefined ? "【" : "[";
     const wrapperSuffix = fullWidthInner !== undefined ? "】" : "]";
-    return `${wrapperPrefix}${parsed.expression}${delimiter}${highlightToken}${wrapperSuffix}`;
+    return `${wrapperPrefix}${parsed.expression}${delimiter}${detailText}${wrapperSuffix}`;
   });
 
   if (didReplace) {
@@ -293,8 +368,10 @@ export function formatInlineDiceMessage(message: string, diceSize: number): stri
   const leading = normalized.match(/^\s*/)?.[0] ?? "";
   const trailing = normalized.match(/\s*$/)?.[0] ?? "";
   const delimiter = parsed.separator ?? "：";
-  const highlightToken = buildHighlightToken(String(rollResult));
-  return `${leading}${parsed.expression}${delimiter}${highlightToken}${trailing}`;
+  const detailText = parsed.detail
+    ? formatDetailWithHighlight(parsed.detail, String(rollResult))
+    : buildHighlightToken(String(rollResult));
+  return `${leading}${parsed.expression}${delimiter}${detailText}${trailing}`;
 }
 
 export function formatAnkoDiceMessage(message: string, diceSize: number): string | null {
