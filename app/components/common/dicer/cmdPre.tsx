@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
-import { formatDiceTableMessage } from "@/components/common/dicer/diceTable";
+import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
@@ -364,7 +364,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         // 移除消息中的所有标签（格式：#标签#）
         const cleanMessage = message.replace(/#[^#]+#/g, "").trim();
         const cleanCopywriting = copywritingSuffix.replace(/#[^#]+#/g, "").trim();
-        const formattedDiceTable = formatDiceTableMessage(cleanMessage, diceTableDiceSize);
+        const formattedDiceTable = formatAnkoDiceMessage(cleanMessage, diceTableDiceSize);
         const baseContent = formattedDiceTable ?? cleanMessage;
         dicerMessageRequest.content = baseContent + (cleanCopywriting ? `\n${cleanCopywriting}` : "");
         dicerMessageRequest.extra = { result: dicerMessageRequest.content };
