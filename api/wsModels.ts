@@ -20,6 +20,8 @@ export enum MessageType {
     WEBGAL_VAR = 11,
     /** 跑团：检定/指令请求消息（点击后由他人“一键发送”执行） */
     COMMAND_REQUEST = 12,
+    /** WebGAL 选择消息（结构化选项） */
+    WEBGAL_CHOOSE = 13,
     CLUE_CARD = 1000,
     THREAD_ROOT = 10001,
 }

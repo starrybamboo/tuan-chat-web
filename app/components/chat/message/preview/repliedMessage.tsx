@@ -5,6 +5,7 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { XMarkICon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
@@ -23,6 +24,7 @@ export default function RepliedMessage({ replyMessage, className }: {
   const role = useGetRoleQuery(replyMessage.roleId ?? -1).data?.data;
   const isTextMessage = replyMessage.messageType === 1;
   const isWebgalVarMessage = replyMessage.messageType === MESSAGE_TYPE.WEBGAL_VAR;
+  const isWebgalChooseMessage = replyMessage.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE;
   const isDocCardMessage = replyMessage.messageType === MESSAGE_TYPE.DOC_CARD;
   const isIntroText = replyMessage.messageType === MESSAGE_TYPE.INTRO_TEXT;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
@@ -38,6 +40,12 @@ export default function RepliedMessage({ replyMessage, className }: {
     ? (() => {
         const payload = extractWebgalVarPayload(replyMessage.extra);
         return payload ? formatWebgalVarSummary(payload) : null;
+      })()
+    : null;
+  const webgalChooseSummary = isWebgalChooseMessage
+    ? (() => {
+        const payload = extractWebgalChoosePayload(replyMessage.extra);
+        return payload ? formatWebgalChooseSummary(payload) : null;
       })()
     : null;
 
@@ -78,6 +86,13 @@ export default function RepliedMessage({ replyMessage, className }: {
                 {[`[变量]`, webgalVarSummary ?? ""].filter(Boolean).join(" ")}
               </span>
             )
+            : isWebgalChooseMessage
+              ? (
+                  <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
+                    {namePrefix}
+                    {[`[选择]`, webgalChooseSummary ?? ""].filter(Boolean).join(" ")}
+                  </span>
+                )
           : isDocCardMessage
             ? (
                 <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
