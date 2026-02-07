@@ -11,6 +11,7 @@ import { openMessageAnnotationPicker } from "@/components/chat/message/annotatio
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
+import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
@@ -31,6 +32,7 @@ import {
   toggleAnnotation,
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -1039,6 +1041,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               <span className="break-words">{summary || "[变量]"}</span>
             </div>
           );
+        }
+        case MESSAGE_TYPE.WEBGAL_CHOOSE: {
+          const payload = extractWebgalChoosePayload(message.extra);
+          return <WebgalChooseMessage payload={payload} />;
         }
         case MESSAGE_TYPE.WEBGAL_COMMAND: {
           const commandText = message.content?.trim() || "";

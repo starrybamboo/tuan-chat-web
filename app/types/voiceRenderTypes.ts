@@ -46,6 +46,8 @@ export const MESSAGE_TYPE = {
   WEBGAL_VAR: 11,
   /** 跑团：检定/指令请求消息（点击后由他人“一键发送”执行） */
   COMMAND_REQUEST: 12,
+  /** WebGAL choose message */
+  WEBGAL_CHOOSE: 13,
   CLUE_CARD: 1000,
   /** 文档卡片消息（Blocksuite 文档引用） */
   DOC_CARD: 1002,

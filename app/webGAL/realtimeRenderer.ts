@@ -4,10 +4,11 @@ import type { QueryClient } from "@tanstack/react-query";
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
  */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
-import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
+import { MESSAGE_TYPE, type FigureAnimationSettings } from "@/types/voiceRenderTypes";
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
+import { buildWebgalChooseLine, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
@@ -1442,6 +1443,20 @@ export class RealtimeRenderer {
       return;
     }
 
+    // WebGAL 选择消息：转换为 choose 指令
+    if ((msg.messageType as number) === MESSAGE_TYPE.WEBGAL_CHOOSE) {
+      const payload = extractWebgalChoosePayload(msg.extra);
+      if (!payload) {
+        finalizeMessageLineRange();
+        return;
+      }
+      await this.appendLine(targetRoomId, buildWebgalChooseLine(payload), syncToFile);
+      if (syncToFile)
+        this.sendSyncMessage(targetRoomId);
+      finalizeMessageLineRange();
+      return;
+    }
+
     // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
     if (msg.messageType !== 1 && msg.messageType !== 9) {
       finalizeMessageLineRange();
@@ -1458,6 +1473,15 @@ export class RealtimeRenderer {
     // 获取角色信息
     const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
     // avatarId 优先使用消息上的 avatarId；若缺失则回退到角色本身的 avatarId（即“角色头像”）
+    const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
+
+    // 清除立绘需要在当前消息脚本的最前面，确保在本条对话之前生效
+    if (shouldClearFigure) {
+      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+    }
+
     const messageAvatarId = msg.avatarId ?? 0;
     const roleAvatarId = Number(role?.avatarId ?? 0);
     const effectiveAvatarId = messageAvatarId > 0
@@ -1486,8 +1510,6 @@ export class RealtimeRenderer {
     // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
     // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
     const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
-    const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
-
     // 只有 "left", "center", "right" 才是有效的立绘位置
     const isValidPosition = rawFigurePosition === "left" || rawFigurePosition === "center" || rawFigurePosition === "right";
     const figurePosition = isValidPosition
@@ -1502,13 +1524,6 @@ export class RealtimeRenderer {
     // 旁白和黑屏文字不需要显示立绘
     // 如果 figurePosition 为 undefined，也不显示立绘
     const shouldShowFigure = !isNarrator && !isIntroText && !!figurePosition;
-
-    // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
-    if (shouldClearFigure) {
-      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
-    }
 
     if (shouldShowFigure && spriteFileName) {
       // 不再自动清除立绘，立绘需要手动清除
