@@ -30,7 +30,7 @@ export default function ChatPageLayout({
   mainContent,
 }: ChatPageLayoutProps) {
   return (
-    <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-visible overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
+    <div className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-x-hidden overflow-y-hidden ${screenSize === "sm" ? "bg-base-100" : "bg-base-200"}`}>
       {shouldShowLeftDrawerToggle && (
         <div className="tooltip tooltip-right absolute left-2 top-2 z-50" data-tip={leftDrawerToggleLabel}>
           <button
