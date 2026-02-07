@@ -13,6 +13,7 @@ import PerformanceEditorSmall from "./PerformanceEditorSmall";
 
 interface ExpansionModuleProps {
   isEditing?: boolean;
+  saveSignal?: number;
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
@@ -29,6 +30,8 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束
  */
 export default function ExpansionModule({
+  isEditing,
+  saveSignal,
   roleId,
   ruleId,
   onLoadingChange, // 1. 在 props 中解构出 onLoadingChange
@@ -242,6 +245,8 @@ export default function ExpansionModule({
               ruleId={selectedRuleId}
               fieldType="basic"
               customLabel="基础属性"
+              forcedEditing={isEditing}
+              saveSignal={saveSignal}
             />
           );
     }
@@ -269,6 +274,8 @@ export default function ExpansionModule({
               ruleId={selectedRuleId}
               fieldType="ability"
               customLabel="能力"
+              forcedEditing={isEditing}
+              saveSignal={saveSignal}
             />
           );
     }
@@ -296,6 +303,8 @@ export default function ExpansionModule({
               ruleId={selectedRuleId}
               fieldType="skill"
               customLabel="技能"
+              forcedEditing={isEditing}
+              saveSignal={saveSignal}
             />
           );
     }
@@ -323,6 +332,8 @@ export default function ExpansionModule({
               abilityData={renderData.actTemplate}
               roleId={roleId}
               ruleId={selectedRuleId}
+              forcedEditing={isEditing}
+              saveSignal={saveSignal}
             />
           </Section>
         );
