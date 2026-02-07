@@ -17,7 +17,16 @@ function SubRoomWindowImpl() {
 
   const subRoomWindowWidth = useDrawerPreferenceStore(state => state.subRoomWindowWidth);
   const setSubRoomWindowWidth = useDrawerPreferenceStore(state => state.setSubRoomWindowWidth);
+  const userDrawerWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
+  const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
+  const docFolderDrawerWidth = useDrawerPreferenceStore(state => state.docFolderDrawerWidth);
+  const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
+  const resolvedUserDrawerWidth = Math.min(620, Math.max(240, userDrawerWidth));
+  const resolvedRoleDrawerWidth = Math.min(620, Math.max(240, roleDrawerWidth));
+  const resolvedDocFolderDrawerWidth = Math.min(760, Math.max(280, docFolderDrawerWidth));
+  const resolvedInitiativeDrawerWidth = Math.min(760, Math.max(320, initiativeDrawerWidth));
+  const resolvedExportDrawerWidth = Math.min(760, Math.max(280, exportDrawerWidth));
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [activePane, setActivePane] = React.useState<SubPane>("map");
@@ -38,24 +47,35 @@ function SubRoomWindowImpl() {
 
   // 预留左侧聊天区的“最小可用宽度”。当左侧已经无法继续缩小时，
   // SubRoomWindow 也不允许继续拖宽，避免整体溢出。
-  // 这里额外考虑了 RoomSideDrawers（user/role/export）可能占用的固定宽度。
+  // 这里额外考虑了 RoomSideDrawers（user/role/docFolder/initiative/export）当前占用宽度。
   const minRemainingWidth = React.useMemo(() => {
     const baseMinChatWidth = 520;
-    const fixedMemberDrawerWidth = 270;
-    const docFolderDrawerWidth = 320;
 
     let lightDrawerWidth = 0;
-    if (sideDrawerState === "user" || sideDrawerState === "role") {
-      lightDrawerWidth = fixedMemberDrawerWidth;
+    if (sideDrawerState === "user") {
+      lightDrawerWidth = resolvedUserDrawerWidth;
+    }
+    else if (sideDrawerState === "role") {
+      lightDrawerWidth = resolvedRoleDrawerWidth;
     }
     else if (sideDrawerState === "docFolder") {
-      lightDrawerWidth = docFolderDrawerWidth;
+      lightDrawerWidth = resolvedDocFolderDrawerWidth;
+    }
+    else if (sideDrawerState === "initiative") {
+      lightDrawerWidth = resolvedInitiativeDrawerWidth;
     }
     else if (sideDrawerState === "export") {
-      lightDrawerWidth = exportDrawerWidth;
+      lightDrawerWidth = resolvedExportDrawerWidth;
     }
     return baseMinChatWidth + lightDrawerWidth;
-  }, [exportDrawerWidth, sideDrawerState]);
+  }, [
+    resolvedDocFolderDrawerWidth,
+    resolvedExportDrawerWidth,
+    resolvedInitiativeDrawerWidth,
+    resolvedRoleDrawerWidth,
+    resolvedUserDrawerWidth,
+    sideDrawerState,
+  ]);
 
   const { minWidth, maxWidth } = React.useMemo(() => {
     const w = typeof window === "undefined" ? 1200 : window.innerWidth;

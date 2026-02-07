@@ -37,39 +37,39 @@ export default function Author({ userId }: { userId?: number }) {
   }, []);
 
   return (
-    <div className="flex items-center justify-center gap-4 bg-base-200 rounded-xl w-full md:w-fit min-w-fit p-4">
+    <div className="flex w-full min-w-0 items-center gap-3 rounded-xl bg-base-200 p-4">
       {userInfoLoading
         ? (
-            <div className="skeleton w-16 h-16 rounded-full flex-shrink-0"></div>
+            <div className="skeleton h-14 w-14 shrink-0 rounded-full"></div>
           )
         : (
             <img
-              className="w-16 h-16 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+              className="h-14 w-14 shrink-0 rounded-full object-cover transition-opacity hover:opacity-80 cursor-pointer"
               src={data.avatar}
               onClick={handleAvatarClick}
               alt="用户头像"
             />
           )}
 
-      <div className="flex flex-col justify-between min-w-0 flex-1 max-w-3xs">
+      <div className="min-w-0 flex-1">
         {userInfoLoading
           ? (
               <>
-                <div className="skeleton h-6 w-24 mb-2"></div>
+                <div className="skeleton mb-2 h-6 w-24"></div>
                 <div className="skeleton h-4 w-32"></div>
               </>
             )
           : (
               <>
-                <h3 className="card-title text-lg overflow-hidden text-ellipsis">{data.name}</h3>
-                <p className="text-sm text-base-content/80 line-clamp-3">{data.description}</p>
+                <h3 className="text-lg font-semibold truncate whitespace-nowrap">{data.name}</h3>
+                <p className="text-sm text-base-content/80 line-clamp-2 break-words">{data.description}</p>
               </>
             )}
       </div>
       {/* 关注按钮紧跟在用户信息右侧 */}
       {userId && userId !== contextUserId && (
-        <div className="flex-shrink-0">
-          <FollowButton userId={userId} size="btn-lg" width="w-28" />
+        <div className="shrink-0">
+          <FollowButton userId={userId} size="btn-sm" width="w-20" />
         </div>
       )}
 

@@ -189,4 +189,17 @@ body {
   scrollbar-width: none;
 }
 
+@keyframes portal-tooltip-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.portal-tooltip {
+  animation: portal-tooltip-fade-in 120ms ease-out;
+}
+
 /* 不要覆写 Tailwind 的 `.hidden` 为 `!important`：会破坏 `hidden lg:flex` 等响应式切换。 */

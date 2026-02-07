@@ -9,20 +9,27 @@ import { VaulSideDrawer } from "@/components/common/vaulSideDrawer";
 
 function RoomSideDrawersImpl() {
   const sideDrawerState = useSideDrawerStore(state => state.state);
+  const userDrawerWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
+  const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
+  const docFolderDrawerWidth = useDrawerPreferenceStore(state => state.docFolderDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
   const initiativeDrawerWidth = useDrawerPreferenceStore(state => state.initiativeDrawerWidth);
-  const initiativeWidth = Math.max(initiativeDrawerWidth, 480);
+  const setUserDrawerWidth = useDrawerPreferenceStore(state => state.setUserDrawerWidth);
+  const setRoleDrawerWidth = useDrawerPreferenceStore(state => state.setRoleDrawerWidth);
+  const setDocFolderDrawerWidth = useDrawerPreferenceStore(state => state.setDocFolderDrawerWidth);
+  const setExportDrawerWidth = useDrawerPreferenceStore(state => state.setExportDrawerWidth);
+  const setInitiativeDrawerWidth = useDrawerPreferenceStore(state => state.setInitiativeDrawerWidth);
 
-  // user / role drawer 固定宽度（与用户偏好宽度解耦）
-  const fixedMemberDrawerWidth = 270;
-  const docFolderDrawerWidth = 320;
   const sidebarPanelClassName = "shadow-none border-l border-base-300";
 
   return (
     <>
       <VaulSideDrawer
         isOpen={sideDrawerState === "user"}
-        width={fixedMemberDrawerWidth}
+        width={userDrawerWidth}
+        minWidth={240}
+        maxWidth={620}
+        onWidthChange={setUserDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="flex-1 min-h-0">
@@ -32,7 +39,10 @@ function RoomSideDrawersImpl() {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "role"}
-        width={fixedMemberDrawerWidth}
+        width={roleDrawerWidth}
+        minWidth={240}
+        maxWidth={620}
+        onWidthChange={setRoleDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="flex-1 min-h-0">
@@ -43,6 +53,9 @@ function RoomSideDrawersImpl() {
       <VaulSideDrawer
         isOpen={sideDrawerState === "export"}
         width={exportDrawerWidth}
+        minWidth={280}
+        maxWidth={760}
+        onWidthChange={setExportDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="overflow-auto flex-1">
@@ -52,7 +65,10 @@ function RoomSideDrawersImpl() {
 
       <VaulSideDrawer
         isOpen={sideDrawerState === "initiative"}
-        width={initiativeWidth}
+        width={initiativeDrawerWidth}
+        minWidth={320}
+        maxWidth={760}
+        onWidthChange={setInitiativeDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="overflow-auto flex-1">
@@ -63,6 +79,9 @@ function RoomSideDrawersImpl() {
       <VaulSideDrawer
         isOpen={sideDrawerState === "docFolder"}
         width={docFolderDrawerWidth}
+        minWidth={280}
+        maxWidth={760}
+        onWidthChange={setDocFolderDrawerWidth}
         panelClassName={sidebarPanelClassName}
       >
         <div className="flex-1 min-h-0 overflow-hidden">

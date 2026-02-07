@@ -44,6 +44,7 @@ export default function ChatPage() {
     urlRoomId,
     activeSpaceId,
     isPrivateChatMode,
+    isDocRoute,
     activeDocId,
     activeRoomId,
     targetMessageId,
@@ -219,6 +220,7 @@ export default function ChatPage() {
 
   useChatPageAutoNavigation({
     activeSpaceId,
+    isDocRoute,
     isPrivateChatMode,
     orderedRooms,
     rooms,
