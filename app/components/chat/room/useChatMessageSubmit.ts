@@ -8,7 +8,7 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
-import { formatDiceTableMessage } from "@/components/common/dicer/diceTable";
+import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
@@ -473,7 +473,7 @@ export default function useChatMessageSubmit({
             catch {
               // ignore parse errors
             }
-            diceTableContent = formatDiceTableMessage(normalizedContent, diceTableDiceSize);
+            diceTableContent = formatAnkoDiceMessage(normalizedContent, diceTableDiceSize);
           }
 
           const finalContent = diceTableContent ?? normalizedContent;

@@ -1,9 +1,12 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
-import React, { use, useCallback, useMemo, useState } from "react";
+import React, { use, useCallback, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
@@ -15,7 +18,6 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import BetterImg from "@/components/common/betterImg";
-import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -180,6 +182,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
   const [editingRoleName, setEditingRoleName] = useState("");
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const editInputRef = useRef<ChatInputAreaHandle | null>(null);
 
   // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
   const isNarrator = !message.roleId || message.roleId <= 0;
@@ -305,12 +309,33 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       canEdit={canEdit}
       onToggle={handleToggleAnnotation}
       onOpenPicker={handleOpenAnnotations}
+      showWhenEmpty={true}
+      alwaysShowAddButton={true}
     />
   );
 
   const canEditContent = canEdit
     && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT);
+  const canShowTextStyleToolbar = isEditingContent
+    && canEdit
+    && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT || message.messageType === MESSAGE_TYPE.DICE);
+  const textStyleToolbar = canShowTextStyleToolbar
+    ? (
+        <TextStyleToolbar
+          chatInputRef={editInputRef}
+          visible={canShowTextStyleToolbar}
+          className="text-style-toolbar"
+        />
+      )
+    : null;
   const threadActionLabel = (isThreadRoot || threadHintMeta?.rootId) ? "打开子区" : "创建子区";
+  const shouldIgnoreEditBlur = useCallback((target: EventTarget | null) => {
+    const element = target as HTMLElement | null;
+    if (!element) {
+      return false;
+    }
+    return Boolean(element.closest(".text-style-toolbar") || element.closest(".modal"));
+  }, []);
 
   const handleReplyClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -867,20 +892,28 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       switch (message.messageType) {
         case MESSAGE_TYPE.TEXT:
           return (
-            <EditableField
+            <EditableMessageContent
               content={message.content}
-              handleContentUpdate={handleContentUpdate}
+              onCommit={handleContentUpdate}
               className="editable-field whitespace-pre-wrap break-words"
+              editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+              onEditingChange={setIsEditingContent}
+              editInputRef={editInputRef}
+              shouldIgnoreBlur={shouldIgnoreEditBlur}
               canEdit={canEditContent}
             />
           );
         case MESSAGE_TYPE.INTRO_TEXT:
           return (
             <div className="rounded-lg bg-black text-white px-3 py-2 shadow-inner">
-              <EditableField
+              <EditableMessageContent
                 content={message.content}
-                handleContentUpdate={handleContentUpdate}
+                onCommit={handleContentUpdate}
                 className="editable-field whitespace-pre-wrap break-words text-white"
+                editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-white"
+                onEditingChange={setIsEditingContent}
+                editInputRef={editInputRef}
+                shouldIgnoreBlur={shouldIgnoreEditBlur}
                 canEdit={canEditContent}
               />
             </div>
@@ -948,10 +981,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             <div className="relative text-sm">
               <span className="badge badge-accent badge-xs absolute top-0 right-0">骰娘</span>
               <div className="pr-10 pt-1">
-                <EditableField
+                <EditableMessageContent
                   content={result}
-                  handleContentUpdate={handleDiceContentUpdate}
+                  onCommit={handleDiceContentUpdate}
                   className="editable-field whitespace-pre-wrap break-words"
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+                  onEditingChange={setIsEditingContent}
+                  editInputRef={editInputRef}
+                  shouldIgnoreBlur={shouldIgnoreEditBlur}
                   canEdit={canEdit}
                 />
               </div>
@@ -1045,6 +1082,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const creatorName = displayRoleName;
     return (
       <div className="w-full py-1.5 sm:py-2 group">
+        {textStyleToolbar}
         <div
           className="w-full rounded-md border border-base-300 bg-base-200/40 px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer hover:bg-base-200 transition-colors"
           onClick={handleOpenThreadRoot}
@@ -1098,6 +1136,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   return (
     <div>
+      {textStyleToolbar}
       {useChatBubbleStyle
         ? (
             <div
