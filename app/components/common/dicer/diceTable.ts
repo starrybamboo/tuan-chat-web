@@ -249,37 +249,53 @@ export function formatDiceTableMessage(message: string, diceSize: number): strin
     return null;
   }
 
-  const headerLine = lines[0] ?? "";
-  if (!headerLine.trim()) {
-    return null;
+  let headerIndex = -1;
+  let headerMatch: HeaderDiceMatch | null = null;
+  let rollResult: number | null = null;
+  let optionLines: string[] = [];
+
+  for (let i = 0; i < lines.length - 1; i++) {
+    const headerLine = lines[i] ?? "";
+    if (!headerLine.trim()) {
+      continue;
+    }
+    const candidateMatch = extractHeaderDiceMatch(headerLine);
+    if (!candidateMatch) {
+      continue;
+    }
+    const candidateRoll = resolveRollResult(candidateMatch.parsed, diceSize);
+    if (candidateRoll === null) {
+      continue;
+    }
+    const candidateOptionLines = lines.slice(i + 1);
+    const candidateHasOptions = candidateOptionLines.some((line) => {
+      const parsedLine = unwrapLine(stripTextEnhanceSyntax(line));
+      return DICE_TABLE_OPTION_PATTERN.test(parsedLine);
+    });
+    if (!candidateHasOptions) {
+      continue;
+    }
+    const candidateRollText = String(candidateRoll);
+    const candidateHasMatch = candidateOptionLines.some((line) => {
+      const parsedLine = unwrapLine(stripTextEnhanceSyntax(line));
+      const match = parsedLine.match(DICE_TABLE_OPTION_PATTERN);
+      return match && match[1] === candidateRollText;
+    });
+    if (!candidateHasMatch) {
+      continue;
+    }
+
+    headerIndex = i;
+    headerMatch = candidateMatch;
+    rollResult = candidateRoll;
+    optionLines = candidateOptionLines;
+    break;
   }
 
-  const headerMatch = extractHeaderDiceMatch(headerLine);
-  if (!headerMatch) {
+  if (!headerMatch || rollResult === null) {
     return null;
   }
-
-  const rollResult = resolveRollResult(headerMatch.parsed, diceSize);
-  if (rollResult === null) {
-    return null;
-  }
-
-  const optionLines = lines.slice(1);
-  const hasOptions = optionLines.some((line) => {
-    const parsedLine = unwrapLine(stripTextEnhanceSyntax(line));
-    return DICE_TABLE_OPTION_PATTERN.test(parsedLine);
-  });
-  if (!hasOptions) {
-    return null;
-  }
-
-  const rollText = String(rollResult);
-  const hasMatch = optionLines.some((line) => {
-    const parsedLine = unwrapLine(stripTextEnhanceSyntax(line));
-    const match = parsedLine.match(DICE_TABLE_OPTION_PATTERN);
-    return match && match[1] === rollText;
-  });
-  if (!hasMatch) {
+  if (headerIndex < 0) {
     return null;
   }
 
@@ -287,6 +303,7 @@ export function formatDiceTableMessage(message: string, diceSize: number): strin
     return normalized;
   }
 
+  const rollText = String(rollResult);
   const colonChar = headerMatch.parsed.separator
     ?? headerMatch.delimiterHint
     ?? "：";
@@ -294,6 +311,7 @@ export function formatDiceTableMessage(message: string, diceSize: number): strin
     ? formatDetailWithHighlight(headerMatch.parsed.detail, rollText)
     : buildHighlightToken(rollText);
   const formattedLines = [
+    ...lines.slice(0, headerIndex),
     `${headerMatch.prefix}${headerMatch.wrapperPrefix}${headerMatch.parsed.expression}${colonChar}${detailText}${headerMatch.wrapperSuffix}${headerMatch.suffix}`,
   ];
 
