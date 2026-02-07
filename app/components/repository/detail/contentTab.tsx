@@ -3,7 +3,7 @@ import type { RepositoryEntityResponse } from "api/deprecated/RepositoryEntityRe
 import { useEdgesState, useNodesState } from "@xyflow/react";
 // import { useRepositoryInfoQuery } from "api/hooks/repositoryQueryHooks";
 import { useState } from "react";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import EntityList from "@/components/repository/detail/ContentTab/entityLists";
 import Roles from "@/components/repository/detail/ContentTab/roles";
 import NewSceneGraph from "@/components/repository/detail/ContentTab/scene/react flow/newSceneGraph";
@@ -161,7 +161,7 @@ export default function ContentTab({ repositoryInfo, repositoryId, isLoading, er
         </div>
       </div>
 
-      <PopWindow isOpen={showSceneGraph} onClose={() => setShowSceneGraph(false)} fullScreen={true}>
+      <ToastWindow isOpen={showSceneGraph} onClose={() => setShowSceneGraph(false)} fullScreen={true}>
         <div className="md:p-8" style={{ width: "100%", height: "100%" }}>
           <NewSceneGraph
             nodes={nodes}
@@ -175,7 +175,7 @@ export default function ContentTab({ repositoryInfo, repositoryId, isLoading, er
             error={error}
           />
         </div>
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

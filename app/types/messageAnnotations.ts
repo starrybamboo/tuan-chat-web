@@ -13,6 +13,7 @@ export const ANNOTATION_IDS = {
   FIGURE_POS_LEFT: "figure.pos.left",
   FIGURE_POS_CENTER: "figure.pos.center",
   FIGURE_POS_RIGHT: "figure.pos.right",
+  FIGURE_CLEAR: "figure.clear",
 } as const;
 
 const FIGURE_POSITION_IDS: Record<FigurePositionKey, string> = {
@@ -80,19 +81,33 @@ export function toggleAnnotation(annotations: string[] | undefined, id: string) 
 }
 
 export function setFigurePositionAnnotation(annotations: string[] | undefined, position?: FigurePosition) {
-  const list = normalizeAnnotations(annotations).filter(item => !FIGURE_POSITION_ID_SET.has(item));
+  const list = normalizeAnnotations(annotations)
+    .filter(item => !FIGURE_POSITION_ID_SET.has(item));
   if (!position)
     return list;
+  const cleaned = list.filter(item => item !== ANNOTATION_IDS.FIGURE_CLEAR);
   const id = FIGURE_POSITION_IDS[position];
-  return id ? [...list, id] : list;
+  if (!id || cleaned.includes(id)) {
+    return cleaned;
+  }
+  return [...cleaned, id];
 }
 
 export const isFigurePositionAnnotationId = (id: string) => FIGURE_POSITION_ID_SET.has(id);
 
 export const getFigurePositionFromAnnotationId = (id: string) => FIGURE_POSITION_BY_ID[id];
 
+export function hasClearFigureAnnotation(annotations: string[] | undefined) {
+  return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.FIGURE_CLEAR);
+}
+
 export function getFigurePositionFromAnnotations(annotations: string[] | undefined) {
   const list = normalizeAnnotations(annotations);
-  const found = list.find(item => FIGURE_POSITION_BY_ID[item]);
-  return found ? FIGURE_POSITION_BY_ID[found] : undefined;
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const id = list[i];
+    if (FIGURE_POSITION_BY_ID[id]) {
+      return FIGURE_POSITION_BY_ID[id];
+    }
+  }
+  return undefined;
 }

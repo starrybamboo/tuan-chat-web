@@ -4,6 +4,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/indexedDB/composerAnnotationsDb";
 import AvatarSwitch from "@/components/chat/input/avatarSwitch";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
@@ -19,8 +20,9 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import { getFigurePositionFromAnnotationId, isFigurePositionAnnotationId, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
+import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface RoomComposerPanelProps {
@@ -127,6 +129,24 @@ function RoomComposerPanelImpl({
   const screenSize = useScreenSize();
   const toolbarLayout: "inline" | "stacked" = screenSize === "sm" ? "stacked" : "inline";
   const isMobile = screenSize === "sm";
+  const spaceContext = React.use(SpaceContext);
+  const spaceMembers = spaceContext.spaceMembers;
+  const resolveDefaultFigurePosition = React.useCallback((role?: UserRole) => {
+    if (!role) {
+      return undefined;
+    }
+    const memberType = (spaceMembers ?? []).find(member => member.userId === role.userId)?.memberType;
+    if (memberType === 1) {
+      return "left";
+    }
+    if (memberType === 2) {
+      return "right";
+    }
+    if (role.userId === userId && typeof isKP === "boolean") {
+      return isKP ? "left" : "right";
+    }
+    return undefined;
+  }, [isKP, spaceMembers, userId]);
   const mentionRoles = React.useMemo(() => {
     if (!isKP) {
       return mentionRolesProp;
@@ -212,21 +232,12 @@ function RoomComposerPanelImpl({
   const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const hasRoleAvatarsLoaded = Boolean(roleAvatarsQuery.data);
 
-  const displayRoleName = React.useMemo(() => {
-    if (isSpectator) {
-      return "观战";
-    }
-    // -1 表示旁白：不显示名称，但保持占位（渲染层处理）
-    if (curRoleId < 0) {
-      return "";
-    }
-    // 0 表示未选择角色
-    if (curRoleId === 0) {
-      return "未选择角色";
-    }
-    const draftName = draftCustomRoleNameMap[curRoleId]?.trim();
-    return draftName || currentRole?.roleName || "未选择角色";
-  }, [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator]);
+  const displayRoleName = React.useMemo(() => getDisplayRoleName({
+    roleId: curRoleId,
+    roleName: currentRole?.roleName,
+    draftRoleName: draftCustomRoleNameMap[curRoleId],
+    isSpectator,
+  }), [curRoleId, currentRole?.roleName, draftCustomRoleNameMap, isSpectator]);
 
   React.useEffect(() => {
     if (isSpectator || curRoleId <= 0) {
@@ -297,7 +308,12 @@ function RoomComposerPanelImpl({
         if (!isActive) {
           return;
         }
-        setComposerAnnotations(normalizeAnnotations(stored ?? []));
+        const defaultFigurePosition = resolveDefaultFigurePosition(currentRole);
+        let next = normalizeAnnotations(stored ?? []);
+        if (!hasClearFigureAnnotation(next) && !getFigurePositionFromAnnotations(next) && defaultFigurePosition) {
+          next = setFigurePositionAnnotation(next, defaultFigurePosition);
+        }
+        setComposerAnnotations(next);
       })
       .finally(() => {
         if (!isActive) {
@@ -310,7 +326,7 @@ function RoomComposerPanelImpl({
     return () => {
       isActive = false;
     };
-  }, [curRoleId, roomId, setComposerAnnotations]);
+  }, [curRoleId, currentRole, resolveDefaultFigurePosition, roomId, setComposerAnnotations]);
 
   React.useEffect(() => {
     if (isSpectator) {
@@ -326,12 +342,6 @@ function RoomComposerPanelImpl({
   }, [composerAnnotations, curRoleId, isSpectator, roomId]);
 
   const handleToggleComposerAnnotation = React.useCallback((id: string) => {
-    if (isFigurePositionAnnotationId(id)) {
-      const alreadySelected = composerAnnotations.includes(id);
-      const nextPosition = alreadySelected ? undefined : getFigurePositionFromAnnotationId(id);
-      setComposerAnnotations(setFigurePositionAnnotation(composerAnnotations, nextPosition));
-      return;
-    }
     setComposerAnnotations(toggleAnnotation(composerAnnotations, id));
   }, [composerAnnotations, setComposerAnnotations]);
 

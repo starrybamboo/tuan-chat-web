@@ -3,7 +3,7 @@ import React from "react";
 
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface ChatFrameOverlaysProps {
   isForwardWindowOpen: boolean;
@@ -34,14 +34,14 @@ export default function ChatFrameOverlays({
 
   return (
     <>
-      <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
+      <ToastWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow
           onClickRoom={roomId => onForward(roomId)}
           generateForwardMessage={generateForwardMessage}
         >
         </ForwardWindow>
-      </PopWindow>
-      <PopWindow isOpen={isExportImageWindowOpen} onClose={() => setIsExportImageWindowOpen(false)}>
+      </ToastWindow>
+      <ToastWindow isOpen={isExportImageWindowOpen} onClose={() => setIsExportImageWindowOpen(false)}>
         <ExportImageWindow
           selectedMessages={selectedMessages}
           onClose={() => {
@@ -49,7 +49,7 @@ export default function ChatFrameOverlays({
             updateSelectedMessageIds(new Set());
           }}
         />
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

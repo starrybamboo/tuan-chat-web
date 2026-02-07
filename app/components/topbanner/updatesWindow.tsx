@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
-
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 // 动态导入所有Markdown文件
 const markdownFiles = import.meta.glob("/app/updateLogs/*.md", {
@@ -10,7 +9,7 @@ const markdownFiles = import.meta.glob("/app/updateLogs/*.md", {
   import: "default",
   eager: false,
 });
-export default function UpdatesPopWindow() {
+export default function UpdatesToastWindow() {
   // 储存上一次未提醒的日志文件编号
   const [unRemindFileNumber, setLastUnRemindFileNumber] = useLocalStorage<number>("unRemindFileNumber", -1);
   const totalFiles = Object.keys(markdownFiles).length;
@@ -34,11 +33,11 @@ export default function UpdatesPopWindow() {
   if (!isOpen || totalFiles === 0)
     return null;
   return (
-    <PopWindow isOpen={isOpen} onClose={handleClose}>
+    <ToastWindow isOpen={isOpen} onClose={handleClose}>
       <div className="p-6 w-[80vw] lg:w-[60vw] overflow-auto flex flex-col">
         <div className="flex justify-between items-center pb-4">
           <span className="text-xl font-bold">
-            更新日志 (
+            ?????? (
             {curLogIndex + 1}
             /
             {totalFiles}
@@ -67,7 +66,7 @@ export default function UpdatesPopWindow() {
             type="button"
             className="btn btn-info"
           >
-            不再提醒
+            ??????
           </button>
           <button
             onClick={() => { setMarkdownIndex(prev => (prev < totalFiles - 1 ? prev + 1 : 0)); }}
@@ -79,6 +78,6 @@ export default function UpdatesPopWindow() {
           </button>
         </div>
       </div>
-    </PopWindow>
+    </ToastWindow>
   );
 }

@@ -5,7 +5,7 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import BetterImg from "@/components/common/betterImg";
 import { MusicNote } from "@/icons";
 
-import { getFigurePositionFromAnnotationId, isFigurePositionAnnotationId, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
+import { normalizeAnnotations, toggleAnnotation } from "@/types/messageAnnotations";
 
 export default function ChatAttachmentsPreviewFromStore() {
   const imgFiles = useChatComposerStore(state => state.imgFiles);
@@ -29,12 +29,6 @@ export default function ChatAttachmentsPreviewFromStore() {
     return null;
 
   const handleToggleTempAnnotation = (id: string) => {
-    if (isFigurePositionAnnotationId(id)) {
-      const alreadySelected = tempAnnotations.includes(id);
-      const nextPosition = alreadySelected ? undefined : getFigurePositionFromAnnotationId(id);
-      setTempAnnotations(setFigurePositionAnnotation(tempAnnotations, nextPosition));
-      return;
-    }
     setTempAnnotations(toggleAnnotation(tempAnnotations, id));
   };
 

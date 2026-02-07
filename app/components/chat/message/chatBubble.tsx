@@ -10,8 +10,10 @@ import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import BetterImg from "@/components/common/betterImg";
 import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -21,12 +23,10 @@ import { BranchIcon, ChatBubbleEllipsesOutline, CommentOutline, Edit2Outline, Em
 import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
-  getFigurePositionFromAnnotationId,
   hasAnnotation,
-  isFigurePositionAnnotationId,
   normalizeAnnotations,
   setAnnotation,
-  setFigurePositionAnnotation,
+  toggleAnnotation,
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
@@ -79,10 +79,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
+  const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
+  const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
+  const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
+  const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
 
   const isMobile = getScreenSize() === "sm";
 
@@ -204,9 +208,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   // 获取黑屏文字的 hold 设置
   const introHold = hasAnnotation(annotations, ANNOTATION_IDS.INTRO_HOLD);
   // 获取显示的角色名（黑屏文字不显示）
-  const displayRoleName = isIntroText
-    ? ""
-    : (customRoleName || role?.roleName?.trim() || (isNarrator ? "" : "Undefined"));
+  const displayRoleName = getDisplayRoleName({
+    roleId: message.roleId,
+    roleName: role?.roleName,
+    customRoleName,
+    isIntroText,
+  });
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
@@ -282,15 +289,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   }, [message, updateMessageAndSync]);
 
   const handleToggleAnnotation = useCallback((id: string) => {
-    if (isFigurePositionAnnotationId(id)) {
-      const alreadySelected = annotations.includes(id);
-      const nextPosition = alreadySelected ? undefined : getFigurePositionFromAnnotationId(id);
-      handleUpdateAnnotations(setFigurePositionAnnotation(annotations, nextPosition));
-      return;
-    }
-    const has = annotations.includes(id);
-    const next = has ? annotations.filter(item => item !== id) : [...annotations, id];
-    handleUpdateAnnotations(next);
+    handleUpdateAnnotations(toggleAnnotation(annotations, id));
   }, [annotations, handleUpdateAnnotations]);
 
   const handleOpenAnnotations = useCallback(() => {
@@ -546,7 +545,47 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     </div>
   );
 
-  function handleAvatarClick() {
+  const handleAvatarSample = useCallback(() => {
+    const roomId = roomContext.roomId ?? -1;
+    const targetRoleId = message.roleId ?? 0;
+    const targetAvatarId = message.avatarId ?? -1;
+    if (roomId <= 0) {
+      toast.error("未找到房间，无法取样");
+      return;
+    }
+    if (targetRoleId === 0 || targetAvatarId <= 0) {
+      toast.error("该消息没有可取样的头像");
+      return;
+    }
+    if (targetRoleId <= 0 && !spaceContext.isSpaceOwner) {
+      toast.error("只有KP可以取样旁白头像");
+      return;
+    }
+    if (targetRoleId > 0 && !roomContext.roomRolesThatUserOwn.some(role => role.roleId === targetRoleId)) {
+      toast.error("该角色不可用");
+      return;
+    }
+    setCurRoleIdForRoom(roomId, targetRoleId);
+    setCurAvatarIdForRole(targetRoleId, targetAvatarId);
+    setAvatarSamplerActive(false);
+  }, [
+    message.avatarId,
+    message.roleId,
+    roomContext.roomId,
+    roomContext.roomRolesThatUserOwn,
+    setAvatarSamplerActive,
+    setCurAvatarIdForRole,
+    setCurRoleIdForRoom,
+    spaceContext.isSpaceOwner,
+  ]);
+
+  function handleAvatarClick(event?: React.MouseEvent<HTMLDivElement>) {
+    if (isAvatarSamplerActive) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      handleAvatarSample();
+      return;
+    }
     if (canEdit) {
       // 打开表情选择器的 toast 窗口
       toastWindow(
@@ -563,6 +602,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                   handleRoleChange(roleId);
                   onClose();
                 }}
+                onRequestClose={onClose}
               />
             </div>
           </RoomContext>
@@ -578,6 +618,20 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         content,
       });
     }
+  }, [message, updateMessageAndSync]);
+
+  const handleDiceContentUpdate = useCallback((content: string) => {
+    if (message.content === content && (message.extra as any)?.diceResult?.result === content) {
+      return;
+    }
+    updateMessageAndSync({
+      ...message,
+      content,
+      extra: {
+        ...message.extra,
+        diceResult: { result: content },
+      },
+    });
   }, [message, updateMessageAndSync]);
 
   // 处理音频用途切换（语音/BGM/音效）
@@ -891,9 +945,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           const diceResult = extra?.diceResult;
           const result = diceResult?.result || message.content || "";
           return (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="badge badge-accent badge-xs">骰子</span>
-              <span className="break-words">{result || "[骰子]"}</span>
+            <div className="relative text-sm">
+              <span className="badge badge-accent badge-xs absolute top-0 right-0">骰娘</span>
+              <div className="pr-10 pt-1">
+                <EditableField
+                  content={result}
+                  handleContentUpdate={handleDiceContentUpdate}
+                  className="editable-field whitespace-pre-wrap break-words"
+                  canEdit={canEdit}
+                />
+              </div>
             </div>
           );
         }
@@ -981,7 +1042,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   // Thread Root（Discord 风格提示条）
   if (isThreadRoot) {
-    const creatorName = displayRoleName || role?.roleName?.trim() || "";
+    const creatorName = displayRoleName;
     return (
       <div className="w-full py-1.5 sm:py-2 group">
         <div
@@ -1016,7 +1077,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 width={6}
                 isRounded={true}
                 withTitle={false}
-                stopPopWindow={true}
+                stopToastWindow={true}
                 useDefaultAvatarFallback={false}
               />
               <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
@@ -1046,7 +1107,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               {messageHoverToolbar}
               {/* Avatar */}
               <div
-                className={`shrink-0 ${isIntroText ? "invisible cursor-default" : (canEdit ? "cursor-pointer" : "cursor-default")}`}
+                className={`shrink-0 ${
+                  isIntroText
+                    ? "invisible cursor-default"
+                    : (isAvatarSamplerActive ? "cursor-crosshair" : (canEdit ? "cursor-pointer" : "cursor-default"))
+                }`}
                 onClick={isIntroText ? undefined : handleAvatarClick}
               >
                 {isNarrator
@@ -1062,7 +1127,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         width={isMobile ? 10 : 12}
                         isRounded={true}
                         withTitle={false}
-                        stopPopWindow={true}
+                        stopToastWindow={true}
                         useDefaultAvatarFallback={false}
                       />
                     )}
@@ -1142,7 +1207,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                           width={isMobile ? 10 : 20}
                           isRounded={false}
                           withTitle={false}
-                          stopPopWindow={true}
+                          stopToastWindow={true}
                           useDefaultAvatarFallback={false}
                         >
                         </RoleAvatarComponent>

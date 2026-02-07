@@ -8,7 +8,8 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
-import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
+import { formatDiceTableMessage } from "@/components/common/dicer/diceTable";
+import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
@@ -90,7 +91,9 @@ export default function useChatMessageSubmit({
       setTempAnnotations,
     } = useChatComposerStore.getState();
 
-    const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile);
+    const trimmedInputText = inputText.trim();
+    const trimmedWithoutMentions = inputTextWithoutMentions.trim();
+    const isBlankInput = trimmedInputText.length === 0;
 
     const {
       webgalLinkMode,
@@ -122,7 +125,7 @@ export default function useChatMessageSubmit({
     const isKP = isSpaceOwner;
     const isNarrator = noRole;
 
-    const disableSendMessage = (notMember || noInput || isSubmitting)
+    const disableSendMessage = (notMember || isSubmitting)
       || (isNarrator && !isKP);
 
     if (disableSendMessage) {
@@ -130,8 +133,6 @@ export default function useChatMessageSubmit({
         toast.error("您是观战，不能发送消息");
       else if (isNarrator && !isKP)
         toast.error("旁白仅KP可用，请先选择/拉入你的角色");
-      else if (noInput)
-        toast.error("请输入内容");
       else if (isSubmitting)
         toast.error("正在提交中，请稍后");
       return;
@@ -255,16 +256,18 @@ export default function useChatMessageSubmit({
           fields.threadId = activeThreadRootId;
         }
 
-        const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
-        if (draftCustomRoleName?.trim()) {
-          fields.customRoleName = draftCustomRoleName.trim();
+        if (curRoleId > 0) {
+          const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
+          if (draftCustomRoleName?.trim()) {
+            fields.customRoleName = draftCustomRoleName.trim();
+          }
         }
 
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
           let nextAnnotations = mergedComposerAnnotations;
           if (webgalLinkMode) {
-            if (!getFigurePositionFromAnnotations(nextAnnotations)) {
+            if (!hasClearFigureAnnotation(nextAnnotations) && !getFigurePositionFromAnnotations(nextAnnotations)) {
               nextAnnotations = setFigurePositionAnnotation(nextAnnotations, currentDefaultFigurePosition);
             }
             if (dialogNotend) {
@@ -282,8 +285,7 @@ export default function useChatMessageSubmit({
         return fields;
       };
 
-      let textContent = inputText.trim();
-      const trimmedWithoutMentions = inputTextWithoutMentions.trim();
+      let textContent = trimmedInputText;
       const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
       const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
 
@@ -431,7 +433,14 @@ export default function useChatMessageSubmit({
         textContent = "";
       }
 
-      if (textContent) {
+      // Allow explicit blank messages when there's no other payload to send.
+      const shouldSendEmptyTextMessage = isBlankInput
+        && uploadedImages.length === 0
+        && !soundMessageData
+        && !shouldSendCommandRequest
+        && !webgalVarPayload;
+
+      if (textContent || shouldSendEmptyTextMessage) {
         const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
         const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
         const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
@@ -440,11 +449,44 @@ export default function useChatMessageSubmit({
           toast.error("WebGAL 指令不能为空");
         }
         else {
+          let diceTableContent: string | null = null;
+          if (isPureTextSend && !isWebgalCommandInput) {
+            let diceTableDiceSize = 100;
+            try {
+              const localDice = Number(localStorage.getItem("defaultDice"));
+              if (Number.isFinite(localDice) && localDice > 0) {
+                diceTableDiceSize = localDice;
+              }
+            }
+            catch {
+              // ignore localStorage failures
+            }
+            try {
+              const spaceExtraRecord = JSON.parse(spaceExtra ?? "{}");
+              const dicerDataStr = spaceExtraRecord?.dicerData || "{}";
+              const spaceDicerData = typeof dicerDataStr === "string" ? JSON.parse(dicerDataStr) : dicerDataStr;
+              const spaceDice = Number(spaceDicerData?.defaultDice);
+              if (Number.isFinite(spaceDice) && spaceDice > 0) {
+                diceTableDiceSize = spaceDice;
+              }
+            }
+            catch {
+              // ignore parse errors
+            }
+            diceTableContent = formatDiceTableMessage(normalizedContent, diceTableDiceSize);
+          }
+
+          const finalContent = diceTableContent ?? normalizedContent;
+          const finalMessageType = diceTableContent
+            ? MessageType.DICE
+            : (isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT);
+          const finalExtra = diceTableContent ? { result: finalContent } : {};
+
           const textMsg: ChatMessageRequest = {
             ...getCommonFields() as any,
-            content: normalizedContent,
-            messageType: isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT,
-            extra: {},
+            content: finalContent,
+            messageType: finalMessageType,
+            extra: finalExtra,
           };
           await sendMessageWithInsert(textMsg);
         }

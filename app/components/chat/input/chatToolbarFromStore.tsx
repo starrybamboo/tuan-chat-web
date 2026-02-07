@@ -1,7 +1,6 @@
 import React from "react";
 import ChatToolbar from "@/components/chat/input/chatToolbar";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
-import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
@@ -24,10 +23,8 @@ export default function ChatToolbarFromStore({
   notMember: boolean;
   isSubmitting: boolean;
 }) {
-  const plainText = useChatInputUiStore(state => state.plainText);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
-  const hasAttachments = useChatComposerStore(state => (state.imgFiles.length > 0 || state.emojiUrls.length > 0 || !!state.audioFile));
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
@@ -52,9 +49,8 @@ export default function ChatToolbarFromStore({
   }, [setTempAnnotations]);
 
   const disableSendMessage = React.useMemo(() => {
-    const noInput = !(plainText.trim() || hasAttachments);
-    return noRole || notMember || noInput || isSubmitting;
-  }, [plainText, hasAttachments, noRole, notMember, isSubmitting]);
+    return noRole || notMember || isSubmitting;
+  }, [noRole, notMember, isSubmitting]);
 
   const disableImportChatText = React.useMemo(() => {
     return notMember || isSubmitting;

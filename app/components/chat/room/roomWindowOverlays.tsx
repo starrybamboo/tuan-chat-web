@@ -1,9 +1,9 @@
 import type { UserRole } from "../../../../api";
 import React from "react";
 
-import RoomPopWindows from "@/components/chat/room/roomPopWindows";
+import RoomToastWindows from "@/components/chat/room/roomToastWindows";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface RoomWindowOverlaysProps {
   isImportChatTextOpen: boolean;
@@ -43,7 +43,7 @@ export default function RoomWindowOverlays({
 }: RoomWindowOverlaysProps) {
   return (
     <>
-      <PopWindow
+      <ToastWindow
         isOpen={isImportChatTextOpen}
         onClose={() => setIsImportChatTextOpen(false)}
       >
@@ -54,9 +54,9 @@ export default function RoomWindowOverlays({
           onClose={() => setIsImportChatTextOpen(false)}
           onOpenRoleAddWindow={onOpenRoleAddWindow}
         />
-      </PopWindow>
+      </ToastWindow>
 
-      <RoomPopWindows
+      <RoomToastWindows
         isRoleHandleOpen={isRoleHandleOpen}
         setIsRoleAddWindowOpen={setIsRoleAddWindowOpen}
         handleAddRole={handleAddRole}

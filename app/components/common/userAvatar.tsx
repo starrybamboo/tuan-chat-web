@@ -30,7 +30,7 @@ const sizeMap = {
  *  - width: 头像宽度尺寸 key
  *  - isRounded: 是否圆形
  *  - withName: 是否显示用户名
- *  - stopPopWindow: 是否禁止悬浮弹窗（只控制弹窗显示）
+ *  - stopToastWindow: 是否禁止悬浮弹窗（只控制弹窗显示）
  *  - clickEnterProfilePage: 点击头像是否跳转个人主页（只控制点击行为）
  *  - uniqueKey: 弹窗唯一标识
  */
@@ -39,7 +39,7 @@ export default function UserAvatarComponent({
   width,
   isRounded,
   withName = false,
-  stopPopWindow = false,
+  stopToastWindow = false,
   uniqueKey,
   clickEnterProfilePage = true,
 }: {
@@ -47,17 +47,17 @@ export default function UserAvatarComponent({
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withName?: boolean; // 是否显示名字
-  stopPopWindow?: boolean; // hover 是否会产生userDetail弹窗
+  stopToastWindow?: boolean; // hover 是否会产生userDetail弹窗
   uniqueKey?: string; // 用于控制弹窗的唯一key，默认是userId
   clickEnterProfilePage?: boolean; // 点击头像是否直接个人主页
 }) {
   const userQuery = useGetUserInfoQuery(userId);
-  // 控制用户详情的popWindow
-  const popWindowKey = uniqueKey ? `userPop${uniqueKey}` : `userPop${userId}`;
+  // 控制用户详情的toastWindow
+  const toastWindowKey = uniqueKey ? `userPop${uniqueKey}` : `userPop${userId}`;
 
   // 改为内部 hover 状态，不再放到 URL 上
   // 兼容旧的 searchParam，不再使用，仅保持读取避免影响外部 URL
-  useSearchParamsState<boolean>(popWindowKey, false);
+  useSearchParamsState<boolean>(toastWindowKey, false);
   const [isOpen, setIsOpen] = useState(false);
   const [hasMountedDetail, setHasMountedDetail] = useState(false); // 首次点击后再加载内容
   const anchorRef = useRef<HTMLDivElement | null>(null);
@@ -96,9 +96,9 @@ export default function UserAvatarComponent({
   };
   const doClose = () => setIsOpen(false);
 
-  // 悬浮逻辑：只受 stopPopWindow 控制
+  // 悬浮逻辑：只受 stopToastWindow 控制
   const handleMouseEnter = () => {
-    if (stopPopWindow)
+    if (stopToastWindow)
       return; // 不显示弹窗
     if (closeTimerRef.current) {
       window.clearTimeout(closeTimerRef.current);
@@ -110,7 +110,7 @@ export default function UserAvatarComponent({
   };
 
   const handleMouseLeave = () => {
-    if (stopPopWindow)
+    if (stopToastWindow)
       return;
     if (openTimerRef.current) {
       window.clearTimeout(openTimerRef.current);
@@ -248,8 +248,8 @@ export default function UserAvatarComponent({
           {userQuery.data?.data?.username}
         </div>
       )}
-      {/* Portal 卡片：只受 stopPopWindow 控制 */}
-      {portalRef.current && hasMountedDetail && isOpen && !stopPopWindow && pos && createPortal(
+      {/* Portal 卡片：只受 stopToastWindow 控制 */}
+      {portalRef.current && hasMountedDetail && isOpen && !stopToastWindow && pos && createPortal(
         <div
           style={{
             position: "fixed",

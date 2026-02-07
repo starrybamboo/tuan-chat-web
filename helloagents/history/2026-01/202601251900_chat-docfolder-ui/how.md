@@ -4,7 +4,7 @@
 
 - 聊天输入区 Dock 模式：在线索按钮左侧新增“我的文档”按钮，点击切换 `sideDrawerState="docFolder"`
 - 右侧抽屉渲染：新增 `DocFolderForUser`，提供文件夹/文档列表与增删改
-- 打开文档：在弹窗（`PopWindow`）内打开 `BlocksuiteDescriptionEditor`（`variant="full"`）
+- 打开文档：在弹窗（`ToastWindow`）内打开 `BlocksuiteDescriptionEditor`（`variant="full"`）
 
 ## 数据对接
 

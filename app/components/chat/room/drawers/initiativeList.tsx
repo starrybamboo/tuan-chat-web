@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { useRoomExtra } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
 
@@ -1015,7 +1015,7 @@ export default function InitiativeList() {
       <div className="h-px bg-base-300 md:hidden"></div>
 
       {/* 导入角色敏捷 */}
-      <PopWindow
+      <ToastWindow
         isOpen={isImportPopupOpen}
         onClose={() => setIsImportPopupOpen(false)}
         fullScreen={false}
@@ -1065,7 +1065,7 @@ export default function InitiativeList() {
             )}
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

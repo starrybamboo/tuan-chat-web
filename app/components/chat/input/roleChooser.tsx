@@ -44,7 +44,7 @@ export default function RoleChooser({
                 width={10}
                 isRounded={false}
                 withTitle={false}
-                stopPopWindow={true}
+                stopToastWindow={true}
               >
               </RoleAvatarComponent>
               <div>{role.roleName}</div>

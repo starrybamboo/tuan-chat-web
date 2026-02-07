@@ -210,6 +210,30 @@ export type RealtimeTTSConfig = {
   maxTokensPerSegment?: number;
 };
 
+const IMAGE_MESSAGE_FIGURE_ID = "image_message";
+
+function hasFileExtension(fileName: string): boolean {
+  const dotIndex = fileName.lastIndexOf(".");
+  return dotIndex > 0 && dotIndex < fileName.length - 1;
+}
+
+function hashString(input: string): string {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 33) ^ input.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function buildImageFileName(url: string, fileName: string | undefined, prefix: string): string {
+  const extension = getFileExtensionFromUrl(url, "webp");
+  const trimmed = fileName?.trim();
+  if (trimmed) {
+    return hasFileExtension(trimmed) ? trimmed : `${trimmed}.${extension}`;
+  }
+  return `${prefix}_${hashString(url)}.${extension}`;
+}
+
 type RendererContext = {
   lineNumber: number;
   text: string;
@@ -232,6 +256,7 @@ export class RealtimeRenderer {
   private sceneContextMap = new Map<number, RendererContext>(); // roomId -> context
   private uploadedSpritesMap = new Map<number, string>(); // avatarId -> fileName
   private uploadedBackgroundsMap = new Map<string, string>(); // url -> fileName
+  private uploadedImageFiguresMap = new Map<string, string>(); // url -> fileName
   private uploadedBgmsMap = new Map<string, string>(); // url -> fileName
   private uploadedMiniAvatarsMap = new Map<number, string>(); // avatarId -> fileName
   private roleMap = new Map<number, UserRole>();
@@ -243,6 +268,7 @@ export class RealtimeRenderer {
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
   private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
+  private pendingImageFigureClearSet = new Set<number>(); // roomId -> 下一条消息前需要清除的图片立绘
   // 自动跳转已永久关闭，避免新增消息打断当前预览位置
   private readonly autoJumpEnabled = false;
 
@@ -1060,7 +1086,8 @@ export class RealtimeRenderer {
 
     try {
       const path = `games/${this.gameName}/game/background/`;
-      const fileName = await uploadFile(url, path);
+      const targetName = buildImageFileName(url, undefined, "bg");
+      const fileName = await uploadFile(url, path, targetName);
       this.uploadedBackgroundsMap.set(url, fileName);
       return fileName;
     }
@@ -1068,6 +1095,34 @@ export class RealtimeRenderer {
       console.error("上传背景失败:", error);
       return null;
     }
+  }
+
+  /**
+   * 上传图片消息（作为临时立绘展示）
+   */
+  private async uploadImageFigure(url: string, fileName?: string): Promise<string | null> {
+    if (this.uploadedImageFiguresMap.has(url)) {
+      return this.uploadedImageFiguresMap.get(url) || null;
+    }
+
+    try {
+      const path = `games/${this.gameName}/game/figure/`;
+      const targetName = buildImageFileName(url, fileName, "img");
+      const uploadedName = await uploadFile(url, path, targetName);
+      this.uploadedImageFiguresMap.set(url, uploadedName);
+      return uploadedName;
+    }
+    catch (error) {
+      console.error("上传图片立绘失败:", error);
+      return null;
+    }
+  }
+
+  private async clearPendingImageFigure(roomId: number, syncToFile: boolean): Promise<void> {
+    if (!this.pendingImageFigureClearSet.has(roomId))
+      return;
+    await this.appendLine(roomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, syncToFile);
+    this.pendingImageFigureClearSet.delete(roomId);
   }
 
   /**
@@ -1188,6 +1243,25 @@ export class RealtimeRenderer {
       await this.initRoomScene(targetRoomId);
     }
 
+    const initialLineNumber = this.sceneContextMap.get(targetRoomId)?.lineNumber ?? 0;
+    const finalizeMessageLineRange = () => {
+      if (!msg.messageId) {
+        return;
+      }
+      const context = this.sceneContextMap.get(targetRoomId);
+      if (!context) {
+        return;
+      }
+      const endLine = context.lineNumber;
+      if (endLine <= initialLineNumber) {
+        return;
+      }
+      const key = `${targetRoomId}_${msg.messageId}`;
+      const existingRange = this.messageLineMap.get(key);
+      const startLine = existingRange?.startLine ?? (initialLineNumber + 1);
+      this.messageLineMap.set(key, { startLine, endLine });
+    };
+
     // 获取该房间的立绘状态
     let spriteState = this.currentSpriteStateMap.get(targetRoomId);
     if (!spriteState) {
@@ -1199,11 +1273,15 @@ export class RealtimeRenderer {
     if (msg.status === 1)
       return;
 
+    // 清理上一条图片消息的临时立绘（在下一条消息开始前）
+    await this.clearPendingImageFigure(targetRoomId, syncToFile);
+
     // 处理背景图片消息
     if (msg.messageType === 2) {
       const imageMessage = msg.extra?.imageMessage;
       if (imageMessage) {
-        if (isImageMessageBackground(msg.annotations, imageMessage)) {
+        const isBackground = isImageMessageBackground(msg.annotations, imageMessage);
+        if (isBackground) {
           const bgFileName = await this.uploadBackground(imageMessage.url);
           if (bgFileName) {
             await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
@@ -1222,7 +1300,26 @@ export class RealtimeRenderer {
               this.sendSyncMessage(targetRoomId);
           }
         }
+        // 普通图片：作为一次性立绘展示（下一条消息前清除）
+        if (!isBackground && !unlockCg) {
+          const rawPosition = getFigurePositionFromAnnotations(msg.annotations);
+          const positionPart = rawPosition === "left" || rawPosition === "right"
+            ? ` -${rawPosition}`
+            : "";
+          const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
+          if (figureFileName) {
+            await this.appendLine(
+              targetRoomId,
+              `changeFigure:${figureFileName} -id=${IMAGE_MESSAGE_FIGURE_ID}${positionPart} -enter=enter;`,
+              syncToFile,
+            );
+            this.pendingImageFigureClearSet.add(targetRoomId);
+            if (syncToFile)
+              this.sendSyncMessage(targetRoomId);
+          }
+        }
       }
+      finalizeMessageLineRange();
       return;
     }
 
@@ -1234,8 +1331,10 @@ export class RealtimeRenderer {
 
     if (soundMsg) {
       const url = soundMsg.url;
-      if (!url)
+      if (!url) {
+        finalizeMessageLineRange();
         return;
+      }
 
       // 判断是 BGM 还是音效
       const isMarkedBgm = msg.content.includes("[播放BGM]") || soundMsg.purpose === "bgm";
@@ -1277,6 +1376,7 @@ export class RealtimeRenderer {
         }
       }
       // 如果既不是 BGM 也不是音效，则跳过（默认不处理普通语音消息）
+      finalizeMessageLineRange();
       return;
     }
 
@@ -1298,6 +1398,9 @@ export class RealtimeRenderer {
           await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
           await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
           await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+          await this.appendLine(targetRoomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, syncToFile);
+          this.pendingImageFigureClearSet.delete(targetRoomId);
+          finalizeMessageLineRange();
           if (syncToFile)
             this.sendSyncMessage(targetRoomId);
           return;
@@ -1310,17 +1413,21 @@ export class RealtimeRenderer {
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
       }
+      finalizeMessageLineRange();
       return;
     }
 
     // WebGAL 变量变更消息：转换为 setVar 并写入场景脚本（强制 -global 语义）
     if ((msg.messageType as number) === 11) {
       const payload = extractWebgalVarPayload(msg.extra);
-      if (!payload)
+      if (!payload) {
+        finalizeMessageLineRange();
         return;
+      }
       await this.appendLine(targetRoomId, buildWebgalSetVarLine(payload), syncToFile);
       if (syncToFile)
         this.sendSyncMessage(targetRoomId);
+      finalizeMessageLineRange();
       return;
     }
 
@@ -1331,12 +1438,15 @@ export class RealtimeRenderer {
       await this.appendLine(targetRoomId, commandLine, syncToFile, true);
       if (syncToFile)
         this.sendSyncMessage(targetRoomId);
+      finalizeMessageLineRange();
       return;
     }
 
     // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
-    if (msg.messageType !== 1 && msg.messageType !== 9)
+    if (msg.messageType !== 1 && msg.messageType !== 9) {
+      finalizeMessageLineRange();
       return;
+    }
 
     // 判断消息类型：黑屏文字（messageType === 9）
     const isIntroText = (msg.messageType as number) === 9;
@@ -1376,13 +1486,13 @@ export class RealtimeRenderer {
     // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
     // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
     const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
-    console.error(msg.content, rawFigurePosition);
+    const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
 
     // 只有 "left", "center", "right" 才是有效的立绘位置
     const isValidPosition = rawFigurePosition === "left" || rawFigurePosition === "center" || rawFigurePosition === "right";
     const figurePosition = isValidPosition
       ? rawFigurePosition
-      : (this.autoFigureEnabled ? "left" : undefined);
+      : (shouldClearFigure ? undefined : (this.autoFigureEnabled ? "left" : undefined));
 
     const figureAnimation = voiceRenderSettings?.figureAnimation;
 
@@ -1394,6 +1504,12 @@ export class RealtimeRenderer {
     const shouldShowFigure = !isNarrator && !isIntroText && !!figurePosition;
 
     // 每条对话都指定立绘，确保立绘始终正确显示（仅普通对话）
+    if (shouldClearFigure) {
+      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
+      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+    }
+
     if (shouldShowFigure && spriteFileName) {
       // 不再自动清除立绘，立绘需要手动清除
       // // 如果不是回复消息，则清除之前的立绘（单人发言模式）
@@ -1508,15 +1624,7 @@ export class RealtimeRenderer {
       await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart};`, syncToFile);
     }
 
-    // 记录消息 ID 和行号范围的映射（用于跳转和更新）
-    const context = this.sceneContextMap.get(targetRoomId);
-    if (context && msg.messageId) {
-      const endLine = context.lineNumber;
-      // 计算起始行号：如果已经有记录，使用已有的起始行；否则使用当前结束行
-      const existingRange = this.messageLineMap.get(`${targetRoomId}_${msg.messageId}`);
-      const startLine = existingRange?.startLine ?? endLine;
-      this.messageLineMap.set(`${targetRoomId}_${msg.messageId}`, { startLine, endLine });
-    }
+    finalizeMessageLineRange();
 
     // 自动跳转已关闭，保留写入但不主动跳转
     if (syncToFile) {
@@ -1579,6 +1687,8 @@ export class RealtimeRenderer {
     await this.appendLine(targetRoomId, "changeFigure:none -left -next;", true);
     await this.appendLine(targetRoomId, "changeFigure:none -center -next;", true);
     await this.appendLine(targetRoomId, "changeFigure:none -right -next;", true);
+    await this.appendLine(targetRoomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, true);
+    this.pendingImageFigureClearSet.delete(targetRoomId);
     this.sendSyncMessage(targetRoomId);
   }
 
@@ -1595,6 +1705,7 @@ export class RealtimeRenderer {
       }
       await this.initRoomScene(roomId);
       this.currentSpriteStateMap.set(roomId, new Set());
+      this.pendingImageFigureClearSet.delete(roomId);
       this.sendSyncMessage(roomId);
     }
     else {
@@ -1602,6 +1713,7 @@ export class RealtimeRenderer {
       await this.initScene();
       this.currentSpriteStateMap.clear();
       this.messageLineMap.clear();
+      this.pendingImageFigureClearSet.clear();
     }
   }
 
