@@ -24,6 +24,7 @@ interface ContextMenuProps {
   onReply: (message: Message) => void;
   onMoveMessages: (targetIndex: number, messageIds: number[]) => void;
   onEditMessage: (messageId: number) => void;
+  onEditWebgalChoose?: (messageId: number) => void;
   onAddEmoji: (imgMessage: ImageMessage) => void;
   onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
@@ -41,6 +42,7 @@ export default function ChatFrameContextMenu({
   onReply,
   onMoveMessages,
   onEditMessage,
+  onEditWebgalChoose,
   onAddEmoji,
   onOpenAnnotations,
   onInsertAfter,
@@ -85,6 +87,7 @@ export default function ChatFrameContextMenu({
     ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
     : undefined;
   const canEditMessage = !!message && (message.message.userId === globalContext.userId || spaceContext.isSpaceOwner);
+  const canEditWebgalChoose = canEditMessage && message?.message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE;
 
   const docCard = useMemo(() => {
     const extraAny = (message?.message as any)?.extra ?? null;
@@ -417,6 +420,19 @@ export default function ChatFrameContextMenu({
             回复
           </a>
         </li>
+        {canEditWebgalChoose && (
+          <li>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                onEditWebgalChoose?.(contextMenu.messageId);
+                onClose();
+              }}
+            >
+              编辑选择
+            </a>
+          </li>
+        )}
         {canEditMessage && (
           <li>
             <a
@@ -501,7 +517,13 @@ export default function ChatFrameContextMenu({
           if (!canEditMessage) {
             return null;
           }
-          if (!message || message.message.messageType !== 2) {
+          if (!message) {
+            return null;
+          }
+          if (message.message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE) {
+            return null;
+          }
+          if (message.message.messageType !== 2) {
             return (
               <li>
                 <a

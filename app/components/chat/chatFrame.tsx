@@ -1,6 +1,7 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse, Message } from "../../../api";
-import React, { memo, use, useCallback, useEffect } from "react";
+import React, { memo, use, useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -22,6 +23,8 @@ import { openMessageAnnotationPicker } from "@/components/chat/message/annotatio
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
+import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseModal";
+import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   useDeleteMessageMutation,
@@ -48,6 +51,8 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  spaceName?: string;
+  roomName?: string;
 }
 
 function ChatFrame(props: ChatFrameProps) {
@@ -61,6 +66,8 @@ function ChatFrame(props: ChatFrameProps) {
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
+    spaceName,
+    roomName,
   } = props;
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -89,10 +96,18 @@ function ChatFrame(props: ChatFrameProps) {
 
   const {
     isForwardWindowOpen,
+    isExportFileWindowOpen,
     isExportImageWindowOpen,
     setIsForwardWindowOpen,
+    setIsExportFileWindowOpen,
     setIsExportImageWindowOpen,
   } = useChatFrameOverlayState();
+  const [isWebgalChooseEditorOpen, setIsWebgalChooseEditorOpen] = useState(false);
+  const [webgalChooseEditorOptions, setWebgalChooseEditorOptions] = useState<WebgalChooseOptionDraft[]>([
+    { text: "", code: "" },
+  ]);
+  const [webgalChooseEditorError, setWebgalChooseEditorError] = useState<string | null>(null);
+  const [webgalChooseEditorMessageId, setWebgalChooseEditorMessageId] = useState<number | null>(null);
 
   const sendMessageMutation = useSendMessageMutation(roomId);
 
@@ -129,6 +144,106 @@ function ChatFrame(props: ChatFrameProps) {
     deleteMessageMutation,
     updateMessageMutation,
   });
+  const updateWebgalChooseEditorOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
+    setWebgalChooseEditorOptions(prev => prev.map((option, idx) => (
+      idx === index ? { ...option, [key]: value } : option
+    )));
+  }, []);
+
+  const addWebgalChooseEditorOption = useCallback(() => {
+    setWebgalChooseEditorOptions(prev => ([
+      ...prev,
+      { text: "", code: "" },
+    ]));
+  }, []);
+
+  const removeWebgalChooseEditorOption = useCallback((index: number) => {
+    setWebgalChooseEditorOptions(prev => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== index)));
+  }, []);
+
+  const closeWebgalChooseEditor = useCallback(() => {
+    setIsWebgalChooseEditorOpen(false);
+    setWebgalChooseEditorError(null);
+    setWebgalChooseEditorMessageId(null);
+  }, []);
+
+  const openWebgalChooseEditor = useCallback((messageId: number) => {
+    const target = historyMessages.find(message => message.message.messageId === messageId);
+    if (!target) {
+      toast.error("未找到要编辑的消息");
+      return;
+    }
+    if (target.message.messageType !== MESSAGE_TYPE.WEBGAL_CHOOSE) {
+      toast.error("该消息不是选择类型");
+      return;
+    }
+    const payload = extractWebgalChoosePayload(target.message.extra);
+    if (!payload) {
+      toast.error("未找到选择内容");
+      return;
+    }
+    const nextOptions = payload.options.map(option => ({
+      text: option.text,
+      code: option.code ?? "",
+    }));
+    setWebgalChooseEditorOptions(nextOptions.length ? nextOptions : [{ text: "", code: "" }]);
+    setWebgalChooseEditorError(null);
+    setWebgalChooseEditorMessageId(messageId);
+    setIsWebgalChooseEditorOpen(true);
+  }, [historyMessages]);
+
+  const submitWebgalChooseEditor = useCallback(() => {
+    const messageId = webgalChooseEditorMessageId;
+    if (!messageId) {
+      setWebgalChooseEditorError("未找到要编辑的消息");
+      return;
+    }
+    const normalizedOptions = webgalChooseEditorOptions.map(option => ({
+      text: option.text.trim(),
+      code: option.code.trim(),
+    }));
+    if (normalizedOptions.length === 0) {
+      setWebgalChooseEditorError("请至少添加一个选项");
+      return;
+    }
+    if (normalizedOptions.some(option => !option.text)) {
+      setWebgalChooseEditorError("选项文本不能为空");
+      return;
+    }
+    const payload = {
+      options: normalizedOptions.map(option => ({
+        text: option.text,
+        ...(option.code ? { code: option.code } : {}),
+      })),
+    };
+    const target = historyMessages.find(message => message.message.messageId === messageId);
+    if (!target) {
+      setWebgalChooseEditorError("未找到要编辑的消息");
+      return;
+    }
+    const baseExtra = target.message.extra && typeof target.message.extra === "object"
+      ? target.message.extra
+      : {};
+    const nextMessage: Message = {
+      ...target.message,
+      extra: {
+        ...baseExtra,
+        webgalChoose: payload,
+      } as Message["extra"],
+    };
+    updateMessage(nextMessage);
+    if (roomContext.updateAndRerenderMessageInWebGAL) {
+      roomContext.updateAndRerenderMessageInWebGAL({ ...target, message: nextMessage }, false);
+    }
+    closeWebgalChooseEditor();
+  }, [
+    closeWebgalChooseEditor,
+    historyMessages,
+    roomContext,
+    updateMessage,
+    webgalChooseEditorMessageId,
+    webgalChooseEditorOptions,
+  ]);
 
   const handleOpenAnnotations = useCallback((messageId: number) => {
     const target = historyMessages.find(message => message.message.messageId === messageId);
@@ -211,6 +326,7 @@ function ChatFrame(props: ChatFrameProps) {
     selectedMessageIds,
     updateSelectedMessageIds,
     isSelecting,
+    exitSelection,
     toggleMessageSelection,
     handleBatchDelete,
     handleEditMessage,
@@ -227,6 +343,26 @@ function ChatFrame(props: ChatFrameProps) {
     setReplyMessage,
     onJumpToWebGAL: roomContext.jumpToMessageInWebGAL,
   });
+
+  const selectedMessages = useMemo(() => {
+    return Array.from(selectedMessageIds)
+      .map(id => historyMessages.find(m => m.message.messageId === id))
+      .filter((msg): msg is ChatMessageResponse => msg !== undefined)
+      .sort((a, b) => a.message.position - b.message.position);
+  }, [historyMessages, selectedMessageIds]);
+
+  const handleSelectAll = useCallback(() => {
+    const next = new Set(historyMessages.map(message => message.message.messageId));
+    updateSelectedMessageIds(next);
+  }, [historyMessages, updateSelectedMessageIds]);
+
+  const handleExportFile = useCallback(() => {
+    if (selectedMessages.length === 0) {
+      toast.error("请选择要导出的消息");
+      return;
+    }
+    setIsExportFileWindowOpen(true);
+  }, [selectedMessages.length, setIsExportFileWindowOpen]);
 
   const {
     handleForward,
@@ -312,22 +448,39 @@ function ChatFrame(props: ChatFrameProps) {
         renderMessage,
         onContextMenu: handleContextMenu,
         selectedMessageIds,
-        updateSelectedMessageIds,
         setIsExportImageWindowOpen,
         setIsForwardWindowOpen,
         handleBatchDelete,
         isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
+        isSelecting,
+        onSelectAll: handleSelectAll,
+        onExportFile: handleExportFile,
+        onCancelSelection: exitSelection,
       }}
       overlaysProps={{
         isForwardWindowOpen,
         setIsForwardWindowOpen,
+        isExportFileWindowOpen,
+        setIsExportFileWindowOpen,
         isExportImageWindowOpen,
         setIsExportImageWindowOpen,
         historyMessages,
         selectedMessageIds,
-        updateSelectedMessageIds,
+        exitSelection,
         onForward: handleForward,
         generateForwardMessage,
+        spaceName,
+        roomName,
+        webgalChooseEditor: {
+          isOpen: isWebgalChooseEditorOpen,
+          options: webgalChooseEditorOptions,
+          error: webgalChooseEditorError,
+          onChangeOption: updateWebgalChooseEditorOption,
+          onAddOption: addWebgalChooseEditorOption,
+          onRemoveOption: removeWebgalChooseEditorOption,
+          onClose: closeWebgalChooseEditor,
+          onSubmit: submitWebgalChooseEditor,
+        },
       }}
       contextMenuProps={{
         contextMenu,
@@ -340,6 +493,7 @@ function ChatFrame(props: ChatFrameProps) {
         onReply: handleReply,
         onMoveMessages: handleMoveMessages,
         onEditMessage: handleEditMessage,
+        onEditWebgalChoose: openWebgalChooseEditor,
         onAddEmoji: handleAddEmoji,
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
