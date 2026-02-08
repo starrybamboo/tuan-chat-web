@@ -56,14 +56,18 @@ export default function ChatPageModals({
   onAddSpaceMember,
   onAddSpacePlayer,
 }: ChatPageModalsProps) {
-  const [draftDocTitle, setDraftDocTitle] = React.useState(createDocTitle);
+  const docTitleInputRef = React.useRef<HTMLInputElement | null>(null);
+  const draftDocTitleRef = React.useRef(createDocTitle);
   const wasCreateInCategoryOpenRef = React.useRef(false);
 
   React.useEffect(() => {
     const wasOpen = wasCreateInCategoryOpenRef.current;
     wasCreateInCategoryOpenRef.current = isCreateInCategoryOpen;
     if (isCreateInCategoryOpen && !wasOpen) {
-      setDraftDocTitle(createDocTitle);
+      draftDocTitleRef.current = createDocTitle;
+      if (docTitleInputRef.current) {
+        docTitleInputRef.current.value = createDocTitle;
+      }
     }
   }, [createDocTitle, isCreateInCategoryOpen]);
 
@@ -127,9 +131,10 @@ export default function ChatPageModals({
                   <div className="text-sm font-medium opacity-80 mb-2">文档标题</div>
                   <input
                     className="w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary mb-3"
-                    value={draftDocTitle}
+                    defaultValue={createDocTitle}
+                    ref={docTitleInputRef}
                     onChange={(e) => {
-                      setDraftDocTitle(e.target.value);
+                      draftDocTitleRef.current = e.target.value;
                     }}
                     placeholder="请输入文档标题"
                   />
@@ -138,8 +143,9 @@ export default function ChatPageModals({
                     className="btn btn-primary w-full"
                     disabled={!isKPInSpace || !pendingCreateInCategoryId}
                     onClick={() => {
-                      setCreateDocTitle(draftDocTitle);
-                      void createDocInSelectedCategory(draftDocTitle);
+                      const nextTitle = docTitleInputRef.current?.value ?? draftDocTitleRef.current;
+                      setCreateDocTitle(nextTitle);
+                      void createDocInSelectedCategory(nextTitle);
                     }}
                   >
                     创建文档
