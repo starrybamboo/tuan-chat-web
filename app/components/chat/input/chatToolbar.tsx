@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
+import WebgalChooseModal, { type WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseModal";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -21,11 +22,6 @@ import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
-
-type WebgalChooseOptionDraft = {
-  text: string;
-  code: string;
-};
 
 interface ChatToolbarProps {
   /** 当前房间（用于BGM个人开关/ֹͣȫԱBGM） */
@@ -399,62 +395,21 @@ function ChatToolbar({
         document.body,
       )
     : null;
-  const webgalChooseInputClass = "w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
-  const webgalChooseModal = isWebgalChooseModalOpen && typeof document !== "undefined"
-    ? createPortal(
-        <div className="modal modal-open z-9999">
-          <div className="modal-box max-w-2xl">
-            <h3 className="font-bold text-lg">发送选择</h3>
-            <div className="py-4 space-y-3">
-              <p className="text-xs opacity-70">将选项转换为 WebGAL choose 指令发送。</p>
-              <div className="space-y-2">
-                {webgalChooseOptions.map((option, index) => (
-                  <div key={`${index}`} className="rounded-md border border-base-300/70 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium">选项 {index + 1}</span>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => removeWebgalChooseOption(index)}
-                        disabled={webgalChooseOptions.length <= 1}
-                      >
-                        删除
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      <input
-                        className={webgalChooseInputClass}
-                        placeholder="选项文本"
-                        value={option.text}
-                        onChange={e => updateWebgalChooseOption(index, "text", e.target.value)}
-                      />
-                      <textarea
-                        className={`${webgalChooseInputClass} min-h-24 font-mono`}
-                        placeholder="自定义代码（可选）"
-                        value={option.code}
-                        onChange={e => updateWebgalChooseOption(index, "code", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button type="button" className="btn btn-sm" onClick={addWebgalChooseOption}>
-                添加选项
-              </button>
-              {webgalChooseError && (
-                <div className="text-error text-sm">{webgalChooseError}</div>
-              )}
-            </div>
-            <div className="modal-action">
-              <button type="button" className="btn" onClick={closeWebgalChooseModal}>取消</button>
-              <button type="button" className="btn btn-primary" onClick={submitWebgalChoose}>发送</button>
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={closeWebgalChooseModal} />
-        </div>,
-        document.body,
-      )
-    : null;
+  const webgalChooseModal = (
+    <WebgalChooseModal
+      isOpen={isWebgalChooseModalOpen}
+      title="发送选择"
+      description="将选项转换为 WebGAL choose 指令发送。"
+      options={webgalChooseOptions}
+      error={webgalChooseError}
+      submitLabel="发送"
+      onAddOption={addWebgalChooseOption}
+      onRemoveOption={removeWebgalChooseOption}
+      onChangeOption={updateWebgalChooseOption}
+      onClose={closeWebgalChooseModal}
+      onSubmit={submitWebgalChoose}
+    />
+  );
 
 
   return (
