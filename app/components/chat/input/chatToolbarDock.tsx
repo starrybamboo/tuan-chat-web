@@ -1,4 +1,4 @@
-import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -13,6 +13,7 @@ interface ChatToolbarDockProps {
   onClearFigure?: () => void;
   onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
   onOpenWebgalVarModal?: () => void;
+  onOpenWebgalChooseModal?: () => void;
   isSpectator?: boolean;
   onToggleRealtimeRender?: () => void;
   showRunControls?: boolean;
@@ -27,6 +28,7 @@ export default function ChatToolbarDock({
   onClearFigure,
   onSetWebgalVar,
   onOpenWebgalVarModal,
+  onOpenWebgalChooseModal,
   isSpectator,
   onToggleRealtimeRender,
   showRunControls,
@@ -46,6 +48,18 @@ export default function ChatToolbarDock({
       }`}
     >
       {/* WebGAL 导演控制台 */}
+      {showWebgalControls && webgalLinkMode && onOpenWebgalChooseModal && (
+        <div
+          className="tooltip tooltip-top hover:text-info mt-0.5 md:mt-1"
+          data-tip="选择"
+          aria-label="选择"
+          title="选择"
+          onClick={onOpenWebgalChooseModal}
+        >
+          <ListChecks className="size-6 cursor-pointer" />
+        </div>
+      )}
+
       {showWebgalControls && webgalLinkMode && onSendEffect && (
         <div className="dropdown dropdown-top dropdown-center md:dropdown-end mt-0.5 md:mt-1">
           <div tabIndex={0} role="button" className="tooltip tooltip-top hover:text-info" data-tip="导演控制台" aria-label="导演控制台" title="导演控制台">

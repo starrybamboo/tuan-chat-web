@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
+import type { WebgalChoosePayload } from "@/types/webgalChoose";
 import type { SpaceWebgalVarsRecord, WebgalVarMessagePayload } from "@/types/webgalVar";
 
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -30,6 +31,7 @@ type UseRoomMessageActionsParams = {
 type UseRoomMessageActionsResult = {
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<void>;
   handleSetWebgalVar: (key: string, expr: string) => Promise<void>;
+  handleSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void>;
 };
 
 export default function useRoomMessageActions({
@@ -49,6 +51,7 @@ export default function useRoomMessageActions({
   setSpaceExtra,
 }: UseRoomMessageActionsParams): UseRoomMessageActionsResult {
   const webgalVarSendingRef = useRef(false);
+  const webgalChooseSendingRef = useRef(false);
 
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
     const insertAfterMessageId = useRoomUiStore.getState().insertAfterMessageId;
@@ -204,8 +207,76 @@ export default function useRoomMessageActions({
     }
   }, [curRoleId, ensureRuntimeAvatarIdForRole, isSpaceOwner, isSubmitting, notMember, roomId, sendMessageWithInsert, setSpaceExtra, spaceExtra, spaceId]);
 
+  const handleSendWebgalChoose = useCallback(async (payload: WebgalChoosePayload) => {
+    const options = payload?.options ?? [];
+    const normalizedOptions = options.map(option => ({
+      text: String(option.text ?? "").trim(),
+      target: String(option.target ?? "").trim(),
+      showCondition: option.showCondition ? String(option.showCondition).trim() : "",
+      enableCondition: option.enableCondition ? String(option.enableCondition).trim() : "",
+    }));
+
+    const isNarrator = curRoleId <= 0;
+
+    if (notMember) {
+      toast.error("您是观战，不能发送消息");
+      return;
+    }
+    if (isNarrator && !isSpaceOwner) {
+      toast.error("旁白仅KP可用，请先选择/拉入你的角色");
+      return;
+    }
+    if (isSubmitting || webgalChooseSendingRef.current) {
+      toast.error("正在提交中，请稍候");
+      return;
+    }
+    if (normalizedOptions.length === 0) {
+      toast.error("请至少添加一个选项");
+      return;
+    }
+    if (normalizedOptions.some(option => !option.text || !option.target)) {
+      toast.error("选项文本和跳转目标不能为空");
+      return;
+    }
+
+    const finalPayload: WebgalChoosePayload = {
+      options: normalizedOptions.map(option => ({
+        text: option.text,
+        target: option.target,
+        ...(option.showCondition ? { showCondition: option.showCondition } : {}),
+        ...(option.enableCondition ? { enableCondition: option.enableCondition } : {}),
+      })),
+    };
+
+    webgalChooseSendingRef.current = true;
+    try {
+      const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
+      const chooseMsg: ChatMessageRequest = {
+        roomId,
+        roleId: curRoleId,
+        avatarId: resolvedAvatarId,
+        content: "",
+        messageType: MessageType.WEBGAL_CHOOSE,
+        extra: {
+          webgalChoose: finalPayload,
+        },
+      };
+
+      const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
+      if (draftCustomRoleName?.trim()) {
+        chooseMsg.customRoleName = draftCustomRoleName.trim();
+      }
+
+      await sendMessageWithInsert(chooseMsg);
+    }
+    finally {
+      webgalChooseSendingRef.current = false;
+    }
+  }, [curRoleId, ensureRuntimeAvatarIdForRole, isSpaceOwner, isSubmitting, notMember, roomId, sendMessageWithInsert]);
+
   return {
     sendMessageWithInsert,
     handleSetWebgalVar,
+    handleSendWebgalChoose,
   };
 }

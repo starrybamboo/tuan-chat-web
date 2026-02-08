@@ -18,8 +18,16 @@ import {
   SparklesOutline,
 } from "@/icons";
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
+
+type WebgalChooseOptionDraft = {
+  text: string;
+  target: string;
+  showCondition: string;
+  enableCondition: string;
+};
 
 interface ChatToolbarProps {
   /** 当前房间（用于BGM个人开关/ֹͣȫԱBGM） */
@@ -72,6 +80,7 @@ interface ChatToolbarProps {
   onClearFigure?: () => void;
   /** WebGAL 空间变量：由导演控制台弹窗触发 */
   onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
+  onSendWebgalChoose?: (payload: WebgalChoosePayload) => Promise<void> | void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
   onAddTempAnnotations?: (ids: string[]) => void;
@@ -107,6 +116,7 @@ function ChatToolbar({
   onClearBackground,
   onClearFigure,
   onSetWebgalVar,
+  onSendWebgalChoose,
   onToggleRealtimeRender,
   setAudioFile,
   onAddTempAnnotations,
@@ -129,6 +139,11 @@ function ChatToolbar({
   const [webgalVarKey, setWebgalVarKey] = useState("");
   const [webgalVarExpr, setWebgalVarExpr] = useState("");
   const [webgalVarError, setWebgalVarError] = useState<string | null>(null);
+  const [isWebgalChooseModalOpen, setIsWebgalChooseModalOpen] = useState(false);
+  const [webgalChooseOptions, setWebgalChooseOptions] = useState<WebgalChooseOptionDraft[]>([
+    { text: "", target: "", showCondition: "", enableCondition: "" },
+  ]);
+  const [webgalChooseError, setWebgalChooseError] = useState<string | null>(null);
   const webgalVarKeyInputRef = useRef<HTMLInputElement>(null);
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
@@ -274,6 +289,76 @@ function ChatToolbar({
   const openWebgalVarModal = useCallback(() => {
     setIsWebgalVarModalOpen(true);
   }, []);
+  const updateWebgalChooseOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
+    setWebgalChooseOptions(prev => prev.map((option, idx) => (
+      idx === index ? { ...option, [key]: value } : option
+    )));
+  }, []);
+
+  const addWebgalChooseOption = useCallback(() => {
+    setWebgalChooseOptions(prev => ([
+      ...prev,
+      { text: "", target: "", showCondition: "", enableCondition: "" },
+    ]));
+  }, []);
+
+  const removeWebgalChooseOption = useCallback((index: number) => {
+    setWebgalChooseOptions(prev => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== index)));
+  }, []);
+
+  const closeWebgalChooseModal = useCallback(() => {
+    setIsWebgalChooseModalOpen(false);
+    setWebgalChooseError(null);
+  }, []);
+
+  const openWebgalChooseModal = useCallback(() => {
+    if (!onSendWebgalChoose) {
+      toast.error("当前不可发送选择");
+      return;
+    }
+    setIsWebgalChooseModalOpen(true);
+    setWebgalChooseError(null);
+  }, [onSendWebgalChoose]);
+
+  const submitWebgalChoose = useCallback(async () => {
+    if (!onSendWebgalChoose) {
+      setWebgalChooseError("当前不可发送选择");
+      return;
+    }
+    const normalizedOptions = webgalChooseOptions.map(option => ({
+      text: option.text.trim(),
+      target: option.target.trim(),
+      showCondition: option.showCondition.trim(),
+      enableCondition: option.enableCondition.trim(),
+    }));
+    if (normalizedOptions.length === 0) {
+      setWebgalChooseError("请至少添加一个选项");
+      return;
+    }
+    if (normalizedOptions.some(option => !option.text || !option.target)) {
+      setWebgalChooseError("选项文本和跳转目标不能为空");
+      return;
+    }
+    const payload: WebgalChoosePayload = {
+      options: normalizedOptions.map(option => ({
+        text: option.text,
+        target: option.target,
+        ...(option.showCondition ? { showCondition: option.showCondition } : {}),
+        ...(option.enableCondition ? { enableCondition: option.enableCondition } : {}),
+      })),
+    };
+    setWebgalChooseError(null);
+    try {
+      await onSendWebgalChoose(payload);
+      closeWebgalChooseModal();
+      setWebgalChooseOptions([{ text: "", target: "", showCondition: "", enableCondition: "" }]);
+    }
+    catch (err: any) {
+      console.error("发送选择失败:", err);
+      toast.error(err?.message ? `发送选择失败：${err.message}` : "发送选择失败");
+    }
+  }, [closeWebgalChooseModal, onSendWebgalChoose, webgalChooseOptions]);
+
 
   const webgalVarModal = isWebgalVarModalOpen && typeof document !== "undefined"
     ? createPortal(
@@ -320,10 +405,82 @@ function ChatToolbar({
         document.body,
       )
     : null;
+  const webgalChooseInputClass = "w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  const webgalChooseModal = isWebgalChooseModalOpen && typeof document !== "undefined"
+    ? createPortal(
+        <div className="modal modal-open z-9999">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg">发送选择</h3>
+            <div className="py-4 space-y-3">
+              <p className="text-xs opacity-70">将选项转换为 WebGAL choose 指令发送。</p>
+              <div className="space-y-2">
+                {webgalChooseOptions.map((option, index) => (
+                  <div key={`${index}`} className="rounded-md border border-base-300/70 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">选项 {index + 1}</span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => removeWebgalChooseOption(index)}
+                        disabled={webgalChooseOptions.length <= 1}
+                      >
+                        删除
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        className={webgalChooseInputClass}
+                        placeholder="选项文本"
+                        value={option.text}
+                        onChange={e => updateWebgalChooseOption(index, "text", e.target.value)}
+                      />
+                      <input
+                        className={webgalChooseInputClass}
+                        placeholder="跳转目标 / label / scene"
+                        value={option.target}
+                        onChange={e => updateWebgalChooseOption(index, "target", e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        className={webgalChooseInputClass}
+                        placeholder="显示条件（可选）"
+                        value={option.showCondition}
+                        onChange={e => updateWebgalChooseOption(index, "showCondition", e.target.value)}
+                      />
+                      <input
+                        className={webgalChooseInputClass}
+                        placeholder="可选条件（可选）"
+                        value={option.enableCondition}
+                        onChange={e => updateWebgalChooseOption(index, "enableCondition", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn btn-sm" onClick={addWebgalChooseOption}>
+                添加选项
+              </button>
+              {webgalChooseError && (
+                <div className="text-error text-sm">{webgalChooseError}</div>
+              )}
+            </div>
+            <div className="modal-action">
+              <button type="button" className="btn" onClick={closeWebgalChooseModal}>取消</button>
+              <button type="button" className="btn btn-primary" onClick={submitWebgalChoose}>发送</button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={closeWebgalChooseModal} />
+        </div>,
+        document.body,
+      )
+    : null;
+
 
   return (
     <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "flex-col w-full"}`}>
       {webgalVarModal}
+      {webgalChooseModal}
       <div className={`${isInline ? "flex items-start gap-2 flex-nowrap" : "w-full"}`}>
         {showStatusBar && roomId != null && statusWebSocketUtils && (
           <ChatStatusBar
@@ -573,6 +730,7 @@ function ChatToolbar({
             onClearFigure={onClearFigure}
             onSetWebgalVar={onSetWebgalVar}
             onOpenWebgalVarModal={openWebgalVarModal}
+            onOpenWebgalChooseModal={onSendWebgalChoose ? openWebgalChooseModal : undefined}
             isSpectator={isSpectator}
             onToggleRealtimeRender={onToggleRealtimeRender}
             showRunControls={showRunControls}
