@@ -18,7 +18,7 @@ interface ChatPageModalsProps {
   createDocTitle: string;
   setCreateDocTitle: (title: string) => void;
   pendingCreateInCategoryId: string | null;
-  createDocInSelectedCategory: () => void;
+  createDocInSelectedCategory: (titleOverride?: string) => void;
   activeSpaceId: number | null;
   activeSpaceAvatar?: string;
   onRoomCreated: (roomId?: number) => void;
@@ -56,6 +56,17 @@ export default function ChatPageModals({
   onAddSpaceMember,
   onAddSpacePlayer,
 }: ChatPageModalsProps) {
+  const [draftDocTitle, setDraftDocTitle] = React.useState(createDocTitle);
+  const wasCreateInCategoryOpenRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const wasOpen = wasCreateInCategoryOpenRef.current;
+    wasCreateInCategoryOpenRef.current = isCreateInCategoryOpen;
+    if (isCreateInCategoryOpen && !wasOpen) {
+      setDraftDocTitle(createDocTitle);
+    }
+  }, [createDocTitle, isCreateInCategoryOpen]);
+
   return (
     <>
 
@@ -115,10 +126,10 @@ export default function ChatPageModals({
                 <div className="bg-base-200 p-4 rounded-lg">
                   <div className="text-sm font-medium opacity-80 mb-2">文档标题</div>
                   <input
-                    className="input input-bordered w-full mb-3"
-                    value={createDocTitle}
+                    className="w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary mb-3"
+                    value={draftDocTitle}
                     onChange={(e) => {
-                      setCreateDocTitle(e.target.value);
+                      setDraftDocTitle(e.target.value);
                     }}
                     placeholder="请输入文档标题"
                   />
@@ -127,7 +138,8 @@ export default function ChatPageModals({
                     className="btn btn-primary w-full"
                     disabled={!isKPInSpace || !pendingCreateInCategoryId}
                     onClick={() => {
-                      void createDocInSelectedCategory();
+                      setCreateDocTitle(draftDocTitle);
+                      void createDocInSelectedCategory(draftDocTitle);
                     }}
                   >
                     创建文档
