@@ -1,5 +1,6 @@
 import { ArchiveIcon, HouseIcon } from "@phosphor-icons/react";
 import React from "react";
+import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
 import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
@@ -21,6 +22,9 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
   const spaceId = Number(spaceContext.spaceId ?? -1);
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
   const archived = Boolean(isArchived);
+  const archiveActionLabel = updateArchiveStatus.isPending
+    ? (archived ? "取消归档中..." : "归档中...")
+    : (archived ? "取消归档" : "归档空间");
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
 
   return (
@@ -100,12 +104,25 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 disabled={spaceId <= 0 || updateArchiveStatus.isPending}
                 onClick={() => {
                   if (spaceId > 0) {
-                    updateArchiveStatus.mutate({ spaceId, archived: !archived });
+                    const nextArchived = !archived;
+                    const toastId = `space-archive-${spaceId}`;
+                    toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
+                    updateArchiveStatus.mutate(
+                      { spaceId, archived: nextArchived },
+                      {
+                        onSuccess: () => {
+                          toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
+                        },
+                        onError: () => {
+                          toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
+                        },
+                      },
+                    );
                   }
                 }}
               >
                 <ArchiveIcon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">{archived ? "取消归档" : "归档空间"}</span>
+                <span className="flex-1 text-left">{archiveActionLabel}</span>
               </button>
             </li>
           )}
