@@ -35,10 +35,33 @@ export function useToastWindow({
   const suppressOnCloseRef = useRef(false);
   const prevOptionsRef = useRef<{ fullScreen: boolean; transparent: boolean; hiddenScrollbar: boolean } | null>(null);
   const onCloseRef = useRef(onClose);
+  const isComposingRef = useRef(false);
+  const pendingUpdateRef = useRef<React.ReactNode | null>(null);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+    const onCompositionStart = () => {
+      isComposingRef.current = true;
+    };
+    const onCompositionEnd = () => {
+      isComposingRef.current = false;
+      if (pendingUpdateRef.current && instanceRef.current) {
+        instanceRef.current.update(pendingUpdateRef.current);
+        pendingUpdateRef.current = null;
+      }
+    };
+    window.addEventListener("compositionstart", onCompositionStart, true);
+    window.addEventListener("compositionend", onCompositionEnd, true);
+    return () => {
+      window.removeEventListener("compositionstart", onCompositionStart, true);
+      window.removeEventListener("compositionend", onCompositionEnd, true);
+    };
+  }, []);
 
   const handleClose = useCallback(() => {
     if (suppressOnCloseRef.current) {
@@ -72,6 +95,7 @@ export function useToastWindow({
         instanceRef.current.close();
         instanceRef.current = null;
       }
+      pendingUpdateRef.current = null;
       prevOptionsRef.current = null;
       return;
     }
@@ -95,7 +119,13 @@ export function useToastWindow({
       });
     }
     else {
-      instanceRef.current.update(wrappedChildren);
+      if (isComposingRef.current) {
+        pendingUpdateRef.current = wrappedChildren;
+      }
+      else {
+        instanceRef.current.update(wrappedChildren);
+        pendingUpdateRef.current = null;
+      }
     }
 
     prevOptionsRef.current = nextOptions;
