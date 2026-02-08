@@ -211,9 +211,7 @@ export default function useRoomMessageActions({
     const options = payload?.options ?? [];
     const normalizedOptions = options.map(option => ({
       text: String(option.text ?? "").trim(),
-      target: String(option.target ?? "").trim(),
-      showCondition: option.showCondition ? String(option.showCondition).trim() : "",
-      enableCondition: option.enableCondition ? String(option.enableCondition).trim() : "",
+      code: option.code ? String(option.code).trim() : "",
     }));
 
     const isNarrator = curRoleId <= 0;
@@ -234,17 +232,15 @@ export default function useRoomMessageActions({
       toast.error("请至少添加一个选项");
       return;
     }
-    if (normalizedOptions.some(option => !option.text || !option.target)) {
-      toast.error("选项文本和跳转目标不能为空");
+    if (normalizedOptions.some(option => !option.text)) {
+      toast.error("选项文本不能为空");
       return;
     }
 
     const finalPayload: WebgalChoosePayload = {
       options: normalizedOptions.map(option => ({
         text: option.text,
-        target: option.target,
-        ...(option.showCondition ? { showCondition: option.showCondition } : {}),
-        ...(option.enableCondition ? { enableCondition: option.enableCondition } : {}),
+        ...(option.code ? { code: option.code } : {}),
       })),
     };
 

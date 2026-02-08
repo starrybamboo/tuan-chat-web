@@ -8,7 +8,7 @@ import { MESSAGE_TYPE, type FigureAnimationSettings } from "@/types/voiceRenderT
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
-import { buildWebgalChooseLine, extractWebgalChoosePayload } from "@/types/webgalChoose";
+import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
@@ -1450,7 +1450,10 @@ export class RealtimeRenderer {
         finalizeMessageLineRange();
         return;
       }
-      await this.appendLine(targetRoomId, buildWebgalChooseLine(payload), syncToFile);
+      const lines = buildWebgalChooseScriptLines(payload, msg.messageId ?? Date.now());
+      for (const line of lines) {
+        await this.appendLine(targetRoomId, line, syncToFile, true);
+      }
       if (syncToFile)
         this.sendSyncMessage(targetRoomId);
       finalizeMessageLineRange();

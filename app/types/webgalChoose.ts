@@ -1,8 +1,6 @@
 export type WebgalChooseOption = {
   text: string;
-  target: string;
-  showCondition?: string;
-  enableCondition?: string;
+  code?: string;
 };
 
 export type WebgalChoosePayload = {
@@ -11,11 +9,10 @@ export type WebgalChoosePayload = {
 
 const MAX_SUMMARY_ITEMS = 3;
 
-function normalizeCondition(value: unknown): string | undefined {
+function normalizeCode(value: unknown): string {
   if (typeof value !== "string")
-    return undefined;
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
+    return "";
+  return value.trim();
 }
 
 function normalizeOption(raw: unknown): WebgalChooseOption | null {
@@ -23,18 +20,14 @@ function normalizeOption(raw: unknown): WebgalChooseOption | null {
     return null;
 
   const text = String((raw as any).text ?? "").trim();
-  const target = String((raw as any).target ?? "").trim();
-  if (!text || !target)
+  if (!text)
     return null;
 
-  const showCondition = normalizeCondition((raw as any).showCondition);
-  const enableCondition = normalizeCondition((raw as any).enableCondition);
+  const code = normalizeCode((raw as any).code);
 
   return {
     text,
-    target,
-    ...(showCondition ? { showCondition } : {}),
-    ...(enableCondition ? { enableCondition } : {}),
+    ...(code ? { code } : {}),
   };
 }
 
@@ -47,8 +40,11 @@ function sanitizeChooseText(text: string): string {
     .trim();
 }
 
-function sanitizeChooseTarget(target: string): string {
-  return target.replace(/;+\s*$/, "").trim();
+function normalizeCodeLines(code: string): string[] {
+  return code
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
 }
 
 export function extractWebgalChoosePayload(extra: unknown): WebgalChoosePayload | null {
@@ -70,19 +66,30 @@ export function extractWebgalChoosePayload(extra: unknown): WebgalChoosePayload 
   return { options };
 }
 
-export function buildWebgalChooseLine(payload: WebgalChoosePayload): string {
-  const parts = payload.options.map((option) => {
-    const showCondition = normalizeCondition(option.showCondition);
-    const enableCondition = normalizeCondition(option.enableCondition);
-    const conditionPart = showCondition ? `(${showCondition})` : "";
-    const enablePart = enableCondition ? `[${enableCondition}]` : "";
-    const prefix = conditionPart || enablePart ? `${conditionPart}${enablePart}->` : "";
+export function buildWebgalChooseScriptLines(payload: WebgalChoosePayload, messageId: number | string): string[] {
+  const safeId = String(messageId ?? "0").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const baseLabel = `__choose_${safeId}`;
+  const endLabel = `${baseLabel}_end`;
+
+  const optionLabels = payload.options.map((_, index) => `${baseLabel}_${index + 1}`);
+  const chooseLine = `choose:${payload.options.map((option, index) => {
     const text = sanitizeChooseText(option.text);
-    const target = sanitizeChooseTarget(option.target);
-    return `${prefix}${text}:${target}`;
+    return `${text}:${optionLabels[index]}`;
+  }).join("|")};`;
+
+  const lines: string[] = [chooseLine];
+
+  payload.options.forEach((option, index) => {
+    lines.push(`label:${optionLabels[index]};`);
+    const codeLines = normalizeCodeLines(option.code ?? "");
+    if (codeLines.length) {
+      lines.push(...codeLines);
+    }
+    lines.push(`jumpLabel:${endLabel};`);
   });
 
-  return `choose:${parts.join("|")};`;
+  lines.push(`label:${endLabel};`);
+  return lines;
 }
 
 export function formatWebgalChooseSummary(payload: WebgalChoosePayload): string {
@@ -94,7 +101,9 @@ export function formatWebgalChooseSummary(payload: WebgalChoosePayload): string 
     return "";
 
   const summary = labels.slice(0, MAX_SUMMARY_ITEMS).join(" / ");
+  const hasCode = payload.options.some(option => Boolean(option.code?.trim()));
+  const suffix = hasCode ? "（含代码）" : "";
   return labels.length > MAX_SUMMARY_ITEMS
-    ? `${summary} ...`
-    : summary;
+    ? `${summary} ...${suffix}`
+    : `${summary}${suffix}`;
 }
