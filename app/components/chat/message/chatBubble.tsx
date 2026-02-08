@@ -48,7 +48,7 @@ interface CommandRequestPayload {
 
 const EMPTY_ANNOTATIONS: string[] = [];
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection, onEditWebgalChoose }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -58,6 +58,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   /** 点击“检定请求”按钮后，触发外层执行（以点击者身份发送并执行指令） */
   onExecuteCommandRequest?: (payload: { command: string; threadId?: number; requestMessageId: number }) => void;
   onToggleSelection?: (messageId: number) => void;
+  onEditWebgalChoose?: (messageId: number) => void;
 }) {
   const message = chatMessageResponse.message;
   const annotations = useMemo(() => {
@@ -469,6 +470,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }));
   }, [message.messageId]);
 
+  const handleEditWebgalChooseClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onEditWebgalChoose?.(message.messageId);
+  }, [message.messageId, onEditWebgalChoose]);
+
   const handleOpenContextMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -560,6 +567,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <Edit2Outline className="h-4 w-4" />
         </button>
       )}
+      {canEdit && message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE && onEditWebgalChoose && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+          onClick={handleEditWebgalChooseClick}
+          title="编辑选择"
+          aria-label="编辑选择"
+        >
+          <Edit2Outline className="h-4 w-4" />
+        </button>
+      )}
       <button
         type="button"
         className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
@@ -606,6 +624,35 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     spaceContext.isSpaceOwner,
   ]);
 
+  const openExpressionChooser = (fullScreen: boolean) => {
+    toastWindow(
+      onClose => (
+        <RoomContext value={roomContext}>
+          <div className="flex flex-col">
+            <ExpressionChooser
+              roleId={message.roleId ?? -1}
+              handleExpressionChange={(avatarId) => {
+                handleExpressionChange(avatarId);
+                onClose();
+              }}
+              handleRoleChange={(roleId) => {
+                handleRoleChange(roleId);
+                onClose();
+              }}
+              onRequestClose={onClose}
+              defaultFullscreen={fullScreen}
+              onRequestFullscreen={(next) => {
+                onClose();
+                openExpressionChooser(next);
+              }}
+            />
+          </div>
+        </RoomContext>
+      ),
+      { fullScreen },
+    );
+  };
+
   function handleAvatarClick(event?: React.MouseEvent<HTMLDivElement>) {
     if (isAvatarSamplerActive) {
       event?.preventDefault();
@@ -615,26 +662,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     if (canEdit) {
       // 打开表情选择器的 toast 窗口
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col">
-              <ExpressionChooser
-                roleId={message.roleId ?? -1}
-                handleExpressionChange={(avatarId) => {
-                  handleExpressionChange(avatarId);
-                  onClose();
-                }}
-                handleRoleChange={(roleId) => {
-                  handleRoleChange(roleId);
-                  onClose();
-                }}
-                onRequestClose={onClose}
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
+      openExpressionChooser(false);
     }
   }
 
