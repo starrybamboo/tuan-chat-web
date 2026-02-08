@@ -1,4 +1,4 @@
-import type { WebgalChoosePayload } from "@/types/webgalChoose";
+﻿import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 export default function WebgalChooseMessage({ payload }: { payload: WebgalChoosePayload | null }) {
   const options = payload?.options ?? [];
@@ -10,24 +10,22 @@ export default function WebgalChooseMessage({ payload }: { payload: WebgalChoose
   }
 
   return (
-    <div className="flex flex-col gap-2 text-sm">
-      <div className="flex items-center gap-2">
-        <span className="badge badge-ghost badge-xs">选择</span>
-        <span className="text-xs text-base-content/60">WebGAL</span>
+    <div className="rounded-xl border border-base-content/10 bg-base-100/70 px-3 py-2 text-sm shadow-sm backdrop-blur">
+      <div className="flex items-center gap-2 text-xs text-base-content/60">
+        <span className="inline-flex items-center rounded-full border border-base-content/20 bg-base-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-base-content/70">
+          选择
+        </span>
+        <span>WebGAL</span>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="mt-2 space-y-2 border-l-2 border-base-content/10 pl-3">
         {options.map((option, index) => {
-          const hasCode = Boolean(option.code?.trim());
           return (
             <div key={`${index}-${option.text}`} className="flex items-start gap-2">
-              <span className="badge badge-outline badge-xs">{index + 1}</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-base-content/30 bg-base-100 text-[11px] font-semibold text-base-content/70">
+                {index + 1}
+              </span>
               <div className="min-w-0">
-                <div className="text-sm break-words">{option.text}</div>
-                {hasCode && (
-                  <div className="text-[11px] text-base-content/60 break-words mt-0.5">
-                    代码: {option.code}
-                  </div>
-                )}
+                <div className="text-sm font-medium text-base-content/90 break-words">{option.text}</div>
               </div>
             </div>
           );
