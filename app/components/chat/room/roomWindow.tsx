@@ -62,6 +62,7 @@ function RoomWindow({
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
   const room = useGetRoomInfoQuery(roomId).data?.data;
+  const spaceHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`space:${spaceId}`]);
   const roomHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${roomId}`]);
 
   const globalContext = useGlobalContext();
@@ -211,7 +212,7 @@ function RoomWindow({
     commandExecutor,
   });
 
-  const { sendMessageWithInsert, handleSetWebgalVar } = useRoomMessageActions({
+  const { sendMessageWithInsert, handleSetWebgalVar, handleSendWebgalChoose } = useRoomMessageActions({
     roomId,
     spaceId,
     spaceExtra: space?.extra,
@@ -294,13 +295,23 @@ function RoomWindow({
     setLLMMessage,
   });
   const roomName = roomHeaderOverride?.title ?? room?.name;
+  const spaceName = spaceHeaderOverride?.title ?? space?.name;
 
   const chatFrameProps = React.useMemo(() => ({
     virtuosoRef,
     onBackgroundUrlChange: setBackgroundUrl,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
-  }), [handleExecuteCommandRequest, setBackgroundUrl, setCurrentEffect, virtuosoRef]);
+    spaceName,
+    roomName,
+  }), [
+    handleExecuteCommandRequest,
+    setBackgroundUrl,
+    setCurrentEffect,
+    roomName,
+    spaceName,
+    virtuosoRef,
+  ]);
 
   const composerPanelProps = {
     roomId,
@@ -318,6 +329,7 @@ function RoomWindow({
     onClearBackground: handleClearBackground,
     onClearFigure: handleClearFigure,
     onSetWebgalVar: handleSetWebgalVar,
+    onSendWebgalChoose: handleSendWebgalChoose,
     isKP: spaceContext.isSpaceOwner,
     onStopBgmForAll: handleStopBgmForAll,
     noRole,

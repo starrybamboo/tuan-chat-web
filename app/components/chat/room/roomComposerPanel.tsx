@@ -1,6 +1,7 @@
 import type { UserRole } from "../../../../api";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
@@ -47,6 +48,7 @@ interface RoomComposerPanelProps {
   onClearBackground: () => void;
   onClearFigure: () => void;
   onSetWebgalVar: (key: string, expr: string) => Promise<void> | void;
+  onSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void> | void;
   onOpenImportChatText?: () => void;
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
@@ -98,6 +100,7 @@ function RoomComposerPanelImpl({
   onClearBackground,
   onClearFigure,
   onSetWebgalVar,
+  onSendWebgalChoose,
   onOpenImportChatText,
   isKP,
   onStopBgmForAll,
@@ -374,6 +377,7 @@ function RoomComposerPanelImpl({
     onClearBackground,
     onClearFigure,
     onSetWebgalVar,
+    onSendWebgalChoose,
     isKP,
     onStopBgmForAll,
     noRole,
@@ -396,6 +400,7 @@ function RoomComposerPanelImpl({
     onClearFigure,
     onSendEffect,
     onSetWebgalVar,
+    onSendWebgalChoose,
     onStopBgmForAll,
     onToggleRealtimeRender,
     runModeEnabled,
