@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -19,6 +20,9 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   const dissolveSpace = useDissolveSpaceMutation();
   const exitSpace = useExitSpaceMutation();
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
+  const archiveActionLabel = updateArchiveStatus.isPending
+    ? (isArchived ? "取消归档中..." : "归档中...")
+    : (isArchived ? "取消归档" : "归档空间");
 
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
   const [dissolveTargetSpaceId, setDissolveTargetSpaceId] = useState<number | null>(null);
@@ -43,11 +47,23 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   };
 
   const handleToggleArchive = (spaceId: number, nextArchived: boolean) => {
-    updateArchiveStatus.mutate({ spaceId, archived: nextArchived }, {
-      onSuccess: () => {
-        onClose();
+    if (updateArchiveStatus.isPending) {
+      return;
+    }
+    const toastId = `space-archive-${spaceId}`;
+    toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
+    updateArchiveStatus.mutate(
+      { spaceId, archived: nextArchived },
+      {
+        onSuccess: () => {
+          toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
+          onClose();
+        },
+        onError: () => {
+          toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
+        },
       },
-    });
+    );
   };
 
   return (
@@ -63,13 +79,13 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
               ? (
                   <>
                     <li
-                      className="relative group"
+                      className={`relative group ${updateArchiveStatus.isPending ? "opacity-60 pointer-events-none" : ""}`}
                       onClick={() => {
                         handleToggleArchive(contextMenu.spaceId, !isArchived);
                       }}
                     >
                       <div className="flex justify-between items-center w-full">
-                        <span>{isArchived ? "取消归档" : "归档空间"}</span>
+                        <span>{archiveActionLabel}</span>
                       </div>
                     </li>
                     <li
