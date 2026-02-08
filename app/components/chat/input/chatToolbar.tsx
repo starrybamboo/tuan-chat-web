@@ -24,9 +24,7 @@ const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
 
 type WebgalChooseOptionDraft = {
   text: string;
-  target: string;
-  showCondition: string;
-  enableCondition: string;
+  code: string;
 };
 
 interface ChatToolbarProps {
@@ -141,7 +139,7 @@ function ChatToolbar({
   const [webgalVarError, setWebgalVarError] = useState<string | null>(null);
   const [isWebgalChooseModalOpen, setIsWebgalChooseModalOpen] = useState(false);
   const [webgalChooseOptions, setWebgalChooseOptions] = useState<WebgalChooseOptionDraft[]>([
-    { text: "", target: "", showCondition: "", enableCondition: "" },
+    { text: "", code: "" },
   ]);
   const [webgalChooseError, setWebgalChooseError] = useState<string | null>(null);
   const webgalVarKeyInputRef = useRef<HTMLInputElement>(null);
@@ -298,7 +296,7 @@ function ChatToolbar({
   const addWebgalChooseOption = useCallback(() => {
     setWebgalChooseOptions(prev => ([
       ...prev,
-      { text: "", target: "", showCondition: "", enableCondition: "" },
+      { text: "", code: "" },
     ]));
   }, []);
 
@@ -327,31 +325,27 @@ function ChatToolbar({
     }
     const normalizedOptions = webgalChooseOptions.map(option => ({
       text: option.text.trim(),
-      target: option.target.trim(),
-      showCondition: option.showCondition.trim(),
-      enableCondition: option.enableCondition.trim(),
+      code: option.code.trim(),
     }));
     if (normalizedOptions.length === 0) {
       setWebgalChooseError("请至少添加一个选项");
       return;
     }
-    if (normalizedOptions.some(option => !option.text || !option.target)) {
-      setWebgalChooseError("选项文本和跳转目标不能为空");
+    if (normalizedOptions.some(option => !option.text)) {
+      setWebgalChooseError("选项文本不能为空");
       return;
     }
     const payload: WebgalChoosePayload = {
       options: normalizedOptions.map(option => ({
         text: option.text,
-        target: option.target,
-        ...(option.showCondition ? { showCondition: option.showCondition } : {}),
-        ...(option.enableCondition ? { enableCondition: option.enableCondition } : {}),
+        ...(option.code ? { code: option.code } : {}),
       })),
     };
     setWebgalChooseError(null);
     try {
       await onSendWebgalChoose(payload);
       closeWebgalChooseModal();
-      setWebgalChooseOptions([{ text: "", target: "", showCondition: "", enableCondition: "" }]);
+      setWebgalChooseOptions([{ text: "", code: "" }]);
     }
     catch (err: any) {
       console.error("发送选择失败:", err);
@@ -427,32 +421,18 @@ function ChatToolbar({
                         删除
                       </button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2">
                       <input
                         className={webgalChooseInputClass}
                         placeholder="选项文本"
                         value={option.text}
                         onChange={e => updateWebgalChooseOption(index, "text", e.target.value)}
                       />
-                      <input
-                        className={webgalChooseInputClass}
-                        placeholder="跳转目标 / label / scene"
-                        value={option.target}
-                        onChange={e => updateWebgalChooseOption(index, "target", e.target.value)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <input
-                        className={webgalChooseInputClass}
-                        placeholder="显示条件（可选）"
-                        value={option.showCondition}
-                        onChange={e => updateWebgalChooseOption(index, "showCondition", e.target.value)}
-                      />
-                      <input
-                        className={webgalChooseInputClass}
-                        placeholder="可选条件（可选）"
-                        value={option.enableCondition}
-                        onChange={e => updateWebgalChooseOption(index, "enableCondition", e.target.value)}
+                      <textarea
+                        className={`${webgalChooseInputClass} min-h-24 font-mono`}
+                        placeholder="自定义代码（可选）"
+                        value={option.code}
+                        onChange={e => updateWebgalChooseOption(index, "code", e.target.value)}
                       />
                     </div>
                   </div>
