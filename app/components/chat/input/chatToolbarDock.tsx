@@ -50,8 +50,6 @@ export default function ChatToolbarDock({
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const subDrawerState = useSideDrawerStore(state => state.subState);
-  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
   const defaultFigurePositionEffective = defaultFigurePosition ?? undefined;
   return (
@@ -193,7 +191,7 @@ export default function ChatToolbarDock({
             className="tooltip tooltip-top"
             data-tip="地图"
             data-side-drawer-toggle="true"
-            onClick={() => setSubDrawerState(subDrawerState === "map" ? "none" : "map")}
+            onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
           >
             <CheckerboardIcon className="size-6 jump_icon" />
           </div>
