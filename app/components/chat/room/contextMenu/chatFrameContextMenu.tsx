@@ -340,8 +340,8 @@ export default function ChatFrameContextMenu({
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(rootId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
   };
 

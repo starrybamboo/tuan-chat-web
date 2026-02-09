@@ -113,10 +113,12 @@ export default function useChatFrameMessages({
     if (messagesOverride) {
       return messagesOverride;
     }
+    const allMessages = chatHistory?.messages ?? [];
+
     // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
     // - root：threadId === messageId（显示）
     // - reply：threadId !== messageId（隐藏）
-    return (chatHistory?.messages ?? []).filter((m) => {
+    return allMessages.filter((m) => {
       // Thread Root #0001（不在主消息流中单独显示：改为挂在原消息“下方”的提示）
       if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
         return false;
