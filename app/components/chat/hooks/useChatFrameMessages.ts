@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
 
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse } from "../../../../api";
@@ -35,8 +34,6 @@ export default function useChatFrameMessages({
   chatHistory,
   receivedMessages,
 }: UseChatFrameMessagesParams): UseChatFrameMessagesResult {
-  const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
-  const composerTarget = useRoomUiStore(state => state.composerTarget);
   const lastLengthMapRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
@@ -118,14 +115,6 @@ export default function useChatFrameMessages({
     }
     const allMessages = chatHistory?.messages ?? [];
 
-    // 子区视图：仅展示当前 thread（包含 thread root 与回复）
-    if (composerTarget === "thread" && threadRootMessageId) {
-      return allMessages.filter((m) => {
-        const threadId = m.message.threadId;
-        return !!threadId && threadId === threadRootMessageId;
-      });
-    }
-
     // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
     // - root：threadId === messageId（显示）
     // - reply：threadId !== messageId（隐藏）
@@ -140,7 +129,7 @@ export default function useChatFrameMessages({
       }
       return threadId === messageId;
     });
-  }, [messagesOverride, chatHistory?.messages, composerTarget, threadRootMessageId]);
+  }, [messagesOverride, chatHistory?.messages]);
 
   const threadHintMetaByMessageId = useMemo(() => {
     // key: parentMessageId（被创建子区的那条原消息）
