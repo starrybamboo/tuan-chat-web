@@ -16,9 +16,10 @@ import {
   XCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
@@ -29,7 +30,7 @@ import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 import { getEffectiveSpriteUrl } from "./utils";
 
-export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library";
+export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library" | "trash";
 
 interface SpriteSettingsPopupProps {
   isOpen: boolean;
@@ -172,12 +173,77 @@ export function SpriteSettingsPopup({
     }
   }, [onAvatarChange, onSpriteIndexChange, spritesAvatars, internalIndex]);
 
+  const queryClient = useQueryClient();
+  const trashQuery = useGetDeletedRoleAvatarsQuery(role?.id ?? 0, { enabled: Boolean(role?.id) });
+  const trashItems = useMemo(
+    () => trashQuery.data?.data ?? [],
+    [trashQuery.data],
+  );
+
+  const handleAvatarDeleted = useCallback((_avatar: RoleAvatar) => {
+    if (role?.id) {
+      queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", role.id] });
+    }
+  }, [queryClient, role?.id]);
+
+  const handleBatchDeleted = useCallback((_avatars: RoleAvatar[]) => {
+    if (role?.id) {
+      queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", role.id] });
+    }
+  }, [queryClient, role?.id]);
+
+  const { mutateAsync: restoreAvatar } = useRestoreRoleAvatarMutation(role?.id);
+  const { mutateAsync: clearDeletedAvatars, isPending: isClearingTrash } = useClearDeletedRoleAvatarsMutation(role?.id);
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+
+  const handleRestoreFromTrash = useCallback(async (avatar: RoleAvatar) => {
+    if (restoringId) {
+      return;
+    }
+    if (!avatar.avatarId) {
+      toast.error("头像ID无效，无法恢复");
+      return;
+    }
+    setRestoringId(avatar.avatarId);
+    try {
+      await restoreAvatar(avatar.avatarId);
+      toast.success("头像已恢复");
+    }
+    catch (error) {
+      console.error("恢复头像失败:", error);
+      toast.error("恢复失败，请稍后重试");
+    }
+    finally {
+      setRestoringId(null);
+    }
+  }, [restoringId, restoreAvatar]);
+
+  const handleClearTrash = useCallback(async () => {
+    if (!role?.id) {
+      toast.error("角色信息缺失，无法清空回收站");
+      return;
+    }
+    if (trashItems.length === 0 || isClearingTrash) {
+      return;
+    }
+    try {
+      await clearDeletedAvatars(role.id);
+      toast.success("回收站已清空");
+    }
+    catch (error) {
+      console.error("清空回收站失败:", error);
+      toast.error("清空失败，请稍后重试");
+    }
+  }, [role?.id, trashItems.length, isClearingTrash, clearDeletedAvatars]);
+
   const deletionHook = useAvatarDeletion({
     role,
     avatars: spritesAvatars,
     selectedAvatarId: currentAvatar?.avatarId ?? 0,
     onAvatarChange: handleAvatarChange,
     onAvatarSelect: handleAvatarSelectById,
+    onDeleteSuccess: handleAvatarDeleted,
+    onBatchDeleteSuccess: handleBatchDeleted,
   });
   const { handleBatchDelete, isDeleting: isDeletingAvatar } = deletionHook;
 
@@ -363,9 +429,11 @@ export function SpriteSettingsPopup({
               mode="manage"
               className="h-full"
               gridCols="grid-cols-3"
+              gridTemplateColumns="repeat(3, minmax(0, 1fr))"
               role={role}
               onAvatarChange={handleAvatarChange}
               onAvatarSelect={handleAvatarSelectById}
+              onAvatarDeleted={handleAvatarDeleted}
               onUpload={handleAvatarUpload}
               fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
               selectedIndices={selectedIndices}
@@ -449,6 +517,25 @@ export function SpriteSettingsPopup({
                 <PackageIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
                 <span>素材库</span>
               </button>
+              {/* 回收站 Tab */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("trash")}
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
+                  activeTab === "trash"
+                    ? "bg-primary text-primary-content"
+                    : "hover:bg-base-300"
+                }`}
+              >
+                <TrashIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                <span>回收站</span>
+                {trashItems.length > 0 && (
+                  <span className="badge badge-sm bg-base-100 text-base-content">
+                    {trashItems.length}
+                  </span>
+                )}
+              </button>
+
             </nav>
           </div>
 
@@ -531,6 +618,91 @@ export function SpriteSettingsPopup({
             {activeTab === "library" && (
               <AvatarLibraryTab />
             )}
+
+            {/* 回收站内容 */}
+            {activeTab === "trash" && (
+              <div className="h-full flex flex-col">
+                <div className="flex justify-between items-center mb-2 flex-shrink-0 min-h-8">
+                  <h3 className="text-lg font-semibold">回收站</h3>
+                  <button
+                    type="button"
+                    className={`btn btn-ghost btn-sm ${trashItems.length === 0 || isClearingTrash ? "btn-disabled" : ""}`}
+                    onClick={handleClearTrash}
+                    disabled={trashItems.length === 0 || isClearingTrash}
+                  >
+                    {isClearingTrash ? "清空中..." : "清空回收站"}
+                  </button>
+                </div>
+
+                <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
+                  <div className="absolute inset-0 overflow-auto p-4">
+                    {trashQuery.isLoading
+                      ? (
+                          <div className="flex flex-col items-center justify-center h-full text-base-content/60 text-sm">
+                            加载中...
+                          </div>
+                        )
+                      : trashItems.length === 0
+                        ? (
+                            <div className="flex flex-col items-center justify-center h-full text-base-content/60 text-sm">
+                              回收站为空
+                            </div>
+                          )
+                        : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {trashItems.map((avatar, index) => {
+                                const displayUrl = avatar.avatarUrl || avatar.spriteUrl || avatar.originUrl || "";
+                                const title = typeof avatar.avatarTitle === "string"
+                                  ? avatar.avatarTitle
+                                  : avatar.avatarTitle?.label;
+                                const name = title && title.trim().length ? title : "未命名头像";
+                                const isRestoring = restoringId === avatar.avatarId;
+                                const isBusy = Boolean(restoringId) || isClearingTrash;
+                                const canRestore = Boolean(avatar.avatarId);
+                                return (
+                                  <div key={avatar.avatarId ?? `trash-${index}`} className="rounded-lg border border-base-300 bg-base-100 p-3 flex flex-col gap-3">
+                                    <div className="flex gap-3 items-start">
+                                      <div className="w-16 h-16 rounded-md overflow-hidden bg-base-200 flex items-center justify-center shrink-0">
+                                        {displayUrl
+                                          ? (
+                                              <img
+                                                src={displayUrl}
+                                                alt={name}
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                                decoding="async"
+                                              />
+                                            )
+                                          : (
+                                              <span className="text-xs text-base-content/50">无预览</span>
+                                            )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium truncate">{name}</div>
+                                        {avatar.avatarId && (
+                                          <div className="text-xs text-base-content/40 mt-1">头像ID：{avatar.avatarId}</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        onClick={() => handleRestoreFromTrash(avatar)}
+                                        disabled={!canRestore || isBusy}
+                                      >
+                                        {isRestoring ? "恢复中..." : "恢复"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -545,7 +717,7 @@ export function SpriteSettingsPopup({
               {" "}
               <span className="font-bold text-error">{selectedIndices.size}</span>
               {" "}
-              个头像吗？此操作无法撤销。
+              个头像吗？删除后会进入回收站，可在回收站恢复。
             </p>
             {selectedIndices.size >= spritesAvatars.length && (
               <div className="alert alert-warning mb-4">

@@ -1,24 +1,33 @@
 // noinspection NonAsciiCharacters
 
+import { vi, type Mock } from "vitest";
+import { AliasMap } from "./aliasMap";
 import UTILS from "./utils";
 
 // Mock函数，只mock外部依赖，保留实际的calculateExpression函数以便测试
-jest.mock("./utils", () => ({
-  __esModule: true,
-  default: {
-    doesHaveArg: jest.fn(),
-    setRoleAbilityValue: jest.fn(),
-    getRoleAbilityValue: jest.fn(),
-    calculateExpression: jest.requireActual("./utils").default.calculateExpression,
-  },
-}));
+vi.mock("./utils", async () => {
+  const actual = await vi.importActual<typeof import("./utils")>("./utils");
+  return {
+    __esModule: true,
+    default: {
+      doesHaveArg: vi.fn(),
+      setRoleAbilityValue: vi.fn(),
+      getRoleAbilityValue: vi.fn(),
+      calculateExpression: actual.default.calculateExpression,
+    },
+  };
+});
 
 describe("dicer utils 测试", () => {
   let mockRoleAbility: RoleAbility;
 
+  beforeAll(() => {
+    AliasMap.getInstance({ "1001": new Map() });
+  });
+
   beforeEach(() => {
     // 重置mock
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // 创建默认的角色能力对象用于测试
     mockRoleAbility = {
@@ -50,7 +59,7 @@ describe("dicer utils 测试", () => {
   describe("doesHaveArg 函数测试", () => {
     it("应该正确识别并移除包含的参数", () => {
       const args = ["arg1", "Arg2", "ARG3"];
-      (UTILS.doesHaveArg as jest.Mock).mockImplementation((argList, arg) => {
+      (UTILS.doesHaveArg as Mock).mockImplementation((argList, arg) => {
         // 模拟原始函数的行为
         const argsFmt = argList.map((item: string) => item.trim().toLowerCase());
         const res = argsFmt.includes(arg.toLowerCase());
@@ -69,7 +78,7 @@ describe("dicer utils 测试", () => {
 
     it("应该返回false当参数不包含在列表中", () => {
       const args = ["arg1", "arg2"];
-      (UTILS.doesHaveArg as jest.Mock).mockImplementation((argList, arg) => {
+      (UTILS.doesHaveArg as Mock).mockImplementation((argList, arg) => {
         const argsFmt = argList.map((item: string) => item.trim().toLowerCase());
         return argsFmt.includes(arg.toLowerCase());
       });
@@ -84,7 +93,7 @@ describe("dicer utils 测试", () => {
   // setRoleAbilityValue 函数测试
   describe("setRoleAbilityValue 函数测试", () => {
     it("应该正确设置basic类型的值", () => {
-      const mockSetRoleAbilityValue = UTILS.setRoleAbilityValue as jest.Mock;
+      const mockSetRoleAbilityValue = UTILS.setRoleAbilityValue as Mock;
 
       UTILS.setRoleAbilityValue(mockRoleAbility, "力量", "50", "basic", "basic");
 
@@ -92,7 +101,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确设置ability类型的值", () => {
-      const mockSetRoleAbilityValue = UTILS.setRoleAbilityValue as jest.Mock;
+      const mockSetRoleAbilityValue = UTILS.setRoleAbilityValue as Mock;
 
       UTILS.setRoleAbilityValue(mockRoleAbility, "hp", "10", "ability", "ability");
 
@@ -100,7 +109,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确设置skill类型的值", () => {
-      const mockSetRoleAbilityValue = UTILS.setRoleAbilityValue as jest.Mock;
+      const mockSetRoleAbilityValue = UTILS.setRoleAbilityValue as Mock;
 
       UTILS.setRoleAbilityValue(mockRoleAbility, "母语", "80", "skill", "skill");
 
@@ -111,7 +120,7 @@ describe("dicer utils 测试", () => {
   // getRoleAbilityValue 函数测试
   describe("getRoleAbilityValue 函数测试", () => {
     it("应该正确获取basic类型的值", () => {
-      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as jest.Mock;
+      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as Mock;
       mockGetRoleAbilityValue.mockReturnValue("40");
 
       const result = UTILS.getRoleAbilityValue(mockRoleAbility, "力量", "basic");
@@ -121,7 +130,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确获取ability类型的值", () => {
-      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as jest.Mock;
+      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as Mock;
       mockGetRoleAbilityValue.mockReturnValue("(体质*1+体型*1)/10");
 
       const result = UTILS.getRoleAbilityValue(mockRoleAbility, "hp", "ability");
@@ -131,7 +140,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确获取skill类型的值", () => {
-      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as jest.Mock;
+      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as Mock;
       mockGetRoleAbilityValue.mockReturnValue("教育");
 
       const result = UTILS.getRoleAbilityValue(mockRoleAbility, "母语", "skill");
@@ -141,7 +150,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("当值不存在时应该返回undefined", () => {
-      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as jest.Mock;
+      const mockGetRoleAbilityValue = UTILS.getRoleAbilityValue as Mock;
       mockGetRoleAbilityValue.mockReturnValue(undefined);
 
       const result = UTILS.getRoleAbilityValue(mockRoleAbility, "不存在的属性", "basic");
@@ -193,13 +202,13 @@ describe("dicer utils 测试", () => {
 
     // 测试变量替换
     it("应该正确替换basic类型的变量", () => {
-      (UTILS.getRoleAbilityValue as jest.Mock).mockReturnValue("40");
+      (UTILS.getRoleAbilityValue as Mock).mockReturnValue("40");
       const result = UTILS.calculateExpression("力量+5", mockRoleAbility);
       expect(result).toBe(45);
     });
 
     it("应该正确替换能力值中的表达式变量", () => {
-      (UTILS.getRoleAbilityValue as jest.Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
         const values: Record<string, string> = {
           hp: "(体质*1+体型*1)/10",
           体质: "55",
@@ -216,7 +225,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确替换skill类型的变量", () => {
-      (UTILS.getRoleAbilityValue as jest.Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
         if (key === "斗殴") {
           return "40";
         }
@@ -227,7 +236,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确处理多个中文变量", () => {
-      (UTILS.getRoleAbilityValue as jest.Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
         const values: Record<string, string> = {
           力量: "40",
           敏捷: "60",
@@ -240,7 +249,7 @@ describe("dicer utils 测试", () => {
 
     // 测试复杂表达式
     it("应该正确处理包含中文变量的复杂表达式", () => {
-      (UTILS.getRoleAbilityValue as jest.Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
         const values: Record<string, string> = {
           力量: "40",
           敏捷: "60",

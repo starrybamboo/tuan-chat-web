@@ -8,3 +8,4 @@
 - `useSearchParamsState` 的 `defaultValue` 必须是稳定引用（常量或 `useMemo`）；默认值会变化时传 `shortenUrl=false`，避免 URL 与默认值来回写
 - store 的 set/更新函数在无变化时返回旧 state（或 prev），避免订阅者反复触发更新
 - 每完成一轮答复（实现/修改/修复）后，立即进行 git commit
+- 如果修改了 WebGAL 引擎（含 `WebGAL/packages/webgal` 或 `WebGAL/packages/parser`），需自动执行同步脚本：`D:\A_collection\WebGAL\sync-terre-engine.ps1`

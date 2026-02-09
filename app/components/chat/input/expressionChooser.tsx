@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 import type { UserRole } from "../../../../api";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
@@ -18,6 +18,8 @@ export function ExpressionChooser({
   handleRoleChange,
   showNarratorOption = true,
   onRequestClose,
+  defaultFullscreen = false,
+  onRequestFullscreen,
 }: {
   roleId: number;
   handleExpressionChange: (avatarId: number) => void;
@@ -25,12 +27,18 @@ export function ExpressionChooser({
   /** 是否显示旁白选项（WebGAL 联动模式下使用） */
   showNarratorOption?: boolean;
   onRequestClose?: () => void;
+  defaultFullscreen?: boolean;
+  onRequestFullscreen?: (next: boolean) => void;
 }) {
   const roomContext = use(RoomContext);
   const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
-  const [isAvatarFullscreen, setIsAvatarFullscreen] = useState(false);
+  const [isAvatarFullscreen, setIsAvatarFullscreen] = useState(Boolean(defaultFullscreen));
   const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
+
+  useEffect(() => {
+    setIsAvatarFullscreen(Boolean(defaultFullscreen));
+  }, [defaultFullscreen]);
 
   const isKP = (roomContext.curMember?.memberType ?? -1) === 1;
 
@@ -51,7 +59,7 @@ export function ExpressionChooser({
     : "请选择你的角色后再发送消息";
 
   const containerSizeClassName = isAvatarFullscreen
-    ? "w-[94vw] min-w-[94vw] max-w-[94vw] md:w-[90vw] md:min-w-[90vw] md:max-w-[90vw] lg:w-[86vw] lg:min-w-[86vw] lg:max-w-[86vw] h-[80vh] max-h-[80vh]"
+    ? "w-full max-w-full min-w-0 h-[80vh] max-h-[80vh]"
     : "max-w-[92vw] md:max-w-[560px] lg:max-w-[640px] max-h-[70vh] md:max-h-[50vh]";
   const containerLayoutClassName = isAvatarFullscreen ? "gap-3 md:gap-4" : "";
   const roleListClassName = isAvatarFullscreen
@@ -102,6 +110,12 @@ export function ExpressionChooser({
       activeElement?.blur();
     }
     event?.currentTarget.blur();
+  };
+
+  const handleFullscreenToggle = () => {
+    const next = !isAvatarFullscreen;
+    setIsAvatarFullscreen(next);
+    onRequestFullscreen?.(next);
   };
 
   return (
@@ -222,7 +236,7 @@ export function ExpressionChooser({
                     <button
                       type="button"
                       className="btn btn-ghost btn-xs gap-1"
-                      onClick={() => setIsAvatarFullscreen(prev => !prev)}
+                      onClick={handleFullscreenToggle}
                       title={isAvatarFullscreen ? "退出全屏" : "全屏"}
                       aria-label={isAvatarFullscreen ? "退出全屏" : "全屏"}
                     >

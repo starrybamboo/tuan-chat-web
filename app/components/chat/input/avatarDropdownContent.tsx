@@ -6,6 +6,8 @@ interface AvatarDropdownContentProps {
   onAvatarChange: (avatarId: number) => void;
   onRoleChange: (roleId: number) => void;
   onRequestClose?: () => void;
+  defaultFullscreen?: boolean;
+  onRequestFullscreen?: (next: boolean) => void;
 }
 
 function AvatarDropdownContentImpl({
@@ -13,6 +15,8 @@ function AvatarDropdownContentImpl({
   onAvatarChange,
   onRoleChange,
   onRequestClose,
+  defaultFullscreen,
+  onRequestFullscreen,
 }: AvatarDropdownContentProps) {
   return (
     <div className="p-2">
@@ -21,6 +25,8 @@ function AvatarDropdownContentImpl({
         handleExpressionChange={onAvatarChange}
         handleRoleChange={onRoleChange}
         onRequestClose={onRequestClose}
+        defaultFullscreen={defaultFullscreen}
+        onRequestFullscreen={onRequestFullscreen}
       />
     </div>
   );
