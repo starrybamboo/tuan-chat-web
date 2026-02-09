@@ -29,7 +29,7 @@ export default function useChatFrameSelectionContext({
   } = useChatFrameSelectionHandlers({
     contextMenuMessageId: contextMenu?.messageId,
     deleteMessage,
-    updateSelectedMessageIds: selection.updateSelectedMessageIds,
+    exitSelection: selection.exitSelection,
     closeContextMenu,
     toggleUseChatBubbleStyle,
     setReplyMessage,

@@ -5,7 +5,7 @@ import type { Message } from "../../../../api";
 type UseChatFrameSelectionHandlersParams = {
   contextMenuMessageId?: number;
   deleteMessage: (messageId: number) => void;
-  updateSelectedMessageIds: (next: Set<number>) => void;
+  exitSelection: () => void;
   closeContextMenu: () => void;
   toggleUseChatBubbleStyle: () => void;
   setReplyMessage: (message: Message) => void;
@@ -21,14 +21,14 @@ type UseChatFrameSelectionHandlersResult = {
 export default function useChatFrameSelectionHandlers({
   contextMenuMessageId,
   deleteMessage,
-  updateSelectedMessageIds,
+  exitSelection,
   closeContextMenu,
   toggleUseChatBubbleStyle,
   setReplyMessage,
 }: UseChatFrameSelectionHandlersParams): UseChatFrameSelectionHandlersResult {
   const clearSelection = useCallback(() => {
-    updateSelectedMessageIds(new Set());
-  }, [updateSelectedMessageIds]);
+    exitSelection();
+  }, [exitSelection]);
 
   const handleDelete = useCallback(() => {
     deleteMessage(contextMenuMessageId ?? -1);

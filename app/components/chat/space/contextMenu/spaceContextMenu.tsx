@@ -26,8 +26,10 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
 
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
   const [dissolveTargetSpaceId, setDissolveTargetSpaceId] = useState<number | null>(null);
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+  const [archiveTargetSpaceId, setArchiveTargetSpaceId] = useState<number | null>(null);
 
-  if (!contextMenu && !isDissolveConfirmOpen)
+  if (!contextMenu && !isDissolveConfirmOpen && !isArchiveConfirmOpen)
     return null;
 
   const handleDissolve = () => {
@@ -44,6 +46,20 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
         onClose();
       },
     });
+  };
+
+  const handleArchiveAction = (spaceId: number) => {
+    if (updateArchiveStatus.isPending) {
+      return;
+    }
+    const nextArchived = !isArchived;
+    if (nextArchived) {
+      setArchiveTargetSpaceId(spaceId);
+      setIsArchiveConfirmOpen(true);
+      onClose();
+      return;
+    }
+    handleToggleArchive(spaceId, nextArchived);
   };
 
   const handleToggleArchive = (spaceId: number, nextArchived: boolean) => {
@@ -81,7 +97,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
                     <li
                       className={`relative group ${updateArchiveStatus.isPending ? "opacity-60 pointer-events-none" : ""}`}
                       onClick={() => {
-                        handleToggleArchive(contextMenu.spaceId, !isArchived);
+                        handleArchiveAction(contextMenu.spaceId);
                       }}
                     >
                       <div className="flex justify-between items-center w-full">
@@ -164,6 +180,26 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
               navigate("/chat/private", { replace: true });
             },
           });
+        }}
+      />
+      <ConfirmModal
+        isOpen={isArchiveConfirmOpen}
+        onClose={() => {
+          setIsArchiveConfirmOpen(false);
+          setArchiveTargetSpaceId(null);
+        }}
+        title="确认归档空间"
+        message="归档后空间将进入只读状态，可在之后取消归档。是否继续？"
+        confirmText="确认归档"
+        variant="warning"
+        onConfirm={() => {
+          if (archiveTargetSpaceId == null) {
+            return;
+          }
+          const targetSpaceId = archiveTargetSpaceId;
+          setIsArchiveConfirmOpen(false);
+          setArchiveTargetSpaceId(null);
+          handleToggleArchive(targetSpaceId, true);
         }}
       />
     </>

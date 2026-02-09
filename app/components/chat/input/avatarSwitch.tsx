@@ -53,10 +53,12 @@ export default function AvatarSwitch({
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState("");
+  const [isAvatarChooserFullscreen, setIsAvatarChooserFullscreen] = useState(false);
   const dropdownTriggerRef = useRef<HTMLDivElement | null>(null);
 
   const handleCloseDropdown = () => {
     dropdownTriggerRef.current?.blur();
+    setIsAvatarChooserFullscreen(false);
     if (typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
@@ -101,6 +103,9 @@ export default function AvatarSwitch({
   };
   const computedAvatarWidth = avatarWidth ?? (getScreenSize() === "sm" ? 10 : 14);
   const narratorSizeClass = sizeClassMap[computedAvatarWidth] ?? "w-10 h-10";
+  const dropdownWidthClassName = isAvatarChooserFullscreen
+    ? "w-[92vw] md:w-[92vw] max-w-[92vw]"
+    : "w-[92vw] md:w-auto";
 
   if (!hasSelectedIdentity) {
     return (
@@ -122,13 +127,15 @@ export default function AvatarSwitch({
         </div>
         <ul
           tabIndex={0}
-          className="dropdown-content menu bg-base-100 rounded-box z-9999 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+          className={`dropdown-content menu bg-base-100 rounded-box z-9999 shadow-sm p-0 border border-base-300 ${dropdownWidthClassName} max-h-[75vh] overflow-y-auto overflow-x-hidden`}
         >
           <ExpressionChooser
             roleId={curRoleId}
             handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
             handleRoleChange={roleId => setCurRoleId(roleId)}
             onRequestClose={handleCloseDropdown}
+            defaultFullscreen={isAvatarChooserFullscreen}
+            onRequestFullscreen={setIsAvatarChooserFullscreen}
           />
         </ul>
       </div>
@@ -217,13 +224,15 @@ export default function AvatarSwitch({
       </div>
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-9999 shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+        className={`dropdown-content menu bg-base-100 rounded-box z-9999 shadow-sm p-0 border border-base-300 ${dropdownWidthClassName} max-h-[75vh] overflow-y-auto overflow-x-hidden`}
       >
         <ExpressionChooser
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
           onRequestClose={handleCloseDropdown}
+          defaultFullscreen={isAvatarChooserFullscreen}
+          onRequestFullscreen={setIsAvatarChooserFullscreen}
         />
       </ul>
     </div>

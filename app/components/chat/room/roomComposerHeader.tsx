@@ -43,6 +43,7 @@ export default function RoomComposerHeader({
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editingName, setEditingName] = React.useState("");
   const [isAvatarPopoverOpen, setIsAvatarPopoverOpen] = React.useState(false);
+  const [isAvatarChooserFullscreen, setIsAvatarChooserFullscreen] = React.useState(false);
   const avatarPopoverRef = React.useRef<HTMLDivElement | null>(null);
   const showSelfStatus = Boolean(currentChatStatus && !isSpectator);
   const showOtherStatus = React.useMemo(() => {
@@ -64,6 +65,12 @@ export default function RoomComposerHeader({
       setIsAvatarPopoverOpen(false);
     }
   }, [isSpectator]);
+
+  React.useEffect(() => {
+    if (!isAvatarPopoverOpen) {
+      setIsAvatarChooserFullscreen(false);
+    }
+  }, [isAvatarPopoverOpen]);
 
   React.useEffect(() => {
     if (!isAvatarPopoverOpen) {
@@ -140,13 +147,20 @@ export default function RoomComposerHeader({
             </button>
             {isAvatarPopoverOpen && !isSpectator && (
               <div className="absolute left-0 bottom-full mb-2 z-50 flex items-stretch">
-                <div className="w-[92vw] md:w-120 min-w-100 max-w-[92vw] rounded-box bg-base-100 border border-base-300 shadow-lg p-2 self-stretch flex flex-col">
+                <div
+                  className={`${isAvatarChooserFullscreen
+                    ? "w-[92vw] md:w-[92vw] max-w-[92vw]"
+                    : "w-[92vw] md:w-120 min-w-100 max-w-[92vw]"
+                  } rounded-box bg-base-100 border border-base-300 shadow-lg p-2 self-stretch flex flex-col`}
+                >
                   <div className="flex-1 min-h-0">
                     <AvatarDropdownContent
                       roleId={curRoleId}
                       onAvatarChange={setCurAvatarId}
                       onRoleChange={setCurRoleId}
                       onRequestClose={() => setIsAvatarPopoverOpen(false)}
+                      defaultFullscreen={isAvatarChooserFullscreen}
+                      onRequestFullscreen={setIsAvatarChooserFullscreen}
                     />
                   </div>
                 </div>

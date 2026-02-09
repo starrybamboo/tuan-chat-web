@@ -8,6 +8,9 @@ import { MESSAGE_TYPE, type FigureAnimationSettings } from "@/types/voiceRenderT
 
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
+import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
+import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
+import { extractWebgalDicePayload, isLikelyAnkoDiceContent, stripDiceHighlightTokens } from "@/types/webgalDice";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
@@ -212,6 +215,8 @@ export type RealtimeTTSConfig = {
 };
 
 const IMAGE_MESSAGE_FIGURE_ID = "image_message";
+const DEFAULT_DICE_SOUND_FILE = "nettimato-rolling-dice-1.wav";
+const DEFAULT_DICE_SOUND_FOLDER = "se";
 
 function hasFileExtension(fileName: string): boolean {
   const dotIndex = fileName.lastIndexOf(".");
@@ -224,6 +229,15 @@ function hashString(input: string): string {
     hash = (hash * 33) ^ input.charCodeAt(i);
   }
   return (hash >>> 0).toString(36);
+}
+
+function splitDiceContentToSteps(content: string): string[] {
+  const normalized = String(content ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  return normalized
+    .split("\n")
+    .flatMap(line => line.split(/(?<!\\)\|/))
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
 }
 
 function buildImageFileName(url: string, fileName: string | undefined, prefix: string): string {
@@ -1168,6 +1182,33 @@ export class RealtimeRenderer {
     }
   }
 
+  private resolveDiceSound(payload: WebgalDiceRenderPayload | null, useDefault: boolean): { url: string; volume?: number } | null {
+    const sound = payload?.sound;
+    if (sound?.enabled === false) {
+      return null;
+    }
+
+    const volume = typeof sound?.volume === "number" && Number.isFinite(sound.volume)
+      ? sound.volume
+      : undefined;
+    const directUrl = typeof sound?.url === "string" ? sound.url.trim() : "";
+    if (directUrl) {
+      return { url: directUrl, volume };
+    }
+    if (!useDefault) {
+      return null;
+    }
+
+    const fileName = typeof sound?.fileName === "string" && sound.fileName.trim()
+      ? sound.fileName.trim()
+      : DEFAULT_DICE_SOUND_FILE;
+    const folder = typeof sound?.folder === "string" && sound.folder.trim()
+      ? sound.folder.trim().replace(/^\/+|\/+$/g, "")
+      : DEFAULT_DICE_SOUND_FOLDER;
+    const base = getTerreBaseUrl().replace(/\/$/, "");
+    return { url: `${base}/games/${this.gameName}/game/${folder}/${fileName}`, volume };
+  }
+
   /**
    * 获取立绘文件名（如果未上传则上传）
    */
@@ -1460,8 +1501,37 @@ export class RealtimeRenderer {
       return;
     }
 
-    // 只处理文本消息（messageType === 1）和黑屏文字（messageType === 9）
-    if (msg.messageType !== 1 && msg.messageType !== 9) {
+    const isDiceMessage = (msg.messageType as number) === MESSAGE_TYPE.DICE;
+    const dicePayload = isDiceMessage ? extractWebgalDicePayload(msg.webgal) : null;
+    const diceContent = isDiceMessage
+      ? (dicePayload?.content ?? msg.extra?.diceResult?.result ?? (msg.extra as any)?.result ?? msg.content ?? "")
+      : "";
+    const hasDiceScriptLines = Boolean(isDiceMessage && dicePayload?.lines && dicePayload.lines.length > 0);
+    const autoDiceMode = isDiceMessage && isLikelyAnkoDiceContent(diceContent) ? "anko" : "narration";
+    const diceModeFromPayload = isDiceMessage ? dicePayload?.mode : undefined;
+    const diceRenderMode = isDiceMessage
+      ? (diceModeFromPayload === "script" && !hasDiceScriptLines
+          ? autoDiceMode
+          : (diceModeFromPayload ?? (hasDiceScriptLines ? "script" : autoDiceMode)))
+      : null;
+
+    if (isDiceMessage && diceRenderMode === "script" && hasDiceScriptLines) {
+      const diceSound = this.resolveDiceSound(dicePayload, Boolean(dicePayload?.sound));
+      if (diceSound) {
+        const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+        await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+      }
+      for (const line of dicePayload?.lines ?? []) {
+        await this.appendLine(targetRoomId, line, syncToFile, true);
+      }
+      finalizeMessageLineRange();
+      if (syncToFile)
+        this.sendSyncMessage(targetRoomId);
+      return;
+    }
+
+    // 只处理文本消息（messageType === 1）、黑屏文字（messageType === 9）和骰子消息（messageType === 6）
+    if (msg.messageType !== 1 && msg.messageType !== 9 && !isDiceMessage) {
       finalizeMessageLineRange();
       return;
     }
@@ -1471,7 +1541,7 @@ export class RealtimeRenderer {
     const roleId = msg.roleId ?? 0;
 
     // 判断是否为旁白：roleId <= 0
-    const isNarrator = roleId <= 0;
+    const isNarrator = roleId <= 0 || (isDiceMessage && diceRenderMode !== "dialog");
 
     // 获取角色信息
     const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
@@ -1509,24 +1579,34 @@ export class RealtimeRenderer {
       figureAnimation?: FigureAnimationSettings;
     } | undefined;
 
+    const diceShowFigure = isDiceMessage
+      ? (dicePayload?.showFigure ?? (roleId > 0))
+      : undefined;
+    const diceShowMiniAvatar = isDiceMessage
+      ? (dicePayload?.showMiniAvatar ?? (roleId > 0))
+      : undefined;
+
     // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
     // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
     // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
     const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
     // 只有 "left", "center", "right" 才是有效的立绘位置
     const isValidPosition = rawFigurePosition === "left" || rawFigurePosition === "center" || rawFigurePosition === "right";
-    const figurePosition = isValidPosition
-      ? rawFigurePosition
-      : (shouldClearFigure ? undefined : (this.autoFigureEnabled ? "left" : undefined));
+    const figurePosition = diceShowFigure === false
+      ? undefined
+      : (isValidPosition
+          ? rawFigurePosition
+          : (shouldClearFigure ? undefined : (this.autoFigureEnabled ? "left" : undefined)));
 
     const figureAnimation = voiceRenderSettings?.figureAnimation;
 
     // 获取黑屏文字的 -hold 设置
     const introHold = hasAnnotation(msg.annotations, ANNOTATION_IDS.INTRO_HOLD);
 
-    // 旁白和黑屏文字不需要显示立绘
+    // 旁白和黑屏文字不需要显示立绘（骰子消息允许通过 showFigure 覆盖）
     // 如果 figurePosition 为 undefined，也不显示立绘
-    const shouldShowFigure = !isNarrator && !isIntroText && !!figurePosition;
+    const allowFigure = !isIntroText && (diceShowFigure === true || (!isNarrator && diceShowFigure !== false));
+    const shouldShowFigure = allowFigure && !!figurePosition;
 
     if (shouldShowFigure && spriteFileName) {
       // 不再自动清除立绘，立绘需要手动清除
@@ -1574,9 +1654,9 @@ export class RealtimeRenderer {
       // await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
     }
 
-    // 处理小头像（普通角色对话，不管是否显示立绘）
-    const isNormalDialog = !isNarrator && !isIntroText;
-    if (isNormalDialog) {
+    // 处理小头像（骰子消息可通过 showMiniAvatar 覆盖）
+    const allowMiniAvatar = !isIntroText && (diceShowMiniAvatar === true || (!isNarrator && diceShowMiniAvatar !== false));
+    if (allowMiniAvatar) {
       const miniAvatarFileName = this.miniAvatarEnabled
         ? (effectiveAvatarId > 0 && roleId > 0 ? await this.getAndUploadMiniAvatar(effectiveAvatarId, roleId) : null)
         : null;
@@ -1589,13 +1669,14 @@ export class RealtimeRenderer {
         await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
       }
     }
-    else if ((isNarrator || isIntroText) && this.miniAvatarEnabled) {
+    else if (this.miniAvatarEnabled) {
       // 旁白和黑屏文字清除小头像（仅在启用小头像功能时）
       await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
     }
 
     // 处理文本内容（支持 WebGAL 文本拓展语法）
-    const processedContent = TextEnhanceSyntax.processContent(msg.content);
+    const renderContent = isDiceMessage ? diceContent : msg.content;
+    const processedContent = TextEnhanceSyntax.processContent(renderContent);
 
     // 获取 voiceRenderSettings 中的情感向量
     const customEmotionVector = voiceRenderSettings?.emotionVector;
@@ -1612,6 +1693,99 @@ export class RealtimeRenderer {
       const holdPart = introHold ? " -hold" : "";
       await this.appendLine(targetRoomId, `intro:${introContent}${holdPart};`, syncToFile);
     }
+    else if (isDiceMessage) {
+      const diceSound = this.resolveDiceSound(dicePayload, true);
+      const useDialogDice = diceRenderMode === "dialog";
+      const modePart = diceRenderMode ? ` -mode=${diceRenderMode}` : "";
+      const appendDiceOverlayLine = async (content: string) => {
+        if (!content.trim()) {
+          return;
+        }
+        await this.appendLine(targetRoomId, `dice:${content}${modePart};`, syncToFile, true);
+      };
+      const appendDiceDialogLine = async (content: string, notend: boolean = false, concat: boolean = false) => {
+        const notendPart = !isNarrator && notend ? " -notend" : "";
+        const concatPart = !isNarrator && concat ? " -concat" : "";
+        if (isNarrator) {
+          await this.appendLine(targetRoomId, `:${content};`, syncToFile);
+        }
+        else {
+          await this.appendLine(targetRoomId, `${roleName}: ${content}${notendPart}${concatPart};`, syncToFile);
+        }
+      };
+
+      if (diceRenderMode === "anko") {
+        const diceSize = dicePayload?.diceSize ?? 100;
+        const formatted = formatAnkoDiceMessage(diceContent, diceSize) ?? diceContent;
+        const preview = stripDiceResultTokens(stripDiceHighlightTokens(formatted));
+        const previewProcessed = TextEnhanceSyntax.processContent(preview);
+        const finalProcessed = TextEnhanceSyntax.processContent(formatted);
+        if (previewProcessed.trim() && previewProcessed !== finalProcessed) {
+          if (useDialogDice) {
+            await appendDiceDialogLine(previewProcessed);
+          }
+          else {
+            await appendDiceOverlayLine(previewProcessed);
+          }
+        }
+        if (diceSound) {
+          const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+          await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+        }
+        if (useDialogDice) {
+          await appendDiceDialogLine(finalProcessed, dialogNotend, dialogConcat);
+        }
+        else {
+          await appendDiceOverlayLine(finalProcessed);
+        }
+      }
+      else {
+        const stepLines = splitDiceContentToSteps(diceContent);
+        const shouldTwoStep = stepLines.length > 1 && dicePayload?.twoStep !== false;
+        if (shouldTwoStep) {
+          const previewRaw = stripDiceResultTokens(diceContent);
+          const previewProcessed = TextEnhanceSyntax.processContent(previewRaw);
+          const finalProcessed = TextEnhanceSyntax.processContent(diceContent);
+          if (previewProcessed.trim() && previewProcessed !== finalProcessed) {
+            if (useDialogDice) {
+              await appendDiceDialogLine(previewProcessed);
+            }
+            else {
+              await appendDiceOverlayLine(previewProcessed);
+            }
+            if (diceSound) {
+              const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+              await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+            }
+          }
+          else if (diceSound) {
+            const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+            await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+          }
+          if (useDialogDice) {
+            await appendDiceDialogLine(finalProcessed, dialogNotend, dialogConcat);
+          }
+          else {
+            await appendDiceOverlayLine(finalProcessed);
+          }
+          finalizeMessageLineRange();
+          if (syncToFile) {
+            this.sendSyncMessage(targetRoomId);
+          }
+          return;
+        }
+        if (diceSound) {
+          const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
+          await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
+        }
+        if (useDialogDice) {
+          await appendDiceDialogLine(processedContent, dialogNotend, dialogConcat);
+        }
+        else {
+          await appendDiceOverlayLine(processedContent);
+        }
+      }
+    }
     else if (isNarrator) {
       // 旁白：冒号前留空，如 :这是一句旁白;
       // 旁白不显示立绘和小头像
@@ -1622,11 +1796,12 @@ export class RealtimeRenderer {
       // 生成语音（如果启用了 TTS）
       let vocalFileName: string | null = null;
       if (this.ttsConfig.enabled
-        && msg.content.trim().length > 0
+        && renderContent.trim().length > 0
         && roleId !== 0 // 跳过系统角色
         && roleId !== 2 // 跳过骰娘
-        && !msg.content.startsWith(".") // 跳过指令
-        && !msg.content.startsWith("。")) {
+        && !isDiceMessage
+        && !renderContent.startsWith(".") // 跳过指令
+        && !renderContent.startsWith("。")) {
         vocalFileName = await this.generateAndUploadVocal(
           processedContent,
           roleId,
@@ -1782,7 +1957,7 @@ export class RealtimeRenderer {
     }
 
     // 如果需要重新生成 TTS，清除对应的缓存
-    if (regenerateTTS && msg.content && msg.roleId) {
+    if (regenerateTTS && msg.content && msg.roleId && (msg.messageType as number) !== MESSAGE_TYPE.DICE) {
       const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
         emotionVector?: number[];
       } | undefined;

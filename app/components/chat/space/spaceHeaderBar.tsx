@@ -2,6 +2,7 @@ import { ArchiveIcon, HouseIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
 import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
@@ -22,12 +23,47 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
   const spaceId = Number(spaceContext.spaceId ?? -1);
   const updateArchiveStatus = useUpdateSpaceArchiveStatusMutation();
   const archived = Boolean(isArchived);
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = React.useState(false);
+  const [archiveTargetSpaceId, setArchiveTargetSpaceId] = React.useState<number | null>(null);
   const archiveActionLabel = updateArchiveStatus.isPending
     ? (archived ? "取消归档中..." : "归档中...")
     : (archived ? "取消归档" : "归档空间");
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
 
+  const handleToggleArchive = (targetSpaceId: number, nextArchived: boolean) => {
+    if (updateArchiveStatus.isPending) {
+      return;
+    }
+    const toastId = `space-archive-${targetSpaceId}`;
+    toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
+    updateArchiveStatus.mutate(
+      { spaceId: targetSpaceId, archived: nextArchived },
+      {
+        onSuccess: () => {
+          toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
+        },
+        onError: () => {
+          toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
+        },
+      },
+    );
+  };
+
+  const handleArchiveAction = () => {
+    if (spaceId <= 0 || updateArchiveStatus.isPending) {
+      return;
+    }
+    const nextArchived = !archived;
+    if (nextArchived) {
+      setArchiveTargetSpaceId(spaceId);
+      setIsArchiveConfirmOpen(true);
+      return;
+    }
+    handleToggleArchive(spaceId, nextArchived);
+  };
+
   return (
+    <>
     <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
       <div className="dropdown dropdown-bottom min-w-0">
         <button
@@ -102,24 +138,7 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 type="button"
                 className="gap-3"
                 disabled={spaceId <= 0 || updateArchiveStatus.isPending}
-                onClick={() => {
-                  if (spaceId > 0) {
-                    const nextArchived = !archived;
-                    const toastId = `space-archive-${spaceId}`;
-                    toast.loading(nextArchived ? "正在归档空间..." : "正在取消归档...", { id: toastId });
-                    updateArchiveStatus.mutate(
-                      { spaceId, archived: nextArchived },
-                      {
-                        onSuccess: () => {
-                          toast.success(nextArchived ? "归档完成" : "已取消归档", { id: toastId });
-                        },
-                        onError: () => {
-                          toast.error(nextArchived ? "归档失败，请重试" : "取消归档失败，请重试", { id: toastId });
-                        },
-                      },
-                    );
-                  }
-                }}
+                onClick={handleArchiveAction}
               >
                 <ArchiveIcon className="size-4 opacity-70" />
                 <span className="flex-1 text-left">{archiveActionLabel}</span>
@@ -154,5 +173,26 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
         </div>
       </div>
     </div>
+    <ConfirmModal
+      isOpen={isArchiveConfirmOpen}
+      onClose={() => {
+        setIsArchiveConfirmOpen(false);
+        setArchiveTargetSpaceId(null);
+      }}
+      title="确认归档空间"
+      message="归档后空间将进入只读状态，可在之后取消归档。是否继续？"
+      confirmText="确认归档"
+      variant="warning"
+      onConfirm={() => {
+        if (archiveTargetSpaceId == null) {
+          return;
+        }
+        const targetSpaceId = archiveTargetSpaceId;
+        setIsArchiveConfirmOpen(false);
+        setArchiveTargetSpaceId(null);
+        handleToggleArchive(targetSpaceId, true);
+      }}
+    />
+    </>
   );
 }

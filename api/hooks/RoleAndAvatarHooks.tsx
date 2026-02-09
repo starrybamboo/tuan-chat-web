@@ -403,6 +403,20 @@ export function useGetRoleAvatarsQuery(roleId: number, options?: RoleAvatarQuery
 }
 
 /**
+ * 获取角色回收站的头像
+ * @param roleId 角色ID
+ */
+export function useGetDeletedRoleAvatarsQuery(roleId: number, options?: RoleAvatarQueryOptions) {
+  const enabled = (options?.enabled ?? true) && typeof roleId === "number" && roleId > 0;
+  return useQuery({
+    queryKey: ['getDeletedRoleAvatars', roleId],
+    queryFn: () => tuanchat.avatarController.getDeletedRoleAvatars(roleId),
+    staleTime: 60000,
+    enabled,
+  });
+}
+
+/**
  * 获取单个头像详情
  * @param avatarId 头像ID
  */
@@ -491,6 +505,7 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
     mutationKey: ['deleteRoleAvatar'],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId], exact: true });
     }
   });
 }
@@ -507,7 +522,40 @@ export function useBatchDeleteRoleAvatarsMutation(roleId?: number) {
     mutationKey: ['batchDeleteRoleAvatars'],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId], exact: true });
     }
+  });
+}
+
+/**
+ * 恢复头像
+ * @param roleId 关联的角色ID（用于缓存刷新）
+ */
+export function useRestoreRoleAvatarMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['restoreRoleAvatar', roleId],
+    mutationFn: (avatarId: number) => tuanchat.avatarController.restoreRoleAvatar(avatarId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId] });
+      queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
+    },
+  });
+}
+
+/**
+ * 清空角色头像回收站（物理删除）
+ * @param roleId 关联的角色ID（用于缓存刷新）
+ */
+export function useClearDeletedRoleAvatarsMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['clearDeletedRoleAvatars', roleId],
+    mutationFn: (targetRoleId: number) => tuanchat.avatarController.clearDeletedRoleAvatars(targetRoleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId] });
+    },
   });
 }
 
@@ -1052,6 +1100,10 @@ export function useDeleteRoleAvatarWithOptimisticMutation(roleId?: number) {
       queryClient.invalidateQueries({
         queryKey: ["getRole", roleId],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ["getDeletedRoleAvatars", roleId],
+      });
     },
   });
 }
@@ -1132,6 +1184,10 @@ export function useBatchDeleteRoleAvatarsWithOptimisticMutation(roleId?: number)
 
       queryClient.invalidateQueries({
         queryKey: ["getRole", roleId],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["getDeletedRoleAvatars", roleId],
       });
     },
   });

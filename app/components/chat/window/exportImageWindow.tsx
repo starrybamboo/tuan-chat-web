@@ -13,6 +13,10 @@ async function loadQRCode() {
 interface ExportImageWindowProps {
   /** 选中的消息列表 */
   selectedMessages: ChatMessageResponse[];
+  /** 空间标题 */
+  spaceName?: string | null;
+  /** 群聊标题 */
+  roomName?: string | null;
   /** 关闭窗口回调 */
   onClose: () => void;
 }
@@ -31,12 +35,28 @@ function loadImage(imgUrl: string): Promise<HTMLImageElement> {
 /**
  * 导出聊天消息为图片的窗口组件
  */
-export default function ExportImageWindow({ selectedMessages, onClose }: ExportImageWindowProps) {
+export default function ExportImageWindow({
+  selectedMessages,
+  spaceName,
+  roomName,
+  onClose,
+}: ExportImageWindowProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showQRCode, setShowQRCode] = useState(true);
   const [useBubbleStyle, setUseBubbleStyle] = useState(() => useRoomPreferenceStore.getState().useChatBubbleStyle);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const displaySpaceName = (spaceName ?? "").trim();
+  const displayRoomName = (roomName ?? "").trim();
+  const headerText = useMemo(() => {
+    const parts: string[] = [];
+    if (displaySpaceName)
+      parts.push(`「 ${displaySpaceName} 」`);
+    if (displayRoomName)
+      parts.push(`「 ${displayRoomName} 」`);
+    return parts.join(" —");
+  }, [displayRoomName, displaySpaceName]);
+  const hasHeader = headerText.length > 0;
 
   // 按消息位置排序
   const sortedMessages = useMemo(
@@ -109,8 +129,12 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
       const googleFonts = Array.from(document.querySelectorAll("link[href*=\"fonts.googleapis.com\"]"));
       googleFonts.forEach(link => link.remove());
 
+      const contentWidth = Math.max(600, Math.ceil(contentRef.current.getBoundingClientRect().width));
+
       // 克隆节点用于截图
       const cloneNode = contentRef.current.cloneNode(true) as HTMLElement;
+      cloneNode.style.width = `${contentWidth}px`;
+      cloneNode.style.boxSizing = "border-box";
 
       // 创建临时容器
       const tempContainer = document.createElement("div");
@@ -118,7 +142,7 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
       tempContainer.style.left = "-9999px";
       tempContainer.style.top = "0";
       tempContainer.style.zIndex = "-1";
-      tempContainer.style.width = "600px";
+      tempContainer.style.width = `${contentWidth}px`;
       tempContainer.style.background = "#ffffff";
       tempContainer.style.padding = "20px";
       tempContainer.appendChild(cloneNode);
@@ -216,7 +240,7 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
   }, [showQRCode, onClose, getShareUrl]);
 
   return (
-    <div className="flex flex-col gap-4 p-4 w-[650px] max-h-[80vh]">
+    <div className="flex flex-col gap-4 p-4 w-[90vw] max-w-[900px] max-h-[80vh]">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">导出聊天图片</h2>
         <button
@@ -260,6 +284,11 @@ export default function ExportImageWindow({ selectedMessages, onClose }: ExportI
       {/* 预览区域 */}
       <div className="overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-white">
         <div ref={contentRef} className="p-4 bg-white text-black">
+          {hasHeader && (
+            <div className="mb-3 pb-3 border-b border-gray-200">
+              <div className="text-base font-bold text-gray-800">{headerText}</div>
+            </div>
+          )}
           {sortedMessages.map(msg => (
             <div key={msg.message.messageId} className="export-message-item">
               <ChatBubble
