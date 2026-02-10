@@ -48,6 +48,8 @@ function CharacterDetailInner({
 
   // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
   const [isEditing, setIsEditing] = useState(false);
+  const [isLeftPanelEditing, setIsLeftPanelEditing] = useState(false);
+  const [expansionSaveSignal, setExpansionSaveSignal] = useState(0);
 
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
@@ -296,8 +298,8 @@ function CharacterDetailInner({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
-  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing ״̬
-  const handleSave = () => {
+  // 保存角色基础信息（名称、描述、头像等）
+  const handleSaveRoleBase = (afterSave?: () => void) => {
     setIsTransitioning(true);
     const cleanedRole = {
       ...localRole,
@@ -308,11 +310,34 @@ function CharacterDetailInner({
       onSuccess: () => {
         setTimeout(() => {
           onSave(cleanedRole); // 通知父级更新全局状态
-          setIsEditing(false); // 重置本地编辑状态
+          afterSave?.();
           setIsTransitioning(false);
         }, 300);
       },
       onError: () => setIsTransitioning(false),
+    });
+  };
+
+  const handleStartEditingAll = () => {
+    setIsEditing(true);
+    setIsLeftPanelEditing(true);
+  };
+
+  const handleStartEditingLeftOnly = () => {
+    setIsLeftPanelEditing(true);
+  };
+
+  const handleSaveLeftOnly = () => {
+    handleSaveRoleBase(() => {
+      setIsLeftPanelEditing(false);
+    });
+  };
+
+  const handleSaveAll = () => {
+    setExpansionSaveSignal(prev => prev + 1);
+    handleSaveRoleBase(() => {
+      setIsEditing(false);
+      setIsLeftPanelEditing(false);
     });
   };
 
@@ -459,6 +484,8 @@ function CharacterDetailInner({
           )
         : (
             <ExpansionModule
+              isEditing={isEditing}
+              saveSignal={expansionSaveSignal}
               roleId={localRole.id}
               ruleId={selectedRuleId}
               isStImportModalOpen={isStImportModalOpen}
@@ -467,6 +494,8 @@ function CharacterDetailInner({
           )}
     </>
   );
+
+  const isLeftEditing = isEditing || isLeftPanelEditing;
 
   return (
     <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
@@ -537,7 +566,7 @@ function CharacterDetailInner({
                 <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
                   <button
                     type="button"
-                    onClick={handleSave}
+                    onClick={handleSaveAll}
                     className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
                     disabled={isTransitioning}
                   >
@@ -556,7 +585,7 @@ function CharacterDetailInner({
               )
             : (
                 <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
-                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
+                  <button type="button" onClick={handleStartEditingAll} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
                     <span className="flex items-center gap-1">
                       <EditIcon className="w-4 h-4" />
                       编辑
@@ -573,7 +602,7 @@ function CharacterDetailInner({
             <div className="space-y-6">
               <CharacterDetailLeftPanelHorizontal
                 isQueryLoading={isQueryLoading}
-                isEditing={isEditing}
+                isEditing={isLeftEditing}
                 isTransitioning={isTransitioning}
                 isDiceMaiden={isDiceMaiden}
                 localRole={localRole}
@@ -587,8 +616,8 @@ function CharacterDetailInner({
                 currentDicerRoleId={currentDicerRoleId}
                 dicerRoleError={dicerRoleError}
                 linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                onSave={handleSave}
-                onEditStart={() => setIsEditing(true)}
+                onSave={handleSaveLeftOnly}
+                onEditStart={handleStartEditingLeftOnly}
                 onOpenStImportModal={() => setIsStImportModalOpen(true)}
                 onOpenRuleModal={handleOpenRuleModal}
                 onOpenAudioModal={handleOpenAudioModal}
@@ -620,7 +649,7 @@ function CharacterDetailInner({
               {/* 左侧：立绘与简介、规则选择（固定） */}
               <CharacterDetailLeftPanel
                 isQueryLoading={isQueryLoading}
-                isEditing={isEditing}
+                isEditing={isLeftEditing}
                 isTransitioning={isTransitioning}
                 isDiceMaiden={isDiceMaiden}
                 localRole={localRole}
@@ -634,8 +663,8 @@ function CharacterDetailInner({
                 currentDicerRoleId={currentDicerRoleId}
                 dicerRoleError={dicerRoleError}
                 linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                onSave={handleSave}
-                onEditStart={() => setIsEditing(true)}
+                onSave={handleSaveLeftOnly}
+                onEditStart={handleStartEditingLeftOnly}
                 onOpenStImportModal={() => setIsStImportModalOpen(true)}
                 onOpenRuleModal={handleOpenRuleModal}
                 onOpenAudioModal={handleOpenAudioModal}

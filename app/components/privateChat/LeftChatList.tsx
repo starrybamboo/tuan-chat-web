@@ -97,9 +97,11 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
               title="好友列表"
               onClick={() => {
                 navigate("/chat/private?tab=all");
-                setTimeout(() => {
-                  setIsOpenLeftDrawer(false);
-                }, 0);
+                if (isSmallScreen) {
+                  setTimeout(() => {
+                    setIsOpenLeftDrawer(false);
+                  }, 0);
+                }
               }}
             >
               <UserListIcon className="size-6 opacity-70" weight="fill" />
@@ -111,9 +113,11 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
               title="添加好友"
               onClick={() => {
                 navigate("/chat/private?tab=add");
-                setTimeout(() => {
-                  setIsOpenLeftDrawer(false);
-                }, 0);
+                if (isSmallScreen) {
+                  setTimeout(() => {
+                    setIsOpenLeftDrawer(false);
+                  }, 0);
+                }
               }}
             >
               <UserCirclePlusIcon className="size-6 opacity-70" weight="fill" />

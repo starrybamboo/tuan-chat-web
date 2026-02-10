@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ComponentProps, SVGProps } from "react";
 import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
@@ -1454,9 +1454,13 @@ export function ConnectionIcon() {
   );
 }
 
-export function SidebarSimpleIcon() {
+export function SidebarSimpleIcon({
+  size = 20,
+  weight = "bold",
+  ...props
+}: ComponentProps<typeof PhosphorSidebarSimpleIcon>) {
   return (
-    <PhosphorSidebarSimpleIcon weight="bold" size={20} />
+    <PhosphorSidebarSimpleIcon weight={weight} size={size} {...props} />
   );
 }
 

@@ -11,6 +11,7 @@ type StoredChatIds = {
 
 type UseChatPageAutoNavigationParams = {
   activeSpaceId?: number | null;
+  isDocRoute: boolean;
   isPrivateChatMode: boolean;
   orderedRooms: RoomSummary[];
   rooms: RoomSummary[];
@@ -20,8 +21,24 @@ type UseChatPageAutoNavigationParams = {
   urlRoomId?: string | null;
 };
 
+export function shouldAutoSelectFirstRoom(params: {
+  activeSpaceId?: number | null;
+  isDocRoute: boolean;
+  isPrivateChatMode: boolean;
+  urlRoomId?: string | null;
+}): boolean {
+  if (params.isPrivateChatMode)
+    return false;
+  if (params.isDocRoute)
+    return false;
+  if (params.activeSpaceId == null)
+    return false;
+  return !params.urlRoomId || params.urlRoomId === "null";
+}
+
 export default function useChatPageAutoNavigation({
   activeSpaceId,
+  isDocRoute,
   isPrivateChatMode,
   orderedRooms,
   rooms,
@@ -49,13 +66,13 @@ export default function useChatPageAutoNavigation({
   }, [isPrivateChatMode, rooms, setActiveRoomId, setActiveSpaceId, storedIds.roomId, storedIds.spaceId]);
 
   useLayoutEffect(() => {
-    if (isPrivateChatMode)
-      return;
-    if (activeSpaceId == null)
-      return;
-
-    const isRoomIdMissingInUrl = !urlRoomId || urlRoomId === "null";
-    if (!isRoomIdMissingInUrl)
+    const shouldAutoSelect = shouldAutoSelectFirstRoom({
+      activeSpaceId,
+      isDocRoute,
+      isPrivateChatMode,
+      urlRoomId,
+    });
+    if (!shouldAutoSelect)
       return;
 
     const firstRoomId = orderedRooms[0]?.roomId;
@@ -63,5 +80,5 @@ export default function useChatPageAutoNavigation({
       return;
 
     setActiveRoomId(firstRoomId, { replace: true });
-  }, [activeSpaceId, isPrivateChatMode, orderedRooms, setActiveRoomId, urlRoomId]);
+  }, [activeSpaceId, isDocRoute, isPrivateChatMode, orderedRooms, setActiveRoomId, urlRoomId]);
 }

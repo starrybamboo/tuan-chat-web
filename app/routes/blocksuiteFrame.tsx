@@ -72,6 +72,9 @@ function getBlocksuiteMeasuredScrollHeight(): number {
     ".doc-title-container",
     "doc-title",
   ];
+  const tcHeaderCandidates = [
+    ".tc-blocksuite-tc-header",
+  ];
 
   const fallbackCandidates = [
     ".affine-page-viewport",
@@ -90,6 +93,13 @@ function getBlocksuiteMeasuredScrollHeight(): number {
     docTitleHeight = Math.max(docTitleHeight, measureElement(el));
   }
 
+  // tc-header 是宿主层自定义头部，不在 blocksuite shadow DOM 内；需要单独测量。
+  let tcHeaderHeight = 0;
+  for (const sel of tcHeaderCandidates) {
+    const el = document.querySelector<HTMLElement>(sel);
+    tcHeaderHeight = Math.max(tcHeaderHeight, measureElement(el));
+  }
+
   let fallbackMax = 0;
   for (const sel of fallbackCandidates) {
     const el = querySelectorDeep<HTMLElement>(rootForQuery, sel);
@@ -102,13 +112,14 @@ function getBlocksuiteMeasuredScrollHeight(): number {
     document.body?.scrollHeight ?? 0,
   );
 
-  if (primaryMax > 0 || docTitleHeight > 0) {
+  if (primaryMax > 0 || docTitleHeight > 0 || tcHeaderHeight > 0) {
     const combinedPrimary = primaryMax > 0 && docTitleHeight > 0
       ? (primaryMax + docTitleHeight)
       : Math.max(primaryMax, docTitleHeight);
+    const combinedWithHeader = combinedPrimary + tcHeaderHeight;
     // primary 为准；fallback 不应把高度“撑到比内容还大”。
-    const cappedFallback = fallbackMax > 0 ? Math.min(fallbackMax, combinedPrimary) : 0;
-    return Math.max(combinedPrimary, cappedFallback);
+    const cappedFallback = fallbackMax > 0 ? Math.min(fallbackMax, combinedWithHeader) : 0;
+    return Math.max(combinedWithHeader, cappedFallback);
   }
 
   return Math.max(fallbackMax, docH);

@@ -10,6 +10,8 @@ interface RuleNumericalEditorProps {
   onSave?: (data: NumericalData) => void;
   cloneVersion: number;
   onEditingChange?: (editing: boolean) => void;
+  forcedEditing?: boolean;
+  saveSignal?: number;
 }
 
 // Reducer actions
@@ -59,11 +61,14 @@ export default function RuleNumericalEditor({
   onSave,
   cloneVersion,
   onEditingChange,
+  forcedEditing,
+  saveSignal,
 }: RuleNumericalEditorProps) {
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   const [isEditing, setIsEditing] = useState(false);
 
   const prevCloneVersionRef = useRef(cloneVersion);
+  const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
 
   // 非编辑态时，允许外部 props 同步本地展示
   useEffect(() => {
@@ -82,6 +87,36 @@ export default function RuleNumericalEditor({
     dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     setIsEditing(false);
   }, [cloneVersion, data]);
+
+  useEffect(() => {
+    if (typeof forcedEditing !== "boolean") {
+      return;
+    }
+
+    if (forcedEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    setIsEditing(false);
+  }, [forcedEditing]);
+
+  useEffect(() => {
+    if (saveSignal === undefined) {
+      return;
+    }
+    if (prevSaveSignalRef.current === saveSignal) {
+      return;
+    }
+
+    prevSaveSignalRef.current = saveSignal;
+    if (!isEditing) {
+      return;
+    }
+
+    onSave?.(localData ?? {});
+    setIsEditing(false);
+  }, [isEditing, localData, onSave, saveSignal]);
 
   // 将编辑态变化上报给父组件，用于保存前校验
   useEffect(() => {
@@ -150,7 +185,7 @@ export default function RuleNumericalEditor({
       <div className="flex items-center justify-between gap-3">
         <h3 className="card-title text-lg flex items-center gap-2">{title}</h3>
         <div className="flex items-center gap-2">
-          {!isEditing
+          {typeof forcedEditing !== "boolean" && (!isEditing
             ? (
                 <button type="button" className="btn btn-sm btn-accent" onClick={handleStartEditing}>
                   <span className="flex items-center gap-1">
@@ -188,7 +223,7 @@ export default function RuleNumericalEditor({
                     </span>
                   </button>
                 </>
-              )}
+              ))}
         </div>
       </div>
 

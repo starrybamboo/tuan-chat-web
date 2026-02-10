@@ -11,7 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function ChatLayoutRoute() {
   return (
-    <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-hidden">
+    <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-visible">
       <ChatPage />
     </div>
   );

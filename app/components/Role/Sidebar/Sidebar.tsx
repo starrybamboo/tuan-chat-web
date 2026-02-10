@@ -1,10 +1,12 @@
 import type { UserRole } from "api";
+import type { Rule } from "api/models/Rule";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesByTypeQuery, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
-import { useCallback, useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getRoleRule } from "@/utils/roleRuleStorage";
@@ -35,9 +37,12 @@ export function Sidebar({
   // 折叠状态：用于"全部"视图中的分组折叠
   const [isDiceCollapsed, setIsDiceCollapsed] = useState(false);
   const [isNormalCollapsed, setIsNormalCollapsed] = useState(false);
+  const [isRuleCollapsed, setIsRuleCollapsed] = useState(false);
+  const [searchParams] = useSearchParams();
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const diceRolesQuery = useGetUserRolesByTypeQuery(userId ?? -1, 1);
+  const ruleListQuery = useRuleListQuery();
   const {
     data: normalRolesQuery,
     isSuccess: isNormalSuccess,
@@ -233,6 +238,26 @@ export function Sidebar({
   // 在"全部"视图中，分离骰娘角色和普通角色
   const diceRoles = filteredRoles.filter(role => role.type === 1);
   const normalRoles = filteredRoles.filter(role => role.type !== 1);
+  const filteredRules = useMemo(() => {
+    if (typeof userId !== "number" || userId <= 0) {
+      return [] as Rule[];
+    }
+
+    const list = ruleListQuery.data ?? [];
+    return list
+      .filter(rule => rule.authorId === userId)
+      .filter((rule: Rule) => {
+        if (!searchQuery.trim()) {
+          return true;
+        }
+        const keyword = searchQuery.toLowerCase();
+        return `${rule.ruleName ?? ""} ${rule.ruleDescription ?? ""}`.toLowerCase().includes(keyword);
+      })
+      .sort((a, b) => (b.ruleId ?? 0) - (a.ruleId ?? 0));
+  }, [ruleListQuery.data, searchQuery, userId]);
+
+  const isCreateRuleActive = searchParams.get("type") === "rule" && searchParams.get("mode") === "create";
+  const activeRuleId = Number(searchParams.get("ruleId") ?? 0);
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<Set<number>>(() => new Set());
@@ -595,6 +620,127 @@ export function Sidebar({
                             isSelectionMode={isSelectionMode}
                           />
                         </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 我的规则分组 */}
+              <div className="mb-2">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                  onClick={() => setIsRuleCollapsed(!isRuleCollapsed)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`w-4 h-4 transition-transform ${isRuleCollapsed ? "" : "rotate-90"}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                  <span className="font-medium">规则模板</span>
+                  <span className="text-xs text-base-content/60">
+                    (
+                    {filteredRules.length}
+                    )
+                  </span>
+                </button>
+                {!isRuleCollapsed && (
+                  <div className="ml-2">
+                    <Link
+                      to="/role?type=rule&mode=create"
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
+                        isCreateRuleActive ? "bg-primary/10 text-primary" : "hover:bg-base-100"
+                      }`}
+                      onClick={closeDrawerOnMobile}
+                      title="新建规则模板"
+                    >
+                      <div className="avatar shrink-0 px-1">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-info/40 group-hover:border-info/60 bg-info/5 text-info/60 group-hover:text-info/80 transition-colors duration-150 relative">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.1"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5" />
+                            <path d="M12 8v8" />
+                            <path d="M8 12h8" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <h3 className="font-medium truncate">新建规则</h3>
+                        <p className="text-xs text-base-content/70 mt-1 truncate">创建自定义规则模板</p>
+                      </div>
+                    </Link>
+
+                    {ruleListQuery.isLoading && (
+                      <div className="text-xs text-base-content/60 px-3 py-2">正在加载规则...</div>
+                    )}
+
+                    {!ruleListQuery.isLoading && filteredRules.length === 0 && (
+                      <div className="text-xs text-base-content/60 px-3 py-2">
+                        暂无规则，点击上方“新建规则”
+                      </div>
+                    )}
+
+                    {filteredRules.map((rule) => {
+                      const currentRuleId = rule.ruleId ?? 0;
+                      const isRuleActive = searchParams.get("type") === "rule"
+                        && searchParams.get("mode") === "edit"
+                        && activeRuleId === currentRuleId;
+                      return (
+                        <Link
+                          key={`my-${currentRuleId}`}
+                          to={`/role?type=rule&mode=edit&ruleId=${currentRuleId}`}
+                          className={`block rounded-lg px-1 ${
+                            isRuleActive ? "bg-primary/10 text-primary" : ""
+                          }`}
+                          onClick={closeDrawerOnMobile}
+                        >
+                          <div className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150">
+                            <div className="avatar shrink-0 px-1">
+                              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-base-content/10 bg-base-100 text-base-content/70 relative">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-6 h-6 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5" />
+                                  <path d="M8 7h8" />
+                                  <path d="M8 11h8" />
+                                  <path d="M8 15h5" />
+                                </svg>
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <h3 className="font-medium truncate">{rule.ruleName || "未命名规则"}</h3>
+                              <p className="text-xs text-base-content/70 mt-1 truncate">
+                                #
+                                {currentRuleId}
+                                {" · "}
+                                {(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
                       );
                     })}
                   </div>

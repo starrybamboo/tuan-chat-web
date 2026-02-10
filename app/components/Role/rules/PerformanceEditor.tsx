@@ -2,7 +2,7 @@ import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 
@@ -15,6 +15,8 @@ interface PerformanceEditorProps {
   abilityData: Record<string, string>;
   roleId: number;
   ruleId: number;
+  forcedEditing?: boolean;
+  saveSignal?: number;
 }
 
 /**
@@ -28,6 +30,8 @@ export default function PerformanceEditor({
   abilityData,
   roleId,
   ruleId,
+  forcedEditing,
+  saveSignal,
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
@@ -36,6 +40,7 @@ export default function PerformanceEditor({
   const [isEditing, setIsEditing] = useState(false);
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
   // 是否移动端
   const isMobile = useIsMobile();
 
@@ -43,33 +48,65 @@ export default function PerformanceEditor({
   const shortFields = Object.keys(abilityData || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
+  const persistChanges = useCallback(() => {
+    setIsTransitioning(true);
+    const updateData = {
+      roleId,
+      ruleId,
+      act: fields,
+      ability: {},
+    };
+    updateFiledAbility(updateData, {
+      onSuccess: () => {
+        setTimeout(() => {
+          setIsEditing(false);
+          setIsTransitioning(false);
+        }, 300);
+      },
+      onError: () => {
+        setIsTransitioning(false);
+      },
+    });
+  }, [fields, roleId, ruleId, updateFiledAbility]);
+
   // 处理编辑模式切换
   const handleEditToggle = () => {
     if (!isEditing) {
       setIsEditing(true);
+      return;
     }
-    else {
-      setIsTransitioning(true);
-      // 保存更改
-      const updateData = {
-        roleId,
-        ruleId,
-        act: fields,
-        ability: {}, // 表演编辑器不修改能力字段，传空对象
-      };
-      updateFiledAbility(updateData, {
-        onSuccess: () => {
-          setTimeout(() => {
-            setIsEditing(false);
-            setIsTransitioning(false);
-          }, 300);
-        },
-        onError: () => {
-          setIsTransitioning(false);
-        },
-      });
-    }
+    persistChanges();
   };
+
+  useEffect(() => {
+    if (typeof forcedEditing !== "boolean") {
+      return;
+    }
+
+    if (forcedEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    if (!isTransitioning) {
+      setIsEditing(false);
+    }
+  }, [forcedEditing, isTransitioning]);
+
+  useEffect(() => {
+    if (saveSignal === undefined) {
+      return;
+    }
+
+    if (prevSaveSignalRef.current === saveSignal) {
+      return;
+    }
+
+    prevSaveSignalRef.current = saveSignal;
+    if (isEditing) {
+      persistChanges();
+    }
+  }, [isEditing, persistChanges, saveSignal]);
 
   const handleDeleteField = (key: string) => {
     updateKeyField(
@@ -114,39 +151,41 @@ export default function PerformanceEditor({
         <h3 className="card-title text-lg flex items-center gap-2 ml-1">
           基本信息
         </h3>
-        <button
-          type="button"
-          onClick={handleEditToggle}
-          className={`btn btn-sm ${
-            isEditing ? "btn-primary" : "btn-accent"
-          } ${
-            isTransitioning ? "scale-95" : ""
-          }`}
-          disabled={isTransitioning}
-        >
-          {isTransitioning
-            ? (
-                <span className="loading loading-spinner loading-xs"></span>
-              )
-            : isEditing
+        {forcedEditing !== true && (
+          <button
+            type="button"
+            onClick={handleEditToggle}
+            className={`btn btn-sm ${
+              isEditing ? "btn-primary" : "btn-accent"
+            } ${
+              isTransitioning ? "scale-95" : ""
+            }`}
+            disabled={isTransitioning}
+          >
+            {isTransitioning
               ? (
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                    保存
-                  </span>
+                  <span className="loading loading-spinner loading-xs"></span>
                 )
-              : (
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                    编辑
-                  </span>
-                )}
-        </button>
+              : isEditing
+                ? (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                      保存
+                    </span>
+                  )
+                : (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                      编辑
+                    </span>
+                  )}
+          </button>
+        )}
       </div>
 
       {/* 表演字段区域 - 响应式布局 */}

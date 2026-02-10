@@ -12,6 +12,8 @@ interface RulesListProps {
   keyword: string;
   authorId?: number;
   large?: boolean;
+  dense?: boolean;
+  gridMode?: "two" | "four";
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
   autoSelectFirst: boolean;
@@ -25,6 +27,12 @@ interface RulesSectionProps {
   large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）
   autoSelectFirst?: boolean; // 默认 true：首次加载时自动选中第一个规则
   authorId?: number; // 可选：按作者ID过滤规则列表（用于“我的规则”等场景）
+  pageSize?: number;
+  dense?: boolean;
+  gridMode?: "two" | "four";
+  title?: string;
+  description?: string;
+  controlsInHeader?: boolean;
 }
 
 /**
@@ -38,6 +46,12 @@ export default function RulesSection({
   large = false,
   autoSelectFirst = true,
   authorId = undefined,
+  pageSize = 8,
+  dense = false,
+  gridMode = "two",
+  title,
+  description,
+  controlsInHeader = false,
 }: RulesSectionProps) {
   // 内部状态管理 - 完全自治
   const [pageNum, setPageNum] = useState(1);
@@ -47,9 +61,6 @@ export default function RulesSection({
   const [didLoadOnce, setDidLoadOnce] = useState(false);
   const [isLastPage, setIsLastPage] = useState<boolean>(false);
   const [rulesCount, setRulesCount] = useState<number>(0);
-
-  // 每页大小（分页展示固定 8，两列布局）
-  const pageSize = 8;
 
   // 防抖，并在新结果准备就绪之前显示先前的搜索结果
   const debouncedKeyword = useDebounce(keyword, { wait: 300 });
@@ -72,16 +83,16 @@ export default function RulesSection({
   };
 
   // 提取搜索与分页控件（两种模式共用）
-  const searchBar = (
+  const searchControls = (
     (didLoadOnce) && (
-      <div className="flex justify-between items-center gap-3">
-        <div className="relative flex-1">
+      <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="relative flex-1 md:flex-none">
           <input
             type="text"
             placeholder="搜索规则..."
             value={keyword}
             onChange={e => handleSearchInput(e.target.value)}
-            className={`input input-bordered input-sm w-full pl-8 pr-4 ${large ? "md:input-md" : ""}`}
+            className={`input input-bordered input-sm w-full md:w-64 pl-8 pr-4 ${large ? "md:input-md" : ""}`}
           />
           {isSearching
             ? (
@@ -103,7 +114,7 @@ export default function RulesSection({
                 </svg>
               )}
         </div>
-        <div className="join">
+        <div className="join shrink-0">
           <button
             type="button"
             onClick={() => setPageNum(Math.max(pageNum - 1, 1))}
@@ -130,6 +141,14 @@ export default function RulesSection({
     )
   );
 
+  const searchBar = (
+    (didLoadOnce) && (
+      <div className="flex justify-between items-center gap-3">
+        {searchControls}
+      </div>
+    )
+  );
+
   if (large) {
     return (
       <div className="space-y-6">
@@ -137,7 +156,7 @@ export default function RulesSection({
           <div className="card-body">
             <div className="flex justify-between">
               <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
-              <Link to="/role?type=rule" className="btn btn-sm btn-primary">
+              <Link to="/role?type=rule&mode=entry" className="btn btn-sm btn-primary">
                 <Plus className="size-4" weight="bold" />
                 自定义规则
               </Link>
@@ -157,6 +176,8 @@ export default function RulesSection({
                   authorId={authorId}
                   autoSelectFirst={autoSelectFirst}
                   currentRuleId={currentRuleId}
+                  dense={dense}
+                  gridMode={gridMode}
                   keyword={deferredKeyword}
                   onLoadedOnce={handleLoadedOnce}
                   onMetaChange={handleMetaChange}
@@ -175,7 +196,20 @@ export default function RulesSection({
   // 默认紧凑模式
   return (
     <div className="space-y-3">
-      {searchBar}
+      {controlsInHeader && title && (
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div>
+            <div className="font-semibold text-base md:text-lg">{title}</div>
+            {description && (
+              <div className="text-sm text-base-content/60">{description}</div>
+            )}
+          </div>
+          <div className="w-full md:w-auto md:ml-auto">
+            {searchControls}
+          </div>
+        </div>
+      )}
+      {!controlsInHeader && searchBar}
       <Suspense
         fallback={(
           <div className="flex items-center gap-2 text-sm text-base-content/60 py-2">
@@ -188,6 +222,8 @@ export default function RulesSection({
           authorId={authorId}
           autoSelectFirst={autoSelectFirst}
           currentRuleId={currentRuleId}
+          dense={dense}
+          gridMode={gridMode}
           keyword={deferredKeyword}
           onLoadedOnce={handleLoadedOnce}
           onMetaChange={handleMetaChange}
@@ -206,6 +242,8 @@ function RulesList({
   keyword,
   authorId,
   large = false,
+  dense = false,
+  gridMode = "two",
   currentRuleId,
   onRuleChange,
   autoSelectFirst,
@@ -269,31 +307,42 @@ function RulesList({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
+      <div
+        className={gridMode === "four"
+          ? "grid grid-cols-2 md:grid-cols-4 gap-2"
+          : "grid grid-cols-2 gap-2 max-h-96 overflow-y-auto"}
+      >
         {rules.map(rule => (
           <div
             key={rule.ruleId}
-            className={`p-3 rounded-lg bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border-2 ${currentRuleId === rule.ruleId
-              ? "border-primary bg-primary/5"
-              : "border-transparent"
-            }`}
+            className={dense
+              ? `p-2 md:p-2.5 rounded-md bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border ${currentRuleId === rule.ruleId
+                ? "border-primary bg-primary/5"
+                : "border-base-content/10"
+              }`
+              : `p-3 rounded-lg bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border-2 ${currentRuleId === rule.ruleId
+                ? "border-primary bg-primary/5"
+                : "border-transparent"
+              }`}
             onClick={() => onRuleChange(rule.ruleId || 0)}
           >
-            <p className="text-xs text-base-content/60 line-clamp-2">{`#${rule.ruleId}`}</p>
-            <h3 className="font-medium text-sm mb-1">{rule.ruleName}</h3>
-            <p className="text-xs text-base-content/60 line-clamp-2">{rule.ruleDescription}</p>
+            <p className={`text-base-content/60 line-clamp-1 ${dense ? "text-[11px]" : "text-xs"}`}>{`#${rule.ruleId}`}</p>
+            <h3 className={`font-medium mb-1 line-clamp-1 ${dense ? "text-xs" : "text-sm"}`}>{rule.ruleName}</h3>
+            <p className={`text-base-content/60 line-clamp-2 ${dense ? "text-[11px]" : "text-xs"}`}>{rule.ruleDescription}</p>
           </div>
         ))}
-        {/* 添加占位项以保持8个项目的固定高度 */}
-        {Array.from({ length: Math.max(0, 8 - rules.length) }, (_, index) => `compact-placeholder-${rules.length}-${index}`).map(placeholderId => (
+        {/* 添加占位项以保持项目宫格的固定高度 */}
+        {Array.from({ length: Math.max(0, pageSize - rules.length) }, (_, index) => `compact-placeholder-${rules.length}-${index}`).map(placeholderId => (
           <div
             key={placeholderId}
-            className="p-3 rounded-lg bg-transparent border-2 border-dashed border-base-content/10 opacity-30"
+            className={dense
+              ? "p-2 md:p-2.5 rounded-md bg-transparent border border-dashed border-base-content/10 opacity-30"
+              : "p-3 rounded-lg bg-transparent border-2 border-dashed border-base-content/10 opacity-30"}
           >
             <div className="flex items-center justify-center text-base-content/40">
               <div className="text-center">
-                <h3 className="font-medium text-sm mb-1">...</h3>
-                <div className="text-xs">暂无更多</div>
+                <h3 className={`font-medium mb-1 ${dense ? "text-xs" : "text-sm"}`}>...</h3>
+                <div className={dense ? "text-[11px]" : "text-xs"}>暂无更多</div>
               </div>
             </div>
           </div>
