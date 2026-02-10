@@ -9,6 +9,7 @@ import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
 
 interface ChatSpaceSidebarProps {
   isPrivateChatMode: boolean;
+  isDiscoverMode?: boolean;
   spaces: Space[];
   spaceOrderIds?: number[];
   onReorderSpaceIds?: (nextSpaceIds: number[]) => void;
@@ -25,6 +26,7 @@ interface ChatSpaceSidebarProps {
 
 export default function ChatSpaceSidebar({
   isPrivateChatMode,
+  isDiscoverMode = false,
   spaces,
   spaceOrderIds,
   onReorderSpaceIds,
@@ -118,11 +120,17 @@ export default function ChatSpaceSidebar({
       <div className="flex flex-col gap-1">
         {/* 发现入口 */}
         <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+          <div
+            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
+              isDiscoverMode ? "scale-y-100" : "scale-y-0"
+            }`}
+          />
           <PortalTooltip label="发现" placement="right">
             <Link
               to="/chat/discover"
-              className="w-10 btn btn-square"
+              className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
               aria-label="发现"
+              aria-current={isDiscoverMode ? "page" : undefined}
             >
               <CompassIcon className="size-6" />
             </Link>
@@ -240,7 +248,7 @@ export default function ChatSpaceSidebar({
                   onSelectSpace(space.spaceId ?? -1);
                 }
               }}
-              isActive={activeSpaceId === space.spaceId}
+              isActive={!isDiscoverMode && activeSpaceId === space.spaceId}
             >
             </SpaceButton>
           </div>
