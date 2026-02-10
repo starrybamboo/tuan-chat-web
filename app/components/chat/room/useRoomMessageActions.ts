@@ -22,7 +22,6 @@ type UseRoomMessageActionsParams = {
   mainHistoryMessages: ChatMessageResponse[] | undefined;
   send: (message: ChatMessageRequest) => void;
   sendMessage: (message: ChatMessageRequest) => Promise<{ success: boolean; data?: ChatMessageResponse["message"] }>;
-  updateMessage: (message: ChatMessageResponse["message"]) => Promise<unknown>;
   addOrUpdateMessage?: (message: ChatMessageResponse) => void;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   setSpaceExtra: (payload: { spaceId: number; key: string; value: string }) => Promise<unknown>;
@@ -45,7 +44,6 @@ export default function useRoomMessageActions({
   mainHistoryMessages,
   send,
   sendMessage,
-  updateMessage,
   addOrUpdateMessage,
   ensureRuntimeAvatarIdForRole,
   setSpaceExtra,
@@ -64,28 +62,26 @@ export default function useRoomMessageActions({
       }
 
       try {
-        const result = await sendMessage(message);
+        const targetMessage = mainHistoryMessages[targetIndex];
+        const nextMessage = mainHistoryMessages[targetIndex + 1];
+        const targetPosition = targetMessage.message.position;
+        const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
+        // 插入消息：先计算新 position，随发送请求一次性写入
+        const newPosition = (targetPosition + nextPosition) / 2;
+
+        const result = await sendMessage({
+          ...message,
+          position: newPosition,
+        });
         if (!result.success || !result.data) {
           toast.error("发送消息失败");
           return;
         }
 
-        const newMessage = result.data;
-        const targetMessage = mainHistoryMessages[targetIndex];
-        const nextMessage = mainHistoryMessages[targetIndex + 1];
-        const targetPosition = targetMessage.message.position;
-        const nextPosition = nextMessage?.message.position ?? targetPosition + 1;
-        const newPosition = (targetPosition + nextPosition) / 2;
-
-        await updateMessage({
-          ...newMessage,
-          position: newPosition,
-        });
-
         if (addOrUpdateMessage) {
           addOrUpdateMessage({
             message: {
-              ...newMessage,
+              ...result.data,
               position: newPosition,
             },
           });
@@ -99,7 +95,7 @@ export default function useRoomMessageActions({
     else {
       send(message);
     }
-  }, [addOrUpdateMessage, mainHistoryMessages, send, sendMessage, updateMessage]);
+  }, [addOrUpdateMessage, mainHistoryMessages, send, sendMessage]);
 
   const handleSetWebgalVar = useCallback(async (key: string, expr: string) => {
     const rawKey = String(key ?? "").trim();

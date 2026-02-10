@@ -1,5 +1,7 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse, Message } from "../../../api";
+import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+
 import React, { memo, use, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
@@ -20,12 +22,12 @@ import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSe
 import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
 import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
-import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseModal";
-import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
@@ -103,8 +105,8 @@ function ChatFrame(props: ChatFrameProps) {
     setIsExportImageWindowOpen,
   } = useChatFrameOverlayState();
   const [isWebgalChooseEditorOpen, setIsWebgalChooseEditorOpen] = useState(false);
-  const [webgalChooseEditorOptions, setWebgalChooseEditorOptions] = useState<WebgalChooseOptionDraft[]>([
-    { text: "", code: "" },
+  const [webgalChooseEditorOptions, setWebgalChooseEditorOptions] = useState<WebgalChooseOptionDraft[]>(() => [
+    createWebgalChooseOptionDraft(),
   ]);
   const [webgalChooseEditorError, setWebgalChooseEditorError] = useState<string | null>(null);
   const [webgalChooseEditorMessageId, setWebgalChooseEditorMessageId] = useState<number | null>(null);
@@ -153,7 +155,7 @@ function ChatFrame(props: ChatFrameProps) {
   const addWebgalChooseEditorOption = useCallback(() => {
     setWebgalChooseEditorOptions(prev => ([
       ...prev,
-      { text: "", code: "" },
+      createWebgalChooseOptionDraft(),
     ]));
   }, []);
 
@@ -182,11 +184,11 @@ function ChatFrame(props: ChatFrameProps) {
       toast.error("未找到选择内容");
       return;
     }
-    const nextOptions = payload.options.map(option => ({
+    const nextOptions = payload.options.map(option => createWebgalChooseOptionDraft({
       text: option.text,
       code: option.code ?? "",
     }));
-    setWebgalChooseEditorOptions(nextOptions.length ? nextOptions : [{ text: "", code: "" }]);
+    setWebgalChooseEditorOptions(nextOptions.length ? nextOptions : [createWebgalChooseOptionDraft()]);
     setWebgalChooseEditorError(null);
     setWebgalChooseEditorMessageId(messageId);
     setIsWebgalChooseEditorOpen(true);

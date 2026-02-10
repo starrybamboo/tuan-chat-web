@@ -1,4 +1,5 @@
 import type { UserRole } from "../../../../api";
+import type { FigurePosition } from "@/types/voiceRenderTypes";
 import React from "react";
 
 import RoomToastWindows from "@/components/chat/room/roomToastWindows";
@@ -15,7 +16,7 @@ interface RoomWindowOverlaysProps {
       roleId: number;
       content: string;
       speakerName?: string;
-      figurePosition?: string;
+      figurePosition?: Exclude<FigurePosition, undefined>;
     }>,
     onProgress?: (sent: number, total: number) => void,
   ) => Promise<void>;

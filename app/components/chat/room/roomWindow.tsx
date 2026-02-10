@@ -37,7 +37,6 @@ import {
   useGetSpaceInfoQuery,
   useSendMessageMutation,
   useSetSpaceExtraMutation,
-  useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 
 function RoomWindow({
@@ -73,7 +72,6 @@ function RoomWindow({
   }, [webSocketUtils]);
 
   const sendMessageMutation = useSendMessageMutation(roomId);
-  const updateMessageMutation = useUpdateMessageMutation();
   const setSpaceExtraMutation = useSetSpaceExtraMutation();
 
   const {
@@ -223,7 +221,6 @@ function RoomWindow({
     mainHistoryMessages,
     send,
     sendMessage: sendMessageMutation.mutateAsync,
-    updateMessage: updateMessageMutation.mutateAsync,
     addOrUpdateMessage: chatHistory?.addOrUpdateMessage,
     ensureRuntimeAvatarIdForRole,
     setSpaceExtra: setSpaceExtraMutation.mutateAsync,

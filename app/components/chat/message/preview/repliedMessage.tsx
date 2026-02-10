@@ -86,39 +86,39 @@ export default function RepliedMessage({ replyMessage, className }: {
                 {[`[变量]`, webgalVarSummary ?? ""].filter(Boolean).join(" ")}
               </span>
             )
-            : isWebgalChooseMessage
-              ? (
-                  <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
-                    {namePrefix}
-                    {[`[选择]`, webgalChooseSummary ?? ""].filter(Boolean).join(" ")}
-                  </span>
-                )
-          : isDocCardMessage
+          : isWebgalChooseMessage
             ? (
                 <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
                   {namePrefix}
-                  {[`[文档]`, docCardTitle ?? ""].filter(Boolean).join(" ")}
+                  {[`[选择]`, webgalChooseSummary ?? ""].filter(Boolean).join(" ")}
                 </span>
               )
-            : replyMessage.extra?.imageMessage?.url
+            : isDocCardMessage
               ? (
-                  <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
-                    {namePrefix}
-                    <img
-                      src={replyMessage.extra?.imageMessage?.url}
-                      className="size-8 object-contain"
-                      alt="img"
-                      width={imgMsg?.width}
-                      height={imgMsg?.height}
-                    />
-                  </span>
-                )
-              : (
                   <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
                     {namePrefix}
-                    非文本内容
+                    {[`[文档]`, docCardTitle ?? ""].filter(Boolean).join(" ")}
                   </span>
-                )}
+                )
+              : replyMessage.extra?.imageMessage?.url
+                ? (
+                    <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
+                      {namePrefix}
+                      <img
+                        src={replyMessage.extra?.imageMessage?.url}
+                        className="max-h-[64px] w-auto object-contain"
+                        alt="img"
+                        width={imgMsg?.width}
+                        height={imgMsg?.height}
+                      />
+                    </span>
+                  )
+                : (
+                    <span className="text-xs sm:text-sm line-clamp-3 opacity-60 break-words">
+                      {namePrefix}
+                      非文本内容
+                    </span>
+                  )}
     </div>
   );
 }

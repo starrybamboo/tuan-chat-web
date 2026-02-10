@@ -1,6 +1,8 @@
 import { useCallback } from "react";
 import { toast } from "react-hot-toast";
 
+import type { FigurePosition } from "@/types/voiceRenderTypes";
+
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 
 import { useAddRoomRoleMutation } from "../../../../api/hooks/chatQueryHooks";
@@ -9,7 +11,7 @@ type ImportChatItem = {
   roleId: number;
   content: string;
   speakerName?: string;
-  figurePosition?: string;
+  figurePosition?: Exclude<FigurePosition, undefined>;
 };
 
 type UseRoomOverlaysControllerParams = {
@@ -19,7 +21,7 @@ type UseRoomOverlaysControllerParams = {
       roleId: number;
       content: string;
       speakerName?: string;
-      figurePosition?: "left" | "center" | "right";
+      figurePosition?: Exclude<FigurePosition, undefined>;
     }>,
     onProgress?: (sent: number, total: number) => void,
   ) => Promise<void>;
@@ -60,7 +62,7 @@ export default function useRoomOverlaysController({
       roleId: i.roleId,
       content: i.content,
       speakerName: i.speakerName,
-      figurePosition: i.figurePosition as "left" | "center" | "right" | undefined,
+      figurePosition: i.figurePosition as Exclude<FigurePosition, undefined> | undefined,
     })), onProgress);
   }, [handleImportChatText]);
 

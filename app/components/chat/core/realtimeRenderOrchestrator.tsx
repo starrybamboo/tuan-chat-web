@@ -387,25 +387,61 @@ export default function RealtimeRenderOrchestrator({
     }
   }, [orderedHistoryMessages, realtimeRender, roomId]);
 
-  const scheduleFullRerender = useCallback((messages: ChatMessageResponse[]) => {
+  const scheduleFullRerender = useCallback(function scheduleFullRerenderInner(messages: ChatMessageResponse[]) {
     pendingFullRerenderRef.current = messages;
     clearFullRerenderTimer();
     fullRerenderTimerRef.current = setTimeout(() => {
       fullRerenderTimerRef.current = null;
       const pending = pendingFullRerenderRef.current;
-      pendingFullRerenderRef.current = null;
       if (!pending || pending.length === 0) {
+        pendingFullRerenderRef.current = null;
         return;
       }
+      if (isRenderingHistoryRef.current) {
+        scheduleFullRerenderInner(pending);
+        return;
+      }
+      pendingFullRerenderRef.current = null;
       void rerenderHistoryInWebGAL(pending);
     }, 350);
   }, [clearFullRerenderTimer, rerenderHistoryInWebGAL]);
+
+  const prevRealtimeSettingsRef = useRef({
+    miniAvatarEnabled: realtimeMiniAvatarEnabled,
+    autoFigureEnabled: realtimeAutoFigureEnabled,
+  });
 
   useEffect(() => {
     return () => {
       clearFullRerenderTimer();
     };
   }, [clearFullRerenderTimer]);
+
+  useEffect(() => {
+    const prevSettings = prevRealtimeSettingsRef.current;
+    const hasChanges = prevSettings.miniAvatarEnabled !== realtimeMiniAvatarEnabled
+      || prevSettings.autoFigureEnabled !== realtimeAutoFigureEnabled;
+    prevRealtimeSettingsRef.current = {
+      miniAvatarEnabled: realtimeMiniAvatarEnabled,
+      autoFigureEnabled: realtimeAutoFigureEnabled,
+    };
+
+    if (!hasChanges) {
+      return;
+    }
+    if (!realtimeRender.isActive || realtimeRender.status !== "connected") {
+      return;
+    }
+    if (!orderedHistoryMessages || orderedHistoryMessages.length === 0) {
+      return;
+    }
+    if (!hasRenderedHistoryRef.current && !isRenderingHistoryRef.current) {
+      return;
+    }
+
+    // 小头像/自动立绘设置变更时，全量重渲染已有消息
+    scheduleFullRerender(orderedHistoryMessages);
+  }, [orderedHistoryMessages, realtimeAutoFigureEnabled, realtimeMiniAvatarEnabled, realtimeRender.isActive, realtimeRender.status, scheduleFullRerender]);
 
   useEffect(() => {
     if (!realtimeRender.isActive || realtimeRender.status !== "connected") {

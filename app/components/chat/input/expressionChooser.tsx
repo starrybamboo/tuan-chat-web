@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
-import type { UserRole } from "../../../../api";
-import { use, useEffect, useState } from "react";
+import type { RoleAvatar, UserRole } from "../../../../../api";
+import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
@@ -44,7 +44,30 @@ export function ExpressionChooser({
 
   const selectedRoleId = roleId;
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
-  const roleAvatars = roleAvatarsQuery.data?.data || [];
+  const roleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data]);
+  const DEFAULT_CATEGORY = "默认";
+  const avatarCategoryGroups = useMemo(() => {
+    const groups = new Map<string, RoleAvatar[]>();
+    roleAvatars.forEach((avatar) => {
+      const category = String(avatar.category ?? "").trim();
+      const key = category || DEFAULT_CATEGORY;
+      const bucket = groups.get(key);
+      if (bucket) {
+        bucket.push(avatar);
+      }
+      else {
+        groups.set(key, [avatar]);
+      }
+    });
+    const orderedCategories = Array.from(groups.keys()).sort((a, b) => {
+      if (a === DEFAULT_CATEGORY && b !== DEFAULT_CATEGORY)
+        return -1;
+      if (b === DEFAULT_CATEGORY && a !== DEFAULT_CATEGORY)
+        return 1;
+      return a.localeCompare(b, "zh-CN");
+    });
+    return { groups, orderedCategories };
+  }, [roleAvatars]);
 
   const currentUserId = roomContext.curMember?.userId;
   const availableRoles = (isKP || !currentUserId)
@@ -246,26 +269,37 @@ export function ExpressionChooser({
                   </div>
                 </div>
                 <div className={`${avatarListClassName} w-full overflow-y-auto overflow-x-hidden ${isAvatarFullscreen ? "pb-4" : ""}`}>
-                  <div className={avatarGridClassName}>
-                    {roleAvatars.map(avatar => (
-                      <div
-                        onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}
-                        className={avatarItemClassName}
-                        key={avatar.avatarId}
-                        title="点击选择头像"
-                      >
-                        <RoleAvatarComponent
-                          avatarId={avatar.avatarId || -1}
-                          roleId={selectedRoleId}
-                          width={avatarSize}
-                          isRounded={false}
-                          withTitle={false}
-                          stopToastWindow={true}
-                          hoverToScale={true}
-                        />
+                  {avatarCategoryGroups.orderedCategories.map((category) => {
+                    const avatars = avatarCategoryGroups.groups.get(category) ?? [];
+                    return (
+                      <div key={category} className="mb-3 last:mb-0">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-base-content/70 mb-2">
+                          <span>{category}</span>
+                          <span className="text-[10px] text-base-content/40">{avatars.length}</span>
+                        </div>
+                        <div className={avatarGridClassName}>
+                          {avatars.map(avatar => (
+                            <div
+                              onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}
+                              className={avatarItemClassName}
+                              key={avatar.avatarId}
+                              title="点击选择头像"
+                            >
+                              <RoleAvatarComponent
+                                avatarId={avatar.avatarId || -1}
+                                roleId={selectedRoleId}
+                                width={avatarSize}
+                                isRounded={false}
+                                withTitle={false}
+                                stopToastWindow={true}
+                                hoverToScale={true}
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </>
             )

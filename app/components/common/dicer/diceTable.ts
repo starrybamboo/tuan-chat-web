@@ -1,7 +1,7 @@
 import { roll } from "@/components/common/dicer/dice";
 
 const DICE_TABLE_HIGHLIGHT_COLOR = "#FF6B00";
-const DICE_TABLE_OPTION_PATTERN = /^\s*([0-9０-９]+)\s*(?:[.)）．。、,:：，]\s*|\s+)(\S.*)$/;
+const DICE_TABLE_OPTION_PATTERN = /^\s*([0-9\uFF10\uFF11\uFF12\uFF13\uFF14\uFF15\uFF16\uFF17\uFF18\uFF19]+)\s*(?:[.)）．。、,:：，]\s*|\s)(\S.*)$/;
 const DICE_TABLE_FORCED_RESULT_PATTERN = /^([^:：=]+)[:：=]\s*(?:\[(\d+)\]|(\d+))$/;
 const DICE_EXPRESSION_ONLY_PATTERN = /^[\dA-Z+\-*/()%.\s]+$/i;
 const DICE_EXPRESSION_TOKEN_PATTERN = /\d*\s*d\s*(?:\d+|%)/i;
@@ -58,7 +58,9 @@ function mapRangeToRaw(map: number[], rawText: string, start: number, length: nu
 }
 
 function normalizeDiceIndex(value: string) {
-  return value.replace(/[０-９]/g, char => String.fromCharCode(char.charCodeAt(0) - 0xFF10 + 0x30));
+  return value.replace(/[\uFF10\uFF11\uFF12\uFF13\uFF14\uFF15\uFF16\uFF17\uFF18\uFF19]/g, char => (
+    String.fromCharCode(char.charCodeAt(0) - 0xFF10 + 0x30)
+  ));
 }
 
 function formatInlineDicePlain(line: string, diceSize: number) {
@@ -159,6 +161,25 @@ function extractHeaderDiceMatch(line: string): HeaderDiceMatch | null {
     return matched;
   }
 
+  const trimmedPlain = plainLine.trim();
+  const fullExprPattern = /^[\dA-Z+\-*/()%.\s]+[:：=].+$/i;
+  if (trimmedPlain && fullExprPattern.test(trimmedPlain)) {
+    const parsedResult = parseWithTrailingColon(trimmedPlain);
+    if (parsedResult.parsed) {
+      const startIndex = plainLine.indexOf(trimmedPlain);
+      const safeStartIndex = startIndex >= 0 ? startIndex : 0;
+      const { rawStart, rawEnd } = mapRangeToRaw(map, rawLine, safeStartIndex, trimmedPlain.length);
+      return {
+        prefix: rawLine.slice(0, rawStart),
+        suffix: rawLine.slice(rawEnd),
+        wrapperPrefix: "",
+        wrapperSuffix: "",
+        parsed: parsedResult.parsed,
+        delimiterHint: parsedResult.delimiterHint,
+      };
+    }
+  }
+
   const forcedRegex = new RegExp(DICE_FORCE_RESULT_SEARCH_PATTERN.source, "gi");
   let forcedMatch: RegExpExecArray | null = null;
   for (;;) {
@@ -186,7 +207,7 @@ function extractHeaderDiceMatch(line: string): HeaderDiceMatch | null {
     return matched;
   }
 
-  const exprRegex = /\d*\s*d\s*(?:\d+|%)[\dA-Z+\-*/()%.\s]*/gi;
+  const exprRegex = /\d*\s*d\s*(?:\d|%)[\dA-Z+\-*/()%.\s]*/gi;
   let exprMatch: RegExpExecArray | null = null;
   for (;;) {
     exprMatch = exprRegex.exec(plainLine);
@@ -230,7 +251,7 @@ function parseDiceExpressionCore(core: string): ParsedDiceExpression | null {
     return { expression, forcedResult, separator };
   }
 
-  const detailMatch = trimmed.match(/^([^:：=]+)([:：=])\s*(.+)$/);
+  const detailMatch = trimmed.match(/^([^:：=]+)([:：=])(.*)$/);
   if (detailMatch) {
     const expression = detailMatch[1]?.trim();
     const detail = detailMatch[3]?.trim() ?? "";
@@ -279,25 +300,52 @@ function buildHighlightToken(value: number | string) {
   return `[${value}](style=color:${DICE_TABLE_HIGHLIGHT_COLOR})`;
 }
 
+function extractTrailingNumber(value: string) {
+  let end = value.length;
+  while (end > 0 && /\s/.test(value[end - 1])) {
+    end -= 1;
+  }
+  let start = end;
+  while (start > 0 && /\d/.test(value[start - 1])) {
+    start -= 1;
+  }
+  if (start === end) {
+    return null;
+  }
+  return {
+    prefix: value.slice(0, start),
+    resultText: value.slice(start, end),
+    suffix: "",
+  };
+}
+
 function parseDetailHighlight(detail: string) {
   const trimmed = detail.trim();
   if (!trimmed) {
     return null;
   }
 
-  let match = trimmed.match(/^\[(\d+)\]$/);
+  const cleaned = stripTextEnhanceSyntax(trimmed);
+
+  const match = cleaned.match(/^\[(\d+)\]$/);
   if (match) {
     return { prefix: "", resultText: match[1], suffix: "" };
   }
 
-  match = trimmed.match(/^(.*?=)\s*(\d+)\s*$/);
-  if (match) {
-    return { prefix: match[1], resultText: match[2], suffix: "" };
+  const bracketIndex = cleaned.lastIndexOf("[");
+  if (bracketIndex !== -1 && cleaned.endsWith("]")) {
+    const resultText = cleaned.slice(bracketIndex + 1, -1).trim();
+    if (/^\d+$/.test(resultText)) {
+      const prefix = cleaned.slice(0, bracketIndex).trimEnd();
+      if (prefix.endsWith("=")) {
+        return { prefix, resultText, suffix: "" };
+      }
+    }
   }
 
-  match = trimmed.match(/^(.*?)(\d+)\s*$/);
-  if (match) {
-    return { prefix: match[1], resultText: match[2], suffix: "" };
+  const trailingNumber = extractTrailingNumber(cleaned);
+  if (trailingNumber) {
+    return trailingNumber;
   }
 
   return null;
@@ -317,8 +365,10 @@ function stripDiceResultFromLine(line: string): string {
     return line;
   }
   const delimiter = match.parsed.separator ?? match.delimiterHint ?? "";
+  const cleanedDetail = match.parsed.detail ? stripTextEnhanceSyntax(match.parsed.detail) : "";
+  const hasBracketResult = /\[\d+\]/.test(cleanedDetail);
   let detail = "";
-  if (match.parsed.detail) {
+  if (match.parsed.detail && !hasBracketResult) {
     const highlight = parseDetailHighlight(match.parsed.detail);
     if (highlight) {
       detail = `${highlight.prefix}${highlight.suffix}`;
@@ -569,7 +619,7 @@ export function formatAnkoDiceMessage(message: string, diceSize: number): string
 
   const lines = normalized.split("\n");
   const lineMatches = lines.map(line => extractHeaderDiceMatch(line));
-  const lineResults: Array<number | null | undefined> = new Array(lines.length).fill(undefined);
+  const lineResults: Array<number | null | undefined> = Array.from({ length: lines.length }).fill(undefined);
   const getLineResult = (index: number) => {
     if (lineResults[index] !== undefined) {
       return lineResults[index] ?? null;

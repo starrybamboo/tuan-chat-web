@@ -883,7 +883,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
+                  "$ref": "#/components/schemas/ApiResultMessage"
                 }
               }
             }
@@ -20530,6 +20530,11 @@
             },
             "description": "澶村儚鐨勬爣棰?
           },
+          "category": {
+            "type": "string",
+            "description": "avatar category"
+          },
+
           "avatarUrl": {
             "type": "string",
             "description": "澶村儚鐨剈rl"
@@ -25841,6 +25846,11 @@
       "RoleAvatarCreateRequest": {
         "type": "object",
         "properties": {
+          "category": {
+            "type": "string",
+            "description": "avatar category"
+          },
+
           "roleId": {
             "type": "integer",
             "description": "瑙掕壊id",
@@ -27570,4 +27580,3 @@
     "x-markdownFiles": []
   }
 }
-

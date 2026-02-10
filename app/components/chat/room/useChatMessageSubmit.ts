@@ -391,6 +391,9 @@ export default function useChatMessageSubmit({
         if (useCgAnnotation) {
           nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.CG, true);
         }
+        if (!useBackgroundAnnotation && !useCgAnnotation) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.IMAGE_SHOW, true);
+        }
 
         const imgMsg: ChatMessageRequest = {
           ...commonFields,

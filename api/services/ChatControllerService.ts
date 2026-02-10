@@ -113,12 +113,12 @@ export class ChatControllerService {
      * 删除消息
      * 只要有更新都走这个接口
      * @param requestBody
-     * @returns ApiResultVoid OK
+     * @returns ApiResultMessage OK
      * @throws ApiError
      */
     public deleteMessage(
         requestBody: number,
-    ): CancelablePromise<ApiResultVoid> {
+    ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/chat/message',

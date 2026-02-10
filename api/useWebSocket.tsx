@@ -11,11 +11,11 @@ import React from "react";
 import { useNavigate } from "react-router";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
 import type {
-  ChatStatusEvent,
-  ChatStatusType,
-  DirectMessageEvent,
-  MemberChangePush, RoleChangePush, RoomExtraChangeEvent,
-} from "./wsModels";
+    ChatStatusEvent,
+    ChatStatusType,
+    DirectMessageEvent,
+    MemberChangePush, RoleChangePush, RoomExtraChangeEvent, RoomDndMapChangeEvent,
+  } from "./wsModels";
 import type { NewFriendRequestPush } from "./wsModels";
 import type { SpaceSidebarTreeUpdatedPush } from "./wsModels";
 import type { RoomDismissPush } from "./wsModels";
@@ -30,6 +30,7 @@ import type { ApiResultRoom } from "./models/ApiResultRoom";
 import type { ApiResultRoomListResponse } from "./models/ApiResultRoomListResponse";
 import { MessageType } from "./wsModels";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
+import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -531,6 +532,13 @@ export function useWebSocket() {
         console.log("Room extra change:", event);
         break;
       }
+        case 19:{ // 房间DND地图变动
+          const event = message.data as RoomDndMapChangeEvent;
+          queryClient.setQueryData(roomDndMapQueryKey(event.roomId), (prev) => {
+            return applyRoomDndMapChange(prev as any, event);
+          });
+          break;
+        }
       case 16: { // 房间禁言状态变动
         const { roomId } = message.data;
         queryClient.invalidateQueries({ queryKey: ['getRoomExtra', roomId] });

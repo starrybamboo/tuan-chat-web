@@ -1,11 +1,12 @@
 import type { ChatMessageResponse } from "../../../api";
-import React from "react";
+import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
+import React from "react";
+import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import WebgalChooseModal, { type WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseModal";
 
 interface ChatFrameOverlaysProps {
   isForwardWindowOpen: boolean;

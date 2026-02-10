@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
+import type { WebgalChooseOptionDraft } from "./webgalChooseDraft";
 import { createPortal } from "react-dom";
-
-export type WebgalChooseOptionDraft = {
-  text: string;
-  code: string;
-};
 
 interface WebgalChooseModalProps {
   isOpen: boolean;
@@ -49,9 +45,12 @@ export default function WebgalChooseModal({
           )}
           <div className="space-y-2">
             {options.map((option, index) => (
-              <div key={`${index}`} className="rounded-md border border-base-300/70 p-3 space-y-2">
+              <div key={option.id} className="rounded-md border border-base-300/70 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium">选项 {index + 1}</span>
+                  <span className="text-xs font-medium">
+                    选项
+                    {index + 1}
+                  </span>
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs"

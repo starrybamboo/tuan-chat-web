@@ -48,7 +48,7 @@ function EditableMessageContent({
     if (!raw) {
       return editContent;
     }
-    return (raw.innerText ?? "").replace(/\u00A0/g, " ");
+    return (raw.textContent ?? "").replace(/\u00A0/g, " ");
   }, [chatInputRef, editContent]);
 
   useEffect(() => {
