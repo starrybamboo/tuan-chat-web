@@ -102,7 +102,11 @@ export default function ChatSpaceSidebar({
   };
 
   return (
-    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible">
+    <div
+      className={`flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible ${
+        showCollapsedToggle ? "border-r border-gray-300 dark:border-gray-700" : ""
+      }`}
+    >
       {showCollapsedToggle && (
         <div className="rounded w-10 relative z-20 hover:z-50 mx-2 mt-1 mb-1">
           <PortalTooltip label="展开侧边栏" placement="right">

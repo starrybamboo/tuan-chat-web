@@ -73,6 +73,7 @@ export default function RulePerformanceEditor({
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   // 是否编辑
   const [isEditing, setIsEditing] = useState(false);
+  const isForcedEditingMode = typeof forcedEditing === "boolean";
   // 是否移动端
   const isMobile = useIsMobile();
 
@@ -83,12 +84,12 @@ export default function RulePerformanceEditor({
   const shortFields = Object.keys(localData)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
-  // 非编辑态时，允许外部 props 同步本地展示
+  // 非编辑态总是同步；受控编辑态下也允许外部同步（用于创建时模板预填）
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditing || isForcedEditingMode) {
       dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     }
-  }, [data, isEditing]);
+  }, [data, isEditing, isForcedEditingMode]);
 
   useEffect(() => {
     // 依赖里包含 data 以满足 exhaustive-deps，但只在 cloneVersion 真变化时才重置。
@@ -248,26 +249,10 @@ export default function RulePerformanceEditor({
           gridAutoRows: "minmax(80px, auto)",
         }}
       >
-        {/* 添加新字段区域 - 占满整行 */}
-        {isEditing && (
-          <div className="col-span-full">
-            <AddFieldForm
-              onAddField={handleAddField}
-              existingKeys={shortFields}
-              layout="stacked"
-              placeholder={{
-                key: "字段名（如：性格特点、背景故事等）",
-                value: "请输入表演描述...",
-              }}
-              title="添加新表演字段"
-              showTitle={true}
-            />
-          </div>
-        )}
         {isEmpty
           ? (
               <div className="col-span-full flex items-center justify-center text-sm text-base-content/60 py-6 text-center border border-dashed border-base-content/20 rounded-lg bg-base-100/40">
-                {isEditing ? "暂无字段，使用上方输入框添加" : "暂无字段，点击“编辑”开始添加"}
+                {isEditing ? "暂无字段，使用下方输入框添加" : "暂无字段，点击“编辑”开始添加"}
               </div>
             )
           : shortFields.map((key) => {
@@ -308,6 +293,23 @@ export default function RulePerformanceEditor({
                 </div>
               );
             })}
+
+        {/* 添加新字段区域 - 占满整行 */}
+        {isEditing && (
+          <div className="col-span-full">
+            <AddFieldForm
+              onAddField={handleAddField}
+              existingKeys={shortFields}
+              layout="stacked"
+              placeholder={{
+                key: "字段名（如：性格特点、背景故事等）",
+                value: "请输入表演描述...",
+              }}
+              title="添加新表演字段"
+              showTitle={true}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ interface RulesListProps {
   large?: boolean;
   dense?: boolean;
   gridMode?: "two" | "four";
+  showRuleId?: boolean;
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
   autoSelectFirst: boolean;
@@ -30,6 +31,7 @@ interface RulesSectionProps {
   pageSize?: number;
   dense?: boolean;
   gridMode?: "two" | "four";
+  showRuleId?: boolean;
   title?: string;
   description?: string;
   controlsInHeader?: boolean;
@@ -49,6 +51,7 @@ export default function RulesSection({
   pageSize = 8,
   dense = false,
   gridMode = "two",
+  showRuleId = true,
   title,
   description,
   controlsInHeader = false,
@@ -178,6 +181,7 @@ export default function RulesSection({
                   currentRuleId={currentRuleId}
                   dense={dense}
                   gridMode={gridMode}
+                  showRuleId={showRuleId}
                   keyword={deferredKeyword}
                   onLoadedOnce={handleLoadedOnce}
                   onMetaChange={handleMetaChange}
@@ -224,6 +228,7 @@ export default function RulesSection({
           currentRuleId={currentRuleId}
           dense={dense}
           gridMode={gridMode}
+          showRuleId={showRuleId}
           keyword={deferredKeyword}
           onLoadedOnce={handleLoadedOnce}
           onMetaChange={handleMetaChange}
@@ -244,6 +249,7 @@ function RulesList({
   large = false,
   dense = false,
   gridMode = "two",
+  showRuleId = true,
   currentRuleId,
   onRuleChange,
   autoSelectFirst,
@@ -273,12 +279,12 @@ function RulesList({
   if (large) {
     return (
       <>
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {rules.map(rule => (
             <div
               key={rule.ruleId}
               className={`card cursor-pointer transition-all bg-base-100 shadow-xs rounded-2xl border border-base-content/10 ${currentRuleId === rule.ruleId
-                ? "border-primary ring-2 ring-primary bg-primary/5"
+                ? "border-primary bg-base-100"
                 : "border-base-300 hover:border-base-400 hover:bg-base-200/60"
               }`}
               onClick={() => onRuleChange(rule.ruleId || 0)}
@@ -286,12 +292,14 @@ function RulesList({
               <div className="card-body p-5 md:p-6 min-h-32">
                 <div className="flex h-full items-center justify-between gap-4 md:gap-6">
                   <div>
-                    <p className="text-sm text-base-content/70 line-clamp-2">{`#${rule.ruleId}`}</p>
+                    {showRuleId && (
+                      <p className="text-sm text-base-content/70 line-clamp-2">{`#${rule.ruleId}`}</p>
+                    )}
                     <h4 className="font-medium text-base">{rule.ruleName}</h4>
                     <p className="text-sm text-base-content/70 line-clamp-2">{rule.ruleDescription}</p>
                   </div>
                   {currentRuleId === rule.ruleId && (
-                    <div className="badge badge-primary badge-sm md:badge-md">已选择</div>
+                    <div className="badge badge-ghost badge-sm md:badge-md">已选择</div>
                   )}
                 </div>
               </div>
@@ -317,16 +325,18 @@ function RulesList({
             key={rule.ruleId}
             className={dense
               ? `p-2 md:p-2.5 rounded-md bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border ${currentRuleId === rule.ruleId
-                ? "border-primary bg-primary/5"
+                ? "border-primary bg-base-100"
                 : "border-base-content/10"
               }`
               : `p-3 rounded-lg bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border-2 ${currentRuleId === rule.ruleId
-                ? "border-primary bg-primary/5"
+                ? "border-primary bg-base-100"
                 : "border-transparent"
               }`}
             onClick={() => onRuleChange(rule.ruleId || 0)}
           >
-            <p className={`text-base-content/60 line-clamp-1 ${dense ? "text-[11px]" : "text-xs"}`}>{`#${rule.ruleId}`}</p>
+            {showRuleId && (
+              <p className={`text-base-content/60 line-clamp-1 ${dense ? "text-[11px]" : "text-xs"}`}>{`#${rule.ruleId}`}</p>
+            )}
             <h3 className={`font-medium mb-1 line-clamp-1 ${dense ? "text-xs" : "text-sm"}`}>{rule.ruleName}</h3>
             <p className={`text-base-content/60 line-clamp-2 ${dense ? "text-[11px]" : "text-xs"}`}>{rule.ruleDescription}</p>
           </div>

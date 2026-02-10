@@ -20,8 +20,6 @@ interface NumericalEditorProps {
   isEditing?: boolean;
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
-  forcedEditing?: boolean;
-  saveSignal?: number;
 }
 
 // Reducer actions
@@ -77,8 +75,6 @@ export default function NumericalEditor({
   isEditing: controlledIsEditing,
   title = "数值数据",
   fieldType,
-  forcedEditing,
-  saveSignal,
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();

@@ -23,16 +23,17 @@ export default function RuleTextInfoEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [localName, setLocalName] = useState(ruleName ?? "");
   const [localDescription, setLocalDescription] = useState(ruleDescription ?? "");
+  const isForcedEditingMode = typeof forcedEditing === "boolean";
   const prevCloneVersionRef = useRef(cloneVersion);
   const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
 
-  // 非编辑态时，允许外部 props 同步本地展示
+  // 非编辑态总是同步；受控编辑态下也允许外部同步（用于创建时模板预填）
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditing || isForcedEditingMode) {
       setLocalName(ruleName ?? "");
       setLocalDescription(ruleDescription ?? "");
     }
-  }, [isEditing, ruleDescription, ruleName]);
+  }, [isEditing, isForcedEditingMode, ruleDescription, ruleName]);
 
   // 将编辑态变化上报给父组件，用于保存前校验
   useEffect(() => {
