@@ -49,6 +49,7 @@ export default function RoleCreationFlow({
   initialCharacterData,
   hideRuleSelection,
 }: RoleCreationFlowProps) {
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
 
   // Calculate effective steps based on hideRuleSelection
@@ -68,6 +69,10 @@ export default function RoleCreationFlow({
   const {
     characterData,
     handleCharacterDataChange,
+    handleAttributeChange,
+    handleAddField,
+    handleDeleteField,
+    handleRenameField,
     handleRuleChange,
   } = useCharacterData({ initialData: initialCharacterData });
 
@@ -78,37 +83,29 @@ export default function RoleCreationFlow({
 
   const hasBasicInfo = characterData.name.trim().length > 0 && characterData.description.trim().length > 0;
   const hasRule = characterData.ruleId > 0;
-  const canComplete = hasBasicInfo && (hideRuleSelection ? true : hasRule) && !isSaving;
+
+  const currentOriginalStepId = effectiveSteps[currentStep - 1]?.originalId || 1;
+
+  let canProceedCurrent = true;
+  if (currentOriginalStepId === 1)
+    canProceedCurrent = hasBasicInfo;
+  else if (currentOriginalStepId === 2)
+    canProceedCurrent = hasRule;
 
   const handleComplete = async () => {
-    if (isSaving) {
+    if (isSaving)
       return;
-    }
-
-    if (!hasBasicInfo) {
+    if (!characterData.name.trim() || !characterData.description.trim() || characterData.ruleId <= 0)
       return;
-    }
-
-    if (!hideRuleSelection && !hasRule) {
-      toast.error("请先选择规则", { position: "top-center" });
-      return;
-    }
 
     // 初始化属性别名映射（封装在 aliasRegistry），确保表达式计算前已完成一次性初始化
     initAliasMapOnce();
 
     setIsSaving(true);
     try {
-      const payloadData: CharacterData = (!hideRuleSelection || hasRule)
-        ? characterData
-        : {
-            ...characterData,
-            ruleId: 1,
-          };
-
       await completeRoleCreation(
         {
-          characterData: payloadData,
+          characterData,
           createRole,
           roleCreateDefaults,
           uploadAvatar,
@@ -134,19 +131,65 @@ export default function RoleCreationFlow({
   const renderStepContent = () => {
     const originalStepId = effectiveSteps[currentStep - 1]?.originalId || 1;
 
-        <div className="space-y-6">
-          <BasicInfoStep
-            characterData={characterData}
-            onCharacterDataChange={handleCharacterDataChange}
+    switch (originalStepId) {
+      case 1:
+        return (
+          <BasicInfoStep characterData={characterData} onCharacterDataChange={handleCharacterDataChange} />
+        );
+      case 2:
+        return (
+          <RulesSection large currentRuleId={characterData.ruleId} onRuleChange={handleRuleChange} />
+        );
+      case 3:
+        return (
+          <AttributeStep
+            title="角色表演能力"
+            attributes={characterData.act}
+            onAttributeChange={(key, value) => handleAttributeChange("act", key, value)}
+            onAddField={(key, value) => handleAddField("act", key, value)}
+            onDeleteField={key => handleDeleteField("act", key)}
+            onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
           />
-
-          {!hideRuleSelection && (
-            <RulesSection
-              large
-              currentRuleId={characterData.ruleId}
-              onRuleChange={handleRuleChange}
+        );
+      case 4:
+        return (
+          <>
+            <AttributeStep
+              title="基础能力值"
+              attributes={characterData.basic}
+              onAttributeChange={(key, value) => handleAttributeChange("basic", key, value)}
+              onAddField={(key, value) => handleAddField("basic", key, value)}
+              onDeleteField={key => handleDeleteField("basic", key)}
+              onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
             />
-          )}
+            <div className="mt-6">
+              <AttributeStep
+                title="计算能力值"
+                attributes={characterData.ability}
+                showInfoAlert
+                onAttributeChange={(key, value) => handleAttributeChange("ability", key, value)}
+                onAddField={(key, value) => handleAddField("ability", key, value)}
+                onDeleteField={key => handleDeleteField("ability", key)}
+                onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
+              />
+            </div>
+          </>
+        );
+      case 5:
+        return (
+          <AttributeStep
+            title="技能设定"
+            attributes={characterData.skill}
+            onAttributeChange={(key, value) => handleAttributeChange("skill", key, value)}
+            onAddField={(key, value) => handleAddField("skill", key, value)}
+            onDeleteField={key => handleDeleteField("skill", key)}
+            onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
