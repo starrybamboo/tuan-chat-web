@@ -2,7 +2,7 @@ import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilit
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { CloseIcon, EditIcon, SaveIcon } from "app/icons";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
@@ -29,6 +29,7 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束
  */
 export default function ExpansionModule({
+  isEditing: globalIsEditing,
   roleId,
   ruleId,
   onLoadingChange, // 1. 在 props 中解构出 onLoadingChange
@@ -36,6 +37,8 @@ export default function ExpansionModule({
   onStImportModalClose,
   size = "default",
 }: ExpansionModuleProps) {
+  const isEditingControlled = typeof globalIsEditing === "boolean";
+
   // ״̬
   const selectedRuleId = ruleId ?? 1;
 
@@ -54,6 +57,8 @@ export default function ExpansionModule({
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const [copywritingSaveMsg, setCopywritingSaveMsg] = useState<string>("");
   const [isCopywritingPreview, setIsCopywritingPreview] = useState<boolean>(true);
+  const prevGlobalIsEditingRef = useRef(globalIsEditing);
+  const showCopywritingPreview = isEditingControlled ? !globalIsEditing : isCopywritingPreview;
 
   // 初始化能力数据 - 现在不再自动创建,需要用户手动触发
   // useEffect(() => {
@@ -156,7 +161,7 @@ export default function ExpansionModule({
   };
 
   // 保存骰娘文案到 ability.extra.copywriting（序列化为字符串）
-  const handleCopywritingSave = () => {
+  const handleCopywritingSave = useCallback(() => {
     const copywritingData = localEdits.copywritingTemplates ?? renderData?.copywritingTemplates ?? {};
     const serializedData = JSON.stringify(copywritingData);
 
@@ -185,7 +190,19 @@ export default function ExpansionModule({
         setTimeout(() => setCopywritingSaveMsg(""), 3000);
       },
     });
-  };
+  }, [localEdits.copywritingTemplates, renderData?.copywritingTemplates, roleId, selectedRuleId, updateFieldAbility]);
+
+  // 受控编辑模式下：顶部总编辑从开到关时，自动提交骰娘文案编辑
+  useEffect(() => {
+    if (!isEditingControlled)
+      return;
+
+    const wasEditing = prevGlobalIsEditingRef.current === true;
+    if (wasEditing && !globalIsEditing && localEdits.copywritingTemplates !== undefined) {
+      handleCopywritingSave();
+    }
+    prevGlobalIsEditingRef.current = globalIsEditing;
+  }, [globalIsEditing, handleCopywritingSave, isEditingControlled, localEdits.copywritingTemplates]);
 
   // 检查是否规则未创建
   const isRuleNotCreated = !abilityQuery.isLoading && !abilityQuery.data && ruleDetailQuery.data;
@@ -240,6 +257,7 @@ export default function ExpansionModule({
               onDataChange={handleBasicChange}
               roleId={roleId}
               ruleId={selectedRuleId}
+              isEditing={globalIsEditing}
               fieldType="basic"
               customLabel="基础属性"
             />
@@ -267,6 +285,7 @@ export default function ExpansionModule({
               onDataChange={handleAbilityChange}
               roleId={roleId}
               ruleId={selectedRuleId}
+              isEditing={globalIsEditing}
               fieldType="ability"
               customLabel="能力"
             />
@@ -294,6 +313,7 @@ export default function ExpansionModule({
               onDataChange={handleSkillChange}
               roleId={roleId}
               ruleId={selectedRuleId}
+              isEditing={globalIsEditing}
               fieldType="skill"
               customLabel="技能"
             />
@@ -323,6 +343,7 @@ export default function ExpansionModule({
               abilityData={renderData.actTemplate}
               roleId={roleId}
               ruleId={selectedRuleId}
+              isEditing={globalIsEditing}
             />
           </Section>
         );
@@ -447,30 +468,32 @@ export default function ExpansionModule({
                                             {copywritingSaveMsg && (
                                               <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
                                             )}
-                                            <button
-                                              type="button"
-                                              onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
-                                              className={`btn ${isSmall ? "btn-xs" : "btn-sm"} ${
-                                                isCopywritingPreview ? "btn-accent" : "btn-primary"
-                                              }`}
-                                            >
-                                              {isCopywritingPreview
-                                                ? (
-                                                    <span className="flex items-center gap-1">
-                                                      <EditIcon className="w-4 h-4" />
-                                                      编辑
-                                                    </span>
-                                                  )
-                                                : (
-                                                    <span className="flex items-center gap-1">
-                                                      <SaveIcon className="w-4 h-4" />
-                                                      保存
-                                                    </span>
-                                                  )}
-                                            </button>
+                                            {!isEditingControlled && (
+                                              <button
+                                                type="button"
+                                                onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
+                                                className={`btn ${isSmall ? "btn-xs" : "btn-sm"} ${
+                                                  isCopywritingPreview ? "btn-accent" : "btn-primary"
+                                                }`}
+                                              >
+                                                {isCopywritingPreview
+                                                  ? (
+                                                      <span className="flex items-center gap-1">
+                                                        <EditIcon className="w-4 h-4" />
+                                                        编辑
+                                                      </span>
+                                                    )
+                                                  : (
+                                                      <span className="flex items-center gap-1">
+                                                        <SaveIcon className="w-4 h-4" />
+                                                        保存
+                                                      </span>
+                                                    )}
+                                              </button>
+                                            )}
                                           </div>
                                         </div>
-                                        {isCopywritingPreview
+                                        {showCopywritingPreview
                                           ? (
                                               <div className="space-y-4">
                                                 {Object.keys(renderData.copywritingTemplates || {}).length === 0
@@ -545,30 +568,32 @@ export default function ExpansionModule({
                                           {copywritingSaveMsg && (
                                             <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
                                           )}
-                                          <button
-                                            type="button"
-                                            onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
-                                            className={`btn ${isSmall ? "btn-xs" : "btn-sm"} ${
-                                              isCopywritingPreview ? "btn-accent" : "btn-primary"
-                                            }`}
-                                          >
-                                            {isCopywritingPreview
-                                              ? (
-                                                  <span className="flex items-center gap-1">
-                                                    <EditIcon className="w-4 h-4" />
-                                                    编辑
-                                                  </span>
-                                                )
-                                              : (
-                                                  <span className="flex items-center gap-1">
-                                                    <SaveIcon className="w-4 h-4" />
-                                                    保存
-                                                  </span>
-                                                )}
-                                          </button>
+                                          {!isEditingControlled && (
+                                            <button
+                                              type="button"
+                                              onClick={isCopywritingPreview ? () => setIsCopywritingPreview(false) : handleCopywritingSave}
+                                              className={`btn ${isSmall ? "btn-xs" : "btn-sm"} ${
+                                                isCopywritingPreview ? "btn-accent" : "btn-primary"
+                                              }`}
+                                            >
+                                              {isCopywritingPreview
+                                                ? (
+                                                    <span className="flex items-center gap-1">
+                                                      <EditIcon className="w-4 h-4" />
+                                                      编辑
+                                                    </span>
+                                                  )
+                                                : (
+                                                    <span className="flex items-center gap-1">
+                                                      <SaveIcon className="w-4 h-4" />
+                                                      保存
+                                                    </span>
+                                                  )}
+                                            </button>
+                                          )}
                                         </div>
                                       </div>
-                                      {isCopywritingPreview
+                                      {showCopywritingPreview
                                         ? (
                                             <div className="space-y-4">
                                               {Object.keys(renderData.copywritingTemplates || {}).length === 0
