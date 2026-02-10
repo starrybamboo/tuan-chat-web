@@ -15,8 +15,7 @@ interface PerformanceEditorProps {
   abilityData: Record<string, string>;
   roleId: number;
   ruleId: number;
-  forcedEditing?: boolean;
-  saveSignal?: number;
+  isEditing?: boolean;
 }
 
 /**
@@ -30,17 +29,18 @@ export default function PerformanceEditor({
   abilityData,
   roleId,
   ruleId,
-  forcedEditing,
-  saveSignal,
+  isEditing: controlledIsEditing,
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
   // 是否编辑
-  const [isEditing, setIsEditing] = useState(false);
+  const [internalIsEditing, setInternalIsEditing] = useState(false);
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
+  const isEditingControlled = typeof controlledIsEditing === "boolean";
+  const isEditing = isEditingControlled ? controlledIsEditing : internalIsEditing;
+  const prevIsEditingRef = useRef(isEditing);
   // 是否移动端
   const isMobile = useIsMobile();
 
@@ -48,18 +48,18 @@ export default function PerformanceEditor({
   const shortFields = Object.keys(abilityData || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
-  const persistChanges = useCallback(() => {
+  const handleSaveAndExit = useCallback(() => {
     setIsTransitioning(true);
     const updateData = {
       roleId,
       ruleId,
       act: fields,
-      ability: {},
+      ability: {}, // 表演编辑器不修改能力字段，传空对象
     };
     updateFiledAbility(updateData, {
       onSuccess: () => {
         setTimeout(() => {
-          setIsEditing(false);
+          setInternalIsEditing(false);
           setIsTransitioning(false);
         }, 300);
       },
@@ -69,14 +69,17 @@ export default function PerformanceEditor({
     });
   }, [fields, roleId, ruleId, updateFiledAbility]);
 
-  // 处理编辑模式切换
-  const handleEditToggle = () => {
-    if (!isEditing) {
-      setIsEditing(true);
+  // 受控编辑模式下：顶部总编辑从开到关时，自动提交表演字段编辑
+  useEffect(() => {
+    if (!isEditingControlled)
       return;
+
+    const wasEditing = prevIsEditingRef.current;
+    if (wasEditing && !isEditing) {
+      handleSaveAndExit();
     }
-    persistChanges();
-  };
+    prevIsEditingRef.current = isEditing;
+  }, [handleSaveAndExit, isEditing, isEditingControlled]);
 
   useEffect(() => {
     if (typeof forcedEditing !== "boolean") {
@@ -119,8 +122,9 @@ export default function PerformanceEditor({
         abilityFields: {},
       },
     );
-    delete fields[key];
-    onChange(fields);
+    const nextFields = { ...fields };
+    delete nextFields[key];
+    onChange(nextFields);
   };
 
   const handleAddField = (key: string, value: string) => {
@@ -151,10 +155,10 @@ export default function PerformanceEditor({
         <h3 className="card-title text-lg flex items-center gap-2 ml-1">
           基本信息
         </h3>
-        {forcedEditing !== true && (
+        {!isEditingControlled && (
           <button
             type="button"
-            onClick={handleEditToggle}
+            onClick={isEditing ? handleSaveAndExit : () => setInternalIsEditing(true)}
             className={`btn btn-sm ${
               isEditing ? "btn-primary" : "btn-accent"
             } ${
