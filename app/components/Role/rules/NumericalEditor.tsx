@@ -17,6 +17,7 @@ interface NumericalEditorProps {
   onChange: (data: NumericalData) => void;
   roleId: number;
   ruleId: number;
+  isEditing?: boolean;
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
   forcedEditing?: boolean;
@@ -73,6 +74,7 @@ export default function NumericalEditor({
   onChange,
   roleId,
   ruleId,
+  isEditing: controlledIsEditing,
   title = "数值数据",
   fieldType,
   forcedEditing,
@@ -80,9 +82,11 @@ export default function NumericalEditor({
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
-  const [isEditing, setIsEditing] = useState(false);
+  const [internalIsEditing, setInternalIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
+  const isEditingControlled = typeof controlledIsEditing === "boolean";
+  const isEditing = isEditingControlled ? controlledIsEditing : internalIsEditing;
+  const prevIsEditingRef = useRef(isEditing);
 
   // 使用 useReducer 管理本地数据
   const [localData, dispatch] = useReducer(dataReducer, data);
@@ -123,7 +127,7 @@ export default function NumericalEditor({
     updateFiledAbility(updatedAbility, {
       onSuccess: () => {
         setTimeout(() => {
-          setIsEditing(false);
+          setInternalIsEditing(false);
           setIsTransitioning(false);
         }, 300);
       },
@@ -133,35 +137,17 @@ export default function NumericalEditor({
     });
   }, [fieldType, localData, onChange, roleId, ruleId, updateFiledAbility]);
 
+  // 受控编辑模式下：顶部总编辑从开到关时，自动提交当前数值编辑
   useEffect(() => {
-    if (typeof forcedEditing !== "boolean") {
+    if (!isEditingControlled)
       return;
-    }
 
-    if (forcedEditing) {
-      setIsEditing(true);
-      return;
-    }
-
-    if (!isTransitioning) {
-      setIsEditing(false);
-    }
-  }, [forcedEditing, isTransitioning]);
-
-  useEffect(() => {
-    if (saveSignal === undefined) {
-      return;
-    }
-
-    if (prevSaveSignalRef.current === saveSignal) {
-      return;
-    }
-
-    prevSaveSignalRef.current = saveSignal;
-    if (isEditing) {
+    const wasEditing = prevIsEditingRef.current;
+    if (wasEditing && !isEditing) {
       handleExitEditing();
     }
-  }, [handleExitEditing, isEditing, saveSignal]);
+    prevIsEditingRef.current = isEditing;
+  }, [handleExitEditing, isEditing, isEditingControlled]);
 
   // 处理字段值更新
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
@@ -286,10 +272,10 @@ export default function NumericalEditor({
         <h3 className="card-title text-lg flex items-center gap-2">
           {title}
         </h3>
-        {forcedEditing !== true && (
+        {!isEditingControlled && (
           <button
             type="button"
-            onClick={isEditing ? handleExitEditing : () => setIsEditing(true)}
+            onClick={isEditing ? handleExitEditing : () => setInternalIsEditing(true)}
             className={`btn btn-sm ${isEditing ? "btn-primary" : "btn-accent"
             } ${isTransitioning ? "scale-95" : ""
             }`}

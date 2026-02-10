@@ -1,17 +1,13 @@
 import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
-import { ChevronRightIcon, DiceFiveIcon, EditIcon, GearOutline, MicrophoneIcon, SaveIcon } from "app/icons";
+import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 
-type CharacterDetailLeftPanelHorizontalProps = CharacterDetailLeftPanelProps & {
-  showActions?: boolean;
-  showStImport?: boolean;
-};
+type CharacterDetailLeftPanelHorizontalProps = CharacterDetailLeftPanelProps;
 
 export default function CharacterDetailLeftPanelHorizontal({
   isQueryLoading,
   isEditing,
-  isTransitioning,
   isDiceMaiden,
   localRole,
   roleAvatars,
@@ -24,9 +20,6 @@ export default function CharacterDetailLeftPanelHorizontal({
   currentDicerRoleId,
   dicerRoleError,
   linkedDicerRoleName,
-  onSave,
-  onEditStart,
-  onOpenStImportModal,
   onOpenRuleModal,
   onOpenAudioModal,
   onOpenDiceMaidenLinkModal,
@@ -37,8 +30,6 @@ export default function CharacterDetailLeftPanelHorizontal({
   setLocalRole,
   onAudioRoleUpdate,
   onAudioDelete,
-  showActions = true,
-  showStImport = true,
 }: CharacterDetailLeftPanelHorizontalProps) {
   return (
     <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10 relative">
@@ -113,50 +104,6 @@ export default function CharacterDetailLeftPanelHorizontal({
                     {currentRuleName || "未选择规则"}
                   </p>
                 </div>
-                {showActions && (
-                  <div className="flex items-center gap-2">
-                    {isEditing
-                      ? (
-                          <button
-                            type="button"
-                            onClick={onSave}
-                            className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
-                            disabled={isTransitioning}
-                          >
-                            {isTransitioning
-                              ? (
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                )
-                              : (
-                                  <span className="flex items-center gap-1">
-                                    <SaveIcon className="w-4 h-4" />
-                                    保存
-                                  </span>
-                                )}
-                          </button>
-                        )
-                      : (
-                          <button type="button" onClick={onEditStart} className="btn btn-accent btn-sm">
-                            <span className="flex items-center gap-1">
-                              <EditIcon className="w-4 h-4" />
-                              编辑
-                            </span>
-                          </button>
-                        )}
-
-                    {!isDiceMaiden && showStImport && (
-                      <button
-                        type="button"
-                        onClick={onOpenStImportModal}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <span className="flex items-center gap-1">
-                          ST导入
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
 
               <div>
