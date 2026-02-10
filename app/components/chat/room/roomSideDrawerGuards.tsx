@@ -22,7 +22,7 @@ export default function RoomSideDrawerGuards({ spaceId }: Props) {
     }
     if (prevSpaceId !== spaceId) {
       const currentState = useSideDrawerStore.getState().state;
-      if (currentState === "docFolder" || currentState === "doc") {
+      if (currentState === "docFolder") {
         setSideDrawerState("none");
       }
     }
@@ -30,7 +30,7 @@ export default function RoomSideDrawerGuards({ spaceId }: Props) {
 
   // 关闭跑团模式时，自动关闭跑团相关侧边栏
   useEffect(() => {
-    const runModeDrawers: Array<typeof sideDrawerState> = ["doc", "docFolder", "initiative", "map"];
+    const runModeDrawers: Array<typeof sideDrawerState> = ["docFolder", "initiative", "map"];
     if (!runModeEnabled && runModeDrawers.includes(sideDrawerState)) {
       setSideDrawerState("none");
     }

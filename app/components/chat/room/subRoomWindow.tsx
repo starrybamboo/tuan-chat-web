@@ -179,23 +179,7 @@ function SubRoomWindowImpl() {
                 {title}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div
-                className={`tooltip tooltip-bottom ${activePane === "map" ? "text-primary" : "hover:text-info"}`}
-                data-tip="地图"
-              >
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
-                  aria-label="地图"
-                  onClick={() => {
-                    setActivePane("map");
-                    setSideDrawerState("map");
-                  }}
-                >
-                  <CheckerboardIcon className="size-5" />
-                </button>
-              </div>
+            <div className="flex items-center gap-1.5">
               <div
                 className={`tooltip tooltip-bottom ${activePane === "thread" ? "text-primary" : "hover:text-info"}`}
                 data-tip="子区"
@@ -213,19 +197,6 @@ function SubRoomWindowImpl() {
                 </button>
               </div>
               <div
-                className={`tooltip tooltip-bottom ${activePane === "initiative" ? "text-primary" : "hover:text-info"}`}
-                data-tip="先攻"
-              >
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
-                  aria-label="先攻栏"
-                  onClick={() => setActivePane("initiative")}
-                >
-                  <SwordIcon className="size-5" />
-                </button>
-              </div>
-              <div
                 className={`tooltip tooltip-bottom ${activePane === "doc" ? "text-primary" : "hover:text-info"}`}
                 data-tip="文档"
               >
@@ -239,6 +210,38 @@ function SubRoomWindowImpl() {
                   }}
                 >
                   <FileTextIcon className="size-5" />
+                </button>
+              </div>
+
+              <div className="h-5 w-px bg-base-300 mx-0.5 opacity-80" aria-hidden />
+
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "map" ? "text-primary" : "hover:text-info"}`}
+                data-tip="地图"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="地图"
+                  onClick={() => {
+                    setActivePane("map");
+                    setSideDrawerState("map");
+                  }}
+                >
+                  <CheckerboardIcon className="size-5" />
+                </button>
+              </div>
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "initiative" ? "text-primary" : "hover:text-info"}`}
+                data-tip="先攻"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="先攻栏"
+                  onClick={() => setActivePane("initiative")}
+                >
+                  <SwordIcon className="size-5" />
                 </button>
               </div>
               <div
