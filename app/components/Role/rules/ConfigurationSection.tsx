@@ -16,8 +16,6 @@ interface ConfigurationSectionProps {
   localEdits: Record<string, any>;
   // 更新回调
   onDataChange: (newData: Record<string, any>) => void;
-  forcedEditing?: boolean;
-  saveSignal?: number;
 }
 
 // 分离数据的工具函数
@@ -103,8 +101,6 @@ export function ConfigurationSection({
   ruleData,
   localEdits,
   onDataChange,
-  forcedEditing,
-  saveSignal,
 }: ConfigurationSectionProps) {
   // 分离数据的逻辑
   const { modifiedData, templateData } = useMemo(() => {
@@ -256,8 +252,6 @@ export function ConfigurationSection({
               isEditing={isEditing}
               title={modifiedCount > 0 ? `自定义${customLabel}` : `添加${customLabel}`}
               fieldType={fieldType}
-              forcedEditing={forcedEditing}
-              saveSignal={saveSignal}
             />
           </div>
         )}
@@ -346,8 +340,6 @@ export function ConfigurationSection({
               isEditing={isEditing}
               title={`模版${customLabel}`}
               fieldType={fieldType}
-              forcedEditing={forcedEditing}
-              saveSignal={saveSignal}
             />
           </div>
         )}

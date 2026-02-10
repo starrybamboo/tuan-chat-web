@@ -13,7 +13,6 @@ import PerformanceEditorSmall from "./PerformanceEditorSmall";
 
 interface ExpansionModuleProps {
   isEditing?: boolean;
-  saveSignal?: number;
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
@@ -39,6 +38,7 @@ export default function ExpansionModule({
   size = "default",
 }: ExpansionModuleProps) {
   const isEditingControlled = typeof globalIsEditing === "boolean";
+  const isRuleEditing = Boolean(globalIsEditing);
 
   // ״̬
   const selectedRuleId = ruleId ?? 1;
@@ -258,11 +258,9 @@ export default function ExpansionModule({
               onDataChange={handleBasicChange}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={globalIsEditing}
+              isEditing={isRuleEditing}
               fieldType="basic"
               customLabel="基础属性"
-              forcedEditing={isEditing}
-              saveSignal={saveSignal}
             />
           );
     }
@@ -288,11 +286,9 @@ export default function ExpansionModule({
               onDataChange={handleAbilityChange}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={globalIsEditing}
+              isEditing={isRuleEditing}
               fieldType="ability"
               customLabel="能力"
-              forcedEditing={isEditing}
-              saveSignal={saveSignal}
             />
           );
     }
@@ -318,11 +314,9 @@ export default function ExpansionModule({
               onDataChange={handleSkillChange}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={globalIsEditing}
+              isEditing={isRuleEditing}
               fieldType="skill"
               customLabel="技能"
-              forcedEditing={isEditing}
-              saveSignal={saveSignal}
             />
           );
     }
@@ -350,7 +344,7 @@ export default function ExpansionModule({
               abilityData={renderData.actTemplate}
               roleId={roleId}
               ruleId={selectedRuleId}
-              isEditing={globalIsEditing}
+              isEditing={isRuleEditing}
             />
           </Section>
         );

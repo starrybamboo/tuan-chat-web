@@ -59,37 +59,7 @@ export default function CharacterDetailLeftPanel({
 }: CharacterDetailLeftPanelProps) {
   return (
     <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
-      <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10 relative">
-        <div className="absolute top-1 right-1 z-30">
-          {isEditing
-            ? (
-                <button
-                  type="button"
-                  onClick={onSave}
-                  className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
-                  disabled={isTransitioning}
-                >
-                  {isTransitioning
-                    ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      )
-                    : (
-                        <span className="flex items-center gap-1">
-                          <SaveIcon className="w-4 h-4" />
-                          保存
-                        </span>
-                      )}
-                </button>
-              )
-            : (
-                <button type="button" className="btn btn-sm btn-accent " onClick={onEditStart} disabled={isQueryLoading}>
-                  <span className="flex items-center gap-1">
-                    <EditIcon className="w-4 h-4" />
-                    编辑
-                  </span>
-                </button>
-              )}
-        </div>
+      <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
         <div className="card-body p-4 max-h-168">
           <div className="flex justify-center mt-6 mb-2">
             {isQueryLoading

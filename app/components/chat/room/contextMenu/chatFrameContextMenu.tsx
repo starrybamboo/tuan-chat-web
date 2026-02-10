@@ -244,7 +244,7 @@ export default function ChatFrameContextMenu({
         imageUrl: docCard?.imageUrl,
       });
       toast.success("已复制到我的文档", { id: toastId });
-      setSideDrawerState("docFolder");
+      setSideDrawerState("doc");
     }
     catch (err) {
       console.error("[DocCopy] copyToMyDocs failed", err);

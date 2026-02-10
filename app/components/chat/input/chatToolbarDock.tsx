@@ -108,7 +108,7 @@ export default function ChatToolbarDock({
             className="tooltip tooltip-top hover:text-info"
             data-tip="我的文档"
             data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "docFolder" ? "none" : "docFolder")}
+            onClick={() => setSideDrawerState(sideDrawerState === "doc" ? "none" : "doc")}
           >
             <FileTextIcon className="size-6" />
           </div>
