@@ -19,9 +19,24 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
   const ruleIdParam = searchParams.get("ruleId");
 
   const parsed = useMemo(() => {
-    // mode 缺失默认是选择页
+    // mode 缺失：优先兼容 ruleId 直达编辑，否则默认进入入口页
     if (!modeParam) {
-      return { view: "select" as const };
+      if (!ruleIdParam) {
+        return { view: "entry" as const };
+      }
+
+      const inferredRuleId = Number(ruleIdParam);
+      const isInferredRuleIdValid = Number.isFinite(inferredRuleId) && inferredRuleId > 0;
+      if (isInferredRuleIdValid) {
+        return { view: "edit" as const, ruleId: inferredRuleId };
+      }
+
+      return { view: "entry" as const, shouldCanonicalize: true };
+    }
+
+    if (modeParam === "entry") {
+      // 入口页无需携带 ruleId
+      return { view: "entry" as const, shouldCanonicalize: Boolean(ruleIdParam) };
     }
 
     if (modeParam === "create") {
@@ -51,9 +66,9 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
   const didFallbackRef = useRef(false);
   const didCanonicalizeRef = useRef(false);
 
-  // mode=create 但带了 ruleId：忽略并导航到规范 URL
+  // mode=create 或 mode=entry 但带了 ruleId：忽略并导航到规范 URL
   useEffect(() => {
-    if (parsed.view !== "create")
+    if (parsed.view !== "create" && parsed.view !== "entry")
       return;
 
     if (!parsed.shouldCanonicalize)
@@ -62,10 +77,15 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
       return;
     didCanonicalizeRef.current = true;
 
+    if (parsed.view === "entry") {
+      navigate("/role?type=rule&mode=entry", { replace: true });
+      return;
+    }
+
     navigate("/role?type=rule&mode=create", { replace: true });
   }, [navigate, parsed.view, parsed.shouldCanonicalize]);
 
-  // mode=edit 但 ruleId 缺失/非法 or 未知 mode：统一回退到选择页
+  // mode=edit 但 ruleId 缺失/非法 or 未知 mode：统一回退到入口页
   useEffect(() => {
     if (didFallbackRef.current)
       return;
@@ -80,14 +100,14 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
         toast.error(`无效的 ruleId 参数：${parsed.invalidParam}`);
       }
 
-      navigate("/role?type=rule", { replace: true });
+      navigate("/role?type=rule&mode=entry", { replace: true });
       return;
     }
 
     if (parsed.view === "invalid-mode") {
       didFallbackRef.current = true;
       toast.error(`无效的 mode 参数：${parsed.invalidMode}`);
-      navigate("/role?type=rule", { replace: true });
+      navigate("/role?type=rule&mode=entry", { replace: true });
     }
   }, [navigate, parsed]);
 
@@ -113,7 +133,7 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
         toast.error(`获取规则失败：${msg}`);
       }
 
-      navigate("/role?type=rule", { replace: true });
+      navigate("/role?type=rule&mode=entry", { replace: true });
       return;
     }
 
@@ -127,7 +147,7 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
         const code = typeof res?.errCode === "number" ? res.errCode : 200;
         const msg = res?.errMsg || "找不到对应的规则";
         toast.error(`找不到规则（${code}）：${msg}`);
-        navigate("/role?type=rule", { replace: true });
+        navigate("/role?type=rule&mode=entry", { replace: true });
       }
     }
   }, [navigate, parsed.view, ruleDetailQuery.data, ruleDetailQuery.error, ruleDetailQuery.isError, ruleDetailQuery.isSuccess]);
@@ -136,11 +156,14 @@ export default function RuleEditorRoute({ onBack }: RuleEditorRouteProps) {
     // 正在 replace 到规范 URL
     return null;
   }
+  if (parsed.view === "entry" && parsed.shouldCanonicalize) {
+    return null;
+  }
 
   if (parsed.view === "invalid-edit" || parsed.view === "invalid-mode")
     return null;
 
-  if (parsed.view === "select") {
+  if (parsed.view === "entry") {
     return <RuleEditorEntryPage onBack={onBack} />;
   }
 

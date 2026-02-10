@@ -327,9 +327,16 @@ export default function ChatFrameContextMenu({
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(rootId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
+  };
+
+  const handleOpenSubWindow = () => {
+    // 副窗口第一个 tab 为 map：通过 sideDrawerState = "map" 触发 SubRoomWindow 打开并切换到首个 tab。
+    setSideDrawerState("map");
+    setSubDrawerState("none");
+    onClose();
   };
 
   const handleCreateOrOpenThread = () => {
@@ -386,6 +393,15 @@ export default function ChatFrameContextMenu({
       onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-40">
+        <li>
+          <a onClick={(e) => {
+            e.preventDefault();
+            handleOpenSubWindow();
+          }}
+          >
+            打开副窗口
+          </a>
+        </li>
         <li>
           <a onClick={(e) => {
             e.preventDefault();

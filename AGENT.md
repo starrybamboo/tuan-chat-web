@@ -3,6 +3,8 @@
 - input 样式：不要使用 daisy UI，参考使用 `transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary`
 - 默认情况下，圆角使用 `rounded-md`
 - 用中文回答我
+- 需要 Icon 时使用 phosophorIcon
+- 使用 tailwind css v4的样式类
 - 避免 React 最大更新深度 / useSyncExternalStore 循环：`useEffect` 中写回状态前做相等性判断；对象/数组用 id/长度/关键字段比对，避免每次 render 都 setState
 - 避免 Zustand 选择器返回新对象：需要组合字段时使用 `shallow`，或拆成多个 selector，避免无效重渲染和循环
 - `useSearchParamsState` 的 `defaultValue` 必须是稳定引用（常量或 `useMemo`）；默认值会变化时传 `shortenUrl=false`，避免 URL 与默认值来回写

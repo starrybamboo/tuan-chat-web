@@ -5,6 +5,7 @@ type DrawerPreferenceState = {
   subRoomWindowWidth: number;
   userDrawerWidth: number;
   roleDrawerWidth: number;
+  docFolderDrawerWidth: number;
   threadDrawerWidth: number;
   initiativeDrawerWidth: number;
   mapDrawerWidth: number;
@@ -18,6 +19,7 @@ type DrawerPreferenceState = {
   setSubRoomWindowWidth: (width: number) => void;
   setUserDrawerWidth: (width: number) => void;
   setRoleDrawerWidth: (width: number) => void;
+  setDocFolderDrawerWidth: (width: number) => void;
   setThreadDrawerWidth: (width: number) => void;
   setInitiativeDrawerWidth: (width: number) => void;
   setMapDrawerWidth: (width: number) => void;
@@ -61,12 +63,13 @@ function writeNumber(key: string, value: number): void {
 const DEFAULT_DRAWER_WIDTHS = {
   chatLeftPanelWidth: 430,
   subRoomWindowWidth: 560,
-  userDrawerWidth: 270,
-  roleDrawerWidth: 270,
+  userDrawerWidth: 320,
+  roleDrawerWidth: 320,
+  docFolderDrawerWidth: 320,
   threadDrawerWidth: 420,
-  initiativeDrawerWidth: 270,
+  initiativeDrawerWidth: 320,
   mapDrawerWidth: 600,
-  exportDrawerWidth: 350,
+  exportDrawerWidth: 320,
   webgalDrawerWidth: 600,
 } as const;
 
@@ -79,6 +82,7 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   subRoomWindowWidth: DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth,
   userDrawerWidth: DEFAULT_DRAWER_WIDTHS.userDrawerWidth,
   roleDrawerWidth: DEFAULT_DRAWER_WIDTHS.roleDrawerWidth,
+  docFolderDrawerWidth: DEFAULT_DRAWER_WIDTHS.docFolderDrawerWidth,
   threadDrawerWidth: DEFAULT_DRAWER_WIDTHS.threadDrawerWidth,
   initiativeDrawerWidth: DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth,
   mapDrawerWidth: DEFAULT_DRAWER_WIDTHS.mapDrawerWidth,
@@ -95,6 +99,7 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
       subRoomWindowWidth: readNumber("subRoomWindowWidth", DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth),
       userDrawerWidth: readNumber("userDrawerWidth", DEFAULT_DRAWER_WIDTHS.userDrawerWidth),
       roleDrawerWidth: readNumber("roleDrawerWidth", DEFAULT_DRAWER_WIDTHS.roleDrawerWidth),
+      docFolderDrawerWidth: readNumber("docFolderDrawerWidth", DEFAULT_DRAWER_WIDTHS.docFolderDrawerWidth),
       threadDrawerWidth: readNumber("threadDrawerWidth", DEFAULT_DRAWER_WIDTHS.threadDrawerWidth),
       initiativeDrawerWidth: readNumber("initiativeDrawerWidth", DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth),
       mapDrawerWidth: readNumber("mapDrawerWidth", DEFAULT_DRAWER_WIDTHS.mapDrawerWidth),
@@ -151,6 +156,14 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
         return state;
       writeNumber("roleDrawerWidth", width);
       return { roleDrawerWidth: width };
+    });
+  },
+  setDocFolderDrawerWidth: (width) => {
+    set((state) => {
+      if (state.docFolderDrawerWidth === width)
+        return state;
+      writeNumber("docFolderDrawerWidth", width);
+      return { docFolderDrawerWidth: width };
     });
   },
   setThreadDrawerWidth: (width) => {

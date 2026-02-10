@@ -153,8 +153,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(rootId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
   }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
@@ -215,8 +215,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(message.messageId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
   }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 

@@ -4,48 +4,58 @@ import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/ho
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useImportFromRepositoryMutation } from "api/hooks/spaceRepositoryHooks";
 import { tuanchat } from "api/instance";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import ChatPageLayout from "@/components/chat/chatPageLayout";
-import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
-import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
-import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
-import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { PopWindow } from "@/components/common/popWindow";
 import Author from "./author";
 // import IssueTab from "./issueTab";
 
-export default function RepositoryDetailComponent({
-  repositoryData: propRepositoryData,
-  repositoryId: repositoryIdProp,
-}: {
+interface RepositoryDetailComponentProps {
   repositoryData?: RepositoryData;
   repositoryId?: number;
-}) {
+  onOpenRepository?: (repositoryId: number) => void;
+  embedded?: boolean;
+  viewModeOpen?: boolean;
+  onViewModeOpenChange?: (open: boolean) => void;
+}
+
+export default function RepositoryDetailComponent({
+  repositoryData: propRepositoryData,
+  repositoryId: propRepositoryId,
+  onOpenRepository,
+  embedded = false,
+  viewModeOpen,
+  onViewModeOpenChange,
+}: RepositoryDetailComponentProps) {
   const navigate = useNavigate();
   const params = useParams();
-  const repositoryIdFromParams = Number(params.id);
-  const repositoryId = (() => {
-    if (typeof repositoryIdProp === "number" && Number.isFinite(repositoryIdProp) && repositoryIdProp > 0) {
-      return repositoryIdProp;
+  const routeRepositoryId = Number(params.id);
+  const repositoryId = useMemo(() => {
+    if (typeof propRepositoryId === "number" && Number.isFinite(propRepositoryId) && propRepositoryId > 0) {
+      return propRepositoryId;
     }
-    if (Number.isFinite(repositoryIdFromParams) && repositoryIdFromParams > 0) {
-      return repositoryIdFromParams;
-    }
-    return propRepositoryData?.repositoryId ?? -1;
-  })();
+    return Number.isFinite(routeRepositoryId) && routeRepositoryId > 0 ? routeRepositoryId : 0;
+  }, [propRepositoryId, routeRepositoryId]);
+  const loadingMinHeightClass = embedded ? "min-h-[40vh]" : "min-h-screen";
 
   // ===== 所有 Hooks 必须在最前面调用 =====
   // 如果没有传入 repositoryData，则通过 ID 获取
   const { data: fetchedRepositoryData, isLoading: isLoadingRepository, isError: isRepositoryError } = useRepositoryDetailByIdQuery(repositoryId);
   const RuleList = useRuleListQuery();
 
-  // 查看模组内容弹窗
-  const [isViewModeOpen, setIsViewModeOpen] = useState(false);
+  // 查看模组内容弹窗（支持受控/非受控）
+  const [internalIsViewModeOpen, setInternalIsViewModeOpen] = useState(false);
+  const isViewModeOpen = typeof viewModeOpen === "boolean" ? viewModeOpen : internalIsViewModeOpen;
+  const setViewModeOpen = (next: boolean) => {
+    if (onViewModeOpenChange) {
+      onViewModeOpenChange(next);
+      return;
+    }
+    setInternalIsViewModeOpen(next);
+  };
 
   const [isForkListOpen, setIsForkListOpen] = useState(false);
 
@@ -92,50 +102,6 @@ export default function RepositoryDetailComponent({
   const roomsQuery = useGetUserRoomsQuery(linkedSpaceId ?? -1);
   const linkedRooms = useMemo(() => roomsQuery.data?.data?.rooms ?? [], [roomsQuery.data?.data?.rooms]);
   const viewRoomId = linkedRooms[0]?.roomId ?? null;
-  const [previewRoomId, setPreviewRoomId] = useState<number | null>(viewRoomId);
-  const screenSize = useScreenSize();
-  const chatLeftPanelWidth = useDrawerPreferenceStore(state => state.chatLeftPanelWidth);
-  const setChatLeftPanelWidth = useDrawerPreferenceStore(state => state.setChatLeftPanelWidth);
-  const [isPreviewLeftDrawerOpen, setIsPreviewLeftDrawerOpen] = useState(screenSize !== "sm");
-
-  useEffect(() => {
-    setPreviewRoomId(viewRoomId);
-  }, [viewRoomId]);
-
-  useEffect(() => {
-    if (screenSize !== "sm") {
-      setIsPreviewLeftDrawerOpen(true);
-    }
-  }, [screenSize]);
-
-  const togglePreviewLeftDrawer = useCallback(() => {
-    setIsPreviewLeftDrawerOpen(prev => !prev);
-  }, []);
-
-  const closePreviewLeftDrawer = useCallback(() => {
-    if (screenSize === "sm") {
-      setIsPreviewLeftDrawerOpen(false);
-    }
-  }, [screenSize]);
-
-  const previewLeftDrawerLabel = isPreviewLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
-  const previewShouldShowLeftToggle = screenSize === "sm" && !isPreviewLeftDrawerOpen;
-  const previewSpaces = useMemo(() => (linkedSpace ? [linkedSpace] : []), [linkedSpace]);
-  const previewSpaceOrderIds = useMemo(() => (linkedSpaceId ? [linkedSpaceId] : []), [linkedSpaceId]);
-  const previewRoomOrderIds = useMemo(() => {
-    return linkedRooms
-      .map(room => room.roomId)
-      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
-  }, [linkedRooms]);
-  const previewSpaceContextValue = useMemo(() => ({
-    spaceId: linkedSpaceId ?? -1,
-    ruleId: linkedSpace?.ruleId,
-    isSpaceOwner: false,
-    setActiveSpaceId: () => {},
-    setActiveRoomId: () => {},
-    toggleLeftDrawer: togglePreviewLeftDrawer,
-    spaceMembers: [],
-  }), [linkedSpace?.ruleId, linkedSpaceId, togglePreviewLeftDrawer]);
 
   // 图片加载状态
   const [imageLoading, setImageLoading] = useState(true);
@@ -183,17 +149,58 @@ export default function RepositoryDetailComponent({
       setImageError(false);
       return;
     }
+    let disposed = false;
     setImageLoading(true);
     setImageError(false);
+
+    const image = new Image();
+    const handleLoad = () => {
+      if (disposed)
+        return;
+      setImageLoading(false);
+      setImageError(false);
+    };
+    const handleError = () => {
+      if (disposed)
+        return;
+      setImageLoading(false);
+      setImageError(true);
+    };
+    image.onload = handleLoad;
+    image.onerror = handleError;
+    image.src = repositoryImage;
+
+    if (image.complete) {
+      if (image.naturalWidth > 0)
+        handleLoad();
+      else
+        handleError();
+    }
+
+    return () => {
+      disposed = true;
+      image.onload = null;
+      image.onerror = null;
+    };
   }, [repositoryImage]);
 
   const isRootRepository = useMemo(() => repositoryData?.parent == null, [repositoryData]);
+
+  const openRepositoryDetail = (id: number) => {
+    if (!id || !Number.isFinite(id))
+      return;
+    if (onOpenRepository) {
+      onOpenRepository(id);
+      return;
+    }
+    navigate(`/repository/detail/${id}`);
+  };
 
   // ===== 条件渲染：加载和错误状态 =====
   // 如果正在加载，显示加载状态
   if (!propRepositoryData && isLoadingRepository) {
     return (
-      <div className="flex-grow flex items-center justify-center min-h-screen">
+      <div className={`grow flex items-center justify-center ${loadingMinHeightClass}`}>
         <div className="text-center">
           <div className="loading loading-spinner loading-lg mb-4"></div>
           <p className="text-lg">加载仓库数据中...</p>
@@ -205,7 +212,7 @@ export default function RepositoryDetailComponent({
   // 如果加载失败，显示错误信息
   if (!propRepositoryData && isRepositoryError) {
     return (
-      <div className="flex-grow flex items-center justify-center min-h-screen">
+      <div className={`grow flex items-center justify-center ${loadingMinHeightClass}`}>
         <div className="text-center">
           <div className="text-error text-2xl mb-4">❌</div>
           <p className="text-lg text-error mb-4">加载仓库失败</p>
@@ -224,7 +231,7 @@ export default function RepositoryDetailComponent({
   // 如果没有数据，显示空状态
   if (!repositoryData) {
     return (
-      <div className="flex-grow flex items-center justify-center min-h-screen">
+      <div className={`grow flex items-center justify-center ${loadingMinHeightClass}`}>
         <div className="text-center">
           <p className="text-lg text-base-content/60">未找到仓库数据</p>
         </div>
@@ -245,14 +252,14 @@ export default function RepositoryDetailComponent({
         if (newSpaceId) {
           importFromRepository.mutate({ spaceId: newSpaceId, repositoryId }, {
             onSuccess: () => {
-              setIsViewModeOpen(false);
+              setViewModeOpen(false);
               setShowSuccessToast(true);
               setTimeout(() => setShowSuccessToast(false), 3000);
               setNewSpaceId(newSpaceId);
               setShowConfirmPopup(true);
             },
             onError: () => {
-              setIsViewModeOpen(false);
+              setViewModeOpen(false);
               setShowErrorToast(true);
               setTimeout(() => setShowErrorToast(false), 3000);
             },
@@ -260,7 +267,7 @@ export default function RepositoryDetailComponent({
         }
       },
       onError: () => {
-        setIsViewModeOpen(false);
+        setViewModeOpen(false);
         setShowErrorToast(true);
         setTimeout(() => setShowErrorToast(false), 3000);
       },
@@ -321,308 +328,273 @@ export default function RepositoryDetailComponent({
     repositoryData.createTime && { label: "创建时间", value: new Date(repositoryData.createTime).toLocaleDateString("zh-CN") },
     repositoryData.updateTime && { label: "最后更新", value: new Date(repositoryData.updateTime).toLocaleString("zh-CN") },
   ].filter((item): item is { label: string; value: string } => Boolean(item)); // 类型断言过滤
+  const layoutContainerClassName = embedded && isViewModeOpen
+    ? "w-full h-full relative z-10"
+    : "mx-auto max-w-7xl p-4 relative z-10";
+  const rootContainerClassName = embedded && isViewModeOpen
+    ? "bg-base-100 relative h-full"
+    : "bg-base-100 relative";
+  const viewLayerHostClassName = embedded && isViewModeOpen
+    ? "relative h-full"
+    : "relative";
+  const detailLayoutClassName = embedded && isViewModeOpen
+    ? "hidden"
+    : "flex flex-col gap-6 md:flex-row md:gap-6";
+  const viewOverlayClassName = embedded
+    ? "absolute inset-0 z-30 border border-base-300 bg-base-100 shadow-lg overflow-hidden"
+    : "absolute inset-0 z-20 rounded-lg border border-base-300 bg-base-100 shadow-lg overflow-hidden";
 
   return (
     <>
-      <div className="bg-base-100 relative min-h-screen overflow-x-hidden">
-        <div className="mx-auto max-w-7xl px-4 py-4 relative z-10 flex flex-col min-h-0">
-          <div className="flex flex-col gap-6 md:flex-row md:gap-8 flex-1 min-h-0">
-            <div className="w-full md:w-[26%] lg:w-[22%] flex flex-col gap-4">
-              <div className="rounded-2xl border border-base-300 bg-base-100 p-4 flex flex-col gap-4">
-                <div className="w-full flex items-center justify-center relative">
-                  {repositoryImage
-                    ? (
-                        <>
-                          {imageLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-20">
-                              <div className="loading loading-spinner loading-lg"></div>
-                            </div>
-                          )}
-                          {imageError && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-20">
-                              <div className="text-center">
-                                <svg className="w-16 h-16 mx-auto mb-2 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <p className="text-base-content/60 text-sm">图片加载失败</p>
+      <div className={rootContainerClassName}>
+        <div className={layoutContainerClassName}>
+          <div className={viewLayerHostClassName}>
+            <div className={detailLayoutClassName}>
+              <div className="w-1/4 flex flex-col gap-4 md:sticky md:top-0 md:self-start">
+                <div className="p-8 flex flex-col gap-4 bg-base-200 rounded-lg border-2 border-base-300 ">
+                  <div className="w-full flex items-center justify-center relative rounded-md overflow-hidden">
+                    {repositoryImage
+                      ? (
+                          <>
+                            {imageLoading && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-20">
+                                <div className="loading loading-spinner loading-lg"></div>
                               </div>
-                            </div>
+                            )}
+                            {imageError && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-20">
+                                <div className="text-center">
+                                  <svg className="w-16 h-16 mx-auto mb-2 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  <p className="text-base-content/60 text-sm">图片加载失败</p>
+                                </div>
+                              </div>
+                            )}
+                            <img
+                              className={`aspect-square object-cover w-full z-0 ${imageLoading || imageError ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
+                              src={repositoryImage}
+                              onLoad={() => setImageLoading(false)}
+                              onError={() => {
+                                setImageLoading(false);
+                                setImageError(true);
+                              }}
+                              alt={repositoryData.repositoryName}
+                            />
+                          </>
+                        )
+                      : (
+                          <div className="w-full aspect-square bg-base-200 flex items-center justify-center text-base-content/60 text-sm rounded-md">
+                            暂无封面
+                          </div>
+                        )}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <h1 className="text-2xl font-bold leading-snug wrap-break-words">
+                      {repositoryData.repositoryName}
+                    </h1>
+                    <p className="text-sm text-base-content/70 leading-relaxed whitespace-pre-wrap wrap-break-words">
+                      {repositoryData.description || "暂无描述"}
+                    </p>
+                  </div>
+
+                  {infos.length > 0 && (
+                    <div className="flex border border-base-300 rounded-lg p-3 gap-3">
+                      <div className="flex flex-col gap-2">
+                        {infos.map(info => (
+                          <h3 key={`label-${info.label}`} className="text-sm font-semibold">{info.label}</h3>
+                        ))}
+                      </div>
+                      <div className="divider divider-horizontal m-0" />
+                      <div className="flex flex-col gap-2">
+                        {infos.map(info => (
+                          <h4 key={`value-${info.label}`} className="text-sm">{info.value}</h4>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {isRootRepository && (
+                    <div className="rounded-lg border border-base-300 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold">Fork 仓库</div>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-outline"
+                          onClick={() => setIsForkListOpen(prev => !prev)}
+                        >
+                          {isForkListOpen ? "收起" : `展开 ${forkRepositories.length}`}
+                        </button>
+                      </div>
+                      {isForkListOpen && (
+                        <div className="mt-3 space-y-2">
+                          {forkListQuery.isLoading && (
+                            <div className="text-xs text-base-content/60">加载中...</div>
                           )}
-                          <img
-                            className={`aspect-square object-cover w-full z-0 ${imageLoading || imageError ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
-                            src={repositoryImage}
-                            onLoad={() => setImageLoading(false)}
-                            onError={() => {
-                              setImageLoading(false);
-                              setImageError(true);
-                            }}
-                            alt={repositoryData.repositoryName}
-                          />
-                        </>
-                      )
-                    : (
-                        <div className="w-full aspect-square bg-base-200 flex items-center justify-center text-base-content/60 text-sm">
-                          暂无封面
+                          {forkListQuery.isError && (
+                            <div className="text-xs text-error">加载失败</div>
+                          )}
+                          {!forkListQuery.isLoading && !forkListQuery.isError && forkRepositories.length === 0 && (
+                            <div className="text-xs text-base-content/60">暂无 fork 仓库</div>
+                          )}
+                          {forkRepositories.map((repo) => {
+                            const id = repo.repositoryId ?? -1;
+                            const name = repo.repositoryName ?? `仓库 #${id}`;
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                className="w-full text-left rounded-md border border-base-300 bg-base-200/60 px-3 py-2 text-xs transition hover:bg-base-300/60"
+                                onClick={() => openRepositoryDetail(id)}
+                              >
+                                <div className="font-semibold truncate">{name}</div>
+                                {repo.description && (
+                                  <div className="text-[11px] text-base-content/60 line-clamp-2">{repo.description}</div>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <h1 className="text-2xl font-bold leading-snug break-words">
-                    {repositoryData.repositoryName}
-                  </h1>
-                  <p className="text-sm text-base-content/70 leading-relaxed whitespace-pre-wrap break-words">
-                    {repositoryData.description || "暂无描述"}
-                  </p>
-                </div>
-
-                {infos.length > 0 && (
-                  <div className="flex border border-base-300 rounded-lg p-3 gap-3 bg-base-100">
-                    <div className="flex flex-col gap-2">
-                      {infos.map(info => (
-                        <h3 key={`label-${info.label}`} className="text-sm font-semibold">{info.label}</h3>
-                      ))}
                     </div>
-                    <div className="divider divider-horizontal m-0" />
-                    <div className="flex flex-col gap-2">
-                      {infos.map(info => (
-                        <h4 key={`value-${info.label}`} className="text-sm">{info.value}</h4>
-                      ))}
-                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    <Author userId={repositoryData.userId} />
+                    <button
+                      type="button"
+                      className="btn btn-primary w-full"
+                      onClick={() => setViewModeOpen(true)}
+                    >
+                      查看模组内容
+                    </button>
                   </div>
-                )}
-
-                {isRootRepository && (
-                  <div className="rounded-lg border border-base-300 bg-base-100 p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold">Fork 仓库</div>
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-outline"
-                        onClick={() => setIsForkListOpen(prev => !prev)}
-                      >
-                        {isForkListOpen ? "收起" : `展开 ${forkRepositories.length}`}
-                      </button>
-                    </div>
-                    {isForkListOpen && (
-                      <div className="mt-3 space-y-2">
-                        {forkListQuery.isLoading && (
-                          <div className="text-xs text-base-content/60">加载中...</div>
-                        )}
-                        {forkListQuery.isError && (
-                          <div className="text-xs text-error">加载失败</div>
-                        )}
-                        {!forkListQuery.isLoading && !forkListQuery.isError && forkRepositories.length === 0 && (
-                          <div className="text-xs text-base-content/60">暂无 fork 仓库</div>
-                        )}
-                        {forkRepositories.map((repo) => {
-                          const id = repo.repositoryId ?? -1;
-                          const name = repo.repositoryName ?? `仓库 #${id}`;
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              className="w-full text-left rounded-md border border-base-300 bg-base-200/60 px-3 py-2 text-xs transition hover:bg-base-300/60"
-                              onClick={() => navigate(`/repository/detail/${id}`)}
-                            >
-                              <div className="font-semibold truncate">{name}</div>
-                              {repo.description && (
-                                <div className="text-[11px] text-base-content/60 line-clamp-2">{repo.description}</div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-3">
-                  <Author userId={repositoryData.userId} />
-                  <button
-                    type="button"
-                    className="btn btn-primary w-full"
-                    onClick={() => setIsViewModeOpen(true)}
-                  >
-                    查看模组内容
-                  </button>
                 </div>
               </div>
-            </div>
 
-            <div className="flex-1 min-w-0 flex flex-col">
-              <div className="rounded-2xl border border-base-300 bg-base-100 p-4 flex-1 flex flex-col min-h-0">
-                {linkedSpaceId
-                  ? (
-                      <div className="flex-1 min-h-0">
+              <div className="hidden md:flex divider divider-horizontal self-stretch m-0" aria-hidden />
+
+              <div className="flex-1 min-w-0 min-h-0 overflow-visible">
+                <div className="rounded-md min-h-60 overflow-visible">
+                  {linkedSpaceId
+                    ? (
                         <BlocksuiteDescriptionEditor
                           workspaceId={`space:${linkedSpaceId}`}
                           spaceId={linkedSpaceId}
                           docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
                           readOnly
                           mode="page"
-                          variant="full"
-                          className="h-full min-h-0"
                           tcHeader={{
                             enabled: true,
                             fallbackTitle: linkedSpace?.name ?? repositoryData.repositoryName,
                             fallbackImageUrl: linkedSpace?.avatar ?? repositoryData.image,
                           }}
                         />
-                      </div>
-                    )
-                  : (
-                      <div className="flex flex-col items-center justify-center text-base-content/60 text-sm py-12">
-                        <div className="mb-3">暂无关联空间资料</div>
+                      )
+                    : (
+                        <div className="flex flex-col items-center justify-center text-base-content/60 text-sm py-12">
+                          <div className="mb-3">暂无关联空间资料</div>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={handleDirectCreateSpaceAndImport}
+                          >
+                            克隆模组
+                          </button>
+                        </div>
+                      )}
+                </div>
+              </div>
+            </div>
+
+            {isViewModeOpen && (
+              <div className={viewOverlayClassName}>
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="flex items-center justify-between gap-3 border-b border-info/20 bg-info/10 px-4 py-2">
+                    <div className="flex items-center gap-2 text-sm text-info min-w-0">
+                      <span className="badge badge-info badge-outline">查看模式</span>
+                      <span className="truncate">正在预览模组内容</span>
+                      {linkedSpace?.name && (
+                        <span className="text-base-content/60 truncate">
+                          ·
+                          {linkedSpace.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => setViewModeOpen(false)}
+                      >
+                        关闭预览
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        onClick={handleDirectCreateSpaceAndImport}
+                      >
+                        克隆模组
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-h-0 bg-base-200/30">
+                    {!linkedSpaceId && (
+                      <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
+                        <div className="text-base">暂无可查看的模组内容</div>
+                        <div className="text-sm">先克隆模组到空间后再查看</div>
                         <button
                           type="button"
-                          className="btn btn-sm"
+                          className="btn btn-sm btn-primary"
                           onClick={handleDirectCreateSpaceAndImport}
                         >
                           克隆模组
                         </button>
                       </div>
                     )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <ToastWindow isOpen={isViewModeOpen} onClose={() => setIsViewModeOpen(false)} fullScreen>
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="flex items-center justify-between gap-3 border-b border-info/20 bg-info/10 px-4 py-2">
-            <div className="flex items-center gap-2 text-sm text-info">
-              <span className="badge badge-info badge-outline">查看模式</span>
-              <span>正在预览模组内容</span>
-              {linkedSpace?.name && (
-                <span className="text-base-content/60">
-                  ·
-                  {linkedSpace.name}
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={handleDirectCreateSpaceAndImport}
-            >
-              克隆模组
-            </button>
-          </div>
-
-          <div className="flex-1 min-h-0 bg-base-200/30">
-            {!linkedSpaceId && (
-              <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
-                <div className="text-base">暂无可查看的模组内容</div>
-                <div className="text-sm">先克隆模组到空间后再查看</div>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={handleDirectCreateSpaceAndImport}
-                >
-                  克隆模组
-                </button>
-              </div>
-            )}
-            {linkedSpaceId && roomsQuery.isLoading && (
-              <div className="flex h-full items-center justify-center gap-3 text-base-content/60">
-                <div className="loading loading-spinner loading-md"></div>
-                <span className="text-sm">加载房间中...</span>
-              </div>
-            )}
-            {linkedSpaceId && roomsQuery.isError && (
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-base-content/60">
-                <div className="text-base">加载房间失败</div>
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={() => roomsQuery.refetch()}
-                >
-                  重试
-                </button>
-              </div>
-            )}
-            {linkedSpaceId && !roomsQuery.isLoading && !roomsQuery.isError && !viewRoomId && (
-              <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
-                <div className="text-base">当前空间暂无可查看的房间</div>
-              </div>
-            )}
-            {linkedSpaceId && viewRoomId && previewRoomId && (
-              <div className="h-full min-h-0">
-                <SpaceContext value={previewSpaceContextValue}>
-                  <ChatPageLayout
-                    screenSize={screenSize}
-                    isOpenLeftDrawer={isPreviewLeftDrawerOpen}
-                    shouldShowLeftDrawerToggle={previewShouldShowLeftToggle}
-                    leftDrawerToggleLabel={previewLeftDrawerLabel}
-                    toggleLeftDrawer={togglePreviewLeftDrawer}
-                    chatLeftPanelWidth={chatLeftPanelWidth}
-                    setChatLeftPanelWidth={setChatLeftPanelWidth}
-                    spaceSidebar={(
-                      <ChatSpaceSidebar
-                        isPrivateChatMode={false}
-                        spaces={previewSpaces}
-                        spaceOrderIds={previewSpaceOrderIds}
-                        activeSpaceId={linkedSpaceId}
-                        getSpaceUnreadMessagesNumber={() => 0}
-                        privateUnreadMessagesNumber={0}
-                        onOpenPrivate={() => {}}
-                        onSelectSpace={() => {}}
-                        onCreateSpace={() => {}}
-                        onSpaceContextMenu={() => {}}
-                        onToggleLeftDrawer={togglePreviewLeftDrawer}
-                        isLeftDrawerOpen={isPreviewLeftDrawerOpen}
-                      />
+                    {linkedSpaceId && roomsQuery.isLoading && (
+                      <div className="flex h-full items-center justify-center gap-3 text-base-content/60">
+                        <div className="loading loading-spinner loading-md"></div>
+                        <span className="text-sm">加载房间中...</span>
+                      </div>
                     )}
-                    sidePanelContent={(
-                      <ChatPageSidePanelContent
-                        isPrivateChatMode={false}
-                        activeSpaceId={linkedSpaceId}
-                        onToggleLeftDrawer={togglePreviewLeftDrawer}
-                        isLeftDrawerOpen={isPreviewLeftDrawerOpen}
-                        onCloseLeftDrawer={closePreviewLeftDrawer}
-                        currentUserId={null}
-                        activeSpaceName={linkedSpace?.name ?? repositoryData.repositoryName}
-                        activeSpaceIsArchived={false}
-                        isSpaceOwner={false}
-                        isKPInSpace={false}
-                        rooms={linkedRooms}
-                        roomOrderIds={previewRoomOrderIds}
-                        onReorderRoomIds={() => {}}
-                        sidebarTree={null}
-                        docMetas={[]}
-                        onSelectDoc={() => {}}
-                        onSaveSidebarTree={() => {}}
-                        onResetSidebarTreeToDefault={() => {}}
-                        activeRoomId={previewRoomId}
-                        activeDocId={null}
-                        unreadMessagesNumber={{}}
-                        onContextMenu={() => {}}
-                        onInviteMember={() => {}}
-                        onOpenSpaceDetailPanel={() => {}}
-                        onSelectRoom={setPreviewRoomId}
-                        onOpenRoomSetting={() => {}}
-                        setIsOpenLeftDrawer={setIsPreviewLeftDrawerOpen}
-                        onOpenCreateInCategory={() => {}}
-                      />
+                    {linkedSpaceId && roomsQuery.isError && (
+                      <div className="flex h-full flex-col items-center justify-center gap-3 text-base-content/60">
+                        <div className="text-base">加载房间失败</div>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => roomsQuery.refetch()}
+                        >
+                          重试
+                        </button>
+                      </div>
                     )}
-                    mainContent={(
-                      <RoomWindow
-                        roomId={previewRoomId}
-                        spaceId={linkedSpaceId}
-                        viewMode
-                      />
+                    {linkedSpaceId && !roomsQuery.isLoading && !roomsQuery.isError && !viewRoomId && (
+                      <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
+                        <div className="text-base">当前空间暂无可查看的房间</div>
+                      </div>
                     )}
-                  />
-                </SpaceContext>
+                    {linkedSpaceId && viewRoomId && (
+                      <div className="h-full min-h-0">
+                        <RoomWindow
+                          roomId={viewRoomId}
+                          spaceId={linkedSpaceId}
+                          viewMode
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
-      </ToastWindow>
-      {/* 在现有的 ToastWindow 组件后面添加确认弹窗 */}
-      <ToastWindow isOpen={showConfirmPopup} onClose={handleCancelNavigate}>
+      </div>
+      {/* 在现有的 PopWindow 组件后面添加确认弹窗 */}
+      <PopWindow isOpen={showConfirmPopup} onClose={handleCancelNavigate}>
         <div className="flex flex-col items-center p-6 gap-4">
           <div className="text-2xl font-bold text-success">
             <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -654,7 +626,7 @@ export default function RepositoryDetailComponent({
             </button>
           </div>
         </div>
-      </ToastWindow>
+      </PopWindow>
       {showSuccessToast && (
         <div className="fixed bottom-6 right-6 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
           ✅ 克隆成功！
