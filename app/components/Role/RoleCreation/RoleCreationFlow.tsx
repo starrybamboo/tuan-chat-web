@@ -89,9 +89,8 @@ export default function RoleCreationFlow({
     canProceedCurrent = hasRule;
 
   const handleComplete = async () => {
-    if (isSaving) {
+    if (isSaving)
       return;
-    }
     if (!hasBasicInfo) {
       return;
     }
@@ -104,16 +103,9 @@ export default function RoleCreationFlow({
 
     setIsSaving(true);
     try {
-      const payloadData: CharacterData = (!hideRuleSelection || hasRule)
-        ? characterData
-        : {
-            ...characterData,
-            ruleId: 1,
-          };
-
       await completeRoleCreation(
         {
-          characterData: payloadData,
+          characterData,
           createRole,
           roleCreateDefaults,
           uploadAvatar,
