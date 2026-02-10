@@ -11,6 +11,8 @@ import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
 interface SpriteListGridProps {
   /** 头像/立绘列表 */
   avatars: RoleAvatar[];
+  /** 头像总数（用于判断是否允许删除全部） */
+  totalAvatarsCount?: number;
   /** 当前选中的索引 */
   selectedIndex: number;
   /** 选中回调 */
@@ -49,6 +51,7 @@ interface SpriteListGridProps {
  */
 export function SpriteListGrid({
   avatars,
+  totalAvatarsCount,
   selectedIndex,
   onSelect,
   className = "",
@@ -85,6 +88,7 @@ export function SpriteListGrid({
   const deletionHook = useAvatarDeletion({
     role,
     avatars,
+    totalAvatarsCount,
     selectedAvatarId,
     onAvatarChange,
     onAvatarSelect,
@@ -168,7 +172,7 @@ export function SpriteListGrid({
   };
 
   // Determine if delete button should be shown (not when only 1 avatar remains)
-  const canDelete = avatars.length > 1;
+  const canDelete = (totalAvatarsCount ?? avatars.length) > 1;
   if (avatars.length === 0) {
     return (
       <div

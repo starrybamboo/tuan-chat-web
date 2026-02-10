@@ -166,6 +166,7 @@ export default function App() {
       <>
         <Outlet />
         <div id="modal-root"></div>
+        <ToastWindowRenderer />
       </>
     );
   }

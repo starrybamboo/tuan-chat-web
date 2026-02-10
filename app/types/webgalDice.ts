@@ -1,4 +1,4 @@
-const DICE_OPTION_PATTERN = /^\s*([0-9０-９]+)\s*(?:[.)）．。、,:：，]\s*|\s+)(\S.*)$/;
+const DICE_OPTION_PATTERN = /^\s*[0-9\uFF10\uFF11\uFF12\uFF13\uFF14\uFF15\uFF16\uFF17\uFF18\uFF19]+\s*(?:[.)）．。、,:：，]\s*|\s)\S.*$/;
 const DICE_EXPRESSION_PATTERN = /\d*\s*d\s*(?:\d+|%)/i;
 
 export type WebgalDiceRenderMode = "dialog" | "narration" | "anko" | "script";

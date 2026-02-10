@@ -1,6 +1,5 @@
 import type { UserRole } from "../../../../api";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
-
 import {
   Broom,
   ChatCircleText,
@@ -13,9 +12,11 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
+
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
+import { FIGURE_POSITION_LABELS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
 interface ResolvedImportChatMessage {
   lineNumber: number;
@@ -204,7 +205,7 @@ export default function ImportChatMessagesWindow({
             <h2 className="text-lg font-bold flex items-center gap-2">
               导入对话
               <span className={`badge badge-sm ${isKP ? "badge-info" : "badge-ghost"} font-normal`}>
-                {isKP ? "KPģʽ" : "玩家模式"}
+                {isKP ? "KP模式" : "玩家模式"}
               </span>
             </h2>
             <div className="text-xs text-base-content/60 flex items-center gap-2">
@@ -384,7 +385,7 @@ export default function ImportChatMessagesWindow({
                           <th className="bg-base-200/50 w-1/3">文本中的名字</th>
                           <th className="bg-base-200/50 w-1/3">对应房间角色</th>
                           <th className="bg-base-200/50 w-1/4">显示位置</th>
-                          <th className="bg-base-200/50 w-12 text-center">״̬</th>
+                          <th className="bg-base-200/50 w-12 text-center">状态</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -414,7 +415,7 @@ export default function ImportChatMessagesWindow({
                                   <option value="">-- 请选择 --</option>
                                   <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 特殊角色 -</option>
                                   {isKP && <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>📝 旁白 (KP)</option>}
-                                  <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (ϵͳ)</option>
+                                  <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>🎲 骰娘 (系统)</option>
                                   <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">- 房间角色 -</option>
                                   {roleOptions.map(o => (
                                     <option key={o.roleId} value={String(o.roleId)}>
@@ -426,41 +427,24 @@ export default function ImportChatMessagesWindow({
                               </td>
                               <td>
                                 <div className="join w-full">
-                                  <input
-                                    className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
-                                    type="radio"
-                                    name={`pos-${speaker}`}
-                                    aria-label="左"
-                                    checked={figurePosition === "left"}
-                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "left" }))}
-                                    disabled={isImporting || value == null || value <= 0}
-                                    title="立绘位置：左"
-                                  />
-                                  <input
-                                    className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
-                                    type="radio"
-                                    name={`pos-${speaker}`}
-                                    aria-label="中"
-                                    checked={figurePosition === "center"}
-                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "center" }))}
-                                    disabled={isImporting || value == null || value <= 0}
-                                    title="立绘位置：中"
-                                  />
-                                  <input
-                                    className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
-                                    type="radio"
-                                    name={`pos-${speaker}`}
-                                    aria-label="右"
-                                    checked={figurePosition === "right"}
-                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: "right" }))}
-                                    disabled={isImporting || value == null || value <= 0}
-                                    title="立绘位置：右"
-                                  />
+                                  {FIGURE_POSITION_ORDER.map(pos => (
+                                    <input
+                                      key={pos}
+                                      className="join-item btn btn-xs btn-ghost px-1 flex-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                      type="radio"
+                                      name={`pos-${speaker}`}
+                                      aria-label={FIGURE_POSITION_LABELS[pos]}
+                                      checked={figurePosition === pos}
+                                      onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: pos }))}
+                                      disabled={isImporting || value == null || value <= 0}
+                                      title={`立绘位置：${FIGURE_POSITION_LABELS[pos]}`}
+                                    />
+                                  ))}
                                   <input
                                     className="join-item btn btn-xs btn-ghost px-1 font-mono text-[10px] aria-checked:opacity-50"
                                     type="radio"
                                     name={`pos-${speaker}`}
-                                    aria-label="✕"
+                                    aria-label="无"
                                     checked={figurePosition == null}
                                     onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: null }))}
                                     disabled={isImporting || value == null || value <= 0}

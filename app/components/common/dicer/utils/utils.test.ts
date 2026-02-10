@@ -1,6 +1,9 @@
 // noinspection NonAsciiCharacters
 
-import { vi, type Mock } from "vitest";
+import type { Mock } from "vitest";
+
+import { vi } from "vitest";
+
 import { AliasMap } from "./aliasMap";
 import UTILS from "./utils";
 
@@ -22,7 +25,7 @@ describe("dicer utils 测试", () => {
   let mockRoleAbility: RoleAbility;
 
   beforeAll(() => {
-    AliasMap.getInstance({ "1001": new Map() });
+    AliasMap.getInstance({ 1001: new Map() });
   });
 
   beforeEach(() => {

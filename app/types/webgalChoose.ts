@@ -67,7 +67,7 @@ export function extractWebgalChoosePayload(extra: unknown): WebgalChoosePayload 
 }
 
 export function buildWebgalChooseScriptLines(payload: WebgalChoosePayload, messageId: number | string): string[] {
-  const safeId = String(messageId ?? "0").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeId = String(messageId ?? "0").replace(/[^\w-]/g, "_");
   const baseLabel = `__choose_${safeId}`;
   const endLabel = `${baseLabel}_end`;
 

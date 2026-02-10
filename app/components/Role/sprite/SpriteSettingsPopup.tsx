@@ -16,10 +16,10 @@ import {
   XCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
@@ -70,6 +70,8 @@ export function SpriteSettingsPopup({
 }: SpriteSettingsPopupProps) {
   // 内部维护 tab ״̬
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
+  const DEFAULT_CATEGORY = "默认";
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
 
   // ========== 内部共享的立绘索引 ==========
   // 使用外部传入的 currentSpriteIndex 作为初始值
@@ -88,6 +90,91 @@ export function SpriteSettingsPopup({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(() => new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const isMultiSelectDisabled = activeTab === "setting";
+
+  const { categoryOptions, hasDefaultCategory } = useMemo(() => {
+    const categorySet = new Set<string>();
+    let hasDefault = false;
+    spritesAvatars.forEach((avatar) => {
+      const category = String(avatar.category ?? "").trim();
+      if (category) {
+        if (category === DEFAULT_CATEGORY) {
+          hasDefault = true;
+        }
+        else {
+          categorySet.add(category);
+        }
+      }
+      else {
+        hasDefault = true;
+      }
+    });
+    return {
+      categoryOptions: Array.from(categorySet).sort((a, b) => a.localeCompare(b, "zh-CN")),
+      hasDefaultCategory: hasDefault,
+    };
+  }, [spritesAvatars, DEFAULT_CATEGORY]);
+
+  const filteredIndices = useMemo(() => {
+    if (!categoryFilter) {
+      return spritesAvatars.map((_, index) => index);
+    }
+    if (categoryFilter === DEFAULT_CATEGORY) {
+      return spritesAvatars
+        .map((avatar, index) => {
+          const category = String(avatar.category ?? "").trim();
+          return !category || category === DEFAULT_CATEGORY ? index : -1;
+        })
+        .filter(index => index >= 0);
+    }
+    return spritesAvatars
+      .map((avatar, index) => {
+        const category = String(avatar.category ?? "").trim();
+        return category === categoryFilter ? index : -1;
+      })
+      .filter(index => index >= 0);
+  }, [spritesAvatars, categoryFilter]);
+
+  const filteredIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    filteredIndices.forEach((originalIndex, filteredIndex) => {
+      map.set(originalIndex, filteredIndex);
+    });
+    return map;
+  }, [filteredIndices]);
+
+  const filteredSelectedIndices = useMemo(() => {
+    const next = new Set<number>();
+    selectedIndices.forEach((originalIndex) => {
+      const filteredIndex = filteredIndexMap.get(originalIndex);
+      if (filteredIndex !== undefined) {
+        next.add(filteredIndex);
+      }
+    });
+    return next;
+  }, [selectedIndices, filteredIndexMap]);
+
+  const filteredSprites = useMemo(
+    () => filteredIndices
+      .map(index => spritesAvatars[index])
+      .filter((avatar): avatar is RoleAvatar => Boolean(avatar)),
+    [filteredIndices, spritesAvatars],
+  );
+
+  const visibleCount = filteredIndices.length;
+
+  useEffect(() => {
+    setIsMultiSelectMode(false);
+    setSelectedIndices(new Set());
+  }, [categoryFilter]);
+
+  useEffect(() => {
+    if (filteredIndices.length === 0) {
+      return;
+    }
+    if (!filteredIndices.includes(internalIndex)) {
+      setInternalIndex(filteredIndices[0]);
+    }
+  }, [filteredIndices, internalIndex]);
 
   // 当前选中的头像数据
   const currentAvatar = useMemo(() => {
@@ -366,18 +453,18 @@ export function SpriteSettingsPopup({
                       type="button"
                       className="btn btn-soft bg-base-200 btn-square btn-xs"
                       onClick={() => {
-                        const allSelected = spritesAvatars.length > 0 && selectedIndices.size === spritesAvatars.length;
+                        const allSelected = visibleCount > 0 && selectedIndices.size === visibleCount;
                         const newSelected = allSelected
                           ? new Set<number>()
-                          : new Set(spritesAvatars.length > 0 ? Array.from({ length: spritesAvatars.length }, (_, i) => i) : []);
+                          : new Set(filteredIndices);
                         setSelectedIndices(newSelected);
                       }}
                       title={
-                        spritesAvatars.length > 0 && selectedIndices.size === spritesAvatars.length
+                        visibleCount > 0 && selectedIndices.size === visibleCount
                           ? "取消全选"
-                          : selectedIndices.size > 0 && selectedIndices.size < spritesAvatars.length
+                          : selectedIndices.size > 0 && selectedIndices.size < visibleCount
                             ? `已选 ${selectedIndices.size}`
-                            : "ȫѡ"
+                            : "全选"
                       }
                     >
                       <ChecksIcon className="h-5 w-5" aria-hidden="true" />
@@ -404,7 +491,7 @@ export function SpriteSettingsPopup({
                     </button>
                   </>
                 )}
-                {!isMultiSelectMode && spritesAvatars.length > 1 && (
+                {!isMultiSelectMode && visibleCount > 1 && (
                   <button
                     type="button"
                     className={`btn btn-soft bg-base-200 btn-square btn-xs ${isMultiSelectDisabled ? "btn-disabled" : ""}`}
@@ -420,12 +507,37 @@ export function SpriteSettingsPopup({
                 )}
               </div>
             </div>
+            <div className="px-3 pb-3">
+              <label className="text-xs font-semibold text-base-content/70" htmlFor="avatar-category-filter">
+                分类筛选
+              </label>
+              <select
+                id="avatar-category-filter"
+                className="select select-sm w-full bg-base-200"
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+              >
+                <option value="">全部</option>
+                {hasDefaultCategory && (
+                  <option value={DEFAULT_CATEGORY}>默认</option>
+                )}
+                {categoryOptions.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex-1 overflow-auto p-3">
             <SpriteListGrid
-              avatars={spritesAvatars}
-              selectedIndex={internalIndex}
-              onSelect={handleInternalIndexChange}
+              avatars={filteredSprites}
+              totalAvatarsCount={spritesAvatars.length}
+              selectedIndex={filteredIndexMap.get(internalIndex) ?? 0}
+              onSelect={(index) => {
+                const originalIndex = filteredIndices[index];
+                if (originalIndex === undefined)
+                  return;
+                handleInternalIndexChange(originalIndex);
+              }}
               mode="manage"
               className="h-full"
               gridCols="grid-cols-3"
@@ -436,9 +548,18 @@ export function SpriteSettingsPopup({
               onAvatarDeleted={handleAvatarDeleted}
               onUpload={handleAvatarUpload}
               fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
-              selectedIndices={selectedIndices}
+              selectedIndices={filteredSelectedIndices}
               isMultiSelectMode={isMultiSelectMode}
-              onMultiSelectChange={handleMultiSelectChange}
+              onMultiSelectChange={(indices, isMultiMode) => {
+                const nextSelected = new Set<number>();
+                indices.forEach((filteredIndex) => {
+                  const originalIndex = filteredIndices[filteredIndex];
+                  if (originalIndex !== undefined) {
+                    nextSelected.add(originalIndex);
+                  }
+                });
+                handleMultiSelectChange(nextSelected, isMultiMode);
+              }}
             />
           </div>
         </div>
@@ -680,7 +801,10 @@ export function SpriteSettingsPopup({
                                       <div className="flex-1 min-w-0">
                                         <div className="font-medium truncate">{name}</div>
                                         {avatar.avatarId && (
-                                          <div className="text-xs text-base-content/40 mt-1">头像ID：{avatar.avatarId}</div>
+                                          <div className="text-xs text-base-content/40 mt-1">
+                                            头像ID：
+                                            {avatar.avatarId}
+                                          </div>
                                         )}
                                       </div>
                                     </div>

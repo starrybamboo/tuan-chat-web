@@ -113,7 +113,7 @@ describe("formatAnkoDiceMessage", () => {
 
     expect(result).toContain("[高达](style=color:#FFD700)");
     expect(result).toMatch(/1d4[:：]\[\d\]\(style=color:#FF6B00\)/);
-    expect(result).toMatch(/\[\d+[.)）．。、:：]\s*.*\]\(style=color:#FF6B00\)/);
+    expect(result).toMatch(/\[\d+[.)）．。、:：]\s*(?:\S.*)?\]\(style=color:#FF6B00\)/);
   });
 
   it("在选项行内补全子骰结果", () => {

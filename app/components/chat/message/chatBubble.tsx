@@ -1,18 +1,19 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import React, { use, useCallback, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import { buildAnnotationMap } from "@/components/chat/message/annotations/annotationCatalog";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
-import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
+import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
@@ -47,6 +48,8 @@ interface CommandRequestPayload {
 }
 
 const EMPTY_ANNOTATIONS: string[] = [];
+const EFFECT_PREVIEW_DURATION_MS = 2000;
+const EFFECT_FRAME_DURATION_MS = 50;
 
 function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection, onEditWebgalChoose }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
@@ -70,6 +73,41 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     return base;
   }, [message.annotations, message.extra?.imageMessage?.background, message.messageType]);
+  const effectPreview = useMemo(() => {
+    const annotationMap = buildAnnotationMap();
+    for (const id of annotations) {
+      const def = annotationMap.get(id);
+      if (def?.category === "特效" && def.iconUrl) {
+        const duration = def.effectFrames
+          ? Math.max(1, def.effectFrames) * EFFECT_FRAME_DURATION_MS
+          : EFFECT_PREVIEW_DURATION_MS;
+        return { iconUrl: def.iconUrl, durationMs: duration };
+      }
+    }
+    return null;
+  }, [annotations]);
+  const effectIconUrl = effectPreview?.iconUrl ?? null;
+  const [effectPreviewVisible, setEffectPreviewVisible] = useState(false);
+  const [effectPreviewToken, setEffectPreviewToken] = useState(0);
+  const effectPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerEffectPreview = useCallback(() => {
+    if (!effectIconUrl) {
+      return;
+    }
+    setEffectPreviewVisible(true);
+    setEffectPreviewToken(Date.now());
+    if (effectPreviewTimerRef.current) {
+      clearTimeout(effectPreviewTimerRef.current);
+    }
+    effectPreviewTimerRef.current = setTimeout(() => {
+      setEffectPreviewVisible(false);
+    }, effectPreview?.durationMs ?? EFFECT_PREVIEW_DURATION_MS);
+  }, [effectIconUrl, effectPreview?.durationMs]);
+  useEffect(() => () => {
+    if (effectPreviewTimerRef.current) {
+      clearTimeout(effectPreviewTimerRef.current);
+    }
+  }, []);
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
   const role = useRoleRequest.data?.data;
 
@@ -961,7 +999,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     <BetterImg
                       src={imgUrl}
                       size={{ width: imgWidth, height: imgHeight }}
-                      className="rounded max-w-full"
+                      className="rounded max-w-full max-h-[350px] h-auto"
                     />
                   )
                 : (
@@ -1206,7 +1244,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     )}
               </div>
               <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0 sm:pr-80">
+                <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0 sm:pr-80 relative">
                   {!isIntroText && isEditingRoleName
                     ? (
                         <div className="flex items-center gap-1">
@@ -1231,14 +1269,33 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     : (
                         !isIntroText && displayRoleName
                           ? (
-                              <span
-                                onClick={handleRoleNameClick}
-                                className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
-                              >
-                                {displayRoleName}
-                              </span>
+                              <div className="relative flex items-center gap-2 min-w-0">
+                                <span
+                                  onClick={handleRoleNameClick}
+                                  className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
+                                >
+                                  {displayRoleName}
+                                </span>
+                                {effectPreviewVisible && effectIconUrl && (
+                                  <img
+                                    src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                    alt=""
+                                    className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                  />
+                                )}
+                              </div>
                             )
-                          : null
+                          : (
+                              effectPreviewVisible && effectIconUrl
+                                ? (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                    />
+                                  )
+                                : null
+                            )
                       )}
                   <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
@@ -1247,6 +1304,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 </div>
                 <div
                   className="max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
+                  onClick={triggerEffectPreview}
                 >
                   {renderedContent}
                   {threadHintNode}
@@ -1290,7 +1348,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               {/* 消息内容 */}
               <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
                 {/* 角色名 */}
-                <div className="flex items-center w-full gap-2 sm:pr-80">
+                <div className="flex items-center w-full gap-2 sm:pr-80 relative">
                   {!isIntroText && isEditingRoleName
                     ? (
                         <div className="flex items-center gap-1">
@@ -1315,23 +1373,45 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     : (
                         !isIntroText && displayRoleName
                           ? (
-                              <div
-                                className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
-                                onClick={handleRoleNameClick}
-                              >
-                                <div className="truncate">
-                                  {`【${displayRoleName}】`}
+                              <div className="relative flex items-center gap-2 min-w-0">
+                                <div
+                                  className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
+                                  onClick={handleRoleNameClick}
+                                >
+                                  <div className="truncate">
+                                    {`【${displayRoleName}】`}
+                                  </div>
                                 </div>
+                                {effectPreviewVisible && effectIconUrl && (
+                                  <img
+                                    src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                    alt=""
+                                    className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                  />
+                                )}
                               </div>
                             )
-                          : null
+                          : (
+                              effectPreviewVisible && effectIconUrl
+                                ? (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                    />
+                                  )
+                                : null
+                            )
                       )}
                   <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </div>
                 </div>
-                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base">
+                <div
+                  className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base"
+                  onClick={triggerEffectPreview}
+                >
                   {renderedContent}
                   {threadHintNode}
                   {annotationsBar}

@@ -270,6 +270,27 @@ interface MemberChatStatusPush extends BaseMessage<{
     type: 17;
 }
 
+// 房间DND地图变更 (type: 19)
+interface RoomDndMapChangePush extends BaseMessage<{
+    roomId: number;
+    op: "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+    map?: {
+        mapImgUrl?: string;
+        gridRows?: number;
+        gridCols?: number;
+        gridColor?: string;
+    };
+    token?: {
+        roleId: number;
+        rowIndex: number;
+        colIndex: number;
+    };
+    clearTokens?: boolean;
+    updatedAt?: number;
+}> {
+    type: 19;
+}
+
 // 空间频道树变更 (type: 22)
 export interface SpaceSidebarTreeUpdatedPush extends BaseMessage<{
     spaceId: number;
@@ -356,6 +377,7 @@ type ServerWebSocketMessage =
     | RoomMuteStatusPush
     | MemberChatStatusPush
     | ModRoleChangePush
+    | RoomDndMapChangePush
     | NewFriendRequestPush
     | VolunteerRegisterSuccessPush
     | VolunteerHeartbeatAckPush
@@ -429,6 +451,28 @@ export interface RoomExtraChangeEvent {
     roomId: number; // 房间ID
     type: number;   // 变更类型 (1:更新/新增, 2:删除)
     key: string;    // 变更内容的键名
+}
+
+/**
+ * 房间DND地图变更事件。
+ * Corresponds to message type 19.
+ */
+export interface RoomDndMapChangeEvent {
+    roomId: number;
+    op: "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+    map?: {
+        mapImgUrl?: string;
+        gridRows?: number;
+        gridCols?: number;
+        gridColor?: string;
+    };
+    token?: {
+        roleId: number;
+        rowIndex: number;
+        colIndex: number;
+    };
+    clearTokens?: boolean;
+    updatedAt?: number;
 }
 
 

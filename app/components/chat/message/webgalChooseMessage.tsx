@@ -1,4 +1,4 @@
-﻿import type { WebgalChoosePayload } from "@/types/webgalChoose";
+import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 export default function WebgalChooseMessage({ payload }: { payload: WebgalChoosePayload | null }) {
   const options = payload?.options ?? [];
@@ -19,8 +19,9 @@ export default function WebgalChooseMessage({ payload }: { payload: WebgalChoose
       </div>
       <div className="mt-2 space-y-2 border-l-2 border-base-content/10 pl-3">
         {options.map((option, index) => {
+          const optionKey = `${option.text}::${option.code ?? ""}`;
           return (
-            <div key={`${index}-${option.text}`} className="flex items-start gap-2">
+            <div key={optionKey} className="flex items-start gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full border border-base-content/30 bg-base-100 text-[11px] font-semibold text-base-content/70">
                 {index + 1}
               </span>

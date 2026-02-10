@@ -1,14 +1,18 @@
+import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import type { WebgalChoosePayload } from "@/types/webgalChoose";
+
 import { ArrowSquareIn } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
-import WebgalChooseModal, { type WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseModal";
+import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import { ImgUploader } from "@/components/common/uploader/imgUploader";
 
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   DiceD6Icon,
   EmojiIconWhite,
@@ -19,7 +23,6 @@ import {
   SparklesOutline,
 } from "@/icons";
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
-import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
 
@@ -134,8 +137,8 @@ function ChatToolbar({
   const [webgalVarExpr, setWebgalVarExpr] = useState("");
   const [webgalVarError, setWebgalVarError] = useState<string | null>(null);
   const [isWebgalChooseModalOpen, setIsWebgalChooseModalOpen] = useState(false);
-  const [webgalChooseOptions, setWebgalChooseOptions] = useState<WebgalChooseOptionDraft[]>([
-    { text: "", code: "" },
+  const [webgalChooseOptions, setWebgalChooseOptions] = useState<WebgalChooseOptionDraft[]>(() => [
+    createWebgalChooseOptionDraft(),
   ]);
   const [webgalChooseError, setWebgalChooseError] = useState<string | null>(null);
   const webgalVarKeyInputRef = useRef<HTMLInputElement>(null);
@@ -292,7 +295,7 @@ function ChatToolbar({
   const addWebgalChooseOption = useCallback(() => {
     setWebgalChooseOptions(prev => ([
       ...prev,
-      { text: "", code: "" },
+      createWebgalChooseOptionDraft(),
     ]));
   }, []);
 
@@ -341,14 +344,13 @@ function ChatToolbar({
     try {
       await onSendWebgalChoose(payload);
       closeWebgalChooseModal();
-      setWebgalChooseOptions([{ text: "", code: "" }]);
+      setWebgalChooseOptions([createWebgalChooseOptionDraft()]);
     }
     catch (err: any) {
       console.error("发送选择失败:", err);
       toast.error(err?.message ? `发送选择失败：${err.message}` : "发送选择失败");
     }
   }, [closeWebgalChooseModal, onSendWebgalChoose, webgalChooseOptions]);
-
 
   const webgalVarModal = isWebgalVarModalOpen && typeof document !== "undefined"
     ? createPortal(
@@ -410,7 +412,6 @@ function ChatToolbar({
       onSubmit={submitWebgalChoose}
     />
   );
-
 
   return (
     <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "flex-col w-full"}`}>

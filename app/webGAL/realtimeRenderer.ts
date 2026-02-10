@@ -4,14 +4,28 @@ import type { QueryClient } from "@tanstack/react-query";
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
  */
 import type { InferRequest } from "@/tts/engines/index/apiClient";
-import { MESSAGE_TYPE, type FigureAnimationSettings } from "@/types/voiceRenderTypes";
-
-import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
-import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
-import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
+import type { FigureAnimationSettings, FigurePositionKey } from "@/types/voiceRenderTypes";
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
-import { extractWebgalDicePayload, isLikelyAnkoDiceContent, stripDiceHighlightTokens } from "@/types/webgalDice";
+
+import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/common/dicer/diceTable";
+import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
+import {
+  ANNOTATION_IDS,
+  getFigureAnimationFromAnnotations,
+  getFigurePositionFromAnnotations,
+  hasAnnotation,
+  isImageMessageBackground,
+  isImageMessageShown,
+} from "@/types/messageAnnotations";
+import {
+  FIGURE_POSITION_IDS,
+  FIGURE_POSITION_ORDER,
+
+  isFigurePosition,
+  MESSAGE_TYPE,
+} from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
+import { extractWebgalDicePayload, isLikelyAnkoDiceContent, stripDiceHighlightTokens } from "@/types/webgalDice";
 import { buildWebgalSetVarLine, extractWebgalVarPayload } from "@/types/webgalVar";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
@@ -247,6 +261,91 @@ function buildImageFileName(url: string, fileName: string | undefined, prefix: s
     return hasFileExtension(trimmed) ? trimmed : `${trimmed}.${extension}`;
   }
   return `${prefix}_${hashString(url)}.${extension}`;
+}
+
+type FigureSlot = {
+  id: string;
+  basePosition: "left" | "center" | "right";
+  offsetX: number;
+  offsetY: number;
+};
+
+// 以 2560 参考宽度经验值换算，保证 5 个槽位有明确区分
+const FIGURE_SLOT_OFFSET_X = 320;
+
+const FIGURE_SLOT_MAP: Record<FigurePositionKey, FigureSlot> = {
+  "left": {
+    id: String(FIGURE_POSITION_IDS.left),
+    basePosition: "left",
+    offsetX: 0,
+    offsetY: 0,
+  },
+  "left-center": {
+    id: String(FIGURE_POSITION_IDS["left-center"]),
+    basePosition: "center",
+    offsetX: -FIGURE_SLOT_OFFSET_X,
+    offsetY: 0,
+  },
+  "center": {
+    id: String(FIGURE_POSITION_IDS.center),
+    basePosition: "center",
+    offsetX: 0,
+    offsetY: 0,
+  },
+  "right-center": {
+    id: String(FIGURE_POSITION_IDS["right-center"]),
+    basePosition: "center",
+    offsetX: FIGURE_SLOT_OFFSET_X,
+    offsetY: 0,
+  },
+  "right": {
+    id: String(FIGURE_POSITION_IDS.right),
+    basePosition: "right",
+    offsetX: 0,
+    offsetY: 0,
+  },
+};
+
+function resolveFigureSlot(position: FigurePositionKey): FigureSlot {
+  return FIGURE_SLOT_MAP[position];
+}
+
+function buildFigureArgs(id: string, slot: FigureSlot, transform: string): string {
+  const parts = [`-id=${id}`];
+  if (slot.basePosition === "left") {
+    parts.push("-left");
+  }
+  else if (slot.basePosition === "right") {
+    parts.push("-right");
+  }
+  if (transform) {
+    parts.push(transform);
+  }
+  return parts.join(" ");
+}
+
+type ClearFigureOptions = {
+  includeLegacy?: boolean;
+  includeImage?: boolean;
+};
+
+function buildClearFigureLines(options: ClearFigureOptions = {}): string[] {
+  const { includeLegacy = false, includeImage = false } = options;
+  const lines = FIGURE_POSITION_ORDER.map((position) => {
+    const slot = resolveFigureSlot(position);
+    return `changeFigure:none -id=${slot.id} -next;`;
+  });
+  if (includeLegacy) {
+    lines.push("changeFigure:none -left -next;", "changeFigure:none -center -next;", "changeFigure:none -right -next;");
+  }
+  if (includeImage) {
+    lines.push(`changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`);
+  }
+  return lines;
+}
+
+function buildSceneInitLines(): string[] {
+  return ["changeBg:none -next;", ...buildClearFigureLines({ includeLegacy: true, includeImage: true })];
 }
 
 type RendererContext = {
@@ -486,11 +585,12 @@ export class RealtimeRenderer {
   public async initRoomScene(roomId: number): Promise<void> {
     const sceneName = this.getSceneName(roomId);
     const path = `games/${this.gameName}/game/scene/${sceneName}.txt`;
-    const initialContent = "changeBg:none -next;\nchangeFigure:none -next;";
+    const initLines = buildSceneInitLines();
+    const initialContent = initLines.join("\n");
 
     try {
       await getTerreApis().manageGameControllerEditTextFile({ path, textFile: initialContent });
-      this.sceneContextMap.set(roomId, { lineNumber: 2, text: initialContent });
+      this.sceneContextMap.set(roomId, { lineNumber: initLines.length, text: initialContent });
       this.currentSpriteStateMap.set(roomId, new Set());
       console.warn(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
     }
@@ -510,9 +610,10 @@ export class RealtimeRenderer {
       // 如果没有房间，创建一个默认场景
       console.warn(`[RealtimeRenderer] 没有房间信息，创建默认场景`);
       const path = `games/${this.gameName}/game/scene/start.txt`;
+      const initLines = buildSceneInitLines();
       await getTerreApis().manageGameControllerEditTextFile({
         path,
-        textFile: "changeBg:none -next;\nchangeFigure:none -next;",
+        textFile: initLines.join("\n"),
       });
       return;
     }
@@ -890,11 +991,15 @@ export class RealtimeRenderer {
    * 将 avatarTitle 转换为情感向量
    */
   private convertAvatarTitleToEmotionVector(avatarTitle: Record<string, string>): number[] {
-    const emotionOrder = ["ϲ", "ŭ", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
+    const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
+    const legacyEmotionKeyMap: Record<string, string> = {
+      喜: "ϲ",
+      怒: "ŭ",
+    };
     const MAX_SUM = 0.5;
 
     let emotionVector = emotionOrder.map((emotion) => {
-      const value = avatarTitle[emotion];
+      const value = avatarTitle[emotion] ?? avatarTitle[legacyEmotionKeyMap[emotion]];
       const numValue = value ? Number.parseFloat(value) * 0.5 : 0.0;
       return Math.max(0.0, Math.min(1.4, numValue));
     });
@@ -1046,23 +1151,31 @@ export class RealtimeRenderer {
   }
 
   /**
-   * 将 RoleAvatar 转换为 transform 字符串
+   * 根据 RoleAvatar 生成 transform 字符串（支持偏移量）
    */
-  private roleAvatarToTransformString(avatar: RoleAvatar): string {
-    const rotationRad = avatar.spriteRotation
+  private buildFigureTransformString(
+    avatar: RoleAvatar | undefined,
+    offsetX = 0,
+    offsetY = 0,
+  ): string {
+    if (!avatar && offsetX === 0 && offsetY === 0) {
+      return "";
+    }
+
+    const rotationRad = avatar?.spriteRotation
       ? (avatar.spriteRotation * Math.PI / 180)
       : 0;
 
     const transform = {
       position: {
-        x: avatar.spriteXPosition ?? 0,
-        y: avatar.spriteYPosition ?? 0,
+        x: (avatar?.spriteXPosition ?? 0) + offsetX,
+        y: (avatar?.spriteYPosition ?? 0) + offsetY,
       },
       scale: {
-        x: avatar.spriteScale ?? 1,
-        y: avatar.spriteScale ?? 1,
+        x: avatar?.spriteScale ?? 1,
+        y: avatar?.spriteScale ?? 1,
       },
-      alpha: avatar.spriteTransparency ?? 1,
+      alpha: avatar?.spriteTransparency ?? 1,
       rotation: rotationRad,
     };
 
@@ -1343,16 +1456,16 @@ export class RealtimeRenderer {
           }
         }
         // 普通图片：作为一次性立绘展示（下一条消息前清除）
-        if (!isBackground && !unlockCg) {
+        if (!isBackground && !unlockCg && isImageMessageShown(msg.annotations)) {
           const rawPosition = getFigurePositionFromAnnotations(msg.annotations);
-          const positionPart = rawPosition === "left" || rawPosition === "right"
-            ? ` -${rawPosition}`
-            : "";
+          const imageSlot = rawPosition ? resolveFigureSlot(rawPosition) : resolveFigureSlot("center");
           const figureFileName = await this.uploadImageFigure(imageMessage.url, imageMessage.fileName);
           if (figureFileName) {
+            const transform = this.buildFigureTransformString(undefined, imageSlot.offsetX, 0);
+            const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, imageSlot, transform);
             await this.appendLine(
               targetRoomId,
-              `changeFigure:${figureFileName} -id=${IMAGE_MESSAGE_FIGURE_ID}${positionPart} -enter=enter;`,
+              `changeFigure:${figureFileName} ${figureArgs} -enter=enter;`,
               syncToFile,
             );
             this.pendingImageFigureClearSet.add(targetRoomId);
@@ -1437,10 +1550,9 @@ export class RealtimeRenderer {
         }
         else if (effectMessage.effectName === "clearFigure") {
           // 清除立绘：清除所有位置的立绘
-          await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-          await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-          await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
-          await this.appendLine(targetRoomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, syncToFile);
+          for (const line of buildClearFigureLines({ includeLegacy: true, includeImage: true })) {
+            await this.appendLine(targetRoomId, line, syncToFile);
+          }
           this.pendingImageFigureClearSet.delete(targetRoomId);
           finalizeMessageLineRange();
           if (syncToFile)
@@ -1550,9 +1662,9 @@ export class RealtimeRenderer {
 
     // 清除立绘需要在当前消息脚本的最前面，确保在本条对话之前生效
     if (shouldClearFigure) {
-      await this.appendLine(targetRoomId, "changeFigure:none -left -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
-      await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
+      for (const line of buildClearFigureLines({ includeLegacy: true, includeImage: true })) {
+        await this.appendLine(targetRoomId, line, syncToFile);
+      }
     }
 
     const messageAvatarId = msg.avatarId ?? 0;
@@ -1590,25 +1702,28 @@ export class RealtimeRenderer {
     // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
     // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
     const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
-    // 只有 "left", "center", "right" 才是有效的立绘位置
-    const isValidPosition = rawFigurePosition === "left" || rawFigurePosition === "center" || rawFigurePosition === "right";
+    // 只有 left/left-center/center/right-center/right 才是有效的立绘位置
+    const isValidPosition = isFigurePosition(rawFigurePosition);
     const figurePosition = diceShowFigure === false
       ? undefined
       : (isValidPosition
           ? rawFigurePosition
           : (shouldClearFigure ? undefined : (this.autoFigureEnabled ? "left" : undefined)));
 
-    const figureAnimation = voiceRenderSettings?.figureAnimation;
+    const annotationFigureAnimation = getFigureAnimationFromAnnotations(msg.annotations);
+    const figureAnimation = voiceRenderSettings?.figureAnimation
+      ? { ...(annotationFigureAnimation ?? {}), ...voiceRenderSettings.figureAnimation }
+      : annotationFigureAnimation;
 
-    // 获取黑屏文字的 -hold 设置
-    const introHold = hasAnnotation(msg.annotations, ANNOTATION_IDS.INTRO_HOLD);
+    // 黑屏文字默认保持；如需不保持，添加“不暂停”标注（dialog.notend）
+    const introHold = !hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
 
     // 旁白和黑屏文字不需要显示立绘（骰子消息允许通过 showFigure 覆盖）
     // 如果 figurePosition 为 undefined，也不显示立绘
     const allowFigure = !isIntroText && (diceShowFigure === true || (!isNarrator && diceShowFigure !== false));
     const shouldShowFigure = allowFigure && !!figurePosition;
 
-    if (shouldShowFigure && spriteFileName) {
+    if (shouldShowFigure && spriteFileName && figurePosition) {
       // 不再自动清除立绘，立绘需要手动清除
       // // 如果不是回复消息，则清除之前的立绘（单人发言模式）
       // // 如果是回复消息，则保留之前的立绘（多人对话模式）
@@ -1618,13 +1733,14 @@ export class RealtimeRenderer {
       //   await this.appendLine(targetRoomId, "changeFigure:none -center -next;", syncToFile);
       //   await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
       // }
-
-      const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
-      await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} -${figurePosition} ${transform} -next;`, syncToFile);
+      const figureSlot = resolveFigureSlot(figurePosition);
+      const transform = this.buildFigureTransformString(avatar, figureSlot.offsetX, 0);
+      const figureArgs = buildFigureArgs(figureSlot.id, figureSlot, transform);
+      await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
 
       // 处理立绘动画（在立绘显示后）
       if (figureAnimation) {
-        const animTarget = `fig-${figurePosition}`; // 根据立绘位置自动推断目标
+        const animTarget = figureSlot.id; // 根据立绘位置自动推断目标
 
         // 设置进出场动画（setTransition）
         if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
@@ -1684,6 +1800,7 @@ export class RealtimeRenderer {
     // 获取对话参数：-notend 和 -concat（来自 annotations）
     const dialogNotend = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
     const dialogConcat = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_CONCAT);
+    const dialogNext = hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NEXT);
 
     // 根据消息类型生成不同的指令
     if (isIntroText) {
@@ -1706,11 +1823,12 @@ export class RealtimeRenderer {
       const appendDiceDialogLine = async (content: string, notend: boolean = false, concat: boolean = false) => {
         const notendPart = !isNarrator && notend ? " -notend" : "";
         const concatPart = !isNarrator && concat ? " -concat" : "";
+        const nextPart = dialogNext ? " -next" : "";
         if (isNarrator) {
-          await this.appendLine(targetRoomId, `:${content};`, syncToFile);
+          await this.appendLine(targetRoomId, `:${content}${nextPart};`, syncToFile);
         }
         else {
-          await this.appendLine(targetRoomId, `${roleName}: ${content}${notendPart}${concatPart};`, syncToFile);
+          await this.appendLine(targetRoomId, `${roleName}: ${content}${notendPart}${concatPart}${nextPart};`, syncToFile);
         }
       };
 
@@ -1789,7 +1907,8 @@ export class RealtimeRenderer {
     else if (isNarrator) {
       // 旁白：冒号前留空，如 :这是一句旁白;
       // 旁白不显示立绘和小头像
-      await this.appendLine(targetRoomId, `:${processedContent};`, syncToFile);
+      const nextPart = dialogNext ? " -next" : "";
+      await this.appendLine(targetRoomId, `:${processedContent}${nextPart};`, syncToFile);
     }
     else {
       // 普通对话：角色名: 对话内容;
@@ -1814,7 +1933,8 @@ export class RealtimeRenderer {
       const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
       const notendPart = dialogNotend ? " -notend" : "";
       const concatPart = dialogConcat ? " -concat" : "";
-      await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart};`, syncToFile);
+      const nextPart = dialogNext ? " -next" : "";
+      await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
     }
 
     finalizeMessageLineRange();
@@ -1877,10 +1997,9 @@ export class RealtimeRenderer {
       await this.initRoomScene(targetRoomId);
     }
 
-    await this.appendLine(targetRoomId, "changeFigure:none -left -next;", true);
-    await this.appendLine(targetRoomId, "changeFigure:none -center -next;", true);
-    await this.appendLine(targetRoomId, "changeFigure:none -right -next;", true);
-    await this.appendLine(targetRoomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, true);
+    for (const line of buildClearFigureLines({ includeLegacy: true, includeImage: true })) {
+      await this.appendLine(targetRoomId, line, true);
+    }
     this.pendingImageFigureClearSet.delete(targetRoomId);
     this.sendSyncMessage(targetRoomId);
   }
@@ -1989,7 +2108,7 @@ export class RealtimeRenderer {
     const lineRange = this.messageLineMap.get(key);
 
     if (!lineRange) {
-      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append ģʽ`);
+      console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 方式`);
       await this.renderMessage(message, targetRoomId, true);
       return true;
     }

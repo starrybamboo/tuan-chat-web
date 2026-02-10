@@ -71,9 +71,9 @@ export function PreviewMessage({ message, className }: {
                 ? `[变量] ${webgalVarSummary ?? ""}`.trim()
                 : isWebgalChooseMessage
                   ? `[选择] ${webgalChooseSummary ?? ""}`.trim()
-                : isDocCardMessage
-                  ? `[文档] ${docCardTitle ?? ""}`.trim()
-                  : "非文本消息"
+                  : isDocCardMessage
+                    ? `[文档] ${docCardTitle ?? ""}`.trim()
+                    : "非文本消息"
           }`
       }
     </span>

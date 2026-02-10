@@ -13,10 +13,10 @@ import { tuanchat } from "../../../../../api/instance";
  * 聊天记录导出抽屉组件
  * 显示在房间右侧，提供导出当前聊天记录的功能
  */
-type ExportChatDrawerProps = {
+interface ExportChatDrawerProps {
   messages?: ChatMessageResponse[];
   onClose?: () => void;
-};
+}
 
 export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawerProps) {
   const roomContext = use(RoomContext);

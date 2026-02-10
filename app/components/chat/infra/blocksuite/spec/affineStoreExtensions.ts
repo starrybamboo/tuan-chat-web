@@ -30,6 +30,8 @@ import { LinkStoreExtension } from "@blocksuite/affine/inlines/link/store";
 import { InlinePresetStoreExtension } from "@blocksuite/affine/inlines/preset/store";
 import { ReferenceStoreExtension } from "@blocksuite/affine/inlines/reference/store";
 
+import { RoomMapEmbedIframeConfigExtension } from "./roomMapEmbedConfig";
+
 // 注意：这个文件必须保持「无 DOM 依赖」，不要 import `lit` / `lit-html`。
 // React Router dev + Vite 在开发时可能会用 SSR 模式评估模块，
 // 任何顶层引入的 DOM 依赖都会导致 `document is not defined`。
@@ -75,4 +77,7 @@ export const AFFINE_STORE_EXTENSIONS: ExtensionType[] = (storeManager.get("store
   LinkPreviewCache,
   LinkPreviewService,
   ImageProxyService,
+
+  // 允许嵌入房间地图 iframe
+  RoomMapEmbedIframeConfigExtension,
 ]);

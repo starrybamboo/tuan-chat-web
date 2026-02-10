@@ -48,20 +48,6 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
     });
   };
 
-  const handleArchiveAction = (spaceId: number) => {
-    if (updateArchiveStatus.isPending) {
-      return;
-    }
-    const nextArchived = !isArchived;
-    if (nextArchived) {
-      setArchiveTargetSpaceId(spaceId);
-      setIsArchiveConfirmOpen(true);
-      onClose();
-      return;
-    }
-    handleToggleArchive(spaceId, nextArchived);
-  };
-
   const handleToggleArchive = (spaceId: number, nextArchived: boolean) => {
     if (updateArchiveStatus.isPending) {
       return;
@@ -80,6 +66,20 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
         },
       },
     );
+  };
+
+  const handleArchiveAction = (spaceId: number) => {
+    if (updateArchiveStatus.isPending) {
+      return;
+    }
+    const nextArchived = !isArchived;
+    if (nextArchived) {
+      setArchiveTargetSpaceId(spaceId);
+      setIsArchiveConfirmOpen(true);
+      onClose();
+      return;
+    }
+    handleToggleArchive(spaceId, nextArchived);
   };
 
   return (
