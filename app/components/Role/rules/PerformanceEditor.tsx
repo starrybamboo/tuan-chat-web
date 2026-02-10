@@ -81,6 +81,36 @@ export default function PerformanceEditor({
     prevIsEditingRef.current = isEditing;
   }, [handleSaveAndExit, isEditing, isEditingControlled]);
 
+  useEffect(() => {
+    if (typeof forcedEditing !== "boolean") {
+      return;
+    }
+
+    if (forcedEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    if (!isTransitioning) {
+      setIsEditing(false);
+    }
+  }, [forcedEditing, isTransitioning]);
+
+  useEffect(() => {
+    if (saveSignal === undefined) {
+      return;
+    }
+
+    if (prevSaveSignalRef.current === saveSignal) {
+      return;
+    }
+
+    prevSaveSignalRef.current = saveSignal;
+    if (isEditing) {
+      persistChanges();
+    }
+  }, [isEditing, persistChanges, saveSignal]);
+
   const handleDeleteField = (key: string) => {
     updateKeyField(
       {

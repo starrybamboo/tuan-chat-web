@@ -1,6 +1,6 @@
 import React from "react";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
@@ -150,12 +150,12 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         loginUserId={loginUserId}
       />
 
-      <PopWindow
+      <ToastWindow
         isOpen={followData.isFFWindowOpen}
         onClose={followData.closeFollowWindow}
       >
         <UserFollower activeTab={followData.relationTab} userId={userId} />
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 };

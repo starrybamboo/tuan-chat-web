@@ -18,6 +18,14 @@ interface EditableFieldProps {
   padCh?: number;
   /** 是否允许编辑（设置为false时，和普通的<p>没有区别） @default true */
   canEdit?: boolean;
+  /** Selection change callback in edit mode. */
+  onSelectionChange?: (selection: { start: number; end: number; text: string }) => void;
+  /** Edit mode change callback. */
+  onEditingChange?: (isEditing: boolean) => void;
+  /** Expose the editing input/textarea element ref. */
+  editInputRef?: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>;
+  /** Ignore blur when focus moves to related targets (e.g. floating toolbars). */
+  shouldIgnoreBlur?: (relatedTarget: EventTarget | null) => boolean;
   /** 使用input元素替代textarea @default false */
   usingInput?: boolean;
   /** input元素的type属性（只有在usingInput为true时有效） @default "text" */
@@ -34,11 +42,26 @@ export function EditableField({
   maxCh = 8,
   padCh = 1,
   canEdit = true,
+  onSelectionChange,
+  onEditingChange,
+  editInputRef,
+  shouldIgnoreBlur,
   usingInput = false,
   type = "text",
   fieldId,
 }: EditableFieldProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const setTextareaNode = useCallback((node: HTMLTextAreaElement | null) => {
+    textareaRef.current = node;
+    if (editInputRef) {
+      editInputRef.current = node;
+    }
+  }, [editInputRef]);
+  const setInputNode = useCallback((node: HTMLInputElement | null) => {
+    if (editInputRef) {
+      editInputRef.current = node;
+    }
+  }, [editInputRef]);
 
   const [isEditing, setIsEditing] = useQueryState<boolean>(["editingMessage", fieldId], false, !!fieldId);
   const [editContent, setEditContent] = useQueryState<string>(["editingMessageContent", fieldId], content, !!fieldId);
@@ -52,6 +75,10 @@ export function EditableField({
   useEffect(() => {
     isEditingRef.current = isEditing;
   }, [isEditing]);
+
+  useEffect(() => {
+    onEditingChange?.(isEditing);
+  }, [isEditing, onEditingChange]);
 
   useEffect(() => {
     // 只在非编辑状态下更新 contentRef
@@ -96,6 +123,20 @@ export function EditableField({
       element?.setSelectionRange(cursorPosition, cursorPosition);
     }
   }, [isEditing, usingInput, cursorPosition]);
+
+  const notifySelection = useCallback((element: HTMLTextAreaElement | HTMLInputElement) => {
+    if (!onSelectionChange) {
+      return;
+    }
+    const { selectionStart, selectionEnd, value } = element;
+    if (selectionStart === null || selectionEnd === null) {
+      return;
+    }
+    const start = Math.min(selectionStart, selectionEnd);
+    const end = Math.max(selectionStart, selectionEnd);
+    const text = value.slice(start, end);
+    onSelectionChange({ start, end, text });
+  }, [onSelectionChange]);
 
   const saveCursorPosition = (e: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { selectionStart, selectionEnd } = e.currentTarget;
@@ -153,16 +194,24 @@ export function EditableField({
           ? (
               <input
                 className={`${className} input border border-base-300 rounded-[8px] px-2 py-1 h-6`}
+                ref={setInputNode}
                 value={editContent}
                 type={type}
                 style={widthStyle}
                 onChange={e => setEditContent(e.target.value)}
+                onSelect={e => notifySelection(e.currentTarget)}
+                onMouseUp={e => notifySelection(e.currentTarget)}
+                onKeyUp={e => notifySelection(e.currentTarget)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
                     handleContentUpdate(editContent);
                   }
                 }}
-                onBlur={() => {
+                onBlur={(e) => {
+                  if (shouldIgnoreBlur?.(e.relatedTarget)) {
+                    return;
+                  }
+                  notifySelection(e.currentTarget);
                   handleContentUpdate(editContent);
                   setIsEditing(false);
                 }}
@@ -172,18 +221,30 @@ export function EditableField({
           : (
               <textarea
                 className={`${className} min-w-[18rem] sm:min-w-[26rem] bg-transparent p-2 border-0 border-base-300 rounded-[8px] w-full overflow-hidden resize-none`}
-                ref={textareaRef}
+                ref={setTextareaNode}
                 value={editContent}
                 style={widthStyle}
                 onChange={handleChange}
-                onKeyUp={saveCursorPosition}
-                onClick={saveCursorPosition}
+                onSelect={e => notifySelection(e.currentTarget)}
+                onMouseUp={e => notifySelection(e.currentTarget)}
+                onKeyUp={(e) => {
+                  saveCursorPosition(e);
+                  notifySelection(e.currentTarget);
+                }}
+                onClick={(e) => {
+                  saveCursorPosition(e);
+                  notifySelection(e.currentTarget);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
                     handleContentUpdate(editContent);
                   }
                 }}
-                onBlur={() => {
+                onBlur={(e) => {
+                  if (shouldIgnoreBlur?.(e.relatedTarget)) {
+                    return;
+                  }
+                  notifySelection(e.currentTarget);
                   handleContentUpdate(editContent);
                   setIsEditing(false);
                 }}

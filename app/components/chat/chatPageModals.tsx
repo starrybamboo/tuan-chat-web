@@ -4,7 +4,7 @@ import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface ChatPageModalsProps {
   isSpaceHandleOpen: boolean;
@@ -18,7 +18,7 @@ interface ChatPageModalsProps {
   createDocTitle: string;
   setCreateDocTitle: (title: string) => void;
   pendingCreateInCategoryId: string | null;
-  createDocInSelectedCategory: () => void;
+  createDocInSelectedCategory: (titleOverride?: string) => void;
   activeSpaceId: number | null;
   activeSpaceAvatar?: string;
   onRoomCreated: (roomId?: number) => void;
@@ -56,16 +56,31 @@ export default function ChatPageModals({
   onAddSpaceMember,
   onAddSpacePlayer,
 }: ChatPageModalsProps) {
+  const docTitleInputRef = React.useRef<HTMLInputElement | null>(null);
+  const draftDocTitleRef = React.useRef(createDocTitle);
+  const wasCreateInCategoryOpenRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const wasOpen = wasCreateInCategoryOpenRef.current;
+    wasCreateInCategoryOpenRef.current = isCreateInCategoryOpen;
+    if (isCreateInCategoryOpen && !wasOpen) {
+      draftDocTitleRef.current = createDocTitle;
+      if (docTitleInputRef.current) {
+        docTitleInputRef.current.value = createDocTitle;
+      }
+    }
+  }, [createDocTitle, isCreateInCategoryOpen]);
+
   return (
     <>
 
-      <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
+      <ToastWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
         <CreateSpaceWindow
           onSuccess={() => setIsSpaceHandleOpen(false)}
         />
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={isCreateInCategoryOpen}
         onClose={closeCreateInCategory}
       >
@@ -115,10 +130,11 @@ export default function ChatPageModals({
                 <div className="bg-base-200 p-4 rounded-lg">
                   <div className="text-sm font-medium opacity-80 mb-2">文档标题</div>
                   <input
-                    className="input input-bordered w-full mb-3"
-                    value={createDocTitle}
+                    className="w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary mb-3"
+                    defaultValue={createDocTitle}
+                    ref={docTitleInputRef}
                     onChange={(e) => {
-                      setCreateDocTitle(e.target.value);
+                      draftDocTitleRef.current = e.target.value;
                     }}
                     placeholder="请输入文档标题"
                   />
@@ -127,7 +143,9 @@ export default function ChatPageModals({
                     className="btn btn-primary w-full"
                     disabled={!isKPInSpace || !pendingCreateInCategoryId}
                     onClick={() => {
-                      void createDocInSelectedCategory();
+                      const nextTitle = docTitleInputRef.current?.value ?? draftDocTitleRef.current;
+                      setCreateDocTitle(nextTitle);
+                      void createDocInSelectedCategory(nextTitle);
                     }}
                   >
                     创建文档
@@ -142,9 +160,9 @@ export default function ChatPageModals({
                 />
               )}
         </div>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={inviteRoomId !== null}
         onClose={() => setInviteRoomId(null)}
       >
@@ -152,9 +170,9 @@ export default function ChatPageModals({
           handleAddMember={onAddRoomMember}
           showSpace={true}
         />
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={isMemberHandleOpen}
         onClose={() => {
           setIsMemberHandleOpen(false);
@@ -164,7 +182,7 @@ export default function ChatPageModals({
           onAddSpectator={onAddSpaceMember}
           onAddPlayer={onAddSpacePlayer}
         />
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

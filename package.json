@@ -14,6 +14,11 @@
     "typecheck": "react-router typegen && tsc -p tsconfig.typecheck.json",
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint/.eslintcache",
     "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/.eslintcache",
+    "encoding:check": "node ./scripts/check-encoding.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "optimize:ai-style-images": "node ./scripts/optimize-ai-style-images.mjs",
     "prepare": "husky",
     "openapi": "openapi --input ./api/tuanchat_OpenAPI.json --output ./api --client fetch --name TuanChat",
@@ -103,6 +108,7 @@
     "@uidotdev/usehooks": "^2.4.1",
     "@vanilla-extract/vite-plugin": "^5.1.4",
     "@vitejs/plugin-rsc": "^0.5.0",
+    "@vitest/coverage-v8": "^2.1.8",
     "@xyflow/react": "^12.8.2",
     "ahooks": "^3.8.5",
     "browser-image-compression": "^2.0.2",
@@ -152,6 +158,7 @@
     "vaul": "^1.1.2",
     "vite": "^6.2.6",
     "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^2.1.8",
     "wavesurfer.js": "^7.9.5",
     "y-protocols": "1.0.7",
     "yjs": "13.6.29",
@@ -176,6 +183,7 @@
     }
   },
   "lint-staged": {
-    "*": "eslint"
+    "*": "eslint",
+    "*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,html,yml,yaml,ps1,sql}": "node ./scripts/check-encoding.mjs"
   }
 }

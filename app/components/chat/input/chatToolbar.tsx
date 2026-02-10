@@ -1,13 +1,18 @@
+import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import type { WebgalChoosePayload } from "@/types/webgalChoose";
+
 import { ArrowSquareIn } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
+import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
-import { ImgUploader } from "@/components/common/uploader/imgUploader";
 
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   DiceD6Icon,
   EmojiIconWhite,
@@ -17,6 +22,7 @@ import {
   SendIcon,
   SparklesOutline,
 } from "@/icons";
+import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
 const WEBGAL_VAR_KEY_PATTERN = /^[A-Z_]\w*$/i;
 
@@ -65,25 +71,16 @@ interface ChatToolbarProps {
   // 跑团模式
   runModeEnabled?: boolean;
   onToggleRunMode?: () => void;
-  // 默认立绘位置
-  defaultFigurePosition?: "left" | "center" | "right";
-  onSetDefaultFigurePosition?: (position: "left" | "center" | "right" | undefined) => void;
-  // WebGAL 对话参数：-notend（此话不停顿）和 -concat（续接上段话）
-  dialogNotend?: boolean;
-  onToggleDialogNotend?: () => void;
-  dialogConcat?: boolean;
-  onToggleDialogConcat?: () => void;
-
   // WebGAL 控制
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
   /** WebGAL 空间变量：由导演控制台弹窗触发 */
   onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
-  /** 插入 WebGAL 指令前缀（发送侧会把 %xxx 转为 WEBGAL_COMMAND） */
-  onInsertWebgalCommandPrefix?: () => void;
+  onSendWebgalChoose?: (payload: WebgalChoosePayload) => Promise<void> | void;
   // 发送音频
   setAudioFile?: (file: File | null) => void;
+  onAddTempAnnotations?: (ids: string[]) => void;
   layout?: "stacked" | "inline";
   showStatusBar?: boolean;
   showWebgalLinkToggle?: boolean;
@@ -112,17 +109,14 @@ function ChatToolbar({
   onToggleWebgalLinkMode,
   runModeEnabled = false,
   onToggleRunMode,
-  onInsertWebgalCommandPrefix,
   onSendEffect,
   onClearBackground,
   onClearFigure,
   onSetWebgalVar,
+  onSendWebgalChoose,
   onToggleRealtimeRender,
-  defaultFigurePosition,
-  onSetDefaultFigurePosition,
-  onToggleDialogNotend,
-  onToggleDialogConcat,
   setAudioFile,
+  onAddTempAnnotations,
   layout = "stacked",
   showStatusBar = true,
   showWebgalLinkToggle = true,
@@ -142,6 +136,11 @@ function ChatToolbar({
   const [webgalVarKey, setWebgalVarKey] = useState("");
   const [webgalVarExpr, setWebgalVarExpr] = useState("");
   const [webgalVarError, setWebgalVarError] = useState<string | null>(null);
+  const [isWebgalChooseModalOpen, setIsWebgalChooseModalOpen] = useState(false);
+  const [webgalChooseOptions, setWebgalChooseOptions] = useState<WebgalChooseOptionDraft[]>(() => [
+    createWebgalChooseOptionDraft(),
+  ]);
+  const [webgalChooseError, setWebgalChooseError] = useState<string | null>(null);
   const webgalVarKeyInputRef = useRef<HTMLInputElement>(null);
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
@@ -231,6 +230,7 @@ function ChatToolbar({
       return;
 
     setAudioFile(file);
+    onAddTempAnnotations?.([ANNOTATION_IDS.BGM]);
     // 重置 input value，允许重复选择同一文件
     e.target.value = "";
   };
@@ -286,6 +286,71 @@ function ChatToolbar({
   const openWebgalVarModal = useCallback(() => {
     setIsWebgalVarModalOpen(true);
   }, []);
+  const updateWebgalChooseOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
+    setWebgalChooseOptions(prev => prev.map((option, idx) => (
+      idx === index ? { ...option, [key]: value } : option
+    )));
+  }, []);
+
+  const addWebgalChooseOption = useCallback(() => {
+    setWebgalChooseOptions(prev => ([
+      ...prev,
+      createWebgalChooseOptionDraft(),
+    ]));
+  }, []);
+
+  const removeWebgalChooseOption = useCallback((index: number) => {
+    setWebgalChooseOptions(prev => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== index)));
+  }, []);
+
+  const closeWebgalChooseModal = useCallback(() => {
+    setIsWebgalChooseModalOpen(false);
+    setWebgalChooseError(null);
+  }, []);
+
+  const openWebgalChooseModal = useCallback(() => {
+    if (!onSendWebgalChoose) {
+      toast.error("当前不可发送选择");
+      return;
+    }
+    setIsWebgalChooseModalOpen(true);
+    setWebgalChooseError(null);
+  }, [onSendWebgalChoose]);
+
+  const submitWebgalChoose = useCallback(async () => {
+    if (!onSendWebgalChoose) {
+      setWebgalChooseError("当前不可发送选择");
+      return;
+    }
+    const normalizedOptions = webgalChooseOptions.map(option => ({
+      text: option.text.trim(),
+      code: option.code.trim(),
+    }));
+    if (normalizedOptions.length === 0) {
+      setWebgalChooseError("请至少添加一个选项");
+      return;
+    }
+    if (normalizedOptions.some(option => !option.text)) {
+      setWebgalChooseError("选项文本不能为空");
+      return;
+    }
+    const payload: WebgalChoosePayload = {
+      options: normalizedOptions.map(option => ({
+        text: option.text,
+        ...(option.code ? { code: option.code } : {}),
+      })),
+    };
+    setWebgalChooseError(null);
+    try {
+      await onSendWebgalChoose(payload);
+      closeWebgalChooseModal();
+      setWebgalChooseOptions([createWebgalChooseOptionDraft()]);
+    }
+    catch (err: any) {
+      console.error("发送选择失败:", err);
+      toast.error(err?.message ? `发送选择失败：${err.message}` : "发送选择失败");
+    }
+  }, [closeWebgalChooseModal, onSendWebgalChoose, webgalChooseOptions]);
 
   const webgalVarModal = isWebgalVarModalOpen && typeof document !== "undefined"
     ? createPortal(
@@ -332,10 +397,26 @@ function ChatToolbar({
         document.body,
       )
     : null;
+  const webgalChooseModal = (
+    <WebgalChooseModal
+      isOpen={isWebgalChooseModalOpen}
+      title="发送选择"
+      description="将选项转换为 WebGAL choose 指令发送。"
+      options={webgalChooseOptions}
+      error={webgalChooseError}
+      submitLabel="发送"
+      onAddOption={addWebgalChooseOption}
+      onRemoveOption={removeWebgalChooseOption}
+      onChangeOption={updateWebgalChooseOption}
+      onClose={closeWebgalChooseModal}
+      onSubmit={submitWebgalChoose}
+    />
+  );
 
   return (
     <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "flex-col w-full"}`}>
       {webgalVarModal}
+      {webgalChooseModal}
       <div className={`${isInline ? "flex items-start gap-2 flex-nowrap" : "w-full"}`}>
         {showStatusBar && roomId != null && statusWebSocketUtils && (
           <ChatStatusBar
@@ -440,9 +521,12 @@ function ChatToolbar({
               </div>
 
               {/* 发送图片 */}
-              <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-                draft.push(newImg);
-              })}
+              <ImgUploader setImg={(newImg) => {
+                updateImgFiles((draft) => {
+                  draft.push(newImg);
+                });
+                onAddTempAnnotations?.([ANNOTATION_IDS.BACKGROUND]);
+              }}
               >
                 <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送图片"}>
                   <GalleryBroken className="size-6 cursor-pointer jump_icon mt-1 md:mt-0"></GalleryBroken>
@@ -576,18 +660,13 @@ function ChatToolbar({
           <ChatToolbarDock
             isInline={isInline}
             isRunModeOnly={runModeEnabled && !webgalLinkMode}
-            isMobileLinkCompact={isMobile && webgalLinkMode}
             showWebgalControls={showWebgalControls}
-            onInsertWebgalCommandPrefix={onInsertWebgalCommandPrefix}
-            defaultFigurePosition={defaultFigurePosition}
-            onSetDefaultFigurePosition={onSetDefaultFigurePosition}
-            onToggleDialogNotend={onToggleDialogNotend}
-            onToggleDialogConcat={onToggleDialogConcat}
             onSendEffect={onSendEffect}
             onClearBackground={onClearBackground}
             onClearFigure={onClearFigure}
             onSetWebgalVar={onSetWebgalVar}
             onOpenWebgalVarModal={openWebgalVarModal}
+            onOpenWebgalChooseModal={onSendWebgalChoose ? openWebgalChooseModal : undefined}
             isSpectator={isSpectator}
             onToggleRealtimeRender={onToggleRealtimeRender}
             showRunControls={showRunControls}

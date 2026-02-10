@@ -23,7 +23,7 @@ type UseChatPageCreateInCategoryParams = {
 type UseChatPageCreateInCategoryResult = {
   isCreateInCategoryOpen: boolean;
   closeCreateInCategory: () => void;
-  createDocInSelectedCategory: () => Promise<void>;
+  createDocInSelectedCategory: (titleOverride?: string) => Promise<void>;
   createDocTitle: string;
   createInCategoryMode: "room" | "doc";
   handleRoomCreated: (roomId?: number) => void;
@@ -62,13 +62,13 @@ export default function useChatPageCreateInCategory({
     setPendingCreateInCategoryId(null);
   }, [setIsCreateInCategoryOpen]);
 
-  const createDocInSelectedCategory = useCallback(async () => {
+  const createDocInSelectedCategory = useCallback(async (titleOverride?: string) => {
     const categoryId = pendingCreateInCategoryId;
     if (!categoryId)
       return;
     if (!isKPInSpace)
       return;
-    await requestCreateDocInCategory(categoryId, createDocTitle);
+    await requestCreateDocInCategory(categoryId, titleOverride ?? createDocTitle);
     closeCreateInCategory();
   }, [closeCreateInCategory, createDocTitle, isKPInSpace, pendingCreateInCategoryId, requestCreateDocInCategory]);
 

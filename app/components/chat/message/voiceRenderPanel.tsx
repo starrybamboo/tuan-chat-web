@@ -2,7 +2,14 @@ import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRende
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { EMOTION_LABELS, emotionRecordToVector, normalizeEmotionVector, PREDEFINED_ANIMATIONS } from "@/types/voiceRenderTypes";
+import {
+  EMOTION_LABELS,
+  emotionRecordToVector,
+  FIGURE_POSITION_LABELS,
+  FIGURE_POSITION_ORDER,
+  normalizeEmotionVector,
+  PREDEFINED_ANIMATIONS,
+} from "@/types/voiceRenderTypes";
 
 interface VoiceRenderPanelProps {
   /** 当前情感向量（消息级别设置） */
@@ -178,6 +185,7 @@ export function VoiceRenderPanel({
   const currentPreset = emotionPresets.find(
     p => JSON.stringify(localVector) === JSON.stringify(p.vector),
   );
+  const positionLabel = localPosition ? FIGURE_POSITION_LABELS[localPosition] : null;
 
   if (!canEdit) {
     // 只读模式：显示当前设置的简要信息
@@ -185,9 +193,7 @@ export function VoiceRenderPanel({
       return null;
     return (
       <div className="flex items-center gap-1 text-xs text-base-content/60 mt-1 max-w-full overflow-x-hidden">
-        <span className="opacity-60">
-          {localPosition === "left" ? "←" : localPosition === "center" ? "○" : "→"}
-        </span>
+        {positionLabel && <span className="opacity-60">{positionLabel}</span>}
         {mainEmotion && (
           <span>
             {mainEmotion}
@@ -206,7 +212,7 @@ export function VoiceRenderPanel({
         <div className="flex items-center gap-1 min-w-0">
           <span className="text-base-content/60">位置</span>
           <div className="join">
-            {(["left", "center", "right"] as const).map(pos => (
+            {FIGURE_POSITION_ORDER.map(pos => (
               <button
                 key={pos}
                 type="button"
@@ -214,7 +220,7 @@ export function VoiceRenderPanel({
                 onClick={() => handlePositionChange(pos)}
                 title={localPosition === pos ? "再次点击取消立绘" : undefined}
               >
-                {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
+                {FIGURE_POSITION_LABELS[pos]}
               </button>
             ))}
           </div>

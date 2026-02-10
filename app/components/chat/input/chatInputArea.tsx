@@ -66,6 +66,10 @@ interface ChatInputAreaProps {
   onCompositionStart: () => void;
   /** 转发 Composition（输入法）结束事件 */
   onCompositionEnd: () => void;
+  /** 可选：处理失焦 */
+  onBlur?: (e: React.FocusEvent<HTMLDivElement>) => void;
+  /** 可选：处理聚焦 */
+  onFocus?: (e: React.FocusEvent<HTMLDivElement>) => void;
 
   // 简单的状态 Props
   disabled: boolean;
@@ -332,6 +336,8 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       suppressContentEditableWarning={true}
       contentEditable={!props.disabled}
       data-placeholder={props.placeholder}
+      onBlur={props.onBlur}
+      onFocus={props.onFocus}
     />
   );
 }

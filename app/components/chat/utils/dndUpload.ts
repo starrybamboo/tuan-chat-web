@@ -1,6 +1,7 @@
 import toast from "react-hot-toast";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
+import { ANNOTATION_IDS, normalizeAnnotations } from "@/types/messageAnnotations";
 
 export function isFileDrag(dataTransfer: DataTransfer | null | undefined) {
   if (!dataTransfer)
@@ -46,10 +47,23 @@ export function addDroppedFilesToComposer(dataTransfer: DataTransfer | null | un
     useChatComposerStore.getState().updateImgFiles((draft) => {
       draft.push(...images);
     });
+    const current = useChatComposerStore.getState().tempAnnotations;
+    if (!current.includes(ANNOTATION_IDS.BACKGROUND)) {
+      useChatComposerStore.getState().setTempAnnotations(
+        normalizeAnnotations([...current, ANNOTATION_IDS.BACKGROUND]),
+      );
+    }
   }
 
   if (audios.length > 0) {
     useChatComposerStore.getState().setAudioFile(audios[0]);
+    const current = useChatComposerStore.getState().tempAnnotations;
+    const hasAudioAnnotation = current.includes(ANNOTATION_IDS.BGM) || current.includes(ANNOTATION_IDS.SE);
+    if (!hasAudioAnnotation) {
+      useChatComposerStore.getState().setTempAnnotations(
+        normalizeAnnotations([...current, ANNOTATION_IDS.BGM]),
+      );
+    }
     if (audios.length > 1) {
       toast.error("仅支持拖拽 1 个音频，已取第一个");
     }

@@ -13,6 +13,7 @@ import PerformanceEditorSmall from "./PerformanceEditorSmall";
 
 interface ExpansionModuleProps {
   isEditing?: boolean;
+  saveSignal?: number;
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
@@ -260,6 +261,8 @@ export default function ExpansionModule({
               isEditing={globalIsEditing}
               fieldType="basic"
               customLabel="基础属性"
+              forcedEditing={isEditing}
+              saveSignal={saveSignal}
             />
           );
     }
@@ -288,6 +291,8 @@ export default function ExpansionModule({
               isEditing={globalIsEditing}
               fieldType="ability"
               customLabel="能力"
+              forcedEditing={isEditing}
+              saveSignal={saveSignal}
             />
           );
     }
@@ -316,6 +321,8 @@ export default function ExpansionModule({
               isEditing={globalIsEditing}
               fieldType="skill"
               customLabel="技能"
+              forcedEditing={isEditing}
+              saveSignal={saveSignal}
             />
           );
     }
