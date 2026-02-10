@@ -213,7 +213,7 @@ function SubRoomWindowImpl() {
                 </button>
               </div>
 
-              <div className="h-5 w-px bg-base-300 mx-0.5 opacity-80" aria-hidden />
+              <div className="h-5 w-[2px] bg-base-content/35 mx-1 rounded-full" aria-hidden />
 
               <div
                 className={`tooltip tooltip-bottom ${activePane === "map" ? "text-primary" : "hover:text-info"}`}
