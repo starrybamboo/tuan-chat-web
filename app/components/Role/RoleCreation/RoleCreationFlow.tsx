@@ -3,15 +3,14 @@ import type { Role } from "../types";
 import type { CharacterData } from "./types";
 import type { SetSelectedRoleIdFn } from "./utils/roleCreationHelpers";
 
-import {
-  useSetRoleAbilityMutation,
-} from "api/hooks/abilityQueryHooks";
+import { useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import {
   useCreateRoleMutation,
   useUpdateRoleWithLocalMutation,
   useUploadAvatarMutation,
 } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { initAliasMapOnce } from "@/components/common/dicer/aliasRegistry";
 import RulesSection from "../rules/RulesSection";
 import { UNIFIED_STEPS } from "./constants";
@@ -52,17 +51,15 @@ export default function RoleCreationFlow({
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Calculate effective steps based on hideRuleSelection
   const effectiveSteps = useMemo(() => {
     let steps = UNIFIED_STEPS;
     if (hideRuleSelection) {
       steps = steps.filter(step => step.id !== 2);
     }
-    // Remap IDs for UI consistency (StepIndicator relies on index logic essentially) and keep original ID
-    return steps.map((s, i) => ({
-      ...s,
-      originalId: s.id,
-      id: i + 1, // Remap ID to 1-based index
+    return steps.map((step, index) => ({
+      ...step,
+      originalId: step.id,
+      id: index + 1,
     }));
   }, [hideRuleSelection]);
 
@@ -83,7 +80,6 @@ export default function RoleCreationFlow({
 
   const hasBasicInfo = characterData.name.trim().length > 0 && characterData.description.trim().length > 0;
   const hasRule = characterData.ruleId > 0;
-
   const currentOriginalStepId = effectiveSteps[currentStep - 1]?.originalId || 1;
 
   let canProceedCurrent = true;
@@ -93,19 +89,31 @@ export default function RoleCreationFlow({
     canProceedCurrent = hasRule;
 
   const handleComplete = async () => {
-    if (isSaving)
+    if (isSaving) {
       return;
-    if (!characterData.name.trim() || !characterData.description.trim() || characterData.ruleId <= 0)
+    }
+    if (!hasBasicInfo) {
       return;
+    }
+    if (!hideRuleSelection && !hasRule) {
+      toast.error("请先选择规则", { position: "top-center" });
+      return;
+    }
 
-    // 初始化属性别名映射（封装在 aliasRegistry），确保表达式计算前已完成一次性初始化
     initAliasMapOnce();
 
     setIsSaving(true);
     try {
+      const payloadData: CharacterData = (!hideRuleSelection || hasRule)
+        ? characterData
+        : {
+            ...characterData,
+            ruleId: 1,
+          };
+
       await completeRoleCreation(
         {
-          characterData,
+          characterData: payloadData,
           createRole,
           roleCreateDefaults,
           uploadAvatar,
@@ -134,7 +142,10 @@ export default function RoleCreationFlow({
     switch (originalStepId) {
       case 1:
         return (
-          <BasicInfoStep characterData={characterData} onCharacterDataChange={handleCharacterDataChange} />
+          <BasicInfoStep
+            characterData={characterData}
+            onCharacterDataChange={handleCharacterDataChange}
+          />
         );
       case 2:
         return (
@@ -192,19 +203,17 @@ export default function RoleCreationFlow({
   };
 
   return (
-    <>
-      <RoleCreationLayout
-        title={title ?? "创建角色"}
-        description={description ?? "填写角色信息，完成角色创建"}
-        steps={effectiveSteps}
-        currentStep={currentStep}
-        onStepChange={setCurrentStep}
-        canProceedCurrent={canProceedCurrent}
-        isSaving={isSaving}
-        onComplete={handleComplete}
-        renderContent={renderStepContent}
-        onBack={onBack}
-      />
-    </>
+    <RoleCreationLayout
+      title={title ?? "创建角色"}
+      description={description ?? "填写角色信息，完成角色创建"}
+      steps={effectiveSteps}
+      currentStep={currentStep}
+      onStepChange={setCurrentStep}
+      canProceedCurrent={canProceedCurrent}
+      isSaving={isSaving}
+      onComplete={handleComplete}
+      renderContent={renderStepContent}
+      onBack={onBack}
+    />
   );
 }

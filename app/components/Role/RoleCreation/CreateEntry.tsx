@@ -58,7 +58,7 @@ export default function CreateEntry({
 
           {/* 规则编辑器入口卡片（全页选择页） */}
           <Link
-            to="/role?type=rule"
+            to="/role?type=rule&mode=entry"
             className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 h-auto md:h-100 cursor-pointer transform hover:scale-105 flex flex-col justify-start items-stretch"
           >
             <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-dashed border-info/40 bg-info/5 text-info/60 flex items-center justify-center">

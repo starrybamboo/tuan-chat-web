@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ComponentProps, SVGProps } from "react";
 import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
@@ -1102,6 +1102,49 @@ export function ScreenIcon(props: SVGProps<SVGSVGElement>) {
 
 // 历史记录图标
 // 其他关键词：时间，记录，日志
+export function EyedropperIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M2 22l5-5" />
+      <path d="M18 6l-2-2a2 2 0 0 0-2.8 0L5 12.2a2 2 0 0 0 0 2.8l2 2a2 2 0 0 0 2.8 0L18 8.8a2 2 0 0 0 0-2.8z" />
+      <path d="M8.5 15.5L14 10" />
+    </svg>
+  );
+}
+
+export function ExpandCornersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M4 9V4h5" />
+      <path d="M20 9V4h-5" />
+      <path d="M4 15v5h5" />
+      <path d="M20 15v5h-5" />
+    </svg>
+  );
+}
+// History icon
 export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1411,9 +1454,13 @@ export function ConnectionIcon() {
   );
 }
 
-export function SidebarSimpleIcon() {
+export function SidebarSimpleIcon({
+  size = 20,
+  weight = "bold",
+  ...props
+}: ComponentProps<typeof PhosphorSidebarSimpleIcon>) {
   return (
-    <PhosphorSidebarSimpleIcon weight="bold" size={20} />
+    <PhosphorSidebarSimpleIcon weight={weight} size={size} {...props} />
   );
 }
 

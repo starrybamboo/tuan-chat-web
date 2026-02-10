@@ -7,7 +7,7 @@
 
 ## 变更内容
 
-1. 让 `blocksuite-frame` 也具备 `modal-root`，确保 PopWindow/裁剪上传等 Portal 组件可渲染。
+1. 让 `blocksuite-frame` 也具备 `modal-root`，确保 ToastWindow/裁剪上传等 Portal 组件可渲染。
 2. 移除 workspace 初始化阶段的“标题水合”逻辑，避免为了补齐标题而加载所有 subdocs。
 3. 调整远端 doc source：拉取阶段不再触发远端写回（仅合并本地队列用于当前会话呈现），避免打开文档出现额外 PUT。
 

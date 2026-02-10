@@ -1,22 +1,25 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
-import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
-import React, { use, useCallback, useMemo, useState } from "react";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
-import RoleChooser from "@/components/chat/input/roleChooser";
+import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import { buildAnnotationMap } from "@/components/chat/message/annotations/annotationCatalog";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
-import { VoiceRenderPanel } from "@/components/chat/message/voiceRenderPanel";
+import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import BetterImg from "@/components/common/betterImg";
-import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -24,20 +27,18 @@ import { BranchIcon, ChatBubbleEllipsesOutline, CommentOutline, Edit2Outline, Em
 import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
-  getFigurePositionFromAnnotationId,
-  getFigurePositionFromAnnotations,
   hasAnnotation,
-  isFigurePositionAnnotationId,
   normalizeAnnotations,
   setAnnotation,
-  setFigurePositionAnnotation,
+  toggleAnnotation,
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
@@ -47,8 +48,10 @@ interface CommandRequestPayload {
 }
 
 const EMPTY_ANNOTATIONS: string[] = [];
+const EFFECT_PREVIEW_DURATION_MS = 2000;
+const EFFECT_FRAME_DURATION_MS = 50;
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection, onEditWebgalChoose }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -58,6 +61,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   /** 点击“检定请求”按钮后，触发外层执行（以点击者身份发送并执行指令） */
   onExecuteCommandRequest?: (payload: { command: string; threadId?: number; requestMessageId: number }) => void;
   onToggleSelection?: (messageId: number) => void;
+  onEditWebgalChoose?: (messageId: number) => void;
 }) {
   const message = chatMessageResponse.message;
   const annotations = useMemo(() => {
@@ -69,11 +73,42 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
     return base;
   }, [message.annotations, message.extra?.imageMessage?.background, message.messageType]);
+  const effectPreview = useMemo(() => {
+    const annotationMap = buildAnnotationMap();
+    for (const id of annotations) {
+      const def = annotationMap.get(id);
+      if (def?.category === "特效" && def.iconUrl) {
+        const duration = def.effectFrames
+          ? Math.max(1, def.effectFrames) * EFFECT_FRAME_DURATION_MS
+          : EFFECT_PREVIEW_DURATION_MS;
+        return { iconUrl: def.iconUrl, durationMs: duration };
+      }
+    }
+    return null;
+  }, [annotations]);
+  const effectIconUrl = effectPreview?.iconUrl ?? null;
+  const [effectPreviewVisible, setEffectPreviewVisible] = useState(false);
+  const [effectPreviewToken, setEffectPreviewToken] = useState(0);
+  const effectPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerEffectPreview = useCallback(() => {
+    if (!effectIconUrl) {
+      return;
+    }
+    setEffectPreviewVisible(true);
+    setEffectPreviewToken(Date.now());
+    if (effectPreviewTimerRef.current) {
+      clearTimeout(effectPreviewTimerRef.current);
+    }
+    effectPreviewTimerRef.current = setTimeout(() => {
+      setEffectPreviewVisible(false);
+    }, effectPreview?.durationMs ?? EFFECT_PREVIEW_DURATION_MS);
+  }, [effectIconUrl, effectPreview?.durationMs]);
+  useEffect(() => () => {
+    if (effectPreviewTimerRef.current) {
+      clearTimeout(effectPreviewTimerRef.current);
+    }
+  }, []);
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
-  // 获取头像详情（包含 avatarTitle）
-  const avatarQuery = useGetRoleAvatarQuery(message.avatarId ?? 0);
-  const avatar = avatarQuery.data?.data;
-
   const role = useRoleRequest.data?.data;
 
   const updateMessageMutation = useUpdateMessageMutation();
@@ -87,11 +122,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
+  const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
+  const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
-  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
+  const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
+  const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
 
   const isMobile = getScreenSize() === "sm";
 
@@ -115,8 +153,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(rootId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
   }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
@@ -177,14 +215,16 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(message.messageId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
   }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
   const [editingRoleName, setEditingRoleName] = useState("");
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const editInputRef = useRef<ChatInputAreaHandle | null>(null);
 
   // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
   const isNarrator = !message.roleId || message.roleId <= 0;
@@ -212,17 +252,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const customRoleName = message.customRoleName as string | undefined;
   // 获取黑屏文字的 hold 设置
   const introHold = hasAnnotation(annotations, ANNOTATION_IDS.INTRO_HOLD);
-  const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings as {
-    emotionVector?: number[];
-    figureAnimation?: FigureAnimationSettings;
-  } | undefined;
-  const figurePosition = getFigurePositionFromAnnotations(annotations);
-  const dialogNotend = hasAnnotation(annotations, ANNOTATION_IDS.DIALOG_NOTEND);
-  const dialogConcat = hasAnnotation(annotations, ANNOTATION_IDS.DIALOG_CONCAT);
   // 获取显示的角色名（黑屏文字不显示）
-  const displayRoleName = isIntroText
-    ? ""
-    : (customRoleName || role?.roleName?.trim() || (isNarrator ? "" : "Undefined"));
+  const displayRoleName = getDisplayRoleName({
+    roleId: message.roleId,
+    roleName: role?.roleName,
+    customRoleName,
+    isIntroText,
+  });
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
@@ -298,15 +334,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   }, [message, updateMessageAndSync]);
 
   const handleToggleAnnotation = useCallback((id: string) => {
-    if (isFigurePositionAnnotationId(id)) {
-      const alreadySelected = annotations.includes(id);
-      const nextPosition = alreadySelected ? undefined : getFigurePositionFromAnnotationId(id);
-      handleUpdateAnnotations(setFigurePositionAnnotation(annotations, nextPosition));
-      return;
-    }
-    const has = annotations.includes(id);
-    const next = has ? annotations.filter(item => item !== id) : [...annotations, id];
-    handleUpdateAnnotations(next);
+    handleUpdateAnnotations(toggleAnnotation(annotations, id));
   }, [annotations, handleUpdateAnnotations]);
 
   const handleOpenAnnotations = useCallback(() => {
@@ -322,12 +350,33 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       canEdit={canEdit}
       onToggle={handleToggleAnnotation}
       onOpenPicker={handleOpenAnnotations}
+      showWhenEmpty={true}
+      alwaysShowAddButton={true}
     />
   );
 
   const canEditContent = canEdit
     && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT);
+  const canShowTextStyleToolbar = isEditingContent
+    && canEdit
+    && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT || message.messageType === MESSAGE_TYPE.DICE);
+  const textStyleToolbar = canShowTextStyleToolbar
+    ? (
+        <TextStyleToolbar
+          chatInputRef={editInputRef}
+          visible={canShowTextStyleToolbar}
+          className="text-style-toolbar"
+        />
+      )
+    : null;
   const threadActionLabel = (isThreadRoot || threadHintMeta?.rootId) ? "打开子区" : "创建子区";
+  const shouldIgnoreEditBlur = useCallback((target: EventTarget | null) => {
+    const element = target as HTMLElement | null;
+    if (!element) {
+      return false;
+    }
+    return Boolean(element.closest(".text-style-toolbar") || element.closest(".modal"));
+  }, []);
 
   const handleReplyClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -459,6 +508,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }));
   }, [message.messageId]);
 
+  const handleEditWebgalChooseClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onEditWebgalChoose?.(message.messageId);
+  }, [message.messageId, onEditWebgalChoose]);
+
   const handleOpenContextMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -550,6 +605,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           <Edit2Outline className="h-4 w-4" />
         </button>
       )}
+      {canEdit && message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE && onEditWebgalChoose && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+          onClick={handleEditWebgalChooseClick}
+          title="编辑选择"
+          aria-label="编辑选择"
+        >
+          <Edit2Outline className="h-4 w-4" />
+        </button>
+      )}
       <button
         type="button"
         className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
@@ -562,28 +628,79 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     </div>
   );
 
-  function handleAvatarClick() {
+  const handleAvatarSample = useCallback(() => {
+    const roomId = roomContext.roomId ?? -1;
+    const targetRoleId = message.roleId ?? 0;
+    const targetAvatarId = message.avatarId ?? -1;
+    if (roomId <= 0) {
+      toast.error("未找到房间，无法取样");
+      return;
+    }
+    if (targetRoleId === 0 || targetAvatarId <= 0) {
+      toast.error("该消息没有可取样的头像");
+      return;
+    }
+    if (targetRoleId <= 0 && !spaceContext.isSpaceOwner) {
+      toast.error("只有KP可以取样旁白头像");
+      return;
+    }
+    if (targetRoleId > 0 && !roomContext.roomRolesThatUserOwn.some(role => role.roleId === targetRoleId)) {
+      toast.error("该角色不可用");
+      return;
+    }
+    setCurRoleIdForRoom(roomId, targetRoleId);
+    setCurAvatarIdForRole(targetRoleId, targetAvatarId);
+    setAvatarSamplerActive(false);
+  }, [
+    message.avatarId,
+    message.roleId,
+    roomContext.roomId,
+    roomContext.roomRolesThatUserOwn,
+    setAvatarSamplerActive,
+    setCurAvatarIdForRole,
+    setCurRoleIdForRoom,
+    spaceContext.isSpaceOwner,
+  ]);
+
+  const openExpressionChooser = (fullScreen: boolean) => {
+    toastWindow(
+      onClose => (
+        <RoomContext value={roomContext}>
+          <div className="flex flex-col">
+            <ExpressionChooser
+              roleId={message.roleId ?? -1}
+              handleExpressionChange={(avatarId) => {
+                handleExpressionChange(avatarId);
+                onClose();
+              }}
+              handleRoleChange={(roleId) => {
+                handleRoleChange(roleId);
+                onClose();
+              }}
+              onRequestClose={onClose}
+              defaultFullscreen={fullScreen}
+              onRequestFullscreen={(next) => {
+                onClose();
+                openExpressionChooser(next);
+              }}
+            />
+          </div>
+        </RoomContext>
+      ),
+      { fullScreen },
+    );
+  };
+
+  function handleAvatarClick(event?: React.MouseEvent<HTMLDivElement>) {
+    if (isAvatarSamplerActive) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      handleAvatarSample();
+      return;
+    }
     if (canEdit) {
       // 打开表情选择器的 toast 窗口
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col">
-              <ExpressionChooser
-                roleId={message.roleId ?? -1}
-                handleExpressionChange={(avatarId) => {
-                  handleExpressionChange(avatarId);
-                  onClose();
-                }}
-                handleRoleChange={(roleId) => {
-                  handleRoleChange(roleId);
-                  onClose();
-                }}
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
+      openExpressionChooser(false);
     }
   }
 
@@ -596,74 +713,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
   }, [message, updateMessageAndSync]);
 
-  // 处理语音渲染设置更新
-  function handleVoiceRenderSettingsChange(
-    emotionVector: number[],
-    figurePosition: FigurePosition,
-    notend: boolean,
-    concat: boolean,
-    figureAnimation?: FigureAnimationSettings,
-  ) {
-    console.warn("[ChatBubble] 保存语音渲染设置:", {
-      messageId: message.messageId,
-      figurePosition,
-      figurePositionType: typeof figurePosition,
-    });
-
-    // 判断情感向量是否改变（用于决定是否重新生成 TTS）
-    const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
-    const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
-
-    const nextAnnotations = setFigurePositionAnnotation(
-      setAnnotation(
-        setAnnotation(annotations, ANNOTATION_IDS.DIALOG_NOTEND, notend),
-        ANNOTATION_IDS.DIALOG_CONCAT,
-        concat,
-      ),
-      figurePosition,
-    );
-
-    const prevVoiceRenderSettings = (message.webgal as any)?.voiceRenderSettings ?? {};
-    const {
-      notend: _legacyNotend,
-      concat: _legacyConcat,
-      figurePosition: _legacyPosition,
-      ...restVoiceRenderSettings
-    } = prevVoiceRenderSettings as Record<string, unknown>;
-
-    const newMessage = {
+  const handleDiceContentUpdate = useCallback((content: string) => {
+    if (message.content === content && (message.extra as any)?.diceResult?.result === content) {
+      return;
+    }
+    updateMessageAndSync({
       ...message,
-      annotations: nextAnnotations,
-      webgal: {
-        ...message.webgal,
-        voiceRenderSettings: {
-          ...restVoiceRenderSettings,
-          emotionVector,
-          figureAnimation,
-        },
-      },
-    } as Message;
-
-    console.warn("[ChatBubble] 准备发送的消息:", JSON.stringify(newMessage.webgal?.voiceRenderSettings, null, 2));
-
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        // 更新成功后同步到本地 IndexedDB
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          // 如果 WebGAL 联动模式开启，则重渲染并跳转
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, emotionVectorChanged);
-          }
-        }
+      content,
+      extra: {
+        ...message.extra,
+        diceResult: { result: content },
       },
     });
-  }
+  }, [message, updateMessageAndSync]);
 
   // 处理音频用途切换（语音/BGM/音效）
   const _handleAudioPurposeChange = useCallback((purpose: string) => {
@@ -776,40 +838,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         }
       },
     });
-  }
-
-  // 切换旁白状态
-  function handleToggleNarrator() {
-    if (!canEdit)
-      return;
-
-    if (isNarrator) {
-      // 如果当前是旁白，切换回普通角色 -> 打开角色选择器
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col items-center gap-4">
-              <div>选择角色</div>
-              <RoleChooser
-                handleRoleChange={(role) => {
-                  handleRoleChange(role.roleId);
-                  onClose();
-                }}
-                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
-    }
-    else {
-      // 如果当前是普通角色，切换为旁白 -> roleId 设为 -1
-      const newMessage = {
-        ...message,
-        roleId: -1,
-      };
-      updateMessageAndSync(newMessage);
-    }
   }
 
   const formatFileSize = (bytes?: number) => {
@@ -932,20 +960,28 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       switch (message.messageType) {
         case MESSAGE_TYPE.TEXT:
           return (
-            <EditableField
+            <EditableMessageContent
               content={message.content}
-              handleContentUpdate={handleContentUpdate}
+              onCommit={handleContentUpdate}
               className="editable-field whitespace-pre-wrap break-words"
+              editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+              onEditingChange={setIsEditingContent}
+              editInputRef={editInputRef}
+              shouldIgnoreBlur={shouldIgnoreEditBlur}
               canEdit={canEditContent}
             />
           );
         case MESSAGE_TYPE.INTRO_TEXT:
           return (
             <div className="rounded-lg bg-black text-white px-3 py-2 shadow-inner">
-              <EditableField
+              <EditableMessageContent
                 content={message.content}
-                handleContentUpdate={handleContentUpdate}
+                onCommit={handleContentUpdate}
                 className="editable-field whitespace-pre-wrap break-words text-white"
+                editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-white"
+                onEditingChange={setIsEditingContent}
+                editInputRef={editInputRef}
+                shouldIgnoreBlur={shouldIgnoreEditBlur}
                 canEdit={canEditContent}
               />
             </div>
@@ -963,7 +999,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     <BetterImg
                       src={imgUrl}
                       size={{ width: imgWidth, height: imgHeight }}
-                      className="rounded max-w-full"
+                      className="rounded max-w-full max-h-[350px] h-auto"
                     />
                   )
                 : (
@@ -1010,9 +1046,20 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
           const diceResult = extra?.diceResult;
           const result = diceResult?.result || message.content || "";
           return (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="badge badge-accent badge-xs">骰子</span>
-              <span className="break-words">{result || "[骰子]"}</span>
+            <div className="relative text-sm">
+              <span className="badge badge-accent badge-xs absolute top-0 right-0">骰娘</span>
+              <div className="pr-10 pt-1">
+                <EditableMessageContent
+                  content={result}
+                  onCommit={handleDiceContentUpdate}
+                  className="editable-field whitespace-pre-wrap break-words"
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+                  onEditingChange={setIsEditingContent}
+                  editInputRef={editInputRef}
+                  shouldIgnoreBlur={shouldIgnoreEditBlur}
+                  canEdit={canEdit}
+                />
+              </div>
             </div>
           );
         }
@@ -1061,6 +1108,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             </div>
           );
         }
+        case MESSAGE_TYPE.WEBGAL_CHOOSE: {
+          const payload = extractWebgalChoosePayload(message.extra);
+          return <WebgalChooseMessage payload={payload} />;
+        }
         case MESSAGE_TYPE.WEBGAL_COMMAND: {
           const commandText = message.content?.trim() || "";
           const displayText = commandText.startsWith("%") ? commandText : `%${commandText}`;
@@ -1100,9 +1151,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   // Thread Root（Discord 风格提示条）
   if (isThreadRoot) {
-    const creatorName = displayRoleName || role?.roleName?.trim() || "";
+    const creatorName = displayRoleName;
     return (
       <div className="w-full py-1.5 sm:py-2 group">
+        {textStyleToolbar}
         <div
           className="w-full rounded-md border border-base-300 bg-base-200/40 px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer hover:bg-base-200 transition-colors"
           onClick={handleOpenThreadRoot}
@@ -1135,7 +1187,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 width={6}
                 isRounded={true}
                 withTitle={false}
-                stopPopWindow={true}
+                stopToastWindow={true}
                 useDefaultAvatarFallback={false}
               />
               <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
@@ -1156,6 +1208,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   return (
     <div>
+      {textStyleToolbar}
       {useChatBubbleStyle
         ? (
             <div
@@ -1165,7 +1218,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               {messageHoverToolbar}
               {/* Avatar */}
               <div
-                className={`shrink-0 ${isIntroText ? "invisible cursor-default" : (canEdit ? "cursor-pointer" : "cursor-default")}`}
+                className={`shrink-0 ${
+                  isIntroText
+                    ? "invisible cursor-default"
+                    : (isAvatarSamplerActive ? "cursor-crosshair" : (canEdit ? "cursor-pointer" : "cursor-default"))
+                }`}
                 onClick={isIntroText ? undefined : handleAvatarClick}
               >
                 {isNarrator
@@ -1181,13 +1238,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         width={isMobile ? 10 : 12}
                         isRounded={true}
                         withTitle={false}
-                        stopPopWindow={true}
+                        stopToastWindow={true}
                         useDefaultAvatarFallback={false}
                       />
                     )}
               </div>
               <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0 sm:pr-80">
+                <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0 sm:pr-80 relative">
                   {!isIntroText && isEditingRoleName
                     ? (
                         <div className="flex items-center gap-1">
@@ -1212,14 +1269,33 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     : (
                         !isIntroText && displayRoleName
                           ? (
-                              <span
-                                onClick={handleRoleNameClick}
-                                className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
-                              >
-                                {displayRoleName}
-                              </span>
+                              <div className="relative flex items-center gap-2 min-w-0">
+                                <span
+                                  onClick={handleRoleNameClick}
+                                  className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
+                                >
+                                  {displayRoleName}
+                                </span>
+                                {effectPreviewVisible && effectIconUrl && (
+                                  <img
+                                    src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                    alt=""
+                                    className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                  />
+                                )}
+                              </div>
                             )
-                          : null
+                          : (
+                              effectPreviewVisible && effectIconUrl
+                                ? (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                    />
+                                  )
+                                : null
+                            )
                       )}
                   <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
@@ -1228,26 +1304,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 </div>
                 <div
                   className="max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
+                  onClick={triggerEffectPreview}
                 >
                   {renderedContent}
                   {threadHintNode}
                   {annotationsBar}
-                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
-                  {message.messageType === MESSAGE_TYPE.TEXT && (
-                    <VoiceRenderPanel
-                      emotionVector={voiceRenderSettings?.emotionVector}
-                      figurePosition={figurePosition}
-                      avatarTitle={avatar?.avatarTitle}
-                      notend={dialogNotend}
-                      concat={dialogConcat}
-                      figureAnimation={voiceRenderSettings?.figureAnimation}
-                      onChange={handleVoiceRenderSettingsChange}
-                      canEdit={canEdit}
-                      isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
-                    />
-                  )}
                 </div>
               </div>
             </div>
@@ -1277,7 +1338,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                           width={isMobile ? 10 : 20}
                           isRounded={false}
                           withTitle={false}
-                          stopPopWindow={true}
+                          stopToastWindow={true}
                           useDefaultAvatarFallback={false}
                         >
                         </RoleAvatarComponent>
@@ -1287,7 +1348,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
               {/* 消息内容 */}
               <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
                 {/* 角色名 */}
-                <div className="flex items-center w-full gap-2 sm:pr-80">
+                <div className="flex items-center w-full gap-2 sm:pr-80 relative">
                   {!isIntroText && isEditingRoleName
                     ? (
                         <div className="flex items-center gap-1">
@@ -1312,42 +1373,48 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                     : (
                         !isIntroText && displayRoleName
                           ? (
-                              <div
-                                className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
-                                onClick={handleRoleNameClick}
-                              >
-                                <div className="truncate">
-                                  {`【${displayRoleName}】`}
+                              <div className="relative flex items-center gap-2 min-w-0">
+                                <div
+                                  className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
+                                  onClick={handleRoleNameClick}
+                                >
+                                  <div className="truncate">
+                                    {`【${displayRoleName}】`}
+                                  </div>
                                 </div>
+                                {effectPreviewVisible && effectIconUrl && (
+                                  <img
+                                    src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                    alt=""
+                                    className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                  />
+                                )}
                               </div>
                             )
-                          : null
+                          : (
+                              effectPreviewVisible && effectIconUrl
+                                ? (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                    />
+                                  )
+                                : null
+                            )
                       )}
                   <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </div>
                 </div>
-                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base">
+                <div
+                  className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base"
+                  onClick={triggerEffectPreview}
+                >
                   {renderedContent}
                   {threadHintNode}
                   {annotationsBar}
-                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
-                  {message.messageType === MESSAGE_TYPE.TEXT && (
-                    <VoiceRenderPanel
-                      emotionVector={voiceRenderSettings?.emotionVector}
-                      figurePosition={figurePosition}
-                      avatarTitle={avatar?.avatarTitle}
-                      notend={dialogNotend}
-                      concat={dialogConcat}
-                      figureAnimation={voiceRenderSettings?.figureAnimation}
-                      onChange={handleVoiceRenderSettingsChange}
-                      canEdit={canEdit}
-                      isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
-                    />
-                  )}
                 </div>
               </div>
             </div>

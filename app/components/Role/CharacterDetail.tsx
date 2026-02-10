@@ -341,8 +341,8 @@ function CharacterDetailInner({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
-  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing ״̬
-  const handleSave = () => {
+  // 保存角色基础信息（名称、描述、头像等）
+  const handleSaveRoleBase = (afterSave?: () => void) => {
     setIsTransitioning(true);
     const cleanedRole = {
       ...localRole,
@@ -353,11 +353,21 @@ function CharacterDetailInner({
       onSuccess: () => {
         setTimeout(() => {
           onSave(cleanedRole); // 通知父级更新全局状态
-          setIsEditing(false); // 重置本地编辑状态
+          afterSave?.();
           setIsTransitioning(false);
         }, 300);
       },
       onError: () => setIsTransitioning(false),
+    });
+  };
+
+  const handleStartEditingAll = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveAll = () => {
+    handleSaveRoleBase(() => {
+      setIsEditing(false);
     });
   };
 
@@ -596,7 +606,7 @@ function CharacterDetailInner({
                 <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
                   <button
                     type="button"
-                    onClick={handleSave}
+                    onClick={handleSaveAll}
                     className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isTransitioning ? "scale-95" : ""}`}
                     disabled={isTransitioning}
                   >
@@ -615,7 +625,7 @@ function CharacterDetailInner({
               )
             : (
                 <div className="tooltip tooltip-bottom" data-tip="编辑角色信息">
-                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
+                  <button type="button" onClick={handleStartEditingAll} className="btn btn-accent btn-sm md:btn-lg rounded-lg">
                     <span className="flex items-center gap-1">
                       <EditIcon className="w-4 h-4" />
                       编辑

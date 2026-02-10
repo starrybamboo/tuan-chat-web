@@ -1,8 +1,8 @@
 // React 组件，用于渲染所有的 toast 窗口
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { PopWindowComponent } from "@/components/common/popWindow";
 import { toastManager } from "@/components/common/toastWindow/toastWindow";
+import { ToastWindowFrame } from "@/components/common/toastWindow/toastWindowFrame";
 
 export interface ToastWindowOptions {
   /**
@@ -19,6 +19,7 @@ export interface ToastWindowOptions {
    * 关闭时候的回调函数
    */
   onclose?: () => void;
+  hiddenScrollbar?: boolean;
 }
 
 export interface ToastWindowData {
@@ -64,15 +65,16 @@ export function ToastWindowRenderer() {
   return createPortal(
     <>
       {windows.map(window => (
-        <PopWindowComponent
+        <ToastWindowFrame
           key={window.id}
           isOpen={true}
           fullScreen={window.options.fullScreen}
           transparent={window.options.transparent}
+          hiddenScrollbar={window.options.hiddenScrollbar}
           onClose={window.onClose}
         >
           {window.children}
-        </PopWindowComponent>
+        </ToastWindowFrame>
       ))}
     </>,
     modalRoot,

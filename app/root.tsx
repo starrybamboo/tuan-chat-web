@@ -166,6 +166,7 @@ export default function App() {
       <>
         <Outlet />
         <div id="modal-root"></div>
+        <ToastWindowRenderer />
       </>
     );
   }
@@ -174,7 +175,7 @@ export default function App() {
     <GlobalContextProvider>
       {/* <Topbar></Topbar> */}
       <Outlet />
-      {/* 挂载popWindow的地方 */}
+      {/* 挂载ToastWindow的地方 */}
       <div id="modal-root"></div>
       {/* 挂载sideDrawer的地方 */}
       <div id="side-drawer"></div>

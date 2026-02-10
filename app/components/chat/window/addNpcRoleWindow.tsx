@@ -59,7 +59,7 @@ export function AddNpcRoleWindow({
                     width={24}
                     isRounded={true}
                     withTitle={false}
-                    stopPopWindow={true}
+                    stopToastWindow={true}
                   />
                 </div>
                 <p className="text-center block">{role.roleName}</p>

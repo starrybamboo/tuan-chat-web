@@ -1,11 +1,11 @@
 import type { Rule } from "api/models/Rule";
 import { ApiError } from "api/core/ApiError";
 import { useCreateRuleMutation, useDeleteRuleMutation, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { SaveIcon, TrashIcon } from "@/icons";
+import { EditIcon, SaveIcon, TrashIcon } from "@/icons";
 import Section from "../Editors/Section";
 import RuleCloneModal from "./RuleCloneModal";
 import RuleDeleteModal from "./RuleDeleteModal";
@@ -22,9 +22,12 @@ interface RuleEditorProps {
   onBack?: () => void;
 }
 
+const RULE_NAME_MAX_LENGTH = 20;
+const RULE_DESCRIPTION_MAX_LENGTH = 200;
+
 function RuleEditorSkeleton() {
   return (
-    <div className="p-4 animate-pulse">
+    <div className="max-w-7xl mx-auto p-4 animate-pulse">
       <div className="hidden md:flex items-center justify-between gap-3">
         <div className="h-12 w-28 rounded-md bg-base-200" />
         <div className="flex items-center gap-2">
@@ -36,9 +39,9 @@ function RuleEditorSkeleton() {
       <div className="max-md:hidden divider"></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
+        <div className="lg:col-span-1 self-start lg:sticky lg:top-4">
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-            <div className="card-body p-4 max-h-168">
+            <div className="card-body p-4">
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="h-5 w-20 rounded bg-base-200" />
@@ -52,7 +55,6 @@ function RuleEditorSkeleton() {
             </div>
           </div>
         </div>
-
         <div className="lg:col-span-3 space-y-6">
           <div className="flex gap-2 rounded-lg">
             <div className="skeleton h-10 w-20 rounded-lg" />
@@ -96,6 +98,11 @@ export default function RuleEditor({
   const [isSavingRule, setIsSavingRule] = useState(false);
   const [cloneVersion, setCloneVersion] = useState(0); // 用于克隆时重置编辑内容
   const [editingMap, setEditingMap] = useState<Record<string, boolean>>({});
+  const [isCreateBaseInfoReady, setIsCreateBaseInfoReady] = useState(mode !== "create");
+  const [isEditing, setIsEditing] = useState(mode === "create");
+  const [editorSaveSignal, setEditorSaveSignal] = useState(0);
+  const [pendingHeaderSave, setPendingHeaderSave] = useState(false);
+  const handleSaveRef = useRef<() => void>(() => {});
 
   const setModuleEditing = useCallback((moduleKey: string, editing: boolean) => {
     setEditingMap((prev) => {
@@ -126,9 +133,32 @@ export default function RuleEditor({
     navigate("/role");
   }, [isSavingRule, navigate, onBack]);
 
+  useEffect(() => {
+    setIsCreateBaseInfoReady(mode !== "create");
+    setIsEditing(mode === "create");
+    setPendingHeaderSave(false);
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === "edit") {
+      setIsEditing(false);
+      setPendingHeaderSave(false);
+    }
+  }, [mode, ruleId]);
+
   const editorStatusBadge = mode === "create"
     ? { text: "新建规则", className: "badge-success" }
     : { text: `#${ruleEdit.ruleId}`, className: "badge-info" };
+  const canEnterCreateEditor = (ruleEdit.ruleName ?? "").trim().length > 0
+    && (ruleEdit.ruleDescription ?? "").trim().length > 0;
+
+  const handleEnterCreateEditor = () => {
+    if (!canEnterCreateEditor) {
+      toast.error("请先填写规则名称和规则描述");
+      return;
+    }
+    setIsCreateBaseInfoReady(true);
+  };
 
   function applyClonedRule(rule: Rule) {
     // 仅导入数据作为本地编辑初始值：不保留源规则 id
@@ -200,6 +230,7 @@ export default function RuleEditor({
       const msg = err instanceof ApiError ? err.body?.errMsg : undefined;
       toast.error(msg || (mode === "edit" ? "保存失败" : "创建失败"));
       setIsSavingRule(false);
+      setPendingHeaderSave(false);
     };
 
     const onMutationSuccess = (res: any, isCreate: boolean) => {
@@ -209,6 +240,8 @@ export default function RuleEditor({
         // 成功时延时关闭过渡状态
         setTimeout(() => {
           setIsSavingRule(false);
+          setIsEditing(false);
+          setPendingHeaderSave(false);
 
           // 创建成功时调整到编辑界面
           if (isCreate) {
@@ -222,6 +255,7 @@ export default function RuleEditor({
       else {
         toast.error(res?.errMsg || (isCreate ? "创建失败" : "保存失败"));
         setIsSavingRule(false);
+        setPendingHeaderSave(false);
       }
     };
 
@@ -258,6 +292,8 @@ export default function RuleEditor({
       });
     }
   }
+
+  handleSaveRef.current = handleSave;
 
   async function handleDeleteRule() {
     try {
@@ -327,13 +363,132 @@ export default function RuleEditor({
     }
   }, [loadedRuleId, mode, ruleDetail, ruleId]);
 
+  const hasEditingModule = Object.values(editingMap).some(Boolean);
+
+  useEffect(() => {
+    if (!pendingHeaderSave) {
+      return;
+    }
+
+    if (hasEditingModule) {
+      return;
+    }
+
+    setPendingHeaderSave(false);
+    handleSaveRef.current();
+  }, [hasEditingModule, pendingHeaderSave]);
+
+  const handleHeaderPrimaryAction = () => {
+    if (isSavingRule) {
+      return;
+    }
+
+    if (!isEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    setEditorSaveSignal(prev => prev + 1);
+    setPendingHeaderSave(true);
+  };
+  const shouldForceModuleEditing = isEditing ? true : undefined;
+  const moduleSaveSignal = isEditing ? editorSaveSignal : undefined;
+
+  if (mode === "create" && !isCreateBaseInfoReady) {
+    const nextName = ruleEdit.ruleName ?? "";
+    const nextDescription = ruleEdit.ruleDescription ?? "";
+
+    return (
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="hidden md:flex items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              className="btn btn-lg btn-outline rounded-md btn-ghost mr-4"
+              onClick={handleBack}
+            >
+              ← 返回
+            </button>
+            <div>
+              <h1 className="font-semibold text-2xl md:text-3xl my-2">新建规则</h1>
+              <p className="text-base-content/60">先填写规则基础信息，再进入字段模板编辑</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm md:btn-lg rounded-lg"
+            onClick={handleEnterCreateEditor}
+            disabled={!canEnterCreateEditor}
+          >
+            下一步
+          </button>
+        </div>
+
+        <div className="max-md:hidden divider"></div>
+
+        <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+          <div className="card-body space-y-6">
+            <div className="md:hidden flex items-center justify-between gap-2">
+              <h2 className="font-semibold text-xl">规则基础信息</h2>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm rounded-lg"
+                onClick={handleEnterCreateEditor}
+                disabled={!canEnterCreateEditor}
+              >
+                下一步
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold">规则名称</label>
+                <span className={`text-xs ${nextName.length >= RULE_NAME_MAX_LENGTH ? "text-error" : "text-base-content/50"}`}>
+                  {nextName.length}
+                  /
+                  {RULE_NAME_MAX_LENGTH}
+                </span>
+              </div>
+              <input
+                type="text"
+                className="input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                placeholder="输入规则名称"
+                value={nextName}
+                maxLength={RULE_NAME_MAX_LENGTH}
+                onChange={e => setRuleEdit(prev => ({ ...prev, ruleName: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold">规则描述</label>
+                <span className={`text-xs ${nextDescription.length >= RULE_DESCRIPTION_MAX_LENGTH ? "text-error" : "text-base-content/50"}`}>
+                  {nextDescription.length}
+                  /
+                  {RULE_DESCRIPTION_MAX_LENGTH}
+                </span>
+              </div>
+              <textarea
+                className="textarea textarea-bordered bg-base-200 rounded-md min-h-[160px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                placeholder="描述这套规则的定位和核心机制"
+                value={nextDescription}
+                maxLength={RULE_DESCRIPTION_MAX_LENGTH}
+                onChange={e => setRuleEdit(prev => ({ ...prev, ruleDescription: e.target.value }))}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isQueryLoading) {
     return <RuleEditorSkeleton />;
   }
 
   return (
     <div
-      className={`p-4 transition-opacity duration-300 ease-in-out ${isSavingRule ? "opacity-50 pointer-events-none" : ""}`}
+      className={`max-w-7xl mx-auto p-4 transition-opacity duration-300 ease-in-out ${isSavingRule ? "opacity-50 pointer-events-none" : ""}`}
       aria-busy={isSavingRule}
     >
       {/* 桌面端显示的头部区域 */}
@@ -396,36 +551,53 @@ export default function RuleEditor({
               </span>
             </button>
           </div>
-          <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
-            <button
-              type="button"
-              className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
-              onClick={handleSave}
-              disabled={isSavingRule}
-            >
-              {isSavingRule
-                ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  )
-                : (
+          {isEditing
+            ? (
+                <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : "保存当前修改"}>
+                  <button
+                    type="button"
+                    className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
+                    onClick={handleHeaderPrimaryAction}
+                    disabled={isSavingRule}
+                  >
+                    {isSavingRule
+                      ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        )
+                      : (
+                          <span className="flex items-center gap-1">
+                            <SaveIcon className="w-4 h-4" />
+                            {mode === "create" ? "创建" : "保存"}
+                          </span>
+                        )}
+                  </button>
+                </div>
+              )
+            : (
+                <div className="tooltip tooltip-bottom" data-tip="编辑规则信息">
+                  <button
+                    type="button"
+                    className="btn btn-accent btn-sm md:btn-lg rounded-lg"
+                    onClick={handleHeaderPrimaryAction}
+                    disabled={isSavingRule}
+                  >
                     <span className="flex items-center gap-1">
-                      <SaveIcon className="w-4 h-4" />
-                      保存
+                      <EditIcon className="w-4 h-4" />
+                      编辑
                     </span>
-                  )}
-            </button>
-          </div>
+                  </button>
+                </div>
+              )}
         </div>
       </div>
 
       <div className="max-md:hidden divider"></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* 左侧：规则名称和规则描述 */}
-        <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
-          {/* 卡片 */}
+        <div className="lg:col-span-1 self-start lg:sticky lg:top-4">
+          {/* 左侧规则信息卡 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
-            <div className="card-body p-4 max-h-168">
+            <div className="card-body p-4">
               {/* 移动端显示的头部区域 */}
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -462,33 +634,53 @@ export default function RuleEditor({
                         导入
                       </button>
                     </div>
-                    <div className="tooltip tooltip-bottom" data-tip="保存当前修改">
-                      <button
-                        type="button"
-                        className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
-                        onClick={handleSave}
-                        disabled={isSavingRule}
-                      >
-                        {isSavingRule
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
+                    {isEditing
+                      ? (
+                          <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : "保存当前修改"}>
+                            <button
+                              type="button"
+                              className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
+                              onClick={handleHeaderPrimaryAction}
+                              disabled={isSavingRule}
+                            >
+                              {isSavingRule
+                                ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                  )
+                                : (
+                                    <span className="flex items-center gap-1">
+                                      {mode === "create" ? "创建" : "保存"}
+                                    </span>
+                                  )}
+                            </button>
+                          </div>
+                        )
+                      : (
+                          <div className="tooltip tooltip-bottom" data-tip="编辑规则信息">
+                            <button
+                              type="button"
+                              className="btn btn-accent btn-sm md:btn-lg rounded-lg"
+                              onClick={handleHeaderPrimaryAction}
+                              disabled={isSavingRule}
+                            >
                               <span className="flex items-center gap-1">
-                                保存
+                                编辑
                               </span>
-                            )}
-                      </button>
-                    </div>
+                            </button>
+                          </div>
+                        )}
                   </div>
                 </div>
                 <div className="divider my-0" />
               </div>
+
               <RuleTextInfoEditor
                 ruleName={ruleEdit.ruleName ?? ""}
                 ruleDescription={ruleEdit.ruleDescription ?? ""}
                 cloneVersion={cloneVersion}
                 onEditingChange={handleTextInfoEditingChange}
+                forcedEditing={shouldForceModuleEditing}
+                saveSignal={moduleSaveSignal}
                 onApply={({ ruleName, ruleDescription }) => {
                   setRuleEdit(prev => ({
                     ...prev,
@@ -500,13 +692,15 @@ export default function RuleEditor({
             </div>
           </div>
         </div>
-        {/* 右侧：编辑信息模块 */}
+
         <div className="lg:col-span-3 space-y-6">
           <RuleExpansionModule
             localRule={ruleEdit}
             onRuleChange={setRuleEdit}
             cloneVersion={cloneVersion}
             onModuleEditingChange={setModuleEditing}
+            forcedEditing={shouldForceModuleEditing}
+            saveSignal={moduleSaveSignal}
           />
         </div>
       </div>
