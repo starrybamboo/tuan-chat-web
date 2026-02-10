@@ -1,7 +1,12 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAbilityByRuleAndRole, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
+import {
+  useAbilityByRuleAndRole,
+  useGenerateAbilityByRuleMutation,
+  useGenerateBasicInfoByRuleMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
+} from "api/hooks/abilityQueryHooks";
 import { useCopyRoleMutation, useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { CloseIcon, DiceD6Icon, EditIcon, InfoIcon, RoleListIcon, SaveIcon, SlidersIcon } from "app/icons";
@@ -11,6 +16,7 @@ import { Link, useNavigate, useOutletContext } from "react-router";
 import CharacterDetailLeftPanel from "./CharacterDetailLeftPanel";
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
+import AIGenerateModal from "./RoleCreation/steps/AIGenerateModal";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
 import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
@@ -139,6 +145,7 @@ function CharacterDetailInner({
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
   const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
+  const [isAIGenerateModalOpen, setIsAIGenerateModalOpen] = useState(false); // AI生成弹窗状态
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false); // 骰娘关联弹窗状态
   const [isDicerConfigJsonModalOpen, setIsDicerConfigJsonModalOpen] = useState(false); // 骰娘配置JSON弹窗状态
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false); // 复制角色模态框状态
@@ -154,6 +161,8 @@ function CharacterDetailInner({
   // 获取骰娘文案配置数据
   const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId || 0);
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
+  const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -176,6 +185,42 @@ function CharacterDetailInner({
   // 打开音频上传弹窗
   const handleOpenAudioModal = () => {
     setIsAudioModalOpen(true);
+  };
+
+  // 打开AI生成弹窗
+  const handleOpenAIGenerateModal = () => {
+    if (!selectedRuleId) {
+      toast.error("请先选择规则");
+      return;
+    }
+    setIsAIGenerateModalOpen(true);
+  };
+
+  // 应用AI生成数据到当前角色
+  const handleAIApply = (data: {
+    act?: Record<string, string>;
+    basic?: Record<string, string>;
+    ability?: Record<string, string>;
+    skill?: Record<string, string>;
+  }) => {
+    const currentAbility = abilityQuery.data;
+    const payload = {
+      roleId: localRole.id,
+      ruleId: selectedRuleId,
+      act: { ...(currentAbility?.actTemplate ?? {}), ...(data.act ?? {}) },
+      basic: { ...(currentAbility?.basicDefault ?? {}), ...(data.basic ?? {}) },
+      ability: { ...(currentAbility?.abilityDefault ?? {}), ...(data.ability ?? {}) },
+      skill: { ...(currentAbility?.skillDefault ?? {}), ...(data.skill ?? {}) },
+    };
+
+    updateFieldAbility(payload, {
+      onSuccess: () => {
+        toast.success("AI生成内容已应用");
+      },
+      onError: () => {
+        toast.error("AI生成内容应用失败");
+      },
+    });
   };
 
   // 打开骰娘关联弹窗
@@ -485,7 +530,6 @@ function CharacterDetailInner({
         : (
             <ExpansionModule
               isEditing={isEditing}
-              saveSignal={expansionSaveSignal}
               roleId={localRole.id}
               ruleId={selectedRuleId}
               isStImportModalOpen={isStImportModalOpen}
@@ -502,8 +546,8 @@ function CharacterDetailInner({
     }`}
     >
 
-      {/* 桌面端显示的头部区域 */}
-      <div className="hidden md:flex items-center justify-between gap-3">
+      {/* 顶部头部区域（包含总编辑入口） */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           {layout === "popup"
             ? (
@@ -535,14 +579,27 @@ function CharacterDetailInner({
         </div>
         <div className="flex items-center gap-2">
           {!isDiceMaiden && (
-            <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速配置角色数据">
+            <div className="tooltip tooltip-bottom" data-tip="使用ST指令快速导入角色属性">
               <button
                 type="button"
                 onClick={() => setIsStImportModalOpen(true)}
                 className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
               >
                 <span className="flex items-center gap-1">
-                  ST指令
+                  ST导入
+                </span>
+              </button>
+            </div>
+          )}
+          {!isDiceMaiden && (
+            <div className="tooltip tooltip-bottom" data-tip="通过描述批量生成角色属性">
+              <button
+                type="button"
+                onClick={handleOpenAIGenerateModal}
+                className="btn btn-primary btn-sm md:btn-lg rounded-lg"
+              >
+                <span className="flex items-center gap-1">
+                  AI生成
                 </span>
               </button>
             </div>
@@ -602,8 +659,7 @@ function CharacterDetailInner({
             <div className="space-y-6">
               <CharacterDetailLeftPanelHorizontal
                 isQueryLoading={isQueryLoading}
-                isEditing={isLeftEditing}
-                isTransitioning={isTransitioning}
+                isEditing={isEditing}
                 isDiceMaiden={isDiceMaiden}
                 localRole={localRole}
                 roleAvatars={roleAvatars}
@@ -616,9 +672,6 @@ function CharacterDetailInner({
                 currentDicerRoleId={currentDicerRoleId}
                 dicerRoleError={dicerRoleError}
                 linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                onSave={handleSaveLeftOnly}
-                onEditStart={handleStartEditingLeftOnly}
-                onOpenStImportModal={() => setIsStImportModalOpen(true)}
                 onOpenRuleModal={handleOpenRuleModal}
                 onOpenAudioModal={handleOpenAudioModal}
                 onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
@@ -636,8 +689,6 @@ function CharacterDetailInner({
                   setLocalRole(updatedRole);
                   updateRole(updatedRole);
                 }}
-                showActions={false}
-                showStImport={false}
               />
               <div className="space-y-6">
                 {rightPanel}
@@ -649,8 +700,7 @@ function CharacterDetailInner({
               {/* 左侧：立绘与简介、规则选择（固定） */}
               <CharacterDetailLeftPanel
                 isQueryLoading={isQueryLoading}
-                isEditing={isLeftEditing}
-                isTransitioning={isTransitioning}
+                isEditing={isEditing}
                 isDiceMaiden={isDiceMaiden}
                 localRole={localRole}
                 roleAvatars={roleAvatars}
@@ -663,9 +713,6 @@ function CharacterDetailInner({
                 currentDicerRoleId={currentDicerRoleId}
                 dicerRoleError={dicerRoleError}
                 linkedDicerRoleName={linkedDicerRoleData?.data?.roleName}
-                onSave={handleSaveLeftOnly}
-                onEditStart={handleStartEditingLeftOnly}
-                onOpenStImportModal={() => setIsStImportModalOpen(true)}
                 onOpenRuleModal={handleOpenRuleModal}
                 onOpenAudioModal={handleOpenAudioModal}
                 onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
@@ -738,6 +785,16 @@ function CharacterDetailInner({
         copywritingTemplates={abilityQuery.data?.extraCopywriting}
         onReset={handleDicerConfigReset}
         onSave={handleDicerConfigSave}
+      />
+
+      {/* AI生成弹窗 */}
+      <AIGenerateModal
+        isOpen={isAIGenerateModalOpen}
+        onClose={() => setIsAIGenerateModalOpen(false)}
+        ruleId={selectedRuleId}
+        onApply={handleAIApply}
+        generateBasicInfoByRule={generateBasicInfoByRule}
+        generateAbilityByRule={generateAbilityByRule}
       />
 
       {/* 复制角色模态框 */}
