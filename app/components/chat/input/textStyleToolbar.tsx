@@ -24,7 +24,7 @@ interface SavedSelection {
 /**
  * 注音输入对话框
  */
-function RubyInputDialog({ onConfirm, onClose, initialText }: {
+export function RubyInputDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string, ruby: string) => void;
   onClose: () => void;
   initialText?: string;
@@ -93,7 +93,7 @@ function RubyInputDialog({ onConfirm, onClose, initialText }: {
 /**
  * 彩色文本输入对话框
  */
-function ColorTextDialog({ onConfirm, onClose, initialText }: {
+export function ColorTextDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string, color: string) => void;
   onClose: () => void;
   initialText?: string;
@@ -184,7 +184,7 @@ function ColorTextDialog({ onConfirm, onClose, initialText }: {
 /**
  * 斜体文本输入对话框
  */
-function ItalicTextDialog({ onConfirm, onClose, initialText }: {
+export function ItalicTextDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string) => void;
   onClose: () => void;
   initialText?: string;
@@ -233,7 +233,7 @@ function ItalicTextDialog({ onConfirm, onClose, initialText }: {
 /**
  * 高级样式输入对话框
  */
-function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
+export function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string, options: { color?: string; italic?: boolean; fontSize?: string; ruby?: string }) => void;
   onClose: () => void;
   initialText?: string;

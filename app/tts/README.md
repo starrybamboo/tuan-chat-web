@@ -130,8 +130,8 @@ const audioBlob = await generateTTS("http://127.0.0.1:9880", params);
 ### 情感向量维度
 
 8 维向量对应以下情感:
-- `[0]` ϲ (joy)
-- `[1]` ŭ (anger)
+- `[0]` 喜 (joy)
+- `[1]` 怒 (anger)
 - `[2]` 哀 (sadness)
 - `[3]` 惧 (fear)
 - `[4]` 厌恶 (disgust)

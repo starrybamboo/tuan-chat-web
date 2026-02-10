@@ -1,7 +1,6 @@
 import { ArrowSquareIn, ExportIcon } from "@phosphor-icons/react";
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
-import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -27,36 +26,15 @@ function RoomHeaderBarImpl({
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+  const setMultiSelecting = useRoomUiStore(state => state.setMultiSelecting);
   const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
-  const [isExportOpen, setIsExportOpen] = useState(false);
   const [, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
-  const exportDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const closeThreadPane = () => {
     setComposerTarget("main");
     setThreadRootMessageId(undefined);
   };
-
-  useEffect(() => {
-    if (!isExportOpen) {
-      return;
-    }
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target) {
-        return;
-      }
-      if (exportDropdownRef.current?.contains(target)) {
-        return;
-      }
-      setIsExportOpen(false);
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [isExportOpen]);
 
   return (
     <div className="border-gray-300 dark:border-gray-700 border-t border-b flex justify-between items-center overflow-visible relative z-50">
@@ -91,32 +69,23 @@ function RoomHeaderBarImpl({
               if (sideDrawerState === "export") {
                 setSideDrawerState("none");
               }
-              setIsExportOpen(false);
               setIsImportChatTextOpen(true);
             }}
           >
             <ArrowSquareIn className="size-6 mt-2" />
           </div>
           <div
-            ref={exportDropdownRef}
-            className={`dropdown dropdown-bottom dropdown-end ${isExportOpen ? "dropdown-open" : ""}`}
+            className="tooltip tooltip-bottom hover:text-info relative z-50"
+            data-tip="导出/多选"
+            onClick={() => {
+              closeThreadPane();
+              if (sideDrawerState === "export") {
+                setSideDrawerState("none");
+              }
+              setMultiSelecting(true);
+            }}
           >
-            <div
-              className="tooltip tooltip-bottom hover:text-info relative z-50"
-              data-tip="导出记录"
-              onClick={() => {
-                closeThreadPane();
-                if (sideDrawerState === "export") {
-                  setSideDrawerState("none");
-                }
-                setIsExportOpen(prev => !prev);
-              }}
-            >
-              <ExportIcon className="size-6 mt-2" />
-            </div>
-            <div className="dropdown-content z-9999 shadow bg-base-100 rounded-box w-80 mt-2 max-h-[70vh] overflow-y-auto">
-              <ExportChatDrawer />
-            </div>
+            <ExportIcon className="size-6 mt-2" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"

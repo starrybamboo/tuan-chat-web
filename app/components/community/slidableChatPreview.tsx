@@ -180,7 +180,7 @@ function ChatMessageItem({
             width={8}
             isRounded={true}
             withTitle={false}
-            stopPopWindow={true}
+            stopToastWindow={true}
           />
         </div>
       )}

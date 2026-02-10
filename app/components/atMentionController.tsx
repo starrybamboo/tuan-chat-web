@@ -312,7 +312,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                     avatarId={role.avatarId ?? -1}
                     width={8}
                     isRounded={true}
-                    stopPopWindow={true}
+                    stopToastWindow={true}
                   />
                   <div className="flex flex-col gap-0.5 items-start flex-1 min-w-0">
                     <span className="font-medium truncate w-full">{role.roleName}</span>

@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
+import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
@@ -34,7 +35,7 @@ type ImportMessageItem = {
   roleId: number;
   content: string;
   speakerName?: string;
-  figurePosition?: "left" | "center" | "right";
+  figurePosition?: Exclude<FigurePosition, undefined>;
 };
 
 type UseRoomImportActionsResult = {

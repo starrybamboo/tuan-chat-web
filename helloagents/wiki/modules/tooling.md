@@ -74,7 +74,7 @@
 
 ### 提交流程
 
-项目已配置 `husky` 与 `lint-staged`，提交前将自动执行 ESLint 检查。
+项目已配置 `husky` 与 `lint-staged`，提交前将自动执行 ESLint 检查与编码/乱码检测（`node ./scripts/check-encoding.mjs`）。
 
 ## 变更历史
 

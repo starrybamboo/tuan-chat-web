@@ -1,5 +1,6 @@
 import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
+import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 
@@ -36,6 +37,17 @@ function normalizeErrorMessage(error: unknown): string {
   if (error instanceof Error)
     return error.message;
   return String(error);
+}
+
+function toAbsoluteUrl(url: string): string {
+  if (typeof window === "undefined")
+    return url;
+  try {
+    return new URL(url, window.location.href).toString();
+  }
+  catch {
+    return url;
+  }
 }
 
 function isWasmMemoryOutOfBounds(error: unknown): boolean {
@@ -206,6 +218,7 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
             },
           ]
         : [];
+      const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
 
       const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
 
@@ -235,7 +248,7 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
           const coreURL = c.coreJs;
           const wasmURL = c.wasm;
 
-          await withTimeout(ffmpeg.load({ coreURL, wasmURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
+          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
 
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg loaded`, { label: c.label });
@@ -258,7 +271,7 @@ async function getFfmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
           const coreURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.js`, "text/javascript", DEFAULT_LOAD_TIMEOUT_MS);
           const wasmURL = await fetchToBlobURL(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", DEFAULT_LOAD_TIMEOUT_MS);
 
-          await withTimeout(ffmpeg.load({ coreURL, wasmURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
+          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), DEFAULT_LOAD_TIMEOUT_MS, "FFmpeg 核心加载");
 
           if (debugEnabled)
             console.warn(`${debugPrefix} ffmpeg loaded`, { baseUrl });

@@ -1,28 +1,49 @@
 import React from "react";
+import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
+import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import BetterImg from "@/components/common/betterImg";
-
 import { MusicNote } from "@/icons";
+
+import { normalizeAnnotations, toggleAnnotation } from "@/types/messageAnnotations";
 
 export default function ChatAttachmentsPreviewFromStore() {
   const imgFiles = useChatComposerStore(state => state.imgFiles);
   const emojiUrls = useChatComposerStore(state => state.emojiUrls);
   const audioFile = useChatComposerStore(state => state.audioFile);
-  const sendAsBackground = useChatComposerStore(state => state.sendAsBackground);
-  const audioPurpose = useChatComposerStore(state => state.audioPurpose);
+  const tempAnnotations = useChatComposerStore(state => state.tempAnnotations);
   const updateImgFiles = useChatComposerStore(state => state.updateImgFiles);
   const updateEmojiUrls = useChatComposerStore(state => state.updateEmojiUrls);
   const setAudioFile = useChatComposerStore(state => state.setAudioFile);
-  const setSendAsBackground = useChatComposerStore(state => state.setSendAsBackground);
-  const setAudioPurpose = useChatComposerStore(state => state.setAudioPurpose);
+  const setTempAnnotations = useChatComposerStore(state => state.setTempAnnotations);
 
   const hasAttachments = imgFiles.length > 0 || emojiUrls.length > 0 || !!audioFile;
+
+  React.useEffect(() => {
+    if (!hasAttachments && tempAnnotations.length > 0) {
+      setTempAnnotations([]);
+    }
+  }, [hasAttachments, setTempAnnotations, tempAnnotations]);
+
   if (!hasAttachments)
     return null;
 
+  const handleToggleTempAnnotation = (id: string) => {
+    setTempAnnotations(toggleAnnotation(tempAnnotations, id));
+  };
+
+  const handleOpenTempAnnotations = () => {
+    openMessageAnnotationPicker({
+      initialSelected: tempAnnotations,
+      onChange: (next) => {
+        setTempAnnotations(normalizeAnnotations(next));
+      },
+    });
+  };
+
   return (
     <div className="flex flex-col gap-1 p-2 pb-1 border-b border-base-200/50">
-      <div className="flex flex-row gap-x-3 overflow-x-auto">
+      <div className="flex flex-row items-center gap-x-3 overflow-x-auto">
         {imgFiles.map((file, index) => (
           <BetterImg
             src={file}
@@ -31,17 +52,6 @@ export default function ChatAttachmentsPreviewFromStore() {
             key={file.name}
           />
         ))}
-        {imgFiles.length > 0 && (
-          <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
-            <input
-              type="checkbox"
-              className="checkbox checkbox-xs checkbox-primary"
-              checked={sendAsBackground}
-              onChange={e => setSendAsBackground(e.target.checked)}
-            />
-            <span>设为背景</span>
-          </label>
-        )}
         {emojiUrls.map((url, index) => (
           <BetterImg
             src={url}
@@ -68,21 +78,15 @@ export default function ChatAttachmentsPreviewFromStore() {
             </div>
           </div>
         )}
-        {audioFile && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-base-content/60">用途:</span>
-            <select
-              title="选择音频用途"
-              className="select select-xs select-bordered"
-              value={audioPurpose || ""}
-              onChange={e => setAudioPurpose(e.target.value as "bgm" | "se" | undefined || undefined)}
-            >
-              <option value="">普通语音</option>
-              <option value="bgm">BGM</option>
-              <option value="se">音效</option>
-            </select>
-          </div>
-        )}
+        <MessageAnnotationsBar
+          annotations={tempAnnotations}
+          canEdit={true}
+          onToggle={handleToggleTempAnnotation}
+          onOpenPicker={handleOpenTempAnnotations}
+          showWhenEmpty={true}
+          alwaysShowAddButton={true}
+          className="mt-0"
+        />
       </div>
     </div>
   );

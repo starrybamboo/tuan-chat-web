@@ -6,7 +6,7 @@ import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createFullImageCrop, createTopCenteredSquareCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -479,7 +479,7 @@ export function CharacterCopper({
         {children}
       </div>
       {/* 裁剪弹窗 */}
-      <PopWindow
+      <ToastWindow
         isOpen={isOpen}
         onClose={() => {
           resetAllStates();
@@ -608,7 +608,7 @@ export function CharacterCopper({
             </div>
           )}
         </div>
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

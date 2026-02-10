@@ -7,6 +7,7 @@ const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV;
 export default [
   // Blocksuite iframe: used for strong style isolation.
   route("blocksuite-frame", "routes/blocksuiteFrame.tsx"),
+  route("room-map/:spaceId/:roomId", "routes/roomMapFrame.tsx"),
 
   // Dedicated login page (avoid wrapping by dashboard layout to prevent double modals).
   route("login", "routes/login.tsx"),

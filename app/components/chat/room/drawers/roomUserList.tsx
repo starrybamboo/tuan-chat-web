@@ -5,7 +5,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import RoleList from "../../shared/components/roleLists";
@@ -145,16 +145,16 @@ export default function RoomUserList({ type}: { type: string }) {
             )}
       </div>
 
-      <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
+      <ToastWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
         <AddMemberWindow handleAddMember={handleAddMember} showSpace={true} />
-      </PopWindow>
+      </ToastWindow>
       {/* 弹窗 */}
-      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
+      <ToastWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole} />
-      </PopWindow>
-      <PopWindow isOpen={isNpcRoleHandleOpen} onClose={() => setIsNpcRoleHandleOpen(false)}>
+      </ToastWindow>
+      <ToastWindow isOpen={isNpcRoleHandleOpen} onClose={() => setIsNpcRoleHandleOpen(false)}>
         <AddNpcRoleWindow handleAddRole={handleAddNpcRole} />
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

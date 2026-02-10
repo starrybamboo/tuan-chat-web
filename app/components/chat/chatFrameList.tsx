@@ -14,8 +14,12 @@ function Header() {
 
 interface SelectionToolbarProps {
   selectedCount: number;
+  totalCount: number;
+  isSelecting: boolean;
   isSpaceOwner: boolean;
   onCancel: () => void;
+  onSelectAll: () => void;
+  onExportFile: () => void;
   onExportImage: () => void;
   onForward: () => void;
   onBatchDelete: () => void;
@@ -23,30 +27,42 @@ interface SelectionToolbarProps {
 
 const SelectionToolbar = memo(({
   selectedCount,
+  totalCount,
+  isSelecting,
   isSpaceOwner,
   onCancel,
+  onSelectAll,
+  onExportFile,
   onExportImage,
   onForward,
   onBatchDelete,
 }: SelectionToolbarProps) => {
-  if (selectedCount <= 0)
+  if (!isSelecting)
     return null;
+  const hasSelection = selectedCount > 0;
+  const canSelectAll = totalCount > 0;
 
   return (
     <div className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-15 flex justify-between items-center rounded">
       <span>{`已选择${selectedCount} 条消息`}</span>
       <div className="gap-x-4 flex">
+        <button className="btn btn-sm" onClick={onSelectAll} type="button" disabled={!canSelectAll}>
+          全选
+        </button>
         <button className="btn btn-sm" onClick={onCancel} type="button">
           取消
         </button>
-        <button className="btn btn-sm btn-secondary" onClick={onExportImage} type="button">
+        <button className="btn btn-sm btn-accent" onClick={onExportFile} type="button" disabled={!hasSelection}>
+          导出成文件
+        </button>
+        <button className="btn btn-sm btn-secondary" onClick={onExportImage} type="button" disabled={!hasSelection}>
           生成图片
         </button>
-        <button className="btn btn-sm btn-info" onClick={onForward} type="button">
+        <button className="btn btn-sm btn-info" onClick={onForward} type="button" disabled={!hasSelection}>
           转发
         </button>
         {isSpaceOwner && (
-          <button className="btn btn-sm btn-error" onClick={onBatchDelete} type="button">
+          <button className="btn btn-sm btn-error" onClick={onBatchDelete} type="button" disabled={!hasSelection}>
             删除
           </button>
         )}
@@ -122,7 +138,10 @@ interface ChatFrameListProps {
   renderMessage: (index: number, message: ChatMessageResponse) => React.ReactNode;
   onContextMenu: (e: React.MouseEvent) => void;
   selectedMessageIds: Set<number>;
-  updateSelectedMessageIds: (next: Set<number>) => void;
+  isSelecting: boolean;
+  onSelectAll: () => void;
+  onExportFile: () => void;
+  onCancelSelection: () => void;
   setIsExportImageWindowOpen: (open: boolean) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
   handleBatchDelete: () => void;
@@ -144,7 +163,10 @@ export default function ChatFrameList({
   renderMessage,
   onContextMenu,
   selectedMessageIds,
-  updateSelectedMessageIds,
+  isSelecting,
+  onSelectAll,
+  onExportFile,
+  onCancelSelection,
   setIsExportImageWindowOpen,
   setIsForwardWindowOpen,
   handleBatchDelete,
@@ -162,8 +184,12 @@ export default function ChatFrameList({
       >
         <SelectionToolbar
           selectedCount={selectedMessageIds.size}
+          totalCount={historyMessages.length}
+          isSelecting={isSelecting}
           isSpaceOwner={isSpaceOwner}
-          onCancel={() => updateSelectedMessageIds(new Set())}
+          onCancel={onCancelSelection}
+          onSelectAll={onSelectAll}
+          onExportFile={onExportFile}
           onExportImage={() => setIsExportImageWindowOpen(true)}
           onForward={() => setIsForwardWindowOpen(true)}
           onBatchDelete={handleBatchDelete}

@@ -1,6 +1,6 @@
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
-export default function RepositoryPopWindow({
+export default function RepositoryToastWindow({
   modalOpen,
   setModalOpen,
   goToWorkSpace,
@@ -10,7 +10,7 @@ export default function RepositoryPopWindow({
   goToWorkSpace: () => void;
 }) {
   return (
-    <PopWindow
+    <ToastWindow
       isOpen={modalOpen}
       onClose={() => setModalOpen(false)}
     >
@@ -35,6 +35,6 @@ export default function RepositoryPopWindow({
           </button>
         </div>
       </div>
-    </PopWindow>
+    </ToastWindow>
   );
 }

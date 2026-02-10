@@ -44,6 +44,10 @@ export type ChatMessageRequest = {
      */
     webgal?: Record<string, any>;
     /**
+     * 消息位置（可选，用于插入消息排序）
+     */
+    position?: number;
+    /**
      * 消息内容，类型不同传值不同.
      */
     extra: Record<string, any>;

@@ -21,7 +21,7 @@
     - 内容预览：从 store 中提取首段/前若干段的 `affine:paragraph` 文本，拼成摘要（限制长度）
   - 卡片渲染阶段不创建 Blocksuite editor，仅做“文本/图片”展示，避免消息列表重渲染性能问题
 - **弹窗只读预览**
-  - 点击卡片打开 `PopWindow`，内部用 `BlocksuiteDescriptionEditor`：
+  - 点击卡片打开 `ToastWindow`，内部用 `BlocksuiteDescriptionEditor`：
     - `readOnly=true`
     - `variant="full"`
     - `tcHeader.enabled=true`

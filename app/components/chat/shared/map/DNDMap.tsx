@@ -1,580 +1,446 @@
 import type { UserRole } from "../../../../../api";
+import type { RoomDndMapSnapshot, RoomDndMapToken } from "./roomDndMapApi";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useRoomExtra } from "@/components/chat/core/hooks";
+import toast from "react-hot-toast";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
-import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
+import {
+  applyRoomDndMapChange,
+  clearRoomDndMap,
+  fetchRoomDndMap,
+  removeRoomDndMapToken,
+  roomDndMapQueryKey,
+  upsertRoomDndMap,
+  upsertRoomDndMapToken,
+} from "./roomDndMapApi";
+
 const GRID_COLOR_OPTIONS = [
+  { value: "#64748b", label: "slate", className: "bg-slate-500 border-slate-500" },
   { value: "#3b82f6", label: "blue", className: "bg-blue-500 border-blue-500" },
-  { value: "#6366f1", label: "indigo", className: "bg-indigo-500 border-indigo-500" },
-  { value: "#ec4899", label: "pink", className: "bg-pink-500 border-pink-500" },
-  { value: "#ef4444", label: "red", className: "bg-red-500 border-red-500" },
-  { value: "#f97316", label: "orange", className: "bg-orange-500 border-orange-500" },
+  { value: "#22c55e", label: "green", className: "bg-green-500 border-green-500" },
   { value: "#f59e0b", label: "amber", className: "bg-amber-500 border-amber-500" },
-  { value: "#10b981", label: "emerald", className: "bg-emerald-500 border-emerald-500" },
+  { value: "#ef4444", label: "red", className: "bg-red-500 border-red-500" },
+  { value: "#ec4899", label: "pink", className: "bg-pink-500 border-pink-500" },
 ] as const;
 
-function withHexAlpha(hex: string, alphaHex: string) {
-  // #RRGGBB -> #RRGGBBAA; 其他格式（含 alpha、非 hex）则原样返回
-  if (hex.startsWith("#") && hex.length === 7)
-    return `${hex}${alphaHex}`;
-  return hex;
+const DEFAULT_GRID_ROWS = 10;
+const DEFAULT_GRID_COLS = 10;
+const DEFAULT_GRID_COLOR = "#808080";
+
+interface DNDMapProps {
+  roomId?: number;
+  spaceId?: number;
+  variant?: "embedded" | "frame";
 }
 
-/**
- * 可拖动的头像组件
- * @param role 角色
- * @param onDragStart 拖拽开始事件
- * @param scale 缩放比例，由于我们的这个图是可以缩放的，如果不考虑这个系数，拖拽的时候的拖拽图像会出现问题
- * @param className
- * @param size 大小，按px计
- * @param onTouchDrop 触摸拖拽释放事件（移动端使用）
- * @constructor
- */
-const RoleStamp = React.memo(({ role, onDragStart, scale: _scale = 1, className, size, onTouchDrop, mapTransform, showTooltip = true }: {
+const RoleToken = React.memo(({
+  role,
+  size = 42,
+  draggable = false,
+  isSelected = false,
+  onDragStart,
+  onClick,
+}: {
   role: UserRole;
-  onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
-  scale?: number;
-  className?: string;
   size?: number;
-  onTouchDrop?: (role: UserRole, x: number, y: number) => void;
-  mapTransform?: { scale: number; x: number; y: number };
-  showTooltip?: boolean;
+  draggable?: boolean;
+  isSelected?: boolean;
+  onDragStart?: (event: React.DragEvent<HTMLDivElement>, roleId: number) => void;
+  onClick?: () => void;
 }) => {
   const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
-  // 移动端拖拽状态
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const touchStartPos = useRef({ x: 0, y: 0 });
-  const dragThreshold = 10; // 拖拽阈值，避免误触
-
-  // 触摸事件处理
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    const touch = e.touches[0];
-    // 获取容器的边界信息，用于后续的坐标转换
-    const containerRect = containerRef.current?.getBoundingClientRect();
-
-    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
-    setDragOffset({ x: 0, y: 0 });
-
-    // 保存容器信息，用于触摸拖拽时的坐标转换
-    if (containerRect && mapTransform) {
-      touchStartPos.current = {
-        x: touch.clientX,
-        y: touch.clientY,
-      };
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length !== 1)
-      return;
-
-    const touch = e.touches[0];
-    let deltaX = touch.clientX - touchStartPos.current.x;
-    let deltaY = touch.clientY - touchStartPos.current.y;
-
-    // 如果在缩放的地图上，需要调整拖拽偏移以适应缩放
-    if (mapTransform && mapTransform.scale !== 1) {
-      deltaX = deltaX / mapTransform.scale;
-      deltaY = deltaY / mapTransform.scale;
-    }
-
-    // 检查是否超过拖拽阈值
-    if (!isDragging && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
-      setIsDragging(true);
-      e.preventDefault(); // 防止页面滚动
-    }
-
-    if (isDragging) {
-      e.preventDefault();
-      setDragOffset({ x: deltaX, y: deltaY });
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (isDragging && onTouchDrop) {
-      const touch = e.changedTouches[0];
-      const dropX = touch.clientX;
-      const dropY = touch.clientY;
-
-      // 如果在缩放的地图上，需要调整释放坐标
-      // 这里不需要调整，因为 onTouchDrop 会在目标组件中处理坐标转换
-      onTouchDrop(role, dropX, dropY);
-    }
-    setIsDragging(false);
-    setDragOffset({ x: 0, y: 0 });
-  };
-
-  const handleInternalDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
-    const originalElement = e.currentTarget;
-
-    // 获取元素的实际尺寸
-    const rect = originalElement.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-
-    // 设置拖拽图像的样式
-    dragImage.style.position = "absolute";
-    dragImage.style.top = "-1000px"; // 移出屏幕外
-    dragImage.style.left = "-1000px";
-    dragImage.style.width = `${width}px`;
-    dragImage.style.height = `${height}px`;
-    dragImage.style.transform = "none"; // 重置变换
-    dragImage.style.pointerEvents = "none";
-
-    document.body.appendChild(dragImage);
-
-    // 计算鼠标在元素内的相对位置，考虑地图缩放
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-
-    // 根据当前地图缩放调整偏移，确保预览图像跟随鼠标
-    // 如果在地图上，需要考虑地图的缩放和位移
-    let adjustedOffsetX = offsetX;
-    let adjustedOffsetY = offsetY;
-
-    if (mapTransform) {
-      // 对于在地图上的角色，考虑地图的变换
-      adjustedOffsetX = offsetX / mapTransform.scale;
-      adjustedOffsetY = offsetY / mapTransform.scale;
-    }
-
-    e.dataTransfer.setDragImage(dragImage, adjustedOffsetX, adjustedOffsetY);
-    e.currentTarget.classList.add("opacity-50");
-
-    // 清理拖拽图像
-    setTimeout(() => {
-      if (document.body.contains(dragImage)) {
-        document.body.removeChild(dragImage);
-      }
-    }, 0);
-
-    onDragStart(e, role);
-  };
-
-  const handleInternalDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.currentTarget.classList.remove("opacity-50");
-  };
-
-  const sizeStyles = size ? { width: `${size}px`, height: `${size}px` } : {};
-
+  const sizeStyle = { width: `${size}px`, height: `${size}px` };
   return (
     <div
-      ref={containerRef}
-      draggable
-      className={`relative aspect-square cursor-grab transition-opacity ${isDragging ? "opacity-50 z-50" : ""} ${className}`}
-      style={{
-        ...sizeStyles,
-        transform: isDragging ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : undefined,
-        position: isDragging ? "fixed" : "relative",
-        pointerEvents: isDragging ? "none" : "auto",
-      }}
-      onDragStart={handleInternalDragStart}
-      onDragEnd={handleInternalDragEnd}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      draggable={draggable}
+      className={`relative rounded-full overflow-hidden border border-base-300 bg-base-100 shadow-sm ${
+        isSelected ? "ring-2 ring-primary" : ""
+      } ${draggable ? "cursor-grab" : "cursor-pointer"}`}
+      style={sizeStyle}
+      onDragStart={event => onDragStart?.(event, role.roleId)}
+      onClick={onClick}
+      title={role.roleName}
     >
-      {showTooltip && isHovered && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded bg-base-100/90 text-xs shadow-lg text-base-content whitespace-nowrap pointer-events-none z-30">
-          {role.roleName}
-        </div>
-      )}
       <img
         src={roleAvatar?.avatarUrl}
         alt={role.roleName}
-        className="rounded-full w-full h-full pointer-events-none object-cover"
+        className="w-full h-full object-cover"
       />
     </div>
   );
 });
 
-export default function DNDMap() {
-  const roomContext = use(RoomContext);
-  const roomId = roomContext.roomId;
-  const { data: roomRolesData } = useGetRoomRoleQuery(roomId ?? -1);
-  const roomRoles = useMemo(() => roomRolesData?.data ?? [], [roomRolesData]);
-  const uploadUtil = useMemo(() => new UploadUtils(), []);
-
-  // --- 响应式状态管理 ---
-  const isCompactMode = useIsMobile();
+function useContainedImageRect(mapImgUrl: string) {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // --- 状态管理 ---
-  const [mapImg, setMapImg] = useRoomExtra(roomId ?? -1, "dndMapImg", "");
-  const [gridSize, setGridSize] = useRoomExtra(roomId ?? -1, "dndMapGridSize", { rows: 10, cols: 10 });
-  const [stampPositions, setStampPositions] = useRoomExtra<Record<string, { row: number; col: number }>>(roomId ?? -1, "dndMapStampPositions", {});
-  const [gridColor, setGridColor] = useLocalStorage("dndGridColor", "#808080");
-
-  // --- 地图变换状态 ---
-  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
-  const isPanning = useRef(false);
-  const lastPanPoint = useRef({ x: 0, y: 0 });
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-
-  // 用于对齐网格和图片的状态
   const imageRef = useRef<HTMLImageElement>(null);
-  const [imageRenderInfo, setImageRenderInfo] = useState({ top: 0, left: 0, width: 0, height: 0 });
+  const [rect, setRect] = useState({ left: 0, top: 0, width: 0, height: 0 });
 
-  // 缓存计算结果
-  const rolesById = useMemo(() => {
-    return roomRoles.reduce((acc, role) => {
-      acc[role.roleId] = role;
-      return acc;
-    }, {} as Record<string, UserRole>);
-  }, [roomRoles]);
-
-  const cellToRoleMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    Object.entries(stampPositions).forEach(([roleId, pos]) => {
-      const key = `${pos.row}-${pos.col}`;
-      map[key] = roleId;
-    });
-    return map;
-  }, [stampPositions]);
-
-  // 图标尺寸计算
-  const stampSizeOnMap = useMemo(() => {
-    const cellWidth = imageRenderInfo.width > 0 ? imageRenderInfo.width / gridSize.cols : 0;
-    const cellHeight = imageRenderInfo.height > 0 ? imageRenderInfo.height / gridSize.rows : 0;
-    return Math.min(cellWidth, cellHeight) * 0.8;
-  }, [imageRenderInfo.width, imageRenderInfo.height, gridSize.cols, gridSize.rows]);
-
-  // 移动端 RoleStamp 尺寸控制
-  const defaultRoleStampSize = useMemo(() => {
-    const isMobile = typeof window !== "undefined" && "ontouchstart" in window;
-    return isMobile ? 32 : 48; // 移动端使用小一些的尺寸
-  }, []);
-  const avatarOverlap = useMemo(() => Math.round(defaultRoleStampSize * 0.3), [defaultRoleStampSize]);
-  const [hoveredRoleId, setHoveredRoleId] = useState<number | null>(null);
-
-  // 筛选未放置的角色
-  const unplacedRoles = useMemo(() => {
-    return roomRoles.filter(role => !stampPositions[role.roleId]);
-  }, [roomRoles, stampPositions]);
-
-  // --- 事件处理 ---
-  const handleUpdateMapImg = useCallback(async (img: File) => {
-    const imgUrl = await uploadUtil.uploadImg(img);
-    setMapImg(imgUrl);
-    setTransform({ scale: 1, x: 0, y: 0 });
-  }, [uploadUtil, setMapImg]);
-
-  // --- 拖拽逻辑 ---
-  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, role: UserRole) => {
-    e.dataTransfer.setData("application/json", JSON.stringify(role));
-    e.dataTransfer.effectAllowed = "move";
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  }, []);
-
-  const handleDropOnGrid = useCallback((e: React.DragEvent<HTMLDivElement>, row: number, col: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const roleJSON = e.dataTransfer.getData("application/json");
-    if (roleJSON) {
-      const role: UserRole = JSON.parse(roleJSON);
-      setStampPositions({ ...stampPositions, [role.roleId]: { row, col } });
-    }
-  }, [stampPositions, setStampPositions]);
-
-  const handleDropOnPanel = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const roleJSON = e.dataTransfer.getData("application/json");
-    if (roleJSON) {
-      const role: UserRole = JSON.parse(roleJSON);
-      const { [role.roleId]: _, ...rest } = stampPositions;
-      setStampPositions(rest);
-    }
-  }, [stampPositions, setStampPositions]);
-
-  // 移动端触摸拖拽释放处理
-  const handleTouchDrop = useCallback((role: UserRole, x: number, y: number) => {
-    const mapContainer = mapContainerRef.current;
-    if (!mapContainer)
-      return;
-
-    const containerRect = mapContainer.getBoundingClientRect();
-    const relativeX = x - containerRect.left;
-    const relativeY = y - containerRect.top;
-
-    // 转换到缩放后的坐标系
-    const scaledX = (relativeX - transform.x) / transform.scale;
-    const scaledY = (relativeY - transform.y) / transform.scale;
-
-    // 检查是否在图片区域内
-    if (scaledX >= imageRenderInfo.left
-      && scaledX <= imageRenderInfo.left + imageRenderInfo.width
-      && scaledY >= imageRenderInfo.top
-      && scaledY <= imageRenderInfo.top + imageRenderInfo.height) {
-      // 计算网格位置
-      const gridX = scaledX - imageRenderInfo.left;
-      const gridY = scaledY - imageRenderInfo.top;
-      const col = Math.floor((gridX / imageRenderInfo.width) * gridSize.cols);
-      const row = Math.floor((gridY / imageRenderInfo.height) * gridSize.rows);
-
-      if (row >= 0 && row < gridSize.rows && col >= 0 && col < gridSize.cols) {
-        setStampPositions({ ...stampPositions, [role.roleId]: { row, col } });
-        return;
-      }
-    }
-
-    // 如果不在有效区域内，移除角色
-    const { [role.roleId]: _, ...rest } = stampPositions;
-    setStampPositions(rest);
-  }, [transform, imageRenderInfo, gridSize, stampPositions, setStampPositions]);
-
-  // --- 平移和缩放逻辑（支持鼠标和触摸） ---
-  const getEventPosition = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
-    if ("touches" in e && e.touches.length > 0) {
-      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }
-    return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
-  };
-
-  // 双指触摸状态
-  const lastTouchDistance = useRef(0);
-  const lastTouchCenter = useRef({ x: 0, y: 0 });
-
-  // 计算两点间距离
-  const getTouchDistance = (touches: React.TouchList) => {
-    if (touches.length < 2)
-      return 0;
-    const touch1 = touches[0];
-    const touch2 = touches[1];
-    return Math.sqrt(
-      (touch2.clientX - touch1.clientX) ** 2
-      + (touch2.clientY - touch1.clientY) ** 2,
-    );
-  };
-
-  // 计算两点中心
-  const getTouchCenter = (touches: React.TouchList) => {
-    if (touches.length < 2)
-      return { x: 0, y: 0 };
-    const touch1 = touches[0];
-    const touch2 = touches[1];
-    return {
-      x: (touch1.clientX + touch2.clientX) / 2,
-      y: (touch1.clientY + touch2.clientY) / 2,
-    };
-  };
-
-  const handlePointerDown = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.closest("[draggable=\"true\"]")) {
-      return;
-    }
-
-    if ("touches" in e) {
-      if (e.touches.length === 2) {
-        // 双指缩放模式 - 立即禁用平移并初始化缩放状态
-        e.preventDefault();
-        isPanning.current = false; // 立即禁用平移
-        const distance = getTouchDistance(e.touches);
-        const center = getTouchCenter(e.touches);
-        lastTouchDistance.current = distance;
-        lastTouchCenter.current = center;
-      }
-      else if (e.touches.length === 1) {
-        // 单指平移模式 - 仅在无缩放时启用
-        if (lastTouchDistance.current === 0) {
-          isPanning.current = true;
-          const position = getEventPosition(e);
-          lastPanPoint.current = position;
-        }
-      }
-    }
-    else {
-      // 鼠标事件
-      e.preventDefault();
-      isPanning.current = true;
-      const position = getEventPosition(e);
-      lastPanPoint.current = position;
-    }
-  };
-
-  const handlePointerMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    if ("touches" in e) {
-      if (e.touches.length === 2) {
-        // 双指缩放 - 高灵敏度处理
-        e.preventDefault();
-        isPanning.current = false; // 确保禁用平移
-
-        const distance = getTouchDistance(e.touches);
-        const center = getTouchCenter(e.touches);
-
-        // 降低初始检测阈值，让缩放更容易触发
-        if (lastTouchDistance.current > 5) { // 从 > 0 降低到 > 5
-          const scaleChange = distance / lastTouchDistance.current;
-          // 大幅提高缩放灵敏度，使用更强的指数放大
-          const enhancedScaleChange = scaleChange ** 2.5; // 从1.5提高到2.5
-          const newScale = Math.min(Math.max(0.2, transform.scale * enhancedScaleChange), 5);
-
-          // 以双指中心为缩放原点
-          const container = mapContainerRef.current;
-          if (container) {
-            const rect = container.getBoundingClientRect();
-            const centerX = center.x - rect.left;
-            const centerY = center.y - rect.top;
-
-            const newX = transform.x + (centerX - transform.x) * (1 - newScale / transform.scale);
-            const newY = transform.y + (centerY - transform.y) * (1 - newScale / transform.scale);
-
-            setTransform({ scale: newScale, x: newX, y: newY });
-          }
-        }
-
-        lastTouchDistance.current = distance;
-        lastTouchCenter.current = center;
-      }
-      else if (e.touches.length === 1 && isPanning.current && lastTouchDistance.current === 0) {
-        // 单指平移 - 仅在非缩放状态下执行
-        e.preventDefault();
-        const position = getEventPosition(e);
-        const dx = position.x - lastPanPoint.current.x;
-        const dy = position.y - lastPanPoint.current.y;
-        setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-        lastPanPoint.current = position;
-      }
-    }
-    else if (isPanning.current) {
-      // 鼠标平移
-      const position = getEventPosition(e);
-      const dx = position.x - lastPanPoint.current.x;
-      const dy = position.y - lastPanPoint.current.y;
-      setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-      lastPanPoint.current = position;
-    }
-  };
-
-  const handlePointerUpOrLeave = () => {
-    isPanning.current = false;
-    // 更快的缩放状态重置，为下次手势做准备
-    lastTouchDistance.current = 0;
-    lastTouchCenter.current = { x: 0, y: 0 };
-  };
-
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    const container = mapContainerRef.current;
-    if (!container)
-      return;
-    // 提高鼠标滚轮缩放灵敏度
-    const scaleAmount = -e.deltaY * 0.002; // 从 0.001 提高到 0.002
-    const newScale = Math.min(Math.max(0.2, transform.scale + scaleAmount), 5);
-    const rect = container.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const newX = transform.x + (mouseX - transform.x) * (1 - newScale / transform.scale);
-    const newY = transform.y + (mouseY - transform.y) * (1 - newScale / transform.scale);
-    setTransform({ scale: newScale, x: newX, y: newY });
-  };
-
-  const handleResetClick = () => {
-    confirmToast(() => {
-      setStampPositions({});
-      setMapImg("");
-    }, "此操作会清除地图和所有角色位置。", "确认重置");
-  };
-
-  // 计算图片实际渲染位置和尺寸的函数 ---
-  const calculateImagePosition = () => {
+  const updateRect = useCallback(() => {
+    // Align grid overlay to the rendered image area (object-contain letterboxing).
+    const container = containerRef.current;
     const image = imageRef.current;
-    const container = mapContainerRef.current;
-    if (!image || !container || !image.complete)
+    if (!container || !image || !image.complete) {
       return;
-
+    }
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
-    const { naturalWidth, naturalHeight } = image;
+    if (containerWidth <= 0 || containerHeight <= 0) {
+      return;
+    }
+
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
 
     const containerRatio = containerWidth / containerHeight;
     const imageRatio = naturalWidth / naturalHeight;
-
     let width = 0;
     let height = 0;
-    let top = 0;
     let left = 0;
+    let top = 0;
 
     if (imageRatio > containerRatio) {
-      // 图片比容器更宽，宽度撑满，上下留白
       width = containerWidth;
       height = width / imageRatio;
       top = (containerHeight - height) / 2;
       left = 0;
     }
     else {
-      // 图片比容器更高或比例相同，高度撑满，左右留白
       height = containerHeight;
       width = height * imageRatio;
       left = (containerWidth - width) / 2;
       top = 0;
     }
-    setImageRenderInfo({ width, height, top, left });
-  };
+    setRect({ left, top, width, height });
+  }, []);
 
-  // 使用 useLayoutEffect 在渲染前计算，防止闪烁 ---
   useLayoutEffect(() => {
-    // 图片加载完成时重新计算
     const image = imageRef.current;
-    const container = mapContainerRef.current;
-
-    if (image) {
-      image.addEventListener("load", calculateImagePosition);
+    const container = containerRef.current;
+    if (!container) {
+      return;
     }
 
-    // 窗口大小改变时重新计算
-    window.addEventListener("resize", calculateImagePosition);
+    const handleLoad = () => updateRect();
+    image?.addEventListener("load", handleLoad);
+    const observer = new ResizeObserver(() => updateRect());
+    observer.observe(container);
+    updateRect();
 
-    // 使用 ResizeObserver 监听容器大小变化
-    let resizeObserver: ResizeObserver | null = null;
-    if (container) {
-      resizeObserver = new ResizeObserver(() => {
-        calculateImagePosition();
-      });
-      resizeObserver.observe(container);
-    }
-
-    // 初始计算一次
-    calculateImagePosition();
-
-    // 清理
     return () => {
-      if (image) {
-        image.removeEventListener("load", calculateImagePosition);
-      }
-      window.removeEventListener("resize", calculateImagePosition);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
+      image?.removeEventListener("load", handleLoad);
+      observer.disconnect();
     };
-  }, [mapImg]); // 当图片源改变时，重新设置监听
+  }, [mapImgUrl, updateRect]);
 
-  // --- 渲染逻辑 ---
-  if (!mapImg) {
+  return { containerRef, imageRef, rect };
+}
+
+function buildCellKey(rowIndex: number, colIndex: number) {
+  return `${rowIndex}-${colIndex}`;
+}
+
+export default function DNDMap({ roomId: roomIdProp, spaceId: spaceIdProp, variant = "embedded" }: DNDMapProps) {
+  const roomContext = use(RoomContext);
+  const roomId = roomIdProp ?? roomContext.roomId ?? -1;
+  const spaceId = spaceIdProp ?? roomContext.spaceId;
+  const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const uploadUtil = useMemo(() => new UploadUtils(), []);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+
+  const { data: roomRolesData } = useGetRoomRoleQuery(roomId);
+  const roomRoles = useMemo(() => roomRolesData?.data ?? [], [roomRolesData]);
+
+  const mapQuery = useQuery({
+    queryKey: roomDndMapQueryKey(roomId),
+    queryFn: () => fetchRoomDndMap(roomId),
+    enabled: roomId > 0,
+  });
+
+  const map = mapQuery.data ?? null;
+  const gridRows = map?.gridRows ?? DEFAULT_GRID_ROWS;
+  const gridCols = map?.gridCols ?? DEFAULT_GRID_COLS;
+  const gridColor = map?.gridColor ?? DEFAULT_GRID_COLOR;
+
+  const tokens = useMemo(() => map?.tokens ?? [], [map?.tokens]);
+  const tokenByRoleId = useMemo(() => {
+    const map = new Map<number, RoomDndMapToken>();
+    tokens.forEach(token => map.set(token.roleId, token));
+    return map;
+  }, [tokens]);
+
+  const roleByCellKey = useMemo(() => {
+    const map = new Map<string, RoomDndMapToken>();
+    tokens.forEach((token) => {
+      map.set(buildCellKey(token.rowIndex, token.colIndex), token);
+    });
+    return map;
+  }, [tokens]);
+
+  const rolesById = useMemo(() => {
+    return roomRoles.reduce((acc, role) => {
+      acc[role.roleId] = role;
+      return acc;
+    }, {} as Record<number, UserRole>);
+  }, [roomRoles]);
+
+  const unplacedRoles = useMemo(() => {
+    return roomRoles.filter(role => !tokenByRoleId.has(role.roleId));
+  }, [roomRoles, tokenByRoleId]);
+
+  const { containerRef, imageRef, rect } = useContainedImageRect(map?.mapImgUrl ?? "");
+
+  const tokenSize = useMemo(() => {
+    if (rect.width <= 0 || rect.height <= 0) {
+      return isMobile ? 28 : 40;
+    }
+    const cellWidth = rect.width / gridCols;
+    const cellHeight = rect.height / gridRows;
+    const size = Math.min(cellWidth, cellHeight) * 0.78;
+    return Math.max(isMobile ? 24 : 32, Math.floor(size));
+  }, [gridCols, gridRows, rect.height, rect.width, isMobile]);
+
+  const mapUpsertMutation = useMutation({
+    mutationFn: upsertRoomDndMap,
+    onMutate: (payload) => {
+      queryClient.setQueryData(roomDndMapQueryKey(roomId), prev => (
+        applyRoomDndMapChange(prev as RoomDndMapSnapshot | null, {
+          roomId,
+          op: "map_upsert",
+          map: {
+            mapImgUrl: payload.mapImgUrl,
+            gridRows: payload.gridRows,
+            gridCols: payload.gridCols,
+            gridColor: payload.gridColor,
+          },
+          clearTokens: payload.clearTokens,
+        })
+      ));
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: roomDndMapQueryKey(roomId) });
+      toast.error("地图更新失败，请重试");
+    },
+    onSuccess: (data) => {
+      if (data) {
+        queryClient.setQueryData(roomDndMapQueryKey(roomId), data);
+      }
+    },
+  });
+
+  const mapClearMutation = useMutation({
+    mutationFn: () => clearRoomDndMap(roomId),
+    onMutate: () => {
+      queryClient.setQueryData(roomDndMapQueryKey(roomId), null);
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: roomDndMapQueryKey(roomId) });
+      toast.error("清空地图失败，请重试");
+    },
+  });
+
+  const tokenUpsertMutation = useMutation({
+    mutationFn: upsertRoomDndMapToken,
+    onMutate: (payload) => {
+      queryClient.setQueryData(roomDndMapQueryKey(roomId), prev => (
+        applyRoomDndMapChange(prev as RoomDndMapSnapshot | null, {
+          roomId,
+          op: "token_upsert",
+          token: {
+            roleId: payload.roleId,
+            rowIndex: payload.rowIndex,
+            colIndex: payload.colIndex,
+          },
+        })
+      ));
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: roomDndMapQueryKey(roomId) });
+      toast.error("更新角色位置失败");
+    },
+  });
+
+  const tokenRemoveMutation = useMutation({
+    mutationFn: removeRoomDndMapToken,
+    onMutate: (payload) => {
+      queryClient.setQueryData(roomDndMapQueryKey(roomId), prev => (
+        applyRoomDndMapChange(prev as RoomDndMapSnapshot | null, {
+          roomId,
+          op: "token_remove",
+          token: {
+            roleId: payload.roleId,
+            rowIndex: -1,
+            colIndex: -1,
+          },
+        })
+      ));
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: roomDndMapQueryKey(roomId) });
+      toast.error("移除角色失败");
+    },
+  });
+
+  const handleUploadMap = useCallback(async (file: File) => {
+    if (!roomId || roomId <= 0) {
+      return;
+    }
+    try {
+      const url = await uploadUtil.uploadImg(file);
+      if (!url) {
+        toast.error("上传失败，请重试");
+        return;
+      }
+      mapUpsertMutation.mutate({
+        roomId,
+        mapImgUrl: url,
+        gridRows: map?.gridRows ?? DEFAULT_GRID_ROWS,
+        gridCols: map?.gridCols ?? DEFAULT_GRID_COLS,
+        gridColor: map?.gridColor ?? DEFAULT_GRID_COLOR,
+        clearTokens: true,
+      });
+    }
+    catch (err) {
+      console.error(err);
+      toast.error("上传失败，请重试");
+    }
+  }, [map?.gridColor, map?.gridCols, map?.gridRows, mapUpsertMutation, roomId, uploadUtil]);
+
+  const handleReset = useCallback(() => {
+    confirmToast(() => {
+      mapClearMutation.mutate();
+      setSelectedRoleId(null);
+    }, "确认清空地图与角色位置？", "清空地图");
+  }, [mapClearMutation]);
+
+  const handleGridChange = useCallback((nextRows: number, nextCols: number) => {
+    if (!roomId || roomId <= 0 || !map) {
+      return;
+    }
+    mapUpsertMutation.mutate({
+      roomId,
+      gridRows: nextRows,
+      gridCols: nextCols,
+      gridColor,
+    });
+  }, [gridColor, map, mapUpsertMutation, roomId]);
+
+  const handleGridColorChange = useCallback((nextColor: string) => {
+    if (!roomId || roomId <= 0 || !map) {
+      return;
+    }
+    mapUpsertMutation.mutate({
+      roomId,
+      gridRows,
+      gridCols,
+      gridColor: nextColor,
+    });
+  }, [gridCols, gridRows, map, mapUpsertMutation, roomId]);
+
+  const handleRoleDragStart = useCallback((event: React.DragEvent<HTMLDivElement>, roleId: number) => {
+    event.dataTransfer.setData("text/plain", String(roleId));
+    event.dataTransfer.effectAllowed = "move";
+  }, []);
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleRemoveRole = useCallback((roleId: number) => {
+    if (!roomId || roomId <= 0) {
+      return;
+    }
+    tokenRemoveMutation.mutate({ roomId, roleId });
+    if (selectedRoleId === roleId) {
+      setSelectedRoleId(null);
+    }
+  }, [roomId, selectedRoleId, tokenRemoveMutation]);
+
+  const handlePlaceRole = useCallback((roleId: number, rowIndex: number, colIndex: number) => {
+    if (!roomId || roomId <= 0) {
+      return;
+    }
+    const occupant = roleByCellKey.get(buildCellKey(rowIndex, colIndex));
+    if (occupant && occupant.roleId !== roleId) {
+      handleRemoveRole(occupant.roleId);
+    }
+    tokenUpsertMutation.mutate({
+      roomId,
+      roleId,
+      rowIndex,
+      colIndex,
+    });
+  }, [handleRemoveRole, roleByCellKey, roomId, tokenUpsertMutation]);
+
+  const handleCellDrop = useCallback((event: React.DragEvent<HTMLDivElement>, rowIndex: number, colIndex: number) => {
+    event.preventDefault();
+    const roleId = Number(event.dataTransfer.getData("text/plain"));
+    if (!Number.isFinite(roleId) || roleId <= 0) {
+      return;
+    }
+    handlePlaceRole(roleId, rowIndex, colIndex);
+  }, [handlePlaceRole]);
+
+  const handleCellClick = useCallback((rowIndex: number, colIndex: number) => {
+    if (!isMobile || !selectedRoleId) {
+      return;
+    }
+    handlePlaceRole(selectedRoleId, rowIndex, colIndex);
+    setSelectedRoleId(null);
+  }, [handlePlaceRole, isMobile, selectedRoleId]);
+
+  const handleTokenDropZone = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const roleId = Number(event.dataTransfer.getData("text/plain"));
+    if (!Number.isFinite(roleId) || roleId <= 0) {
+      return;
+    }
+    handleRemoveRole(roleId);
+  }, [handleRemoveRole]);
+
+  const handleCopyRef = useCallback(async () => {
+    if (!roomId || !spaceId) {
+      toast.error("无法生成引用链接");
+      return;
+    }
+    const url = `${window.location.origin}/room-map/${spaceId}/${roomId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("已复制地图引用");
+    }
+    catch (err) {
+      console.error(err);
+      toast.error("复制失败，请手动复制");
+    }
+  }, [roomId, spaceId]);
+
+  if (mapQuery.isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-base-200">
-        <div className="text-center">
-          <p className="text-sm mb-2">请上传地图</p>
-          <ImgUploader setImg={img => handleUpdateMapImg(img)}>
+        <span className="loading loading-spinner loading-md" />
+      </div>
+    );
+  }
+
+  if (!map?.mapImgUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-base-200">
+        <div className="text-center space-y-2">
+          <p className="text-sm">请上传地图</p>
+          <ImgUploader setImg={file => handleUploadMap(file)}>
             <button className="btn btn-primary" type="button">上传地图</button>
           </ImgUploader>
         </div>
@@ -583,199 +449,172 @@ export default function DNDMap() {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full bg-base-200 flex flex-col overflow-hidden"
-    >
-      {/* 主地图区域 */}
+    <div className="w-full h-full bg-base-200 flex flex-col overflow-hidden">
       <div
-        ref={mapContainerRef}
-        className="relative overflow-hidden cursor-move flex-1 w-full min-h-0"
-        onMouseDown={handlePointerDown}
-        onMouseMove={handlePointerMove}
-        onMouseUp={handlePointerUpOrLeave}
-        onMouseLeave={handlePointerUpOrLeave}
-        onTouchStart={handlePointerDown}
-        onTouchMove={handlePointerMove}
-        onTouchEnd={handlePointerUpOrLeave}
-        onWheel={handleWheel}
-        style={{ touchAction: "none" }}
+        ref={containerRef}
+        className="relative flex-1 overflow-hidden bg-base-300/40"
       >
+        <img
+          ref={imageRef}
+          src={map.mapImgUrl}
+          alt="地图"
+          className="w-full h-full object-contain"
+        />
         <div
-          className="w-full h-full"
+          className="absolute grid"
           style={{
-            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-            transformOrigin: "0 0",
+            left: `${rect.left}px`,
+            top: `${rect.top}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+            gridTemplateRows: `repeat(${gridRows}, 1fr)`,
+            gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
           }}
         >
-          <img ref={imageRef} src={mapImg} alt="无法加载地图" className="w-full h-full object-contain" />
-          <div
-            className="absolute grid"
-            style={{
-              top: `${imageRenderInfo.top}px`,
-              left: `${imageRenderInfo.left}px`,
-              width: `${imageRenderInfo.width}px`,
-              height: `${imageRenderInfo.height}px`,
-              gridTemplateRows: `repeat(${gridSize.rows}, 1fr)`,
-              gridTemplateColumns: `repeat(${gridSize.cols}, 1fr)`,
-            }}
-          >
-            {Array.from({ length: gridSize.rows }).map((_, row) =>
-              Array.from({ length: gridSize.cols }).map((_, col) => {
-                const cellKey = `${row}-${col}`;
-                const roleIdInCell = cellToRoleMap[cellKey];
-                const roleInCell = roleIdInCell ? rolesById[roleIdInCell] : null;
-                return (
-                  <div
-                    key={cellKey}
-                    className="border flex items-center justify-center border-dashed"
-                    style={{ border: `1px dashed ${withHexAlpha(gridColor, "CC")}` }}
-                    onDragOver={handleDragOver}
-                    onDrop={e => handleDropOnGrid(e, row, col)}
-                  >
-                    {roleInCell && (
-                      <RoleStamp
-                        role={roleInCell}
-                        onDragStart={handleDragStart}
-                        onTouchDrop={handleTouchDrop}
-                        scale={transform.scale}
-                        size={stampSizeOnMap}
-                        mapTransform={transform}
-                      />
-                    )}
-                  </div>
-                );
-              }),
-            )}
-          </div>
+          {Array.from({ length: gridRows }).map((_, rowIndex) => (
+            Array.from({ length: gridCols }).map((__, colIndex) => {
+              const cellToken = roleByCellKey.get(buildCellKey(rowIndex, colIndex));
+              const role = cellToken ? rolesById[cellToken.roleId] : null;
+              return (
+                <div
+                  key={buildCellKey(rowIndex, colIndex)}
+                  className="border border-dashed flex items-center justify-center"
+                  style={{ borderColor: `${gridColor}CC` }}
+                  onDragOver={handleDragOver}
+                  onDrop={event => handleCellDrop(event, rowIndex, colIndex)}
+                  onClick={() => handleCellClick(rowIndex, colIndex)}
+                >
+                  {role && (
+                    <RoleToken
+                      role={role}
+                      size={tokenSize}
+                      draggable
+                      onDragStart={handleRoleDragStart}
+                    />
+                  )}
+                </div>
+              );
+            })
+          ))}
         </div>
       </div>
 
-      {/* 控制面板 */}
       <div
-        className={`p-4 flex flex-col shadow-lg bg-base-100 border-t border-base-300 ${
-          isCompactMode ? "w-full flex-1 overflow-y-auto" : "w-full max-h-[45%] overflow-y-auto"
+        className={`bg-base-100 border-t border-base-300 p-4 flex flex-col gap-4 ${
+          variant === "frame" ? "min-h-[220px]" : "max-h-[45%]"
         }`}
-        onDragOver={handleDragOver}
-        onDrop={handleDropOnPanel}
       >
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-bold">地图编辑器</h2>
-          <button
-            className="btn btn-error btn-xs"
-            type="button"
-            onClick={handleResetClick}
-          >
-            重置地图
-          </button>
-        </div>
-        <div className={`flex flex-col flex-1 ${isCompactMode ? "" : "overflow-auto"}`}>
-          {/* 网格设置区域 */}
-          <div className={`${isCompactMode ? "grid grid-cols-2 gap-3 flex-shrink-0" : "flex items-center gap-3 flex-shrink-0"}`}>
-            <label className={`input bg-base-200 rounded-md border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300 ${
-              isCompactMode ? "w-full" : "w-40"
-            }`}
-            >
-              <span className="text-xs text-base-content/60">行数</span>
-              <span aria-hidden className="mx-1 h-4 w-px bg-base-content/20" />
-              <input
-                type="number"
-                value={gridSize.rows}
-                onChange={(e) => {
-                  const next = Number.parseInt(e.target.value);
-                  if (Number.isNaN(next)) {
-                    return;
-                  }
-                  setGridSize({ ...gridSize, rows: Math.min(20, next) });
-                }}
-                className="grow bg-transparent rounded-md outline-none ring-0"
-              />
-            </label>
-            <label className={`input bg-base-200 rounded-md border border-base-300 focus-within:outline-none focus-within:ring-0 focus-within:border-base-300 ${
-              isCompactMode ? "w-full" : "w-40"
-            }`}
-            >
-              <span className="text-xs text-base-content/60">列数</span>
-              <span aria-hidden className="mx-1 h-4 w-px bg-base-content/20" />
-              <input
-                type="number"
-                value={gridSize.cols}
-                onChange={(e) => {
-                  const next = Number.parseInt(e.target.value);
-                  if (Number.isNaN(next)) {
-                    return;
-                  }
-                  setGridSize({ ...gridSize, cols: Math.min(20, next) });
-                }}
-                className="grow bg-transparent rounded-md outline-none ring-0"
-              />
-            </label>
-
-            <div className={`rounded-md ${
-              isCompactMode ? "col-span-2 flex flex-col items-center gap-2" : "flex items-center gap-2"
-            }`}
-            >
-              <span className="text-xs text-base-content/60">网格线</span>
-              <div className="flex items-center gap-1.5">
-                {GRID_COLOR_OPTIONS.map((option) => {
-                  const isSelected = gridColor.toLowerCase() === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-label={option.label}
-                      aria-pressed={isSelected}
-                      onClick={() => setGridColor(option.value)}
-                      className={`size-3 rounded-full border ${option.className} shadow-sm transition-transform ${
-                        isSelected ? "ring-2 ring-primary/60 ring-offset-2 ring-offset-base-100" : ""
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* 角色区域 */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className={`divider ${isCompactMode ? "divider-horizontal" : ""}`}></div>
-            {!isCompactMode && (
-              <h3 className="font-semibold pb-2">角色 (拖动到地图)</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-semibold">地图编辑</h2>
+          <div className="flex items-center gap-2">
+            {spaceId && roomId > 0 && (
+              <button className="btn btn-ghost btn-xs" type="button" onClick={handleCopyRef}>
+                复制引用
+              </button>
             )}
-            <div className={`flex-grow pt-6 ${
-              isCompactMode ? "min-w-0" : ""
-            }`}
-            >
-              <div className="flex items-center flex-nowrap overflow-x-auto pb-2">
-                {unplacedRoles.map((role, index) => {
-                  const isHovered = hoveredRoleId === role.roleId;
-                  return (
-                    <div
-                      key={role.roleId}
-                      className="transition-transform"
-                      style={{
-                        marginLeft: index === 0 ? 0 : -avatarOverlap,
-                        zIndex: isHovered ? 50 : unplacedRoles.length - index,
-                        transform: isHovered ? "translateY(-6px)" : undefined,
-                      }}
-                      onMouseEnter={() => setHoveredRoleId(role.roleId)}
-                      onMouseLeave={() => setHoveredRoleId(null)}
-                    >
-                      <RoleStamp
-                        role={role}
-                        onDragStart={handleDragStart}
-                        onTouchDrop={handleTouchDrop}
-                        size={defaultRoleStampSize}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+            <button className="btn btn-error btn-xs" type="button" onClick={handleReset}>
+              清空地图
+            </button>
+          </div>
+        </div>
+
+        <div className={`flex flex-wrap gap-3 ${isMobile ? "" : "items-center"}`}>
+          <label className="input input-sm bg-base-200 border border-base-300">
+            <span className="text-xs text-base-content/60">行</span>
+            <span aria-hidden className="mx-2 h-4 w-px bg-base-content/20" />
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={gridRows}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (Number.isNaN(next)) {
+                  return;
+                }
+                handleGridChange(Math.min(50, Math.max(1, next)), gridCols);
+              }}
+              className="w-16 bg-transparent outline-none"
+            />
+          </label>
+          <label className="input input-sm bg-base-200 border border-base-300">
+            <span className="text-xs text-base-content/60">列</span>
+            <span aria-hidden className="mx-2 h-4 w-px bg-base-content/20" />
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={gridCols}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (Number.isNaN(next)) {
+                  return;
+                }
+                handleGridChange(gridRows, Math.min(50, Math.max(1, next)));
+              }}
+              className="w-16 bg-transparent outline-none"
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-base-content/60">网格色</span>
+            <div className="flex items-center gap-1.5">
+              {GRID_COLOR_OPTIONS.map((option) => {
+                const isSelected = gridColor.toLowerCase() === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-label={option.label}
+                    aria-pressed={isSelected}
+                    className={`size-3 rounded-full border ${option.className} ${
+                      isSelected ? "ring-2 ring-primary/60 ring-offset-2 ring-offset-base-100" : ""
+                    }`}
+                    onClick={() => handleGridColorChange(option.value)}
+                  />
+                );
+              })}
             </div>
           </div>
+          <ImgUploader setImg={file => handleUploadMap(file)}>
+            <button className="btn btn-sm btn-outline" type="button">更换地图</button>
+          </ImgUploader>
+        </div>
 
-          {/* 颜色和重置区域 */}
-          <div className={`flex-shrink-0 ${isCompactMode ? "pb-2" : "pb-2"}`} />
+        <div className="flex flex-col gap-2 min-h-0">
+          <div className="text-xs text-base-content/60">角色（拖拽到地图）</div>
+          <div
+            className="flex items-center gap-2 flex-wrap"
+            onDragOver={handleDragOver}
+            onDrop={handleTokenDropZone}
+          >
+            {unplacedRoles.length === 0 && (
+              <span className="text-xs text-base-content/50">暂无可放置角色</span>
+            )}
+            {unplacedRoles.map(role => (
+              <RoleToken
+                key={role.roleId}
+                role={role}
+                size={isMobile ? 32 : 40}
+                draggable={!isMobile}
+                isSelected={isMobile && selectedRoleId === role.roleId}
+                onDragStart={handleRoleDragStart}
+                onClick={() => {
+                  if (!isMobile) {
+                    return;
+                  }
+                  setSelectedRoleId(prev => (prev === role.roleId ? null : role.roleId));
+                }}
+              />
+            ))}
+          </div>
+          {!isMobile && (
+            <div className="text-xs text-base-content/50">拖到此处可移除角色</div>
+          )}
+          {isMobile && selectedRoleId && (
+            <div className="text-xs text-primary">
+              点击格子放置角色，或再次点击头像取消选择
+            </div>
+          )}
         </div>
       </div>
     </div>

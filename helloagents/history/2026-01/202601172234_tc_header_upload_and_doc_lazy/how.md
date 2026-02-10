@@ -3,7 +3,7 @@
 ## 技术方案
 
 ### 1) tc_header 图片上传（裁剪弹窗不显示）
-- 根因：`app/root.tsx` 在 `blocksuite-frame` 分支直接 `return <Outlet />`，未渲染 `modal-root`，导致 `PopWindow` 通过 `Mounter(targetId="modal-root")` 挂载失败，裁剪弹窗被直接丢弃。
+- 根因：`app/root.tsx` 在 `blocksuite-frame` 分支直接 `return <Outlet />`，未渲染 `modal-root`，导致 `ToastWindow` 通过 `Mounter(targetId="modal-root")` 挂载失败，裁剪弹窗被直接丢弃。
 - 修复：在 `blocksuite-frame` 分支同样渲染 `modal-root`（不引入全局 provider），让 Portal 弹窗可用。
 
 ### 2) 空间文档懒加载（避免全量加载）

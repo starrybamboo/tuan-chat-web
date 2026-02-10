@@ -9,7 +9,7 @@ import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descri
 import { readBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface DocCardPayload {
   docId: string;
@@ -212,7 +212,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         </button>
       </div>
 
-      <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
+      <ToastWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
         <div className="w-[min(1200px,96vw)] h-[min(86vh,900px)] bg-base-100 rounded-lg overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-2 py-1 border-b border-base-300 bg-base-100">
             <div className="text-sm opacity-80 truncate px-2">{title}</div>
@@ -236,7 +236,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             )}
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

@@ -31,8 +31,8 @@ export interface MoodRegulatorHandle {
 }
 
 const DEFAULT_LABELS: string[] = [
-  "ϲ",
-  "ŭ",
+  "喜",
+  "怒",
   "哀",
   "惧",
   "厌恶",

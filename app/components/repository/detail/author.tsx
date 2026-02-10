@@ -2,7 +2,7 @@
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useCallback, useState } from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
@@ -75,9 +75,9 @@ export default function Author({ userId }: { userId?: number }) {
 
       {/* UserDetail 弹窗 */}
       {userId && (
-        <PopWindow isOpen={isUserCardOpen} onClose={closeUserCard}>
+        <ToastWindow isOpen={isUserCardOpen} onClose={closeUserCard}>
           <UserDetail userId={userId} />
-        </PopWindow>
+        </ToastWindow>
       )}
     </div>
   );

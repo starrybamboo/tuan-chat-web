@@ -31,7 +31,9 @@ import { readBlocksuiteDocHeader } from "../docHeader";
 import { createBlocksuiteQuickSearchService } from "../quickSearchService";
 import { createTuanChatUserService } from "../services/tuanChatUserService";
 import { parseSpaceDocId } from "../spaceDocId";
+import { EmbedIframeNoCredentiallessViewOverride } from "./embedIframeNoCredentiallessViewOverride";
 import { mockEditorSetting, mockParseDocUrlService } from "./mockServices";
+import { RoomMapEmbedOptionExtension } from "./roomMapEmbedOption";
 import { ensureTCAffineEditorContainerDefined, TC_AFFINE_EDITOR_CONTAINER_TAG } from "./tcAffineEditorContainer";
 
 type WorkspaceLike = {
@@ -726,6 +728,9 @@ export function createEmbeddedAffineEditor(params: {
       convertTriggerKey: true,
       getMenus: getDocMenus as any,
     }),
+
+    RoomMapEmbedOptionExtension,
+    EmbedIframeNoCredentiallessViewOverride,
   ];
 
   // Base on upstream default specs, then add official embed synced-doc support

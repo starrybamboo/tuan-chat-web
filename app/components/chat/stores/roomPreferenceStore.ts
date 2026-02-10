@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type FigurePosition = "left" | "center" | "right" | undefined;
+import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 type RoomPreferenceState = {
   /** 是否使用气泡样式显示消息 */
@@ -110,7 +110,7 @@ function writeJson(key: string, value: unknown): void {
 }
 
 const INITIAL_STATE = {
-  useChatBubbleStyle: readBool("useChatBubbleStyle", true),
+  useChatBubbleStyle: readBool("useChatBubbleStyle", false),
   webgalLinkMode: readBool("webgalLinkMode", false),
   autoReplyMode: readBool("autoReplyMode", false),
   runModeEnabled: readBool("runModeEnabled", false),

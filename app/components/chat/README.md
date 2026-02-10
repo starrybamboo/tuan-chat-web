@@ -162,7 +162,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 为进一步减小 `RoomWindow` 体积并降低局部状态变化带来的级联重渲染，拆出以下组件：
 
 - app/components/chat/roomHeaderBar.tsx：顶部栏（返回、成员/角色/导出按钮、搜索框），内部订阅 sideDrawerStore.state
-- app/components/chat/roomPopWindows.tsx：各类 `PopWindow`（创建 Thread、添加角色、渲染窗口），并在内部订阅 `roomUiStore.isCreateThreadOpen`
+- app/components/chat/roomToastWindows.tsx：各类 `ToastWindow`（创建 Thread、添加角色、渲染窗口），并在内部订阅 `roomUiStore.isCreateThreadOpen`
 - app/components/chat/roomComposerPanel.tsx：输入区整块 UI（工具栏 + 输入框 + 附件预览等），内部订阅 sideDrawerStore.state
 - app/components/chat/roomSideDrawerGuards.tsx：抽屉相关副作用编排（如切换空间/跑团模式时自动关闭特定抽屉），避免 `RoomWindow` 订阅 sideDrawerStore.state
 - app/components/chat/realtimeRenderOrchestrator.tsx：RealtimeRender 编排与 store runtime 镜像，隔离 `useEffect` 与高频运行态

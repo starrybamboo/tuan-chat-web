@@ -2,6 +2,7 @@ type RealtimeRenderSettingsRow = {
   key: "global";
   ttsApiUrl: string;
   terrePort: number | null;
+  autoFigureEnabled?: boolean;
   updatedAt: number;
 };
 
@@ -33,6 +34,7 @@ function openSettingsDb(): Promise<IDBDatabase> {
 export async function getRealtimeRenderSettings(): Promise<{
   ttsApiUrl: string;
   terrePort: number | null;
+  autoFigureEnabled?: boolean;
 } | null> {
   if (!canUseIndexedDB()) {
     return null;
@@ -46,7 +48,13 @@ export async function getRealtimeRenderSettings(): Promise<{
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       const row = request.result as RealtimeRenderSettingsRow | undefined;
-      resolve(row ? { ttsApiUrl: row.ttsApiUrl, terrePort: row.terrePort } : null);
+      resolve(row
+        ? {
+            ttsApiUrl: row.ttsApiUrl,
+            terrePort: row.terrePort,
+            autoFigureEnabled: row.autoFigureEnabled,
+          }
+        : null);
     };
     request.onerror = () => reject(request.error);
     tx.oncomplete = () => db.close();
@@ -55,8 +63,9 @@ export async function getRealtimeRenderSettings(): Promise<{
 }
 
 export async function setRealtimeRenderSettings(settings: {
-  ttsApiUrl: string;
-  terrePort: number | null;
+  ttsApiUrl?: string;
+  terrePort?: number | null;
+  autoFigureEnabled?: boolean;
 }): Promise<void> {
   if (!canUseIndexedDB()) {
     return;
@@ -65,18 +74,33 @@ export async function setRealtimeRenderSettings(settings: {
   const db = await openSettingsDb();
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
+  const request = store.get(KEY);
 
-  store.put({
-    key: KEY,
-    ttsApiUrl: settings.ttsApiUrl,
-    terrePort: settings.terrePort,
-    updatedAt: Date.now(),
-  } satisfies RealtimeRenderSettingsRow);
+  // Merge partial updates with existing row to avoid clobbering other settings.
+  request.onsuccess = () => {
+    const row = request.result as RealtimeRenderSettingsRow | undefined;
+    const nextRow: RealtimeRenderSettingsRow = {
+      key: KEY,
+      ttsApiUrl: "ttsApiUrl" in settings ? settings.ttsApiUrl ?? "" : row?.ttsApiUrl ?? "",
+      terrePort: "terrePort" in settings ? settings.terrePort ?? null : row?.terrePort ?? null,
+      autoFigureEnabled: "autoFigureEnabled" in settings ? settings.autoFigureEnabled : row?.autoFigureEnabled,
+      updatedAt: Date.now(),
+    };
+
+    store.put(nextRow);
+  };
+  request.onerror = () => {
+    tx.abort();
+  };
 
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => {
       db.close();
       resolve();
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(tx.error);
     };
     tx.onerror = () => {
       db.close();

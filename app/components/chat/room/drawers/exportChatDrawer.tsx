@@ -1,3 +1,4 @@
+import type { ChatMessageResponse } from "../../../../../api";
 import type { ExportOptions } from "@/utils/exportChatMessages";
 import { ExportIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,7 +13,12 @@ import { tuanchat } from "../../../../../api/instance";
  * 聊天记录导出抽屉组件
  * 显示在房间右侧，提供导出当前聊天记录的功能
  */
-export default function ExportChatDrawer() {
+interface ExportChatDrawerProps {
+  messages?: ChatMessageResponse[];
+  onClose?: () => void;
+}
+
+export default function ExportChatDrawer({ messages, onClose }: ExportChatDrawerProps) {
   const roomContext = use(RoomContext);
   const [isExporting, setIsExporting] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
@@ -22,7 +28,13 @@ export default function ExportChatDrawer() {
   });
 
   // 获取历史消息
-  const historyMessages = useMemo(() => roomContext.chatHistory?.messages ?? [], [roomContext.chatHistory?.messages]);
+  const historyMessages = useMemo(() => {
+    const base = messages ?? roomContext.chatHistory?.messages ?? [];
+    if (!messages) {
+      return base;
+    }
+    return [...base].sort((a, b) => a.message.position - b.message.position);
+  }, [messages, roomContext.chatHistory?.messages]);
 
   // 获取所有角色信息用于导出
   const getRolesQueries = useGetRolesQueries(
@@ -129,6 +141,7 @@ export default function ExportChatDrawer() {
 
       exportChatMessages(historyMessages, allRoleMap, userMap, fileName, exportOptions);
       toast.success("导出成功!");
+      onClose?.();
     }
     catch (error) {
       console.error("导出失败:", error);
@@ -155,12 +168,21 @@ export default function ExportChatDrawer() {
 
   return (
     <div className="flex flex-col h-full p-4 gap-2">
-      <div className="flex flex-col py-2">
+      <div className="flex items-center justify-between py-2">
         <h3 className="font-semibold">
           <ExportIcon className="size-5 inline mr-2" />
           导出聊天记录-
           {historyMessages.length}
         </h3>
+        {onClose && (
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost btn-circle"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div className="divider my-0"></div>
