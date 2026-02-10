@@ -158,6 +158,18 @@ export default function WebGALPreview({
   const setMiniAvatarEnabled = useRealtimeRenderStore(state => state.setMiniAvatarEnabled);
   const autoFigureEnabled = useRealtimeRenderStore(state => state.autoFigureEnabled);
   const setAutoFigureEnabled = useRealtimeRenderStore(state => state.setAutoFigureEnabled);
+  const realtimeStatus = useRealtimeRenderStore(state => state.status);
+
+  const fallbackTitle = realtimeStatus === "initializing"
+    ? "实时渲染正在启动"
+    : realtimeStatus === "error"
+      ? "实时渲染启动失败"
+      : "实时渲染未启动";
+  const fallbackHint = realtimeStatus === "initializing"
+    ? "请稍候，正在连接 WebGAL..."
+    : realtimeStatus === "error"
+      ? "请确认 WebGAL 已启动后重试"
+      : "点击工具栏中的 WebGAL 按钮开启";
 
   if (!isActive || !previewUrl) {
     return (
@@ -190,8 +202,8 @@ export default function WebGALPreview({
         </div>
         <div className="flex-1 flex items-center justify-center text-base-content/50 text-sm">
           <div className="text-center">
-            <p>实时渲染未启动</p>
-            <p className="text-xs mt-1">点击工具栏中的 WebGAL 按钮开启</p>
+            <p>{fallbackTitle}</p>
+            <p className="text-xs mt-1">{fallbackHint}</p>
           </div>
         </div>
       </div>
