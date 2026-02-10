@@ -1,14 +1,13 @@
 import type { Rule } from "api/models/Rule";
 import { ApiError } from "api/core/ApiError";
-import { useCreateRuleMutation, useDeleteRuleMutation, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
+import { useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { EditIcon, SaveIcon, TrashIcon } from "@/icons";
+import { EditIcon, SaveIcon } from "@/icons";
 import Section from "../Editors/Section";
 import RuleCloneModal from "./RuleCloneModal";
-import RuleDeleteModal from "./RuleDeleteModal";
 import RuleExpansionModule from "./RuleExpansionModule";
 import RuleTextInfoEditor from "./RuleTextInfoEditor";
 
@@ -22,8 +21,11 @@ interface RuleEditorProps {
   onBack?: () => void;
 }
 
-const RULE_NAME_MAX_LENGTH = 20;
-const RULE_DESCRIPTION_MAX_LENGTH = 200;
+interface RuleCreatePrefillState {
+  prefillRuleName?: string;
+  prefillRuleDescription?: string;
+  prefillTemplateRuleId?: number;
+}
 
 function RuleEditorSkeleton() {
   return (
@@ -86,23 +88,35 @@ export default function RuleEditor({
   onBack,
 }: RuleEditorProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userId } = useGlobalContext();
   const createRuleMutation = useCreateRuleMutation();
   const updateRuleMutation = useUpdateRuleMutation();
-  const deleteRuleMutation = useDeleteRuleMutation();
   const [ruleEdit, setRuleEdit] = useState<Rule>({});
   const [loadedRuleId, setLoadedRuleId] = useState<number | null>(null);
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeletingRule, setIsDeletingRule] = useState(false);
   const [isSavingRule, setIsSavingRule] = useState(false);
   const [cloneVersion, setCloneVersion] = useState(0); // 用于克隆时重置编辑内容
   const [editingMap, setEditingMap] = useState<Record<string, boolean>>({});
-  const [isCreateBaseInfoReady, setIsCreateBaseInfoReady] = useState(mode !== "create");
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [editorSaveSignal, setEditorSaveSignal] = useState(0);
   const [pendingHeaderSave, setPendingHeaderSave] = useState(false);
   const handleSaveRef = useRef<() => void>(() => {});
+  const appliedPrefillLocationKeyRef = useRef<string | null>(null);
+  const appliedTemplateLocationKeyRef = useRef<string | null>(null);
+
+  const createPrefillState = (location.state ?? null) as RuleCreatePrefillState | null;
+  const prefillRuleName = typeof createPrefillState?.prefillRuleName === "string"
+    ? createPrefillState.prefillRuleName.trim()
+    : "";
+  const prefillRuleDescription = typeof createPrefillState?.prefillRuleDescription === "string"
+    ? createPrefillState.prefillRuleDescription.trim()
+    : "";
+  const prefillTemplateRuleId = typeof createPrefillState?.prefillTemplateRuleId === "number"
+    && createPrefillState.prefillTemplateRuleId > 0
+    ? createPrefillState.prefillTemplateRuleId
+    : 0;
+  const prefillTemplateQuery = useGetRuleDetailQuery(mode === "create" ? prefillTemplateRuleId : 0);
 
   const setModuleEditing = useCallback((moduleKey: string, editing: boolean) => {
     setEditingMap((prev) => {
@@ -134,7 +148,6 @@ export default function RuleEditor({
   }, [isSavingRule, navigate, onBack]);
 
   useEffect(() => {
-    setIsCreateBaseInfoReady(mode !== "create");
     setIsEditing(mode === "create");
     setPendingHeaderSave(false);
   }, [mode]);
@@ -149,17 +162,6 @@ export default function RuleEditor({
   const editorStatusBadge = mode === "create"
     ? { text: "新建规则", className: "badge-success" }
     : { text: `#${ruleEdit.ruleId}`, className: "badge-info" };
-  const canEnterCreateEditor = (ruleEdit.ruleName ?? "").trim().length > 0
-    && (ruleEdit.ruleDescription ?? "").trim().length > 0;
-
-  const handleEnterCreateEditor = () => {
-    if (!canEnterCreateEditor) {
-      toast.error("请先填写规则名称和规则描述");
-      return;
-    }
-    setIsCreateBaseInfoReady(true);
-  };
-
   function applyClonedRule(rule: Rule) {
     // 仅导入数据作为本地编辑初始值：不保留源规则 id
     // 但在 edit 模式下，保留当前正在编辑的规则 id 以及 authorId
@@ -295,48 +297,6 @@ export default function RuleEditor({
 
   handleSaveRef.current = handleSave;
 
-  async function handleDeleteRule() {
-    try {
-      const currentRuleId = ruleEdit.ruleId ?? ruleId;
-      if (typeof currentRuleId !== "number" || currentRuleId <= 0) {
-        toast.error("规则ID无效，无法删除");
-        return;
-      }
-
-      // 前端做基础作者校验（若能拿到 authorId），避免误删；最终权限仍由后端判定
-      const authorId = ruleEdit.authorId ?? ruleDetail?.authorId;
-      if (typeof authorId === "number" && authorId > 0) {
-        const loginUserId = userId ?? -1;
-        if (loginUserId <= 0) {
-          toast.error("未登录，无法删除规则");
-          return;
-        }
-        if (loginUserId !== authorId) {
-          toast.error("只有规则作者可以删除该规则");
-          return;
-        }
-      }
-
-      setIsDeletingRule(true);
-      const res = await deleteRuleMutation.mutateAsync(currentRuleId);
-      if (res?.success) {
-        setIsDeleteModalOpen(false);
-        toast.success("规则删除成功");
-        onBack ? onBack() : navigate("/role", { replace: true });
-      }
-      else {
-        toast.error(res?.errMsg || "规则删除失败");
-      }
-    }
-    catch (err) {
-      const msg = err instanceof ApiError ? err.body?.errMsg : undefined;
-      toast.error(msg || "规则删除失败");
-    }
-    finally {
-      setIsDeletingRule(false);
-    }
-  }
-
   useEffect(() => {
     // 避免新建页面还残留上一次编辑的规则内容
     if (mode !== "edit") {
@@ -362,6 +322,71 @@ export default function RuleEditor({
       setLoadedRuleId(nextRuleId);
     }
   }, [loadedRuleId, mode, ruleDetail, ruleId]);
+
+  useEffect(() => {
+    if (mode !== "create") {
+      appliedPrefillLocationKeyRef.current = null;
+      appliedTemplateLocationKeyRef.current = null;
+      return;
+    }
+
+    if (appliedPrefillLocationKeyRef.current === location.key) {
+      return;
+    }
+
+    if (!prefillRuleName || !prefillRuleDescription) {
+      return;
+    }
+
+    setRuleEdit(prev => ({
+      ...prev,
+      ruleName: prefillRuleName,
+      ruleDescription: prefillRuleDescription,
+    }));
+
+    appliedPrefillLocationKeyRef.current = location.key;
+  }, [location.key, mode, prefillRuleDescription, prefillRuleName]);
+
+  useEffect(() => {
+    if (mode !== "create") {
+      appliedTemplateLocationKeyRef.current = null;
+      return;
+    }
+
+    if (!prefillTemplateRuleId || !prefillTemplateQuery.isSuccess) {
+      return;
+    }
+
+    if (appliedTemplateLocationKeyRef.current === location.key) {
+      return;
+    }
+
+    const templateRule = prefillTemplateQuery.data?.data;
+    if (!templateRule) {
+      return;
+    }
+
+    setRuleEdit(prev => ({
+      ...prev,
+      actTemplate: templateRule.actTemplate,
+      abilityFormula: templateRule.abilityFormula,
+      skillDefault: templateRule.skillDefault,
+      basicDefault: templateRule.basicDefault,
+      dicerConfig: templateRule.dicerConfig,
+      ruleName: (prev.ruleName ?? "").trim() || prefillRuleName || templateRule.ruleName || "",
+      ruleDescription: (prev.ruleDescription ?? "").trim() || prefillRuleDescription || templateRule.ruleDescription || "",
+    }));
+
+    appliedTemplateLocationKeyRef.current = location.key;
+  }, [
+    location.key,
+    mode,
+    prefillRuleDescription,
+    prefillRuleName,
+    prefillTemplateQuery.data,
+    prefillTemplateQuery.isSuccess,
+    prefillTemplateRuleId,
+  ]);
 
   const hasEditingModule = Object.values(editingMap).some(Boolean);
 
@@ -391,98 +416,14 @@ export default function RuleEditor({
     setEditorSaveSignal(prev => prev + 1);
     setPendingHeaderSave(true);
   };
-  const shouldForceModuleEditing = isEditing ? true : undefined;
-  const moduleSaveSignal = isEditing ? editorSaveSignal : undefined;
+  const shouldForceModuleEditing = isEditing;
+  const moduleSaveSignal = editorSaveSignal;
+  const isCreateTemplateInitializing = mode === "create"
+    && prefillTemplateRuleId > 0
+    && prefillTemplateQuery.isLoading
+    && appliedTemplateLocationKeyRef.current !== location.key;
 
-  if (mode === "create" && !isCreateBaseInfoReady) {
-    const nextName = ruleEdit.ruleName ?? "";
-    const nextDescription = ruleEdit.ruleDescription ?? "";
-
-    return (
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="hidden md:flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="btn btn-lg btn-outline rounded-md btn-ghost mr-4"
-              onClick={handleBack}
-            >
-              ← 返回
-            </button>
-            <div>
-              <h1 className="font-semibold text-2xl md:text-3xl my-2">新建规则</h1>
-              <p className="text-base-content/60">先填写规则基础信息，再进入字段模板编辑</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm md:btn-lg rounded-lg"
-            onClick={handleEnterCreateEditor}
-            disabled={!canEnterCreateEditor}
-          >
-            下一步
-          </button>
-        </div>
-
-        <div className="max-md:hidden divider"></div>
-
-        <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
-          <div className="card-body space-y-6">
-            <div className="md:hidden flex items-center justify-between gap-2">
-              <h2 className="font-semibold text-xl">规则基础信息</h2>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm rounded-lg"
-                onClick={handleEnterCreateEditor}
-                disabled={!canEnterCreateEditor}
-              >
-                下一步
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold">规则名称</label>
-                <span className={`text-xs ${nextName.length >= RULE_NAME_MAX_LENGTH ? "text-error" : "text-base-content/50"}`}>
-                  {nextName.length}
-                  /
-                  {RULE_NAME_MAX_LENGTH}
-                </span>
-              </div>
-              <input
-                type="text"
-                className="input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="输入规则名称"
-                value={nextName}
-                maxLength={RULE_NAME_MAX_LENGTH}
-                onChange={e => setRuleEdit(prev => ({ ...prev, ruleName: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold">规则描述</label>
-                <span className={`text-xs ${nextDescription.length >= RULE_DESCRIPTION_MAX_LENGTH ? "text-error" : "text-base-content/50"}`}>
-                  {nextDescription.length}
-                  /
-                  {RULE_DESCRIPTION_MAX_LENGTH}
-                </span>
-              </div>
-              <textarea
-                className="textarea textarea-bordered bg-base-200 rounded-md min-h-[160px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="描述这套规则的定位和核心机制"
-                value={nextDescription}
-                maxLength={RULE_DESCRIPTION_MAX_LENGTH}
-                onChange={e => setRuleEdit(prev => ({ ...prev, ruleDescription: e.target.value }))}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isQueryLoading) {
+  if (isQueryLoading || isCreateTemplateInitializing) {
     return <RuleEditorSkeleton />;
   }
 
@@ -512,25 +453,10 @@ export default function RuleEditor({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {mode === "edit" && (
-            <div className="tooltip tooltip-bottom" data-tip="删除该规则（不可恢复）">
-              <button
-                type="button"
-                className="btn btn-error btn-sm md:btn-lg rounded-lg"
-                onClick={() => setIsDeleteModalOpen(true)}
-                disabled={isSavingRule}
-              >
-                <span className="flex items-center gap-1">
-                  <TrashIcon className="w-4 h-4" />
-                  删除
-                </span>
-              </button>
-            </div>
-          )}
           <div className="tooltip tooltip-bottom" data-tip="从已有规则导入并覆盖当前编辑">
             <button
               type="button"
-              className="btn btn-secondary btn-sm md:btn-lg rounded-lg"
+              className="btn bg-info text-info-content border-info hover:bg-info/90 btn-sm md:btn-lg rounded-lg"
               onClick={() => setIsCloneModalOpen(true)}
               disabled={isSavingRule}
             >
@@ -551,43 +477,43 @@ export default function RuleEditor({
               </span>
             </button>
           </div>
-          {isEditing
-            ? (
-                <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : "保存当前修改"}>
-                  <button
-                    type="button"
-                    className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
-                    onClick={handleHeaderPrimaryAction}
-                    disabled={isSavingRule}
-                  >
-                    {isSavingRule
-                      ? (
-                          <span className="loading loading-spinner loading-xs"></span>
-                        )
-                      : (
-                          <span className="flex items-center gap-1">
-                            <SaveIcon className="w-4 h-4" />
-                            {mode === "create" ? "创建" : "保存"}
-                          </span>
-                        )}
-                  </button>
-                </div>
-              )
-            : (
-                <div className="tooltip tooltip-bottom" data-tip="编辑规则信息">
-                  <button
-                    type="button"
-                    className="btn btn-accent btn-sm md:btn-lg rounded-lg"
-                    onClick={handleHeaderPrimaryAction}
-                    disabled={isSavingRule}
-                  >
+          <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
+            <button
+              type="button"
+              className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
+              onClick={handleHeaderPrimaryAction}
+              disabled={isSavingRule}
+            >
+              {isSavingRule
+                ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  )
+                : (
                     <span className="flex items-center gap-1">
-                      <EditIcon className="w-4 h-4" />
-                      编辑
+                      {mode === "create"
+                        ? (
+                            <>
+                              <SaveIcon className="w-4 h-4" />
+                              创建
+                            </>
+                          )
+                        : isEditing
+                          ? (
+                              <>
+                                <SaveIcon className="w-4 h-4" />
+                                保存
+                              </>
+                            )
+                          : (
+                              <>
+                                <EditIcon className="w-4 h-4" />
+                                编辑
+                              </>
+                            )}
                     </span>
-                  </button>
-                </div>
-              )}
+                  )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -610,65 +536,34 @@ export default function RuleEditor({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {mode === "edit" && (
-                      <div className="tooltip tooltip-bottom" data-tip="删除该规则（不可恢复）">
-                        <button
-                          type="button"
-                          className="btn btn-error btn-sm md:btn-lg rounded-lg"
-                          onClick={() => setIsDeleteModalOpen(true)}
-                          disabled={isSavingRule}
-                        >
-                          <span className="flex items-center gap-1">
-                            删除
-                          </span>
-                        </button>
-                      </div>
-                    )}
                     <div className="tooltip tooltip-bottom" data-tip="从已有规则导入并覆盖当前编辑">
                       <button
                         type="button"
-                        className="btn btn-secondary btn-sm md:btn-lg rounded-lg"
+                        className="btn bg-info text-info-content border-info hover:bg-info/90 btn-sm md:btn-lg rounded-lg"
                         onClick={() => setIsCloneModalOpen(true)}
                         disabled={isSavingRule}
                       >
                         导入
                       </button>
                     </div>
-                    {isEditing
-                      ? (
-                          <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : "保存当前修改"}>
-                            <button
-                              type="button"
-                              className={`btn btn-primary btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
-                              onClick={handleHeaderPrimaryAction}
-                              disabled={isSavingRule}
-                            >
-                              {isSavingRule
-                                ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                  )
-                                : (
-                                    <span className="flex items-center gap-1">
-                                      {mode === "create" ? "创建" : "保存"}
-                                    </span>
-                                  )}
-                            </button>
-                          </div>
-                        )
-                      : (
-                          <div className="tooltip tooltip-bottom" data-tip="编辑规则信息">
-                            <button
-                              type="button"
-                              className="btn btn-accent btn-sm md:btn-lg rounded-lg"
-                              onClick={handleHeaderPrimaryAction}
-                              disabled={isSavingRule}
-                            >
+                    <div className="tooltip tooltip-bottom" data-tip={mode === "create" ? "创建规则" : isEditing ? "保存当前修改" : "进入编辑"}>
+                      <button
+                        type="button"
+                        className={`btn ${mode === "edit" && !isEditing ? "btn-accent" : "btn-primary"} btn-sm md:btn-lg rounded-lg ${isSavingRule ? "scale-95" : ""}`}
+                        onClick={handleHeaderPrimaryAction}
+                        disabled={isSavingRule}
+                      >
+                        {isSavingRule
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
                               <span className="flex items-center gap-1">
-                                编辑
+                                {mode === "create" ? "创建" : isEditing ? "保存" : "编辑"}
                               </span>
-                            </button>
-                          </div>
-                        )}
+                            )}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className="divider my-0" />
@@ -695,6 +590,7 @@ export default function RuleEditor({
 
         <div className="lg:col-span-3 space-y-6">
           <RuleExpansionModule
+            key={`rule-expansion-${mode}-${ruleId ?? "new"}-${location.key}`}
             localRule={ruleEdit}
             onRuleChange={setRuleEdit}
             cloneVersion={cloneVersion}
@@ -709,19 +605,6 @@ export default function RuleEditor({
         isOpen={isCloneModalOpen}
         onClose={() => setIsCloneModalOpen(false)}
         onConfirm={applyClonedRule}
-      />
-
-      <RuleDeleteModal
-        isOpen={isDeleteModalOpen}
-        isDeleting={isDeletingRule}
-        ruleName={ruleEdit.ruleName ?? ruleDetail?.ruleName}
-        ruleId={ruleEdit.ruleId ?? ruleId}
-        onCancel={() => {
-          if (isDeletingRule)
-            return;
-          setIsDeleteModalOpen(false);
-        }}
-        onConfirm={handleDeleteRule}
       />
     </div>
   );

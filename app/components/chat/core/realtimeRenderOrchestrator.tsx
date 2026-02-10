@@ -66,10 +66,7 @@ export default function RealtimeRenderOrchestrator({
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
-  const sideDrawerStateRef = useRef<SideDrawerState>(sideDrawerState);
-  useEffect(() => {
-    sideDrawerStateRef.current = sideDrawerState;
-  }, [sideDrawerState]);
+  const prevSideDrawerStateRef = useRef<SideDrawerState>(sideDrawerState);
 
   const realtimeTTSEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const realtimeMiniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
@@ -115,6 +112,7 @@ export default function RealtimeRenderOrchestrator({
   const realtimeStatusRef = useRef(realtimeRender.status);
   const prevRoomIdRef = useRef<number | null>(null);
   const lastBackgroundMessageIdRef = useRef<number | null>(null);
+  const isStartingRealtimeRenderRef = useRef(false);
 
   useEffect(() => {
     realtimeStatusRef.current = realtimeRender.status;
@@ -255,6 +253,47 @@ export default function RealtimeRenderOrchestrator({
     }
   }, [orderedHistoryMessages, realtimeRender, roomId]);
 
+  const startRealtimeRender = useCallback(async () => {
+    if (realtimeRender.isActive || isStartingRealtimeRenderRef.current) {
+      return;
+    }
+
+    isStartingRealtimeRenderRef.current = true;
+    try {
+      await ensureHydrated();
+      launchWebGal();
+
+      toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
+      try {
+        await pollPort(
+          terrePort,
+          isElectronEnv() ? 15000 : 500,
+          100,
+        );
+
+        toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
+        const success = await realtimeRender.start();
+        if (success) {
+          toast.success("实时渲染已开启", { id: "webgal-init" });
+          setIsRealtimeRenderEnabled(true);
+          setSideDrawerState("webgal");
+          await renderHistoryMessages();
+        }
+        else {
+          toast.error("实时渲染启动失败", { id: "webgal-init" });
+          setIsRealtimeRenderEnabled(false);
+        }
+      }
+      catch {
+        toast.error("WebGAL 启动超时", { id: "webgal-init" });
+        setIsRealtimeRenderEnabled(false);
+      }
+    }
+    finally {
+      isStartingRealtimeRenderRef.current = false;
+    }
+  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, terrePort]);
+
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {
       realtimeRender.stop();
@@ -263,36 +302,21 @@ export default function RealtimeRenderOrchestrator({
       toast.success("已关闭实时渲染");
       return;
     }
+    await startRealtimeRender();
+  }, [realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, startRealtimeRender]);
 
-    await ensureHydrated();
-    launchWebGal();
+  useEffect(() => {
+    const prevSideDrawerState = prevSideDrawerStateRef.current;
+    prevSideDrawerStateRef.current = sideDrawerState;
 
-    toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
-    try {
-      await pollPort(
-        terrePort,
-        isElectronEnv() ? 15000 : 500,
-        100,
-      );
-
-      toast.loading("正在初始化实时渲染...", { id: "webgal-init" });
-      const success = await realtimeRender.start();
-      if (success) {
-        toast.success("实时渲染已开启", { id: "webgal-init" });
-        setIsRealtimeRenderEnabled(true);
-        setSideDrawerState("webgal");
-        await renderHistoryMessages();
-      }
-      else {
-        toast.error("实时渲染启动失败", { id: "webgal-init" });
-        setIsRealtimeRenderEnabled(false);
-      }
+    if (sideDrawerState !== "webgal" || prevSideDrawerState === "webgal") {
+      return;
     }
-    catch {
-      toast.error("WebGAL 启动超时", { id: "webgal-init" });
-      setIsRealtimeRenderEnabled(false);
+    if (realtimeRender.isActive) {
+      return;
     }
-  }, [ensureHydrated, realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, renderHistoryMessages, terrePort]);
+    void startRealtimeRender();
+  }, [realtimeRender.isActive, sideDrawerState, startRealtimeRender]);
 
   useEffect(() => {
     if (realtimeRender.initProgress && realtimeRender.status === "initializing") {

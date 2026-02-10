@@ -107,6 +107,7 @@ export default function DiscoverPage({ mode }: DiscoverPageProps) {
       spaceSidebar={(
         <ChatSpaceSidebar
           isPrivateChatMode={false}
+          isDiscoverMode
           spaces={orderedSpaces}
           spaceOrderIds={orderedSpaceIds}
           onReorderSpaceIds={setUserSpaceOrder}

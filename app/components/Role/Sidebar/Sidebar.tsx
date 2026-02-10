@@ -3,9 +3,10 @@ import type { Rule } from "api/models/Rule";
 import type { Role } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesByTypeQuery, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
-import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
+import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -57,12 +58,15 @@ export function Sidebar({
   // const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   // 删除角色接口
   const { mutate: deleteRole } = useDeleteRolesMutation();
+  const { mutateAsync: deleteRule } = useDeleteRuleMutation();
   // 更新角色接口
   // const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
+  const [deleteRuleId, setDeleteRuleId] = useState<number | null>(null);
+  const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
   const queryClient = useQueryClient();
   // 删除角色
   const handleDelete = (id: number) => {
@@ -73,6 +77,7 @@ export function Sidebar({
   const handleCancelDelete = () => {
     setDeleteConfirmOpen(false);
     setDeleteCharacterId(null);
+    setDeleteRuleId(null);
   };
 
   const loadRoles = async () => {
@@ -256,7 +261,6 @@ export function Sidebar({
       .sort((a, b) => (b.ruleId ?? 0) - (a.ruleId ?? 0));
   }, [ruleListQuery.data, searchQuery, userId]);
 
-  const isCreateRuleActive = searchParams.get("type") === "rule" && searchParams.get("mode") === "create";
   const activeRuleId = Number(searchParams.get("ruleId") ?? 0);
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -290,8 +294,45 @@ export function Sidebar({
 
   const navigate = useNavigate();
 
+  const handleDeleteRule = async (ruleId: number) => {
+    setDeleteCharacterId(null);
+    setDeleteRuleId(ruleId);
+    setDeleteConfirmOpen(true);
+  };
+
   // 删除确认处理函数
   const handleConfirmDelete = async () => {
+    if (deleteRuleId !== null) {
+      if (deletingRuleId === deleteRuleId) {
+        return;
+      }
+
+      setDeletingRuleId(deleteRuleId);
+      try {
+        const res = await deleteRule(deleteRuleId);
+        if (res?.success) {
+          toast.success("规则删除成功");
+          await ruleListQuery.refetch();
+          if (activeRuleId === deleteRuleId) {
+            navigate("/role?type=rule&mode=entry", { replace: true });
+          }
+        }
+        else {
+          toast.error(res?.errMsg || "规则删除失败");
+        }
+      }
+      catch (error) {
+        console.error("删除规则失败:", error);
+        toast.error("规则删除失败");
+      }
+      finally {
+        setDeletingRuleId(null);
+        setDeleteConfirmOpen(false);
+        setDeleteRuleId(null);
+      }
+      return;
+    }
+
     if (deleteCharacterId !== null) {
       // 单个删除逻辑
       const roleId = deleteCharacterId;
@@ -314,6 +355,7 @@ export function Sidebar({
     // 关闭弹窗
     setDeleteConfirmOpen(false);
     setDeleteCharacterId(null);
+    setDeleteRuleId(null);
   };
 
   useEffect(() => {
@@ -324,6 +366,13 @@ export function Sidebar({
       navigate("/role", { replace: true });
     }
   }, [roles, selectedRoleId, navigate]);
+
+  const deleteDialogTitle = deleteRuleId !== null ? "确认删除规则" : "确认删除角色";
+  const deleteDialogMessage = deleteRuleId !== null
+    ? "确定要删除这个规则模板吗？"
+    : deleteCharacterId !== null
+      ? "确定要删除这个角色吗？"
+      : `确定要删除选中的 ${selectedRoles.size} 个角色吗？`;
 
   return (
     <>
@@ -656,9 +705,7 @@ export function Sidebar({
                   <div className="ml-2">
                     <Link
                       to="/role?type=rule&mode=create"
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
-                        isCreateRuleActive ? "bg-primary/10 text-primary" : "hover:bg-base-100"
-                      }`}
+                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
                       onClick={closeDrawerOnMobile}
                       title="新建规则模板"
                     >
@@ -710,8 +757,12 @@ export function Sidebar({
                           }`}
                           onClick={closeDrawerOnMobile}
                         >
-                          <div className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150">
-                            <div className="avatar shrink-0 px-1">
+                          <div
+                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
+                              isRuleActive ? "bg-base-100" : "hover:bg-base-100"
+                            }`}
+                          >
+                            <div className="avatar shrink-0">
                               <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-base-content/10 bg-base-100 text-base-content/70 relative">
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -739,6 +790,24 @@ export function Sidebar({
                                 {(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}
                               </p>
                             </div>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
+                              disabled={deletingRuleId === currentRuleId}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void handleDeleteRule(currentRuleId);
+                              }}
+                              title="删除规则"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                                <path
+                                  fill="currentColor"
+                                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                />
+                              </svg>
+                            </button>
                           </div>
                         </Link>
                       );
@@ -761,13 +830,9 @@ export function Sidebar({
       <ToastWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
         <div className="card flex flex-col w-full max-w-md">
           <div className="card-body items-center text-center">
-            <h2 className="card-title text-2xl font-bold">确认删除角色</h2>
+            <h2 className="card-title text-2xl font-bold">{deleteDialogTitle}</h2>
             <div className="divider"></div>
-            <p className="text-lg opacity-75 mb-8">
-              {deleteCharacterId !== null
-                ? "确定要删除这个角色吗？"
-                : `确定要删除选中的 ${selectedRoles.size} 个角色吗？`}
-            </p>
+            <p className="text-lg opacity-75 mb-8">{deleteDialogMessage}</p>
           </div>
         </div>
         <div className="card-actions justify-center gap-6 mt-8">

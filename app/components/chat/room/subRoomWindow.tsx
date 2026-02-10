@@ -1,8 +1,9 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
 import ChatFrame from "@/components/chat/chatFrame";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import DocFolderForUser from "@/components/chat/room/drawers/docFolderForUser";
 import InitiativeList from "@/components/chat/room/drawers/initiativeList";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
 import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
@@ -13,7 +14,11 @@ import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { BranchIcon, WebgalIcon, XMarkICon } from "@/icons";
 
-type SubPane = "map" | "initiative" | "webgal" | "thread";
+type SubPane = "map" | "initiative" | "webgal" | "thread" | "doc";
+
+function isSubRoomDrawerState(state: string): state is "map" | "thread" | "webgal" | "doc" {
+  return state === "map" || state === "thread" || state === "webgal" || state === "doc";
+}
 
 function SubRoomWindowImpl() {
   const roomContext = React.use(RoomContext);
@@ -40,21 +45,37 @@ function SubRoomWindowImpl() {
 
   const webgalPreviewUrl = useRealtimeRenderStore(state => state.previewUrl);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
+  const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
+  const setRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
+  const prevSideDrawerStateRef = React.useRef(sideDrawerState);
 
   React.useEffect(() => {
+    const prevSideDrawerState = prevSideDrawerStateRef.current;
+    prevSideDrawerStateRef.current = sideDrawerState;
+
     if (sideDrawerState === "map") {
       setIsOpen(true);
       setActivePane("map");
     }
-    if (sideDrawerState === "thread") {
+    else if (sideDrawerState === "thread") {
       setIsOpen(true);
       setActivePane("thread");
     }
-    if (sideDrawerState === "webgal") {
+    else if (sideDrawerState === "webgal") {
       setIsOpen(true);
       setActivePane("webgal");
     }
-  }, [sideDrawerState]);
+    else if (sideDrawerState === "doc") {
+      setIsOpen(true);
+      setActivePane("doc");
+    }
+    else if (sideDrawerState === "none" && isSubRoomDrawerState(prevSideDrawerState)) {
+      setIsOpen(false);
+      if (isRealtimeRenderEnabled) {
+        setRealtimeRenderEnabled(false);
+      }
+    }
+  }, [isRealtimeRenderEnabled, setRealtimeRenderEnabled, sideDrawerState]);
 
   const threadMessages = React.useMemo(() => {
     if (!threadRootMessageId) {
@@ -120,14 +141,19 @@ function SubRoomWindowImpl() {
       ? "子区"
       : activePane === "initiative"
         ? "先攻栏"
-        : "WebGAL 预览";
+        : activePane === "doc"
+          ? "文档"
+          : "WebGAL 预览";
 
   const close = React.useCallback(() => {
     setIsOpen(false);
-    if (sideDrawerState === "map" || sideDrawerState === "webgal" || sideDrawerState === "thread") {
+    if (isRealtimeRenderEnabled) {
+      setRealtimeRenderEnabled(false);
+    }
+    if (isSubRoomDrawerState(sideDrawerState)) {
       setSideDrawerState("none");
     }
-  }, [setSideDrawerState, sideDrawerState]);
+  }, [isRealtimeRenderEnabled, setRealtimeRenderEnabled, setSideDrawerState, sideDrawerState]);
 
   return (
     <OpenAbleDrawer
@@ -147,25 +173,13 @@ function SubRoomWindowImpl() {
               {activePane === "map" && <CheckerboardIcon className="size-5 opacity-80" />}
               {activePane === "thread" && <BranchIcon className="size-5 opacity-80" />}
               {activePane === "initiative" && <SwordIcon className="size-5 opacity-80" />}
+              {activePane === "doc" && <FileTextIcon className="size-5 opacity-80" />}
               {activePane === "webgal" && <WebgalIcon className="size-5 opacity-80" />}
               <span className="text-center font-semibold line-clamp-1 truncate min-w-0 text-sm sm:text-base">
                 {title}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div
-                className={`tooltip tooltip-bottom ${activePane === "map" ? "text-primary" : "hover:text-info"}`}
-                data-tip="地图"
-              >
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
-                  aria-label="地图"
-                  onClick={() => setActivePane("map")}
-                >
-                  <CheckerboardIcon className="size-5" />
-                </button>
-              </div>
+            <div className="flex items-center gap-1.5">
               <div
                 className={`tooltip tooltip-bottom ${activePane === "thread" ? "text-primary" : "hover:text-info"}`}
                 data-tip="子区"
@@ -174,9 +188,47 @@ function SubRoomWindowImpl() {
                   type="button"
                   className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
                   aria-label="子区"
-                  onClick={() => setActivePane("thread")}
+                  onClick={() => {
+                    setActivePane("thread");
+                    setSideDrawerState("thread");
+                  }}
                 >
                   <BranchIcon className="size-5" />
+                </button>
+              </div>
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "doc" ? "text-primary" : "hover:text-info"}`}
+                data-tip="文档"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="文档"
+                  onClick={() => {
+                    setActivePane("doc");
+                    setSideDrawerState("doc");
+                  }}
+                >
+                  <FileTextIcon className="size-5" />
+                </button>
+              </div>
+
+              <div className="h-5 w-[2px] bg-base-content/35 mx-1 rounded-full" aria-hidden />
+
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "map" ? "text-primary" : "hover:text-info"}`}
+                data-tip="地图"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="地图"
+                  onClick={() => {
+                    setActivePane("map");
+                    setSideDrawerState("map");
+                  }}
+                >
+                  <CheckerboardIcon className="size-5" />
                 </button>
               </div>
               <div
@@ -200,7 +252,10 @@ function SubRoomWindowImpl() {
                   type="button"
                   className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
                   aria-label="WebGAL 预览"
-                  onClick={() => setActivePane("webgal")}
+                  onClick={() => {
+                    setActivePane("webgal");
+                    setSideDrawerState("webgal");
+                  }}
                 >
                   <WebgalIcon className="size-5" />
                 </button>
@@ -248,6 +303,11 @@ function SubRoomWindowImpl() {
           {activePane === "initiative" && (
             <div className="overflow-auto h-full">
               <InitiativeList />
+            </div>
+          )}
+          {activePane === "doc" && (
+            <div className="h-full overflow-hidden">
+              <DocFolderForUser />
             </div>
           )}
           {activePane === "webgal" && (

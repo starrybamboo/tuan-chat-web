@@ -172,7 +172,9 @@ export default function RuleExpansionModule({
           </button>
         </>
       </div>
-      {renderActiveTabContent()}
+      <div key={`rule-tab-panel-${activeTab}`}>
+        {renderActiveTabContent()}
+      </div>
     </div>
   );
 }

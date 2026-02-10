@@ -54,8 +54,6 @@ function CharacterDetailInner({
 
   // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
   const [isEditing, setIsEditing] = useState(false);
-  const [isLeftPanelEditing, setIsLeftPanelEditing] = useState(false);
-  const [expansionSaveSignal, setExpansionSaveSignal] = useState(0);
 
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
@@ -365,24 +363,11 @@ function CharacterDetailInner({
 
   const handleStartEditingAll = () => {
     setIsEditing(true);
-    setIsLeftPanelEditing(true);
-  };
-
-  const handleStartEditingLeftOnly = () => {
-    setIsLeftPanelEditing(true);
-  };
-
-  const handleSaveLeftOnly = () => {
-    handleSaveRoleBase(() => {
-      setIsLeftPanelEditing(false);
-    });
   };
 
   const handleSaveAll = () => {
-    setExpansionSaveSignal(prev => prev + 1);
     handleSaveRoleBase(() => {
       setIsEditing(false);
-      setIsLeftPanelEditing(false);
     });
   };
 
@@ -538,8 +523,6 @@ function CharacterDetailInner({
           )}
     </>
   );
-
-  const isLeftEditing = isEditing || isLeftPanelEditing;
 
   return (
     <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface AddFieldFormProps {
   onAddField: (key: string, value: string) => void;
@@ -30,6 +30,9 @@ export default function AddFieldForm({
 }: AddFieldFormProps) {
   const [newFieldKey, setNewFieldKey] = useState("");
   const [newFieldValue, setNewFieldValue] = useState("");
+  const keyInputRef = useRef<HTMLInputElement | null>(null);
+  const valueInputRef = useRef<HTMLInputElement | null>(null);
+  const valueTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const handleAddField = () => {
     if (!newFieldKey.trim() || existingKeys.includes(newFieldKey)) {
@@ -42,6 +45,69 @@ export default function AddFieldForm({
   };
 
   const canAdd = newFieldKey.trim() && !existingKeys.includes(newFieldKey);
+
+  const focusKeyInput = () => {
+    const el = keyInputRef.current;
+    if (!el)
+      return;
+    el.focus();
+    const pos = el.value.length;
+    el.setSelectionRange(pos, pos);
+  };
+
+  const focusValueInput = () => {
+    const inputEl = valueInputRef.current;
+    if (inputEl) {
+      inputEl.focus();
+      const pos = inputEl.value.length;
+      inputEl.setSelectionRange(pos, pos);
+      return;
+    }
+
+    const textareaEl = valueTextareaRef.current;
+    if (!textareaEl)
+      return;
+    textareaEl.focus();
+    const pos = textareaEl.value.length;
+    textareaEl.setSelectionRange(pos, pos);
+  };
+
+  const shouldIgnoreArrowSwitch = (e: React.KeyboardEvent<HTMLElement>) => {
+    return Boolean(
+      e.nativeEvent.isComposing
+      || e.ctrlKey
+      || e.metaKey
+      || e.altKey
+      || e.shiftKey,
+    );
+  };
+
+  const handleKeyInputArrowSwitch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (shouldIgnoreArrowSwitch(e))
+      return;
+    if (e.key !== "ArrowRight")
+      return;
+
+    e.preventDefault();
+    focusValueInput();
+  };
+
+  const handleValueInputArrowSwitch = (
+    e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    if (shouldIgnoreArrowSwitch(e))
+      return;
+    if (e.key !== "ArrowLeft")
+      return;
+
+    const cursorStart = e.currentTarget.selectionStart ?? 0;
+    const cursorEnd = e.currentTarget.selectionEnd ?? 0;
+    if (cursorStart !== 0 || cursorEnd !== 0)
+      return;
+
+    e.preventDefault();
+    focusKeyInput();
+  };
 
   const handleEnterToAdd = (e: any) => {
     if (e?.key !== "Enter")
@@ -85,10 +151,14 @@ export default function AddFieldForm({
         <div className="space-y-3">
           <label className="input flex items-center w-full gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100">
             <input
+              ref={keyInputRef}
               type="text"
               value={newFieldKey}
               onChange={e => setNewFieldKey(e.target.value)}
-              onKeyDown={handleEnterToAdd}
+              onKeyDown={(e) => {
+                handleKeyInputArrowSwitch(e);
+                handleEnterToAdd(e);
+              }}
               placeholder={placeholder.key || "字段名"}
               className="grow focus:outline-none border-none outline-none bg-transparent"
             />
@@ -96,9 +166,13 @@ export default function AddFieldForm({
           <div className="relative">
             <label className="textarea flex items-center w-full gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0">
               <textarea
+                ref={valueTextareaRef}
                 value={newFieldValue}
                 onChange={e => setNewFieldValue(e.target.value)}
-                onKeyDown={handleCtrlEnterToAdd}
+                onKeyDown={(e) => {
+                  handleValueInputArrowSwitch(e);
+                  handleCtrlEnterToAdd(e);
+                }}
                 placeholder={placeholder.value || "字段值"}
                 className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-32 pr-20 pb-12"
               />
@@ -124,19 +198,27 @@ export default function AddFieldForm({
       )}
       <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
         <input
+          ref={keyInputRef}
           type="text"
           value={newFieldKey}
           onChange={e => setNewFieldKey(e.target.value)}
-          onKeyDown={handleEnterToAdd}
+          onKeyDown={(e) => {
+            handleKeyInputArrowSwitch(e);
+            handleEnterToAdd(e);
+          }}
           placeholder={placeholder.key || "字段名"}
           className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 flex-shrink-0"
         />
         <div className="w-px h-4 bg-base-content/20"></div>
         <input
+          ref={valueInputRef}
           type="text"
           value={newFieldValue}
           onChange={e => setNewFieldValue(e.target.value)}
-          onKeyDown={handleEnterToAdd}
+          onKeyDown={(e) => {
+            handleValueInputArrowSwitch(e);
+            handleEnterToAdd(e);
+          }}
           placeholder={placeholder.value || "字段值"}
           className="grow focus:outline-none border-none outline-none"
         />

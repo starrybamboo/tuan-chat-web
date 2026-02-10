@@ -46,10 +46,14 @@ export default function useChatPageNavigation({
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const handleOpenPrivate = useCallback(() => {
-    setActiveSpaceId(null);
-    setActiveRoomId(null);
-    navigate("/chat/private");
-  }, [navigate, setActiveRoomId, setActiveSpaceId]);
+    setStoredChatIds({ spaceId: null, roomId: null });
+    const newSearchParams = new URLSearchParams(searchParam);
+    if (screenSize === "sm") {
+      newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    }
+    const query = newSearchParams.toString();
+    navigate(query ? `/chat/private?${query}` : "/chat/private");
+  }, [isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   return {
     handleOpenPrivate,

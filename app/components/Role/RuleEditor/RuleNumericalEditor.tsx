@@ -66,16 +66,17 @@ export default function RuleNumericalEditor({
 }: RuleNumericalEditorProps) {
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   const [isEditing, setIsEditing] = useState(false);
+  const isForcedEditingMode = typeof forcedEditing === "boolean";
 
   const prevCloneVersionRef = useRef(cloneVersion);
   const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
 
-  // 非编辑态时，允许外部 props 同步本地展示
+  // 非编辑态总是同步；受控编辑态下也允许外部同步（用于创建时模板预填）
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditing || isForcedEditingMode) {
       dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     }
-  }, [data, isEditing]);
+  }, [data, isEditing, isForcedEditingMode]);
 
   useEffect(() => {
     // 依赖里包含 data 以满足 exhaustive-deps，但只在 cloneVersion 真变化时才重置。
@@ -227,17 +228,11 @@ export default function RuleNumericalEditor({
         </div>
       </div>
 
-      {isEditing && (
-        <div>
-          <AddFieldForm title="添加新字段" onAddField={handleAddField} existingKeys={Object.keys(localData)} layout="inline" />
-        </div>
-      )}
-
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {isEmpty
           ? (
               <div className="col-span-full flex items-center justify-center text-sm text-base-content/60 py-6 text-center border border-dashed border-base-content/20 rounded-lg bg-base-100/40">
-                {isEditing ? "暂无字段，使用上方输入框添加" : "暂无字段，点击“编辑”开始添加"}
+                {isEditing ? "暂无字段，使用下方输入框添加" : "暂无字段，点击“编辑”开始添加"}
               </div>
             )
           : Object.entries(localData).map(([key, value]) => (
@@ -253,6 +248,12 @@ export default function RuleNumericalEditor({
               />
             ))}
       </div>
+
+      {isEditing && (
+        <div>
+          <AddFieldForm title="添加新字段" onAddField={handleAddField} existingKeys={Object.keys(localData)} layout="inline" />
+        </div>
+      )}
     </div>
   );
 }
