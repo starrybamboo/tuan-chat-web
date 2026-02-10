@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { getDefaultTerrePort, getTerreBaseUrl } from "@/webGAL/terreConfig";
 
 interface WebGALPreviewProps {
@@ -159,13 +160,18 @@ export default function WebGALPreview({
   const autoFigureEnabled = useRealtimeRenderStore(state => state.autoFigureEnabled);
   const setAutoFigureEnabled = useRealtimeRenderStore(state => state.setAutoFigureEnabled);
   const realtimeStatus = useRealtimeRenderStore(state => state.status);
+  const sideDrawerState = useSideDrawerStore(state => state.state);
 
-  const fallbackTitle = realtimeStatus === "initializing"
+  const isWebgalPaneActive = sideDrawerState === "webgal";
+  const isStarting = realtimeStatus === "initializing"
+    || (isWebgalPaneActive && realtimeStatus !== "error" && !isActive);
+
+  const fallbackTitle = isStarting
     ? "实时渲染正在启动"
     : realtimeStatus === "error"
       ? "实时渲染启动失败"
       : "实时渲染未启动";
-  const fallbackHint = realtimeStatus === "initializing"
+  const fallbackHint = isStarting
     ? "请稍候，正在连接 WebGAL..."
     : realtimeStatus === "error"
       ? "请确认 WebGAL 已启动后重试"
