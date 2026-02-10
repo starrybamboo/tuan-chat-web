@@ -72,15 +72,24 @@ export default function useChatFrameMessages({
         // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连接
         const historyMsgs = chatHistory.messages;
         if (historyMsgs.length > 0 && newMessages.length > 0) {
-          const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
           const firstNewMsg = newMessages[0];
+          let maxHistorySyncId = -1;
+          const historyMessageIds = new Set<number>();
 
-          if (firstNewMsg.message.syncId > lastHistoryMsg.message.syncId + 1) {
-            console.warn(`[ChatFrame] Detected gap between history (${lastHistoryMsg.message.syncId}) and new messages (${firstNewMsg.message.syncId}). Fetching missing messages...`);
+          for (const msg of historyMsgs) {
+            const syncId = msg.message.syncId ?? -1;
+            if (syncId > maxHistorySyncId)
+              maxHistorySyncId = syncId;
+            historyMessageIds.add(msg.message.messageId);
+          }
+
+          const isNewMessage = !historyMessageIds.has(firstNewMsg.message.messageId);
+          if (isNewMessage && firstNewMsg.message.syncId > maxHistorySyncId + 1) {
+            console.warn(`[ChatFrame] Detected gap between history (${maxHistorySyncId}) and new messages (${firstNewMsg.message.syncId}). Fetching missing messages...`);
             try {
               const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
                 roomId,
-                syncId: lastHistoryMsg.message.syncId + 1,
+                syncId: maxHistorySyncId + 1,
               });
               if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
                 await chatHistory.addOrUpdateMessages(missingMessagesRes.data);

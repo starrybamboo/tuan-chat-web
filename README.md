@@ -72,7 +72,7 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 pnpm dev
 ```
 
-项目已预先配置了 `husky` 和 `lint-staged`，以便在每次提交前运行 lint。
+项目已预先配置了 `husky` 和 `lint-staged`，以便在每次提交前运行 lint，并执行编码/乱码检测（`node ./scripts/check-encoding.mjs`）。
 
 如果因为 lint 错误而提交失败，可以运行以下命令修复错误：
 

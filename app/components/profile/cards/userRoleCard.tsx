@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface UserRoleCardProps {
@@ -105,7 +105,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
 
       {/* 弹窗 */}
       {isRoleParamsPopOpen && (
-        <PopWindow
+        <ToastWindow
           isOpen={isRoleParamsPopOpen}
           onClose={() => setIsRoleParamsPopOpen(false)}
         >
@@ -115,7 +115,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
               onClose={() => setIsRoleParamsPopOpen(false)}
             />
           </div>
-        </PopWindow>
+        </ToastWindow>
       )}
     </div>
   );

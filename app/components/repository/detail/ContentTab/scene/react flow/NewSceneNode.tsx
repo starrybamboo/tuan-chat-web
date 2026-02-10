@@ -1,6 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
 import { useLayoutEffect, useRef, useState } from "react";
-import { PopWindow } from "../../../../../common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import ItemDetail from "../ItemDetail";
 
 interface SceneNodeProps {
@@ -232,7 +232,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
       className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1"        style={{ pointerEvents: "none" }}      >        <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">          {data.label}        </span>      </div> */}
 
         {/* 场景大图弹窗 */}
-        <PopWindow
+        <ToastWindow
           isOpen={isPopupOpen}
           onClose={() => setIsPopupOpen(false)}
           fullScreen={data.isMobile}
@@ -247,7 +247,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
               />
             )}
           </div>
-        </PopWindow>
+        </ToastWindow>
       </div>
     </>
   );

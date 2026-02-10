@@ -8,8 +8,8 @@ import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { tuanchat } from "@/../api/instance";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getRoleRule } from "@/utils/roleRuleStorage";
-import { PopWindow } from "../../common/popWindow";
 import { useGlobalContext } from "../../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
 
@@ -758,7 +758,7 @@ export function Sidebar({
       </div>
 
       {/* 删除确认对话框 */}
-      <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
+      <ToastWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
         <div className="card flex flex-col w-full max-w-md">
           <div className="card-body items-center text-center">
             <h2 className="card-title text-2xl font-bold">确认删除角色</h2>
@@ -778,7 +778,7 @@ export function Sidebar({
             删除
           </button>
         </div>
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

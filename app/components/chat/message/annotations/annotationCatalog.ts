@@ -1,4 +1,17 @@
+import type { ComponentType, SVGProps } from "react";
+
+import {
+  EnterFromLeftIcon,
+  EnterFromRightIcon,
+  ExitToLeftIcon,
+  ExitToRightIcon,
+  FadeInIcon,
+  FadeOutIcon,
+} from "@/components/chat/message/annotations/annotationIcons";
+
 export type AnnotationTone = "neutral" | "info" | "success" | "warning" | "accent" | "primary";
+
+export type AnnotationIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 export type AnnotationDefinition = {
   id: string;
@@ -7,23 +20,67 @@ export type AnnotationDefinition = {
   iconUrl?: string;
   tone?: AnnotationTone;
   source?: "builtin" | "custom";
+  icon?: AnnotationIcon;
+  hideLabel?: boolean;
+  effectFrames?: number;
 };
+
+export const ANNOTATION_TONE_CLASSES: Record<AnnotationTone, string> = {
+  neutral: "border-base-300 bg-base-200/70 text-base-content/80 hover:bg-base-300",
+  info: "border-info/30 bg-info/15 text-info hover:bg-info/20",
+  success: "border-success/30 bg-success/15 text-success hover:bg-success/20",
+  warning: "border-warning/30 bg-warning/15 text-warning hover:bg-warning/20",
+  accent: "border-accent/30 bg-accent/15 text-accent hover:bg-accent/20",
+  primary: "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20",
+};
+
+export function getAnnotationToneClass(tone: AnnotationTone = "neutral", active = false) {
+  const base = ANNOTATION_TONE_CLASSES[tone] ?? ANNOTATION_TONE_CLASSES.neutral;
+  if (!active) {
+    return base;
+  }
+  return `${base} ring-2 ring-primary/30 shadow-sm`;
+}
 
 const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "sys:bgm", label: "BGM", category: "音频", tone: "info", source: "builtin" },
   { id: "sys:se", label: "音效", category: "音频", tone: "info", source: "builtin" },
 
-  { id: "sys:cg", label: "CG", category: "图片", tone: "accent", source: "builtin" },
+  { id: "sys:cg", label: "CG", category: "图片", tone: "primary", source: "builtin" },
   { id: "sys:bg", label: "背景", category: "图片", tone: "primary", source: "builtin" },
+  { id: "image.show", label: "展示", category: "图片", tone: "primary", source: "builtin" },
 
-  { id: "intro.hold", label: "黑屏保持", category: "文本", tone: "neutral", source: "builtin" },
+  { id: "effect.1", label: "特效1", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171542.webp", hideLabel: true, effectFrames: 36 },
+  { id: "effect.2", label: "特效2", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171543.webp", hideLabel: true, effectFrames: 22 },
+  { id: "effect.3", label: "特效3", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171545.webp", hideLabel: true, effectFrames: 26 },
+  { id: "effect.4", label: "特效4", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171546.webp", hideLabel: true, effectFrames: 42 },
+  { id: "effect.5", label: "特效5", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171548.webp", hideLabel: true, effectFrames: 33 },
+  { id: "effect.6", label: "特效6", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171549.webp", hideLabel: true, effectFrames: 54 },
+  { id: "effect.7", label: "特效7", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171550.webp", hideLabel: true, effectFrames: 47 },
+  { id: "effect.8", label: "特效8", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171552.webp", hideLabel: true, effectFrames: 33 },
+  { id: "effect.9", label: "特效9", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171553.webp", hideLabel: true, effectFrames: 34 },
+  { id: "effect.10", label: "特效10", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171555.webp", hideLabel: true, effectFrames: 38 },
+  { id: "effect.11", label: "特效11", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171556.webp", hideLabel: true, effectFrames: 26 },
+  { id: "effect.12", label: "特效12", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171557.webp", hideLabel: true, effectFrames: 35 },
+  { id: "effect.13", label: "特效13", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171558.webp", hideLabel: true, effectFrames: 20 },
+  { id: "effect.14", label: "特效14", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171627.webp", hideLabel: true, effectFrames: 26 },
 
   { id: "dialog.notend", label: "不暂停", category: "文本", tone: "neutral", source: "builtin" },
   { id: "dialog.concat", label: "续接", category: "文本", tone: "neutral", source: "builtin" },
+  { id: "dialog.next", label: "立即下一句", category: "文本", tone: "neutral", source: "builtin" },
 
-  { id: "figure.pos.left", label: "立绘左", category: "动作", tone: "accent", source: "builtin" },
-  { id: "figure.pos.center", label: "立绘中", category: "动作", tone: "accent", source: "builtin" },
-  { id: "figure.pos.right", label: "立绘右", category: "动作", tone: "accent", source: "builtin" },
+  { id: "figure.anim.ba-exit-to-left", label: "从左退场", category: "立绘", tone: "accent", source: "builtin", icon: ExitToLeftIcon, hideLabel: true },
+  { id: "figure.anim.ba-enter-from-left", label: "从左入场", category: "立绘", tone: "accent", source: "builtin", icon: EnterFromLeftIcon, hideLabel: true },
+  { id: "figure.anim.enter", label: "淡入", category: "立绘", tone: "accent", source: "builtin", icon: FadeInIcon, hideLabel: true },
+  { id: "figure.pos.left", label: "左", category: "立绘", tone: "accent", source: "builtin" },
+  { id: "figure.pos.left-center", label: "左中", category: "立绘", tone: "accent", source: "builtin" },
+  { id: "figure.pos.center", label: "中", category: "立绘", tone: "accent", source: "builtin" },
+  { id: "figure.pos.right-center", label: "右中", category: "立绘", tone: "accent", source: "builtin" },
+  { id: "figure.pos.right", label: "右", category: "立绘", tone: "accent", source: "builtin" },
+  { id: "figure.anim.exit", label: "淡出", category: "立绘", tone: "accent", source: "builtin", icon: FadeOutIcon, hideLabel: true },
+  { id: "figure.anim.ba-enter-from-right", label: "从右入场", category: "立绘", tone: "accent", source: "builtin", icon: EnterFromRightIcon, hideLabel: true },
+  { id: "figure.anim.ba-exit-to-right", label: "从右退场", category: "立绘", tone: "accent", source: "builtin", icon: ExitToRightIcon, hideLabel: true },
+  { id: "figure.clear", label: "清除之前立绘", category: "控制", tone: "warning", source: "builtin" },
 ];
 
 const CUSTOM_STORAGE_KEY = "tc:message-annotations:custom";

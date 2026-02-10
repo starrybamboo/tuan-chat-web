@@ -1,6 +1,6 @@
 import type { CommunityResponse } from "../../../api/models/CommunityResponse";
 import React, { useState } from "react";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface CommunitySelectorProps {
   /** 社区列表数据 */
@@ -145,7 +145,7 @@ export default function CommunitySelector({
       </div>
 
       {/* 选择社区的弹窗 */}
-      <PopWindow
+      <ToastWindow
         isOpen={isSelectionOpen}
         onClose={() => setIsSelectionOpen(false)}
       >
@@ -257,7 +257,7 @@ export default function CommunitySelector({
                 </div>
               )}
         </div>
-      </PopWindow>
+      </ToastWindow>
     </>
   );
 }

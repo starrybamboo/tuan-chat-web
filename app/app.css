@@ -203,3 +203,11 @@ body {
 }
 
 /* 不要覆写 Tailwind 的 `.hidden` 为 `!important`：会破坏 `hidden lg:flex` 等响应式切换。 */
+
+body.avatar-sampler-active,
+body.avatar-sampler-active * {
+  cursor:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path fill='%23000' d='M20.7 4.6l6.7 6.7-3 3-1.4-1.4-9.6 9.6v4.5h-4.5l9.6-9.6-1.4-1.4 3-3zM7 25h2v2H7z'/></svg>")
+      0 31,
+    crosshair;
+}

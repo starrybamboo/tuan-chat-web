@@ -1,4 +1,5 @@
 import React from "react";
+import { useSearchParams } from "react-router";
 
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import RoomWindow from "@/components/chat/room/roomWindow";
@@ -22,6 +23,9 @@ function ChatPageChatContent() {
     activeSpaceId,
     targetMessageId,
   } = useChatPageLayoutContext();
+  const [searchParams] = useSearchParams();
+  const previewParam = searchParams.get("preview");
+  const isPreviewMode = previewParam === "1" || previewParam === "true";
 
   if (isPrivateChatMode) {
     return activeRoomId
@@ -50,6 +54,7 @@ function ChatPageChatContent() {
       roomId={activeRoomId ?? -1}
       spaceId={activeSpaceId ?? -1}
       targetMessageId={targetMessageId}
+      viewMode={isPreviewMode}
     />
   );
 }

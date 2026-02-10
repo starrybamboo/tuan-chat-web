@@ -5,7 +5,7 @@ import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useDeleteCommentMutation, useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
@@ -195,7 +195,7 @@ export default function CommentComponent({ comment, level = 1 }: {
                 ? (
                     <div>
                       <button className="btn btn-ghost" onClick={() => setIsOpen(true)} type="button">点击查看更深的回复</button>
-                      <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>{childrenComments}</PopWindow>
+                      <ToastWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>{childrenComments}</ToastWindow>
                     </div>
                   )
                 : null}

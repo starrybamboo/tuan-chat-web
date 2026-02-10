@@ -8,7 +8,8 @@ import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
-import { ANNOTATION_IDS, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
+import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
+import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { parseWebgalVarCommand } from "@/types/webgalVar";
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { getImageSize } from "@/utils/getImgSize";
@@ -82,16 +83,17 @@ export default function useChatMessageSubmit({
       imgFiles,
       emojiUrls,
       audioFile,
-      sendAsBackground,
-      audioPurpose,
+      annotations: composerAnnotations,
+      tempAnnotations,
       setImgFiles,
       setEmojiUrls,
       setAudioFile,
-      setSendAsBackground,
-      setAudioPurpose,
+      setTempAnnotations,
     } = useChatComposerStore.getState();
 
-    const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0 || audioFile);
+    const trimmedInputText = inputText.trim();
+    const trimmedWithoutMentions = inputTextWithoutMentions.trim();
+    const isBlankInput = trimmedInputText.length === 0;
 
     const {
       webgalLinkMode,
@@ -101,11 +103,29 @@ export default function useChatMessageSubmit({
     } = useRoomPreferenceStore.getState();
 
     const currentDefaultFigurePosition = defaultFigurePositionMap[curRoleId];
+    const normalizedComposerAnnotations = normalizeAnnotations(composerAnnotations);
+    const normalizedTempAnnotations = normalizeAnnotations(tempAnnotations);
+    const tempFigurePosition = getFigurePositionFromAnnotations(normalizedTempAnnotations);
+    const roleFigurePosition = getFigurePositionFromAnnotations(normalizedComposerAnnotations);
+    let mergedComposerAnnotations = normalizeAnnotations([...normalizedComposerAnnotations, ...normalizedTempAnnotations]);
+    if (tempFigurePosition) {
+      mergedComposerAnnotations = setFigurePositionAnnotation(mergedComposerAnnotations, tempFigurePosition);
+    }
+    else if (roleFigurePosition) {
+      mergedComposerAnnotations = setFigurePositionAnnotation(mergedComposerAnnotations, roleFigurePosition);
+    }
+    const useBackgroundAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BACKGROUND);
+    const useCgAnnotation = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.CG);
+    const composerAudioPurpose = hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)
+      ? "bgm"
+      : hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)
+        ? "se"
+        : undefined;
 
     const isKP = isSpaceOwner;
     const isNarrator = noRole;
 
-    const disableSendMessage = (notMember || noInput || isSubmitting)
+    const disableSendMessage = (notMember || isSubmitting)
       || (isNarrator && !isKP);
 
     if (disableSendMessage) {
@@ -113,8 +133,6 @@ export default function useChatMessageSubmit({
         toast.error("您是观战，不能发送消息");
       else if (isNarrator && !isKP)
         toast.error("旁白仅KP可用，请先选择/拉入你的角色");
-      else if (noInput)
-        toast.error("请输入内容");
       else if (isSubmitting)
         toast.error("正在提交中，请稍后");
       return;
@@ -238,29 +256,36 @@ export default function useChatMessageSubmit({
           fields.threadId = activeThreadRootId;
         }
 
-        const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
-        if (draftCustomRoleName?.trim()) {
-          fields.customRoleName = draftCustomRoleName.trim();
+        if (curRoleId > 0) {
+          const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
+          if (draftCustomRoleName?.trim()) {
+            fields.customRoleName = draftCustomRoleName.trim();
+          }
         }
 
         if (isFirstMessage) {
           fields.replayMessageId = finalReplyId;
+          let nextAnnotations = mergedComposerAnnotations;
           if (webgalLinkMode) {
-            let nextAnnotations: string[] = [];
-            nextAnnotations = setFigurePositionAnnotation(nextAnnotations, currentDefaultFigurePosition);
-            nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_NOTEND, dialogNotend);
-            nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_CONCAT, dialogConcat);
-            if (nextAnnotations.length > 0) {
-              fields.annotations = nextAnnotations;
+            if (!hasClearFigureAnnotation(nextAnnotations) && !getFigurePositionFromAnnotations(nextAnnotations)) {
+              nextAnnotations = setFigurePositionAnnotation(nextAnnotations, currentDefaultFigurePosition);
             }
+            if (dialogNotend) {
+              nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_NOTEND, true);
+            }
+            if (dialogConcat) {
+              nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.DIALOG_CONCAT, true);
+            }
+          }
+          if (nextAnnotations.length > 0) {
+            fields.annotations = nextAnnotations;
           }
           isFirstMessage = false;
         }
         return fields;
       };
 
-      let textContent = inputText.trim();
-      const trimmedWithoutMentions = inputTextWithoutMentions.trim();
+      let textContent = trimmedInputText;
       const isWebgalVarCommandPrefix = /^\/var\b/i.test(trimmedWithoutMentions);
       const webgalVarPayload = parseWebgalVarCommand(trimmedWithoutMentions);
 
@@ -359,12 +384,15 @@ export default function useChatMessageSubmit({
 
       for (const img of uploadedImages) {
         const commonFields = getCommonFields() as ChatMessageRequest;
-        let nextAnnotations = commonFields.annotations;
-        if (sendAsBackground) {
+        let nextAnnotations = mergedComposerAnnotations;
+        if (useBackgroundAnnotation) {
           nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, true);
         }
-        else if (Array.isArray(nextAnnotations) && nextAnnotations.includes(ANNOTATION_IDS.BACKGROUND)) {
-          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND, false);
+        if (useCgAnnotation) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.CG, true);
+        }
+        if (!useBackgroundAnnotation && !useCgAnnotation) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.IMAGE_SHOW, true);
         }
 
         const imgMsg: ChatMessageRequest = {
@@ -378,7 +406,7 @@ export default function useChatMessageSubmit({
             height: img.height,
             size: img.size,
             fileName: img.fileName,
-            background: sendAsBackground,
+            background: useBackgroundAnnotation,
           },
         };
         await sendMessageWithInsert(imgMsg);
@@ -386,20 +414,36 @@ export default function useChatMessageSubmit({
       }
 
       if (soundMessageData) {
+        const commonFields = getCommonFields() as ChatMessageRequest;
+        let nextAnnotations = mergedComposerAnnotations;
+        if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.BGM)) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.BGM, true);
+        }
+        if (hasAnnotation(mergedComposerAnnotations, ANNOTATION_IDS.SE)) {
+          nextAnnotations = setAnnotation(nextAnnotations, ANNOTATION_IDS.SE, true);
+        }
         const audioMsg: ChatMessageRequest = {
-          ...getCommonFields() as any,
+          ...commonFields,
+          ...(Array.isArray(nextAnnotations) ? { annotations: nextAnnotations } : {}),
           content: textContent,
           messageType: MessageType.SOUND,
           extra: {
             ...soundMessageData,
-            purpose: audioPurpose,
+            purpose: composerAudioPurpose,
           },
         };
         await sendMessageWithInsert(audioMsg);
         textContent = "";
       }
 
-      if (textContent) {
+      // Allow explicit blank messages when there's no other payload to send.
+      const shouldSendEmptyTextMessage = isBlankInput
+        && uploadedImages.length === 0
+        && !soundMessageData
+        && !shouldSendCommandRequest
+        && !webgalVarPayload;
+
+      if (textContent || shouldSendEmptyTextMessage) {
         const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
         const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
         const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
@@ -408,20 +452,52 @@ export default function useChatMessageSubmit({
           toast.error("WebGAL 指令不能为空");
         }
         else {
+          let diceTableContent: string | null = null;
+          if (isPureTextSend && !isWebgalCommandInput) {
+            let diceTableDiceSize = 100;
+            try {
+              const localDice = Number(localStorage.getItem("defaultDice"));
+              if (Number.isFinite(localDice) && localDice > 0) {
+                diceTableDiceSize = localDice;
+              }
+            }
+            catch {
+              // ignore localStorage failures
+            }
+            try {
+              const spaceExtraRecord = JSON.parse(spaceExtra ?? "{}");
+              const dicerDataStr = spaceExtraRecord?.dicerData || "{}";
+              const spaceDicerData = typeof dicerDataStr === "string" ? JSON.parse(dicerDataStr) : dicerDataStr;
+              const spaceDice = Number(spaceDicerData?.defaultDice);
+              if (Number.isFinite(spaceDice) && spaceDice > 0) {
+                diceTableDiceSize = spaceDice;
+              }
+            }
+            catch {
+              // ignore parse errors
+            }
+            diceTableContent = formatAnkoDiceMessage(normalizedContent, diceTableDiceSize);
+          }
+
+          const finalContent = diceTableContent ?? normalizedContent;
+          const finalMessageType = diceTableContent
+            ? MessageType.DICE
+            : (isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT);
+          const finalExtra = diceTableContent ? { result: finalContent } : {};
+
           const textMsg: ChatMessageRequest = {
             ...getCommonFields() as any,
-            content: normalizedContent,
-            messageType: isWebgalCommandInput ? MessageType.WEBGAL_COMMAND : MessageType.TEXT,
-            extra: {},
+            content: finalContent,
+            messageType: finalMessageType,
+            extra: finalExtra,
           };
           await sendMessageWithInsert(textMsg);
         }
       }
 
       setInputText("");
+      setTempAnnotations([]);
       useRoomUiStore.getState().setReplyMessage(undefined);
-      setSendAsBackground(false);
-      setAudioPurpose(undefined);
       useRoomUiStore.getState().setInsertAfterMessageId(undefined);
     }
     catch (e: any) {
