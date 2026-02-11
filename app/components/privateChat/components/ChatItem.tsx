@@ -105,7 +105,7 @@ export default function ChatItem({
     if (!msg)
       return "";
     if (msg.messageType === 2)
-      return "[图片]";
+      return "[ͼƬ]";
     if (msg.messageType === 3)
       return "[文件]";
     return msg.content || "";

@@ -1,6 +1,6 @@
 # 任务清单: 聊天 @All 提及入口
 
-目录: `helloagents/plan/202601241705_chat-mention-all/`
+Ŀ¼: `helloagents/plan/202601241705_chat-mention-all/`
 
 ---
 

@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite 依赖文档补全（0.22.4）
 
-目录: `helloagents/history/2026-01/202601070338_blocksuite_docs/`
+Ŀ¼: `helloagents/history/2026-01/202601070338_blocksuite_docs/`
 
 ---
 

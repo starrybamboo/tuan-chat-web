@@ -1,29 +1,40 @@
 /**
- * 语音渲染相关的类型定义
- * 用于消息级别的情感向量和立绘位置控制
- */
-
-/**
- * 情感向量 - 8维情感控制
- * 对应顺序: [喜, 怒, 哀, 惧, 厌恶, 低落, 惊喜, 平静]
- */
-export type EmotionVector = [number, number, number, number, number, number, number, number];
-
-/**
- * 情感标签名称（与 IndexTTS 接口一致）
- */
-export const EMOTION_LABELS = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"] as const;
-
-export type EmotionLabel = typeof EMOTION_LABELS[number];
-
-/**
- * WebGAL 立绘位置
- * left: 左侧 (对应 -left 参数)
- * center: 中间 (对应 -center 或默认)
- * right: 右侧 (对应 -right 参数)
+ * WebGAL 立绘位置（自定义 5 槽位）
+ * left: 左
+ * left-center: 左中
+ * center: 中
+ * right-center: 右中
+ * right: 右
  * undefined: 不显示立绘
  */
-export type FigurePosition = "left" | "center" | "right" | undefined;
+export const FIGURE_POSITION_ORDER = ["left", "left-center", "center", "right-center", "right"] as const;
+
+export type FigurePositionKey = typeof FIGURE_POSITION_ORDER[number];
+
+export type FigurePosition = FigurePositionKey | undefined;
+
+export const FIGURE_POSITION_LABELS: Record<FigurePositionKey, string> = {
+  "left": "左",
+  "left-center": "左中",
+  "center": "中",
+  "right-center": "右中",
+  "right": "右",
+};
+
+/** 自定义立绘位置 -> 位置 ID（1-5） */
+export const FIGURE_POSITION_IDS: Record<FigurePositionKey, 1 | 2 | 3 | 4 | 5> = {
+  "left": 1,
+  "left-center": 2,
+  "center": 3,
+  "right-center": 4,
+  "right": 5,
+};
+
+export type FigurePositionId = typeof FIGURE_POSITION_IDS[FigurePositionKey];
+
+export function isFigurePosition(value: string | undefined): value is FigurePositionKey {
+  return FIGURE_POSITION_ORDER.includes(value as FigurePositionKey);
+}
 
 /**
  * 消息类型常量
@@ -46,6 +57,8 @@ export const MESSAGE_TYPE = {
   WEBGAL_VAR: 11,
   /** 跑团：检定/指令请求消息（点击后由他人“一键发送”执行） */
   COMMAND_REQUEST: 12,
+  /** WebGAL choose message */
+  WEBGAL_CHOOSE: 13,
   CLUE_CARD: 1000,
   /** 文档卡片消息（Blocksuite 文档引用） */
   DOC_CARD: 1002,
@@ -73,9 +86,11 @@ export type PredefinedAnimation = typeof PREDEFINED_ANIMATIONS[number];
  * WebGAL 动画目标（自动根据立绘位置推断）
  */
 export const ANIMATION_TARGETS = [
-  "fig-left", // 左侧立绘
-  "fig-center", // 中间立绘
-  "fig-right", // 右侧立绘
+  "1", // 左
+  "2", // 左中
+  "3", // 中
+  "4", // 右中
+  "5", // 右
   "bg-main", // 主背景
 ] as const;
 

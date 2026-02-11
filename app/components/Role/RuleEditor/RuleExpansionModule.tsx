@@ -9,11 +9,15 @@ export default function RuleExpansionModule({
   onRuleChange,
   cloneVersion,
   onModuleEditingChange,
+  forcedEditing,
+  saveSignal,
 }: {
   localRule: Rule;
   onRuleChange: React.Dispatch<React.SetStateAction<Rule>>;
   cloneVersion: number;
   onModuleEditingChange?: (moduleKey: string, editing: boolean) => void;
+  forcedEditing?: boolean;
+  saveSignal?: number;
 }) {
   const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
 
@@ -68,6 +72,8 @@ export default function RuleExpansionModule({
           onDataChange={handleBasicChange}
           cloneVersion={cloneVersion}
           onEditingChange={handleBasicEditingChange}
+          forcedEditing={forcedEditing}
+          saveSignal={saveSignal}
         />
       );
     }
@@ -80,6 +86,8 @@ export default function RuleExpansionModule({
           onDataChange={handleAbilityChange}
           cloneVersion={cloneVersion}
           onEditingChange={handleAbilityEditingChange}
+          forcedEditing={forcedEditing}
+          saveSignal={saveSignal}
         />
       );
     }
@@ -92,6 +100,8 @@ export default function RuleExpansionModule({
           onDataChange={handleSkillChange}
           cloneVersion={cloneVersion}
           onEditingChange={handleSkillEditingChange}
+          forcedEditing={forcedEditing}
+          saveSignal={saveSignal}
         />
       );
     }
@@ -115,6 +125,8 @@ export default function RuleExpansionModule({
             onSave={handleActTemplateChange}
             cloneVersion={cloneVersion}
             onEditingChange={handleActEditingChange}
+            forcedEditing={forcedEditing}
+            saveSignal={saveSignal}
           />
         </div>
       </Section>
@@ -160,7 +172,9 @@ export default function RuleExpansionModule({
           </button>
         </>
       </div>
-      {renderActiveTabContent()}
+      <div key={`rule-tab-panel-${activeTab}`}>
+        {renderActiveTabContent()}
+      </div>
     </div>
   );
 }

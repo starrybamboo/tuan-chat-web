@@ -179,7 +179,7 @@ export function SpriteCropper({
     latestSwitchKeyRef.current = spriteSwitchKey;
   }, [spriteSwitchKey]);
 
-  // 加载状态 - 分离不同操作的loading状态
+  // 加载状态 - 分离不同操作的loading״̬
   const [isCropping, setIsCropping] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isTransforming, setIsTransforming] = useState(false);

@@ -15,7 +15,7 @@ interface CommentPanelProps {
 
 /**
  * 评论区组件
- * @param targetInfo 用于指明是哪个 feed，post 或者 module 的评论区
+ * @param targetInfo 用于指明是哪个 feed，post 或者 repository 的评论区
  * @param className
  * @param loginUserId
  * @constructor
@@ -46,7 +46,7 @@ export default function CommentPanel({ targetInfo, className, loginUserId }: Com
               width={10}
               isRounded={true}
               withName={false}
-              stopPopWindow={true}
+              stopToastWindow={true}
               clickEnterProfilePage={false}
             />
           </div>

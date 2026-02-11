@@ -1,6 +1,8 @@
 import type { Message } from "../../../../../api";
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
+import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalChoosePayload, formatWebgalChooseSummary } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
@@ -24,13 +26,27 @@ export function PreviewMessage({ message, className }: {
   const role = useRoleRequest.data?.data;
   const isTextMessage = messageBody?.messageType === 1;
   const isWebgalVarMessage = messageBody?.messageType === MESSAGE_TYPE.WEBGAL_VAR;
+  const isWebgalChooseMessage = messageBody?.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE;
   const isDocCardMessage = messageBody?.messageType === MESSAGE_TYPE.DOC_CARD;
   const isDeleted = messageBody?.status === 1;
+  const isIntroText = messageBody?.messageType === MESSAGE_TYPE.INTRO_TEXT;
+  const displayRoleName = getDisplayRoleName({
+    roleId: messageBody?.roleId,
+    roleName: role?.roleName,
+    customRoleName: messageBody?.customRoleName,
+    isIntroText,
+  });
 
   const webgalVarSummary = isWebgalVarMessage
     ? (() => {
         const payload = extractWebgalVarPayload(messageBody?.extra);
         return payload ? formatWebgalVarSummary(payload) : null;
+      })()
+    : null;
+  const webgalChooseSummary = isWebgalChooseMessage
+    ? (() => {
+        const payload = extractWebgalChoosePayload(messageBody?.extra);
+        return payload ? formatWebgalChooseSummary(payload) : null;
       })()
     : null;
 
@@ -48,14 +64,16 @@ export function PreviewMessage({ message, className }: {
       {
         isDeleted
           ? "[原消息已被删除]"
-          : `【${role?.roleName || "未命名角色"}】: ${
+          : `${displayRoleName ? `【${displayRoleName}】: ` : ""}${
             isTextMessage
               ? (messageBody.content || "")
               : isWebgalVarMessage
                 ? `[变量] ${webgalVarSummary ?? ""}`.trim()
-                : isDocCardMessage
-                  ? `[文档] ${docCardTitle ?? ""}`.trim()
-                  : "非文本消息"
+                : isWebgalChooseMessage
+                  ? `[选择] ${webgalChooseSummary ?? ""}`.trim()
+                  : isDocCardMessage
+                    ? `[文档] ${docCardTitle ?? ""}`.trim()
+                    : "非文本消息"
           }`
       }
     </span>

@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { SidebarSimpleIcon } from "@/icons";
 
-export interface ChatDiscoverNavPanelProps {
+interface ChatDiscoverNavPanelProps {
   onCloseLeftDrawer: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
@@ -15,8 +15,8 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
   const navItemActive = "bg-base-300 text-base-content";
 
   return (
-    <div className="flex flex-col w-full h-full flex-1 min-h-0 min-w-0 rounded-tl-xl border-l border-t border-base-300 bg-base-200 text-base-content">
-      <div className="flex items-center justify-between h-12 gap-2 min-w-0 border-b border-base-300 rounded-tl-xl px-3">
+    <div className="flex flex-col w-full h-full flex-1 min-h-0 min-w-0 rounded-tl-xl border-l border-t border-gray-300 dark:border-gray-700 bg-base-200 text-base-content">
+      <div className="flex items-center justify-between h-12 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-3">
         <div className="min-w-0 font-semibold truncate">发现</div>
         {onToggleLeftDrawer && (
           <div className="tooltip tooltip-bottom" data-tip={leftDrawerLabel}>
@@ -35,7 +35,7 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
 
       <div className="px-3 pt-3 pb-2">
         <div className="px-1 pb-2 text-[11px] font-semibold tracking-wider text-base-content/50">
-          已归档群聊
+          归档仓库
         </div>
 
         <div className="space-y-1">

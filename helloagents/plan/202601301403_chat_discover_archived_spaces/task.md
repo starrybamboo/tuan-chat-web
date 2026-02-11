@@ -1,6 +1,6 @@
 # 任务清单: Chat 发现页（已归档群聊列表）
 
-目录: `helloagents/plan/202601301403_chat_discover_archived_spaces/`
+Ŀ¼: `helloagents/plan/202601301403_chat_discover_archived_spaces/`
 
 ---
 

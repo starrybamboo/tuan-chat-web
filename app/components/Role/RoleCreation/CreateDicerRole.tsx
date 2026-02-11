@@ -1,6 +1,8 @@
 import type { Role } from "../types";
+import { Plus } from "@phosphor-icons/react";
 import { useCreateRoleMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useState } from "react";
+import CreatePageHeader from "./CreatePageHeader";
 
 interface CreateDicerRoleProps {
   onBack?: () => void;
@@ -70,27 +72,54 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
     <div className={`transition-opacity duration-300 ease-in-out ${isSaving ? "opacity-50" : ""}`}>
       {/* 头部区域 */}
       <div className="max-w-4xl mx-auto p-6">
-        <div className="hidden md:flex items-center justify-between gap-3 mb-8">
-          <div className="flex items-center gap-4">
+        <CreatePageHeader
+          title={name || "创建骰娘"}
+          description="骰娘创建"
+          onBack={onBack}
+          toolButtons={[
+            {
+              id: "create-dicer",
+              label: isSaving ? "创建中..." : "创建骰娘",
+              icon: <Plus className="size-4" weight="bold" />,
+              onClick: handleSubmit,
+              disabled: !canSubmit,
+              variant: "primary",
+            },
+          ]}
+        />
+
+        <div className="md:hidden mb-4 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="btn btn-sm btn-ghost"
+                >
+                  ← 返回
+                </button>
+              )}
+              <h1 className="font-semibold text-xl">{name || "创建骰娘"}</h1>
+            </div>
             <button
               type="button"
-              onClick={onBack}
-              className="btn btn-lg btn-outline rounded-md btn-ghost mr-4"
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className={`btn btn-sm md:btn-lg rounded-lg btn-primary ${isSaving ? "scale-95" : ""}`}
             >
-              ← 返回
+              {isSaving
+                ? <span className="loading loading-spinner loading-xs"></span>
+                : (
+                    <span className="flex items-center gap-1">
+                      <Plus className="size-4" weight="bold" />
+                      创建骰娘
+                    </span>
+                  )}
             </button>
-            <div>
-              <h1 className="font-semibold text-2xl md:text-3xl my-2">
-                {name || "创建骰娘"}
-              </h1>
-              <p className="text-base-content/60">
-                骰娘创建
-              </p>
-            </div>
           </div>
+          <p className="text-sm text-base-content/60">骰娘创建</p>
         </div>
-
-        <div className="divider md:hidden"></div>
 
         {/* 表单区域 */}
         <div className="space-y-6">
@@ -137,29 +166,6 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* 底部按钮 */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className={`btn btn-primary btn-lg rounded-lg ${isSaving ? "scale-95" : ""}`}
-            >
-              {isSaving
-                ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      创建骰娘
-                    </span>
-                  )}
-            </button>
           </div>
         </div>
       </div>

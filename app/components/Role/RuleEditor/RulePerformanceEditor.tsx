@@ -11,6 +11,8 @@ interface RulePerformanceEditorProps {
   onSave?: (data: Record<string, string>) => void;
   cloneVersion: number;
   onEditingChange?: (editing: boolean) => void;
+  forcedEditing?: boolean;
+  saveSignal?: number;
 }
 
 // Reducer actions
@@ -65,25 +67,29 @@ export default function RulePerformanceEditor({
   onSave,
   cloneVersion,
   onEditingChange,
+  forcedEditing,
+  saveSignal,
 }: RulePerformanceEditorProps) {
   const [localData, dispatch] = useReducer(dataReducer, data ?? {});
   // 是否编辑
   const [isEditing, setIsEditing] = useState(false);
+  const isForcedEditingMode = typeof forcedEditing === "boolean";
   // 是否移动端
   const isMobile = useIsMobile();
 
   const prevCloneVersionRef = useRef(cloneVersion);
+  const prevSaveSignalRef = useRef<number | undefined>(saveSignal);
 
   const longFieldKeys = [""];
   const shortFields = Object.keys(localData)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
-  // 非编辑态时，允许外部 props 同步本地展示
+  // 非编辑态总是同步；受控编辑态下也允许外部同步（用于创建时模板预填）
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditing || isForcedEditingMode) {
       dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     }
-  }, [data, isEditing]);
+  }, [data, isEditing, isForcedEditingMode]);
 
   useEffect(() => {
     // 依赖里包含 data 以满足 exhaustive-deps，但只在 cloneVersion 真变化时才重置。
@@ -95,6 +101,36 @@ export default function RulePerformanceEditor({
     dispatch({ type: "SYNC_PROPS", payload: data ?? {} });
     setIsEditing(false);
   }, [cloneVersion, data]);
+
+  useEffect(() => {
+    if (typeof forcedEditing !== "boolean") {
+      return;
+    }
+
+    if (forcedEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    setIsEditing(false);
+  }, [forcedEditing]);
+
+  useEffect(() => {
+    if (saveSignal === undefined) {
+      return;
+    }
+    if (prevSaveSignalRef.current === saveSignal) {
+      return;
+    }
+
+    prevSaveSignalRef.current = saveSignal;
+    if (!isEditing) {
+      return;
+    }
+
+    onSave?.(localData ?? {});
+    setIsEditing(false);
+  }, [isEditing, localData, onSave, saveSignal]);
 
   // 将编辑态变化上报给父组件，用于保存前校验
   useEffect(() => {
@@ -163,7 +199,7 @@ export default function RulePerformanceEditor({
       <div className="flex items-center justify-between gap-3">
         <h3 className="card-title text-lg flex items-center gap-2">{title}</h3>
         <div className="flex items-center gap-2">
-          {!isEditing
+          {typeof forcedEditing !== "boolean" && (!isEditing
             ? (
                 <button type="button" className="btn btn-sm btn-accent" onClick={handleStartEditing}>
                   <span className="flex items-center gap-1">
@@ -201,7 +237,7 @@ export default function RulePerformanceEditor({
                     </span>
                   </button>
                 </>
-              )}
+              ))}
         </div>
       </div>
 
@@ -213,26 +249,10 @@ export default function RulePerformanceEditor({
           gridAutoRows: "minmax(80px, auto)",
         }}
       >
-        {/* 添加新字段区域 - 占满整行 */}
-        {isEditing && (
-          <div className="col-span-full">
-            <AddFieldForm
-              onAddField={handleAddField}
-              existingKeys={shortFields}
-              layout="stacked"
-              placeholder={{
-                key: "字段名（如：性格特点、背景故事等）",
-                value: "请输入表演描述...",
-              }}
-              title="添加新表演字段"
-              showTitle={true}
-            />
-          </div>
-        )}
         {isEmpty
           ? (
               <div className="col-span-full flex items-center justify-center text-sm text-base-content/60 py-6 text-center border border-dashed border-base-content/20 rounded-lg bg-base-100/40">
-                {isEditing ? "暂无字段，使用上方输入框添加" : "暂无字段，点击“编辑”开始添加"}
+                {isEditing ? "暂无字段，使用下方输入框添加" : "暂无字段，点击“编辑”开始添加"}
               </div>
             )
           : shortFields.map((key) => {
@@ -273,6 +293,23 @@ export default function RulePerformanceEditor({
                 </div>
               );
             })}
+
+        {/* 添加新字段区域 - 占满整行 */}
+        {isEditing && (
+          <div className="col-span-full">
+            <AddFieldForm
+              onAddField={handleAddField}
+              existingKeys={shortFields}
+              layout="stacked"
+              placeholder={{
+                key: "字段名（如：性格特点、背景故事等）",
+                value: "请输入表演描述...",
+              }}
+              title="添加新表演字段"
+              showTitle={true}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

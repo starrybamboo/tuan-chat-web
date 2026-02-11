@@ -1,12 +1,12 @@
-import { ChatsIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, TreasureChestIcon, UserIcon } from "@phosphor-icons/react";
+import { ChatsIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
+import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
@@ -119,7 +119,6 @@ export default function Topbar() {
   const navItems = [
     { to: "/chat/private", label: "聊天", icon: ChatsIcon },
     { to: "/role", label: "角色", icon: IdentificationCardIcon },
-    { to: "/module", label: "模组", icon: TreasureChestIcon },
     { to: "/ai-image", label: "AI生图", icon: PaintBrushBroadIcon },
   ];
 
@@ -220,7 +219,7 @@ export default function Topbar() {
                         width={6}
                         isRounded={true}
                         withName={false}
-                        stopPopWindow={true}
+                        stopToastWindow={true}
                         clickEnterProfilePage={false}
                       />
                     </button>
@@ -233,7 +232,7 @@ export default function Topbar() {
                             width={10}
                             isRounded={true}
                             withName={false}
-                            stopPopWindow={true}
+                            stopToastWindow={true}
                             clickEnterProfilePage={false}
                           />
                           <div className="min-w-0">
@@ -312,9 +311,9 @@ export default function Topbar() {
           </div>
         )}
       </div>
-      <UpdatesPopWindow></UpdatesPopWindow>
+      <UpdatesToastWindow></UpdatesToastWindow>
 
-      <PopWindow isOpen={isBugQqOpen} onClose={() => setIsBugQqOpen(false)}>
+      <ToastWindow isOpen={isBugQqOpen} onClose={() => setIsBugQqOpen(false)}>
         <div className="p-6 w-[92vw] max-w-md flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <div className="text-lg font-bold">Bug反馈（QQ）</div>
@@ -337,7 +336,7 @@ export default function Topbar() {
             进群后请尽量附上：复现步骤、截图/录屏、设备与浏览器信息。
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

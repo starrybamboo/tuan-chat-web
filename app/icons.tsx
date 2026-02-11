@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ComponentProps, SVGProps } from "react";
 import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
 
 /**
@@ -83,7 +83,6 @@ export function CommandSolid(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 // 二十面骰子图标
 // 其他关键词：骰子，D20，桌游，DND，跑团
 export function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
@@ -103,7 +102,6 @@ export function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 // 六面骰子图标（自绘）
 // 其他关键词：骰子，D6，桌游，跑团，随机
 export function DiceD6Icon(props: SVGProps<SVGSVGElement>) {
@@ -996,6 +994,27 @@ export function PlusOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 插入一行图标
+// 其他关键词：插入、增加一行、下方新增
+export function InsertLineBelow(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6">
+        <path d="M4 6h16"></path>
+        <path d="M4 12h10"></path>
+        <path d="M12 16v4"></path>
+        <path d="M10 18h4"></path>
+      </g>
+    </svg>
+  );
+}
+
 // 齿轮轮廓图标
 // 其他关键词：设置，配置，选项
 export function GearOutline(props: SVGProps<SVGSVGElement>) {
@@ -1064,8 +1083,68 @@ export function StageIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 屏幕图标
+// 其他关键词：黑屏，显示器，窗口，画面
+export function ScreenIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="currentColor"
+      {...props}
+    >
+      <rect x="4" y="6" width="16" height="12" rx="2.5" />
+    </svg>
+  );
+}
+
 // 历史记录图标
 // 其他关键词：时间，记录，日志
+export function EyedropperIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M2 22l5-5" />
+      <path d="M18 6l-2-2a2 2 0 0 0-2.8 0L5 12.2a2 2 0 0 0 0 2.8l2 2a2 2 0 0 0 2.8 0L18 8.8a2 2 0 0 0 0-2.8z" />
+      <path d="M8.5 15.5L14 10" />
+    </svg>
+  );
+}
+
+export function ExpandCornersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M4 9V4h5" />
+      <path d="M20 9V4h-5" />
+      <path d="M4 15v5h5" />
+      <path d="M20 15v5h-5" />
+    </svg>
+  );
+}
+// History icon
 export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1375,9 +1454,13 @@ export function ConnectionIcon() {
   );
 }
 
-export function SidebarSimpleIcon() {
+export function SidebarSimpleIcon({
+  size = 20,
+  weight = "bold",
+  ...props
+}: ComponentProps<typeof PhosphorSidebarSimpleIcon>) {
   return (
-    <PhosphorSidebarSimpleIcon weight="bold" size={20} />
+    <PhosphorSidebarSimpleIcon weight={weight} size={size} {...props} />
   );
 }
 

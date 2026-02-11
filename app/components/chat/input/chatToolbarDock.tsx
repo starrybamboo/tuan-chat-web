@@ -1,27 +1,19 @@
-import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import {
-  Detective,
-  WebgalIcon,
-} from "@/icons";
+import { WebgalIcon } from "@/icons";
 
 interface ChatToolbarDockProps {
   isInline: boolean;
   isRunModeOnly: boolean;
-  isMobileLinkCompact: boolean;
   showWebgalControls?: boolean;
-  onInsertWebgalCommandPrefix?: () => void;
-  defaultFigurePosition?: "left" | "center" | "right";
-  onSetDefaultFigurePosition?: (position: "left" | "center" | "right" | undefined) => void;
-  onToggleDialogNotend?: () => void;
-  onToggleDialogConcat?: () => void;
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
   onSetWebgalVar?: (key: string, expr: string) => Promise<void> | void;
   onOpenWebgalVarModal?: () => void;
+  onOpenWebgalChooseModal?: () => void;
   isSpectator?: boolean;
   onToggleRealtimeRender?: () => void;
   showRunControls?: boolean;
@@ -30,109 +22,42 @@ interface ChatToolbarDockProps {
 export default function ChatToolbarDock({
   isInline,
   isRunModeOnly,
-  isMobileLinkCompact,
   showWebgalControls,
-  onInsertWebgalCommandPrefix,
-  defaultFigurePosition,
-  onSetDefaultFigurePosition,
-  onToggleDialogNotend,
-  onToggleDialogConcat,
   onSendEffect,
   onClearBackground,
   onClearFigure,
   onSetWebgalVar,
   onOpenWebgalVarModal,
+  onOpenWebgalChooseModal,
   isSpectator,
   onToggleRealtimeRender,
   showRunControls,
 }: ChatToolbarDockProps) {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
-  const dialogNotend = useRoomPreferenceStore(state => state.dialogNotend);
-  const dialogConcat = useRoomPreferenceStore(state => state.dialogConcat);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const subDrawerState = useSideDrawerStore(state => state.subState);
-  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
 
-  const defaultFigurePositionEffective = defaultFigurePosition ?? undefined;
   return (
     <div
       className={`flex ${isInline ? "mr-2 items-start gap-2 flex-nowrap" : "mt-1 items-center gap-2 flex-wrap justify-end grow"} ${
         isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
       }`}
     >
-      {/* WebGAL 指令按钮（仅在联动模式下显示）：点击后给输入框插入 % 前缀 */}
-      {showWebgalControls && webgalLinkMode && onInsertWebgalCommandPrefix && !isMobileLinkCompact && (
-        <div className="tooltip tooltip-top" data-tip="WebGAL 指令（插入 % 前缀）">
-          <button
-            type="button"
-            className="btn btn-xs btn-ghost border border-base-300 md:mt-1"
-            onClick={onInsertWebgalCommandPrefix}
-          >
-            %指令
-          </button>
-        </div>
-      )}
-
-      {/* 默认立绘位置选择器（仅在联动模式下显示） */}
-      {showWebgalControls && webgalLinkMode && onSetDefaultFigurePosition && !isMobileLinkCompact && (
-        <div className="flex items-center gap-1">
-          <div className="tooltip tooltip-top" data-tip="本角色默认位置（点击取消选择）">
-            <div className="join">
-              {(["left", "center", "right"] as const).map(pos => (
-                <button
-                  key={pos}
-                  type="button"
-                  className={`join-item btn btn-xs px-2 md:mt-1 ${defaultFigurePositionEffective === pos ? "btn-primary" : "btn-ghost"}`}
-                  onClick={() => {
-                    if (defaultFigurePositionEffective === pos) {
-                      onSetDefaultFigurePosition?.(undefined);
-                    }
-                    else {
-                      onSetDefaultFigurePosition?.(pos);
-                    }
-                  }}
-                  title={`设置角色默认位置为${pos === "left" ? "左" : pos === "center" ? "中" : "右"}（再次点击取消）`}
-                >
-                  {pos === "left" ? "左" : pos === "center" ? "中" : "右"}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* WebGAL 对话参数：-notend 和 -concat（仅在联动模式下显示） */}
-      {showWebgalControls && webgalLinkMode && (onToggleDialogNotend || onToggleDialogConcat) && (
-        <div className="flex items-center gap-2 text-xs md:mt-2">
-          {onToggleDialogNotend && (
-            <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
-              <input
-                type="checkbox"
-                className="checkbox checkbox-xs checkbox-primary rounded-none"
-                checked={!!dialogNotend}
-                onChange={onToggleDialogNotend}
-              />
-              <span className="tooltip tooltip-top" data-tip="此话不停顿，文字展示完立即执行下一句">不停顿</span>
-            </label>
-          )}
-          {onToggleDialogConcat && (
-            <label className="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors">
-              <input
-                type="checkbox"
-                className="checkbox checkbox-xs checkbox-primary rounded-none"
-                checked={!!dialogConcat}
-                onChange={onToggleDialogConcat}
-              />
-              <span className="tooltip tooltip-top" data-tip="续接上段话，本句对话连接在上一句对话之后">续接</span>
-            </label>
-          )}
-        </div>
-      )}
-
       {/* WebGAL 导演控制台 */}
+      {showWebgalControls && webgalLinkMode && onOpenWebgalChooseModal && (
+        <div
+          className="tooltip tooltip-top hover:text-info mt-0.5 md:mt-1"
+          data-tip="选择"
+          aria-label="选择"
+          title="选择"
+          onClick={onOpenWebgalChooseModal}
+        >
+          <ListChecks className="size-6 cursor-pointer" />
+        </div>
+      )}
+
       {showWebgalControls && webgalLinkMode && onSendEffect && (
         <div className="dropdown dropdown-top dropdown-center md:dropdown-end mt-0.5 md:mt-1">
           <div tabIndex={0} role="button" className="tooltip tooltip-top hover:text-info" data-tip="导演控制台" aria-label="导演控制台" title="导演控制台">
@@ -183,13 +108,9 @@ export default function ChatToolbarDock({
             className="tooltip tooltip-top hover:text-info"
             data-tip="我的文档"
             data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "docFolder" ? "none" : "docFolder")}
+            onClick={() => setSideDrawerState(sideDrawerState === "doc" ? "none" : "doc")}
           >
             <FileTextIcon className="size-6" />
-          </div>
-
-          <div className="tooltip tooltip-top hover:text-info" data-tip="查看线索" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}>
-            <Detective className="size-6" />
           </div>
 
           <div className="tooltip tooltip-top" data-tip="展示先攻表" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}>
@@ -200,7 +121,7 @@ export default function ChatToolbarDock({
             className="tooltip tooltip-top"
             data-tip="地图"
             data-side-drawer-toggle="true"
-            onClick={() => setSubDrawerState(subDrawerState === "map" ? "none" : "map")}
+            onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
           >
             <CheckerboardIcon className="size-6 jump_icon" />
           </div>

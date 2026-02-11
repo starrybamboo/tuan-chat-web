@@ -1,6 +1,6 @@
 # 任务清单: AI 生图模型拉取端点修复
 
-目录: `helloagents/plan/202601142246_ai_image_meta_endpoint_fix/`
+Ŀ¼: `helloagents/plan/202601142246_ai_image_meta_endpoint_fix/`
 
 ---
 

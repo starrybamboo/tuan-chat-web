@@ -8,10 +8,6 @@ export function formatLocalDateTime(date: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
-export function getCurTimeStamp() {
-  return (new Date()).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }).replace(/[/\s,:]/g, "-");
-}
-
 /**
  * 根据当前时间智能排版时间
  * @param time 可以是 2025-08-18 20:38:25 的格式 或者 是一个时间戳 1755519511000

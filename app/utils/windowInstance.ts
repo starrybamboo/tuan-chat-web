@@ -4,11 +4,11 @@
  */
 
 // 生成唯一的窗口标识符
-export function generateWindowId(): string {
+function generateWindowId(): string {
   return `window_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// 全局窗口ID，在应用启动时生成
+// 全局窗口 ID，在应用启动时生成
 export const CURRENT_WINDOW_ID = generateWindowId();
 
 // 状态更新间隔管理
@@ -44,7 +44,7 @@ export function shouldSendStatusUpdate(
   if (activeWindow && activeWindow.windowId !== windowId) {
     const activePriority = statusPriority[activeWindow.status as keyof typeof statusPriority] || 0;
 
-    // 如果其他窗口的状态优先级更高，且时间间隔较短（30秒内），跳过
+    // 如果其他窗口的状态优先级更高，且时间间隔较短（30 秒内），跳过
     if (activePriority > newPriority && (now - activeWindow.timestamp < 30_000)) {
       return false;
     }
@@ -57,8 +57,8 @@ export function shouldSendStatusUpdate(
 
   // 防抖逻辑：相同状态的更新间隔检查
   if (lastUpdate && lastUpdate.status === newStatus) {
-    // 相同状态的更新，如果间隔太短则跳过
-    const minInterval = newStatus === "input" ? 2000 : 3000; // input状态2秒间隔，其他3秒
+    // 相同状的更新，如果间隔太短则跳过
+    const minInterval = newStatus === "input" ? 2000 : 3000; // input 状态 2 秒间隔，其他 3 秒
     if (now - lastUpdate.timestamp < minInterval) {
       return false;
     }
@@ -74,7 +74,7 @@ export function shouldSendStatusUpdate(
 /**
  * 清理过期的状态记录
  */
-export function cleanupExpiredStatusRecords(): void {
+function cleanupExpiredStatusRecords(): void {
   const now = Date.now();
   const expireTime = 5 * 60 * 1000; // 5分钟过期
 
@@ -114,10 +114,6 @@ export function handleWindowBlur(roomId: number, userId: number): void {
  * @param userId 用户ID
  * @returns 活跃窗口信息或null
  */
-export function getActiveWindow(roomId: number, userId: number): { windowId: string; timestamp: number; status: string } | null {
-  const key = `${roomId}_${userId}`;
-  return activeStatusWindows.get(key) || null;
-}
 
 // 定期清理过期记录
 setInterval(cleanupExpiredStatusRecords, 60 * 1000); // 每分钟清理一次

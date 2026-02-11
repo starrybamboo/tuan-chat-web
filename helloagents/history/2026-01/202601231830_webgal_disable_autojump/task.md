@@ -1,6 +1,6 @@
 ﻿# 任务清单: WebGAL 实时渲染禁用自动跳转
 
-目录: `helloagents/plan/202601231830_webgal_disable_autojump/`
+Ŀ¼: `helloagents/plan/202601231830_webgal_disable_autojump/`
 
 ---
 

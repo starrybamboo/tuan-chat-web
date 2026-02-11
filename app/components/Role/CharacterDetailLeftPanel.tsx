@@ -1,14 +1,13 @@
 import type { RoleAvatar } from "api";
 import type { Dispatch, SetStateAction } from "react";
 import type { Role } from "./types";
-import { ChevronRightIcon, DiceFiveIcon, EditIcon, GearOutline, MicrophoneIcon, SaveIcon } from "app/icons";
+import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 
 export interface CharacterDetailLeftPanelProps {
   isQueryLoading: boolean;
   isEditing: boolean;
-  isTransitioning: boolean;
   isDiceMaiden: boolean;
   localRole: Role;
   roleAvatars: RoleAvatar[];
@@ -21,9 +20,6 @@ export interface CharacterDetailLeftPanelProps {
   currentDicerRoleId?: number;
   dicerRoleError: string | null;
   linkedDicerRoleName?: string;
-  onSave: () => void;
-  onEditStart: () => void;
-  onOpenStImportModal: () => void;
   onOpenRuleModal: () => void;
   onOpenAudioModal: () => void;
   onOpenDiceMaidenLinkModal: () => void;
@@ -39,8 +35,6 @@ export interface CharacterDetailLeftPanelProps {
 export default function CharacterDetailLeftPanel({
   isQueryLoading,
   isEditing,
-  isTransitioning,
-  isDiceMaiden,
   localRole,
   roleAvatars,
   selectedAvatarId,
@@ -52,9 +46,6 @@ export default function CharacterDetailLeftPanel({
   currentDicerRoleId,
   dicerRoleError,
   linkedDicerRoleName,
-  onSave,
-  onEditStart,
-  onOpenStImportModal,
   onOpenRuleModal,
   onOpenAudioModal,
   onOpenDiceMaidenLinkModal,
@@ -70,65 +61,6 @@ export default function CharacterDetailLeftPanel({
     <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
       <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
         <div className="card-body p-4 max-h-168">
-          <div className="md:hidden mb-4 pl-4 pr-4">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div>
-                <h1 className="font-semibold text-xl max-w-32 truncate">
-                  {localRole.name || "未命名角色"}
-                </h1>
-                <p className="text-base-content/60 text-sm">
-                  {isDiceMaiden ? "骰娘展示" : "角色展示"}
-                  {" "}
-                  ·
-                  {currentRuleName || "未选择规则"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {isEditing
-                  ? (
-                      <button
-                        type="button"
-                        onClick={onSave}
-                        className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
-                        disabled={isTransitioning}
-                      >
-                        {isTransitioning
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
-                              <span className="flex items-center gap-1">
-                                <SaveIcon className="w-4 h-4" />
-                                保存
-                              </span>
-                            )}
-                      </button>
-                    )
-                  : (
-                      <button type="button" onClick={onEditStart} className="btn btn-accent btn-sm">
-                        <span className="flex items-center gap-1">
-                          <EditIcon className="w-4 h-4" />
-                          编辑
-                        </span>
-                      </button>
-                    )}
-
-                {!isDiceMaiden && (
-                  <button
-                    type="button"
-                    onClick={onOpenStImportModal}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    <span className="flex items-center gap-1">
-                      ST导入
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="divider my-0" />
-          </div>
-
           <div className="flex justify-center mt-6 mb-2">
             {isQueryLoading
               ? (

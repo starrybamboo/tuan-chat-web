@@ -6,7 +6,7 @@ import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createFullImageCrop, createTopCenteredSquareCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -43,7 +43,7 @@ interface ImgUploaderWithCopperProps {
   children: React.ReactNode;
   // 上传文件的文件名
   fileName: string;
-  // 上传场景：1.聊天室,2.表情包，3.角色差分 4.模组图片
+  // 上传场景：1.聊天室,2.表情包，3.角色差分 4.仓库图片
   scene: 1 | 2 | 3 | 4;
   // 数据更新回调函数
   mutate?: (data: any, context?: UploadContext) => void | Promise<void>;
@@ -158,7 +158,7 @@ export function CharacterCopper({
     setImgSrc("");
     setisSubmiting(false);
     setPreviewRenderKey(0);
-    // 重置Transform状态
+    // 重置Transform״̬
     setTransform(createDefaultTransform());
     // 重置裁剪状态
     resetCropState();
@@ -479,7 +479,7 @@ export function CharacterCopper({
         {children}
       </div>
       {/* 裁剪弹窗 */}
-      <PopWindow
+      <ToastWindow
         isOpen={isOpen}
         onClose={() => {
           resetAllStates();
@@ -608,7 +608,7 @@ export function CharacterCopper({
             </div>
           )}
         </div>
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { LoadingState } from "../ui/LoadingState";
 import { Pagination } from "../ui/Pagination";
 
 interface ResourceListProps {
-  type: "5" | "6"; // 5: 图片, 6: 音频
+  type: "5" | "6"; // 5: ͼƬ, 6: 音频
   isPublic: boolean;
   searchText?: string;
   sortBy?: string;

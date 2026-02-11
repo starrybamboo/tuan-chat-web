@@ -17,7 +17,7 @@ import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blo
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddIcon, ChevronDown } from "@/icons";
 
@@ -170,6 +170,45 @@ function normalizeTree(params: {
   return { schemaVersion: 1, categories };
 }
 
+function isSameDocFolderTree(a: DocFolderTree | null, b: DocFolderTree | null): boolean {
+  if (a === b)
+    return true;
+  if (!a || !b)
+    return false;
+  if (a.schemaVersion !== b.schemaVersion)
+    return false;
+
+  const aCats = a.categories ?? [];
+  const bCats = b.categories ?? [];
+  if (aCats.length !== bCats.length)
+    return false;
+
+  for (let i = 0; i < aCats.length; i++) {
+    const ac = aCats[i];
+    const bc = bCats[i];
+    if (!ac || !bc)
+      return false;
+    if (ac.categoryId !== bc.categoryId || ac.name !== bc.name || Boolean(ac.collapsed) !== Boolean(bc.collapsed))
+      return false;
+
+    const aItems = ac.items ?? [];
+    const bItems = bc.items ?? [];
+    if (aItems.length !== bItems.length)
+      return false;
+
+    for (let j = 0; j < aItems.length; j++) {
+      const ai = aItems[j];
+      const bi = bItems[j];
+      if (!ai || !bi)
+        return false;
+      if (ai.nodeId !== bi.nodeId || ai.type !== bi.type || ai.targetId !== bi.targetId)
+        return false;
+    }
+  }
+
+  return true;
+}
+
 function formatDateTime(raw: string | null | undefined): string {
   if (!raw)
     return "";
@@ -230,7 +269,7 @@ export default function DocFolderForUser() {
   }, [serverVersion]);
 
   useEffect(() => {
-    setTree(normalizedFromServer);
+    setTree(prev => (isSameDocFolderTree(prev, normalizedFromServer) ? prev : normalizedFromServer));
   }, [normalizedFromServer, spaceId]);
 
   useEffect(() => {
@@ -801,7 +840,7 @@ export default function DocFolderForUser() {
               </div>
             )}
 
-      <PopWindow isOpen={createFolderOpen} onClose={() => setCreateFolderOpen(false)}>
+      <ToastWindow isOpen={createFolderOpen} onClose={() => setCreateFolderOpen(false)}>
         <div className="w-[min(520px,92vw)] p-6">
           <div className="text-sm font-medium opacity-80 mb-3">新建文件夹</div>
           <input
@@ -815,9 +854,9 @@ export default function DocFolderForUser() {
             <button type="button" className="btn btn-primary" onClick={() => void createFolder()}>创建</button>
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow isOpen={createDocOpen} onClose={() => setCreateDocOpen(false)}>
+      <ToastWindow isOpen={createDocOpen} onClose={() => setCreateDocOpen(false)}>
         <div className="w-[min(520px,92vw)] p-6">
           <div className="text-sm font-medium opacity-80 mb-3">新建文档</div>
           <div className="space-y-3">
@@ -855,9 +894,9 @@ export default function DocFolderForUser() {
             </button>
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow isOpen={renameCategoryOpen} onClose={() => setRenameCategoryOpen(false)}>
+      <ToastWindow isOpen={renameCategoryOpen} onClose={() => setRenameCategoryOpen(false)}>
         <div className="w-[min(520px,92vw)] p-6">
           <div className="text-sm font-medium opacity-80 mb-3">重命名文件夹</div>
           <input
@@ -878,9 +917,9 @@ export default function DocFolderForUser() {
             </button>
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow isOpen={deleteDocConfirmId != null} onClose={() => setDeleteDocConfirmId(null)}>
+      <ToastWindow isOpen={deleteDocConfirmId != null} onClose={() => setDeleteDocConfirmId(null)}>
         <div className="w-[min(520px,92vw)] p-6">
           <div className="text-sm font-medium opacity-80 mb-3">删除文档</div>
           <div className="text-sm opacity-70">
@@ -901,9 +940,9 @@ export default function DocFolderForUser() {
             </button>
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow isOpen={deleteCategoryConfirmId != null} onClose={() => setDeleteCategoryConfirmId(null)}>
+      <ToastWindow isOpen={deleteCategoryConfirmId != null} onClose={() => setDeleteCategoryConfirmId(null)}>
         <div className="w-[min(520px,92vw)] p-6">
           <div className="text-sm font-medium opacity-80 mb-3">删除文件夹</div>
           <div className="text-sm opacity-70">
@@ -921,9 +960,9 @@ export default function DocFolderForUser() {
             </button>
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
 
-      <PopWindow
+      <ToastWindow
         isOpen={openDocId != null && openDocBlocksuiteId != null}
         onClose={() => setOpenDocId(null)}
       >
@@ -959,7 +998,7 @@ export default function DocFolderForUser() {
             )}
           </div>
         </div>
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # 任务清单: 聊天导入保留原发言人名
 
-目录: `helloagents/plan/202601232052_chat_import_preserve_speaker_name/`
+Ŀ¼: `helloagents/plan/202601232052_chat_import_preserve_speaker_name/`
 
 ---
 

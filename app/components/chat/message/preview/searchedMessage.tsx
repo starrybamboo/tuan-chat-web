@@ -1,7 +1,9 @@
 import type { ChatMessageResponse } from "../../../../../api";
 import React from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
+import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 
 function HighlightText({ text, keyword }: { text: string; keyword: string }) {
@@ -38,13 +40,19 @@ export default function SearchedMessage({
 }) {
   const useRoleRequest = useGetRoleQuery(message.message.roleId ?? -1);
   const role = useRoleRequest.data?.data;
+  const displayRoleName = getDisplayRoleName({
+    roleId: message.message.roleId,
+    roleName: role?.roleName,
+    customRoleName: message.message.customRoleName,
+    isIntroText: message.message.messageType === MESSAGE_TYPE.INTRO_TEXT,
+  });
   return (
     <div className={`flex flex-col hover:bg-base-300 transition-colors ${className}`} onClick={onClick}>
       <div className="flex items-center gap-2">
-        <RoleAvatarComponent avatarId={message.message.avatarId ?? -1} width={8} isRounded={true} stopPopWindow withTitle={true}></RoleAvatarComponent>
+        <RoleAvatarComponent avatarId={message.message.avatarId ?? -1} width={8} isRounded={true} stopToastWindow withTitle={true}></RoleAvatarComponent>
         <div className="font-medium text-sm">
           <HighlightText
-            text={role?.roleName ?? ""}
+            text={displayRoleName}
             keyword={keyword}
           />
           <span className="text-xs opacity-70 ml-2">

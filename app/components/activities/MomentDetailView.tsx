@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import LikeIconButton from "@/components/common/likeIconButton";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
@@ -17,7 +17,7 @@ interface MomentDetailViewProps {
 /**
  * 动态详情页面组件 - 显示完整动态内容和评论区
  */
-export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
+const MomentDetailView: React.FC<MomentDetailViewProps> = ({
   feedId,
   loginUserId,
   onClose,
@@ -196,26 +196,26 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                   {feed?.content ?? ""}
                 </div>
 
-                {/* 模组信息 */}
-                {feed?.moduleVO && (
+                {/* 仓库信息 */}
+                {feed?.repositoryVO && (
                   <div className="mt-4 p-4 bg-base-200 rounded-lg border border-base-300">
                     <div className="flex items-center gap-3">
-                      {feed.moduleVO.imageUrl && (
+                      {feed.repositoryVO.imageUrl && (
                         <img
-                          src={feed.moduleVO.imageUrl}
-                          alt={feed.moduleVO.moduleName}
+                          src={feed.repositoryVO.imageUrl}
+                          alt={feed.repositoryVO.repositoryName}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-base-content">{feed.moduleVO.moduleName}</h4>
+                        <h4 className="font-semibold text-base-content">{feed.repositoryVO.repositoryName}</h4>
                         <p className="text-sm text-base-content/60">
                           作者：
-                          {feed.moduleVO.authorName}
+                          {feed.repositoryVO.authorName}
                         </p>
-                        {feed.moduleVO.moduleDescription && (
+                        {feed.repositoryVO.repositoryDescription && (
                           <p className="text-sm text-base-content/80 mt-1 line-clamp-2">
-                            {feed.moduleVO.moduleDescription}
+                            {feed.repositoryVO.repositoryDescription}
                           </p>
                         )}
                       </div>
@@ -242,7 +242,7 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                         >
                           <img
                             src={img}
-                            alt={`图片 ${idx + 1}`}
+                            alt={`ͼƬ ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -295,9 +295,9 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
         </div>
 
         {/* UserDetail 弹窗 */}
-        <PopWindow isOpen={isUserDetailCardOpen} onClose={closeUserCard}>
+        <ToastWindow isOpen={isUserDetailCardOpen} onClose={closeUserCard}>
           <UserDetail userId={userId} />
-        </PopWindow>
+        </ToastWindow>
       </div>
     </div>
   );

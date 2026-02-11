@@ -1,6 +1,6 @@
 # 任务清单: clue_detail_ui_refactor
 
-目录: `helloagents/history/2026-01/202601140302_clue_detail_ui_refactor/`
+Ŀ¼: `helloagents/history/2026-01/202601140302_clue_detail_ui_refactor/`
 
 > 轻量迭代：重构“线索抽屉→线索详情弹窗”UI（单列布局、顶部固定操作区、默认更大视口），正文继续使用 BlockSuite 文档；`space_clue.note` 保留为兼容字段。
 

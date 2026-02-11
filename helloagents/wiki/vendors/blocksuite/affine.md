@@ -32,7 +32,6 @@
 - `@blocksuite/affine/schemas`：预置 schema 集合（本项目多处使用）
 - `@blocksuite/affine/model`：模型层入口（类型与模型结构）
 - `@blocksuite/affine/ext-loader`、`@blocksuite/affine/extensions/*`、`@blocksuite/affine/foundation/*`：扩展加载与基础扩展
-c
 ---
 
 ## 3. 常见子路径模式（如何把“文件”与“功能”对应起来）
@@ -61,11 +60,6 @@ inlines/widgets/gfx 基本同理。
 以下是本项目已出现的典型导入点，可作为优先学习与复用对象：
 
 - `@blocksuite/affine/model`：`DocMode`（见 `app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`）
-- `@blocksuite/affine/shared/services`：`DocModeProvider`（见 `app/components/chat/infra/blocksuite/playground/apps/starter/utils/setup-playground.ts`）
-- `@blocksuite/affine/schemas`：`AffineSchemas`（见 `app/components/chat/infra/blocksuite/playground/apps/starter/utils/collection.ts`）
-- `@blocksuite/affine/store`：`Schema` / `Transformer` / `nanoid`（见 `app/components/chat/infra/blocksuite/playground/apps/starter/utils/collection.ts`）
-- `@blocksuite/affine/widgets/linked-doc`：`MarkdownTransformer`（见 `app/components/chat/infra/blocksuite/playground/apps/starter/data/preset.ts`）
-- `@blocksuite/affine/inlines/reference`：`RefNodeSlotsProvider`（见 `app/components/chat/infra/blocksuite/playground/apps/starter/utils/extensions.ts`）
 
 ---
 
@@ -74,7 +68,6 @@ inlines/widgets/gfx 基本同理。
 - 规格/扩展组装：`app/components/chat/infra/blocksuite/spec/affineSpec.ts`
 - 自定义 spec：`app/components/chat/infra/blocksuite/spec/tcSpec.ts`
 - embedded editor：`app/components/chat/infra/blocksuite/embedded/createEmbeddedAffineEditor.ts`
-- playground：`app/components/chat/infra/blocksuite/playground/apps/starter/`
 
 ---
 

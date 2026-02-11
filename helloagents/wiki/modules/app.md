@@ -7,7 +7,7 @@
 ## 模块概述
 
 - **职责:** 页面路由、页面组件、通用组件与工具库组织
-- **状态:** ?开发中
+- **״̬:** ?开发中
 $12026-01-19
 
 ## 相关模块文档（建议从这里分流查阅）
@@ -59,7 +59,7 @@ $12026-01-19
 - 空间描述 @ 提及：选择成员后立即关闭弹窗，并对插入动作增加防重入保护，避免重复插入
 - 乐观显示（room/space）：iframe 侧 header 变化通过 `postMessage` 上报，宿主写入 `entityHeaderOverrideStore`（localStorage），房间/空间列表与房间顶部标题栏优先显示覆盖值
 - tcHeader 性能：iframe 宿主侧会冻结 `tcHeaderTitle/tcHeaderImageUrl`（仅用于首次初始化或切换 doc 的兜底写入），避免“实时同步标题/头像”导致 iframe `src` 变化触发 `blocksuite-frame` 重新加载
-- blocksuite-frame 弹窗挂载点：`/blocksuite-frame` 也会渲染 `modal-root`，以支持 `PopWindow`/图片裁剪上传等基于 Portal 的弹窗
+- blocksuite-frame 弹窗挂载点：`/blocksuite-frame` 也会渲染 `modal-root`，以支持 `ToastWindow`/图片裁剪上传等基于 Portal 的弹窗
 - 文档列表性能：`SpaceWorkspace` 不再在初始化阶段为补齐标题而全量 `doc.load()`；描述文档远端同步不再作为 `DocEngine` shadow 自动拉取全部 subdoc（仅对已打开 doc 绑定推送），并在 pull 阶段不再做远端写回（避免打开文档触发额外 PUT）
 - 线索文档化（方案A试运行）：线索正文统一使用 `BlocksuiteClueDescriptionEditor`（`doc_type=description`），创建线索仅填基础信息（name/image/folder）；`space_clue.note` 保留为兼容字段，不再作为主要编辑入口
 - 线索详情弹窗（PL 抽屉）：默认使用全屏弹窗并在顶部固定基础信息/操作区，下方提供大视口的线索文档编辑区；旧 `note` 以折叠区形式展示（默认折叠）

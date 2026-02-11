@@ -23,7 +23,7 @@
 
 1. 前后端统一为 blocksuite/yjs 的增量同步语义：
    - updates 入库（持久化）
-   - WebSocket 实时 fanout
+   - WebSocket ʵʱ fanout
    - 断线重连可通过 stateVector diff 补齐
 2. 定期将 updates 合并为快照（snapshot compaction），并删除已合并的 updates
 3. 一次性迁移历史快照（v1）到 updates 日志（baseline update）
@@ -172,7 +172,7 @@ Controller：`src/main/java/com/jxc/tuanchat/blocksuite/controller/BlocksuiteDoc
 
 文件：`app/components/chat/infra/blocksuite/runtime/spaceWorkspace.ts`
 
-- doc load 时 join 对应 DocKey
+- doc load ʱ join 对应 DocKey
 - catch-up 使用 stateVector diff：
   - `stateVector = encodeStateVector(doc)`
   - `remoteDocSource.pull(docId, stateVector)` 得到 diff 并 apply

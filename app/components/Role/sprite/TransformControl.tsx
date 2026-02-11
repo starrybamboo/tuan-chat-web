@@ -17,7 +17,7 @@ export interface Transform {
  * Transform控制组件的属性接口
  */
 interface TransformControlProps {
-  // 当前Transform状态
+  // 当前Transform״̬
   transform: Transform;
   // Transform状态更新函数
   setTransform: React.Dispatch<React.SetStateAction<Transform>>;

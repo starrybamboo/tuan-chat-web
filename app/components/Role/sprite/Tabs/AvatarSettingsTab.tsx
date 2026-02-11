@@ -36,6 +36,8 @@ export function AvatarSettingsTab({
   }, [roleAvatars, currentSpriteAvatar]);
   // 头像标题设置
   const [editingName, setEditingName] = useState("");
+  const DEFAULT_CATEGORY = "默认";
+  const [editingCategory, setEditingCategory] = useState("");
   const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
   const roleIdForMutation = currentAvatar?.roleId ?? currentSpriteAvatar?.roleId ?? 0;
   const { mutateAsync: updateAvatar, isPending: isSaving } = useUpdateRoleAvatarMutation(roleIdForMutation);
@@ -47,6 +49,20 @@ export function AvatarSettingsTab({
     }
     return currentAvatar.avatarTitle as Record<string, string>;
   }, [currentAvatar]);
+  const normalizedAvatarTitleRecord = useMemo<Record<string, string>>(() => {
+    if (Object.keys(avatarTitleRecord).length === 0) {
+      return avatarTitleRecord;
+    }
+    const normalized = { ...avatarTitleRecord };
+    // 兼容历史错误键名（ϲ/ŭ），避免已有数据丢失
+    if (normalized["喜"] == null && normalized["ϲ"] != null) {
+      normalized["喜"] = normalized["ϲ"];
+    }
+    if (normalized["怒"] == null && normalized["ŭ"] != null) {
+      normalized["怒"] = normalized["ŭ"];
+    }
+    return normalized;
+  }, [avatarTitleRecord]);
   // 情绪调节器兜底标签
   const DEFAULT_MOOD_LABELS = useMemo(
     () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
@@ -64,13 +80,14 @@ export function AvatarSettingsTab({
     if (currentAvatar) {
       const defaultMoodMap: Record<string, string> = {};
       moodLabels.forEach((label) => {
-        defaultMoodMap[label] = avatarTitleRecord[label] || "";
+        defaultMoodMap[label] = normalizedAvatarTitleRecord[label] || "";
       });
-      setPendingMoodMap({ ...defaultMoodMap, label: avatarTitleRecord.label || "" });
-      setEditingName(avatarTitleRecord.label || "");
+      setPendingMoodMap({ ...defaultMoodMap, label: normalizedAvatarTitleRecord.label || "" });
+      setEditingName(normalizedAvatarTitleRecord.label || "");
+      setEditingCategory(currentAvatar.category?.trim() || DEFAULT_CATEGORY);
       moodControlRef.current?.setValue(defaultMoodMap);
     }
-  }, [currentAvatar, avatarTitleRecord, moodLabels]);
+  }, [currentAvatar, normalizedAvatarTitleRecord, moodLabels, DEFAULT_CATEGORY]);
 
   // 情绪变更回调（仅更新本地暂存）
   const handleMoodChange = useCallback((moodMap: Record<string, string>) => {
@@ -84,7 +101,7 @@ export function AvatarSettingsTab({
       const moodKeySet = new Set(moodLabels);
       const baseMood: Record<string, string> = {};
       moodKeySet.forEach((key) => {
-        baseMood[key] = avatarTitleRecord[key] || "";
+        baseMood[key] = normalizedAvatarTitleRecord[key] || "";
       });
 
       const nextMoodMap: Record<string, string> = { ...baseMood };
@@ -95,14 +112,16 @@ export function AvatarSettingsTab({
 
       const nextAvatarTitle: Record<string, string> = {
         ...nextMoodMap,
-        label: editingName.trim() || avatarTitleRecord.label || "未命名",
+        label: editingName.trim() || normalizedAvatarTitleRecord.label || "未命名",
       };
+      const nextCategory = editingCategory.trim() || DEFAULT_CATEGORY;
 
       try {
         await updateAvatar({
           ...currentAvatar,
           roleId: currentAvatar.roleId ?? currentSpriteAvatar?.roleId,
           avatarTitle: nextAvatarTitle,
+          category: nextCategory,
         });
         toast.success("头像设置已保存");
       }
@@ -111,7 +130,7 @@ export function AvatarSettingsTab({
         toast.error("保存失败，请稍后重试");
       }
     }
-  }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, updateAvatar, avatarTitleRecord, moodLabels]);
+  }, [currentAvatar, currentSpriteAvatar, pendingMoodMap, editingName, editingCategory, updateAvatar, normalizedAvatarTitleRecord, moodLabels]);
 
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
@@ -165,6 +184,18 @@ export function AvatarSettingsTab({
                           placeholder="请输入头像标题"
                         />
                       </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="font-semibold shrink-0" htmlFor="avatar-category">
+                          头像分类
+                        </label>
+                        <input
+                          id="avatar-category"
+                          className="input input-md input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          value={editingCategory}
+                          onChange={e => setEditingCategory(e.target.value)}
+                          placeholder="请输入分类"
+                        />
+                      </div>
                       <div className="text-xs font-mono text-base-content/70 mt-auto">
                         头像ID：
                         <span className="text-xs font-mono">{currentAvatar.avatarId ?? "-"}</span>
@@ -185,7 +216,7 @@ export function AvatarSettingsTab({
                       controlRef={moodControlRef}
                       onChange={handleMoodChange}
                       labels={moodLabels}
-                      defaultValue={Object.keys(avatarTitleRecord).length ? avatarTitleRecord : undefined}
+                      defaultValue={Object.keys(normalizedAvatarTitleRecord).length ? normalizedAvatarTitleRecord : undefined}
                       fallbackDefaultLabels={true}
                     />
                   </div>

@@ -144,7 +144,7 @@ export default function CommunityPostDetail({
 
           {/* 作者信息 */}
           <div className="flex flex-row items-center gap-2 mb-4">
-            <UserAvatarComponent userId={post?.post?.userId ?? -1} width={10} isRounded={true} withName={true} stopPopWindow={true}></UserAvatarComponent>
+            <UserAvatarComponent userId={post?.post?.userId ?? -1} width={10} isRounded={true} withName={true} stopToastWindow={true}></UserAvatarComponent>
             {/* 关注按钮 */}
             {authorId !== -1 && (
               <button

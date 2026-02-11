@@ -25,7 +25,7 @@
 
 - `app/components/chat/space/drawers/spaceDetailPanel.tsx`
   - 删除外层“切换到画布/退出画布”按钮
-  - 删除 `spaceDocEditorActions/spaceDocEditorMode` 状态
+  - 删除 `spaceDocEditorActions/spaceDocEditorMode` ״̬
 
 ## 风险与回滚
 

@@ -1,6 +1,6 @@
 ﻿# 任务清单: 角色渲染预览修改头像
 
-目录: `helloagents/plan/202601232244_role-avatar-render-edit/`
+Ŀ¼: `helloagents/plan/202601232244_role-avatar-render-edit/`
 
 ---
 

@@ -24,7 +24,7 @@ interface SavedSelection {
 /**
  * 注音输入对话框
  */
-function RubyInputDialog({ onConfirm, onClose, initialText }: {
+export function RubyInputDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string, ruby: string) => void;
   onClose: () => void;
   initialText?: string;
@@ -52,7 +52,7 @@ function RubyInputDialog({ onConfirm, onClose, initialText }: {
           <input
             type="text"
             className="input input-bordered input-sm"
-            placeholder="例如：えがお"
+            placeholder="磺"
             value={ruby}
             onChange={e => setRuby(e.target.value)}
           />
@@ -93,7 +93,7 @@ function RubyInputDialog({ onConfirm, onClose, initialText }: {
 /**
  * 彩色文本输入对话框
  */
-function ColorTextDialog({ onConfirm, onClose, initialText }: {
+export function ColorTextDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string, color: string) => void;
   onClose: () => void;
   initialText?: string;
@@ -184,7 +184,7 @@ function ColorTextDialog({ onConfirm, onClose, initialText }: {
 /**
  * 斜体文本输入对话框
  */
-function ItalicTextDialog({ onConfirm, onClose, initialText }: {
+export function ItalicTextDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string) => void;
   onClose: () => void;
   initialText?: string;
@@ -233,7 +233,7 @@ function ItalicTextDialog({ onConfirm, onClose, initialText }: {
 /**
  * 高级样式输入对话框
  */
-function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
+export function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
   onConfirm: (text: string, options: { color?: string; italic?: boolean; fontSize?: string; ruby?: string }) => void;
   onClose: () => void;
   initialText?: string;
@@ -365,7 +365,7 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
           <input
             type="text"
             className="input input-bordered input-sm"
-            placeholder="例如：えがお"
+            placeholder="磺"
             value={ruby}
             onChange={e => setRuby(e.target.value)}
           />
@@ -419,7 +419,7 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
  * 文本样式工具栏
  * 提供快速插入 WebGAL 文本拓展语法的按钮
  */
-export function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: TextStyleToolbarProps) {
+function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: TextStyleToolbarProps) {
   // 保存选区信息的 ref
   const savedSelectionRef = useRef<SavedSelection | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -765,11 +765,11 @@ export function TextStyleToolbar({ chatInputRef, visible = true, className = "" 
           type="button"
           className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
           onClick={handleAddRuby}
-          title="添加注音（振り仮名）"
+          title="עꁢ"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <text x="4" y="20" fontSize="12" fill="currentColor" stroke="none">文</text>
-            <text x="14" y="10" fontSize="6" fill="currentColor" stroke="none">あ</text>
+            <text x="14" y="10" fontSize="6" fill="currentColor" stroke="none"></text>
           </svg>
           <span>注音</span>
         </button>

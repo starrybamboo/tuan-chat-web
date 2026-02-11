@@ -106,7 +106,7 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   const imgRef = externalImgRef ?? internalImgRef;
   const previewCanvasRef = externalCanvasRef ?? internalCanvasRef;
 
-  // 状态
+  // ״̬
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [previewDataUrl, setPreviewDataUrl] = useState("");

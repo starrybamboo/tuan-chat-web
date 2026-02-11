@@ -105,6 +105,17 @@ export const links: Route.LinksFunction = () => (
     : []
 );
 
+export function HydrateFallback() {
+  return (
+    <div className="min-h-screen bg-base-200 flex items-center justify-center">
+      <div className="flex items-center gap-2 text-base-content/70">
+        <span className="loading loading-spinner loading-md" aria-label="Loading" />
+        <span>Loading...</span>
+      </div>
+    </div>
+  );
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="light">
@@ -155,6 +166,7 @@ export default function App() {
       <>
         <Outlet />
         <div id="modal-root"></div>
+        <ToastWindowRenderer />
       </>
     );
   }
@@ -163,7 +175,7 @@ export default function App() {
     <GlobalContextProvider>
       {/* <Topbar></Topbar> */}
       <Outlet />
-      {/* 挂载popWindow的地方 */}
+      {/* 挂载ToastWindow的地方 */}
       <div id="modal-root"></div>
       {/* 挂载sideDrawer的地方 */}
       <div id="side-drawer"></div>

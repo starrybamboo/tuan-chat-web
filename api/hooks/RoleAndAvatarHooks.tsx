@@ -403,6 +403,20 @@ export function useGetRoleAvatarsQuery(roleId: number, options?: RoleAvatarQuery
 }
 
 /**
+ * 获取角色回收站的头像
+ * @param roleId 角色ID
+ */
+export function useGetDeletedRoleAvatarsQuery(roleId: number, options?: RoleAvatarQueryOptions) {
+  const enabled = (options?.enabled ?? true) && typeof roleId === "number" && roleId > 0;
+  return useQuery({
+    queryKey: ['getDeletedRoleAvatars', roleId],
+    queryFn: () => tuanchat.avatarController.getDeletedRoleAvatars(roleId),
+    staleTime: 60000,
+    enabled,
+  });
+}
+
+/**
  * 获取单个头像详情
  * @param avatarId 头像ID
  */
@@ -491,6 +505,7 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
     mutationKey: ['deleteRoleAvatar'],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId], exact: true });
     }
   });
 }
@@ -507,7 +522,40 @@ export function useBatchDeleteRoleAvatarsMutation(roleId?: number) {
     mutationKey: ['batchDeleteRoleAvatars'],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId], exact: true });
     }
+  });
+}
+
+/**
+ * 恢复头像
+ * @param roleId 关联的角色ID（用于缓存刷新）
+ */
+export function useRestoreRoleAvatarMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['restoreRoleAvatar', roleId],
+    mutationFn: (avatarId: number) => tuanchat.avatarController.restoreRoleAvatar(avatarId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId] });
+      queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
+    },
+  });
+}
+
+/**
+ * 清空角色头像回收站（物理删除）
+ * @param roleId 关联的角色ID（用于缓存刷新）
+ */
+export function useClearDeletedRoleAvatarsMutation(roleId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['clearDeletedRoleAvatars', roleId],
+    mutationFn: (targetRoleId: number) => tuanchat.avatarController.clearDeletedRoleAvatars(targetRoleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getDeletedRoleAvatars', roleId] });
+    },
   });
 }
 
@@ -1052,6 +1100,10 @@ export function useDeleteRoleAvatarWithOptimisticMutation(roleId?: number) {
       queryClient.invalidateQueries({
         queryKey: ["getRole", roleId],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ["getDeletedRoleAvatars", roleId],
+      });
     },
   });
 }
@@ -1132,6 +1184,10 @@ export function useBatchDeleteRoleAvatarsWithOptimisticMutation(roleId?: number)
 
       queryClient.invalidateQueries({
         queryKey: ["getRole", roleId],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["getDeletedRoleAvatars", roleId],
       });
     },
   });
@@ -1297,15 +1353,15 @@ export function useGetUserRolesQuery(userId: number) {
 async function fetchUserRolesByType(userId: number, type: number): Promise<UserRole[]> {
   const res = await tuanchat.roleController.getUserRolesByType(userId, type);
   if (!res.success) {
-    throw new Error(res.errMsg || "鑾峰彇鐢ㄦ埛瑙掕壊澶辫触");
+    throw new Error(res.errMsg || "获取用户角色失败");
   }
   return (res.data ?? []).sort((a, b) => (b.roleId ?? 0) - (a.roleId ?? 0));
 }
 
 /**
- * 鑾峰彇鐢ㄦ埛鎸夌被鍨嬬殑瑙掕壊
- * @param userId 鐢ㄦ埛ID
- * @param type  0=瑙掕壊,1=楠板,2=NPC
+ * 获取用户按类型的角色
+ * @param userId 用户ID
+ * @param type  0=角色,1=骰娘,2=NPC
  */
 export function useGetUserRolesByTypeQuery(userId: number, type: number) {
   return useQuery({
@@ -1322,9 +1378,9 @@ type RoleInfinitePageParam = {
 };
 
 /**
- * 鎸夌被鍨嬭繘琛?Infinite Query 鍔犺浇
+ * 按类型进行 Infinite Query 加载
  *
- * 娉ㄦ剰锛氬悗绔苟鏈?type+pageNo 的鐪熷垎椤垫帴鍙ｏ紝鎵€浠ヨ繖閲屽鍗曠被鍨嬬殑鏁版嵁鍋氣€滃墠绔垏鐗囧垎椤碘€濓紝
+ * 注意：后端并无 type+pageNo 真分页接口，所以这里对单类型的数据做前端切片分页，
  * 但至少不会出现“骰娘被普通角色挤到后面页”的混合分页问题。
  */
 export function useGetInfiniteUserRolesByTypeQuery(userId: number, type: number) {

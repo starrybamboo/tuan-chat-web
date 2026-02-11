@@ -115,26 +115,51 @@ export function OpenAbleDrawer({
     return { min: effectiveMin, max: effectiveMax };
   }, [getBaseBounds, isOpen, minRemainingWidth, overWrite, screenSize]);
 
-  useLayoutEffect(() => {
+  const syncBoundsAndWidth = useCallback(() => {
     const next = recomputeBounds();
-    setBounds(next);
-    setWidth(prev => clamp(prev, next.min, next.max));
+    setBounds(prev => (prev.min === next.min && prev.max === next.max ? prev : next));
+    setWidth((prev) => {
+      const nextWidth = clamp(prev, next.min, next.max);
+      return nextWidth === prev ? prev : nextWidth;
+    });
   }, [clamp, recomputeBounds]);
+
+  useLayoutEffect(() => {
+    syncBoundsAndWidth();
+  }, [syncBoundsAndWidth]);
 
   useEffect(() => {
     if (!isOpen || typeof window === "undefined") {
       return;
     }
     const onResize = () => {
-      const next = recomputeBounds();
-      setBounds(next);
-      setWidth(prev => clamp(prev, next.min, next.max));
+      syncBoundsAndWidth();
     };
     window.addEventListener("resize", onResize);
     return () => {
       window.removeEventListener("resize", onResize);
     };
-  }, [clamp, isOpen, recomputeBounds]);
+  }, [isOpen, syncBoundsAndWidth]);
+
+  useEffect(() => {
+    if (!isOpen || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const parent = containerRef.current?.parentElement;
+    if (!parent) {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      syncBoundsAndWidth();
+    });
+    observer.observe(parent);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isOpen, syncBoundsAndWidth]);
 
   const renderedWidth = clamp(width, bounds.min, bounds.max);
 
@@ -221,7 +246,7 @@ export function OpenAbleDrawer({
 
   if (screenSize === "sm" || overWrite) {
     return (
-      <div className={`w-full absolute ${className}`}>
+      <div className={`w-full absolute ${className ?? ""}`}>
         {children}
       </div>
     );
@@ -231,8 +256,11 @@ export function OpenAbleDrawer({
   return (
     <div
       ref={containerRef}
-      className={`relative ${className}`}
-      style={{ width: `${Math.max(0, renderedWidth)}px` }}
+      className={`relative min-w-0 ${className ?? ""}`}
+      style={{
+        width: `${Math.max(0, renderedWidth)}px`,
+        maxWidth: "100%",
+      }}
     >
       {/* 拖拽手柄（默认在左侧） - 加宽并提升 z-index，同时使用 pointer 事件以避免被子元素捕获 */}
       <div

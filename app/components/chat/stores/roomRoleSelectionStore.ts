@@ -53,6 +53,9 @@ export const useRoomRoleSelectionStore = create<RoomRoleSelectionState>(set => (
 
   setCurRoleIdForRoom: (roomId, roleId) => {
     set((state) => {
+      if (state.curRoleIdMap[roomId] === roleId) {
+        return state;
+      }
       const nextMap = {
         ...state.curRoleIdMap,
         [roomId]: roleId,
@@ -64,6 +67,9 @@ export const useRoomRoleSelectionStore = create<RoomRoleSelectionState>(set => (
 
   setCurAvatarIdForRole: (roleId, avatarId) => {
     set((state) => {
+      if (state.curAvatarIdMap[roleId] === avatarId) {
+        return state;
+      }
       const nextMap = {
         ...state.curAvatarIdMap,
         [roleId]: avatarId,

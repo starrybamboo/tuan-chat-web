@@ -30,7 +30,7 @@ import { ItemControllerService } from './services/ItemControllerService';
 import { LikeRecordControllerService } from './services/LikeRecordControllerService';
 import { MessageDirectControllerService } from './services/MessageDirectControllerService';
 import { MessageSessionService } from './services/MessageSessionService';
-import { ModuleControllerService } from './services/ModuleControllerService';
+import { RepositoryControllerService } from './services/RepositoryControllerService';
 import { OssControllerService } from './services/OssControllerService';
 import { RatingService } from './services/RatingService';
 import { ResourceControllerService } from './services/ResourceControllerService';
@@ -46,7 +46,7 @@ import { ShortLinkControllerService } from './services/ShortLinkControllerServic
 import { SpaceClueService } from './services/SpaceClueService';
 import { SpaceControllerService } from './services/SpaceControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
-import { SpaceModuleControllerService } from './services/SpaceModuleControllerService';
+import { SpaceRepositoryControllerService } from './services/SpaceRepositoryControllerService';
 import { SpaceSidebarTreeControllerService } from './services/SpaceSidebarTreeControllerService';
 import { SpaceUserDocFolderControllerService } from './services/SpaceUserDocFolderControllerService';
 import { TagControllerService } from './services/TagControllerService';
@@ -82,7 +82,7 @@ export class TuanChat {
     public readonly likeRecordController: LikeRecordControllerService;
     public readonly messageDirectController: MessageDirectControllerService;
     public readonly messageSession: MessageSessionService;
-    public readonly moduleController: ModuleControllerService;
+    public readonly repositoryController: RepositoryControllerService;
     public readonly ossController: OssControllerService;
     public readonly rating: RatingService;
     public readonly resourceController: ResourceControllerService;
@@ -98,7 +98,7 @@ export class TuanChat {
     public readonly spaceClue: SpaceClueService;
     public readonly spaceController: SpaceControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
-    public readonly spaceModuleController: SpaceModuleControllerService;
+    public readonly spaceRepositoryController: SpaceRepositoryControllerService;
     public readonly spaceSidebarTreeController: SpaceSidebarTreeControllerService;
     public readonly spaceUserDocFolderController: SpaceUserDocFolderControllerService;
     public readonly tagController: TagControllerService;
@@ -145,7 +145,7 @@ export class TuanChat {
         this.likeRecordController = new LikeRecordControllerService(this.request);
         this.messageDirectController = new MessageDirectControllerService(this.request);
         this.messageSession = new MessageSessionService(this.request);
-        this.moduleController = new ModuleControllerService(this.request);
+        this.repositoryController = new RepositoryControllerService(this.request);
         this.ossController = new OssControllerService(this.request);
         this.rating = new RatingService(this.request);
         this.resourceController = new ResourceControllerService(this.request);
@@ -161,7 +161,7 @@ export class TuanChat {
         this.spaceClue = new SpaceClueService(this.request);
         this.spaceController = new SpaceControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
-        this.spaceModuleController = new SpaceModuleControllerService(this.request);
+        this.spaceRepositoryController = new SpaceRepositoryControllerService(this.request);
         this.spaceSidebarTreeController = new SpaceSidebarTreeControllerService(this.request);
         this.spaceUserDocFolderController = new SpaceUserDocFolderControllerService(this.request);
         this.tagController = new TagControllerService(this.request);

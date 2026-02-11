@@ -1,31 +1,44 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
-import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRenderTypes";
-import React, { use, useCallback, useMemo, useState } from "react";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
-import RoleChooser from "@/components/chat/input/roleChooser";
+import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import { buildAnnotationMap } from "@/components/chat/message/annotations/annotationCatalog";
+import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
+import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
-import { VoiceRenderPanel } from "@/components/chat/message/voiceRenderPanel";
+import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import BetterImg from "@/components/common/betterImg";
-import { EditableField } from "@/components/common/editableField";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChatBubbleEllipsesOutline, NarratorIcon } from "@/icons";
+import { BranchIcon, ChatBubbleEllipsesOutline, CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
+import {
+  ANNOTATION_IDS,
+  areAnnotationsEqual,
+  hasAnnotation,
+  normalizeAnnotations,
+  setAnnotation,
+  toggleAnnotation,
+} from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalVarPayload, formatWebgalVarSummary } from "@/types/webgalVar";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import ClueMessage from "./clue/clueMessage";
+import { useSendMessageMutation, useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import DocCardMessage from "./docCard/docCardMessage";
 
 interface CommandRequestPayload {
@@ -34,7 +47,11 @@ interface CommandRequestPayload {
   allowedRoleIds?: number[];
 }
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest }: {
+const EMPTY_ANNOTATIONS: string[] = [];
+const EFFECT_PREVIEW_DURATION_MS = 2000;
+const EFFECT_FRAME_DURATION_MS = 50;
+
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection, onEditWebgalChoose }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -43,13 +60,55 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   threadHintMeta?: { rootId: number; title: string; replyCount: number };
   /** 点击“检定请求”按钮后，触发外层执行（以点击者身份发送并执行指令） */
   onExecuteCommandRequest?: (payload: { command: string; threadId?: number; requestMessageId: number }) => void;
+  onToggleSelection?: (messageId: number) => void;
+  onEditWebgalChoose?: (messageId: number) => void;
 }) {
   const message = chatMessageResponse.message;
+  const annotations = useMemo(() => {
+    const base = Array.isArray(message.annotations)
+      ? (message.annotations ?? EMPTY_ANNOTATIONS)
+      : EMPTY_ANNOTATIONS;
+    if (message.messageType === MESSAGE_TYPE.IMG && message.extra?.imageMessage?.background) {
+      return base.includes(ANNOTATION_IDS.BACKGROUND) ? base : [...base, ANNOTATION_IDS.BACKGROUND];
+    }
+    return base;
+  }, [message.annotations, message.extra?.imageMessage?.background, message.messageType]);
+  const effectPreview = useMemo(() => {
+    const annotationMap = buildAnnotationMap();
+    for (const id of annotations) {
+      const def = annotationMap.get(id);
+      if (def?.category === "特效" && def.iconUrl) {
+        const duration = def.effectFrames
+          ? Math.max(1, def.effectFrames) * EFFECT_FRAME_DURATION_MS
+          : EFFECT_PREVIEW_DURATION_MS;
+        return { iconUrl: def.iconUrl, durationMs: duration };
+      }
+    }
+    return null;
+  }, [annotations]);
+  const effectIconUrl = effectPreview?.iconUrl ?? null;
+  const [effectPreviewVisible, setEffectPreviewVisible] = useState(false);
+  const [effectPreviewToken, setEffectPreviewToken] = useState(0);
+  const effectPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerEffectPreview = useCallback(() => {
+    if (!effectIconUrl) {
+      return;
+    }
+    setEffectPreviewVisible(true);
+    setEffectPreviewToken(Date.now());
+    if (effectPreviewTimerRef.current) {
+      clearTimeout(effectPreviewTimerRef.current);
+    }
+    effectPreviewTimerRef.current = setTimeout(() => {
+      setEffectPreviewVisible(false);
+    }, effectPreview?.durationMs ?? EFFECT_PREVIEW_DURATION_MS);
+  }, [effectIconUrl, effectPreview?.durationMs]);
+  useEffect(() => () => {
+    if (effectPreviewTimerRef.current) {
+      clearTimeout(effectPreviewTimerRef.current);
+    }
+  }, []);
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId ?? 0);
-  // 获取头像详情（包含 avatarTitle）
-  const avatarQuery = useGetRoleAvatarQuery(message.avatarId ?? 0);
-  const avatar = avatarQuery.data?.data;
-
   const role = useRoleRequest.data?.data;
 
   const updateMessageMutation = useUpdateMessageMutation();
@@ -57,15 +116,20 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
+  const sendMessageMutation = useSendMessageMutation(roomContext.roomId ?? -1);
   const spaceContext = use(SpaceContext);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+  const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
+  const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
+  const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
-  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
+  const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
+  const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
 
   const isMobile = getScreenSize() === "sm";
 
@@ -89,8 +153,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(rootId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
   }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
@@ -151,23 +215,50 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(message.messageId);
     setComposerTarget("thread");
-    // Thread 以右侧固定分栏展示：关闭其它右侧抽屉
-    setSideDrawerState("none");
+    // Thread 以右侧 SubWindow 展示
+    setSideDrawerState("thread");
     setSubDrawerState("none");
   }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
   const [editingRoleName, setEditingRoleName] = useState("");
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const editInputRef = useRef<ChatInputAreaHandle | null>(null);
 
   // 判断是否为旁白（无角色）- 包括 roleId 为空/undefined/0/负数 的情况
   const isNarrator = !message.roleId || message.roleId <= 0;
   // 判断是否为黑屏文字
   const isIntroText = message.messageType === MESSAGE_TYPE.INTRO_TEXT;
+  const createTime = message.createTime;
+  const updateTime = message.updateTime;
+  const parseTimeToMs = (time?: string | number | null) => {
+    if (time == null) {
+      return undefined;
+    }
+    if (typeof time === "number") {
+      return Number.isFinite(time) ? time : undefined;
+    }
+    const normalized = time.includes("-") ? time.replace(/-/g, "/") : time;
+    const parsed = new Date(normalized).getTime();
+    return Number.isNaN(parsed) ? undefined : parsed;
+  };
+  const createTimeMs = parseTimeToMs(createTime);
+  const updateTimeMs = parseTimeToMs(updateTime);
+  const isEdited = Boolean(createTimeMs && updateTimeMs && updateTimeMs > createTimeMs);
+  const displayTime = (isEdited ? updateTime : createTime) ?? updateTime ?? createTime;
+  const formattedTime = displayTime ? formatTimeSmartly(displayTime) : "";
   // 获取自定义角色名（如果有）
-  const customRoleName = (message.webgal as any)?.customRoleName as string | undefined;
+  const customRoleName = message.customRoleName as string | undefined;
   // 获取黑屏文字的 hold 设置
-  const introHold = (message.webgal as any)?.introHold as boolean | undefined;
+  const introHold = hasAnnotation(annotations, ANNOTATION_IDS.INTRO_HOLD);
+  // 获取显示的角色名（黑屏文字不显示）
+  const displayRoleName = getDisplayRoleName({
+    roleId: message.roleId,
+    roleName: role?.roleName,
+    customRoleName,
+    isIntroText,
+  });
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
@@ -209,28 +300,407 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
 
-  function handleAvatarClick() {
+  const handleUpdateAnnotations = useCallback((next: string[]) => {
+    const nextAnnotations = normalizeAnnotations(next);
+    const annotationsChanged = !areAnnotationsEqual(message.annotations, nextAnnotations);
+    if (message.messageType === MESSAGE_TYPE.IMG && message.extra?.imageMessage) {
+      const nextBackground = hasAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND);
+      const currentBackground = Boolean(message.extra.imageMessage.background);
+      if (!annotationsChanged && nextBackground === currentBackground) {
+        return;
+      }
+      if (nextBackground !== currentBackground) {
+        updateMessageAndSync({
+          ...message,
+          annotations: nextAnnotations,
+          extra: {
+            ...message.extra,
+            imageMessage: {
+              ...message.extra.imageMessage,
+              background: nextBackground,
+            },
+          },
+        });
+        return;
+      }
+    }
+    if (!annotationsChanged) {
+      return;
+    }
+    updateMessageAndSync({
+      ...message,
+      annotations: nextAnnotations,
+    });
+  }, [message, updateMessageAndSync]);
+
+  const handleToggleAnnotation = useCallback((id: string) => {
+    handleUpdateAnnotations(toggleAnnotation(annotations, id));
+  }, [annotations, handleUpdateAnnotations]);
+
+  const handleOpenAnnotations = useCallback(() => {
+    openMessageAnnotationPicker({
+      initialSelected: annotations,
+      onChange: handleUpdateAnnotations,
+    });
+  }, [annotations, handleUpdateAnnotations]);
+
+  const annotationsBar = (
+    <MessageAnnotationsBar
+      annotations={annotations}
+      canEdit={canEdit}
+      onToggle={handleToggleAnnotation}
+      onOpenPicker={handleOpenAnnotations}
+      showWhenEmpty={true}
+      alwaysShowAddButton={true}
+    />
+  );
+
+  const canEditContent = canEdit
+    && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT);
+  const canShowTextStyleToolbar = isEditingContent
+    && canEdit
+    && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT || message.messageType === MESSAGE_TYPE.DICE);
+  const textStyleToolbar = canShowTextStyleToolbar
+    ? (
+        <TextStyleToolbar
+          chatInputRef={editInputRef}
+          visible={canShowTextStyleToolbar}
+          className="text-style-toolbar"
+        />
+      )
+    : null;
+  const threadActionLabel = (isThreadRoot || threadHintMeta?.rootId) ? "打开子区" : "创建子区";
+  const shouldIgnoreEditBlur = useCallback((target: EventTarget | null) => {
+    const element = target as HTMLElement | null;
+    if (!element) {
+      return false;
+    }
+    return Boolean(element.closest(".text-style-toolbar") || element.closest(".modal"));
+  }, []);
+
+  const handleReplyClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setReplyMessage(message);
+  }, [message, setReplyMessage]);
+
+  const handleToggleSelectionClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onToggleSelection?.(message.messageId);
+  }, [message.messageId, onToggleSelection]);
+
+  const handleInsertAfterClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setInsertAfterMessageId(message.messageId);
+  }, [message.messageId, setInsertAfterMessageId]);
+
+  const handleCreateOrOpenThreadClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isThreadRoot) {
+      handleOpenThreadById(message.messageId);
+      return;
+    }
+    if (threadHintMeta?.rootId) {
+      handleOpenThreadById(threadHintMeta.rootId);
+      return;
+    }
+    const roomId = roomContext.roomId;
+    if (!roomId) {
+      toast.error("未找到roomId，无法创建子区");
+      return;
+    }
+    const raw = (message.content ?? "").trim();
+    const title = raw ? raw.slice(0, 20) : "子区";
+    sendMessageMutation.mutate({
+      roomId,
+      messageType: MESSAGE_TYPE.THREAD_ROOT,
+      roleId: roomContext.curRoleId,
+      avatarId: roomContext.curAvatarId,
+      content: title,
+      replayMessageId: message.messageId,
+      extra: { title },
+    }, {
+      onSuccess: (response) => {
+        const created = response?.data;
+        if (!created) {
+          return;
+        }
+        roomContext.chatHistory?.addOrUpdateMessage({ message: created, messageMark: [] });
+        handleOpenThreadById(created.messageId);
+      },
+      onError: () => {
+        toast.error("创建子区失败");
+      },
+    });
+  }, [
+    handleOpenThreadById,
+    isThreadRoot,
+    message.content,
+    message.messageId,
+    roomContext.chatHistory,
+    roomContext.curAvatarId,
+    roomContext.curRoleId,
+    roomContext.roomId,
+    sendMessageMutation,
+    threadHintMeta?.rootId,
+  ]);
+
+  const handleOpenAnnotationsClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleOpenAnnotations();
+  }, [handleOpenAnnotations]);
+
+  const handleToggleIntroText = useCallback(() => {
+    if (!canEdit)
+      return;
+
+    const newMessageType = isIntroText ? MESSAGE_TYPE.TEXT : MESSAGE_TYPE.INTRO_TEXT;
+    const newMessage = {
+      ...message,
+      messageType: newMessageType,
+    } as Message;
+
+    updateMessageMutation.mutate(newMessage, {
+      onSuccess: (response) => {
+        if (response?.data && roomContext.chatHistory) {
+          const updatedChatMessageResponse = {
+            ...chatMessageResponse,
+            message: response.data,
+          };
+          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
+
+          if (roomContext.updateAndRerenderMessageInWebGAL) {
+            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
+          }
+        }
+      },
+    });
+  }, [canEdit, chatMessageResponse, isIntroText, message, roomContext, updateMessageMutation]);
+
+  const handleToggleIntroTextClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleToggleIntroText();
+  }, [handleToggleIntroText]);
+
+  const handleEditMessageClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof window === "undefined") {
+      return;
+    }
+    const target = document.querySelector(
+      `[data-message-id="${message.messageId}"] .editable-field`,
+    ) as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+    target.dispatchEvent(new MouseEvent("dblclick", {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: target.offsetLeft + target.offsetWidth / 2,
+      clientY: target.offsetTop + target.offsetHeight / 2,
+    }));
+  }, [message.messageId]);
+
+  const handleEditWebgalChooseClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onEditWebgalChoose?.(message.messageId);
+  }, [message.messageId, onEditWebgalChoose]);
+
+  const handleOpenContextMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof window === "undefined") {
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.dispatchEvent(new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: rect.right,
+      clientY: rect.bottom,
+    }));
+  }, []);
+
+  const messageHoverToolbar = (
+    <div
+      className="absolute top-2 right-2 z-30 flex items-center gap-1 rounded-full border border-base-300/80 bg-base-200/95 px-1.5 py-1 shadow-lg backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-150 translate-y-1 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:translate-y-0"
+    >
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+        onClick={handleCreateOrOpenThreadClick}
+        title={threadActionLabel}
+        aria-label={threadActionLabel}
+      >
+        <BranchIcon className="h-4 w-4" />
+      </button>
+      {onToggleSelection && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+          onClick={handleToggleSelectionClick}
+          title="多选"
+          aria-label="多选"
+        >
+          <ListUnordered className="h-4 w-4" />
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+        onClick={handleReplyClick}
+        title="回复"
+        aria-label="回复"
+      >
+        <CommentOutline className="h-4 w-4" />
+      </button>
+      {canEdit && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+          onClick={handleOpenAnnotationsClick}
+          title="添加标注"
+          aria-label="添加标注"
+        >
+          <EmojiIconWhite className="h-4 w-4" />
+        </button>
+      )}
+      {canEdit && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+          onClick={handleToggleIntroTextClick}
+          title={isIntroText ? "转为对话" : "转为黑屏"}
+          aria-label={isIntroText ? "转为对话" : "转为黑屏"}
+        >
+          <ScreenIcon className="h-4 w-4 text-black" />
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+        onClick={handleInsertAfterClick}
+        title="在此处插入消息"
+        aria-label="在此处插入消息"
+      >
+        <InsertLineBelow className="h-4 w-4" />
+      </button>
+      {canEditContent && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+          onClick={handleEditMessageClick}
+          title="编辑"
+          aria-label="编辑"
+        >
+          <Edit2Outline className="h-4 w-4" />
+        </button>
+      )}
+      {canEdit && message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE && onEditWebgalChoose && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+          onClick={handleEditWebgalChooseClick}
+          title="编辑选择"
+          aria-label="编辑选择"
+        >
+          <Edit2Outline className="h-4 w-4" />
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 p-0 rounded-full text-base-content/70 hover:text-base-content hover:bg-base-300/70"
+        onClick={handleOpenContextMenu}
+        title="更多"
+        aria-label="更多"
+      >
+        <MoreMenu className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
+  const handleAvatarSample = useCallback(() => {
+    const roomId = roomContext.roomId ?? -1;
+    const targetRoleId = message.roleId ?? 0;
+    const targetAvatarId = message.avatarId ?? -1;
+    if (roomId <= 0) {
+      toast.error("未找到房间，无法取样");
+      return;
+    }
+    if (targetRoleId === 0 || targetAvatarId <= 0) {
+      toast.error("该消息没有可取样的头像");
+      return;
+    }
+    if (targetRoleId <= 0 && !spaceContext.isSpaceOwner) {
+      toast.error("只有KP可以取样旁白头像");
+      return;
+    }
+    if (targetRoleId > 0 && !roomContext.roomRolesThatUserOwn.some(role => role.roleId === targetRoleId)) {
+      toast.error("该角色不可用");
+      return;
+    }
+    setCurRoleIdForRoom(roomId, targetRoleId);
+    setCurAvatarIdForRole(targetRoleId, targetAvatarId);
+    setAvatarSamplerActive(false);
+  }, [
+    message.avatarId,
+    message.roleId,
+    roomContext.roomId,
+    roomContext.roomRolesThatUserOwn,
+    setAvatarSamplerActive,
+    setCurAvatarIdForRole,
+    setCurRoleIdForRoom,
+    spaceContext.isSpaceOwner,
+  ]);
+
+  const openExpressionChooser = (fullScreen: boolean) => {
+    toastWindow(
+      onClose => (
+        <RoomContext value={roomContext}>
+          <div className="flex flex-col">
+            <ExpressionChooser
+              roleId={message.roleId ?? -1}
+              handleExpressionChange={(avatarId) => {
+                handleExpressionChange(avatarId);
+                onClose();
+              }}
+              handleRoleChange={(roleId) => {
+                handleRoleChange(roleId);
+                onClose();
+              }}
+              onRequestClose={onClose}
+              defaultFullscreen={fullScreen}
+              onRequestFullscreen={(next) => {
+                onClose();
+                openExpressionChooser(next);
+              }}
+            />
+          </div>
+        </RoomContext>
+      ),
+      { fullScreen },
+    );
+  };
+
+  function handleAvatarClick(event?: React.MouseEvent<HTMLDivElement>) {
+    if (isAvatarSamplerActive) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      handleAvatarSample();
+      return;
+    }
     if (canEdit) {
       // 打开表情选择器的 toast 窗口
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col">
-              <ExpressionChooser
-                roleId={message.roleId ?? -1}
-                handleExpressionChange={(avatarId) => {
-                  handleExpressionChange(avatarId);
-                  onClose();
-                }}
-                handleRoleChange={(roleId) => {
-                  handleRoleChange(roleId);
-                  onClose();
-                }}
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
+      openExpressionChooser(false);
     }
   }
 
@@ -243,61 +713,22 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     }
   }, [message, updateMessageAndSync]);
 
-  // 处理语音渲染设置更新
-  function handleVoiceRenderSettingsChange(
-    emotionVector: number[],
-    figurePosition: FigurePosition,
-    notend: boolean,
-    concat: boolean,
-    figureAnimation?: FigureAnimationSettings,
-  ) {
-    console.warn("[ChatBubble] 保存语音渲染设置:", {
-      messageId: message.messageId,
-      figurePosition,
-      figurePositionType: typeof figurePosition,
-    });
-
-    // 判断情感向量是否改变（用于决定是否重新生成 TTS）
-    const oldEmotionVector = message.webgal?.voiceRenderSettings?.emotionVector;
-    const emotionVectorChanged = JSON.stringify(emotionVector) !== JSON.stringify(oldEmotionVector);
-
-    const newMessage = {
+  const handleDiceContentUpdate = useCallback((content: string) => {
+    if (message.content === content && (message.extra as any)?.diceResult?.result === content) {
+      return;
+    }
+    updateMessageAndSync({
       ...message,
-      webgal: {
-        ...message.webgal,
-        voiceRenderSettings: {
-          emotionVector,
-          figurePosition,
-          notend,
-          concat,
-          figureAnimation,
-        },
-      },
-    } as Message;
-
-    console.warn("[ChatBubble] 准备发送的消息:", JSON.stringify(newMessage.webgal?.voiceRenderSettings, null, 2));
-
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        // 更新成功后同步到本地 IndexedDB
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          // 如果 WebGAL 联动模式开启，则重渲染并跳转
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, emotionVectorChanged);
-          }
-        }
+      content,
+      extra: {
+        ...message.extra,
+        diceResult: { result: content },
       },
     });
-  }
+  }, [message, updateMessageAndSync]);
 
   // 处理音频用途切换（语音/BGM/音效）
-  const handleAudioPurposeChange = useCallback((purpose: string) => {
+  const _handleAudioPurposeChange = useCallback((purpose: string) => {
     const soundMessage = message.extra?.soundMessage;
     if (!soundMessage)
       return;
@@ -360,10 +791,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     const trimmedName = editingRoleName.trim();
     const newMessage = {
       ...message,
-      webgal: {
-        ...message.webgal,
-        customRoleName: trimmedName || undefined, // 空字符串时清除自定义名称
-      },
+      customRoleName: trimmedName || undefined, // 空字符串时清除自定义名称
     } as Message;
 
     updateMessageMutation.mutate(newMessage, {
@@ -384,45 +812,15 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     setIsEditingRoleName(false);
   }
 
-  // 处理消息类型切换（普通文本 ↔ 黑屏文字）
-  function handleToggleIntroText() {
-    if (!canEdit)
-      return;
-
-    const newMessageType = isIntroText ? MESSAGE_TYPE.TEXT : MESSAGE_TYPE.INTRO_TEXT;
-    const newMessage = {
-      ...message,
-      messageType: newMessageType,
-    } as Message;
-
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
-          }
-        }
-      },
-    });
-  }
-
   // 处理黑屏文字 -hold 设置切换
-  function handleToggleIntroHold() {
+  function _handleToggleIntroHold() {
     if (!canEdit || !isIntroText)
       return;
 
+    const nextAnnotations = setAnnotation(annotations, ANNOTATION_IDS.INTRO_HOLD, !introHold);
     const newMessage = {
       ...message,
-      webgal: {
-        ...message.webgal,
-        introHold: !introHold,
-      },
+      annotations: nextAnnotations,
     } as Message;
 
     updateMessageMutation.mutate(newMessage, {
@@ -442,503 +840,321 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     });
   }
 
-  // 切换旁白状态
-  function handleToggleNarrator() {
-    if (!canEdit)
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes || Number.isNaN(bytes)) {
+      return "";
+    }
+    const units = ["B", "KB", "MB", "GB"] as const;
+    let value = bytes;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    return `${value.toFixed(1)}${units[unitIndex]}`;
+  };
+
+  const handleReplyPreviewClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!message.replyMessageId) {
       return;
-
-    if (isNarrator) {
-      // 如果当前是旁白，切换回普通角色 -> 打开角色选择器
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col items-center gap-4">
-              <div>选择角色</div>
-              <RoleChooser
-                handleRoleChange={(role) => {
-                  handleRoleChange(role.roleId);
-                  onClose();
-                }}
-                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
     }
-    else {
-      // 如果当前是普通角色，切换为旁白 -> roleId设为-1
-      const newMessage = {
-        ...message,
-        roleId: -1,
-      };
-      updateMessageAndSync(newMessage);
-    }
-  }
+    roomContext.scrollToGivenMessage?.(message.replyMessageId);
+  }, [message.replyMessageId, roomContext]);
 
-  const scrollToGivenMessage = roomContext.scrollToGivenMessage;
-
-  const renderedContent = useMemo(() => {
-    const commandRequestRaw = ((message.extra as any)?.commandRequest || null) as CommandRequestPayload | null;
-    // 兼容：如果后端返回的是“扁平 extra”，兜底从 extra 本体读取（仅在 COMMAND_REQUEST 类型下尝试）
-    const flatRaw = (message.messageType === MESSAGE_TYPE.COMMAND_REQUEST)
-      ? (message.extra as any)
-      : null;
-    const commandRequest = (commandRequestRaw || flatRaw || null) as CommandRequestPayload | null;
-    const requestCommand = (commandRequest?.command || "").trim();
-    const requestAllowAll = Boolean(commandRequest?.allowAll);
-    const requestAllowedRoleIds = Array.isArray(commandRequest?.allowedRoleIds) ? commandRequest?.allowedRoleIds : null;
-
-    const extraAny = message.extra as any;
-    // 兼容：部分后端/历史消息可能未写入 messageType=DOC_CARD，但 extra 里已经包含 docCard 数据
-    const isDocCardLikeMessage = message.messageType === MESSAGE_TYPE.DOC_CARD
-      || typeof extraAny?.docCard?.docId === "string"
-      || typeof extraAny?.docId === "string";
-
-    // 1. 特殊类型消息（独占显示）
-    if (message.messageType === 5) {
-      return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
-    }
-    else if (message.messageType === 1000) {
-      return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
-    }
-    else if (isDocCardLikeMessage) {
-      return <DocCardMessage messageResponse={chatMessageResponse}></DocCardMessage>;
-    }
-    else if (message.messageType === MESSAGE_TYPE.WEBGAL_VAR) {
-      const payload = extractWebgalVarPayload(message.extra);
-      return (
-        <div className="inline-flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/40 px-2 py-1">
-          <span className="badge badge-xs badge-info">变量</span>
-          <span className="font-mono text-xs sm:text-sm break-all">
-            {payload ? formatWebgalVarSummary(payload) : "（无效变量消息）"}
-          </span>
-        </div>
-      );
+  const renderedContent = (() => {
+    if (message.status === 1) {
+      return <span className="text-xs text-base-content/60">[原消息已删除]</span>;
     }
 
-    // 2. 组合消息内容 (文本 + 图片 + 语音)
-    const contentElements: React.ReactNode[] = [];
-
-    // (A) 回复引用
-    if (message.replyMessageId) {
-      contentElements.push(
-        <div
-          key="reply"
-          className="flex flex-row gap-1.5 sm:gap-2 py-0.5 sm:py-1"
-          onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
-        >
-          <span className="opacity-60 inline shrink-0 text-xs sm:text-sm">| 回复</span>
-          <PreviewMessage
-            message={message.replyMessageId}
+    const replyNode = message.replyMessageId
+      ? (
+          <button
+            type="button"
+            className="mb-1 flex flex-col gap-0.5 rounded-md border border-base-300/60 bg-base-100/70 px-2 py-1 text-left text-xs text-base-content/70 hover:bg-base-200/70"
+            onClick={handleReplyPreviewClick}
           >
-          </PreviewMessage>
-        </div>,
-      );
-    }
+            <span className="text-[10px] text-base-content/50">回复</span>
+            <PreviewMessage message={message.replyMessageId} className="block" />
+          </button>
+        )
+      : null;
 
-    // (B) 文本内容
-    // 只要有内容或者类型为文本(1)或黑屏文字(9)就渲染文本编辑框
-    if (message.content || message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT) {
-      if (commandRequest && requestCommand) {
+    const extra = message.extra as any;
+    const docCardPayload = extra?.docCard;
+    const hasDocCard = message.messageType === MESSAGE_TYPE.DOC_CARD || Boolean(docCardPayload);
+
+    const commandRequest = extra?.commandRequest as CommandRequestPayload | undefined;
+    const hasCommandRequest = message.messageType === MESSAGE_TYPE.COMMAND_REQUEST || Boolean(commandRequest);
+
+    const bodyNode = (() => {
+      if (hasDocCard) {
+        return <DocCardMessage messageResponse={chatMessageResponse} />;
+      }
+
+      if (hasCommandRequest) {
+        const commandText = String(commandRequest?.command ?? message.content ?? "").trim();
+        const allowedRoleIds = Array.isArray(commandRequest?.allowedRoleIds)
+          ? commandRequest!.allowedRoleIds!.filter(id => typeof id === "number")
+          : [];
         const curRoleId = roomContext.curRoleId ?? -1;
         const isSpectator = (roomContext.curMember?.memberType ?? 3) >= 3;
-        const isKP = spaceContext.isSpaceOwner;
-        const canUseNarrator = curRoleId > 0 || isKP;
-        const isAllowedByRoles = requestAllowAll || !requestAllowedRoleIds?.length || requestAllowedRoleIds.includes(curRoleId);
-        const isDisabled = isSpectator || !canUseNarrator || !isAllowedByRoles;
+        const noRole = curRoleId <= 0;
+        const allowAll = Boolean(commandRequest?.allowAll);
+        let disableReason = "";
+        if (!commandText) {
+          disableReason = "指令为空";
+        }
+        else if (!onExecuteCommandRequest) {
+          disableReason = "当前无法执行";
+        }
+        else if (isSpectator) {
+          disableReason = "观战不可执行";
+        }
+        else if (noRole && !spaceContext.isSpaceOwner) {
+          disableReason = "旁白仅 KP 可用";
+        }
+        else if (allowedRoleIds.length > 0 && !allowedRoleIds.includes(curRoleId)) {
+          disableReason = "当前角色不可执行";
+        }
+        const hintText = disableReason || "点击此进行检定";
+        const handleCommandRequestClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (disableReason) {
+            toast.error(disableReason);
+            return;
+          }
+          onExecuteCommandRequest?.({
+            command: commandText,
+            threadId: message.threadId ?? undefined,
+            requestMessageId: message.messageId,
+          });
+        };
 
-        const disabledReason = isSpectator
-          ? "观战成员不能发送消息"
-          : (!canUseNarrator ? "请先选择/拉入你的角色" : (!isAllowedByRoles ? "当前角色不在可执行范围" : ""));
-
-        contentElements.push(
-          <div key="command-request" className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              aria-disabled={isDisabled}
-              className={`group inline-flex items-center gap-2 rounded-lg border border-base-300 px-2 py-1 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/30 ${
-                isDisabled
-                  ? "opacity-60 cursor-not-allowed bg-base-200/20 shadow-none"
-                  : "bg-base-200/40 hover:bg-base-200/70 hover:border-warning/50 hover:shadow-md"
-              }`}
-              title={isDisabled ? disabledReason : "点击后以你的当前角色发送并执行"}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isDisabled) {
-                  toast.error(disabledReason || "当前不可执行");
-                  return;
-                }
-                onExecuteCommandRequest?.({
-                  command: requestCommand,
-                  threadId: message.threadId,
-                  requestMessageId: message.messageId,
-                });
-              }}
-            >
-              <span className="badge badge-xs badge-warning shrink-0">检定请求</span>
-              <span className="font-mono text-xs sm:text-sm break-all">{requestCommand}</span>
-              {!isDisabled && <span className="ml-auto text-xs opacity-60 group-hover:opacity-80">点击此进行检定</span>}
-            </button>
-            {isDisabled && <span className="text-xs opacity-60">{disabledReason}</span>}
-          </div>,
-        );
-      }
-      else {
-        contentElements.push(
-          <EditableField
-            key="text"
-            content={message.content}
-            handleContentUpdate={handleContentUpdate}
-            className="whitespace-pre-wrap editable-field overflow-auto"
-            canEdit={canEdit}
-            fieldId={`msg${message.messageId}`}
+        return (
+          <button
+            type="button"
+            className={`w-full rounded-md border border-base-300 bg-base-100/80 px-3 py-2 text-left transition ${
+              disableReason ? "opacity-60 cursor-not-allowed" : "hover:border-info/60 hover:bg-base-200/80"
+            }`}
+            onClick={handleCommandRequestClick}
+            aria-disabled={Boolean(disableReason)}
+            title={hintText}
           >
-          </EditableField>,
+            <div className="flex items-center gap-2 text-xs text-base-content/70">
+              <span className="badge badge-info badge-xs">检定请求</span>
+              {allowAll && <span className="text-[10px] text-base-content/50">全员</span>}
+            </div>
+            <div className="mt-1 text-sm font-mono break-words">
+              {commandText || "[空指令]"}
+            </div>
+            <div className="mt-1 text-[10px] text-base-content/50">
+              {hintText}
+            </div>
+          </button>
         );
       }
-    }
 
-    // (C) 图片内容
-    // 仅支持单图 (Type 2)
-    const images: any[] = [];
-    const isUnlockCg = !!(message.webgal as any)?.unlockCg;
-    if (message.messageType === 2) {
-      let legacyImg: any = message.extra?.imageMessage || message.extra?.fileMessage;
-      // 支持扁平化 extra (如果 extra 本身包含 url)
-      if (!legacyImg && (message.extra as any)?.url) {
-        legacyImg = message.extra;
-      }
-      if (legacyImg)
-        images.push(legacyImg);
-    }
-
-    if (images.length > 0) {
-      contentElements.push(
-        <div key="images" className="flex flex-col gap-2 mt-2 items-start">
-          {images.map((img, idx) => (
-            <div key={img.url || idx} className="inline-block w-fit max-w-full overflow-hidden rounded-md">
-              <BetterImg
-                src={img.url}
-                size={{ width: img.width, height: img.height }}
-                className="block max-h-[40vh] max-w-full object-left origin-left rounded-md"
+      switch (message.messageType) {
+        case MESSAGE_TYPE.TEXT:
+          return (
+            <EditableMessageContent
+              content={message.content}
+              onCommit={handleContentUpdate}
+              className="editable-field whitespace-pre-wrap break-words"
+              editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+              onEditingChange={setIsEditingContent}
+              editInputRef={editInputRef}
+              shouldIgnoreBlur={shouldIgnoreEditBlur}
+              canEdit={canEditContent}
+            />
+          );
+        case MESSAGE_TYPE.INTRO_TEXT:
+          return (
+            <div className="rounded-lg bg-black text-white px-3 py-2 shadow-inner">
+              <EditableMessageContent
+                content={message.content}
+                onCommit={handleContentUpdate}
+                className="editable-field whitespace-pre-wrap break-words text-white"
+                editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-white"
+                onEditingChange={setIsEditingContent}
+                editInputRef={editInputRef}
+                shouldIgnoreBlur={shouldIgnoreEditBlur}
+                canEdit={canEditContent}
               />
-              {(img.background || isUnlockCg) && (
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {img.background && <span>已设置为背景</span>}
-                  {img.background && isUnlockCg && <span> · </span>}
-                  {isUnlockCg && <span>已解锁CG</span>}
+            </div>
+          );
+        case MESSAGE_TYPE.IMG: {
+          const imageMessage = extra?.imageMessage ?? extra;
+          const imgUrl = typeof imageMessage?.url === "string" ? imageMessage.url : "";
+          const imgWidth = typeof imageMessage?.width === "number" ? imageMessage.width : undefined;
+          const imgHeight = typeof imageMessage?.height === "number" ? imageMessage.height : undefined;
+
+          return (
+            <div className="flex flex-col gap-1">
+              {imgUrl
+                ? (
+                    <BetterImg
+                      src={imgUrl}
+                      size={{ width: imgWidth, height: imgHeight }}
+                      className="rounded max-w-full max-h-[350px] h-auto"
+                    />
+                  )
+                : (
+                    <span className="text-xs text-base-content/60">[图片]</span>
+                  )}
+              {message.content && (
+                <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
+                  {message.content}
                 </div>
               )}
             </div>
-          ))}
-        </div>,
-      );
-    }
-
-    // (D) 语音内容
-    // 支持 Type 7 和 extra.soundMessage
-    let soundMsg: any = message.extra?.soundMessage;
-    // 支持扁平化 extra (如果 extra 本身包含 url 且是 SOUND 类型)
-    if (!soundMsg && message.messageType === 7 && (message.extra as any)?.url) {
-      soundMsg = message.extra;
-    }
-
-    if (soundMsg) {
-      const currentPurpose = soundMsg.purpose || "";
-      contentElements.push(
-        <div key="audio" className="mt-2">
-          <AudioMessage
-            url={soundMsg.url || ""}
-            duration={soundMsg.second}
-            title={soundMsg.fileName || (currentPurpose === "bgm" ? "BGM" : currentPurpose === "se" ? "音效" : "语音")}
-          />
-          {/* 音频类型选择器 */}
-          {canEdit && (
-            <div className="flex items-center gap-3 mt-1 text-xs">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name={`audio-purpose-${message.messageId}`}
-                  className="radio radio-xs"
-                  checked={!currentPurpose}
-                  onChange={() => handleAudioPurposeChange("")}
-                />
-                <span>语音</span>
-              </label>
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name={`audio-purpose-${message.messageId}`}
-                  className="radio radio-xs"
-                  checked={currentPurpose === "bgm"}
-                  onChange={() => handleAudioPurposeChange("bgm")}
-                />
-                <span>BGM</span>
-              </label>
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name={`audio-purpose-${message.messageId}`}
-                  className="radio radio-xs"
-                  checked={currentPurpose === "se"}
-                  onChange={() => handleAudioPurposeChange("se")}
-                />
-                <span>音效</span>
-              </label>
+          );
+        }
+        case MESSAGE_TYPE.FILE: {
+          const fileMessage = extra?.fileMessage ?? extra;
+          const fileUrl = typeof fileMessage?.url === "string" ? fileMessage.url : "";
+          const fileName = fileMessage?.fileName || message.content || "文件";
+          const sizeLabel = formatFileSize(fileMessage?.size);
+          const contentNode = (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="badge badge-outline badge-xs">文件</span>
+              <span className="truncate">{fileName}</span>
+              {sizeLabel && <span className="text-[10px] text-base-content/50">{sizeLabel}</span>}
             </div>
-          )}
-        </div>,
-      );
-    }
+          );
 
-    return <div className="flex flex-col">{contentElements}</div>;
-  }, [
-    canEdit,
-    chatMessageResponse,
-    handleAudioPurposeChange,
-    handleContentUpdate,
-    message.content,
-    message.extra,
-    message.messageType,
-    message.messageId,
-    message.replyMessageId,
-    message.threadId,
-    message.webgal,
-    roomContext.curRoleId,
-    roomContext.curMember?.memberType,
-    spaceContext.isSpaceOwner,
-    onExecuteCommandRequest,
-    scrollToGivenMessage,
-  ]);
-
-  const formattedTime = useMemo(() => {
-    return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
-  }, [message.updateTime]);
-
-  // 判断消息是否被编辑过（createTime 和 updateTime 不同）
-  const isEdited = useMemo(() => {
-    if (!message.createTime || !message.updateTime)
-      return false;
-    return message.createTime !== message.updateTime;
-  }, [message.createTime, message.updateTime]);
-
-  // 获取当前的语音渲染设置
-  const voiceRenderSettings = (message.webgal as any)?.voiceRenderSettings;
-
-  // 获取显示的角色名
-  const displayRoleName = customRoleName || role?.roleName?.trim() || (isNarrator ? "" : "Undefined");
-
-  // 黑屏文字的特殊渲染
-  if (isIntroText) {
-    return (
-      <div className="flex w-full py-1.5 sm:py-2 group">
-        <div className="flex-1 min-w-0 p-2">
-          {/* 黑屏文字样式：黑色背景，白色文字，居中显示 */}
-          <div className="bg-black text-white rounded-lg p-3 sm:p-4 text-center relative">
-            {/* 类型标识和操作按钮 */}
-            <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {canEdit && (
-                <>
-                  <label className="flex items-center gap-1 text-xs cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      className="checkbox checkbox-xs checkbox-primary"
-                      checked={introHold ?? false}
-                      onChange={handleToggleIntroHold}
-                    />
-                    <span className="text-white/70">保持</span>
-                  </label>
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost text-white/70 hover:text-white"
-                    onClick={handleToggleIntroText}
-                    title="切换为普通对话"
-                  >
-                    切换对话
-                  </button>
-                </>
-              )}
-              <span className="badge badge-xs badge-primary">黑屏文字</span>
-            </div>
-            {/* 内容 */}
-            <EditableField
-              content={message.content}
-              handleContentUpdate={handleContentUpdate}
-              className="whitespace-pre-wrap text-sm sm:text-base lg:text-lg"
-              canEdit={canEdit}
-              fieldId={`msg${message.messageId}`}
-            />
-
-            {/* 时间 */}
-            <div className="text-xs text-white/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
-              {formattedTime}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 旁白的特殊渲染（无角色）
-  if (isNarrator) {
-    // 气泡模式与传统模式的旁白样式需要分开：传统模式头像为方形；气泡模式尽量更“旁白化”（更居中、更弱化头像存在感）
-    const hasNarratorAvatar = Boolean(message.avatarId && message.avatarId > 0 && avatar?.avatarUrl);
-    if (useChatBubbleStyle) {
-      const narratorAvatarWidth = isMobile ? 8 : 10;
-      const avatarButtonClassName = `btn btn-ghost btn-xs px-1 ${canEdit ? "cursor-pointer" : "cursor-default"}`;
-      return (
-        <div className="flex w-full justify-center py-1 sm:py-2 group">
-          <div className="relative w-full max-w-[calc(100vw-4rem)] sm:max-w-md rounded-lg bg-base-200/40 px-3 sm:px-4 py-2">
-            <div className="flex items-center gap-2 text-xs text-base-content/60">
-              <button
-                type="button"
-                className={avatarButtonClassName}
-                onClick={handleAvatarClick}
-                aria-label="选择旁白头像"
-                title={canEdit ? "点击选择旁白头像" : "旁白头像"}
-              >
-                {hasNarratorAvatar
-                  ? (
-                      <RoleAvatarComponent
-                        avatarId={message.avatarId ?? 0}
-                        roleId={message.roleId ?? undefined}
-                        width={narratorAvatarWidth}
-                        isRounded={true}
-                        withTitle={false}
-                        stopPopWindow={true}
-                        useDefaultAvatarFallback={false}
-                      />
-                    )
-                  : (
-                      <span className="inline-flex size-7 items-center justify-center rounded-full bg-transparent">
-                        <NarratorIcon className="size-4 text-base-content/70" />
-                      </span>
-                    )}
-              </button>
-
-              <span className="text-xs text-base-content/50 select-none">&nbsp;</span>
-
-              <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {/* WebGAL 联动模式下显示切换黑屏按钮 */}
-                {message.messageType === MESSAGE_TYPE.TEXT && canEdit && webgalLinkMode && (
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
-                    onClick={handleToggleIntroText}
-                    title="切换为黑屏文字"
-                  >
-                    → 黑屏
-                  </button>
-                )}
-                {/* 切换为角色对话按钮 */}
-                {canEdit && (
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
-                    onClick={handleToggleNarrator}
-                    title="切换为角色对话"
-                  >
-                    → 角色
-                  </button>
-                )}
+          return fileUrl
+            ? (
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link link-hover flex items-center gap-2"
+                  onClick={event => event.stopPropagation()}
+                >
+                  {contentNode}
+                </a>
+              )
+            : contentNode;
+        }
+        case MESSAGE_TYPE.FORWARD:
+          return <ForwardMessage messageResponse={chatMessageResponse} />;
+        case MESSAGE_TYPE.DICE: {
+          const diceResult = extra?.diceResult;
+          const result = diceResult?.result || message.content || "";
+          return (
+            <div className="relative text-sm">
+              <span className="badge badge-accent badge-xs absolute top-0 right-0">骰娘</span>
+              <div className="pr-10 pt-1">
+                <EditableMessageContent
+                  content={result}
+                  onCommit={handleDiceContentUpdate}
+                  className="editable-field whitespace-pre-wrap break-words"
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+                  onEditingChange={setIsEditingContent}
+                  editInputRef={editInputRef}
+                  shouldIgnoreBlur={shouldIgnoreEditBlur}
+                  canEdit={canEdit}
+                />
               </div>
             </div>
-
-            <div className="mt-1 italic text-xs sm:text-sm lg:text-base text-base-content/80 text-center">
-              {renderedContent}
+          );
+        }
+        case MESSAGE_TYPE.SOUND: {
+          const soundMessage = extra?.soundMessage ?? extra;
+          const audioUrl = typeof soundMessage?.url === "string" ? soundMessage.url : "";
+          const duration = soundMessage?.second ?? soundMessage?.duration;
+          return (
+            <div className="flex flex-col gap-2">
+              {audioUrl
+                ? (
+                    <AudioMessage
+                      url={audioUrl}
+                      duration={typeof duration === "number" ? duration : undefined}
+                      title={soundMessage?.fileName}
+                    />
+                  )
+                : (
+                    <span className="text-xs text-base-content/60">[语音]</span>
+                  )}
+              {message.content && (
+                <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
+                  {message.content}
+                </div>
+              )}
             </div>
-
-            <div className="mt-1 text-center text-xs text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
-              {formattedTime}
+          );
+        }
+        case MESSAGE_TYPE.EFFECT: {
+          const effectMessage = extra?.effectMessage;
+          const effectName = effectMessage?.effectName || message.content || "特效";
+          return (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="badge badge-info badge-xs">特效</span>
+              <span className="opacity-70">{effectName}</span>
             </div>
-          </div>
+          );
+        }
+        case MESSAGE_TYPE.WEBGAL_VAR: {
+          const payload = extractWebgalVarPayload(message.extra);
+          const summary = payload ? formatWebgalVarSummary(payload) : message.content;
+          return (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="badge badge-secondary badge-xs">变量</span>
+              <span className="break-words">{summary || "[变量]"}</span>
+            </div>
+          );
+        }
+        case MESSAGE_TYPE.WEBGAL_CHOOSE: {
+          const payload = extractWebgalChoosePayload(message.extra);
+          return <WebgalChooseMessage payload={payload} />;
+        }
+        case MESSAGE_TYPE.WEBGAL_COMMAND: {
+          const commandText = message.content?.trim() || "";
+          const displayText = commandText.startsWith("%") ? commandText : `%${commandText}`;
+          return (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="badge badge-ghost badge-xs">WebGAL</span>
+              <span className="font-mono break-words">{displayText}</span>
+            </div>
+          );
+        }
+        case MESSAGE_TYPE.SYSTEM:
+          return (
+            <div className="text-sm text-base-content/60 whitespace-pre-wrap break-words">
+              {message.content || "[系统消息]"}
+            </div>
+          );
+        default:
+          return (
+            <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
+              {message.content || "[未知消息]"}
+            </div>
+          );
+      }
+    })();
+
+    if (replyNode) {
+      return (
+        <div className="flex flex-col gap-1">
+          {replyNode}
+          {bodyNode}
         </div>
       );
     }
 
-    const narratorAvatarWidth = isMobile ? 10 : 20;
-    return (
-      <div className="flex w-full py-1.5 sm:py-2 group">
-        {/* 方形头像（传统模式） */}
-        <div className="shrink-0 pr-2 sm:pr-3">
-          <div
-            className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${canEdit ? "cursor-pointer" : "cursor-default"} bg-transparent flex items-center justify-center`}
-            onClick={handleAvatarClick}
-            aria-label="选择旁白头像"
-            title={canEdit ? "点击选择旁白头像" : "旁白头像"}
-          >
-            {hasNarratorAvatar
-              ? (
-                  <RoleAvatarComponent
-                    avatarId={message.avatarId ?? 0}
-                    roleId={message.roleId ?? undefined}
-                    width={narratorAvatarWidth}
-                    isRounded={false}
-                    withTitle={false}
-                    stopPopWindow={true}
-                    useDefaultAvatarFallback={false}
-                    alt="旁白"
-                  />
-                )
-              : (
-                  <NarratorIcon className="size-6 sm:size-10 md:size-12 text-base-content/70" />
-                )}
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
-          <div className="flex items-center justify-between w-full gap-2">
-            <span className="text-sm text-base-content/50 select-none">&nbsp;</span>
-            <div className="text-xs text-base-content/50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
-              {formattedTime}
-            </div>
-          </div>
-
-          <div className="mt-0.5 relative rounded-lg bg-base-200/50 p-1.5 sm:p-2 break-words">
-            <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {message.messageType === MESSAGE_TYPE.TEXT && canEdit && webgalLinkMode && (
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
-                  onClick={handleToggleIntroText}
-                  title="切换为黑屏文字"
-                >
-                  → 黑屏
-                </button>
-              )}
-              {canEdit && (
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost text-base-content/60 hover:text-primary px-1"
-                  onClick={handleToggleNarrator}
-                  title="切换为角色对话"
-                >
-                  → 角色
-                </button>
-              )}
-              {message.messageType === MESSAGE_TYPE.EFFECT
-                ? (<span className="badge badge-xs badge-info">特效</span>)
-                : null}
-            </div>
-
-            <div className="italic text-sm sm:text-sm lg:text-base text-base-content/80">
-              {renderedContent}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    return bodyNode;
+  })();
 
   // Thread Root（Discord 风格提示条）
   if (isThreadRoot) {
-    const creatorName = displayRoleName || role?.roleName?.trim() || "";
+    const creatorName = displayRoleName;
     return (
-      <div className="w-full py-1.5 sm:py-2">
+      <div className="w-full py-1.5 sm:py-2 group">
+        {textStyleToolbar}
         <div
           className="w-full rounded-md border border-base-300 bg-base-200/40 px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer hover:bg-base-200 transition-colors"
           onClick={handleOpenThreadRoot}
@@ -971,7 +1187,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 width={6}
                 isRounded={true}
                 withTitle={false}
-                stopPopWindow={true}
+                stopToastWindow={true}
                 useDefaultAvatarFallback={false}
               />
               <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
@@ -985,33 +1201,51 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
             </div>
           </div>
         </div>
+        {annotationsBar}
       </div>
     );
   }
 
   return (
     <div>
+      {textStyleToolbar}
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1.5 sm:gap-3 py-1 sm:py-2 group"
+              className="flex w-full items-start gap-1.5 sm:gap-3 py-1 sm:py-2 group relative"
               key={message.messageId}
             >
+              {messageHoverToolbar}
               {/* Avatar */}
-              <div className="shrink-0 cursor-pointer" onClick={handleAvatarClick}>
-                <RoleAvatarComponent
-                  avatarId={message.avatarId ?? 0}
-                  roleId={message.roleId ?? undefined}
-                  width={isMobile ? 10 : 12}
-                  isRounded={true}
-                  withTitle={false}
-                  stopPopWindow={true}
-                  useDefaultAvatarFallback={false}
-                />
+              <div
+                className={`shrink-0 ${
+                  isIntroText
+                    ? "invisible cursor-default"
+                    : (isAvatarSamplerActive ? "cursor-crosshair" : (canEdit ? "cursor-pointer" : "cursor-default"))
+                }`}
+                onClick={isIntroText ? undefined : handleAvatarClick}
+              >
+                {isNarrator
+                  ? (
+                      <div className={`flex items-center justify-center rounded-full bg-base-200/60 ${isMobile ? "w-10 h-10" : "w-12 h-12"}`}>
+                        <NarratorIcon className="w-4 h-4 text-base-content/70" />
+                      </div>
+                    )
+                  : (
+                      <RoleAvatarComponent
+                        avatarId={message.avatarId ?? 0}
+                        roleId={message.roleId ?? undefined}
+                        width={isMobile ? 10 : 12}
+                        isRounded={true}
+                        withTitle={false}
+                        stopToastWindow={true}
+                        useDefaultAvatarFallback={false}
+                      />
+                    )}
               </div>
               <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2 sm:gap-4 w-full min-w-0">
-                  {isEditingRoleName
+                <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0 sm:pr-80 relative">
+                  {!isIntroText && isEditingRoleName
                     ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -1033,12 +1267,35 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         </div>
                       )
                     : (
-                        <span
-                          onClick={handleRoleNameClick}
-                          className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
-                        >
-                          {displayRoleName}
-                        </span>
+                        !isIntroText && displayRoleName
+                          ? (
+                              <div className="relative flex items-center gap-2 min-w-0">
+                                <span
+                                  onClick={handleRoleNameClick}
+                                  className={`block text-sm sm:text-sm font-medium text-base-content/85 pb-0.5 sm:pb-1 cursor-pointer transition-all duration-200 hover:text-primary truncate min-w-0 ${canEdit ? "hover:underline" : ""}`}
+                                >
+                                  {displayRoleName}
+                                </span>
+                                {effectPreviewVisible && effectIconUrl && (
+                                  <img
+                                    src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                    alt=""
+                                    className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                  />
+                                )}
+                              </div>
+                            )
+                          : (
+                              effectPreviewVisible && effectIconUrl
+                                ? (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                    />
+                                  )
+                                : null
+                            )
                       )}
                   <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
@@ -1047,54 +1304,52 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                 </div>
                 <div
                   className="max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow bg-base-200 text-sm sm:text-sm lg:text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
+                  onClick={triggerEffectPreview}
                 >
                   {renderedContent}
                   {threadHintNode}
-                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
-                  {message.messageType === MESSAGE_TYPE.TEXT && (
-                    <VoiceRenderPanel
-                      emotionVector={voiceRenderSettings?.emotionVector}
-                      figurePosition={voiceRenderSettings?.figurePosition}
-                      avatarTitle={avatar?.avatarTitle}
-                      notend={voiceRenderSettings?.notend}
-                      concat={voiceRenderSettings?.concat}
-                      figureAnimation={voiceRenderSettings?.figureAnimation}
-                      onChange={handleVoiceRenderSettingsChange}
-                      canEdit={canEdit}
-                      isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
-                    />
-                  )}
+                  {annotationsBar}
                 </div>
               </div>
             </div>
           )
         : (
             <div
-              className="flex w-full py-1.5 sm:py-2"
+              className="flex w-full py-1.5 sm:py-2 relative"
               key={message.messageId}
             >
+              {messageHoverToolbar}
               {/* 圆角矩形头像 */}
               <div className="shrink-0 pr-2 sm:pr-3">
-                <div className="w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
-                  <RoleAvatarComponent
-                    avatarId={message.avatarId ?? 0}
-                    roleId={message.roleId ?? undefined}
-                    width={isMobile ? 10 : 20}
-                    isRounded={false}
-                    withTitle={false}
-                    stopPopWindow={true}
-                    useDefaultAvatarFallback={false}
-                  >
-                  </RoleAvatarComponent>
+                <div
+                  className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${isIntroText ? "invisible cursor-default" : (canEdit ? "cursor-pointer" : "cursor-default")}`}
+                  onClick={isIntroText ? undefined : handleAvatarClick}
+                >
+                  {isNarrator
+                    ? (
+                        <div className="w-full h-full flex items-center justify-center bg-base-200/60">
+                          <NarratorIcon className="w-5 h-5 text-base-content/70" />
+                        </div>
+                      )
+                    : (
+                        <RoleAvatarComponent
+                          avatarId={message.avatarId ?? 0}
+                          roleId={message.roleId ?? undefined}
+                          width={isMobile ? 10 : 20}
+                          isRounded={false}
+                          withTitle={false}
+                          stopToastWindow={true}
+                          useDefaultAvatarFallback={false}
+                        >
+                        </RoleAvatarComponent>
+                      )}
                 </div>
               </div>
               {/* 消息内容 */}
               <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
                 {/* 角色名 */}
-                <div className="flex justify-between items-center w-full gap-2">
-                  {isEditingRoleName
+                <div className="flex items-center w-full gap-2 sm:pr-80 relative">
+                  {!isIntroText && isEditingRoleName
                     ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -1116,39 +1371,50 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
                         </div>
                       )
                     : (
-                        <div
-                          className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
-                          onClick={handleRoleNameClick}
-                        >
-                          <div className="truncate">
-                            {`【${displayRoleName}】`}
-                          </div>
-                        </div>
+                        !isIntroText && displayRoleName
+                          ? (
+                              <div className="relative flex items-center gap-2 min-w-0">
+                                <div
+                                  className={`cursor-pointer text-sm sm:text-base font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""} min-w-0 flex-shrink`}
+                                  onClick={handleRoleNameClick}
+                                >
+                                  <div className="truncate">
+                                    {`【${displayRoleName}】`}
+                                  </div>
+                                </div>
+                                {effectPreviewVisible && effectIconUrl && (
+                                  <img
+                                    src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                    alt=""
+                                    className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                  />
+                                )}
+                              </div>
+                            )
+                          : (
+                              effectPreviewVisible && effectIconUrl
+                                ? (
+                                    <img
+                                      src={`${effectIconUrl}?t=${effectPreviewToken}`}
+                                      alt=""
+                                      className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                    />
+                                  )
+                                : null
+                            )
                       )}
                   <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
                     {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                     {formattedTime}
                   </div>
                 </div>
-                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base">
+                <div
+                  className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-sm sm:text-sm lg:text-base"
+                  onClick={triggerEffectPreview}
+                >
                   {renderedContent}
                   {threadHintNode}
-                  {/* 内嵌语音渲染设置面板 - 文本消息显示 */}
-                  {message.messageType === MESSAGE_TYPE.TEXT && (
-                    <VoiceRenderPanel
-                      emotionVector={voiceRenderSettings?.emotionVector}
-                      figurePosition={voiceRenderSettings?.figurePosition}
-                      avatarTitle={avatar?.avatarTitle}
-                      notend={voiceRenderSettings?.notend}
-                      concat={voiceRenderSettings?.concat}
-                      figureAnimation={voiceRenderSettings?.figureAnimation}
-                      onChange={handleVoiceRenderSettingsChange}
-                      canEdit={canEdit}
-                      isIntroText={isIntroText}
-                      onToggleIntroText={canEdit && webgalLinkMode ? handleToggleIntroText : undefined}
-                      onToggleNarrator={canEdit && webgalLinkMode ? handleToggleNarrator : undefined}
-                    />
-                  )}
+                  {annotationsBar}
                 </div>
               </div>
             </div>
@@ -1189,6 +1455,17 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     return false;
   }
 
+  const prevAnnotations = prevMsg.annotations ?? [];
+  const nextAnnotations = nextMsg.annotations ?? [];
+  if (prevAnnotations.length !== nextAnnotations.length) {
+    return false;
+  }
+  for (let i = 0; i < prevAnnotations.length; i += 1) {
+    if (prevAnnotations[i] !== nextAnnotations[i]) {
+      return false;
+    }
+  }
+
   // 深度比较 extra 对象
   if (prevMsg.extra === nextMsg.extra) {
     // 继续检查 webgal
@@ -1226,10 +1503,6 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     }
 
     if (JSON.stringify(prevExtra.forwardMessage) !== JSON.stringify(nextExtra.forwardMessage)) {
-      return false;
-    }
-
-    if (JSON.stringify(prevExtra.clueMessage) !== JSON.stringify(nextExtra.clueMessage)) {
       return false;
     }
 

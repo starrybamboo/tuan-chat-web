@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalContext } from "@/components/globalContextProvider";
 
-import GNSPreferenceEditor from "@/components/profile/popWindows/GNSEditorPop";
+import GNSPreferenceEditor from "@/components/profile/toastWindows/GNSEditorToastWindow";
 import { useGetGNSQuery, useUpsertGNSMutation } from "../../../../api/hooks/userGNSQuerryHooks";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
@@ -150,7 +150,7 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
 
   // 未配置状态的引导界面
   if (isNotConfigured) {
-    // 只有登录用户本人才显示设置引导，其他人显示"未设置"状态
+    // 只有登录用户本人才显示设置引导，其他人显示"未设置"״̬
     if (loginUserId === userId) {
       return (
         <div className="flex flex-col items-center p-4 rounded-lg shadow-md bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -205,14 +205,14 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
           </button>
 
           {/* 编辑弹窗 */}
-          <PopWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
+          <ToastWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
             <GNSPreferenceEditor
               initialRatings={ratings}
               onSave={handleSaveChanges}
               onCancel={handleCloseEditor}
               isLoading={upsertMutation.isPending}
             />
-          </PopWindow>
+          </ToastWindow>
         </div>
       );
     }
@@ -357,14 +357,14 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
       </div>
 
       {/* 编辑弹窗 */}
-      <PopWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
+      <ToastWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
         <GNSPreferenceEditor
           initialRatings={ratings}
           onSave={handleSaveChanges}
           onCancel={handleCloseEditor}
           isLoading={upsertMutation.isPending}
         />
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 };

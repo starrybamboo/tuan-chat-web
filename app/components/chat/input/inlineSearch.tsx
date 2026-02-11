@@ -1,6 +1,6 @@
 import type { UserRole } from "../../../../api";
 import { useDebounce } from "ahooks";
-import { memo, use, useEffect, useMemo, useState } from "react";
+import { memo, use, useEffect, useMemo, useRef, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
@@ -14,6 +14,7 @@ interface SearchBarProps {
 
 function SearchBar({ className = "" }: SearchBarProps) {
   const roomContext = use(RoomContext);
+  const roomId = roomContext.roomId ?? -1;
   const historyMessages = useMemo(() => roomContext.chatHistory?.messages ?? [], [roomContext.chatHistory?.messages]);
 
   const [searchText, setSearchText] = useState<string>("");
@@ -23,26 +24,71 @@ function SearchBar({ className = "" }: SearchBarProps) {
 
   const [roles, setRoles] = useState<UserRole[]>([]);
   const getRoleSmartly = useGetRoleSmartly();
+  const roleCacheRef = useRef<Map<number, UserRole>>(new Map());
+  const roleIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const msg of historyMessages) {
+      const roleId = msg.message.roleId;
+      if (typeof roleId === "number" && Number.isFinite(roleId)) {
+        ids.add(roleId);
+      }
+    }
+    return Array.from(ids);
+  }, [historyMessages]);
 
   // 检测是否为移动端
   const isMobile = getScreenSize() === "sm";
 
   useEffect(() => {
+    roleCacheRef.current = new Map();
+    setRoles([]);
+  }, [roomId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const missingIds = roleIds.filter(id => !roleCacheRef.current.has(id));
+    if (missingIds.length === 0) {
+      return;
+    }
+
     const getAllRoles = async () => {
-      for (const msg of historyMessages) {
-        const roleId = msg.message.roleId;
-        if (roleId == null)
-          continue;
-        if (roles.find(r => r.roleId === roleId))
-          continue;
+      const fetched: UserRole[] = [];
+      for (const roleId of missingIds) {
         const role = await getRoleSmartly(roleId);
         if (!role)
           continue;
-        setRoles(prev => [...prev, role]);
+        const id = role.roleId;
+        if (typeof id !== "number" || !Number.isFinite(id))
+          continue;
+        if (roleCacheRef.current.has(id))
+          continue;
+        roleCacheRef.current.set(id, role);
+        fetched.push(role);
       }
+
+      if (cancelled || fetched.length === 0)
+        return;
+
+      setRoles((prev) => {
+        const seen = new Set(prev.map(r => r.roleId));
+        const next = [...prev];
+        for (const role of fetched) {
+          const id = role.roleId;
+          if (typeof id !== "number" || seen.has(id))
+            continue;
+          seen.add(id);
+          next.push(role);
+        }
+        return next;
+      });
     };
-    getAllRoles();
-  }, [historyMessages, getRoleSmartly, roles]);
+
+    void getAllRoles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getRoleSmartly, roleIds]);
 
   const searchResult = useMemo(() => {
     if (!debouncedSearchText || debouncedSearchText.length === 0)

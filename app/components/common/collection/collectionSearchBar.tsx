@@ -10,7 +10,7 @@ export default function CollectionSearchBar() {
         <button type="button" className="cursor-pointer mr-4"><Filter className="h-6 w-6" /></button>
         {showFilters && (
           <div className="absolute flex flex-col bg-base-100 rounded-lg shadow-2xl min-w-[120px] z-10 p-2 space-y-1">
-            {["帖子", "评论", "模组"].map(label => (
+            {["帖子", "评论", "仓库"].map(label => (
               <label
                 key={label}
                 className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer transition"

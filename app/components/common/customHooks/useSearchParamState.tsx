@@ -1,3 +1,4 @@
+import React from "react";
 import { useSearchParams } from "react-router";
 
 /**
@@ -9,15 +10,32 @@ import { useSearchParams } from "react-router";
 export default function useSearchParamsState<T>(key: string, defaultValue: T, shortenUrl: boolean = true) {
   const [searchParams, setSearchParams] = useSearchParams();
   const valueStr = searchParams.get(key);
-  const value = valueStr ? (JSON.parse(valueStr) as T) : defaultValue;
+  const cacheRef = React.useRef<{ raw: string | null; parsed: T } | null>(null);
+  const value = React.useMemo(() => {
+    if (valueStr == null) {
+      return defaultValue;
+    }
+    if (cacheRef.current && cacheRef.current.raw === valueStr) {
+      return cacheRef.current.parsed;
+    }
+    const parsed = JSON.parse(valueStr) as T;
+    cacheRef.current = { raw: valueStr, parsed };
+    return parsed;
+  }, [defaultValue, valueStr]);
   const setValue = (newValue: T) => {
     setSearchParams((prev) => {
+      const shouldDrop = newValue === defaultValue && shortenUrl;
+      const nextSerialized = shouldDrop ? null : JSON.stringify(newValue);
+      const currentSerialized = prev.get(key);
+      if ((nextSerialized == null && currentSerialized == null) || (nextSerialized != null && currentSerialized === nextSerialized)) {
+        return prev;
+      }
       const next = new URLSearchParams(prev);
-      if (newValue === defaultValue && shortenUrl) {
+      if (shouldDrop) {
         next.delete(key);
       }
       else {
-        next.set(key, JSON.stringify(newValue));
+        next.set(key, nextSerialized as string);
       }
       return next;
     });

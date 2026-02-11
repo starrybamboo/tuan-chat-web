@@ -11,6 +11,8 @@ import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
 interface SpriteListGridProps {
   /** 头像/立绘列表 */
   avatars: RoleAvatar[];
+  /** 头像总数（用于判断是否允许删除全部） */
+  totalAvatarsCount?: number;
   /** 当前选中的索引 */
   selectedIndex: number;
   /** 选中回调 */
@@ -31,12 +33,15 @@ interface SpriteListGridProps {
   onAvatarChange?: (avatarUrl: string, avatarId: number) => void;
   /** 头像选择回调（用于删除时更新选中状态） */
   onAvatarSelect?: (avatarId: number) => void;
+  onAvatarDeleted?: (avatar: RoleAvatar) => void;
   /** 多选状态（必须从父组件传入） */
   selectedIndices: Set<number>;
   /** 是否处于多选模式（必须从父组件传入） */
   isMultiSelectMode: boolean;
   /** 多选状态变化回调（必须） */
   onMultiSelectChange: (selectedIndices: Set<number>, isMultiSelectMode: boolean) => void;
+  /** 可选：直接指定 grid-template-columns，确保网格列数生效 */
+  gridTemplateColumns?: string;
 }
 
 /**
@@ -46,6 +51,7 @@ interface SpriteListGridProps {
  */
 export function SpriteListGrid({
   avatars,
+  totalAvatarsCount,
   selectedIndex,
   onSelect,
   className = "",
@@ -56,9 +62,11 @@ export function SpriteListGrid({
   role,
   onAvatarChange,
   onAvatarSelect,
+  onAvatarDeleted,
   selectedIndices,
   isMultiSelectMode,
   onMultiSelectChange,
+  gridTemplateColumns,
 }: SpriteListGridProps) {
   // 管理模式下启用上传和删除功能
   const isManageMode = mode === "manage";
@@ -80,9 +88,11 @@ export function SpriteListGrid({
   const deletionHook = useAvatarDeletion({
     role,
     avatars,
+    totalAvatarsCount,
     selectedAvatarId,
     onAvatarChange,
     onAvatarSelect,
+    onDeleteSuccess: onAvatarDeleted,
   });
 
   const updateNameMutation = useUpdateAvatarNameMutation(role?.id);
@@ -162,7 +172,7 @@ export function SpriteListGrid({
   };
 
   // Determine if delete button should be shown (not when only 1 avatar remains)
-  const canDelete = avatars.length > 1;
+  const canDelete = (totalAvatarsCount ?? avatars.length) > 1;
   if (avatars.length === 0) {
     return (
       <div
@@ -282,7 +292,10 @@ export function SpriteListGrid({
         }}
       >
 
-        <div className={`grid ${gridCols} gap-2 overflow-auto content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}>
+        <div
+          className={`grid ${gridCols} gap-2 overflow-auto content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}
+          style={gridTemplateColumns ? { gridTemplateColumns } : undefined}
+        >
           {avatars.map((avatar, index) => {
             const avatarName = getAvatarName(avatar, index);
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
@@ -470,7 +483,7 @@ export function SpriteListGrid({
         <div className="modal modal-open">
           <div className="modal-box">
             <h3 className="font-bold text-lg">确认删除头像</h3>
-            <p className="py-4">确定要删除这个头像吗？此操作无法撤销。</p>
+            <p className="py-4">删除后会进入回收站，可在回收站恢复。</p>
             <div className="modal-action">
               <button
                 type="button"

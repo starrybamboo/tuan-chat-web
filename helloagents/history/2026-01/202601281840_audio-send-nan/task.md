@@ -1,6 +1,6 @@
 # 任务清单: 修复音频消息发送 NaN
 
-目录: `helloagents/plan/202601281840_audio-send-nan/`
+Ŀ¼: `helloagents/plan/202601281840_audio-send-nan/`
 
 ---
 

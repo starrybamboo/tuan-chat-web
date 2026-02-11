@@ -107,7 +107,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   enabled: false,
   ttsEnabled: false,
   miniAvatarEnabled: false,
-  autoFigureEnabled: true,
+  autoFigureEnabled: false,
   ttsApiUrl: "",
   terrePortOverride: null,
   terrePort: getDefaultTerrePort(),
@@ -118,26 +118,34 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   isActive: false,
   previewUrl: null,
 
-  setEnabled: value => set({ enabled: value }),
-  setTtsEnabled: value => set({ ttsEnabled: value }),
-  setMiniAvatarEnabled: value => set({ miniAvatarEnabled: value }),
-  setAutoFigureEnabled: value => set({ autoFigureEnabled: value }),
+  setEnabled: value => set(state => (state.enabled === value ? state : { enabled: value })),
+  setTtsEnabled: value => set(state => (state.ttsEnabled === value ? state : { ttsEnabled: value })),
+  setMiniAvatarEnabled: value => set(state => (state.miniAvatarEnabled === value ? state : { miniAvatarEnabled: value })),
+  setAutoFigureEnabled: (value) => {
+    if (get().autoFigureEnabled === value)
+      return;
+    set({ autoFigureEnabled: value });
+    void setRealtimeRenderSettings({ autoFigureEnabled: value });
+  },
   setTtsApiUrl: (value) => {
-    set({ ttsApiUrl: value });
+    const nextValue = String(value ?? "");
+    if (get().ttsApiUrl === nextValue)
+      return;
+    set({ ttsApiUrl: nextValue });
     void setRealtimeRenderSettings({
-      ttsApiUrl: value,
-      terrePort: get().terrePortOverride,
+      ttsApiUrl: nextValue,
     });
   },
   setTerrePortOverride: (port) => {
     const nextOverride = normalizePort(port);
+    if (get().terrePortOverride === nextOverride)
+      return;
     setTerrePortOverrideInConfig(nextOverride);
     set({
       terrePortOverride: nextOverride,
       terrePort: nextOverride ?? getDefaultTerrePort(),
     });
     void setRealtimeRenderSettings({
-      ttsApiUrl: get().ttsApiUrl,
       terrePort: nextOverride,
     });
   },
@@ -155,16 +163,21 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
 
       const persistedTtsApiUrl = (persisted?.ttsApiUrl ?? "").trim();
       const persistedTerrePortOverride = normalizePort(persisted?.terrePort ?? null);
+      const persistedAutoFigureEnabled = persisted?.autoFigureEnabled;
 
       const legacyTtsApiUrl = !persistedTtsApiUrl ? readLegacyTtsApiUrl().trim() : "";
       const nextTtsApiUrl = persistedTtsApiUrl || legacyTtsApiUrl || "";
       const nextTerrePortOverride = persistedTerrePortOverride;
+      const nextAutoFigureEnabled = typeof persistedAutoFigureEnabled === "boolean"
+        ? persistedAutoFigureEnabled
+        : get().autoFigureEnabled;
 
       setTerrePortOverrideInConfig(nextTerrePortOverride);
       set({
         ttsApiUrl: nextTtsApiUrl,
         terrePortOverride: nextTerrePortOverride,
         terrePort: nextTerrePortOverride ?? getDefaultTerrePort(),
+        autoFigureEnabled: nextAutoFigureEnabled,
         hydrated: true,
       });
 
@@ -172,6 +185,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         await setRealtimeRenderSettings({
           ttsApiUrl: legacyTtsApiUrl,
           terrePort: null,
+          autoFigureEnabled: nextAutoFigureEnabled,
         });
         clearLegacyTtsApiUrl();
       }

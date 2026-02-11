@@ -5,9 +5,9 @@ type DrawerPreferenceState = {
   subRoomWindowWidth: number;
   userDrawerWidth: number;
   roleDrawerWidth: number;
+  docFolderDrawerWidth: number;
   threadDrawerWidth: number;
   initiativeDrawerWidth: number;
-  clueDrawerWidth: number;
   mapDrawerWidth: number;
   exportDrawerWidth: number;
   webgalDrawerWidth: number;
@@ -19,9 +19,9 @@ type DrawerPreferenceState = {
   setSubRoomWindowWidth: (width: number) => void;
   setUserDrawerWidth: (width: number) => void;
   setRoleDrawerWidth: (width: number) => void;
+  setDocFolderDrawerWidth: (width: number) => void;
   setThreadDrawerWidth: (width: number) => void;
   setInitiativeDrawerWidth: (width: number) => void;
-  setClueDrawerWidth: (width: number) => void;
   setMapDrawerWidth: (width: number) => void;
   setExportDrawerWidth: (width: number) => void;
   setWebgalDrawerWidth: (width: number) => void;
@@ -63,13 +63,13 @@ function writeNumber(key: string, value: number): void {
 const DEFAULT_DRAWER_WIDTHS = {
   chatLeftPanelWidth: 430,
   subRoomWindowWidth: 560,
-  userDrawerWidth: 270,
-  roleDrawerWidth: 270,
+  userDrawerWidth: 320,
+  roleDrawerWidth: 320,
+  docFolderDrawerWidth: 320,
   threadDrawerWidth: 420,
-  initiativeDrawerWidth: 270,
-  clueDrawerWidth: 270,
+  initiativeDrawerWidth: 320,
   mapDrawerWidth: 600,
-  exportDrawerWidth: 350,
+  exportDrawerWidth: 320,
   webgalDrawerWidth: 600,
 } as const;
 
@@ -82,9 +82,9 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   subRoomWindowWidth: DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth,
   userDrawerWidth: DEFAULT_DRAWER_WIDTHS.userDrawerWidth,
   roleDrawerWidth: DEFAULT_DRAWER_WIDTHS.roleDrawerWidth,
+  docFolderDrawerWidth: DEFAULT_DRAWER_WIDTHS.docFolderDrawerWidth,
   threadDrawerWidth: DEFAULT_DRAWER_WIDTHS.threadDrawerWidth,
   initiativeDrawerWidth: DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth,
-  clueDrawerWidth: DEFAULT_DRAWER_WIDTHS.clueDrawerWidth,
   mapDrawerWidth: DEFAULT_DRAWER_WIDTHS.mapDrawerWidth,
   exportDrawerWidth: DEFAULT_DRAWER_WIDTHS.exportDrawerWidth,
   webgalDrawerWidth: DEFAULT_DRAWER_WIDTHS.webgalDrawerWidth,
@@ -99,9 +99,9 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
       subRoomWindowWidth: readNumber("subRoomWindowWidth", DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth),
       userDrawerWidth: readNumber("userDrawerWidth", DEFAULT_DRAWER_WIDTHS.userDrawerWidth),
       roleDrawerWidth: readNumber("roleDrawerWidth", DEFAULT_DRAWER_WIDTHS.roleDrawerWidth),
+      docFolderDrawerWidth: readNumber("docFolderDrawerWidth", DEFAULT_DRAWER_WIDTHS.docFolderDrawerWidth),
       threadDrawerWidth: readNumber("threadDrawerWidth", DEFAULT_DRAWER_WIDTHS.threadDrawerWidth),
       initiativeDrawerWidth: readNumber("initiativeDrawerWidth", DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth),
-      clueDrawerWidth: readNumber("clueDrawerWidth", DEFAULT_DRAWER_WIDTHS.clueDrawerWidth),
       mapDrawerWidth: readNumber("mapDrawerWidth", DEFAULT_DRAWER_WIDTHS.mapDrawerWidth),
       exportDrawerWidth: readNumber("exportDrawerWidth", DEFAULT_DRAWER_WIDTHS.exportDrawerWidth),
       webgalDrawerWidth: readNumber("webgalDrawerWidth", DEFAULT_DRAWER_WIDTHS.webgalDrawerWidth),
@@ -127,43 +127,83 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   },
 
   setChatLeftPanelWidth: (width) => {
-    writeNumber("chatLeftPanelWidth", width);
-    set({ chatLeftPanelWidth: width });
+    set((state) => {
+      if (state.chatLeftPanelWidth === width)
+        return state;
+      writeNumber("chatLeftPanelWidth", width);
+      return { chatLeftPanelWidth: width };
+    });
   },
   setSubRoomWindowWidth: (width) => {
-    writeNumber("subRoomWindowWidth", width);
-    set({ subRoomWindowWidth: width });
+    set((state) => {
+      if (state.subRoomWindowWidth === width)
+        return state;
+      writeNumber("subRoomWindowWidth", width);
+      return { subRoomWindowWidth: width };
+    });
   },
   setUserDrawerWidth: (width) => {
-    writeNumber("userDrawerWidth", width);
-    set({ userDrawerWidth: width });
+    set((state) => {
+      if (state.userDrawerWidth === width)
+        return state;
+      writeNumber("userDrawerWidth", width);
+      return { userDrawerWidth: width };
+    });
   },
   setRoleDrawerWidth: (width) => {
-    writeNumber("roleDrawerWidth", width);
-    set({ roleDrawerWidth: width });
+    set((state) => {
+      if (state.roleDrawerWidth === width)
+        return state;
+      writeNumber("roleDrawerWidth", width);
+      return { roleDrawerWidth: width };
+    });
+  },
+  setDocFolderDrawerWidth: (width) => {
+    set((state) => {
+      if (state.docFolderDrawerWidth === width)
+        return state;
+      writeNumber("docFolderDrawerWidth", width);
+      return { docFolderDrawerWidth: width };
+    });
   },
   setThreadDrawerWidth: (width) => {
-    writeNumber("threadDrawerWidth", width);
-    set({ threadDrawerWidth: width });
+    set((state) => {
+      if (state.threadDrawerWidth === width)
+        return state;
+      writeNumber("threadDrawerWidth", width);
+      return { threadDrawerWidth: width };
+    });
   },
   setInitiativeDrawerWidth: (width) => {
-    writeNumber("initiativeDrawerWidth", width);
-    set({ initiativeDrawerWidth: width });
-  },
-  setClueDrawerWidth: (width) => {
-    writeNumber("clueDrawerWidth", width);
-    set({ clueDrawerWidth: width });
+    set((state) => {
+      if (state.initiativeDrawerWidth === width)
+        return state;
+      writeNumber("initiativeDrawerWidth", width);
+      return { initiativeDrawerWidth: width };
+    });
   },
   setMapDrawerWidth: (width) => {
-    writeNumber("mapDrawerWidth", width);
-    set({ mapDrawerWidth: width });
+    set((state) => {
+      if (state.mapDrawerWidth === width)
+        return state;
+      writeNumber("mapDrawerWidth", width);
+      return { mapDrawerWidth: width };
+    });
   },
   setExportDrawerWidth: (width) => {
-    writeNumber("exportDrawerWidth", width);
-    set({ exportDrawerWidth: width });
+    set((state) => {
+      if (state.exportDrawerWidth === width)
+        return state;
+      writeNumber("exportDrawerWidth", width);
+      return { exportDrawerWidth: width };
+    });
   },
   setWebgalDrawerWidth: (width) => {
-    writeNumber("webgalDrawerWidth", width);
-    set({ webgalDrawerWidth: width });
+    set((state) => {
+      if (state.webgalDrawerWidth === width)
+        return state;
+      writeNumber("webgalDrawerWidth", width);
+      return { webgalDrawerWidth: width };
+    });
   },
 }));

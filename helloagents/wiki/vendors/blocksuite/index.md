@@ -28,7 +28,6 @@
 1. **先找项目内已有用法（可运行的事实来源）**
    - 入口目录：`app/components/chat/infra/blocksuite/`
    - 关键文件：`app/components/chat/shared/components/blocksuiteDescriptionEditor.tsx`
-   - playground：`app/components/chat/infra/blocksuite/playground/apps/starter/`
 
 2. **再确认导入子路径属于哪个包**
    - 例如：`@blocksuite/affine/store`、`@blocksuite/affine/shared/services`、`@blocksuite/std/gfx`
@@ -100,6 +99,5 @@
 - `app/components/chat/infra/blocksuite/doc/`
 - `docs/BLOCKSUITE_EXAMPLES_STUDY_AND_ADAPTATION_2026-01-04.md`
 - `docs/BLOCKSUITE_EDITOR_REQUIREMENTS_AND_WRAPPERS_2026-01-04.md`
-- `docs/2026-01-06_blocksuite-playground-dev-fixes.md`
 - `docs/2026-01-07_electron_build_fixes.md`
 

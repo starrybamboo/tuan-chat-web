@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及重复插入二次修复
 
-目录: `helloagents/plan/202601171414_blocksuite-mention-fix2/`
+Ŀ¼: `helloagents/plan/202601171414_blocksuite-mention-fix2/`
 
 ---
 
