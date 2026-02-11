@@ -30,6 +30,10 @@ import { useBgmStore } from "@/components/chat/stores/bgmStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
+import { PremiereExporter } from "@/webGAL";
+import { useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
+import { toast } from "react-hot-toast";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
@@ -291,6 +295,141 @@ function RoomWindow({
     setInputText,
     setLLMMessage,
   });
+
+  const queryClient = useQueryClient();
+
+  const handleExportPremiere = useCallback(async () => {
+    if (!historyMessages || historyMessages.length === 0) {
+      toast.error("没有可导出的消息");
+      return;
+    }
+
+    const loadToastId = toast.loading("正在导出工程...");
+
+    try {
+      const exporter = new PremiereExporter({
+        sequenceName: `Chat_${roomId}`,
+      });
+      
+      // 头像获取回调
+      const avatarCache = new Map<number, any>();
+      const fetchAvatar = async (avatarId: number) => {
+          if (avatarCache.has(avatarId)) return avatarCache.get(avatarId);
+
+          // 1. 尝试从缓存获取
+          const queryKey = ["getRoleAvatar", avatarId];
+          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+          if (cached?.data) {
+              avatarCache.set(avatarId, cached.data);
+              return cached.data;
+          }
+
+          // 2. 调用 API
+          try {
+              const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
+              if (res.data) {
+                  avatarCache.set(avatarId, res.data);
+                  // Optionally update query cache
+                  queryClient.setQueryData(queryKey, res);
+                  return res.data;
+              }
+          } catch (e) {
+              console.warn(`Fetch avatar ${avatarId} failed`, e);
+          }
+          return null;
+      };
+
+      // 角色名获取回调
+      const roleNameCache = new Map<number, string>();
+      const fetchRoleName = async (roleId?: number) => {
+          if (!roleId) return null;
+          if (roleNameCache.has(roleId)) return roleNameCache.get(roleId);
+
+          // 尝试从缓存获取
+          const queryKey = ["getRole", roleId];
+          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+          if (cached?.data?.roleName) {
+             roleNameCache.set(roleId, cached.data.roleName);
+             return cached.data.roleName;
+          }
+
+          // 调用 API
+          try {
+              const res = await tuanchat.roleController.getRole(roleId);
+              if (res.data?.roleName) {
+                  roleNameCache.set(roleId, res.data.roleName);
+                  queryClient.setQueryData(queryKey, res);
+                  return res.data.roleName;
+              }
+          } catch (e) {
+              console.warn(`Fetch role name ${roleId} failed`, e);
+          }
+          return null;
+      };
+
+      // 用户名获取回调 (Fallback)
+      const userNameCache = new Map<number, string>();
+      const fetchUserName = async (userId?: number) => {
+          if (!userId) return null;
+          if (userNameCache.has(userId)) return userNameCache.get(userId);
+
+          const queryKey = ["getUser", userId];
+          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+          if (cached?.data?.username) { // UserInfoResponse usually has 'username' or 'name' or 'nickname'
+              const name = cached.data.nickname || cached.data.username;
+              userNameCache.set(userId, name);
+              return name;
+          }
+
+          try {
+              const res = await tuanchat.userController.getUserInfo(userId);
+              // Check return type UserInfoResponse
+              if (res.data) {
+                  const name = res.data.nickname || res.data.username || "Unknown";
+                  userNameCache.set(userId, name);
+                  queryClient.setQueryData(queryKey, res);
+                  return name;
+              }
+          } catch(e) {
+              console.warn(`Fetch user ${userId} failed`, e);
+          }
+          return null;
+      };
+
+      await exporter.processMessages(historyMessages, fetchAvatar, fetchRoleName, fetchUserName);
+
+      const xmlContent = exporter.generateXML();
+      const downloadBlob = (content: string, filename: string, type: string) => {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      downloadBlob(xmlContent, `TuanChat_Export_${roomId}.xml`, "text/xml;charset=utf-8");
+
+      const scriptContent = exporter.generateDownloadScript();
+      downloadBlob(scriptContent, `download_assets_${roomId}.ps1`, "text/plain;charset=utf-8");
+
+      const srtContent = exporter.generateSRT();
+      downloadBlob(srtContent, `TuanChat_Subtitles_${roomId}.srt`, "text/plain;charset=utf-8");
+
+      const nameSrtContent = exporter.generateNameSRT();
+      downloadBlob(nameSrtContent, `TuanChat_Names_${roomId}.srt`, "text/plain;charset=utf-8");
+
+      toast.success("导出成功！请查看下载的文件。", { id: loadToastId });
+    }
+    catch (e) {
+      console.error(e);
+      toast.error("导出失败，请检查控制台", { id: loadToastId });
+    }
+  }, [historyMessages, roomId, queryClient]);
+
   const roomName = roomHeaderOverride?.title ?? room?.name;
   const spaceName = spaceHeaderOverride?.title ?? space?.name;
 
@@ -372,6 +511,7 @@ function RoomWindow({
           chatFrameProps={chatFrameProps}
           composerPanelProps={composerPanelProps}
           hideComposer={viewMode}
+          onExportPremiere={handleExportPremiere}
         />
       </RoomDocRefDropLayer>
       {!viewMode && (

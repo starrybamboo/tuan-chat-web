@@ -21,6 +21,7 @@ interface RoomWindowLayoutProps {
   chatFrameProps: ChatFrameProps;
   composerPanelProps: RoomComposerPanelProps;
   hideComposer?: boolean;
+  onExportPremiere?: () => void;
 }
 
 export default function RoomWindowLayout({
@@ -33,6 +34,7 @@ export default function RoomWindowLayout({
   chatFrameProps,
   composerPanelProps,
   hideComposer = false,
+  onExportPremiere,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
@@ -59,6 +61,7 @@ export default function RoomWindowLayout({
           <RoomHeaderBar
             roomName={roomName}
             toggleLeftDrawer={toggleLeftDrawer}
+            onExportPremiere={onExportPremiere}
           />
           <div className="flex-1 w-full flex bg-transparent relative min-h-0">
             <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>

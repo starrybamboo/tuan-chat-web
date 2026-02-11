@@ -6,6 +6,7 @@ import { getTerreBaseUrl } from "./terreConfig";
 import { createWebGalSyncClient } from "./webgalSync";
 
 export { checkGameExist } from "./fileOperator";
+export { PremiereExporter, type PremiereExportOptions } from "./premiereExporter";
 
 let _terreApis: Api | null = null;
 let _terreApisBaseUrl: string | null = null;
