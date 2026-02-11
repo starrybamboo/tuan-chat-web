@@ -1,4 +1,4 @@
-import { ArrowSquareIn, ExportIcon } from "@phosphor-icons/react";
+import { ArrowSquareIn, ExportIcon, FilmStrip } from "@phosphor-icons/react";
 import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -16,11 +16,13 @@ import { getScreenSize } from "@/utils/getScreenSize";
 interface RoomHeaderBarProps {
   roomName?: string;
   toggleLeftDrawer: () => void;
+  onExportPremiere?: () => void;
 }
 
 function RoomHeaderBarImpl({
   roomName,
   toggleLeftDrawer,
+  onExportPremiere,
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -86,6 +88,16 @@ function RoomHeaderBarImpl({
             }}
           >
             <ExportIcon className="size-6 mt-2" />
+          </div>
+          <div
+            className="tooltip tooltip-bottom hover:text-info relative z-50"
+            data-tip="导出 PR 工程"
+            onClick={() => {
+              closeThreadPane();
+              onExportPremiere?.();
+            }}
+          >
+            <FilmStrip className="size-6 mt-2" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
