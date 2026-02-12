@@ -111,7 +111,7 @@ export default function RoomSidebarDocItem({
           return;
         }
         resetDropHandled();
-        e.dataTransfer.effectAllowed = "copyMove";
+        e.dataTransfer.effectAllowed = "all";
         e.dataTransfer.setData("text/plain", nodeId);
         setDocRefDragData(e.dataTransfer, {
           docId,

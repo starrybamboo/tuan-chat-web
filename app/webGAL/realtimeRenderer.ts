@@ -11,8 +11,11 @@ import { formatAnkoDiceMessage, stripDiceResultTokens } from "@/components/commo
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
 import {
   ANNOTATION_IDS,
+  getEffectDurationMs,
+  getEffectFromAnnotations,
   getFigureAnimationFromAnnotations,
   getFigurePositionFromAnnotations,
+  hasClearBackgroundAnnotation,
   hasAnnotation,
   isImageMessageBackground,
   isImageMessageShown,
@@ -271,18 +274,21 @@ type FigureSlot = {
 };
 
 // 以 2560 参考宽度经验值换算，保证 5 个槽位有明确区分
-const FIGURE_SLOT_OFFSET_X = 320;
+const FIGURE_SLOT_OFFSET_X = 420;
+const EFFECT_OFFSET_X = -200;
+const EFFECT_SCREEN_WIDTH = 2560;
+const EFFECT_SCREEN_Y = 1440 * 0.25;
 
 const FIGURE_SLOT_MAP: Record<FigurePositionKey, FigureSlot> = {
   "left": {
     id: String(FIGURE_POSITION_IDS.left),
     basePosition: "left",
-    offsetX: 0,
+    offsetX: -FIGURE_SLOT_OFFSET_X * 2,
     offsetY: 0,
   },
   "left-center": {
     id: String(FIGURE_POSITION_IDS["left-center"]),
-    basePosition: "center",
+    basePosition: "left",
     offsetX: -FIGURE_SLOT_OFFSET_X,
     offsetY: 0,
   },
@@ -294,14 +300,14 @@ const FIGURE_SLOT_MAP: Record<FigurePositionKey, FigureSlot> = {
   },
   "right-center": {
     id: String(FIGURE_POSITION_IDS["right-center"]),
-    basePosition: "center",
+    basePosition: "right",
     offsetX: FIGURE_SLOT_OFFSET_X,
     offsetY: 0,
   },
   "right": {
     id: String(FIGURE_POSITION_IDS.right),
     basePosition: "right",
-    offsetX: 0,
+    offsetX: FIGURE_SLOT_OFFSET_X * 2,
     offsetY: 0,
   },
 };
@@ -310,9 +316,22 @@ function resolveFigureSlot(position: FigurePositionKey): FigureSlot {
   return FIGURE_SLOT_MAP[position];
 }
 
+function resolveSlotOffsetById(id: string): number | null {
+  for (const slot of Object.values(FIGURE_SLOT_MAP)) {
+    if (slot.id === id) return slot.offsetX;
+  }
+  return null;
+}
+
+const DEFAULT_KEEP_OFFSET_PART = " -keepOffset";
+
 function buildFigureArgs(id: string, slot: FigureSlot, transform: string): string {
-  const parts = [`-id=${id}`];
-  if (slot.basePosition === "left") {
+  const parts: string[] = [];
+  const trimmedId = id.trim();
+  if (trimmedId) {
+    parts.push(`-id=${trimmedId}`);
+  }
+  else if (slot.basePosition === "left") {
     parts.push("-left");
   }
   else if (slot.basePosition === "right") {
@@ -383,6 +402,7 @@ export class RealtimeRenderer {
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
   private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
   private pendingImageFigureClearSet = new Set<number>(); // roomId -> 下一条消息前需要清除的图片立绘
+  private lastFigureSlotIdMap = new Map<number, string>(); // roomId -> 最近一次显示的立绘槽位 id
   // 自动跳转已永久关闭，避免新增消息打断当前预览位置
   private readonly autoJumpEnabled = false;
 
@@ -1178,7 +1198,6 @@ export class RealtimeRenderer {
       alpha: avatar?.spriteTransparency ?? 1,
       rotation: rotationRad,
     };
-
     return `-transform=${JSON.stringify(transform)}`;
   }
 
@@ -1431,6 +1450,13 @@ export class RealtimeRenderer {
     // 清理上一条图片消息的临时立绘（在下一条消息开始前）
     await this.clearPendingImageFigure(targetRoomId, syncToFile);
 
+    const shouldClearBackground = hasClearBackgroundAnnotation(msg.annotations);
+    const isBackgroundImageMessage = msg.messageType === MESSAGE_TYPE.IMG
+      && isImageMessageBackground(msg.annotations, msg.extra?.imageMessage);
+    if (shouldClearBackground && !isBackgroundImageMessage) {
+      await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
+    }
+
     // 处理背景图片消息
     if (msg.messageType === 2) {
       const imageMessage = msg.extra?.imageMessage;
@@ -1665,7 +1691,10 @@ export class RealtimeRenderer {
       for (const line of buildClearFigureLines({ includeLegacy: true, includeImage: true })) {
         await this.appendLine(targetRoomId, line, syncToFile);
       }
+      this.lastFigureSlotIdMap.delete(targetRoomId);
     }
+
+    const annotationEffect = getEffectFromAnnotations(msg.annotations);
 
     const messageAvatarId = msg.avatarId ?? 0;
     const roleAvatarId = Number(role?.avatarId ?? 0);
@@ -1702,7 +1731,7 @@ export class RealtimeRenderer {
     // autoFigureEnabled 为 true 时，没有设置立绘位置的消息会默认显示在左边
     // autoFigureEnabled 为 false（默认）时，没有设置立绘位置的消息不显示立绘
     const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
-    // 只有 left/left-center/center/right-center/right 才是有效的立绘位置
+    // 只有 left/center/right 才是有效的立绘位置
     const isValidPosition = isFigurePosition(rawFigurePosition);
     const figurePosition = diceShowFigure === false
       ? undefined
@@ -1734,6 +1763,7 @@ export class RealtimeRenderer {
       //   await this.appendLine(targetRoomId, "changeFigure:none -right -next;", syncToFile);
       // }
       const figureSlot = resolveFigureSlot(figurePosition);
+      this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
       const transform = this.buildFigureTransformString(avatar, figureSlot.offsetX, 0);
       const figureArgs = buildFigureArgs(figureSlot.id, figureSlot, transform);
       await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
@@ -1742,18 +1772,45 @@ export class RealtimeRenderer {
       if (figureAnimation) {
         const animTarget = figureSlot.id; // 根据立绘位置自动推断目标
 
-        // 设置进出场动画（setTransition）
+        // 进出场动画改为一次性播放（setAnimation）
         if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
-          const enterPart = figureAnimation.enterAnimation ? ` -enter=${figureAnimation.enterAnimation}` : "";
-          const exitPart = figureAnimation.exitAnimation ? ` -exit=${figureAnimation.exitAnimation}` : "";
-          await this.appendLine(targetRoomId, `setTransition: -target=${animTarget}${enterPart}${exitPart};`, syncToFile);
+          const animationName = figureAnimation.enterAnimation ?? figureAnimation.exitAnimation;
+          if (animationName) {
+            await this.appendLine(
+              targetRoomId,
+            `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART} -next;`,
+              syncToFile,
+            );
+          }
         }
 
         // 执行一次性动画（setAnimation）
         if (figureAnimation.animation) {
-          await this.appendLine(targetRoomId, `setAnimation:${figureAnimation.animation} -target=${animTarget} -next;`, syncToFile);
+          await this.appendLine(
+            targetRoomId,
+            `setAnimation:${figureAnimation.animation} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART} -next;`,
+            syncToFile,
+          );
         }
       }
+    }
+    if (annotationEffect) {
+      const effectDuration = getEffectDurationMs(annotationEffect);
+      const durationPart = effectDuration ? ` -duration=${effectDuration}` : "";
+      const targetSlotId = figurePosition
+        ? resolveFigureSlot(figurePosition).id
+        : this.lastFigureSlotIdMap.get(targetRoomId);
+      const targetPart = targetSlotId ? ` -target=${targetSlotId}` : "";
+      const slotOffsetX = targetSlotId ? resolveSlotOffsetById(targetSlotId) : null;
+      const screenX = slotOffsetX !== null ? EFFECT_SCREEN_WIDTH / 2 + slotOffsetX : null;
+      const offsetPart = targetSlotId
+        ? ` -offsetX=${EFFECT_OFFSET_X} -screenY=${EFFECT_SCREEN_Y}${screenX !== null ? ` -screenX=${screenX}` : ""}`
+        : "";
+      await this.appendLine(
+        targetRoomId,
+        `pixiPerform:${annotationEffect}${targetPart}${offsetPart} -once${durationPart} -next;`,
+        syncToFile,
+      );
     }
     else if (isIntroText) {
       // 黑屏文字不再自动清除立绘，立绘需要手动清除
