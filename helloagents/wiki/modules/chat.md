@@ -112,7 +112,7 @@ KP 在角色选择面板可选择房间内所有角色（含其他玩家角色�
 - 若发言人映射为“骰娘（系统）”，发送时会解析实际骰娘角色并按 `DICE(6)` 类型发送（`extra.result=content`）
 - 导入/发送会在运行时为相关角色解析 `avatarId`：优先使用 `curAvatarIdMap`（用户选择），否则回退 `role.avatarId`，再回退头像列表“默认”标签/首个头像（不强制持久化）
 - 消息头像渲染：当 `avatarId<=0` 且无法找到可用头像时，不再回退到 `/favicon.ico`（显示为空占位）
-- 立绘位置：可为每个发言人选择左/中/右位置，导入发送时写入 `message.annotations`（`figure.pos.left/center/right`）
+- 立绘位置：可为每个发言人选择左/左中/中/右中/右位置，导入发送时写入 `message.annotations`（`figure.pos.left/left-center/center/right-center/right`）
 - 若当前房间无可用角色（非KP），导入弹窗提供“创建/导入角色”快捷入口
 - 导入弹窗 UI：双栏布局与单层容器，避免双层滚动，缺失角色高亮与快捷引导
 

@@ -745,7 +745,6 @@ export function getOrCreateSpaceWorkspaceRuntime(workspaceId: string): SpaceWork
 export function getOrCreateSpaceDocStore(params: {
   workspaceId: string;
   docId: string;
-  readonly?: boolean;
 }): Store {
   const ws = getOrCreateSpaceWorkspaceRuntime(params.workspaceId);
   const doc = ws.getDoc(params.docId) ?? ws.createDoc(params.docId);
@@ -757,12 +756,12 @@ export function getOrCreateSpaceDocStore(params: {
 
   // doc.load(initFn) only runs initFn once. If the doc is already loaded in this
   // session, we still want to backfill missing props for edgeless rendering.
-  const writableStore = doc.getStore();
-  ensureAffineMinimumBlockData(writableStore);
+  const store = doc.getStore();
+  ensureAffineMinimumBlockData(store);
 
   // Best-effort: sync title into meta so linked-doc can fuzzy-match by title.
-  const tcTitle = tryReadTcHeaderTitle(writableStore);
-  const title = tcTitle ?? tryReadNativeDocTitle(writableStore);
+  const tcTitle = tryReadTcHeaderTitle(store);
+  const title = tcTitle ?? tryReadNativeDocTitle(store);
   if (title) {
     const meta = ws.meta.getDocMeta(params.docId);
     if (!meta) {
@@ -774,8 +773,5 @@ export function getOrCreateSpaceDocStore(params: {
       }
     }
   }
-  if (params.readonly) {
-    return doc.getStore({ readonly: true });
-  }
-  return writableStore;
+  return store;
 }

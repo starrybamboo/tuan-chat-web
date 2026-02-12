@@ -9,9 +9,8 @@ import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
 
 interface ChatPagePanelsProps {
-  layoutProps: Omit<ComponentProps<typeof ChatPageLayout>, "mainContent" | "sidePanelContent" | "spaceSidebar" | "subWindowContent">;
+  layoutProps: Omit<ComponentProps<typeof ChatPageLayout>, "mainContent" | "sidePanelContent" | "spaceSidebar">;
   mainContent: React.ReactNode;
-  subWindowContent?: React.ReactNode;
   sidePanelProps: ComponentProps<typeof ChatPageSidePanelContent>;
   spaceSidebarProps: ComponentProps<typeof ChatSpaceSidebar>;
 }
@@ -19,7 +18,6 @@ interface ChatPagePanelsProps {
 export function ChatPagePanels({
   layoutProps,
   mainContent,
-  subWindowContent,
   sidePanelProps,
   spaceSidebarProps,
 }: ChatPagePanelsProps) {
@@ -29,7 +27,6 @@ export function ChatPagePanels({
       spaceSidebar={<ChatSpaceSidebar {...spaceSidebarProps} />}
       sidePanelContent={<ChatPageSidePanelContent {...sidePanelProps} />}
       mainContent={mainContent}
-      subWindowContent={subWindowContent}
     />
   );
 }

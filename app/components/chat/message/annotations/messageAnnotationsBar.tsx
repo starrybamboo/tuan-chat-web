@@ -52,8 +52,6 @@ export default function MessageAnnotationsBar({
         const Icon = def?.icon;
         const showLabel = !def?.hideLabel;
         const isFigure = def?.category === "立绘";
-        const isAction = def?.category === "动作";
-        const isFigureLike = isFigure || isAction;
         const isImage = def?.category === "图片";
         const isEffect = def?.category === "特效" && Boolean(def?.iconUrl);
         return (
@@ -61,7 +59,7 @@ export default function MessageAnnotationsBar({
             key={id}
             type="button"
             className={
-              isFigureLike
+              isFigure
                 ? `inline-flex items-center justify-center w-10 h-9 rounded-md border transition-colors ${getFigureToneClass(def)}`
                 : isImage
                   ? "inline-flex items-center gap-1 rounded-full border border-base-300 bg-transparent px-2 py-0.5 text-xs text-base-content/70 transition-colors hover:border-base-400"
@@ -73,7 +71,7 @@ export default function MessageAnnotationsBar({
             title={label}
           >
             {Icon && (
-              <Icon className={isFigureLike ? "w-5 h-5" : "w-3.5 h-3.5"} aria-hidden="true" />
+              <Icon className={isFigure ? "w-5 h-5" : "w-3.5 h-3.5"} aria-hidden="true" />
             )}
             {!Icon && def?.iconUrl && (
               <img src={def.iconUrl} alt="" className={isEffect ? "w-6 h-6 object-contain" : "w-3.5 h-3.5 rounded-sm"} />

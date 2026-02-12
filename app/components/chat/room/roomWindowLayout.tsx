@@ -22,7 +22,6 @@ interface RoomWindowLayoutProps {
   composerPanelProps: RoomComposerPanelProps;
   hideComposer?: boolean;
   onExportPremiere?: () => void;
-  hideSecondaryPanels?: boolean;
 }
 
 export default function RoomWindowLayout({
@@ -36,7 +35,6 @@ export default function RoomWindowLayout({
   composerPanelProps,
   hideComposer = false,
   onExportPremiere,
-  hideSecondaryPanels = false,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
@@ -80,11 +78,11 @@ export default function RoomWindowLayout({
               {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
             </div>
 
-            {!hideSecondaryPanels && <RoomSideDrawers />}
+            <RoomSideDrawers />
           </div>
         </div>
 
-        {!hideSecondaryPanels && <SubRoomWindow />}
+        <SubRoomWindow />
       </div>
     </div>
   );

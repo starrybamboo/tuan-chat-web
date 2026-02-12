@@ -27,7 +27,6 @@ import { BranchIcon, ChatBubbleEllipsesOutline, CommentOutline, Edit2Outline, Em
 import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
-  getEffectDurationMs,
   hasAnnotation,
   normalizeAnnotations,
   setAnnotation,
@@ -50,6 +49,7 @@ interface CommandRequestPayload {
 
 const EMPTY_ANNOTATIONS: string[] = [];
 const EFFECT_PREVIEW_DURATION_MS = 2000;
+const EFFECT_FRAME_DURATION_MS = 50;
 
 function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection, onEditWebgalChoose }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
@@ -78,7 +78,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     for (const id of annotations) {
       const def = annotationMap.get(id);
       if (def?.category === "特效" && def.iconUrl) {
-        const duration = getEffectDurationMs(id) ?? EFFECT_PREVIEW_DURATION_MS;
+        const duration = def.effectFrames
+          ? Math.max(1, def.effectFrames) * EFFECT_FRAME_DURATION_MS
+          : EFFECT_PREVIEW_DURATION_MS;
         return { iconUrl: def.iconUrl, durationMs: duration };
       }
     }

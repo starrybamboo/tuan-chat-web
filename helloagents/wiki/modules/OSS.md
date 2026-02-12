@@ -72,10 +72,10 @@
   - **本地打包资源（优先）：** 通过 `@ffmpeg/core?url` 与 `@ffmpeg/core/wasm?url` 由 Vite 输出到同源静态资源（避免公共 CDN 不可达导致失败）
   - `cdn.jsdelivr.net`（`@ffmpeg/core@0.12.9/dist/umd`）
   - `unpkg.com`（`@ffmpeg/core@0.12.9/dist/umd`）
-- **可配置：** 通过 `VITE_FFMPEG_CORE_BASE_URL` 指向你自己的静态资源/CDN（建议在国内网络环境配置）；支持逗号/分号/空格分隔多个地址，按顺序尝试；并且仍会保留默认公共 CDN 作为 fallback
+- **可配置：** 通过 `VITE_FFMPEG_CORE_BASE_URL` 指向你自己的静态资源/CDN（建议在国内网络环境配置）；设置后默认**跳过本地打包 core**
 - **可配置（core）：** `VITE_FFMPEG_CORE_SKIP_BUNDLED=true` 可强制跳过本地打包 core（即使未配置 `VITE_FFMPEG_CORE_BASE_URL`）
-- **可配置（wrapper）：** 通过 `VITE_FFMPEG_WRAPPER_URL` 指向 `@ffmpeg/ffmpeg` 的 ESM 入口（如 CDN 镜像的 `dist/esm/index.js`）；可用逗号/分号/空格分隔多个地址，按顺序尝试
-- **可配置（wrapper）：** `VITE_FFMPEG_WRAPPER_STRICT=true` 时，wrapper 全部失败会直接报错，不回退到本地打包版本
+- **可配置（wrapper）：** 通过 `VITE_FFMPEG_WRAPPER_URL` 指向 `@ffmpeg/ffmpeg` 的 ESM 入口（如 CDN 镜像的 `dist/esm/index.js`）；该路径需要能相对加载 `dist/esm/worker.js`
+- **可配置（wrapper）：** `VITE_FFMPEG_WRAPPER_STRICT=true` 时，wrapper 失败会直接报错，不回退到本地打包版本
 - **内置超时：**
   - FFmpeg 初始化/核心下载与加载：默认 `45s`
   - FFmpeg 转码执行：默认 `120s`（上传侧会按 `maxDuration` 动态计算，上限 `240s`）

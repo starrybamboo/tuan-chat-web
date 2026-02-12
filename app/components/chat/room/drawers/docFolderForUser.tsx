@@ -27,26 +27,15 @@ interface DocFolderDocNode {
   targetId: number;
 }
 
-interface DocFolderDocRefNode {
-  nodeId: string;
-  type: "doc_ref";
-  refDocId: string;
-  refSpaceId?: number;
-  refTitle?: string;
-  refImageUrl?: string;
-}
-
-type DocFolderNode = DocFolderDocNode | DocFolderDocRefNode;
-
 interface DocFolderCategoryNode {
   categoryId: string;
   name: string;
   collapsed?: boolean;
-  items: DocFolderNode[];
+  items: DocFolderDocNode[];
 }
 
 interface DocFolderTree {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1;
   categories: DocFolderCategoryNode[];
 }
 
@@ -56,7 +45,7 @@ function generateCategoryId(): string {
 
 function buildDefaultTree(): DocFolderTree {
   return {
-    schemaVersion: 2,
+    schemaVersion: 1,
     categories: [
       {
         categoryId: "cat:docs",
@@ -71,35 +60,6 @@ function buildDocNode(docId: number): DocFolderDocNode {
   return { nodeId: `doc:${docId}`, type: "doc", targetId: docId };
 }
 
-function generateRefNodeId(): string {
-  return `ref:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function buildDocRefNode(params: {
-  docId: string;
-  spaceId?: number;
-  title?: string;
-  imageUrl?: string;
-  nodeId?: string;
-}): DocFolderDocRefNode {
-  const docId = params.docId.trim();
-  const nodeId = (params.nodeId ?? "").trim() || generateRefNodeId();
-  const title = (params.title ?? "").trim();
-  const imageUrl = (params.imageUrl ?? "").trim();
-  const spaceId = (typeof params.spaceId === "number" && Number.isFinite(params.spaceId) && params.spaceId > 0)
-    ? params.spaceId
-    : undefined;
-
-  return {
-    nodeId,
-    type: "doc_ref",
-    refDocId: docId,
-    ...(spaceId ? { refSpaceId: spaceId } : {}),
-    ...(title ? { refTitle: title } : {}),
-    ...(imageUrl ? { refImageUrl: imageUrl } : {}),
-  };
-}
-
 function normalizeDocId(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v) && v > 0)
     return v;
@@ -109,11 +69,6 @@ function normalizeDocId(v: unknown): number | null {
       return n;
   }
   return null;
-}
-
-function normalizeDocRefId(v: unknown): string | null {
-  const id = typeof v === "string" ? v.trim() : "";
-  return id ? id : null;
 }
 
 function tryParseTree(treeJson: string | null | undefined): DocFolderTree | null {
@@ -132,41 +87,20 @@ function tryParseTree(treeJson: string | null | undefined): DocFolderTree | null
       const categoryId = typeof c.categoryId === "string" && c.categoryId.trim().length > 0 ? c.categoryId : generateCategoryId();
       const name = typeof c.name === "string" && c.name.trim().length > 0 ? c.name.trim() : "未命名";
       const collapsed = Boolean(c.collapsed);
-      const items: DocFolderNode[] = [];
+      const items: DocFolderDocNode[] = [];
       for (const it of (Array.isArray(c.items) ? c.items : [])) {
-        if (!it || !it.type)
+        if (!it || it.type !== "doc")
           continue;
-        if (it.type === "doc") {
-          const docId = normalizeDocId(it.targetId);
-          if (!docId)
-            continue;
-          items.push(buildDocNode(docId));
+        const docId = normalizeDocId(it.targetId);
+        if (!docId)
           continue;
-        }
-        if (it.type === "doc_ref") {
-          const refDocId = normalizeDocRefId(it.refDocId ?? it.docId);
-          if (!refDocId)
-            continue;
-          const refSpaceIdRaw = it.refSpaceId ?? it.spaceId;
-          const refSpaceId = (typeof refSpaceIdRaw === "number" && Number.isFinite(refSpaceIdRaw) && refSpaceIdRaw > 0)
-            ? refSpaceIdRaw
-            : undefined;
-          const refTitle = typeof it.refTitle === "string" ? it.refTitle : (typeof it.title === "string" ? it.title : "");
-          const refImageUrl = typeof it.refImageUrl === "string" ? it.refImageUrl : (typeof it.imageUrl === "string" ? it.imageUrl : "");
-          items.push(buildDocRefNode({
-            nodeId: typeof it.nodeId === "string" ? it.nodeId : undefined,
-            docId: refDocId,
-            spaceId: refSpaceId,
-            title: refTitle,
-            imageUrl: refImageUrl,
-          }));
-        }
+        items.push(buildDocNode(docId));
       }
       categories.push({ categoryId, name, collapsed, items });
     }
 
     return {
-      schemaVersion: 2,
+      schemaVersion: 1,
       categories,
     };
   }
@@ -203,40 +137,19 @@ function normalizeTree(params: {
     const name = typeof c.name === "string" && c.name.trim().length > 0 ? c.name.trim() : "未命名";
     const collapsed = Boolean(c.collapsed);
 
-    const items: DocFolderNode[] = [];
+    const items: DocFolderDocNode[] = [];
     for (const n of c.items ?? []) {
-      if (!n || !n.type)
+      if (!n || n.type !== "doc")
         continue;
-      if (n.type === "doc") {
-        const docId = normalizeDocId((n as DocFolderDocNode).targetId);
-        if (!docId || !docIdSet.has(docId))
-          continue;
-        const nodeId = `doc:${docId}`;
-        if (usedNodeIds.has(nodeId))
-          continue;
-        usedNodeIds.add(nodeId);
-        usedDocIds.add(docId);
-        items.push(buildDocNode(docId));
+      const docId = normalizeDocId(n.targetId);
+      if (!docId || !docIdSet.has(docId))
         continue;
-      }
-      if (n.type === "doc_ref") {
-        const refNode = n as DocFolderDocRefNode;
-        const refDocId = normalizeDocRefId(refNode.refDocId);
-        if (!refDocId)
-          continue;
-        let nodeId = typeof refNode.nodeId === "string" ? refNode.nodeId.trim() : "";
-        if (!nodeId || usedNodeIds.has(nodeId)) {
-          nodeId = generateRefNodeId();
-        }
-        usedNodeIds.add(nodeId);
-        items.push(buildDocRefNode({
-          nodeId,
-          docId: refDocId,
-          spaceId: refNode.refSpaceId,
-          title: refNode.refTitle,
-          imageUrl: refNode.refImageUrl,
-        }));
-      }
+      const nodeId = `doc:${docId}`;
+      if (usedNodeIds.has(nodeId))
+        continue;
+      usedNodeIds.add(nodeId);
+      usedDocIds.add(docId);
+      items.push(buildDocNode(docId));
     }
     categories.push({ categoryId, name, collapsed, items });
   }
@@ -254,7 +167,7 @@ function normalizeTree(params: {
     };
   }
 
-  return { schemaVersion: 2, categories };
+  return { schemaVersion: 1, categories };
 }
 
 function isSameDocFolderTree(a: DocFolderTree | null, b: DocFolderTree | null): boolean {
@@ -288,24 +201,8 @@ function isSameDocFolderTree(a: DocFolderTree | null, b: DocFolderTree | null): 
       const bi = bItems[j];
       if (!ai || !bi)
         return false;
-      if (ai.nodeId !== bi.nodeId || ai.type !== bi.type)
+      if (ai.nodeId !== bi.nodeId || ai.type !== bi.type || ai.targetId !== bi.targetId)
         return false;
-      if (ai.type === "doc") {
-        if ((ai as DocFolderDocNode).targetId !== (bi as DocFolderDocNode).targetId)
-          return false;
-      }
-      else if (ai.type === "doc_ref") {
-        const aRef = ai as DocFolderDocRefNode;
-        const bRef = bi as DocFolderDocRefNode;
-        if (aRef.refDocId !== bRef.refDocId)
-          return false;
-        if ((aRef.refSpaceId ?? null) !== (bRef.refSpaceId ?? null))
-          return false;
-        if ((aRef.refTitle ?? "") !== (bRef.refTitle ?? ""))
-          return false;
-        if ((aRef.refImageUrl ?? "") !== (bRef.refImageUrl ?? ""))
-          return false;
-      }
     }
   }
 
@@ -320,19 +217,6 @@ function formatDateTime(raw: string | null | undefined): string {
     return raw;
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function findNodeLocation(tree: DocFolderTree, nodeId: string | null | undefined) {
-  const target = (nodeId ?? "").trim();
-  if (!target)
-    return null;
-  for (const cat of tree.categories) {
-    const idx = cat.items.findIndex(n => n?.nodeId === target);
-    if (idx >= 0) {
-      return { node: cat.items[idx], categoryId: cat.categoryId, index: idx };
-    }
-  }
-  return null;
 }
 
 export default function DocFolderForUser() {
@@ -451,11 +335,7 @@ export default function DocFolderForUser() {
   }, [setTreeMutation, spaceId, treeQuery]);
 
   const [docCopyDropCategoryId, setDocCopyDropCategoryId] = useState<string | null>(null);
-  const [openNodeId, setOpenNodeId] = useState<string | null>(null);
-  const [openNodeCategoryId, setOpenNodeCategoryId] = useState<string | null>(null);
-  const openNodeLocation = useMemo(() => findNodeLocation(tree, openNodeId), [openNodeId, tree]);
-  const openNode = openNodeLocation?.node ?? null;
-  const openDocId = openNode?.type === "doc" ? openNode.targetId : null;
+  const [openDocId, setOpenDocId] = useState<number | null>(null);
 
   const handleDropDocRefToCategory = useCallback(async (params: {
     categoryId: string;
@@ -466,11 +346,28 @@ export default function DocFolderForUser() {
       return;
     }
     if (params.docRef.spaceId && params.docRef.spaceId !== spaceId) {
-      toast.error("不允许跨空间引用文档");
+      toast.error("不允许跨空间复制文档");
       return;
     }
     if (!parseDescriptionDocId(params.docRef.docId)) {
-      toast.error("仅支持引用空间文档（描述文档/我的文档）");
+      toast.error("仅支持复制空间文档（描述文档/我的文档）");
+      return;
+    }
+
+    const toastId = toast.loading("正在复制到我的文档…");
+    let newDocEntityId = -1;
+    try {
+      const res = await copyDocToSpaceUserDoc({
+        spaceId,
+        sourceDocId: params.docRef.docId,
+        title: params.docRef.title,
+        imageUrl: params.docRef.imageUrl,
+      });
+      newDocEntityId = res.newDocEntityId;
+    }
+    catch (err) {
+      console.error("[DocFolderForUser] drop copy failed", err);
+      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
       return;
     }
 
@@ -478,34 +375,20 @@ export default function DocFolderForUser() {
     const nextTree = JSON.parse(JSON.stringify(baseTree)) as DocFolderTree;
     const cat = nextTree.categories.find(c => c.categoryId === params.categoryId) ?? nextTree.categories[0];
     if (!cat) {
-      toast.error("文件夹不存在");
+      toast.error("文件夹不存在", { id: toastId });
       return;
     }
     cat.items = Array.isArray(cat.items) ? cat.items : [];
-    const existingRef = cat.items.find((n) => {
-      return n.type === "doc_ref" && (n as DocFolderDocRefNode).refDocId === params.docRef.docId;
-    }) as DocFolderDocRefNode | undefined;
-    if (existingRef) {
-      setOpenNodeId(existingRef.nodeId);
-      setOpenNodeCategoryId(cat.categoryId);
-      toast.success("已存在引用");
-      return;
+    if (!cat.items.some(n => n.targetId === newDocEntityId)) {
+      cat.items.push(buildDocNode(newDocEntityId));
     }
 
-    const newNode = buildDocRefNode({
-      docId: params.docRef.docId,
-      spaceId: params.docRef.spaceId,
-      title: params.docRef.title,
-      imageUrl: params.docRef.imageUrl,
-    });
-    cat.items.push(newNode);
-
     setTree(nextTree);
-    setOpenNodeId(newNode.nodeId);
-    setOpenNodeCategoryId(cat.categoryId);
+    setOpenDocId(newDocEntityId);
+    void docsQuery.refetch();
     await persistTree(nextTree);
-    toast.success("已添加文档引用");
-  }, [persistTree, spaceId]);
+    toast.success("已复制到我的文档", { id: toastId });
+  }, [docsQuery, persistTree, spaceId]);
 
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -516,35 +399,13 @@ export default function DocFolderForUser() {
 
   const openDocMeta = openDocId != null ? docById.get(openDocId) : null;
   const openDocBlocksuiteId = useMemo(() => {
-    if (!openNode)
+    if (openDocId == null)
       return null;
-    if (openNode.type === "doc") {
-      return buildDescriptionDocId({ entityType: "space_user_doc", entityId: openNode.targetId, docType: "description" });
-    }
-    if (openNode.type === "doc_ref") {
-      return openNode.refDocId;
-    }
-    return null;
-  }, [openNode]);
-  const openDocTitle = useMemo(() => {
-    if (!openNode)
-      return "";
-    if (openNode.type === "doc") {
-      return (openDocMeta?.title ?? "").trim() || `文档 #${openNode.targetId}`;
-    }
-    const title = (openNode.refTitle ?? "").trim();
-    return title || `引用文档 ${openNode.refDocId}`;
-  }, [openDocMeta?.title, openNode]);
-  const openDocImageUrl = useMemo(() => {
-    if (!openNode || openNode.type !== "doc_ref")
-      return "";
-    return (openNode.refImageUrl ?? "").trim();
-  }, [openNode]);
-  const openIsRef = openNode?.type === "doc_ref";
+    return buildDescriptionDocId({ entityType: "space_user_doc", entityId: openDocId, docType: "description" });
+  }, [openDocId]);
 
   const editorRenameTimerRef = useRef<number | null>(null);
   const editorLatestTitleRef = useRef<string>("");
-  const [isForkingRef, setIsForkingRef] = useState(false);
 
   const scheduleRenameFromEditor = useCallback((docId: number, title: string) => {
     if (typeof window === "undefined")
@@ -577,64 +438,6 @@ export default function DocFolderForUser() {
       }
     };
   }, []);
-
-  const handleForkFromReference = useCallback(async () => {
-    if (!openNode || openNode.type !== "doc_ref")
-      return;
-    if (!spaceId || spaceId <= 0) {
-      toast.error("未选择空间");
-      return;
-    }
-    if (openNode.refSpaceId && openNode.refSpaceId !== spaceId) {
-      toast.error("不允许跨空间复制文档");
-      return;
-    }
-    if (!parseDescriptionDocId(openNode.refDocId)) {
-      toast.error("仅支持复制空间文档（描述文档/我的文档）");
-      return;
-    }
-
-    setIsForkingRef(true);
-    const toastId = toast.loading("正在复制并进入编辑…");
-    try {
-      const res = await copyDocToSpaceUserDoc({
-        spaceId,
-        sourceDocId: openNode.refDocId,
-        title: openNode.refTitle,
-        imageUrl: openNode.refImageUrl,
-      });
-
-      const baseTree = treeRef.current ?? buildDefaultTree();
-      const nextTree = JSON.parse(JSON.stringify(baseTree)) as DocFolderTree;
-      const location = findNodeLocation(nextTree, openNode.nodeId);
-      const targetCategoryId = openNodeCategoryId ?? location?.categoryId ?? nextTree.categories[0]?.categoryId ?? "cat:docs";
-      const cat = nextTree.categories.find(c => c.categoryId === targetCategoryId) ?? nextTree.categories[0];
-      if (!cat) {
-        toast.error("文件夹不存在", { id: toastId });
-        return;
-      }
-      cat.items = Array.isArray(cat.items) ? cat.items : [];
-      const newNode = buildDocNode(res.newDocEntityId);
-      if (!cat.items.some(n => n.type === "doc" && (n as DocFolderDocNode).targetId === res.newDocEntityId)) {
-        const insertIndex = location?.categoryId === cat.categoryId ? location.index + 1 : cat.items.length;
-        cat.items.splice(insertIndex, 0, newNode);
-      }
-
-      setTree(nextTree);
-      setOpenNodeId(newNode.nodeId);
-      setOpenNodeCategoryId(cat.categoryId);
-      void docsQuery.refetch();
-      await persistTree(nextTree);
-      toast.success("已复制并进入编辑", { id: toastId });
-    }
-    catch (err) {
-      console.error("[DocFolderForUser] fork ref failed", err);
-      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
-    }
-    finally {
-      setIsForkingRef(false);
-    }
-  }, [docsQuery, openNode, openNodeCategoryId, persistTree, spaceId]);
 
   const createFolder = async () => {
     const name = newFolderName.trim();
@@ -688,8 +491,7 @@ export default function DocFolderForUser() {
       const nextTree: DocFolderTree = { ...tree, categories: nextCategories };
 
       setTree(nextTree);
-      setOpenNodeId(`doc:${docId}`);
-      setOpenNodeCategoryId(categoryId ?? nextTree.categories[0]?.categoryId ?? "cat:docs");
+      setOpenDocId(docId);
       setCreateDocOpen(false);
       setNewDocTitle("");
       await persistTree(nextTree);
@@ -703,47 +505,17 @@ export default function DocFolderForUser() {
     }
   };
 
-  const [deleteDocConfirm, setDeleteDocConfirm] = useState<{
-    type: "doc";
-    targetId: number;
-  } | {
-    type: "ref";
-    nodeId: string;
-    title: string;
-  } | null>(null);
-  const requestDeleteDoc = (node: DocFolderNode, fallbackTitle: string) => {
-    if (node.type === "doc") {
-      setDeleteDocConfirm({ type: "doc", targetId: node.targetId });
-      return;
-    }
-    setDeleteDocConfirm({ type: "ref", nodeId: node.nodeId, title: fallbackTitle });
+  const [deleteDocConfirmId, setDeleteDocConfirmId] = useState<number | null>(null);
+  const requestDeleteDoc = (docId: number) => {
+    setDeleteDocConfirmId(docId);
   };
   const confirmDeleteDoc = async () => {
     if (!spaceId || spaceId <= 0)
       return;
-    if (!deleteDocConfirm)
+    if (deleteDocConfirmId == null)
       return;
 
-    if (deleteDocConfirm.type === "ref") {
-      const nextTree: DocFolderTree = {
-        ...tree,
-        categories: tree.categories.map(c => ({
-          ...c,
-          items: c.items.filter(n => n.nodeId !== deleteDocConfirm.nodeId),
-        })),
-      };
-      setTree(nextTree);
-      setDeleteDocConfirm(null);
-      if (openNodeId === deleteDocConfirm.nodeId) {
-        setOpenNodeId(null);
-        setOpenNodeCategoryId(null);
-      }
-      await persistTree(nextTree);
-      toast.success("已移除引用");
-      return;
-    }
-
-    const docId = deleteDocConfirm.targetId;
+    const docId = deleteDocConfirmId;
     try {
       const res = await deleteDocMutation.mutateAsync({ spaceId, docId });
       if (res?.success === false) {
@@ -753,17 +525,10 @@ export default function DocFolderForUser() {
 
       const nextTree: DocFolderTree = {
         ...tree,
-        categories: tree.categories.map(c => ({
-          ...c,
-          items: c.items.filter(n => n.type !== "doc" || (n as DocFolderDocNode).targetId !== docId),
-        })),
+        categories: tree.categories.map(c => ({ ...c, items: c.items.filter(n => n.targetId !== docId) })),
       };
       setTree(nextTree);
-      setDeleteDocConfirm(null);
-      if (openDocId === docId) {
-        setOpenNodeId(null);
-        setOpenNodeCategoryId(null);
-      }
+      setDeleteDocConfirmId(null);
       await persistTree(nextTree);
       docsQuery.refetch();
       toast.success("已删除");
@@ -1005,24 +770,11 @@ export default function DocFolderForUser() {
                                 )
                               : (
                                   cat.items.map((node) => {
-                                    const isRef = node.type === "doc_ref";
-                                    const meta = !isRef ? docById.get((node as DocFolderDocNode).targetId) : null;
-                                    const rawTitle = isRef
-                                      ? ((node as DocFolderDocRefNode).refTitle ?? "")
-                                      : (meta?.title ?? "");
-                                    const title = rawTitle.trim() || (isRef ? "引用文档" : `文档 #${(node as DocFolderDocNode).targetId}`);
-                                    const updateTime = !isRef ? formatDateTime(meta?.updateTime) : "";
-                                    const isActive = openNodeId === node.nodeId;
-                                    const tooltip = updateTime
-                                      ? `${title}（更新于 ${updateTime}）`
-                                      : (isRef ? `引用：${title}` : title);
-                                    const dragDocId = isRef
-                                      ? (node as DocFolderDocRefNode).refDocId
-                                      : buildDescriptionDocId({ entityType: "space_user_doc", entityId: (node as DocFolderDocNode).targetId, docType: "description" });
-                                    const dragImageUrl = isRef ? (node as DocFolderDocRefNode).refImageUrl : "";
-                                    const dragSpaceId = isRef
-                                      ? ((node as DocFolderDocRefNode).refSpaceId ?? spaceId)
-                                      : spaceId;
+                                    const meta = docById.get(node.targetId);
+                                    const title = (meta?.title ?? "").trim() || `文档 #${node.targetId}`;
+                                    const updateTime = formatDateTime(meta?.updateTime);
+                                    const isActive = openDocId === node.targetId;
+                                    const tooltip = updateTime ? `${title}（更新于 ${updateTime}）` : title;
 
                                     return (
                                       <div
@@ -1034,33 +786,26 @@ export default function DocFolderForUser() {
                                         title={tooltip}
                                         draggable
                                         onDragStart={(e) => {
-                                          e.dataTransfer.effectAllowed = "copyLink";
+                                          const blocksuiteId = buildDescriptionDocId({ entityType: "space_user_doc", entityId: node.targetId, docType: "description" });
+                                          e.dataTransfer.effectAllowed = "copy";
                                           setDocRefDragData(e.dataTransfer, {
-                                            docId: dragDocId,
-                                            ...(dragSpaceId && dragSpaceId > 0 ? { spaceId: dragSpaceId } : {}),
+                                            docId: blocksuiteId,
+                                            ...(spaceId > 0 ? { spaceId } : {}),
                                             ...(title ? { title } : {}),
-                                            ...(dragImageUrl ? { imageUrl: dragImageUrl } : {}),
                                           });
                                         }}
-                                        onClick={() => {
-                                          setOpenNodeId(node.nodeId);
-                                          setOpenNodeCategoryId(cat.categoryId);
-                                        }}
+                                        onClick={() => setOpenDocId(node.targetId)}
                                         onKeyDown={(e) => {
                                           if (e.key === "Enter" || e.key === " ") {
                                             e.preventDefault();
-                                            setOpenNodeId(node.nodeId);
-                                            setOpenNodeCategoryId(cat.categoryId);
+                                            setOpenDocId(node.targetId);
                                           }
                                         }}
                                       >
                                         <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center">
                                           <FileTextIcon className="size-4 opacity-70" />
                                         </div>
-                                        <span className="flex-1 min-w-0 truncate text-left">
-                                          {title}
-                                          {isRef ? <span className="badge badge-xs badge-ghost ml-2">引用</span> : null}
-                                        </span>
+                                        <span className="flex-1 min-w-0 truncate text-left">{title}</span>
 
                                         <div
                                           className="absolute right-1 top-1/2 z-50 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100"
@@ -1078,7 +823,7 @@ export default function DocFolderForUser() {
                                               <DotsThreeVerticalIcon className="size-4" />
                                             </button>
                                             <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-44">
-                                              <li><a onClick={() => requestDeleteDoc(node, title)}>删除</a></li>
+                                              <li><a onClick={() => requestDeleteDoc(node.targetId)}>删除</a></li>
                                             </ul>
                                           </div>
                                         </div>
@@ -1174,40 +919,24 @@ export default function DocFolderForUser() {
         </div>
       </ToastWindow>
 
-      <ToastWindow isOpen={deleteDocConfirm != null} onClose={() => setDeleteDocConfirm(null)}>
+      <ToastWindow isOpen={deleteDocConfirmId != null} onClose={() => setDeleteDocConfirmId(null)}>
         <div className="w-[min(520px,92vw)] p-6">
-          <div className="text-sm font-medium opacity-80 mb-3">
-            {deleteDocConfirm?.type === "ref" ? "移除引用" : "删除文档"}
-          </div>
+          <div className="text-sm font-medium opacity-80 mb-3">删除文档</div>
           <div className="text-sm opacity-70">
-            {(deleteDocConfirm && deleteDocConfirm.type === "ref")
-              ? (
-                  <>
-                    将移除引用：
-                    {" "}
-                    {deleteDocConfirm.title}
-                  </>
-                )
-              : (
-                  <>
-                    将删除：
-                    {" "}
-                    {(deleteDocConfirm && deleteDocConfirm.type === "doc")
-                      ? (docById.get(deleteDocConfirm.targetId)?.title ?? `文档 #${deleteDocConfirm.targetId}`)
-                      : ""}
-                  </>
-                )}
+            将删除：
+            {" "}
+            {deleteDocConfirmId != null ? (docById.get(deleteDocConfirmId)?.title ?? `文档 #${deleteDocConfirmId}`) : ""}
           </div>
-          {deleteDocConfirm?.type === "doc" ? <div className="text-xs opacity-60 mt-2">提示：仅软删除，可用于恢复/审计。</div> : null}
+          <div className="text-xs opacity-60 mt-2">提示：仅软删除，可用于恢复/审计。</div>
           <div className="flex justify-end gap-2 mt-4">
-            <button type="button" className="btn btn-ghost" onClick={() => setDeleteDocConfirm(null)}>取消</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setDeleteDocConfirmId(null)}>取消</button>
             <button
               type="button"
               className="btn btn-error"
-              disabled={deleteDocMutation.isPending || isForkingRef}
+              disabled={deleteDocMutation.isPending}
               onClick={() => void confirmDeleteDoc()}
             >
-              {deleteDocConfirm?.type === "ref" ? "移除" : "删除"}
+              删除
             </button>
           </div>
         </div>
@@ -1234,42 +963,15 @@ export default function DocFolderForUser() {
       </ToastWindow>
 
       <ToastWindow
-        isOpen={openNode != null && openDocBlocksuiteId != null}
-        onClose={() => {
-          setOpenNodeId(null);
-          setOpenNodeCategoryId(null);
-        }}
+        isOpen={openDocId != null && openDocBlocksuiteId != null}
+        onClose={() => setOpenDocId(null)}
       >
         <div className="w-[min(1200px,96vw)] h-[min(86vh,900px)] bg-base-100 rounded-lg overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-2 py-1 border-b border-base-300 bg-base-100">
             <div className="text-sm opacity-80 truncate px-2">
-              {openDocTitle}
-              {openIsRef ? <span className="badge badge-xs badge-ghost ml-2">引用</span> : null}
+              {openDocMeta?.title ?? `文档 #${openDocId ?? ""}`}
             </div>
-            <div className="flex items-center gap-2">
-              {openIsRef
-                ? (
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      disabled={isForkingRef}
-                      onClick={() => void handleForkFromReference()}
-                    >
-                      复制并编辑
-                    </button>
-                  )
-                : null}
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => {
-                  setOpenNodeId(null);
-                  setOpenNodeCategoryId(null);
-                }}
-              >
-                关闭
-              </button>
-            </div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpenDocId(null)}>关闭</button>
           </div>
 
           <div className="flex-1 min-h-0 overflow-hidden p-2">
@@ -1280,20 +982,17 @@ export default function DocFolderForUser() {
                   spaceId={spaceId}
                   docId={openDocBlocksuiteId}
                   variant="full"
-                  readOnly={openIsRef}
-                  tcHeader={{ enabled: true, fallbackTitle: openDocTitle, fallbackImageUrl: openDocImageUrl }}
+                  tcHeader={{ enabled: true, fallbackTitle: openDocMeta?.title ?? `文档 #${openDocId ?? ""}` }}
                   allowModeSwitch
                   fullscreenEdgeless
-                  onTcHeaderChange={openIsRef
-                    ? undefined
-                    : (payload: { header: BlocksuiteDocHeader }) => {
-                        if (openDocId == null)
-                          return;
-                        const nextTitle = (payload.header?.title ?? "").trim();
-                        if (!nextTitle)
-                          return;
-                        scheduleRenameFromEditor(openDocId, nextTitle);
-                      }}
+                  onTcHeaderChange={(payload: { header: BlocksuiteDocHeader }) => {
+                    if (openDocId == null)
+                      return;
+                    const nextTitle = (payload.header?.title ?? "").trim();
+                    if (!nextTitle)
+                      return;
+                    scheduleRenameFromEditor(openDocId, nextTitle);
+                  }}
                 />
               </div>
             )}

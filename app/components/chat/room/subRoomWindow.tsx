@@ -12,7 +12,7 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { BranchIcon, WebgalIcon } from "@/icons";
+import { BranchIcon, WebgalIcon, XMarkICon } from "@/icons";
 
 type SubPane = "map" | "initiative" | "webgal" | "thread" | "doc";
 
@@ -178,6 +178,98 @@ function SubRoomWindowImpl() {
               <span className="text-center font-semibold line-clamp-1 truncate min-w-0 text-sm sm:text-base">
                 {title}
               </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "thread" ? "text-primary" : "hover:text-info"}`}
+                data-tip="子区"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="子区"
+                  onClick={() => {
+                    setActivePane("thread");
+                    setSideDrawerState("thread");
+                  }}
+                >
+                  <BranchIcon className="size-5" />
+                </button>
+              </div>
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "doc" ? "text-primary" : "hover:text-info"}`}
+                data-tip="文档"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="文档"
+                  onClick={() => {
+                    setActivePane("doc");
+                    setSideDrawerState("doc");
+                  }}
+                >
+                  <FileTextIcon className="size-5" />
+                </button>
+              </div>
+
+              <div className="h-5 w-[2px] bg-base-content/35 mx-1 rounded-full" aria-hidden />
+
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "map" ? "text-primary" : "hover:text-info"}`}
+                data-tip="地图"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="地图"
+                  onClick={() => {
+                    setActivePane("map");
+                    setSideDrawerState("map");
+                  }}
+                >
+                  <CheckerboardIcon className="size-5" />
+                </button>
+              </div>
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "initiative" ? "text-primary" : "hover:text-info"}`}
+                data-tip="先攻"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="先攻栏"
+                  onClick={() => setActivePane("initiative")}
+                >
+                  <SwordIcon className="size-5" />
+                </button>
+              </div>
+              <div
+                className={`tooltip tooltip-bottom ${activePane === "webgal" ? "text-primary" : "hover:text-info"}`}
+                data-tip="WebGAL"
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 p-0"
+                  aria-label="WebGAL 预览"
+                  onClick={() => {
+                    setActivePane("webgal");
+                    setSideDrawerState("webgal");
+                  }}
+                >
+                  <WebgalIcon className="size-5" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7"
+                aria-label="关闭"
+                title="关闭"
+                onClick={close}
+              >
+                <XMarkICon className="size-5" />
+              </button>
             </div>
           </div>
         </div>

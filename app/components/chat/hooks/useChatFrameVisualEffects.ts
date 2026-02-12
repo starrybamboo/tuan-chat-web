@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { hasClearBackgroundAnnotation, isImageMessageBackground } from "@/types/messageAnnotations";
+import { isImageMessageBackground } from "@/types/messageAnnotations";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -62,31 +62,6 @@ export default function useChatFrameVisualEffects({
       .filter(item => item.effectMessage && item.effectMessage.effectName && item.status !== 1);
   }, [enableEffects, historyMessages]);
 
-  const clearBackgroundNode = useMemo(() => {
-    if (!enableEffects) {
-      return [];
-    }
-    return historyMessages
-      .map((msg, index) => ({
-        index,
-        status: msg.message.status,
-        effectName: msg.message.extra?.effectMessage?.effectName,
-        annotations: msg.message.annotations,
-        imageMessage: msg.message.extra?.imageMessage,
-      }))
-      .filter((item) => {
-        if (item.status === 1) {
-          return false;
-        }
-        if (item.effectName === "clearBackground") {
-          return true;
-        }
-        return hasClearBackgroundAnnotation(item.annotations)
-          && !isImageMessageBackground(item.annotations, item.imageMessage);
-      })
-      .map(item => item.index);
-  }, [enableEffects, historyMessages]);
-
   useEffect(() => {
     onBackgroundUrlChange?.(enableEffects ? currentBackgroundUrl : null);
   }, [currentBackgroundUrl, enableEffects, onBackgroundUrlChange]);
@@ -106,12 +81,9 @@ export default function useChatFrameVisualEffects({
 
     // 找到最后一个清除背景的位置
     let lastClearIndex = -1;
-    for (const index of clearBackgroundNode) {
-      if (index <= currentMessageIndex) {
-        lastClearIndex = index;
-      }
-      else {
-        break;
+    for (const effect of effectNode) {
+      if (effect.index <= currentMessageIndex && effect.effectMessage?.effectName === "clearBackground") {
+        lastClearIndex = effect.index;
       }
     }
 
@@ -129,7 +101,7 @@ export default function useChatFrameVisualEffects({
       const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
       return () => clearTimeout(id);
     }
-  }, [enableEffects, currentVirtuosoIndex, imgNode, clearBackgroundNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+  }, [enableEffects, currentVirtuosoIndex, imgNode, effectNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
   useEffect(() => {
     if (!enableEffects) {
