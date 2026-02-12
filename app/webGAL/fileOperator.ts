@@ -122,8 +122,10 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   const newFileName = fileName || url.substring(url.lastIndexOf("/") + 1);
 
   // 对音频统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
-  const shouldTranscodeAudioByName = isLikelyAudioFileName(newFileName);
-  let targetFileName = shouldTranscodeAudioByName ? replaceFileExtension(newFileName, "opus") : newFileName;
+  // const shouldTranscodeAudioByName = isLikelyAudioFileName(newFileName);
+  // let targetFileName = shouldTranscodeAudioByName ? replaceFileExtension(newFileName, "opus") : newFileName;
+  // 暂时禁用强制转码 Opus，使用原文件格式（如 wav）
+  let targetFileName = newFileName;
 
   let safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
     encodeURIComponent(char).replace(/%/g, ""));
@@ -136,9 +138,11 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
     throw new Error(`Failed to fetch file: ${response.statusText}`);
   const data = await response.blob();
 
-  const isAudioByResponse = typeof data.type === "string" && data.type.startsWith("audio/");
-  const shouldTranscodeAudio = shouldTranscodeAudioByName || isAudioByResponse;
+  // const isAudioByResponse = typeof data.type === "string" && data.type.startsWith("audio/");
+  // const shouldTranscodeAudio = shouldTranscodeAudioByName || isAudioByResponse;
+  const shouldTranscodeAudio = false;
 
+  /*
   if (shouldTranscodeAudio && !shouldTranscodeAudioByName) {
     targetFileName = replaceFileExtension(newFileName, "opus");
     safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
@@ -147,6 +151,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
     if (await checkFileExist(path, safeFileName))
       return safeFileName;
   }
+  */
 
   const file = shouldTranscodeAudio
     ? await transcodeAudioBlobToOpusOrThrow(data, safeFileName)
