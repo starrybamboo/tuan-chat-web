@@ -1,6 +1,13 @@
 import type { ComponentType, SVGProps } from "react";
 
 import {
+  ActionBigShakeIcon,
+  ActionDownIcon,
+  ActionFallLeftIcon,
+  ActionFallRightIcon,
+  ActionJumpIcon,
+  ActionJumpTwiceIcon,
+  ActionShakeIcon,
   EnterFromLeftIcon,
   EnterFromRightIcon,
   ExitToLeftIcon,
@@ -65,13 +72,16 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "effect.13", label: "特效13", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171558.webp", hideLabel: true, effectFrames: 20 },
   { id: "effect.14", label: "特效14", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171627.webp", hideLabel: true, effectFrames: 26 },
 
-  { id: "dialog.notend", label: "不暂停", category: "文本", tone: "neutral", source: "builtin" },
-  { id: "dialog.concat", label: "续接", category: "文本", tone: "neutral", source: "builtin" },
-  { id: "dialog.next", label: "立即下一句", category: "文本", tone: "neutral", source: "builtin" },
-
   { id: "figure.anim.ba-exit-to-left", label: "从左退场", category: "立绘", tone: "accent", source: "builtin", icon: ExitToLeftIcon, hideLabel: true },
   { id: "figure.anim.ba-enter-from-left", label: "从左入场", category: "立绘", tone: "accent", source: "builtin", icon: EnterFromLeftIcon, hideLabel: true },
   { id: "figure.anim.enter", label: "淡入", category: "立绘", tone: "accent", source: "builtin", icon: FadeInIcon, hideLabel: true },
+  { id: "figure.anim.ba-down", label: "下落", category: "动作", tone: "accent", source: "builtin", icon: ActionDownIcon, hideLabel: true },
+  { id: "figure.anim.ba-left-falldown", label: "左倒", category: "动作", tone: "accent", source: "builtin", icon: ActionFallLeftIcon, hideLabel: true },
+  { id: "figure.anim.ba-right-falldown", label: "右倒", category: "动作", tone: "accent", source: "builtin", icon: ActionFallRightIcon, hideLabel: true },
+  { id: "figure.anim.ba-jump-twice", label: "二连跳", category: "动作", tone: "accent", source: "builtin", icon: ActionJumpTwiceIcon, hideLabel: true },
+  { id: "figure.anim.ba-jump", label: "跳跃", category: "动作", tone: "accent", source: "builtin", icon: ActionJumpIcon, hideLabel: true },
+  { id: "figure.anim.ba-shake", label: "摇晃", category: "动作", tone: "accent", source: "builtin", icon: ActionShakeIcon, hideLabel: true },
+  { id: "figure.anim.ba-bigshake", label: "大摇晃", category: "动作", tone: "accent", source: "builtin", icon: ActionBigShakeIcon, hideLabel: true },
   { id: "figure.pos.left", label: "左", category: "立绘", tone: "accent", source: "builtin" },
   { id: "figure.pos.left-center", label: "左中", category: "立绘", tone: "accent", source: "builtin" },
   { id: "figure.pos.center", label: "中", category: "立绘", tone: "accent", source: "builtin" },
@@ -80,7 +90,11 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "figure.anim.exit", label: "淡出", category: "立绘", tone: "accent", source: "builtin", icon: FadeOutIcon, hideLabel: true },
   { id: "figure.anim.ba-enter-from-right", label: "从右入场", category: "立绘", tone: "accent", source: "builtin", icon: EnterFromRightIcon, hideLabel: true },
   { id: "figure.anim.ba-exit-to-right", label: "从右退场", category: "立绘", tone: "accent", source: "builtin", icon: ExitToRightIcon, hideLabel: true },
-  { id: "figure.clear", label: "清除之前立绘", category: "控制", tone: "warning", source: "builtin" },
+  { id: "dialog.notend", label: "不暂停", category: "控制", tone: "neutral", source: "builtin" },
+  { id: "dialog.concat", label: "续接", category: "控制", tone: "neutral", source: "builtin" },
+  { id: "dialog.next", label: "立即下一句", category: "控制", tone: "neutral", source: "builtin" },
+  { id: "background.clear", label: "清除背景", category: "控制", tone: "warning", source: "builtin" },
+  { id: "figure.clear", label: "清除立绘", category: "控制", tone: "warning", source: "builtin" },
 ];
 
 const CUSTOM_STORAGE_KEY = "tc:message-annotations:custom";

@@ -12,15 +12,18 @@ import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
  * 角色的详情界面
  * @param roleId
  * @param allowKickOut 是否允许被踢出，仓库角色是不可以的
+ * @param kickOutByManagerOnly 是否仅房主可踢出
  */
 export function RoleDetail({
   roleId,
   allowKickOut = true,
+  kickOutByManagerOnly = false,
   showAbilities = true,
   onClose,
 }: {
   roleId: number;
   allowKickOut?: boolean;
+  kickOutByManagerOnly?: boolean;
   showAbilities?: boolean;
   onClose?: () => void;
 }) {
@@ -47,7 +50,7 @@ export function RoleDetail({
   const [isKickConfirmOpen, setIsKickConfirmOpen] = useState(false);
 
   const handleRemoveRole = async () => {
-    if (!roomId || !role?.roleId)
+    if (!roomId || roleId <= 0)
       return;
     deleteRoleMutation.mutate(
       { roomId, roleIdList: [roleId] },
@@ -60,10 +63,11 @@ export function RoleDetail({
     );
   };
 
-  const canKick
-    = allowKickOut
-      && (isManager() || userRole.data?.data?.find(r => r.roleId === roleId))
-      && roomId;
+  const canKick = allowKickOut
+    && roomId
+    && (kickOutByManagerOnly
+      ? isManager()
+      : (isManager() || userRole.data?.data?.find(r => r.roleId === roleId)));
 
   return (
     <div className="bg-base-100 flex flex-col gap-4 w-full">

@@ -7,7 +7,7 @@ import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
-import toastWindow from "@/components/common/toastWindow/toastWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { AddRingLight, ExpandCornersIcon, EyedropperIcon, IdentificationCardIcon, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -35,6 +35,7 @@ export function ExpressionChooser({
   const [isAvatarFullscreen, setIsAvatarFullscreen] = useState(Boolean(defaultFullscreen));
   const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
+  const [manageRoleId, setManageRoleId] = useState<number | null>(null);
 
   useEffect(() => {
     setIsAvatarFullscreen(Boolean(defaultFullscreen));
@@ -73,6 +74,10 @@ export function ExpressionChooser({
   const availableRoles = (isKP || !currentUserId)
     ? roomContext.roomRolesThatUserOwn
     : roomContext.roomRolesThatUserOwn.filter(role => role.userId === currentUserId);
+  const manageRole = useMemo(
+    () => availableRoles.find(role => role.roleId === manageRoleId),
+    [availableRoles, manageRoleId],
+  );
 
   // 判断当前是否为旁白模式
   const isNarratorMode = selectedRoleId <= 0;
@@ -199,16 +204,7 @@ export function ExpressionChooser({
                   className="btn btn-ghost btn-xs shrink-0"
                   onClick={(event) => {
                     event.stopPropagation();
-                    toastWindow(close => (
-                      <div className="justify-center w-full">
-                        <RoleDetailPagePopup
-                          roleId={role.roleId}
-                          onClose={close}
-                        />
-                      </div>
-                    ), {
-                      fullScreen: getScreenSize() === "sm",
-                    });
+                    setManageRoleId(role.roleId);
                   }}
                   aria-label={`查看角色详情：${role.roleName}`}
                   title="查看角色详情"
@@ -231,6 +227,23 @@ export function ExpressionChooser({
           }
         </div>
       </div>
+
+      <ToastWindow
+        isOpen={manageRoleId !== null}
+        onClose={() => setManageRoleId(null)}
+        fullScreen={getScreenSize() === "sm"}
+      >
+        {manageRoleId !== null && (
+          <div className="justify-center w-full">
+            <RoleDetailPagePopup
+              roleId={manageRoleId}
+              allowKickOut={true}
+              kickOutByManagerOnly={Boolean(manageRole?.type === 2)}
+              onClose={() => setManageRoleId(null)}
+            />
+          </div>
+        )}
+      </ToastWindow>
 
       {/* 右侧：表情列表 */}
       <div className={rightPanelClassName}>

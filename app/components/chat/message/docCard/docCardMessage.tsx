@@ -161,7 +161,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               ? payload.spaceId
               : (typeof currentSpaceId === "number" && currentSpaceId > 0 ? currentSpaceId : undefined);
 
-            e.dataTransfer.effectAllowed = "copy";
+            e.dataTransfer.effectAllowed = "copyLink";
             try {
               e.dataTransfer.setData("text/plain", `tc-doc-ref:${payload.docId}`);
             }

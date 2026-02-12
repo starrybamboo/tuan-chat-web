@@ -48,11 +48,13 @@ function RoomWindow({
   spaceId,
   targetMessageId,
   viewMode = false,
+  hideSecondaryPanels = false,
 }: {
   roomId: number;
   spaceId: number;
   targetMessageId?: number | null;
   viewMode?: boolean;
+  hideSecondaryPanels?: boolean;
 }) {
   const spaceContext = use(SpaceContext);
 
@@ -512,6 +514,7 @@ function RoomWindow({
           composerPanelProps={composerPanelProps}
           hideComposer={viewMode}
           onExportPremiere={handleExportPremiere}
+          hideSecondaryPanels={hideSecondaryPanels}
         />
       </RoomDocRefDropLayer>
       {!viewMode && (

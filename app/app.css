@@ -18,7 +18,7 @@
 }
 @plugin "daisyui/theme" {
   name: "light";
-  default: true;
+  default: false;
   prefersdark: false;
   color-scheme: "light";
   --radius-selector: 0.5rem;
@@ -33,7 +33,7 @@
 
 @plugin "daisyui/theme" {
   name: "dark";
-  default: false;
+  default: true;
   prefersdark: true;
   color-scheme: "dark";
   --radius-selector: 0.5rem;

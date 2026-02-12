@@ -2,10 +2,46 @@ import type { FigureAnimationSettings, FigurePosition } from "@/types/voiceRende
 
 type FigurePositionKey = Exclude<FigurePosition, undefined>;
 
+const EFFECT_ANNOTATION_PREFIX = "effect.";
+const EFFECT_FRAME_DURATION_MS = 50;
+const EFFECT_DURATION_MS_BY_ID: Record<string, number> = {
+  "effect.1": 1968,
+  "effect.2": 2448,
+  "effect.3": 1872,
+  "effect.4": 2448,
+  "effect.5": 1968,
+  "effect.6": 2928,
+  "effect.7": 2448,
+  "effect.8": 1920,
+  "effect.9": 1920,
+  "effect.10": 1968,
+  "effect.11": 2448,
+  "effect.12": 1968,
+  "effect.13": 3408,
+  "effect.14": 1248,
+};
+const EFFECT_ANNOTATION_FRAMES: Record<string, number> = {
+  "effect.1": 36,
+  "effect.2": 22,
+  "effect.3": 26,
+  "effect.4": 42,
+  "effect.5": 33,
+  "effect.6": 54,
+  "effect.7": 47,
+  "effect.8": 33,
+  "effect.9": 34,
+  "effect.10": 38,
+  "effect.11": 26,
+  "effect.12": 35,
+  "effect.13": 20,
+  "effect.14": 26,
+};
+
 export const ANNOTATION_IDS = {
   BGM: "sys:bgm",
   SE: "sys:se",
   BACKGROUND: "sys:bg",
+  BACKGROUND_CLEAR: "background.clear",
   CG: "sys:cg",
   IMAGE_SHOW: "image.show",
   INTRO_HOLD: "intro.hold",
@@ -24,6 +60,13 @@ export const ANNOTATION_IDS = {
   FIGURE_ANIM_BA_ENTER_FROM_RIGHT: "figure.anim.ba-enter-from-right",
   FIGURE_ANIM_BA_EXIT_TO_LEFT: "figure.anim.ba-exit-to-left",
   FIGURE_ANIM_BA_EXIT_TO_RIGHT: "figure.anim.ba-exit-to-right",
+  FIGURE_ANIM_BA_DOWN: "figure.anim.ba-down",
+  FIGURE_ANIM_BA_LEFT_FALLDOWN: "figure.anim.ba-left-falldown",
+  FIGURE_ANIM_BA_RIGHT_FALLDOWN: "figure.anim.ba-right-falldown",
+  FIGURE_ANIM_BA_JUMP_TWICE: "figure.anim.ba-jump-twice",
+  FIGURE_ANIM_BA_JUMP: "figure.anim.ba-jump",
+  FIGURE_ANIM_BA_SHAKE: "figure.anim.ba-shake",
+  FIGURE_ANIM_BA_BIGSHAKE: "figure.anim.ba-bigshake",
 } as const;
 
 const FIGURE_POSITION_IDS: Record<FigurePositionKey, string> = {
@@ -45,12 +88,19 @@ const FIGURE_POSITION_BY_ID: Record<string, FigurePositionKey> = {
 const FIGURE_POSITION_ID_SET = new Set(Object.values(FIGURE_POSITION_IDS));
 
 const FIGURE_ANIMATION_MAP: Record<string, FigureAnimationSettings> = {
-  [ANNOTATION_IDS.FIGURE_ANIM_ENTER]: { animation: "position/enter" },
-  [ANNOTATION_IDS.FIGURE_ANIM_EXIT]: { animation: "position/exit" },
-  [ANNOTATION_IDS.FIGURE_ANIM_BA_ENTER_FROM_LEFT]: { animation: "position/ba-enter-from-left" },
-  [ANNOTATION_IDS.FIGURE_ANIM_BA_ENTER_FROM_RIGHT]: { animation: "position/ba-enter-from-right" },
-  [ANNOTATION_IDS.FIGURE_ANIM_BA_EXIT_TO_LEFT]: { animation: "position/ba-exit-to-left" },
-  [ANNOTATION_IDS.FIGURE_ANIM_BA_EXIT_TO_RIGHT]: { animation: "position/ba-exit-to-right" },
+  [ANNOTATION_IDS.FIGURE_ANIM_ENTER]: { enterAnimation: "position/enter" },
+  [ANNOTATION_IDS.FIGURE_ANIM_EXIT]: { exitAnimation: "position/exit" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_ENTER_FROM_LEFT]: { enterAnimation: "position/ba-enter-from-left" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_ENTER_FROM_RIGHT]: { enterAnimation: "position/ba-enter-from-right" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_EXIT_TO_LEFT]: { exitAnimation: "position/ba-exit-to-left" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_EXIT_TO_RIGHT]: { exitAnimation: "position/ba-exit-to-right" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_DOWN]: { animation: "action/BA-down" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_LEFT_FALLDOWN]: { animation: "action/BA-left-falldown" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_RIGHT_FALLDOWN]: { animation: "action/BA-right-falldown" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_JUMP_TWICE]: { animation: "action/BA-jump-twice" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_JUMP]: { animation: "action/BA-jump" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_SHAKE]: { animation: "action/BA-shake" },
+  [ANNOTATION_IDS.FIGURE_ANIM_BA_BIGSHAKE]: { animation: "action/BA-bigshake" },
 };
 
 const FIGURE_ANIMATION_ID_SET = new Set(Object.keys(FIGURE_ANIMATION_MAP));
@@ -133,6 +183,10 @@ export function hasClearFigureAnnotation(annotations: string[] | undefined) {
   return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.FIGURE_CLEAR);
 }
 
+export function hasClearBackgroundAnnotation(annotations: string[] | undefined) {
+  return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.BACKGROUND_CLEAR);
+}
+
 export function getFigurePositionFromAnnotations(annotations: string[] | undefined) {
   const list = normalizeAnnotations(annotations);
   for (let i = list.length - 1; i >= 0; i -= 1) {
@@ -143,6 +197,37 @@ export function getFigurePositionFromAnnotations(annotations: string[] | undefin
   }
   return undefined;
 }
+
+export function getEffectFromAnnotations(annotations: string[] | undefined) {
+  const list = normalizeAnnotations(annotations);
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const id = list[i];
+    if (id.startsWith(EFFECT_ANNOTATION_PREFIX)) {
+      return id;
+    }
+  }
+  return undefined;
+}
+
+export function getEffectFrameCount(effectId: string | undefined) {
+  if (!effectId)
+    return undefined;
+  return EFFECT_ANNOTATION_FRAMES[effectId];
+}
+
+export function getEffectDurationMs(effectId: string | undefined) {
+  if (!effectId)
+    return undefined;
+  const fixedDuration = EFFECT_DURATION_MS_BY_ID[effectId];
+  if (typeof fixedDuration === "number")
+    return fixedDuration;
+  const frames = getEffectFrameCount(effectId);
+  if (!frames)
+    return undefined;
+  return Math.max(1, frames) * EFFECT_FRAME_DURATION_MS;
+}
+
+export { EFFECT_FRAME_DURATION_MS };
 
 export function getFigureAnimationFromAnnotations(annotations: string[] | undefined): FigureAnimationSettings | undefined {
   const list = normalizeAnnotations(annotations);

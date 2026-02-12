@@ -6,10 +6,11 @@ export function getOrCreateWorkspace(workspaceId: string): Workspace {
   return getOrCreateSpaceWorkspaceRuntime(workspaceId);
 }
 
-export function getOrCreateDoc(params: { workspaceId: string; docId: string }): Store {
+export function getOrCreateDoc(params: { workspaceId: string; docId: string; readonly?: boolean }): Store {
   return getOrCreateSpaceDocStore({
     workspaceId: params.workspaceId,
     docId: params.docId,
+    readonly: params.readonly,
   });
 }
 
@@ -37,8 +38,8 @@ export function getOrCreateSpaceWorkspace(spaceId: number): Workspace {
   return getOrCreateWorkspace(`space:${spaceId}`);
 }
 
-export function getOrCreateSpaceDoc(params: { spaceId: number; docId: string }): Store {
-  return getOrCreateDoc({ workspaceId: `space:${params.spaceId}`, docId: params.docId });
+export function getOrCreateSpaceDoc(params: { spaceId: number; docId: string; readonly?: boolean }): Store {
+  return getOrCreateDoc({ workspaceId: `space:${params.spaceId}`, docId: params.docId, readonly: params.readonly });
 }
 
 export function ensureSpaceDocMeta(params: { spaceId: number; docId: string; title?: string }) {

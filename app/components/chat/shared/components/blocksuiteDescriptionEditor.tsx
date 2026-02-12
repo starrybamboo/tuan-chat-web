@@ -543,7 +543,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       // 3) Create store + editor after hydrate
       // Important: don't overwrite existing doc title.
       runtime.ensureDocMeta({ workspaceId, docId });
-      const store = runtime.getOrCreateDoc({ workspaceId, docId });
+      const store = runtime.getOrCreateDoc({ workspaceId, docId, readonly: readOnlyRef.current });
       createdStore = store;
 
       if (tcHeaderEnabled) {

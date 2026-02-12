@@ -70,24 +70,34 @@ async function terminateFfmpegAndResetSingleton(ffmpeg: import("@ffmpeg/ffmpeg")
 function getFfmpegCoreBaseUrlCandidates(): string[] {
   const env = import.meta.env as any;
   const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
-  if (fromEnv)
-    return [fromEnv.replace(/\/+$/, "")];
-  return DEFAULT_FFMPEG_CORE_BASE_URLS.map(u => u.replace(/\/+$/, ""));
+  const envCandidates = fromEnv
+    ? splitUrlCandidates(fromEnv).map(url => url.replace(/\/+$/, ""))
+    : [];
+  const defaultCandidates = DEFAULT_FFMPEG_CORE_BASE_URLS.map(url => url.replace(/\/+$/, ""));
+  return Array.from(new Set([...envCandidates, ...defaultCandidates]));
 }
 
 function shouldUseBundledFfmpegCore(): boolean {
   const env = import.meta.env as any;
-  const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
   const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
     ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
     : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
-  return !fromEnv && !skipBundled;
+  return !skipBundled;
 }
 
-function getFfmpegWrapperUrl(): string | null {
+function splitUrlCandidates(value: string): string[] {
+  return value
+    .split(/[\s,;]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function getFfmpegWrapperUrlCandidates(): string[] {
   const env = import.meta.env as any;
   const fromEnv = typeof env?.VITE_FFMPEG_WRAPPER_URL === "string" ? env.VITE_FFMPEG_WRAPPER_URL.trim() : "";
-  return fromEnv || null;
+  if (!fromEnv)
+    return [];
+  return splitUrlCandidates(fromEnv);
 }
 
 function isFfmpegWrapperStrict(): boolean {
@@ -98,23 +108,26 @@ function isFfmpegWrapperStrict(): boolean {
 }
 
 async function loadFfmpegModule(debugEnabled: boolean, debugPrefix: string): Promise<typeof import("@ffmpeg/ffmpeg")> {
-  const wrapperUrl = getFfmpegWrapperUrl();
+  const wrapperUrls = getFfmpegWrapperUrlCandidates();
   const strict = isFfmpegWrapperStrict();
-  if (wrapperUrl) {
-    try {
-      if (debugEnabled)
-        console.warn(`${debugPrefix} ffmpeg wrapper url`, wrapperUrl);
-      return await import(/* @vite-ignore */ wrapperUrl);
+  if (wrapperUrls.length > 0) {
+    const errors: string[] = [];
+    for (const wrapperUrl of wrapperUrls) {
+      try {
+        if (debugEnabled)
+          console.warn(`${debugPrefix} ffmpeg wrapper url`, wrapperUrl);
+        return await import(/* @vite-ignore */ wrapperUrl);
+      }
+      catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        errors.push(`${wrapperUrl}: ${msg}`);
+        if (debugEnabled)
+          console.warn(`${debugPrefix} ffmpeg wrapper url failed`, { wrapperUrl, msg });
+      }
     }
-    catch (e) {
-      if (strict) {
-        const msg = e instanceof Error ? e.message : String(e);
-        throw new Error(`FFmpeg wrapper 加载失败（严格模式，不回退）：${msg}`);
-      }
-      if (debugEnabled) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.warn(`${debugPrefix} ffmpeg wrapper url failed`, { wrapperUrl, msg });
-      }
+    if (strict) {
+      const detail = errors.length > 0 ? `\n${errors.join("\n")}` : "";
+      throw new Error(`FFmpeg wrapper 加载失败（严格模式，不回退）：${detail || "未知错误"}`);
     }
   }
   return await import("@ffmpeg/ffmpeg");
@@ -126,7 +139,7 @@ function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string): void 
   ffmpegDebugConfigLogged = true;
   const env = import.meta.env as any;
   const mode = typeof env?.MODE === "string" ? env.MODE : "unknown";
-  const wrapperUrl = getFfmpegWrapperUrl();
+  const wrapperUrls = getFfmpegWrapperUrlCandidates();
   const strict = isFfmpegWrapperStrict();
   const coreBase = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
   const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
@@ -134,7 +147,7 @@ function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string): void 
     : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
   console.warn(`${debugPrefix} ffmpeg config`, {
     mode,
-    wrapperUrl: wrapperUrl || "(empty)",
+    wrapperUrl: wrapperUrls.length > 0 ? wrapperUrls : "(empty)",
     wrapperStrict: strict,
     coreBaseUrl: coreBase || "(empty)",
     coreSkipBundled: skipBundled,
