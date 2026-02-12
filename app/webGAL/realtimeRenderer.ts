@@ -1684,7 +1684,7 @@ export class RealtimeRenderer {
       ? await this.getAndUploadSprite(effectiveAvatarId, roleId)
       : null;
 
-    console.error(msg.content, msg.webgal?.voiceRenderSettings);
+    // console.error(msg.content, msg.webgal?.voiceRenderSettings);
     // 获取 annotations 中的立绘位置
     const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
       emotionVector?: number[];

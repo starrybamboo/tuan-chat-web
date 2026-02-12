@@ -1,3 +1,5 @@
+import { createTTSApi } from "@/tts/engines/index/apiClient";
+import type { InferRequest } from "@/tts/engines/index/apiClient";
 import {
   ANNOTATION_IDS,
   getFigurePositionFromAnnotations,
@@ -19,6 +21,8 @@ export interface PremiereExportOptions {
   width?: number;
   /** Height (default 1080) */
   height?: number;
+  /** TTS API URL (Optional) */
+  ttsApiUrl?: string;
 }
 
 /**
@@ -59,9 +63,16 @@ interface TrackClip {
   };
 }
 
-export type AvatarFetchFn = (avatarId: number) => Promise<{ spriteUrl?: string; avatarUrl?: string } | undefined | null>;
+export type AvatarFetchFn = (avatarId: number) => Promise<{ 
+    spriteUrl?: string; 
+    avatarUrl?: string;
+    originUrl?: string; 
+    spriteScale?: number;
+} | undefined | null>;
 export type RoleNameFetchFn = (roleId?: number) => Promise<string | undefined | null>;
 export type UserNameFetchFn = (userId?: number) => Promise<string | undefined | null>;
+export type RoleRefVocalFetchFn = (roleId: number) => Promise<File | undefined>;
+export type RoleFetchFn = (roleId: number) => Promise<{ avatarId?: number } | undefined | null>;
 
 interface DialogEntry {
     id: number;
@@ -80,6 +91,13 @@ export class PremiereExporter {
   private fps: number = 30;
   private width: number = 1920;
   private height: number = 1080;
+  private ttsApiUrl?: string;
+  public generatedAudioAssets: Record<string, Uint8Array> = {};
+
+  public getResources() {
+      return this.resources;
+  }
+
   private resourceMap = new Map<string, string>(); // url -> id
   private clipIdCounter = 0;
   private dialogs: DialogEntry[] = [];
@@ -100,6 +118,52 @@ export class PremiereExporter {
     this.fps = options?.frameRate || 30;
     this.width = options?.width || 1920;
     this.height = options?.height || 1080;
+    this.ttsApiUrl = options?.ttsApiUrl;
+  }
+
+  // --- Helpers ---
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private async getAudioDuration(blob: Blob): Promise<number> {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        if (Number.isFinite(audio.duration)) {
+             resolve(audio.duration);
+        } else {
+             resolve(2.0);
+        }
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(2.0);
+      };
+      // 触发加载
+      audio.load();
+    });
+  }
+
+  private getImageDimensions(url: string): Promise<{ width: number; height: number }> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.width, height: img.height });
+      img.onerror = () => resolve({ width: this.width, height: this.height });
+      img.src = url;
+    });
   }
 
   // --- Resource Management ---
@@ -295,7 +359,14 @@ export class PremiereExporter {
 
   // --- Main Process Logic ---
 
-  public async processMessages(messages: ChatMessageResponse[], fetchAvatar?: AvatarFetchFn, fetchRoleName?: RoleNameFetchFn, fetchUserName?: UserNameFetchFn) {
+  public async processMessages(
+    messages: ChatMessageResponse[], 
+    fetchAvatar?: AvatarFetchFn, 
+    fetchRoleName?: RoleNameFetchFn, 
+    fetchUserName?: UserNameFetchFn,
+    fetchRoleRefVocal?: RoleRefVocalFetchFn,
+    fetchRole?: RoleFetchFn
+  ) {
     let currentTime = 0;
 
     // Active clips trackers
@@ -326,13 +397,81 @@ export class PremiereExporter {
         "right": "right", "right-center": "right"
     };
 
+    // Track for the single-track speaker mode (if desired by user logic implies)
+    // But standard VN keeps previous characters.
+    // The user said "Role track only needs one... i.e. the speaker".
+    // This implies we should CLEAR previous characters if they are not the current speaker?
+    // Let's implement this: Only the current speaker is shown.
+    
     for (const item of messages) {
       if (item.message.webgal?.['ignore']) continue;
 
       const msg = item.message;
-      const duration = this.estimateDuration(msg.content);
+      
+      let audioDuration: number | undefined;
+      let vocalFileId: string | undefined;
+
+      // Try Generate TTS
+      if (this.ttsApiUrl && msg.content && msg.roleId && msg.roleId > 0 && fetchRoleRefVocal) {
+          try {
+              const refAudioFile = await fetchRoleRefVocal(msg.roleId);
+              if (refAudioFile) {
+                 const refBase64 = await this.fileToBase64(refAudioFile);
+                 const api = createTTSApi(this.ttsApiUrl);
+                 
+                 const voiceSettings = msg.webgal?.voiceRenderSettings as { emotionVector?: number[] } | undefined;
+                 const ttsReq: InferRequest = {
+                      text: msg.content,
+                      prompt_audio_base64: refBase64,
+                      return_audio_base64: true,
+                      emo_mode: 2,
+                      emo_weight: 0.8,
+                      temperature: 0.8,
+                      top_p: 0.8,
+                      emo_vector: voiceSettings?.emotionVector
+                  };
+
+                  const res = await api.infer(ttsReq);
+                  if (res.code === 0 && res.data?.audio_base64) {
+                      const audioStr = atob(res.data.audio_base64);
+                      const len = audioStr.length;
+                      const bytes = new Uint8Array(len);
+                      for (let i = 0; i < len; i++) {
+                          bytes[i] = audioStr.charCodeAt(i);
+                      }
+                      
+                      const blob = new Blob([bytes], { type: 'audio/wav' });
+                      const dur = await this.getAudioDuration(blob);
+                      audioDuration = dur;
+
+                      const filename = `voice_${msg.messageId}.wav`;
+                      this.generatedAudioAssets[filename] = bytes;
+                      
+                      const fakeUrl = `internal://${filename}`;
+                      vocalFileId = this.addResource(fakeUrl, 'audio', filename);
+                      
+                      // Fixup resource name
+                      const r = this.resources.find(x => x.id === vocalFileId);
+                      if(r) r.name = filename;
+                  }
+              }
+          } catch (e) {
+              console.error(`[PremiereExporter] TTS Gen Failed for ${msg.messageId}`, e);
+          }
+      }
+
+      const duration = audioDuration ?? this.estimateDuration(msg.content);
       const startTime = currentTime;
       const endTime = currentTime + duration;
+
+      if (vocalFileId) {
+          this.tracks.voice.push({
+              id: this.getNextClipId(),
+              name: `Voice ${msg.messageId}`,
+              start: startTime, end: endTime, in: 0, out: duration,
+              fileId: vocalFileId, type: "audio"
+          });
+      }
 
       if (msg.content) {
         this.dialogs.push({
@@ -344,11 +483,18 @@ export class PremiereExporter {
       }
 
       // 1. Background
-      let bgUrl = msg.extra?.imageMessage?.url || (msg.webgal as any)?.bgUrl;
+      let bgUrl: string | undefined;
       const isBgAnnotation = isImageMessageBackground(msg.annotations, null);
-      if (!bgUrl && isBgAnnotation) {
-          const match = msg.content.match(/https?:\/\/[^\s)]+/);
-          if (match) bgUrl = match[0];
+      
+      // Strict Check: Only verify specifically tagged BGs or explicit WebGAL settings
+      if ((msg.webgal as any)?.bgUrl) {
+          bgUrl = (msg.webgal as any).bgUrl;
+      } else if (isBgAnnotation) {
+          bgUrl = msg.extra?.imageMessage?.url;
+          if (!bgUrl) {
+             const match = msg.content.match(/https?:\/\/[^\s)]+/);
+             if (match) bgUrl = match[0];
+          }
       }
 
       if (bgUrl) {
@@ -359,12 +505,25 @@ export class PremiereExporter {
              activeBgClip = null;
          }
          if (!activeBgClip) {
+             // Calculate scale to Contain (Fit inside 1920x1080 without overflow)
+             // User Request: "Fill screen" AND "No overflow".
+             // Since Basic Motion only supports uniform scale, we must choose Contain (Math.min) to avoid overflow.
+             // This fulfills "judging whether to fill width or height" (whichever hits the edge first).
+             let bgScale = 100;
+             try {
+                const dims = await this.getImageDimensions(bgUrl);
+                const scaleX = (this.width / dims.width) * 100;
+                const scaleY = (this.height / dims.height) * 100;
+                bgScale = Math.min(scaleX, scaleY);
+             } catch {}
+
              activeBgClip = {
                  id: this.getNextClipId(),
                  name: `BG ${msg.messageId}`,
                  start: startTime, end: endTime, in: 0, out: duration,
                  fileId, type: "video",
-                 position: POS.BG, scale: 100
+                 position: POS.BG, 
+                 scale: bgScale
              };
          } else {
              activeBgClip.end = endTime;
@@ -375,22 +534,102 @@ export class PremiereExporter {
 
       // 2. Figures
       let avatarUrl = (msg as any)._avatarUrl || (msg.webgal as any)?.avatarUrl;
-      // Also try to fetch if we have an ID but no URL yet
-      if (!avatarUrl && msg.avatarId && msg.avatarId > 0 && fetchAvatar) {
+      
+      // We need to resolve the effective avatar details to determine scaling
+      let isDefaultAvatar = true; // Assume default unless proven otherwise (safest default)
+      let effectiveAvatarId = msg.avatarId;
+
+      // Logic: If msg has ID, check if it equals role default.
+      if (msg.roleId && fetchRole) {
+          try {
+             // Fetch Role Default ID to compare
+             const roleInfo = await fetchRole(msg.roleId);
+             // Ensure type safety for comparison
+             const roleDefaultId = roleInfo?.avatarId ? Number(roleInfo.avatarId) : undefined;
+             
+             // If we have an explicit message avatar ID...
+             if (effectiveAvatarId && effectiveAvatarId > 0) {
+                 const msgAvatarId = Number(effectiveAvatarId);
+                 // If role has a default, comparsion determines status
+                 if (roleDefaultId) {
+                     if (msgAvatarId !== roleDefaultId) {
+                         // Explicit ID different from default -> Non-Default (Variant)
+                         isDefaultAvatar = false;
+                     } else {
+                         // ID Matches default -> Default
+                         isDefaultAvatar = true;
+                     }
+                 } else {
+                     // Role has NO default avatar set.
+                     // Message has explicit avatar.
+                     // User Intent: "Non-default" implies variants. 
+                     // If no default is set, technically any avatar could be considered a "setting".
+                     // But usually this means data issue. Safe fallback: Keep as Default (85) to avoid blowing up portraits.
+                     // Debug: console.warn(`Role ${msg.roleId} has no default avatarId. MsgAvatar ${msgAvatarId} treated as default.`);
+                     isDefaultAvatar = true; 
+                 }
+             } else {
+                 // No explicit ID in message -> Falls back to role default -> Is Default
+                 isDefaultAvatar = true;
+                 // Fill in the avatarId for resource mapping if needed
+                 if (roleDefaultId) effectiveAvatarId = roleDefaultId;
+             }
+          } catch (e) {
+              console.warn(`[PremiereExporter] Role fetch failed for ${msg.roleId}`, e);
+          }
+      }
+
+      let correctionScale = 1.0;
+
+      // Always try to fetch if we have an ID to get metadata (Scale) and URL
+      if (effectiveAvatarId && effectiveAvatarId > 0 && fetchAvatar) {
          try {
-             // Note: We await here, which makes loop async. Correct.
-             const info = await fetchAvatar(msg.avatarId);
-             if (info) avatarUrl = info.spriteUrl || info.avatarUrl;
+             const info = await fetchAvatar(effectiveAvatarId);
+             if (info) {
+                 if (!avatarUrl) {
+                     avatarUrl = info.originUrl || info.spriteUrl || info.avatarUrl;
+                 }
+                 if (typeof info.spriteScale === 'number') {
+                     correctionScale = info.spriteScale;
+                 }
+             }
          } catch {}
       }
 
       if (avatarUrl) {
           const rawPos = getFigurePositionFromAnnotations(msg.annotations) || "center";
           const trackKey = posToTrackMap[rawPos] || "center";
-          const fileId = this.addResource(avatarUrl, "image", `char_${msg.roleId}`);
+          
+          // Fix: Use messageId in resource name to ensure uniqueness if the user uses different sprites for the same role across messages.
+          // Or better: Use hash of url or just rely on addResource deduplication but give it a better hint.
+          // Actually addResource deduplicates by URL. If URL is different, it gets a new ID.
+          // The issue might be the nameHint being the same "char_{roleId}" might cause filename collisions on export script if not handled carefully?
+          // addResource uses nameHint to generate 'name'. 
+          // If multiple URLs map to the same name "char_11.png", they will overwrite each other on disk in the export folder!
+          // We need unique filenames for different sprites.
+          
+          // Let's use avatarId in the name hint if available
+          const avatarSuffix = effectiveAvatarId ? `_${effectiveAvatarId}` : `_msg${msg.messageId}`;
+          const fileId = this.addResource(avatarUrl, "image", `char_${msg.roleId}${avatarSuffix}`);
+          
+          // --- CHANGE START: Only keep the current speaker's figure ---
+          // Close other tracks (Left/Right/Center) that are NOT this one, because "only one person speaks"
+          for (const key of (Object.keys(activeFigureClips) as Array<keyof typeof activeFigureClips>)) {
+              if (key !== trackKey && activeFigureClips[key]) {
+                  const clip = activeFigureClips[key]!;
+                  clip.end = startTime;
+                  this.tracks.figures[key].push(clip);
+                  activeFigureClips[key] = null;
+              }
+          }
+          // --- CHANGE END ---
           
           let currentClip = activeFigureClips[trackKey];
           
+          // Scale Logic: Non-Default gets 1.5x boost
+          const baseScale = isDefaultAvatar ? 100 : 150;
+          const clipScale = baseScale * correctionScale;
+
           if (!currentClip || currentClip.fileId !== fileId) {
               if (currentClip) {
                   currentClip.end = startTime;
@@ -401,30 +640,21 @@ export class PremiereExporter {
                   name: `Fig ${msg.messageId}`,
                   start: startTime, end: endTime, in: 0, out: duration,
                   fileId, type: "video",
-                  scale: 85,
+                  scale: clipScale,
                   position: trackKey === 'left' ? POS.LEFT : (trackKey === 'right' ? POS.RIGHT : POS.CENTER)
               };
           } else {
               activeFigureClips[trackKey]!.end = endTime;
           }
       } else {
-          // Clear figures if annotation present
-          const isClear = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
-          if (isClear) {
-             // Use type assertion to iterate strict keys
-             for (const key of (Object.keys(activeFigureClips) as Array<keyof typeof activeFigureClips>)) {
+          // Clear figures - if no speaker (narrator), clear all figures as per "only speaker shown" rule
+          for (const key of (Object.keys(activeFigureClips) as Array<keyof typeof activeFigureClips>)) {
                  const clip = activeFigureClips[key];
                  if (clip) {
                      clip.end = startTime;
                      this.tracks.figures[key].push(clip);
                      activeFigureClips[key] = null;
                  }
-             }
-          } else {
-             // Extend existing
-             for (const key of (Object.keys(activeFigureClips) as Array<keyof typeof activeFigureClips>)) {
-                 if (activeFigureClips[key]) activeFigureClips[key]!.end = endTime;
-             }
           }
       }
 
@@ -479,7 +709,8 @@ export class PremiereExporter {
     let maxDuration = 0;
     const allClips = [
         ...this.tracks.background,
-        ...this.tracks.figures.left, ...this.tracks.figures.center, ...this.tracks.figures.right
+        ...this.tracks.figures.left, ...this.tracks.figures.center, ...this.tracks.figures.right,
+        ...this.tracks.voice
     ];
     if (allClips.length > 0) {
         maxDuration = Math.max(...allClips.map(c => c.end));
@@ -516,10 +747,8 @@ export class PremiereExporter {
       ${renderTrack(this.tracks.figures.right)}
     </video>
     <audio>
-      <track>
-        <enabled>TRUE</enabled>
-        <locked>FALSE</locked>
-      </track>
+      <!-- A1: Voice -->
+      ${renderTrack(this.tracks.voice)}
     </audio>
   </media>
 </sequence>
