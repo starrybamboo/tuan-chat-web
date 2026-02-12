@@ -21,6 +21,7 @@ interface RoomWindowLayoutProps {
   chatFrameProps: ChatFrameProps;
   composerPanelProps: RoomComposerPanelProps;
   hideComposer?: boolean;
+  hideSecondaryPanels?: boolean;
 }
 
 export default function RoomWindowLayout({
@@ -33,6 +34,7 @@ export default function RoomWindowLayout({
   chatFrameProps,
   composerPanelProps,
   hideComposer = false,
+  hideSecondaryPanels = false,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
@@ -75,11 +77,11 @@ export default function RoomWindowLayout({
               {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
             </div>
 
-            <RoomSideDrawers />
+            {!hideSecondaryPanels && <RoomSideDrawers />}
           </div>
         </div>
 
-        <SubRoomWindow />
+        {!hideSecondaryPanels && <SubRoomWindow />}
       </div>
     </div>
   );

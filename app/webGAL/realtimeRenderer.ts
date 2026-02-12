@@ -15,8 +15,8 @@ import {
   getEffectFromAnnotations,
   getFigureAnimationFromAnnotations,
   getFigurePositionFromAnnotations,
-  hasClearBackgroundAnnotation,
   hasAnnotation,
+  hasClearBackgroundAnnotation,
   isImageMessageBackground,
   isImageMessageShown,
 } from "@/types/messageAnnotations";
@@ -318,7 +318,8 @@ function resolveFigureSlot(position: FigurePositionKey): FigureSlot {
 
 function resolveSlotOffsetById(id: string): number | null {
   for (const slot of Object.values(FIGURE_SLOT_MAP)) {
-    if (slot.id === id) return slot.offsetX;
+    if (slot.id === id)
+      return slot.offsetX;
   }
   return null;
 }
@@ -372,6 +373,11 @@ type RendererContext = {
   text: string;
 };
 
+type RoomFigureRenderState = {
+  fileName: string;
+  transform: string;
+};
+
 type InitProgress = {
   phase: "idle" | "creating_game" | "uploading_sprites" | "uploading_backgrounds" | "creating_scenes" | "ready";
   current: number;
@@ -403,6 +409,7 @@ export class RealtimeRenderer {
   private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
   private pendingImageFigureClearSet = new Set<number>(); // roomId -> 下一条消息前需要清除的图片立绘
   private lastFigureSlotIdMap = new Map<number, string>(); // roomId -> 最近一次显示的立绘槽位 id
+  private renderedFigureStateMap = new Map<number, Map<string, RoomFigureRenderState>>(); // roomId -> slotId -> 最近一次下发的立绘状态
   // 自动跳转已永久关闭，避免新增消息打断当前预览位置
   private readonly autoJumpEnabled = false;
 
@@ -612,6 +619,7 @@ export class RealtimeRenderer {
       await getTerreApis().manageGameControllerEditTextFile({ path, textFile: initialContent });
       this.sceneContextMap.set(roomId, { lineNumber: initLines.length, text: initialContent });
       this.currentSpriteStateMap.set(roomId, new Set());
+      this.renderedFigureStateMap.set(roomId, new Map());
       console.warn(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
     }
     catch (error) {
@@ -1079,7 +1087,7 @@ export class RealtimeRenderer {
       ? customEmotionVector
       : (avatarTitle ? this.convertAvatarTitleToEmotionVector(avatarTitle) : []);
     const cacheKey = this.simpleHash(`tts_${text}_${refVocal.name}_${JSON.stringify(emotionVector)}`);
-    const fileName = `${cacheKey}.wav`;
+    const fileName = `${cacheKey}.webm`;
 
     // 检查内存缓存
     if (this.uploadedVocalsMap.has(cacheKey)) {
@@ -1270,6 +1278,16 @@ export class RealtimeRenderer {
       return;
     await this.appendLine(roomId, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`, syncToFile);
     this.pendingImageFigureClearSet.delete(roomId);
+  }
+
+  private getRenderedFigureState(roomId: number): Map<string, RoomFigureRenderState> {
+    const current = this.renderedFigureStateMap.get(roomId);
+    if (current) {
+      return current;
+    }
+    const next = new Map<string, RoomFigureRenderState>();
+    this.renderedFigureStateMap.set(roomId, next);
+    return next;
   }
 
   /**
@@ -1692,6 +1710,7 @@ export class RealtimeRenderer {
         await this.appendLine(targetRoomId, line, syncToFile);
       }
       this.lastFigureSlotIdMap.delete(targetRoomId);
+      this.renderedFigureStateMap.delete(targetRoomId);
     }
 
     const annotationEffect = getEffectFromAnnotations(msg.annotations);
@@ -1765,8 +1784,17 @@ export class RealtimeRenderer {
       const figureSlot = resolveFigureSlot(figurePosition);
       this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
       const transform = this.buildFigureTransformString(avatar, figureSlot.offsetX, 0);
-      const figureArgs = buildFigureArgs(figureSlot.id, figureSlot, transform);
-      await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
+      const renderedState = this.getRenderedFigureState(targetRoomId);
+      const previous = renderedState.get(figureSlot.id);
+      const shouldUpdateFigure
+        = !previous
+          || previous.fileName !== spriteFileName
+          || previous.transform !== transform;
+      if (shouldUpdateFigure) {
+        const figureArgs = buildFigureArgs(figureSlot.id, figureSlot, transform);
+        await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
+        renderedState.set(figureSlot.id, { fileName: spriteFileName, transform });
+      }
 
       // 处理立绘动画（在立绘显示后）
       if (figureAnimation) {
@@ -1778,7 +1806,7 @@ export class RealtimeRenderer {
           if (animationName) {
             await this.appendLine(
               targetRoomId,
-            `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART} -next;`,
+              `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART} -next;`,
               syncToFile,
             );
           }
@@ -2058,6 +2086,8 @@ export class RealtimeRenderer {
       await this.appendLine(targetRoomId, line, true);
     }
     this.pendingImageFigureClearSet.delete(targetRoomId);
+    this.renderedFigureStateMap.delete(targetRoomId);
+    this.lastFigureSlotIdMap.delete(targetRoomId);
     this.sendSyncMessage(targetRoomId);
   }
 
@@ -2074,6 +2104,7 @@ export class RealtimeRenderer {
       }
       await this.initRoomScene(roomId);
       this.currentSpriteStateMap.set(roomId, new Set());
+      this.renderedFigureStateMap.set(roomId, new Map());
       this.pendingImageFigureClearSet.delete(roomId);
       this.sendSyncMessage(roomId);
     }
@@ -2081,6 +2112,7 @@ export class RealtimeRenderer {
       // 重置所有房间
       await this.initScene();
       this.currentSpriteStateMap.clear();
+      this.renderedFigureStateMap.clear();
       this.messageLineMap.clear();
       this.pendingImageFigureClearSet.clear();
     }

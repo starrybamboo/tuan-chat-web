@@ -44,11 +44,13 @@ function RoomWindow({
   spaceId,
   targetMessageId,
   viewMode = false,
+  hideSecondaryPanels = false,
 }: {
   roomId: number;
   spaceId: number;
   targetMessageId?: number | null;
   viewMode?: boolean;
+  hideSecondaryPanels?: boolean;
 }) {
   const spaceContext = use(SpaceContext);
 
@@ -372,6 +374,7 @@ function RoomWindow({
           chatFrameProps={chatFrameProps}
           composerPanelProps={composerPanelProps}
           hideComposer={viewMode}
+          hideSecondaryPanels={hideSecondaryPanels}
         />
       </RoomDocRefDropLayer>
       {!viewMode && (

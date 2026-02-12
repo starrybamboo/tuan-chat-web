@@ -70,18 +70,19 @@ async function terminateFfmpegAndResetSingleton(ffmpeg: import("@ffmpeg/ffmpeg")
 function getFfmpegCoreBaseUrlCandidates(): string[] {
   const env = import.meta.env as any;
   const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
-  if (fromEnv)
-    return [fromEnv.replace(/\/+$/, "")];
-  return DEFAULT_FFMPEG_CORE_BASE_URLS.map(u => u.replace(/\/+$/, ""));
+  const envCandidates = fromEnv
+    ? splitUrlCandidates(fromEnv).map(url => url.replace(/\/+$/, ""))
+    : [];
+  const defaultCandidates = DEFAULT_FFMPEG_CORE_BASE_URLS.map(url => url.replace(/\/+$/, ""));
+  return Array.from(new Set([...envCandidates, ...defaultCandidates]));
 }
 
 function shouldUseBundledFfmpegCore(): boolean {
   const env = import.meta.env as any;
-  const fromEnv = typeof env?.VITE_FFMPEG_CORE_BASE_URL === "string" ? env.VITE_FFMPEG_CORE_BASE_URL.trim() : "";
   const skipBundled = typeof env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
     ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
     : env?.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
-  return !fromEnv && !skipBundled;
+  return !skipBundled;
 }
 
 function splitUrlCandidates(value: string): string[] {
