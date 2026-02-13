@@ -92,7 +92,8 @@ export function BlocksuiteMentionProfilePopover(props: {
       left,
       width,
       height,
-      zIndex: 9999,
+      // 需要盖住 blocksuite iframe/画布。全屏时也会进入新的 stacking context，尽量用足够大的值。
+      zIndex: 2147483000,
     };
   }, [state]);
 
@@ -103,8 +104,19 @@ export function BlocksuiteMentionProfilePopover(props: {
   if (typeof document === "undefined")
     return null;
 
+  const docAny = document as any;
+  // 关键：浏览器 Fullscreen API 生效时，只有 fullscreenElement 及其后代会被渲染。
+  // 如果 portal 到 body，就会“存在但看不见”，退出全屏才会看到。
+  const fullscreenEl: Element | null = docAny.fullscreenElement
+    ?? docAny.webkitFullscreenElement
+    ?? docAny.msFullscreenElement
+    ?? null;
+  const portalTarget = fullscreenEl ?? document.body;
+
   const src = `/profile/${encodeURIComponent(state.userId)}`;
 
+  // Profile page needs scripts + same-origin to reuse auth/session state.
+  /* eslint-disable react-dom/no-unsafe-iframe-sandbox */
   return createPortal(
     <div
       ref={rootRef}
@@ -122,6 +134,6 @@ export function BlocksuiteMentionProfilePopover(props: {
         />
       </div>
     </div>,
-    document.body,
+    portalTarget,
   );
 }

@@ -1,46 +1,38 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import type {
-  ChatMessageRequest,
-  ChatMessageResponse,
-  ImageMessage,
-  Message,
-} from "../../../api";
-import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChatMessageResponse, Message } from "../../../api";
+import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+
+import React, { memo, use, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Virtuoso } from "react-virtuoso";
+import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
+import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import RoleChooser from "@/components/chat/input/roleChooser";
-import { ChatBubble } from "@/components/chat/message/chatBubble";
-import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
+import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
+import useChatFrameEmojiActions from "@/components/chat/hooks/useChatFrameEmojiActions";
+import useChatFrameIndexing from "@/components/chat/hooks/useChatFrameIndexing";
+import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
+import useChatFrameMessageMutations from "@/components/chat/hooks/useChatFrameMessageMutations";
+import useChatFrameMessageRenderer from "@/components/chat/hooks/useChatFrameMessageRenderer";
+import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
+import useChatFrameNarratorToggle from "@/components/chat/hooks/useChatFrameNarratorToggle";
+import useChatFrameOverlayState from "@/components/chat/hooks/useChatFrameOverlayState";
+import useChatFrameScrollState from "@/components/chat/hooks/useChatFrameScrollState";
+import useChatFrameSelectionContext from "@/components/chat/hooks/useChatFrameSelectionContext";
+import useChatFrameVisualEffects from "@/components/chat/hooks/useChatFrameVisualEffects";
+import useChatFrameWebSocket from "@/components/chat/hooks/useChatFrameWebSocket";
+import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
+import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
-import ExportImageWindow from "@/components/chat/window/exportImageWindow";
-import ForwardWindow from "@/components/chat/window/forwardWindow";
-import { PopWindow } from "@/components/common/popWindow";
-import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { DraggableIcon } from "@/icons";
+import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { getImageSize } from "@/utils/getImgSize";
+import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
-import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
-import { tuanchat } from "../../../api/instance";
-
-export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
-
-function Header() {
-  return (
-    <div className="py-2">
-      <div className="divider text-xs text-base-content/50 m-0">到顶</div>
-    </div>
-  );
-}
 
 /**
  * 聊天框（不带输入部分）
@@ -61,12 +53,8 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
-}
-
-interface ThreadHintMeta {
-  rootId: number;
-  title: string;
-  replyCount: number;
+  spaceName?: string;
+  roomName?: string;
 }
 
 function ChatFrame(props: ChatFrameProps) {
@@ -80,1074 +68,440 @@ function ChatFrame(props: ChatFrameProps) {
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
+    spaceName,
+    roomName,
   } = props;
-  const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
-  const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const roomId = roomContext.roomId ?? -1;
   const curRoleId = roomContext.curRoleId ?? -1;
   const curAvatarId = roomContext.curAvatarId ?? -1;
+  const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
 
-  // const hasNewMessages = websocketUtils.messagesNumber[roomId];
-  const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
-  const [isExportImageWindowOpen, setIsExportImageWindowOpen] = useState(false);
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const className = "avatar-sampler-active";
+    if (isAvatarSamplerActive) {
+      document.body.classList.add(className);
+      return () => {
+        document.body.classList.remove(className);
+      };
+    }
+    document.body.classList.remove(className);
+    return () => {};
+  }, [isAvatarSamplerActive]);
+
+  const {
+    isForwardWindowOpen,
+    isExportFileWindowOpen,
+    isExportImageWindowOpen,
+    setIsForwardWindowOpen,
+    setIsExportFileWindowOpen,
+    setIsExportImageWindowOpen,
+  } = useChatFrameOverlayState();
+  const [isWebgalChooseEditorOpen, setIsWebgalChooseEditorOpen] = useState(false);
+  const [webgalChooseEditorOptions, setWebgalChooseEditorOptions] = useState<WebgalChooseOptionDraft[]>(() => [
+    createWebgalChooseOptionDraft(),
+  ]);
+  const [webgalChooseEditorError, setWebgalChooseEditorError] = useState<string | null>(null);
+  const [webgalChooseEditorMessageId, setWebgalChooseEditorMessageId] = useState<number | null>(null);
 
   const sendMessageMutation = useSendMessageMutation(roomId);
 
   // Mutations
-  // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
   const updateMessageMutation = useUpdateMessageMutation();
 
-  const handleToggleNarrator = useCallback((messageId: number) => {
-    if (!spaceContext.isSpaceOwner) {
-      toast.error("只有KP可以切换旁白");
-      return;
-    }
-    const message = roomContext.chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
-    if (!message)
-      return;
+  const { handleToggleNarrator } = useChatFrameNarratorToggle({
+    roomContext,
+    spaceContext,
+    updateMessageMutation,
+  });
 
-    const isNarrator = !message.roleId || message.roleId <= 0;
-
-    if (isNarrator) {
-      toastWindow(
-        onClose => (
-          <RoomContext value={roomContext}>
-            <div className="flex flex-col items-center gap-4">
-              <div>选择角色</div>
-              <RoleChooser
-                handleRoleChange={(role) => {
-                  const newMessage = {
-                    ...message,
-                    roleId: role.roleId,
-                    avatarId: roomContext.roomRolesThatUserOwn.find(r => r.roleId === role.roleId)?.avatarId ?? -1,
-                  };
-                  updateMessageMutation.mutate(newMessage, {
-                    onSuccess: (response) => {
-                      if (response?.data && roomContext.chatHistory) {
-                        const updatedChatMessageResponse = {
-                          ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
-                          message: response.data,
-                        };
-                        roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-                      }
-                    },
-                  });
-                  onClose();
-                }}
-                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
-              />
-            </div>
-          </RoomContext>
-        ),
-      );
-    }
-    else {
-      const newMessage = {
-        ...message,
-        roleId: -1,
-      };
-      updateMessageMutation.mutate(newMessage, {
-        onSuccess: (response) => {
-          if (response?.data && roomContext.chatHistory) {
-            const updatedChatMessageResponse = {
-              ...roomContext.chatHistory.messages.find(m => m.message.messageId === messageId)!,
-              message: response.data,
-            };
-            roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-          }
-        },
-      });
-    }
-  }, [roomContext, spaceContext.isSpaceOwner, updateMessageMutation]);
-
-  // 获取用户自定义表情列表
-  const { data: emojisData } = useGetUserEmojisQuery();
-  const emojiList = Array.isArray(emojisData?.data) ? emojisData.data : [];
-
-  // 新增表情
-  const createEmojiMutation = useCreateEmojiMutation();
-
-  /**
-   * 获取历史消息
-   * 分页获取消息
-   * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
-   */
+  const { handleAddEmoji } = useChatFrameEmojiActions();
   const chatHistory = roomContext.chatHistory;
-  const webSocketUtils = globalContext.websocketUtils;
-  const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message });
+  const {
+    send,
+    receivedMessages,
+    unreadMessagesNumber,
+    updateLastReadSyncId,
+  } = useChatFrameWebSocket(roomId);
 
-  // 监听 WebSocket 接收到的消息
-  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
-  // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
-  const lastLengthMapRef = useRef<Record<number, number>>({});
-  useEffect(() => {
-    if (!enableWsSync) {
+  const { historyMessages, threadHintMetaByMessageId } = useChatFrameMessages({
+    messagesOverride,
+    enableWsSync,
+    roomId,
+    chatHistory,
+    receivedMessages,
+  });
+
+  const { deleteMessage, updateMessage } = useChatFrameMessageMutations({
+    historyMessages,
+    roomContext,
+    deleteMessageMutation,
+    updateMessageMutation,
+  });
+  const updateWebgalChooseEditorOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
+    setWebgalChooseEditorOptions(prev => prev.map((option, idx) => (
+      idx === index ? { ...option, [key]: value } : option
+    )));
+  }, []);
+
+  const addWebgalChooseEditorOption = useCallback(() => {
+    setWebgalChooseEditorOptions(prev => ([
+      ...prev,
+      createWebgalChooseOptionDraft(),
+    ]));
+  }, []);
+
+  const removeWebgalChooseEditorOption = useCallback((index: number) => {
+    setWebgalChooseEditorOptions(prev => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== index)));
+  }, []);
+
+  const closeWebgalChooseEditor = useCallback(() => {
+    setIsWebgalChooseEditorOpen(false);
+    setWebgalChooseEditorError(null);
+    setWebgalChooseEditorMessageId(null);
+  }, []);
+
+  const openWebgalChooseEditor = useCallback((messageId: number) => {
+    const target = historyMessages.find(message => message.message.messageId === messageId);
+    if (!target) {
+      toast.error("未找到要编辑的消息");
       return;
     }
-    // 将wsUtils中缓存的消息存到indexDB中，这里需要轮询等待indexDB初始化完成。
-    // 如果在初始化之前就调用了这个函数，会出现初始消息无法加载的错误。
-    let isCancelled = false;
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    async function syncMessages() {
-      const checkLoading = async (): Promise<void> => {
-        if (isCancelled)
-          return;
-
-        if (chatHistory?.loading) {
-          await new Promise<void>((resolve) => {
-            timeoutId = setTimeout(() => {
-              if (!isCancelled) {
-                resolve();
-              }
-            }, 30);
-          });
-          // 递归检查，直到loading完成或被取消
-          await checkLoading();
-        }
-      };
-      await checkLoading();
-
-      // 如果已取消或chatHistory不存在，直接返回
-      if (isCancelled || !chatHistory)
-        return;
-      const lastLength = lastLengthMapRef.current[roomId] ?? 0;
-      if (lastLength < receivedMessages.length) {
-        const newMessages = receivedMessages.slice(lastLength);
-
-        // 补洞逻辑：检查新消息的第一条是否与历史消息的最后一条连续
-        const historyMsgs = chatHistory.messages;
-        if (historyMsgs.length > 0 && newMessages.length > 0) {
-          const lastHistoryMsg = historyMsgs[historyMsgs.length - 1];
-          const firstNewMsg = newMessages[0];
-
-          if (firstNewMsg.message.syncId > lastHistoryMsg.message.syncId + 1) {
-            console.warn(`[ChatFrame] Detected gap between history (${lastHistoryMsg.message.syncId}) and new messages (${firstNewMsg.message.syncId}). Fetching missing messages...`);
-            try {
-              const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
-                roomId,
-                syncId: lastHistoryMsg.message.syncId + 1,
-              });
-              if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
-                await chatHistory.addOrUpdateMessages(missingMessagesRes.data);
-              }
-            }
-            catch (e) {
-              console.error("[ChatFrame] Failed to fetch missing messages:", e);
-            }
-          }
-        }
-
-        await chatHistory.addOrUpdateMessages(newMessages);
-        lastLengthMapRef.current[roomId] = receivedMessages.length;
-      }
+    if (target.message.messageType !== MESSAGE_TYPE.WEBGAL_CHOOSE) {
+      toast.error("该消息不是选择类型");
+      return;
     }
+    const payload = extractWebgalChoosePayload(target.message.extra);
+    if (!payload) {
+      toast.error("未找到选择内容");
+      return;
+    }
+    const nextOptions = payload.options.map(option => createWebgalChooseOptionDraft({
+      text: option.text,
+      code: option.code ?? "",
+    }));
+    setWebgalChooseEditorOptions(nextOptions.length ? nextOptions : [createWebgalChooseOptionDraft()]);
+    setWebgalChooseEditorError(null);
+    setWebgalChooseEditorMessageId(messageId);
+    setIsWebgalChooseEditorOpen(true);
+  }, [historyMessages]);
 
-    syncMessages();
-
-    // 清理函数：取消异步操作和定时器
-    return () => {
-      isCancelled = true;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
+  const submitWebgalChooseEditor = useCallback(() => {
+    const messageId = webgalChooseEditorMessageId;
+    if (!messageId) {
+      setWebgalChooseEditorError("未找到要编辑的消息");
+      return;
+    }
+    const normalizedOptions = webgalChooseEditorOptions.map(option => ({
+      text: option.text.trim(),
+      code: option.code.trim(),
+    }));
+    if (normalizedOptions.length === 0) {
+      setWebgalChooseEditorError("请至少添加一个选项");
+      return;
+    }
+    if (normalizedOptions.some(option => !option.text)) {
+      setWebgalChooseEditorError("选项文本不能为空");
+      return;
+    }
+    const payload = {
+      options: normalizedOptions.map(option => ({
+        text: option.text,
+        ...(option.code ? { code: option.code } : {}),
+      })),
     };
-  }, [chatHistory, enableWsSync, receivedMessages, roomId]);
-
-  const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    if (messagesOverride) {
-      return messagesOverride;
+    const target = historyMessages.find(message => message.message.messageId === messageId);
+    if (!target) {
+      setWebgalChooseEditorError("未找到要编辑的消息");
+      return;
     }
-    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
-    // - root：threadId === messageId（显示）
-    // - reply：threadId !== messageId（隐藏）
-    return (roomContext.chatHistory?.messages ?? []).filter((m) => {
-      // Thread Root（10001）不在主消息流中单独显示：改为挂在“原消息”下方的提示条
-      if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
-        return false;
-      }
-      const { threadId, messageId } = m.message;
-      if (!threadId) {
-        return true;
-      }
-      return threadId === messageId;
-    });
-  }, [messagesOverride, roomContext.chatHistory?.messages]);
-
-  const threadHintMetaByMessageId = useMemo(() => {
-    // key: parentMessageId（被创建子区的那条原消息）
-    const metaMap = new Map<number, ThreadHintMeta>();
-    const all = roomContext.chatHistory?.messages ?? [];
-    if (all.length === 0) {
-      return metaMap;
+    const baseExtra = target.message.extra && typeof target.message.extra === "object"
+      ? target.message.extra
+      : {};
+    const nextMessage: Message = {
+      ...target.message,
+      extra: {
+        ...baseExtra,
+        webgalChoose: payload,
+      } as Message["extra"],
+    };
+    updateMessage(nextMessage);
+    if (roomContext.updateAndRerenderMessageInWebGAL) {
+      roomContext.updateAndRerenderMessageInWebGAL({ ...target, message: nextMessage }, false);
     }
+    closeWebgalChooseEditor();
+  }, [
+    closeWebgalChooseEditor,
+    historyMessages,
+    roomContext,
+    updateMessage,
+    webgalChooseEditorMessageId,
+    webgalChooseEditorOptions,
+  ]);
 
-    // rootId -> replyCount
-    const replyCountByRootId = new Map<number, number>();
-    for (const item of all) {
-      const { threadId, messageId } = item.message;
-      if (threadId && threadId !== messageId) {
-        replyCountByRootId.set(threadId, (replyCountByRootId.get(threadId) ?? 0) + 1);
-      }
-    }
+  const handleOpenAnnotations = useCallback((messageId: number) => {
+    const target = historyMessages.find(message => message.message.messageId === messageId);
+    if (!target)
+      return;
+    const initialSelected = Array.isArray(target.message.annotations) ? target.message.annotations : [];
+    openMessageAnnotationPicker({
+      initialSelected,
+      onChange: (next) => {
+        const latest = historyMessages.find(message => message.message.messageId === messageId);
+        if (!latest)
+          return;
+        const nextAnnotations = normalizeAnnotations(next);
+        const annotationsChanged = !areAnnotationsEqual(latest.message.annotations, nextAnnotations);
+        const isImageMessage = latest.message.messageType === MESSAGE_TYPE.IMG;
+        const imageMessage = latest.message.extra?.imageMessage;
+        const currentBackground = Boolean(imageMessage?.background);
+        const nextBackground = isImageMessage
+          ? hasAnnotation(nextAnnotations, ANNOTATION_IDS.BACKGROUND)
+          : currentBackground;
+        const backgroundChanged = Boolean(imageMessage) && nextBackground !== currentBackground;
+        if (!annotationsChanged && !backgroundChanged) {
+          return;
+        }
 
-    // parentMessageId -> latest root
-    for (const item of all) {
-      const mm = item.message;
-      const isRoot = mm.messageType === MESSAGE_TYPE.THREAD_ROOT && mm.threadId === mm.messageId;
-      const parentId = mm.replyMessageId;
-      if (!isRoot || !parentId) {
-        continue;
-      }
-
-      const title = (mm.extra as any)?.title || mm.content;
-      const next: ThreadHintMeta = {
-        rootId: mm.messageId,
-        title,
-        replyCount: replyCountByRootId.get(mm.messageId) ?? 0,
-      };
-
-      const prev = metaMap.get(parentId);
-      // 极端情况下可能存在多个 root：取 messageId 更新的那个
-      if (!prev || next.rootId > prev.rootId) {
-        metaMap.set(parentId, next);
-      }
-    }
-
-    return metaMap;
-  }, [roomContext.chatHistory?.messages]);
-
-  // 删除消息（逻辑删除：更新本地消息状态为已删除）
-  const deleteMessage = useCallback((messageId: number) => {
-    deleteMessageMutation.mutate(messageId, {
-      onSuccess: () => {
-        // 找到要删除的消息，更新其 status 为 1（已删除）
-        const targetMessage = historyMessages.find(m => m.message.messageId === messageId);
-        if (targetMessage && roomContext.chatHistory) {
-          const updatedMessage = {
-            ...targetMessage,
-            message: {
-              ...targetMessage.message,
-              status: 1, // 逻辑删除状态
-            },
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedMessage);
+        const nextMessage: Message = backgroundChanged && imageMessage
+          ? {
+              ...latest.message,
+              annotations: nextAnnotations,
+              extra: {
+                ...latest.message.extra,
+                imageMessage: {
+                  ...imageMessage,
+                  background: nextBackground,
+                },
+              },
+            }
+          : {
+              ...latest.message,
+              annotations: nextAnnotations,
+            };
+        updateMessage(nextMessage);
+        if (roomContext.updateAndRerenderMessageInWebGAL) {
+          roomContext.updateAndRerenderMessageInWebGAL({ ...latest, message: nextMessage }, false);
         }
       },
     });
-  }, [deleteMessageMutation, historyMessages, roomContext.chatHistory]);
+  }, [historyMessages, roomContext, updateMessage]);
 
-  /**
-   * 虚拟列表
-   */
-  // 虚拟列表的index到historyMessage中的index的转换
-  const isAtBottomRef = useRef(true);
-  const isAtTopRef = useRef(false);
-  const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
-    // return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
-    return virtuosoIndex;
-  }, []);
-  const messageIndexToVirtuosoIndex = useCallback((messageIndex: number) => {
-    return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
-  }, [historyMessages.length]);
-  /**
-   * 新消息提醒
-   */
-  const unreadMessageNumber = enableUnreadIndicator
-    ? (webSocketUtils.unreadMessagesNumber[roomId] ?? 0)
-    : 0;
-  const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
-  // 监听新消息，如果在底部，则设置群聊消息为已读；
-  useEffect(() => {
-    if (!enableUnreadIndicator) {
-      return;
-    }
-    if (isAtBottomRef.current) {
-      updateLastReadSyncId(roomId);
-    }
-  }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
-  /**
-   * scroll相关
-   */
-  const scrollToBottom = useCallback(() => {
-    virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
-    if (enableUnreadIndicator) {
-      updateLastReadSyncId(roomId);
-    }
-  }, [enableUnreadIndicator, historyMessages.length, messageIndexToVirtuosoIndex, roomId, updateLastReadSyncId, virtuosoRef]);
-  useEffect(() => {
-    let timer = null;
-    if (chatHistory?.loading) {
-      timer = setTimeout(() => {
-        scrollToBottom();
-      }, 1000);
-    }
-    return () => {
-      if (timer)
-        clearTimeout(timer);
-    };
-  }, [chatHistory?.loading, scrollToBottom]);
+  const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(historyMessages.length);
 
-  /**
-   * 背景图片随聊天记录而改变
-   * 注意：已删除的消息（status === 1）不应该显示背景图片
-   */
-  const imgNode = useMemo(() => {
-    if (!enableEffects) {
-      return [];
-    }
-    return historyMessages
-      .map((msg, index) => {
-        return { index, imageMessage: msg.message.extra?.imageMessage, status: msg.message.status };
-      })
-      .filter(item => item.imageMessage && item.imageMessage.background && item.status !== 1);
-  }, [enableEffects, historyMessages]);
+  const {
+    isAtBottomRef,
+    isAtTopRef,
+    unreadMessageNumber,
+    scrollToBottom,
+  } = useChatFrameScrollState({
+    enableUnreadIndicator,
+    historyMessages,
+    roomId,
+    chatHistory,
+    unreadMessagesNumber,
+    updateLastReadSyncId,
+    virtuosoRef,
+    messageIndexToVirtuosoIndex,
+  });
 
-  /**
-   * 特效随聊天记录而改变
-   * 注意：已删除的消息（status === 1）不应该显示特效
-   */
-  const effectNode = useMemo(() => {
-    if (!enableEffects) {
-      return [];
-    }
-    return historyMessages
-      .map((msg, index) => {
-        return { index, effectMessage: msg.message.extra?.effectMessage, status: msg.message.status };
-      })
-      .filter(item => item.effectMessage && item.effectMessage.effectName && item.status !== 1);
-  }, [enableEffects, historyMessages]);
-
-  const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
-  const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    onBackgroundUrlChange?.(enableEffects ? currentBackgroundUrl : null);
-  }, [currentBackgroundUrl, enableEffects, onBackgroundUrlChange]);
-  const [currentEffect, setCurrentEffect] = useState<string | null>(null);
-
-  useEffect(() => {
-    onEffectChange?.(enableEffects ? currentEffect : null);
-  }, [currentEffect, enableEffects, onEffectChange]);
-
-  useEffect(() => {
-    if (!enableEffects) {
-      return;
-    }
-    const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
-
-    // Update Background URL
-    let newBgUrl: string | null = null;
-
-    // 找到最后一个清除背景的位置
-    let lastClearIndex = -1;
-    for (const effect of effectNode) {
-      if (effect.index <= currentMessageIndex && effect.effectMessage?.effectName === "clearBackground") {
-        lastClearIndex = effect.index;
-      }
-    }
-
-    // 从清除背景之后（或从头）开始找最新的背景图片
-    for (const bg of imgNode) {
-      if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
-        newBgUrl = bg.imageMessage?.url ?? null;
-      }
-      else if (bg.index > currentMessageIndex) {
-        break;
-      }
-    }
-
-    if (newBgUrl !== currentBackgroundUrl) {
-      const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
-      return () => clearTimeout(id);
-    }
-  }, [enableEffects, currentVirtuosoIndex, imgNode, effectNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
-
-  useEffect(() => {
-    if (!enableEffects) {
-      return;
-    }
-    const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
-
-    // Update Effect
-    let newEffect: string | null = null;
-    for (const effect of effectNode) {
-      if (effect.index <= currentMessageIndex) {
-        newEffect = effect.effectMessage?.effectName ?? null;
-      }
-      else {
-        break;
-      }
-    }
-    if (newEffect !== currentEffect) {
-      setCurrentEffect(newEffect);
-    }
-  }, [enableEffects, currentVirtuosoIndex, effectNode, virtuosoIndexToMessageIndex, currentEffect]);
-
-  const updateMessage = useCallback((message: Message) => {
-    updateMessageMutation.mutate(message);
-    // 从 historyMessages 中找到完整的 ChatMessageResponse，保留 messageMark 等字段
-    const existingResponse = historyMessages.find(m => m.message.messageId === message.messageId);
-    const newResponse = {
-      ...existingResponse,
-      message,
-    };
-    roomContext.chatHistory?.addOrUpdateMessage(newResponse as ChatMessageResponse);
-  }, [updateMessageMutation, roomContext.chatHistory, historyMessages]);
-
-  /**
-   * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
-   * 目的是为了让背景图片从url到null的切换时也能触发transition的动画，如果不加，那么，动画部分的css就会变成这样：
-   *         style={{
-   *           backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
-   *           opacity: currentBackgroundUrl ? 1 : 0,
-   *         }}    // 错误代码！
-   * 当currentBackgroundUrl从url变为null时，浏览器会因为backgroundImage已经变成了null，导致动画来不及播放，背景直接就消失了
-   * 而加上这么一给state后
-   *         style={{
-   *           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
-   *           opacity: currentBackgroundUrl ? 1 : 0,
-   *         }}   // 正确的
-   * 当currentBackgroundUrl 从 url_A 变为 null时
-   * 此时，opacity 因为 currentBackgroundUrl 是 null 而变为 0，淡出动画开始。
-   * 但我们故意不更新 displayedBgUrl！它依然保持着 url_A 的值。
-   * 结果就是：背景图层虽然要变透明了，但它的 backgroundImage 样式里依然是上一张图片。这样，动画就有了可以“操作”的视觉内容，能够平滑地将这张图片淡出，直到完全透明。
-   */
-  // 背景图渲染已提升到 RoomWindow，此处仅负责计算并通过 onBackgroundUrlChange 上报。
+  const { setCurrentVirtuosoIndex } = useChatFrameVisualEffects({
+    enableEffects,
+    historyMessages,
+    onBackgroundUrlChange,
+    onEffectChange,
+    virtuosoIndexToMessageIndex,
+  });
 
   /**
    * 消息选择
    */
-  const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(() => new Set());
-  const isSelecting = selectedMessageIds.size > 0;
-
-  const toggleMessageSelection = useCallback((messageId: number) => {
-    updateSelectedMessageIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId);
-      }
-      else {
-        newSet.add(messageId);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const constructForwardRequest = (forwardRoomId: number) => {
-    const forwardMessages = Array.from(selectedMessageIds)
-      .map(id => historyMessages.find(m => m.message.messageId === id))
-      .filter((msg): msg is ChatMessageResponse => msg !== undefined);
-    const forwardMessageRequest: ChatMessageRequest = {
-      roomId: forwardRoomId,
-      roleId: curRoleId,
-      content: "",
-      avatarId: curAvatarId,
-      messageType: 5,
-      extra: {
-        messageList: forwardMessages,
-      },
-    };
-    return forwardMessageRequest;
-  };
-
-  function handleForward(forwardRoomId: number) {
-    send(constructForwardRequest(forwardRoomId));
-    setIsForwardWindowOpen(false);
-    updateSelectedMessageIds(new Set());
-    toast("已转发消息");
-  }
-
-  function toggleBackground(messageId: number) {
-    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
-    if (!message || !message.extra?.imageMessage)
-      return;
-    updateMessage({
-      ...message,
-      extra: {
-        ...message.extra,
-        imageMessage: {
-          ...message.extra.imageMessage,
-          background: !message.extra.imageMessage.background,
-        },
-      },
-    });
-  }
-
-  function toggleUnlockCg(messageId: number) {
-    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
-    if (!message || message.messageType !== 2)
-      return;
-
-    const currentWebgal = message.webgal || {};
-    const isUnlocked = !!currentWebgal.unlockCg;
-
-    updateMessage({
-      ...message,
-      webgal: {
-        ...currentWebgal,
-        unlockCg: !isUnlocked,
-      },
-    });
-  }
-
-  // 新增：生成转发消息并返回消息ID
-  async function generateForwardMessage(): Promise<number | null> {
-    // 发送提示信息
-    const firstMessageResult = await sendMessageMutation.mutateAsync({
-      roomId,
-      messageType: 1,
-      roleId: curRoleId,
-      avatarId: curAvatarId,
-      content: "转发了以下消息到社区",
-      extra: {},
-    });
-    if (!firstMessageResult.success)
-      return null;
-
-    // 发送转发请求
-    const forwardResult = await sendMessageMutation.mutateAsync(
-      constructForwardRequest(roomId),
-    );
-    if (!forwardResult.success || !forwardResult.data)
-      return null;
-
-    // 清理状态
-    setIsForwardWindowOpen(false);
-    updateSelectedMessageIds(new Set());
-
-    return forwardResult.data.messageId;
-  }
-
-  async function handleAddEmoji(imgMessage: ImageMessage) {
-    if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
-      toast.error("该表情已存在");
-      return;
-    }
-    const fileSize = imgMessage.size > 0
-      ? imgMessage.size
-      : (await getImageSize(imgMessage.url)).size;
-    createEmojiMutation.mutate({
-      name: imgMessage.fileName,
-      imageUrl: imgMessage.url,
-      fileSize,
-      format: imgMessage.url.split(".").pop() || "webp",
-    }, {
-      onSuccess: () => {
-        toast.success("表情添加成功");
-      },
-    });
-  }
-
-  /**
-   * 聊天气泡拖拽排序
-   */
-  // -1 代表未拖动
-  const dragStartMessageIdRef = useRef(-1);
-  const isDragging = dragStartMessageIdRef.current >= 0;
-  const indicatorRef = useRef<HTMLDivElement | null>(null);
-  const rafIdRef = useRef<number | null>(null);
-  const pendingDragCheckRef = useRef<{ target: HTMLDivElement; clientY: number } | null>(null);
-  // before代表拖拽到元素上半，after代表拖拽到元素下半
-  const dropPositionRef = useRef<"before" | "after">("before");
-  const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
-  /**
-   * 通用的消息拖拽消息函数
-   * @param targetIndex 将被移动到targetIndex对应的消息的下方
-   * @param messageIds 要移动的消息租
-   */
-  const handleMoveMessages = useCallback((
-    targetIndex: number,
-    messageIds: number[],
-  ) => {
-    const movableMessageIds = isMessageMovable
-      ? messageIds.filter((id) => {
-          const msg = historyMessages.find(m => m.message.messageId === id)?.message;
-          return msg ? isMessageMovable(msg) : false;
-        })
-      : messageIds;
-
-    if (movableMessageIds.length !== messageIds.length) {
-      toast.error("部分消息不支持移动");
-    }
-    if (movableMessageIds.length === 0) {
-      return;
-    }
-
-    const messageIdSet = new Set(movableMessageIds);
-    const selectedMessages = Array.from(movableMessageIds)
-      .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
-      .filter((msg): msg is Message => msg !== undefined)
-      .sort((a, b) => a.position - b.position);
-    // 寻找到不位于 messageIds 中且离 dropPosition 最近的消息
-    let topMessageIndex: number = targetIndex;
-    let bottomMessageIndex: number = targetIndex + 1;
-    while (messageIdSet.has(historyMessages[topMessageIndex]?.message.messageId)) {
-      topMessageIndex--;
-    }
-    while (messageIdSet.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
-      bottomMessageIndex++;
-    }
-    const topMessagePosition = historyMessages[topMessageIndex]?.message.position
-      ?? historyMessages[0].message.position - 1;
-    const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
-      ?? historyMessages[historyMessages.length - 1].message.position + 1;
-
-    for (const selectedMessage of selectedMessages) {
-      const index = selectedMessages.indexOf(selectedMessage);
-      updateMessage({
-        ...selectedMessage,
-        position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
-      });
-    }
-  }, [historyMessages, isMessageMovable, updateMessage]);
-  const cleanupDragIndicator = useCallback(() => {
-    pendingDragCheckRef.current = null;
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    indicatorRef.current?.remove();
-    curDragOverMessageRef.current = null;
-    dropPositionRef.current = "before";
-  }, []);
-
-  /**
-   * 检查拖拽的位置（使用 rAF 节流，复用 indicator DOM，避免 dragover 高频创建/销毁导致卡顿）
-   */
-  const scheduleCheckPosition = useCallback((target: HTMLDivElement, clientY: number) => {
-    if (dragStartMessageIdRef.current === -1) {
-      return;
-    }
-    pendingDragCheckRef.current = { target, clientY };
-    if (rafIdRef.current !== null) {
-      return;
-    }
-    rafIdRef.current = requestAnimationFrame(() => {
-      rafIdRef.current = null;
-      const pending = pendingDragCheckRef.current;
-      pendingDragCheckRef.current = null;
-      if (!pending || dragStartMessageIdRef.current === -1) {
-        return;
-      }
-
-      const { target, clientY } = pending;
-      curDragOverMessageRef.current = target;
-
-      const rect = target.getBoundingClientRect();
-      const relativeY = clientY - rect.top;
-      const nextPosition: "before" | "after" = relativeY < rect.height / 2 ? "before" : "after";
-
-      let indicator = indicatorRef.current;
-      if (!indicator) {
-        indicator = document.createElement("div");
-        indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
-        indicator.style.zIndex = "50";
-        indicatorRef.current = indicator;
-      }
-
-      if (indicator.parentElement !== target) {
-        indicator.remove();
-        target.appendChild(indicator);
-      }
-
-      dropPositionRef.current = nextPosition;
-      if (nextPosition === "before") {
-        indicator.style.top = "-1px";
-        indicator.style.bottom = "auto";
-      }
-      else {
-        indicator.style.top = "auto";
-        indicator.style.bottom = "-1px";
-      }
-    });
-  }, []);
-  /**
-   * 拖拽起始化
-   */
-  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.stopPropagation();
-    e.dataTransfer.effectAllowed = "move";
-    dragStartMessageIdRef.current = historyMessages[index].message.messageId;
-    // 设置拖动预览图像
-    // 创建轻量拖拽预览元素（避免 clone 大块复杂 DOM 造成拖拽卡顿）
-    const clone = document.createElement("div");
-    clone.className = "p-2 bg-info text-info-content rounded shadow";
-    clone.textContent = isSelecting && selectedMessageIds.size > 0
-      ? `移动${selectedMessageIds.size}条消息`
-      : "移动消息";
-
-    clone.style.position = "fixed";
-    clone.style.top = "-9999px";
-    clone.style.width = `${Math.min(320, e.currentTarget.offsetWidth)}px`;
-    clone.style.opacity = "0.5";
-    document.body.appendChild(clone);
-    e.dataTransfer.setDragImage(clone, 0, 0);
-    setTimeout(() => document.body.removeChild(clone));
-  }, [historyMessages, isSelecting, selectedMessageIds.size]);
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (isFileDrag(e.dataTransfer)) {
-      e.dataTransfer.dropEffect = "copy";
-      return;
-    }
-    e.dataTransfer.dropEffect = "move";
-    scheduleCheckPosition(e.currentTarget, e.clientY);
-  }, [scheduleCheckPosition]);
-
-  const handleDragEnd = useCallback(() => {
-    dragStartMessageIdRef.current = -1;
-    cleanupDragIndicator();
-  }, [cleanupDragIndicator]);
-
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    curDragOverMessageRef.current = null;
-  }, []);
-
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
-    e.preventDefault();
-    curDragOverMessageRef.current = null;
-
-    // 拖拽上传（图片/音频）：优先处理文件拖拽，避免触发现有的“消息拖拽排序”
-    if (isFileDrag(e.dataTransfer)) {
-      e.stopPropagation();
-      addDroppedFilesToComposer(e.dataTransfer);
-      return;
-    }
-
-    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex - 1;
-
-    // 如果是多选状态，则对选中的所有消息进行移动
-    if (isSelecting && selectedMessageIds.size > 0) {
-      handleMoveMessages(adjustedIndex, Array.from(selectedMessageIds));
-    }
-    else {
-      handleMoveMessages(adjustedIndex, [dragStartMessageIdRef.current]);
-    }
-
-    dragStartMessageIdRef.current = -1;
-    cleanupDragIndicator();
-  }, [isSelecting, selectedMessageIds, handleMoveMessages, cleanupDragIndicator]);
-
-  /**
-   * 右键菜单
-   */
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
-
-  function handleDelete() {
-    deleteMessage(contextMenu?.messageId ?? -1);
-  }
-
-  function handleContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    // 向上查找包含data-message-id属性的父元素
-    const messageElement = target.closest("[data-message-id]");
-    setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
-  }
-  // 处理点击外部关闭菜单的逻辑
-  useEffect(() => {
-    if (contextMenu) {
-      window.addEventListener("click", closeContextMenu);
-    }
-    return () => {
-      window.removeEventListener("click", closeContextMenu);
-    };
-  }, [contextMenu]); // 依赖于contextMenu状态
-
-  function handleBatchDelete() {
-    for (const messageId of selectedMessageIds) {
-      deleteMessage(messageId);
-    }
-    updateSelectedMessageIds(new Set());
-  }
-
-  function handleEditMessage(messageId: number) {
-    const target = document.querySelector(
-      `[data-message-id="${messageId}"] .editable-field`,
-    ) as HTMLElement;
-    target.dispatchEvent(new MouseEvent("dblclick", {
-      bubbles: true,
-      cancelable: true,
-      view: window,
-      clientX: target.offsetLeft + target.offsetWidth / 2,
-      clientY: target.offsetTop + target.offsetHeight / 2,
-    }));
-  }
-
-  // 关闭右键菜单
-  function closeContextMenu() {
-    setContextMenu(null);
-  }
-
-  // 切换消息样式
-  function toggleChatBubbleStyle() {
-    toggleUseChatBubbleStyle();
-    closeContextMenu();
-  }
-
-  // 处理回复消息
-  function handleReply(message: Message) {
-    setReplyMessage(message);
-  }
-
-  /**
-   * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
-   * @param chatMessageResponse
-   */
-  const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
-    const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
-    const baseDraggable = (roomContext.curMember?.memberType ?? 3) < 3;
-    const movable = baseDraggable && (!isMessageMovable || isMessageMovable(chatMessageResponse.message));
-    const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
-    const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
-    const threadHintMeta = threadHintMetaByMessageId.get(chatMessageResponse.message.messageId);
-    return ((
-      <div
-        key={chatMessageResponse.message.messageId}
-        className={`
-        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
-        data-message-id={chatMessageResponse.message.messageId}
-        onClick={(e) => {
-          // 检查点击目标是否是按钮或其子元素，如果是则不触发跳转
-          const target = e.target as HTMLElement;
-          const isButtonClick = target.closest("button") || target.closest("[role=\"button\"]") || target.closest(".btn");
-
-          if (isSelecting || e.ctrlKey) {
-            toggleMessageSelection(chatMessageResponse.message.messageId);
-          }
-          else if (roomContext.jumpToMessageInWebGAL && !isButtonClick) {
-            // 如果实时渲染已激活且不是点击按钮，单击消息跳转到 WebGAL 对应位置
-            roomContext.jumpToMessageInWebGAL(chatMessageResponse.message.messageId);
-          }
-        }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={e => handleDrop(e, indexInHistoryMessages)}
-        draggable={isSelecting && movable}
-        onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
-        onDragEnd={handleDragEnd}
-      >
-        {
-          movable
-          && (
-            <div
-              className={`absolute left-0 ${useChatBubbleStyle ? "top-[12px]" : "top-[30px]"}
-                      opacity-0 transition-opacity flex items-center pr-2 cursor-move
-                      group-hover:opacity-100 z-100`}
-              draggable={movable}
-              onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
-              onDragEnd={handleDragEnd}
-            >
-              <DraggableIcon className="size-6 "></DraggableIcon>
-            </div>
-          )
-        }
-        <ChatBubble
-          chatMessageResponse={chatMessageResponse}
-          useChatBubbleStyle={useChatBubbleStyle}
-          threadHintMeta={threadHintMeta}
-          onExecuteCommandRequest={onExecuteCommandRequest}
-        />
-      </div>
-    )
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  const {
     selectedMessageIds,
-    roomContext.curMember?.memberType,
-    roomContext.jumpToMessageInWebGAL,
-    virtuosoIndexToMessageIndex,
-    isDragging,
+    updateSelectedMessageIds,
     isSelecting,
-    useChatBubbleStyle,
+    exitSelection,
     toggleMessageSelection,
+    handleBatchDelete,
+    handleEditMessage,
+    contextMenu,
+    closeContextMenu,
+    handleContextMenu,
+    clearSelection,
+    handleDelete,
+    handleReply,
+    handleMessageClick,
+  } = useChatFrameSelectionContext({
+    deleteMessage,
+    toggleUseChatBubbleStyle,
+    setReplyMessage,
+    onJumpToWebGAL: roomContext.jumpToMessageInWebGAL,
+  });
+
+  const selectedMessages = useMemo(() => {
+    return Array.from(selectedMessageIds)
+      .map(id => historyMessages.find(m => m.message.messageId === id))
+      .filter((msg): msg is ChatMessageResponse => msg !== undefined)
+      .sort((a, b) => a.message.position - b.message.position);
+  }, [historyMessages, selectedMessageIds]);
+
+  const handleSelectAll = useCallback(() => {
+    const next = new Set(historyMessages.map(message => message.message.messageId));
+    updateSelectedMessageIds(next);
+  }, [historyMessages, updateSelectedMessageIds]);
+
+  const handleExportFile = useCallback(() => {
+    if (selectedMessages.length === 0) {
+      toast.error("请选择要导出的消息");
+      return;
+    }
+    setIsExportFileWindowOpen(true);
+  }, [selectedMessages.length, setIsExportFileWindowOpen]);
+
+  const {
+    handleForward,
+    generateForwardMessage,
+  } = useChatFrameMessageActions({
+    historyMessages,
+    selectedMessageIds,
+    roomId,
+    curRoleId,
+    curAvatarId,
+    send,
+    sendMessageAsync: sendMessageMutation.mutateAsync,
+    updateMessage,
+    setIsForwardWindowOpen,
+    clearSelection,
+  });
+
+  /**
+   * 消息拖拽
+   */
+  const {
+    isDragging,
+    scrollerRef,
+    handleMoveMessages,
+    handleDragStart,
     handleDragOver,
     handleDragLeave,
     handleDrop,
-    handleDragStart,
     handleDragEnd,
+  } = useChatFrameDragAndDrop({
+    historyMessages,
+    isMessageMovable,
+    updateMessage,
+    virtuosoRef,
+    isSelecting,
+    selectedMessageIds,
+  });
+
+  /**
+   * 消息渲染
+   */
+  const baseDraggable = (roomContext.curMember?.memberType ?? 3) < 3;
+  const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
+
+  const renderMessage = useChatFrameMessageRenderer({
+    selectedMessageIds,
+    isDragging,
+    isSelecting,
+    baseDraggable,
+    canJumpToWebGAL,
     isMessageMovable,
     threadHintMetaByMessageId,
-  ]);
-
+    onExecuteCommandRequest,
+    onEditWebgalChoose: openWebgalChooseEditor,
+    onMessageClick: handleMessageClick,
+    onToggleSelection: toggleMessageSelection,
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+    virtuosoIndexToMessageIndex,
+  });
   if (chatHistory?.loading) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
-        <div className="flex flex-col items-center gap-2">
-          {/* 加载动画 */}
-          <span className="loading loading-spinner loading-lg text-info"></span>
-          {/* 提示文字 */}
-          <div className="text-center space-y-1">
-            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
-            <p className="text-sm text-base-content/70">请稍候...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <ChatFrameLoadingState />;
   }
   /**
    * 渲染
    */
   return (
-    <div className="h-full relative">
-      <div
-        className="overflow-y-auto flex flex-col relative h-full"
-        onContextMenu={handleContextMenu}
-        onDragOver={(e) => {
-          if (isFileDrag(e.dataTransfer)) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-          }
-        }}
-        onDrop={(e) => {
-          if (!isFileDrag(e.dataTransfer))
-            return;
-          e.preventDefault();
-          e.stopPropagation();
-          addDroppedFilesToComposer(e.dataTransfer);
-        }}
-      >
-        {selectedMessageIds.size > 0 && (
-          <div
-            className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-15 flex justify-between items-center rounded"
-          >
-            <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
-            <div className="gap-x-4 flex">
-              <button
-                className="btn btn-sm"
-                onClick={() => updateSelectedMessageIds(new Set())}
-                type="button"
-              >
-                取消
-              </button>
-              <button
-                className="btn btn-sm btn-secondary"
-                onClick={() => setIsExportImageWindowOpen(true)}
-                type="button"
-              >
-                生成图片
-              </button>
-              <button
-                className="btn btn-sm btn-info"
-                onClick={() => setIsForwardWindowOpen(true)}
-                type="button"
-              >
-                转发
-              </button>
-              {
-                spaceContext.isSpaceOwner
-                && (
-                  <button
-                    className="btn btn-sm btn-error"
-                    onClick={() => handleBatchDelete()}
-                    type="button"
-                  >
-                    删除
-                  </button>
-                )
-              }
-            </div>
-          </div>
-        )}
-        <div className="h-full flex-1">
-          <Virtuoso
-            data={historyMessages}
-            firstItemIndex={0}
-            initialTopMostItemIndex={historyMessages.length - 1}
-            followOutput={true}
-            overscan={10} // 不要设得太大，会导致rangeChange更新不及时
-            ref={virtuosoRef}
-            context={{
-              isAtTopRef,
-            }}
-            rangeChanged={({ endIndex }) => {
-              // Update state with the end-most visible item's index.
-              setCurrentVirtuosoIndex((endIndex));
-            }}
-            itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
-            atBottomStateChange={(atBottom) => {
-              if (enableUnreadIndicator) {
-                atBottom && updateLastReadSyncId(roomId);
-              }
-              isAtBottomRef.current = atBottom;
-            }}
-            atTopStateChange={(atTop) => {
-              isAtTopRef.current = atTop;
-            }}
-            components={{
-              Header,
-            }}
-            atTopThreshold={1200}
-            atBottomThreshold={200}
-          />
-        </div>
-        {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
-        {(enableUnreadIndicator && unreadMessageNumber > 0 && historyMessages.length > 2 && !isAtBottomRef.current) && (
-          <div
-            className="absolute bottom-4 self-end z-50 cursor-pointer"
-            onClick={() => {
-              scrollToBottom();
-            }}
-          >
-            <div className="btn btn-info gap-2 shadow-lg">
-              <span>{unreadMessageNumber}</span>
-              <span>条新消息</span>
-            </div>
-          </div>
-        )}
-      </div>
-      <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
-        <ForwardWindow
-          onClickRoom={roomId => handleForward(roomId)}
-          generateForwardMessage={generateForwardMessage}
-        >
-        </ForwardWindow>
-      </PopWindow>
-      {/* 导出图片窗口 */}
-      <PopWindow isOpen={isExportImageWindowOpen} onClose={() => setIsExportImageWindowOpen(false)}>
-        <ExportImageWindow
-          selectedMessages={Array.from(selectedMessageIds)
-            .map(id => historyMessages.find(m => m.message.messageId === id))
-            .filter((msg): msg is ChatMessageResponse => msg !== undefined)}
-          onClose={() => {
-            setIsExportImageWindowOpen(false);
-            updateSelectedMessageIds(new Set());
-          }}
-        />
-      </PopWindow>
-      {/* 右键菜单 */}
-      <ChatFrameContextMenu
-        contextMenu={contextMenu}
-        historyMessages={historyMessages}
-        isSelecting={isSelecting}
-        selectedMessageIds={selectedMessageIds}
-        useChatBubbleStyle={useChatBubbleStyle}
-        onClose={closeContextMenu}
-        onDelete={handleDelete}
-        onToggleSelection={toggleMessageSelection}
-        onReply={handleReply}
-        onMoveMessages={handleMoveMessages}
-        onToggleChatBubbleStyle={toggleChatBubbleStyle}
-        onEditMessage={handleEditMessage}
-        onToggleBackground={toggleBackground}
-        onUnlockCg={toggleUnlockCg}
-        onAddEmoji={handleAddEmoji}
-        onInsertAfter={(messageId) => {
-          setInsertAfterMessageId(messageId);
-        }}
-        onToggleNarrator={handleToggleNarrator}
-      />
-    </div>
+    <ChatFrameView
+      listProps={{
+        historyMessages,
+        virtuosoRef,
+        scrollerRef,
+        isAtBottomRef,
+        isAtTopRef,
+        setCurrentVirtuosoIndex,
+        enableUnreadIndicator,
+        unreadMessageNumber,
+        scrollToBottom,
+        updateLastReadSyncId,
+        roomId,
+        renderMessage,
+        onContextMenu: handleContextMenu,
+        selectedMessageIds,
+        setIsExportImageWindowOpen,
+        setIsForwardWindowOpen,
+        handleBatchDelete,
+        isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
+        isSelecting,
+        onSelectAll: handleSelectAll,
+        onExportFile: handleExportFile,
+        onCancelSelection: exitSelection,
+      }}
+      overlaysProps={{
+        isForwardWindowOpen,
+        setIsForwardWindowOpen,
+        isExportFileWindowOpen,
+        setIsExportFileWindowOpen,
+        isExportImageWindowOpen,
+        setIsExportImageWindowOpen,
+        historyMessages,
+        selectedMessageIds,
+        exitSelection,
+        onForward: handleForward,
+        generateForwardMessage,
+        spaceName,
+        roomName,
+        webgalChooseEditor: {
+          isOpen: isWebgalChooseEditorOpen,
+          options: webgalChooseEditorOptions,
+          error: webgalChooseEditorError,
+          onChangeOption: updateWebgalChooseEditorOption,
+          onAddOption: addWebgalChooseEditorOption,
+          onRemoveOption: removeWebgalChooseEditorOption,
+          onClose: closeWebgalChooseEditor,
+          onSubmit: submitWebgalChooseEditor,
+        },
+      }}
+      contextMenuProps={{
+        contextMenu,
+        historyMessages,
+        isSelecting,
+        selectedMessageIds,
+        onClose: closeContextMenu,
+        onDelete: handleDelete,
+        onToggleSelection: toggleMessageSelection,
+        onReply: handleReply,
+        onMoveMessages: handleMoveMessages,
+        onEditMessage: handleEditMessage,
+        onAddEmoji: handleAddEmoji,
+        onOpenAnnotations: handleOpenAnnotations,
+        onInsertAfter: setInsertAfterMessageId,
+        onToggleNarrator: handleToggleNarrator,
+      }}
+    />
   );
 }
 

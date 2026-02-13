@@ -1,4 +1,4 @@
-# Chat 模块技术文档
+﻿# Chat 模块技术文档
 
 ## 模块概述
 
@@ -82,9 +82,9 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 ## 状态管理（Zustand）
 
-为减少跨组件 props 传递与 Context value 变化导致的级联重渲染，Chat 模块逐步把「高频 UI 状态 / 偏好设置」迁移到 zustand store。
+为减少跨组件 props 传递与 Context value 变化导致的级联重渲染，Chat 模块逐步把「高频 UI ״̬ / 偏好设置」迁移到 zustand store。
 
-### 1) roomUiStore：房间内临时 UI 状态
+### 1) roomUiStore：房间内临时 UI ״̬
 
 文件：app/components/chat/stores/roomUiStore.ts
 
@@ -114,7 +114,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/drawerPreferenceStore.ts
 
-- userDrawerWidth / roleDrawerWidth / threadDrawerWidth / initiativeDrawerWidth / clueDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
+- userDrawerWidth / roleDrawerWidth / threadDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
 - 对应 localStorage key 与字段同名（保持兼容）
 
 相关组件：
@@ -141,7 +141,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/sideDrawerStore.ts
 
-- state：当前右侧抽屉（none/user/role/search/initiative/map/clue/export/webgal）
+- state：当前右侧抽屉（none/user/role/search/initiative/map/export/webgal）
 - 仅在前端内存中维护，不再写入 URL
 
 ### 7) chatInputUiStore：输入框编辑态快照
@@ -162,7 +162,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 为进一步减小 `RoomWindow` 体积并降低局部状态变化带来的级联重渲染，拆出以下组件：
 
 - app/components/chat/roomHeaderBar.tsx：顶部栏（返回、成员/角色/导出按钮、搜索框），内部订阅 sideDrawerStore.state
-- app/components/chat/roomPopWindows.tsx：各类 `PopWindow`（创建 Thread、添加角色、渲染窗口），并在内部订阅 `roomUiStore.isCreateThreadOpen`
+- app/components/chat/roomToastWindows.tsx：各类 `ToastWindow`（创建 Thread、添加角色、渲染窗口），并在内部订阅 `roomUiStore.isCreateThreadOpen`
 - app/components/chat/roomComposerPanel.tsx：输入区整块 UI（工具栏 + 输入框 + 附件预览等），内部订阅 sideDrawerStore.state
 - app/components/chat/roomSideDrawerGuards.tsx：抽屉相关副作用编排（如切换空间/跑团模式时自动关闭特定抽屉），避免 `RoomWindow` 订阅 sideDrawerStore.state
 - app/components/chat/realtimeRenderOrchestrator.tsx：RealtimeRender 编排与 store runtime 镜像，隔离 `useEffect` 与高频运行态
@@ -424,7 +424,7 @@ const imgNode = useMemo(() => {
                                 ↓
                         加载角色和立绘信息
                                 ↓
-                        渲染消息内容（文本/图片/音频）
+                        渲染消息内容（文本/ͼƬ/音频）
                                 ↓
                         添加操作按钮（回复/删除/更多）
                                 ↓
@@ -686,7 +686,7 @@ export interface ChatInputAreaHandle {
 
 4. **实时更新**：
    ```
-   WebSocket 接收状态变化 → 更新 chatStatus 状态
+   WebSocket 接收状态变化 → 更新 chatStatus ״̬
                             ↓
                     StatusBar 自动重新渲染
    ```
@@ -1035,7 +1035,7 @@ function MyComponent() {
 2. **图片消息**：
    ```typescript
    // 普通图片
-   `[图片] -src=${imageUrl};`
+   `[ͼƬ] -src=${imageUrl};`
    
    // 背景图片
    `changeBg:${imageUrl} -next;`
@@ -1391,7 +1391,6 @@ const handleScroll = useThrottledCallback(
 - **搜索**：搜索历史消息
 - **先攻追踪**：TRPG 战斗先攻值追踪
 - **地图**：显示地图和角色位置
-- **线索**：记录剧情线索
 - **导出**：导出聊天记录为 PDF/Markdown
 - **WebGAL 预览**：实时预览 WebGAL 渲染效果
 
@@ -1615,3 +1614,50 @@ await chatHistory.loadHistory(roomId, 100);
 
 **最后更新**：2025年12月10日
 **文档版本**：v1.0.0
+
+---
+
+## Steipete 观点驱动的重构记录（2026-02-01）
+
+参考来源：Peter Steinberger "Building a sustainable codebase: 7 years and counting"（Speaker Deck）
+
+原则对照
+
+1. Boring Is Good / Technology Choices：不引入新依赖，优先拆分现有组件、提炼 hooks。
+2. Refactoring：通过拆分 UI 片段和拖拽逻辑降低单文件复杂度。
+3. Hacks：减少 JSX 内联复杂逻辑，改为显式函数/小组件，降低“临时补丁”式改动。
+4. Code Reviews / Code Formatting：结构清晰、命名明确，方便审阅；保持现有格式规范。
+5. Tests & Continuous Integration：本次为结构重构，无行为变更；暂未新增测试（后续可补 UI 回归测试）。
+6. Saying No to Features：不新增功能，只做结构整理。
+
+变更说明（逐条）
+
+- `app/components/chat/chatFrame.tsx`: 抽离“旁白切换”和“添加表情”到 hooks，减少主组件职责。
+  - 新增 `app/components/chat/hooks/useChatFrameNarratorToggle.tsx`
+  - 新增 `app/components/chat/hooks/useChatFrameEmojiActions.ts`
+- `app/components/chat/chatFrameList.tsx`: 拆分为小组件与拖拽处理 hook：
+  - `DocRefDragOverlay`：文档拖拽遮罩（shared/components + roomDocRefDropLayer 统一）
+  - `SelectionToolbar`：批量操作条
+  - `UnreadIndicator`：未读提示按钮
+  - `useChatFrameListDragHandlers`：集中 drag/drop 逻辑
+- `app/components/chat/hooks/useChatFrameMessageRenderer.tsx`：封装消息渲染回调，减少 `ChatFrame` 中的内联渲染逻辑。
+- `app/components/chat/hooks/useChatFrameMessageMutations.ts`：集中处理删除/更新消息的本地同步逻辑。
+- `app/components/chat/hooks/useChatFrameSelectionContext.ts`：聚合选择态、右键菜单与点击处理，降低 `ChatFrame` 复杂度。
+- `app/components/chat/hooks/useChatFrameIndexing.ts`：集中处理虚拟列表索引映射，减少组件内计算。
+- `app/components/chat/hooks/useChatFrameWebSocket.ts`：封装 WebSocket 工具访问，集中 send/未读计数/同步状态。
+- `app/components/chat/chatFrameView.tsx`：集中页面组合渲染，保持 `ChatFrame` 只负责数据与绑定。
+- `app/components/chat/chatFrameLoadingState.tsx`：抽离加载态 UI，减少主组件 JSX。
+- `app/components/chat/hooks/useChatFrameOverlayState.ts`：集中管理转发/导出弹窗状态。
+
+参考链接
+
+- https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
+
+
+
+
+
+
+
+
+

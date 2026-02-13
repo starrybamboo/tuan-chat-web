@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ws相关消息的接口定义
  */
 // websocket-types.ts
@@ -20,6 +20,8 @@ export enum MessageType {
     WEBGAL_VAR = 11,
     /** 跑团：检定/指令请求消息（点击后由他人“一键发送”执行） */
     COMMAND_REQUEST = 12,
+    /** WebGAL 选择消息（结构化选项） */
+    WEBGAL_CHOOSE = 13,
     CLUE_CARD = 1000,
     THREAD_ROOT = 10001,
 }
@@ -27,7 +29,7 @@ export enum MessageType {
 /**
  * WebSocket消息基础接口
  */
-export interface BaseMessage<T> {
+interface BaseMessage<T> {
     type: number;
     data: T;
 }
@@ -37,12 +39,12 @@ export interface BaseMessage<T> {
  */
 
 // 心跳包 (type: 2)
-export interface HeartbeatMessage extends BaseMessage<{}> {
+interface HeartbeatMessage extends BaseMessage<{}> {
     type: 2;
 }
 
 // 聊天消息 (type: 3)
-export interface ChatMessage extends BaseMessage<{
+interface ChatMessage extends BaseMessage<{
     roomId: number;
     /** Thread Root MessageId；为空表示主消息流 */
     threadId?: number;
@@ -50,6 +52,10 @@ export interface ChatMessage extends BaseMessage<{
     roleId: number;
     avatarId: number;
     content: string;
+    /** 消息标注 */
+    annotations?: string[];
+    /** 自定义角色名（为空则使用角色名） */
+    customRoleName?: string;
     replayMessageId?: number;
     /** WebGAL 相关演出设置/指令等（后端为 JSON 字段，透传即可） */
     webgal?: any;
@@ -59,7 +65,7 @@ export interface ChatMessage extends BaseMessage<{
 }
 
 // 聊天状态控制 (type: 4)
-export interface ChatStatusMessage extends BaseMessage<{
+interface ChatStatusMessage extends BaseMessage<{
     roomId: number;
     userId: number;
     status: string;
@@ -69,7 +75,7 @@ export interface ChatStatusMessage extends BaseMessage<{
 }
 
 // 私聊消息 (type: 5)
-export interface PrivateMessage extends BaseMessage<{
+interface PrivateMessage extends BaseMessage<{
     messageId: number;
     userId: number;
     syncId: number;
@@ -96,7 +102,7 @@ export interface PrivateMessage extends BaseMessage<{
 }
 
 // 志愿者注册 (type: 10000)
-export interface VolunteerRegisterMessage extends BaseMessage<{
+interface VolunteerRegisterMessage extends BaseMessage<{
     volunteerName: string;
     capabilities: string[];
     maxConcurrentTasks: number;
@@ -105,7 +111,7 @@ export interface VolunteerRegisterMessage extends BaseMessage<{
 }
 
 // 志愿者心跳 (type: 10001)
-export interface VolunteerHeartbeatMessage extends BaseMessage<{
+interface VolunteerHeartbeatMessage extends BaseMessage<{
     status: 'ACTIVE' | 'BUSY' | 'IDLE';
     currentTasks: number;
     systemInfo: {
@@ -118,7 +124,7 @@ export interface VolunteerHeartbeatMessage extends BaseMessage<{
 }
 
 // 请求任务 (type: 10002)
-export interface RequestTaskMessage extends BaseMessage<{
+interface RequestTaskMessage extends BaseMessage<{
     capabilities: string[];
     maxTasks: number;
     priority?: number;
@@ -127,7 +133,7 @@ export interface RequestTaskMessage extends BaseMessage<{
 }
 
 // 提交任务结果 (type: 10003)
-export interface SubmitTaskResultMessage extends BaseMessage<{
+interface SubmitTaskResultMessage extends BaseMessage<{
     taskId: number;
     resultData: string;
     executionDuration: number;
@@ -138,7 +144,7 @@ export interface SubmitTaskResultMessage extends BaseMessage<{
 }
 
 // 任务分配 (type: 10004)
-export interface TaskAssignmentMessage extends BaseMessage<{
+interface TaskAssignmentMessage extends BaseMessage<{
     taskId: number;
     taskType: string;
     inputData: string;
@@ -149,7 +155,7 @@ export interface TaskAssignmentMessage extends BaseMessage<{
 }
 
 // 任务取消 (type: 10005)
-export interface TaskCancelMessage extends BaseMessage<{
+interface TaskCancelMessage extends BaseMessage<{
     taskId: number;
     reason: string;
 }> {
@@ -161,7 +167,7 @@ export interface TaskCancelMessage extends BaseMessage<{
  */
 
 // 私聊新消息 (type: 1)
-export interface PrivateMessagePush extends BaseMessage<{
+interface PrivateMessagePush extends BaseMessage<{
     messageId: number;
     userId: number;
     syncId: number;
@@ -178,7 +184,7 @@ export interface PrivateMessagePush extends BaseMessage<{
 }
 
 // 群聊新消息 (type: 4)
-export interface GroupMessagePush extends BaseMessage<{
+interface GroupMessagePush extends BaseMessage<{
     message: {
         messageId: number;
         syncId: number;
@@ -238,7 +244,7 @@ export interface RoomDismissPush extends BaseMessage<{
 }
 
 // 房间extra变动 (type: 15)
-export interface RoomExtraChangePush extends BaseMessage<{
+interface RoomExtraChangePush extends BaseMessage<{
     roomId: number;
     type: 1 | 2;
     key: string;
@@ -247,7 +253,7 @@ export interface RoomExtraChangePush extends BaseMessage<{
 }
 
 // 房间禁言状态变动 (type: 16)
-export interface RoomMuteStatusPush extends BaseMessage<{
+interface RoomMuteStatusPush extends BaseMessage<{
     roomId: number;
     status: 0 | 1;
 }> {
@@ -255,13 +261,34 @@ export interface RoomMuteStatusPush extends BaseMessage<{
 }
 
 // 成员的发言状态 (type: 17)
-export interface MemberChatStatusPush extends BaseMessage<{
+interface MemberChatStatusPush extends BaseMessage<{
     roomId: number;
     userId: number;
     status: string;
     windowId: string;
 }> {
     type: 17;
+}
+
+// 房间DND地图变更 (type: 19)
+interface RoomDndMapChangePush extends BaseMessage<{
+    roomId: number;
+    op: "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+    map?: {
+        mapImgUrl?: string;
+        gridRows?: number;
+        gridCols?: number;
+        gridColor?: string;
+    };
+    token?: {
+        roleId: number;
+        rowIndex: number;
+        colIndex: number;
+    };
+    clearTokens?: boolean;
+    updatedAt?: number;
+}> {
+    type: 19;
 }
 
 // 空间频道树变更 (type: 22)
@@ -274,7 +301,7 @@ export interface SpaceSidebarTreeUpdatedPush extends BaseMessage<{
 }
 
 // 模组角色变动 (type: 18)
-export interface ModRoleChangePush extends BaseMessage<{}> {
+interface ModRoleChangePush extends BaseMessage<{}> {
     type: 18;
 }
 
@@ -288,44 +315,44 @@ export interface NewFriendRequestPush extends BaseMessage<{
 }
 
 // 志愿者注册成功 (type: 20000)
-export interface VolunteerRegisterSuccessPush extends BaseMessage<null> {
+interface VolunteerRegisterSuccessPush extends BaseMessage<null> {
     type: 20000;
 }
 
 // 志愿者心跳ACK (type: 20001)
-export interface VolunteerHeartbeatAckPush extends BaseMessage<null> {
+interface VolunteerHeartbeatAckPush extends BaseMessage<null> {
     type: 20001;
 }
 
 // 任务分配推送 (type: 20002)
-export interface TaskAssignmentPush extends BaseMessage<null> {
+interface TaskAssignmentPush extends BaseMessage<null> {
     type: 20002;
 }
 
 // 任务取消推送 (type: 20003)
-export interface TaskCancelPush extends BaseMessage<null> {
+interface TaskCancelPush extends BaseMessage<null> {
     type: 20003;
 }
 
 // 任务进度更新 (type: 20004)
-export interface TaskProgressPush extends BaseMessage<null> {
+interface TaskProgressPush extends BaseMessage<null> {
     type: 20004;
 }
 
 // 任务结果确认 (type: 20005)
-export interface TaskResultConfirmPush extends BaseMessage<null> {
+interface TaskResultConfirmPush extends BaseMessage<null> {
     type: 20005;
 }
 
-// token失效 (type: 100)
-export interface TokenInvalidPush extends BaseMessage<null> {
+// tokenʧЧ (type: 100)
+interface TokenInvalidPush extends BaseMessage<null> {
     type: 100;
 }
 
 /**
  * 联合类型 - 所有客户端发送消息
  */
-export type ClientWebSocketMessage =
+type ClientWebSocketMessage =
     | HeartbeatMessage
     | ChatMessage
     | ChatStatusMessage
@@ -340,7 +367,7 @@ export type ClientWebSocketMessage =
 /**
  * 联合类型 - 所有服务端推送消息
  */
-export type ServerWebSocketMessage =
+type ServerWebSocketMessage =
     | PrivateMessagePush
     | GroupMessagePush
     | MemberChangePush
@@ -350,6 +377,7 @@ export type ServerWebSocketMessage =
     | RoomMuteStatusPush
     | MemberChatStatusPush
     | ModRoleChangePush
+    | RoomDndMapChangePush
     | NewFriendRequestPush
     | VolunteerRegisterSuccessPush
     | VolunteerHeartbeatAckPush
@@ -362,7 +390,7 @@ export type ServerWebSocketMessage =
 /**
  * 联合类型 - 所有WebSocket消息
  */
-export type WebSocketMessage = ClientWebSocketMessage | ServerWebSocketMessage;
+type WebSocketMessage = ClientWebSocketMessage | ServerWebSocketMessage;
 
 
 /**
@@ -373,7 +401,7 @@ export type WebSocketMessage = ClientWebSocketMessage | ServerWebSocketMessage;
  * 客户端发送给服务端的聊天状态变更请求。
  * Corresponds to message type 4.
  */
-export interface ChatStatusRequest {
+interface ChatStatusRequest {
     roomId: number;  // 目标房间ID
     userId: number;  // 发送状态变更的用户ID
     status: number;  // 新的聊天状态码 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离)
@@ -424,5 +452,28 @@ export interface RoomExtraChangeEvent {
     type: number;   // 变更类型 (1:更新/新增, 2:删除)
     key: string;    // 变更内容的键名
 }
+
+/**
+ * 房间DND地图变更事件。
+ * Corresponds to message type 19.
+ */
+export interface RoomDndMapChangeEvent {
+    roomId: number;
+    op: "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+    map?: {
+        mapImgUrl?: string;
+        gridRows?: number;
+        gridCols?: number;
+        gridColor?: string;
+    };
+    token?: {
+        roleId: number;
+        rowIndex: number;
+        colIndex: number;
+    };
+    clearTokens?: boolean;
+    updatedAt?: number;
+}
+
 
 

@@ -26,12 +26,12 @@
 
 #### 场景: Web 环境加载模型列表
 用户在浏览器访问 `/ai-image` 并触发模型列表拉取：
-- `/api/novelapi/user/clientsettings` 的 `X-NovelAPI-Endpoint` 为 `https://api.novelai.net`
+- `/api/novelapi/user/clientsettings` 的 `X-NovelAPI-Endpoint` Ϊ `https://api.novelai.net`
 - 不再出现 `502 Bad Gateway`（上游可用且 token 有效时）
 
 #### 场景: Electron 环境加载模型列表
 Electron 渲染进程调用 `novelai:get-clientsettings`：
-- 主进程请求的 endpoint 为 `https://api.novelai.net`
+- 主进程请求的 endpoint Ϊ `https://api.novelai.net`
 - 可正常返回 settings 并提取模型列表（上游可用且 token 有效时）
 
 ## 风险评估

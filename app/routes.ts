@@ -7,6 +7,7 @@ const ENABLE_AI_IMAGE_ROUTE = import.meta.env.DEV;
 export default [
   // Blocksuite iframe: used for strong style isolation.
   route("blocksuite-frame", "routes/blocksuiteFrame.tsx"),
+  route("room-map/:spaceId/:roomId", "routes/roomMapFrame.tsx"),
 
   // Dedicated login page (avoid wrapping by dashboard layout to prevent double modals).
   route("login", "routes/login.tsx"),
@@ -35,9 +36,19 @@ export default [
       ]),
     ]),
 
-    route("module", "routes/module/index.tsx"),
-    route("module/detail/:id?", "routes/module/detail.tsx"),
-    route("chat/:spaceId?/:roomId?/:messageId?", "routes/chat.tsx"),
+    route("repository", "routes/repository/index.tsx"),
+    route("repository/detail/:id?", "routes/repository/detail.tsx"),
+    route("repository/create", "routes/repository/create.tsx"),
+    ...prefix("chat", [
+      route("discover/my", "routes/chatDiscoverMy.tsx"),
+      route("discover", "routes/chatDiscover.tsx"),
+      layout("routes/chatLayout.tsx", [
+        index("routes/chat.tsx"),
+        route(":spaceId/doc/:docId", "routes/chatDoc.tsx"),
+        route(":spaceId/:roomId/setting", "routes/chatRoomSetting.tsx"),
+        route(":spaceId/:roomId?/:messageId?", "routes/chatSpace.tsx"),
+      ]),
+    ]),
     route("community/:communityId?", "routes/community.tsx"),
     route("community/create", "routes/communityCreatePost.tsx"),
     route("community/:communityId/:postId", "routes/communityPost.tsx"),
@@ -45,9 +56,7 @@ export default [
     route("collection", "routes/collection.tsx"),
     route("resource", "routes/resource.tsx"),
     route("doc/:spaceId/:docId", "routes/doc.tsx"),
-    route("doc-test", "routes/docTest.tsx"),
     ...(ENABLE_AI_IMAGE_ROUTE ? [route("ai-image", "routes/aiImage.tsx")] : []),
-    route("blocksuite-playground", "routes/blocksuitePlayground.tsx"),
     route("invite/:code", "routes/invite.tsx"),
   ]),
 ] satisfies RouteConfig;

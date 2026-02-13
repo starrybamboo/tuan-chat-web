@@ -77,7 +77,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
     try {
       setIsUploadingImage(true);
       setCoverImageFile(file);
-      const imageUrl = await uploadUtils.uploadImg(file, 4); // scene 4 表示模组图片
+      const imageUrl = await uploadUtils.uploadImg(file, 4); // scene 4 表示仓库图片
       setCoverImage(imageUrl);
     }
     catch (error) {
@@ -307,7 +307,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
                   <span>
                     此素材集将用于存储
                     {resourceType === "5"
-                      ? "图片"
+                      ? "ͼƬ"
                       : "音频"}
                     资源
                   </span>

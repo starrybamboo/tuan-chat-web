@@ -18,7 +18,7 @@ interface UserPostsListProps {
 /**
  * 用户帖子列表组件 - 使用卡片布局
  */
-export const PostsList: React.FC<UserPostsListProps> = ({
+const PostsList: React.FC<UserPostsListProps> = ({
   userId,
   onPostClick,
 }) => {

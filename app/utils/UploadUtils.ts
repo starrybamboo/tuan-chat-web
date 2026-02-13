@@ -1,14 +1,38 @@
 import { Md5 } from "ts-md5";
 
+import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
+import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { compressImage } from "@/utils/imgCompressUtils";
 
 import { tuanchat } from "../../api/instance";
 
 export class UploadUtils {
+  private getAudioExtension(file: File): string {
+    const type = (file.type || "").toLowerCase();
+    if (type === "audio/mpeg")
+      return "mp3";
+    if (type === "audio/wav" || type === "audio/x-wav")
+      return "wav";
+    if (type === "audio/mp4")
+      return "m4a";
+    if (type === "audio/aac")
+      return "aac";
+    if (type === "audio/ogg")
+      return "ogg";
+    if (type === "audio/webm")
+      return "webm";
+
+    const match = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    if (match?.[1])
+      return match[1];
+
+    return "audio";
+  }
+
   /**
    * 上传音频文件
    * @param file 音频文件
-   * @param scene 上传场景 1.聊天室,2.表情包，3.角色差分 4.模组图片（暂时使用场景1）
+   * @param scene 上传场景 1.聊天室,2.表情包，3.角色差分 4.仓库图片（暂时使用场景1）
    * @param maxDuration 最大时长（秒），默认30秒
    */
   async uploadAudio(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<string> {
@@ -17,8 +41,36 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
-    // 检查并截断音频时长
-    const processedFile = await this.processAudioDuration(file, maxDuration);
+    // 保护：避免超大文件导致浏览器内存/wasm 失败（转码需要把输入放入 wasm FS）
+    const maxInputBytes = 30 * 1024 * 1024; // 30MB
+    if (file.size > maxInputBytes) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
+    }
+
+    // 统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
+    const debugEnabled = isAudioUploadDebugEnabled();
+    const debugPrefix = "[tc-audio-upload]";
+    if (debugEnabled)
+      console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, { name: file.name, type: file.type, size: file.size, maxDuration, scene });
+
+    const execTimeoutMs = maxDuration > 0
+      ? Math.max(60_000, Math.min(240_000, Math.floor(maxDuration * 4_000)))
+      : Math.max(120_000, Math.min(600_000, Math.floor((file.size / 1024 / 1024) * 20_000)));
+
+    const processedFile = await transcodeAudioFileToOpusOrThrow(file, {
+      maxDurationSec: maxDuration,
+      loadTimeoutMs: 45_000,
+      execTimeoutMs,
+      // 更狠的默认压缩：更低目标码率 + 降采样（不兼容 Safari）
+      bitrateKbps: 48,
+      sampleRateHz: 32000,
+      // 目标：尽量比输入更小（否则按“阻止上传”策略处理）
+      // 太小的文件可能被容器开销反噬，跳过严格约束避免误伤
+      preferSmallerThanBytes: file.size >= 48 * 1024 ? file.size : undefined,
+    });
+    if (debugEnabled)
+      console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size });
 
     // 1. 计算文件内容的哈希值
     const hash = await this.calculateFileHash(processedFile);
@@ -26,33 +78,84 @@ export class UploadUtils {
     // 2. 获取文件大小
     const fileSize = processedFile.size;
 
-    // 3. 安全地获取文件扩展名
-    const extension = processedFile.name.split(".").pop() || "wav"; // 音频默认使用 wav
+    // 3. 构造新的唯一文件名：hash_size.webm（WebM 容器 + Opus 编码）
+    const newFileName = `${hash}_${fileSize}.webm`;
 
-    // 4. 构造新的唯一文件名：hash_size.extension
+    if (debugEnabled)
+      console.warn(`${debugPrefix} oss`, { fileName: newFileName });
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+      dedupCheck: true,
+    });
+
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
+    }
+    if (debugEnabled)
+      console.warn(`${debugPrefix} uploadUrl`, ossData.data.uploadUrl);
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, processedFile);
+    }
+    else if (debugEnabled) {
+      console.warn(`${debugPrefix} dedup hit: skip upload`, { fileName: newFileName });
+    }
+
+    if (debugEnabled)
+      console.warn(`${debugPrefix} downloadUrl`, ossData.data.downloadUrl);
+
+    if (debugEnabled) {
+      const url = ossData.data.downloadUrl;
+      if (!/\.webm(?:\?|#|$)/i.test(url)) {
+        console.warn(`${debugPrefix} unexpected downloadUrl extension (expect .webm)`, { url, fileName: newFileName });
+      }
+    }
+    return ossData.data.downloadUrl;
+  }
+
+  /**
+   * 上传原始音频文件（不做 Opus 转码）
+   * - 用于“语音参考文件”等不适合被统一转码的场景
+   */
+  async uploadAudioOriginal(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    if (!file.type.startsWith("audio/")) {
+      throw new Error("只支持音频文件格式");
+    }
+
+    const maxInputBytes = 30 * 1024 * 1024; // 30MB
+    if (file.size > maxInputBytes) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
+    }
+
+    const hash = await this.calculateFileHash(file);
+    const fileSize = file.size;
+    const extension = this.getAudioExtension(file);
     const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: newFileName,
       scene,
+      dedupCheck: true,
     });
 
-    if (!ossData.data?.uploadUrl) {
-      throw new Error("获取上传地址失败");
-    }
-
-    await this.executeUpload(ossData.data.uploadUrl, processedFile);
-
-    if (!ossData.data.downloadUrl) {
+    if (!ossData.data?.downloadUrl) {
       throw new Error("获取下载地址失败");
     }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, file);
+    }
+
     return ossData.data.downloadUrl;
   }
 
   /**
    * 上传图片
    * @param file img文件
-   * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.模组图片
+   * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.仓库图片
    * @param quality 质量
    * @param maxSize 最大的宽高（px）
    */
@@ -197,14 +300,24 @@ export class UploadUtils {
   }
 
   private async executeUpload(url: string, file: File): Promise<void> {
-    const response = await fetch(url, {
-      method: "PUT",
-      body: file,
-      headers: {
-        "Content-Type": file.type,
-        "x-oss-acl": "public-read",
-      },
-    });
+    const controller = new AbortController();
+    const t = globalThis.setTimeout(() => controller.abort(), 120_000);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "PUT",
+        body: file,
+        signal: controller.signal,
+        headers: {
+          "Content-Type": file.type,
+          "x-oss-acl": "public-read",
+        },
+      });
+    }
+    finally {
+      globalThis.clearTimeout(t);
+    }
 
     if (!response.ok) {
       throw new Error(`文件传输失败: ${response.status}`);

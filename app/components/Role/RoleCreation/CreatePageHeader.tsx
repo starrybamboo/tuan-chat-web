@@ -56,9 +56,11 @@ export default function CreatePageHeader({
                   : "bg-info/70 text-info-content"
               }`}
               onClick={button.onClick}
+              disabled={button.disabled}
               title={button.label}
             >
               <span className="flex items-center gap-1">
+                {button.icon}
                 <span className="hidden md:inline">{button.label}</span>
               </span>
             </button>

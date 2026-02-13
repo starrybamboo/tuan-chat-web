@@ -1,5 +1,13 @@
 lint.out
 
+# Agent skills (local only)
+.agents/skills/
+.agent/skills/
+.codex/skills/
+.claude/skills/
+.cline/skills/
+.codebuddy/skills/
+
 .DS_Store
 /node_modules/
 /builder/
@@ -379,3 +387,4 @@ local.properties
 
 /android/app/release
 tuan-chat-web.code-workspace
+AGENT.md

@@ -1,9 +1,13 @@
 import type { RoleAvatar } from "api";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { Transform } from "../TransformControl";
+import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { withOssResizeProcess } from "@/utils/ossImageProcess";
+import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
 
 interface RenderTransform {
@@ -12,6 +16,13 @@ interface RenderTransform {
   positionY: number;
   alpha: number;
   rotation: number;
+}
+
+interface ReplaceAvatarPayload {
+  avatarUrl: string;
+  spriteUrl: string;
+  originUrl?: string;
+  transform?: Transform;
 }
 
 const DEFAULT_TRANSFORM: RenderTransform = {
@@ -43,11 +54,11 @@ export function PreviewTab({
   currentAvatar,
   characterName,
   onAvatarChange,
-  // onPreview,
+  onPreview,
   onApply,
 }: PreviewTabProps) {
   // 预览模式: 'sprite' | 'avatar' | 'render'
-  const [previewMode, setPreviewMode] = useState<"sprite" | "avatar" | "render">("sprite");
+  const [previewMode, setPreviewMode] = useState<"sprite" | "avatar" | "render">("render");
 
   const spriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
   const avatarUrl = currentAvatar?.avatarUrl || null;
@@ -79,6 +90,12 @@ export function PreviewTab({
       ? (parseTransformFromAvatar(currentAvatar) as RenderTransform)
       : DEFAULT_TRANSFORM;
   }, [currentAvatar]);
+  const roleIdForMutation = currentAvatar?.roleId ?? 0;
+  const { mutateAsync: updateAvatar, isPending: isReplacing } = useUpdateRoleAvatarMutation(roleIdForMutation);
+  const replaceStateKey = useMemo(
+    () => `roleAvatarReplacePreview-${currentAvatar?.avatarId ?? "unknown"}`,
+    [currentAvatar?.avatarId],
+  );
 
   // Render preview should avoid showing: old image + new transform (or vice versa).
   // So we only update the transform after the new sprite image is ready to draw.
@@ -256,11 +273,47 @@ export function PreviewTab({
     return "立绘";
   };
 
-  // // 处理展示预览（同步外部索引并关闭弹窗）
-  // const handlePreview = () => {
-  //   onPreview?.();
-  //   onApply?.();
-  // };
+  const handleReplaceAvatar = useCallback(async (payload: ReplaceAvatarPayload) => {
+    if (!currentAvatar?.avatarId || !roleIdForMutation) {
+      toast.error("当前头像信息缺失，无法修改");
+      return;
+    }
+
+    const nextTransform = payload.transform ?? {
+      scale: currentAvatar.spriteScale ?? 1,
+      positionX: currentAvatar.spriteXPosition ?? 0,
+      positionY: currentAvatar.spriteYPosition ?? 0,
+      alpha: currentAvatar.spriteTransparency ?? 1,
+      rotation: currentAvatar.spriteRotation ?? 0,
+    };
+
+    try {
+      await updateAvatar({
+        ...currentAvatar,
+        roleId: roleIdForMutation,
+        avatarId: currentAvatar.avatarId,
+        avatarUrl: payload.avatarUrl || currentAvatar.avatarUrl || "",
+        spriteUrl: payload.spriteUrl || currentAvatar.spriteUrl || "",
+        originUrl: payload.originUrl ?? currentAvatar.originUrl,
+        spriteXPosition: nextTransform.positionX,
+        spriteYPosition: nextTransform.positionY,
+        spriteScale: nextTransform.scale,
+        spriteTransparency: nextTransform.alpha,
+        spriteRotation: nextTransform.rotation,
+      });
+      toast.success("头像已修改");
+    }
+    catch (error) {
+      console.error("修改头像失败:", error);
+      toast.error("修改失败，请稍后重试");
+    }
+  }, [currentAvatar, roleIdForMutation, updateAvatar]);
+
+  // 处理展示预览（同步外部索引并关闭弹窗）
+  const handlePreview = () => {
+    onPreview?.();
+    onApply?.();
+  };
 
   // 处理应用头像（真正更改角色头像）
   const handleApplyAvatar = () => {
@@ -279,7 +332,7 @@ export function PreviewTab({
         </h3>
         <button
           type="button"
-          className="btn btn-sm btn-ghost gap-2"
+          className="btn btn-sm btn-ghost gap-2 rounded-md"
           onClick={cyclePreviewMode}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -376,14 +429,30 @@ export function PreviewTab({
 
       {/* 操作按钮 */}
       <div className="mt-4 flex justify-end gap-2 shrink-0">
-        {/* <button
+        {currentAvatar?.avatarId && (
+          <CharacterCopper
+            fileName={`avatar-replace-${currentAvatar.avatarId}-${Date.now()}`}
+            scene={3}
+            mutate={handleReplaceAvatar}
+            stateKey={replaceStateKey}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary rounded-md"
+              disabled={isReplacing}
+            >
+              {isReplacing ? "替换中..." : "替换头像"}
+            </button>
+          </CharacterCopper>
+        )}
+        <button
           type="button"
           className="btn btn-secondary rounded-md"
           onClick={handlePreview}
           disabled={!currentAvatar}
         >
           展示预览
-        </button> */}
+        </button>
         <button
           type="button"
           className="btn btn-primary rounded-md"

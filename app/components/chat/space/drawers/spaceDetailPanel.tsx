@@ -8,7 +8,7 @@ import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
-import { PopWindow } from "@/components/common/popWindow";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { BaselineArrowBackIosNew } from "@/icons";
 import {
   useAddSpaceMemberMutation,
@@ -115,19 +115,19 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
       </div>
       {resolvedTab === "members" && (
-        <div className="h-full space-y-2 p-4 overflow-y-auto">
+        <div className="h-full space-y-2 overflow-y-auto">
           <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
       )}
 
       {resolvedTab === "setting" && spaceContext.isSpaceOwner && (
-        <div className="h-full p-4 overflow-y-auto">
+        <div className="h-full  overflow-y-auto">
           <SpaceSettingWindow onClose={onClose} />
         </div>
       )}
 
       {resolvedTab === "workflow" && (
-        <div className="h-full p-4 overflow-y-auto">
+        <div className="h-full overflow-y-auto">
           <WorkflowWindow></WorkflowWindow>
         </div>
       )}
@@ -138,10 +138,10 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
         </div>
       )}
 
-      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
+      <ToastWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
-      </PopWindow>
-      <PopWindow
+      </ToastWindow>
+      <ToastWindow
         isOpen={isMemberHandleOpen}
         onClose={() => {
           setIsMemberHandleOpen(false);
@@ -195,7 +195,7 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
           )}
           <AddMemberWindow handleAddMember={userId => (inviteMemberMode === "spectator" ? handleAddMember(userId) : handleAddPlayer(userId))}></AddMemberWindow>
         </div>
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

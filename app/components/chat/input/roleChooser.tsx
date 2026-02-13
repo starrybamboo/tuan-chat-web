@@ -40,10 +40,11 @@ export default function RoleChooser({
             <div className="w-full">
               <RoleAvatarComponent
                 avatarId={role.avatarId ?? 0}
+                roleId={role.roleId}
                 width={10}
                 isRounded={false}
                 withTitle={false}
-                stopPopWindow={true}
+                stopToastWindow={true}
               >
               </RoleAvatarComponent>
               <div>{role.roleName}</div>

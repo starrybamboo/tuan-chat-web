@@ -13,7 +13,9 @@ import {
   useLocation,
   useNavigate,
 } from "react-router";
+import BgmPlaybackRegistry from "@/components/chat/infra/bgm/bgmPlaybackRegistry";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
+import AudioFloatingBall from "@/components/common/audioFloatingBall";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
@@ -36,7 +38,9 @@ if (typeof window !== "undefined" && window.customElements) {
 // pinpoint which module instance is triggering the warning.
 if (typeof window !== "undefined" && import.meta.env.DEV) {
   const originalWarn = console.warn;
+  const originalError = console.error;
   let printedLitMultiStack = false;
+  let printedNaNChildrenStack = false;
 
   console.warn = (...args: unknown[]) => {
     try {
@@ -53,6 +57,23 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
     }
 
     originalWarn(...args);
+  };
+
+  console.error = (...args: unknown[]) => {
+    try {
+      const first = typeof args[0] === "string" ? (args[0] as string) : "";
+      if (!printedNaNChildrenStack && first.includes("Received NaN for the `children` attribute")) {
+        printedNaNChildrenStack = true;
+        originalError(...args);
+        originalError(`[tc] NaN children warn stack:\n${new Error("NaN children warn stack").stack ?? ""}`);
+        return;
+      }
+    }
+    catch {
+      // ignore
+    }
+
+    originalError(...args);
   };
 }
 
@@ -83,6 +104,17 @@ export const links: Route.LinksFunction = () => (
       ]
     : []
 );
+
+export function HydrateFallback() {
+  return (
+    <div className="min-h-screen bg-base-200 flex items-center justify-center">
+      <div className="flex items-center gap-2 text-base-content/70">
+        <span className="loading loading-spinner loading-md" aria-label="Loading" />
+        <span>Loading...</span>
+      </div>
+    </div>
+  );
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -134,6 +166,7 @@ export default function App() {
       <>
         <Outlet />
         <div id="modal-root"></div>
+        <ToastWindowRenderer />
       </>
     );
   }
@@ -142,13 +175,15 @@ export default function App() {
     <GlobalContextProvider>
       {/* <Topbar></Topbar> */}
       <Outlet />
-      {/* 挂载popWindow的地方 */}
+      {/* 挂载ToastWindow的地方 */}
       <div id="modal-root"></div>
       {/* 挂载sideDrawer的地方 */}
       <div id="side-drawer"></div>
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
+      <BgmPlaybackRegistry />
+      <AudioFloatingBall />
     </GlobalContextProvider>
   );
 }

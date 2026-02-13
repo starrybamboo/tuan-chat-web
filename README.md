@@ -72,7 +72,7 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 pnpm dev
 ```
 
-项目已预先配置了 `husky` 和 `lint-staged`，以便在每次提交前运行 lint。
+项目已预先配置了 `husky` 和 `lint-staged`，以便在每次提交前运行 lint，并执行编码/乱码检测（`node ./scripts/check-encoding.mjs`）。
 
 如果因为 lint 错误而提交失败，可以运行以下命令修复错误：
 
@@ -101,7 +101,7 @@ pnpm lint:fix
 websocket的utils
 
 - 已支持好友申请推送（WS `type=21`）的基础处理（缓存刷新钩子）。
-- 为了方便排查“还有哪些 WS 类型没处理”，会把已实现/未处理类型与最近消息记录到 `window.__TC_WS_DEBUG__`，并在首次遇到未知 `type` 时 `console.warn`。
+- 为了方便排查“还有哪些 WS 类型没处理”，会把已实现/未处理类型与最近消息记录到 `window.__TC_WS_DEBUG__`，并在首次遇到未知 `type` ʱ `console.warn`。
 
 ### hooks/\*\* ，useQueryHooks.tsx
 

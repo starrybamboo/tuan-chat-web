@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite @ 提及调试日志
 
-目录: `helloagents/plan/202601171438_blocksuite-mention-debug/`
+Ŀ¼: `helloagents/plan/202601171438_blocksuite-mention-debug/`
 
 ---
 

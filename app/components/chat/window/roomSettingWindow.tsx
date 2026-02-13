@@ -2,7 +2,7 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import {
   useGetMemberListQuery,
   useGetRoomInfoQuery,
-  useGetRoomModuleRoleQuery,
+  useGetRoomNpcRoleQuery,
   useGetRoomRoleQuery,
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
@@ -38,7 +38,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   const roomRolesQuery = useGetRoomRoleQuery(propRoomId ?? -1);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
   // 获取房间NPC角色
-  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(propRoomId ?? -1);
+  const roomNpcRolesQuery = useGetRoomNpcRoleQuery(propRoomId ?? -1);
   const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
 
   // 获取用户的所有角色
@@ -204,7 +204,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                             allowModeSwitch
                             fullscreenEdgeless
                             variant="full"
-                            className="h-full"
                             tcHeader={{ enabled: true, fallbackTitle: room?.name ?? "", fallbackImageUrl: room?.avatar ?? "" }}
                             onTcHeaderChange={({ header }) => {
                               scheduleRoomRedundantSync({ title: header.title, imageUrl: header.imageUrl });

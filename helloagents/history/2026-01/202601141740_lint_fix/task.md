@@ -1,6 +1,6 @@
 # 任务清单: lint_fix
 
-目录: `helloagents/plan/202601141740_lint_fix/`
+Ŀ¼: `helloagents/plan/202601141740_lint_fix/`
 
 ---
 

@@ -123,7 +123,7 @@ export default function CollectionList({ selectedId, onSelect, onAddCollection }
                       <div className="whitespace-nowrap">
                         第
                         {pageIndex}
-                        页
+                        ҳ
                       </div>
                       <button type="button" disabled={isLast}><Arrowright className="w-6 h-6 cursor-pointer text-gray-300" onClick={() => setPageIndex(prev => prev + 1)} /></button>
                     </div>

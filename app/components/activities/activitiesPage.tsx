@@ -11,7 +11,7 @@ import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activ
  * 动态页面的入口文件（自动在剩 RENDER_MIN 个动态时加载更多）
  */
 function ActivitiesPage() {
-  const [activeTab, setActiveTab] = useState<"all" | "module">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "repository">("all");
   const loginUserId = useGlobalContext().userId ?? -1;
   const RENDER_MIN = 3;
   // 固定请求参数引用，避免 queryKey 抖动导致重复拉第一页
@@ -33,7 +33,7 @@ function ActivitiesPage() {
     const allActivities = feedData?.pages.flatMap(page => page?.data?.list || []) || [];
 
     // 根据 activeTab 筛选内容
-    if (activeTab === "module") {
+    if (activeTab === "repository") {
       return allActivities.filter(item => item?.type === 5);
     }
 
@@ -132,14 +132,14 @@ function ActivitiesPage() {
                 </button>
                 <button
                   className={`font-medium border-b-2 pb-2 transition-colors ${
-                    activeTab === "module"
+                    activeTab === "repository"
                       ? "text-primary border-primary"
                       : "text-base-content/70 hover:text-primary border-transparent"
                   }`}
-                  onClick={() => setActiveTab("module")}
+                  onClick={() => setActiveTab("repository")}
                   type="button"
                 >
-                  模组动态
+                  仓库动态
                 </button>
               </div>
             </div>
@@ -202,8 +202,8 @@ function ActivitiesPage() {
                       )
                     : (
                         <>
-                          <p className="text-base-content/60">还没有模组动态</p>
-                          <p className="text-base-content/40 text-sm">关注的用户还没有发布模组相关的动态</p>
+                          <p className="text-base-content/60">还没有仓库动态</p>
+                          <p className="text-base-content/40 text-sm">关注的用户还没有发布仓库相关的动态</p>
                         </>
                       )}
                 </div>

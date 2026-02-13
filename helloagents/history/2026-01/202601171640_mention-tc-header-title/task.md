@@ -1,6 +1,6 @@
 # 任务清单: @ 提及菜单标题使用 tc_header
 
-目录: `helloagents/plan/202601171640_mention-tc-header-title/`
+Ŀ¼: `helloagents/plan/202601171640_mention-tc-header-title/`
 
 ---
 

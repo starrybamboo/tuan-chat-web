@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -7,7 +8,6 @@ import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../ap
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/UserFollower";
-import { PopWindow } from "./popWindow";
 
 interface UserDetailProps {
   userId: number;
@@ -181,7 +181,7 @@ export function UserDetail({ userId }: UserDetailProps) {
           </div>
         )}
       </div>
-      <PopWindow
+      <ToastWindow
         isOpen={isFFWindowOpen}
         onClose={() => {
           setIsFFWindowOpen(false);
@@ -190,7 +190,7 @@ export function UserDetail({ userId }: UserDetailProps) {
         }}
       >
         <UserFollower activeTab="following" userId={userId} />
-      </PopWindow>
+      </ToastWindow>
     </div>
   );
 }

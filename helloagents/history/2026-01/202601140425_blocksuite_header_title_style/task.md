@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite tcHeader 替代内置标题并对齐样式
 
-目录: `helloagents/plan/202601140425_blocksuite_header_title_style/`
+Ŀ¼: `helloagents/plan/202601140425_blocksuite_header_title_style/`
 
 ---
 

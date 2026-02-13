@@ -1,7 +1,7 @@
 import type { DocMode } from "@blocksuite/affine/model";
 import type { Route } from "./+types/blocksuiteFrame";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/debugFlags";
 import { BlocksuiteDescriptionEditorRuntime } from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
@@ -67,8 +67,13 @@ function getBlocksuiteMeasuredScrollHeight(): number {
     "affine-page-root",
     ".page-editor",
     "editor-host",
-    "doc-title",
+  ];
+  const docTitleCandidates = [
     ".doc-title-container",
+    "doc-title",
+  ];
+  const tcHeaderCandidates = [
+    ".tc-blocksuite-tc-header",
   ];
 
   const fallbackCandidates = [
@@ -80,6 +85,19 @@ function getBlocksuiteMeasuredScrollHeight(): number {
   for (const sel of primaryCandidates) {
     const el = querySelectorDeep<HTMLElement>(rootForQuery, sel);
     primaryMax = Math.max(primaryMax, measureElement(el));
+  }
+
+  let docTitleHeight = 0;
+  for (const sel of docTitleCandidates) {
+    const el = querySelectorDeep<HTMLElement>(rootForQuery, sel);
+    docTitleHeight = Math.max(docTitleHeight, measureElement(el));
+  }
+
+  // tc-header 是宿主层自定义头部，不在 blocksuite shadow DOM 内；需要单独测量。
+  let tcHeaderHeight = 0;
+  for (const sel of tcHeaderCandidates) {
+    const el = document.querySelector<HTMLElement>(sel);
+    tcHeaderHeight = Math.max(tcHeaderHeight, measureElement(el));
   }
 
   let fallbackMax = 0;
@@ -94,10 +112,14 @@ function getBlocksuiteMeasuredScrollHeight(): number {
     document.body?.scrollHeight ?? 0,
   );
 
-  if (primaryMax > 0) {
+  if (primaryMax > 0 || docTitleHeight > 0 || tcHeaderHeight > 0) {
+    const combinedPrimary = primaryMax > 0 && docTitleHeight > 0
+      ? (primaryMax + docTitleHeight)
+      : Math.max(primaryMax, docTitleHeight);
+    const combinedWithHeader = combinedPrimary + tcHeaderHeight;
     // primary 为准；fallback 不应把高度“撑到比内容还大”。
-    const cappedFallback = fallbackMax > 0 ? Math.min(fallbackMax, primaryMax) : 0;
-    return Math.max(primaryMax, cappedFallback);
+    const cappedFallback = fallbackMax > 0 ? Math.min(fallbackMax, combinedWithHeader) : 0;
+    return Math.max(combinedWithHeader, cappedFallback);
   }
 
   return Math.max(fallbackMax, docH);
@@ -114,29 +136,47 @@ export default function BlocksuiteFrameRoute() {
   const [sp] = useSearchParams();
 
   const instanceId = sp.get("instanceId") ?? "";
-  const workspaceId = sp.get("workspaceId") ?? "";
-  const docId = sp.get("docId") ?? "";
-  const readOnly = parseBool01(sp.get("readOnly"));
-  const tcHeaderEnabled = parseBool01(sp.get("tcHeader"));
-  const tcHeaderTitle = sp.get("tcHeaderTitle") ?? undefined;
-  const tcHeaderImageUrl = sp.get("tcHeaderImageUrl") ?? undefined;
 
-  const spaceId = useMemo(() => {
-    const raw = sp.get("spaceId");
-    if (!raw)
-      return undefined;
-    const n = Number(raw);
-    if (!Number.isFinite(n))
-      return undefined;
-    return n;
-  }, [sp]);
+  const [frameParams, setFrameParams] = useState(() => {
+    const rawSpaceId = sp.get("spaceId");
+    const n = rawSpaceId ? Number(rawSpaceId) : Number.NaN;
+    const spaceId = Number.isFinite(n) ? n : undefined;
+    return {
+      workspaceId: sp.get("workspaceId") ?? "",
+      docId: sp.get("docId") ?? "",
+      spaceId,
+      readOnly: parseBool01(sp.get("readOnly")),
+      tcHeaderEnabled: parseBool01(sp.get("tcHeader")),
+      tcHeaderTitle: sp.get("tcHeaderTitle") ?? undefined,
+      tcHeaderImageUrl: sp.get("tcHeaderImageUrl") ?? undefined,
+      variant: (sp.get("variant") === "full" ? "full" : "embedded") as "embedded" | "full",
+      allowModeSwitch: parseBool01(sp.get("allowModeSwitch")),
+      fullscreenEdgeless: parseBool01(sp.get("fullscreenEdgeless")),
+      forcedMode: (sp.get("mode") === "edgeless" ? "edgeless" : "page") as DocMode,
+    };
+  });
 
-  const variant = (sp.get("variant") === "full" ? "full" : "embedded") as "embedded" | "full";
-  const allowModeSwitch = parseBool01(sp.get("allowModeSwitch"));
-  const fullscreenEdgeless = parseBool01(sp.get("fullscreenEdgeless"));
-  const forcedMode = (sp.get("mode") === "edgeless" ? "edgeless" : "page") as DocMode;
+  const {
+    workspaceId,
+    docId,
+    spaceId,
+    readOnly,
+    tcHeaderEnabled,
+    tcHeaderTitle,
+    tcHeaderImageUrl,
+    variant,
+    allowModeSwitch,
+    fullscreenEdgeless,
+    forcedMode,
+  } = frameParams;
 
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
+
+  useEffect(() => {
+    if (!allowModeSwitch) {
+      setCurrentMode(forcedMode);
+    }
+  }, [allowModeSwitch, docId, forcedMode]);
 
   const postToParent = (payload: any) => {
     try {
@@ -551,6 +591,60 @@ export default function BlocksuiteFrameRoute() {
 
       if (data.instanceId && data.instanceId !== instanceId)
         return;
+
+      if (data.type === "sync-params" || data.type === "switch-doc") {
+        const parseSpaceId = (v: unknown): number | undefined => {
+          if (typeof v === "number" && Number.isFinite(v))
+            return v;
+          if (typeof v === "string" && v) {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : undefined;
+          }
+          return undefined;
+        };
+
+        const coerceBool = (v: unknown, fallback: boolean) => {
+          if (typeof v === "boolean")
+            return v;
+          if (typeof v === "string")
+            return parseBool01(v);
+          return fallback;
+        };
+
+        const coerceMode = (v: unknown, fallback: DocMode) => {
+          return v === "edgeless" ? "edgeless" : v === "page" ? "page" : fallback;
+        };
+
+        const coerceVariant = (v: unknown, fallback: "embedded" | "full") => {
+          return v === "full" ? "full" : v === "embedded" ? "embedded" : fallback;
+        };
+
+        setFrameParams((prev) => {
+          const nextTcHeaderEnabled = coerceBool(data.tcHeader, prev.tcHeaderEnabled);
+          const nextTitle = typeof data.tcHeaderTitle === "string"
+            ? data.tcHeaderTitle
+            : (nextTcHeaderEnabled ? prev.tcHeaderTitle : undefined);
+          const nextImageUrl = typeof data.tcHeaderImageUrl === "string"
+            ? data.tcHeaderImageUrl
+            : (nextTcHeaderEnabled ? prev.tcHeaderImageUrl : undefined);
+
+          return {
+            ...prev,
+            workspaceId: (typeof data.workspaceId === "string" && data.workspaceId) ? data.workspaceId : prev.workspaceId,
+            docId: (typeof data.docId === "string" && data.docId) ? data.docId : prev.docId,
+            spaceId: parseSpaceId(data.spaceId) ?? prev.spaceId,
+            variant: coerceVariant(data.variant, prev.variant),
+            readOnly: coerceBool(data.readOnly, prev.readOnly),
+            allowModeSwitch: coerceBool(data.allowModeSwitch, prev.allowModeSwitch),
+            fullscreenEdgeless: coerceBool(data.fullscreenEdgeless, prev.fullscreenEdgeless),
+            forcedMode: coerceMode(data.mode, prev.forcedMode),
+            tcHeaderEnabled: nextTcHeaderEnabled,
+            tcHeaderTitle: nextTitle,
+            tcHeaderImageUrl: nextImageUrl,
+          };
+        });
+        return;
+      }
 
       if (data.type === "request-height") {
         try {

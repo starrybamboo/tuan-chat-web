@@ -1,4 +1,5 @@
 import type { RoleAvatar } from "api";
+import type { UploadContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
 import {
   CheckCircleIcon,
@@ -15,10 +16,13 @@ import {
   XCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { useBatchDeleteRoleAvatarsMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PopWindow } from "@/components/common/popWindow";
+import toast from "react-hot-toast";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
+import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarLibraryTab } from "./Tabs/AvatarLibraryTab";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
@@ -26,7 +30,7 @@ import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 import { getEffectiveSpriteUrl } from "./utils";
 
-export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library";
+export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "library" | "trash";
 
 interface SpriteSettingsPopupProps {
   isOpen: boolean;
@@ -64,8 +68,10 @@ export function SpriteSettingsPopup({
   onSpriteIndexChange,
   role,
 }: SpriteSettingsPopupProps) {
-  // 内部维护 tab 状态
+  // 内部维护 tab ״̬
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
+  const DEFAULT_CATEGORY = "默认";
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
 
   // ========== 内部共享的立绘索引 ==========
   // 使用外部传入的 currentSpriteIndex 作为初始值
@@ -85,6 +91,91 @@ export function SpriteSettingsPopup({
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const isMultiSelectDisabled = activeTab === "setting";
 
+  const { categoryOptions, hasDefaultCategory } = useMemo(() => {
+    const categorySet = new Set<string>();
+    let hasDefault = false;
+    spritesAvatars.forEach((avatar) => {
+      const category = String(avatar.category ?? "").trim();
+      if (category) {
+        if (category === DEFAULT_CATEGORY) {
+          hasDefault = true;
+        }
+        else {
+          categorySet.add(category);
+        }
+      }
+      else {
+        hasDefault = true;
+      }
+    });
+    return {
+      categoryOptions: Array.from(categorySet).sort((a, b) => a.localeCompare(b, "zh-CN")),
+      hasDefaultCategory: hasDefault,
+    };
+  }, [spritesAvatars, DEFAULT_CATEGORY]);
+
+  const filteredIndices = useMemo(() => {
+    if (!categoryFilter) {
+      return spritesAvatars.map((_, index) => index);
+    }
+    if (categoryFilter === DEFAULT_CATEGORY) {
+      return spritesAvatars
+        .map((avatar, index) => {
+          const category = String(avatar.category ?? "").trim();
+          return !category || category === DEFAULT_CATEGORY ? index : -1;
+        })
+        .filter(index => index >= 0);
+    }
+    return spritesAvatars
+      .map((avatar, index) => {
+        const category = String(avatar.category ?? "").trim();
+        return category === categoryFilter ? index : -1;
+      })
+      .filter(index => index >= 0);
+  }, [spritesAvatars, categoryFilter]);
+
+  const filteredIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    filteredIndices.forEach((originalIndex, filteredIndex) => {
+      map.set(originalIndex, filteredIndex);
+    });
+    return map;
+  }, [filteredIndices]);
+
+  const filteredSelectedIndices = useMemo(() => {
+    const next = new Set<number>();
+    selectedIndices.forEach((originalIndex) => {
+      const filteredIndex = filteredIndexMap.get(originalIndex);
+      if (filteredIndex !== undefined) {
+        next.add(filteredIndex);
+      }
+    });
+    return next;
+  }, [selectedIndices, filteredIndexMap]);
+
+  const filteredSprites = useMemo(
+    () => filteredIndices
+      .map(index => spritesAvatars[index])
+      .filter((avatar): avatar is RoleAvatar => Boolean(avatar)),
+    [filteredIndices, spritesAvatars],
+  );
+
+  const visibleCount = filteredIndices.length;
+
+  useEffect(() => {
+    setIsMultiSelectMode(false);
+    setSelectedIndices(new Set());
+  }, [categoryFilter]);
+
+  useEffect(() => {
+    if (filteredIndices.length === 0) {
+      return;
+    }
+    if (!filteredIndices.includes(internalIndex)) {
+      setInternalIndex(filteredIndices[0]);
+    }
+  }, [filteredIndices, internalIndex]);
+
   // 当前选中的头像数据
   const currentAvatar = useMemo(() => {
     if (spritesAvatars.length > 0 && internalIndex < spritesAvatars.length) {
@@ -97,8 +188,7 @@ export function SpriteSettingsPopup({
   const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
 
   // ========== 上传和删除功能 ==========
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
-  const { mutate: batchDeleteAvatars } = useBatchDeleteRoleAvatarsMutation(role?.id);
+  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
 
   // Notification state for upload feedback
   const [uploadNotification, setUploadNotification] = useState<{
@@ -117,34 +207,35 @@ export function SpriteSettingsPopup({
   }, [uploadNotification]);
 
   // Handle avatar upload
-  const handleAvatarUpload = useCallback((data: any) => {
+  const handleAvatarUpload = useCallback(async (data: any, context?: UploadContext) => {
+    const isBatchUpload = Boolean(context?.batch);
     if (!role?.id) {
-      setUploadNotification({
-        type: "error",
-        message: "角色信息缺失，无法上传头像",
-      });
+      if (!isBatchUpload) {
+        setUploadNotification({
+          type: "error",
+          message: "角色信息缺失，无法上传头像",
+        });
+      }
+      if (isBatchUpload) {
+        throw new Error("角色信息缺失，无法上传头像");
+      }
       return;
     }
 
-    // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
-    uploadAvatar(
-      { ...data, roleId: role.id, autoApply: false, autoNameFirst: true },
-      {
-        onSuccess: () => {
-          setUploadNotification({
-            type: "success",
-            message: "头像上传成功",
-          });
-        },
-        onError: (error) => {
-          console.error("头像上传失败:", error);
-          setUploadNotification({
-            type: "error",
-            message: "头像上传失败，请重试",
-          });
-        },
-      },
-    );
+    try {
+      // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
+      await uploadAvatar({ ...data, roleId: role.id, autoApply: false, autoNameFirst: true });
+    }
+    catch (error) {
+      console.error("头像上传失败:", error);
+      if (!isBatchUpload) {
+        setUploadNotification({
+          type: "error",
+          message: "头像上传失败，请重试",
+        });
+      }
+      throw error;
+    }
   }, [role, uploadAvatar]);
 
   // 内部索引变更处理
@@ -152,12 +243,96 @@ export function SpriteSettingsPopup({
     setInternalIndex(index);
   }, []);
 
+  const handleAvatarSelectById = useCallback((avatarId: number) => {
+    const index = spritesAvatars.findIndex(a => a.avatarId === avatarId);
+    if (index !== -1) {
+      handleInternalIndexChange(index);
+    }
+  }, [spritesAvatars, handleInternalIndexChange]);
+
   // 应用头像到外部（同步外部状态）
   const handleAvatarChange = useCallback((avatarUrl: string, avatarId: number) => {
     onAvatarChange?.(avatarUrl, avatarId);
     // 同步外部立绘索引
-    onSpriteIndexChange?.(internalIndex);
-  }, [onAvatarChange, onSpriteIndexChange, internalIndex]);
+    if (onSpriteIndexChange) {
+      const nextIndex = spritesAvatars.findIndex(a => a.avatarId === avatarId);
+      onSpriteIndexChange(nextIndex !== -1 ? nextIndex : internalIndex);
+    }
+  }, [onAvatarChange, onSpriteIndexChange, spritesAvatars, internalIndex]);
+
+  const queryClient = useQueryClient();
+  const trashQuery = useGetDeletedRoleAvatarsQuery(role?.id ?? 0, { enabled: Boolean(role?.id) });
+  const trashItems = useMemo(
+    () => trashQuery.data?.data ?? [],
+    [trashQuery.data],
+  );
+
+  const handleAvatarDeleted = useCallback((_avatar: RoleAvatar) => {
+    if (role?.id) {
+      queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", role.id] });
+    }
+  }, [queryClient, role?.id]);
+
+  const handleBatchDeleted = useCallback((_avatars: RoleAvatar[]) => {
+    if (role?.id) {
+      queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", role.id] });
+    }
+  }, [queryClient, role?.id]);
+
+  const { mutateAsync: restoreAvatar } = useRestoreRoleAvatarMutation(role?.id);
+  const { mutateAsync: clearDeletedAvatars, isPending: isClearingTrash } = useClearDeletedRoleAvatarsMutation(role?.id);
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+
+  const handleRestoreFromTrash = useCallback(async (avatar: RoleAvatar) => {
+    if (restoringId) {
+      return;
+    }
+    if (!avatar.avatarId) {
+      toast.error("头像ID无效，无法恢复");
+      return;
+    }
+    setRestoringId(avatar.avatarId);
+    try {
+      await restoreAvatar(avatar.avatarId);
+      toast.success("头像已恢复");
+    }
+    catch (error) {
+      console.error("恢复头像失败:", error);
+      toast.error("恢复失败，请稍后重试");
+    }
+    finally {
+      setRestoringId(null);
+    }
+  }, [restoringId, restoreAvatar]);
+
+  const handleClearTrash = useCallback(async () => {
+    if (!role?.id) {
+      toast.error("角色信息缺失，无法清空回收站");
+      return;
+    }
+    if (trashItems.length === 0 || isClearingTrash) {
+      return;
+    }
+    try {
+      await clearDeletedAvatars(role.id);
+      toast.success("回收站已清空");
+    }
+    catch (error) {
+      console.error("清空回收站失败:", error);
+      toast.error("清空失败，请稍后重试");
+    }
+  }, [role?.id, trashItems.length, isClearingTrash, clearDeletedAvatars]);
+
+  const deletionHook = useAvatarDeletion({
+    role,
+    avatars: spritesAvatars,
+    selectedAvatarId: currentAvatar?.avatarId ?? 0,
+    onAvatarChange: handleAvatarChange,
+    onAvatarSelect: handleAvatarSelectById,
+    onDeleteSuccess: handleAvatarDeleted,
+    onBatchDeleteSuccess: handleBatchDeleted,
+  });
+  const { handleBatchDelete, isDeleting: isDeletingAvatar } = deletionHook;
 
   // 展示预览（仅同步外部索引，不关闭弹窗）
   const handlePreview = useCallback(() => {
@@ -191,14 +366,14 @@ export function SpriteSettingsPopup({
     if (selectedIndices.size === 0)
       return;
     if (selectedIndices.size >= spritesAvatars.length) {
-      console.error("无法删除所有头像，至少需要保留一个");
+      toast.error("无法删除所有头像，至少需要保留一个");
       return;
     }
     setBatchDeleteConfirmOpen(true);
   }, [selectedIndices, spritesAvatars.length]);
 
   // 执行批量删除
-  const handleBatchDeleteConfirm = useCallback(() => {
+  const handleBatchDeleteConfirm = useCallback(async () => {
     // Get avatar IDs from selected indices
     const avatarIdsToDelete = Array.from(selectedIndices)
       .map(index => spritesAvatars[index]?.avatarId)
@@ -207,23 +382,23 @@ export function SpriteSettingsPopup({
     if (avatarIdsToDelete.length === 0)
       return;
 
-    batchDeleteAvatars(avatarIdsToDelete, {
-      onSuccess: () => {
-        // Exit multi-select mode and clear selections
-        setIsMultiSelectMode(false);
-        setSelectedIndices(new Set());
-        setBatchDeleteConfirmOpen(false);
+    try {
+      await handleBatchDelete(avatarIdsToDelete);
+      // Exit multi-select mode and clear selections
+      setIsMultiSelectMode(false);
+      setSelectedIndices(new Set());
+      setBatchDeleteConfirmOpen(false);
 
-        // Reset internal index if needed
-        if (internalIndex >= spritesAvatars.length - avatarIdsToDelete.length) {
-          setInternalIndex(Math.max(0, spritesAvatars.length - avatarIdsToDelete.length - 1));
-        }
-      },
-      onError: (error) => {
-        console.error("批量删除失败:", error);
-      },
-    });
-  }, [selectedIndices, spritesAvatars, batchDeleteAvatars, internalIndex]);
+      // Reset internal index if needed
+      if (internalIndex >= spritesAvatars.length - avatarIdsToDelete.length) {
+        setInternalIndex(Math.max(0, spritesAvatars.length - avatarIdsToDelete.length - 1));
+      }
+    }
+    catch (error) {
+      console.error("批量删除失败:", error);
+      toast.error("批量删除失败，请稍后重试");
+    }
+  }, [selectedIndices, spritesAvatars, handleBatchDelete, internalIndex]);
 
   // 当弹窗从关闭变为打开时，重置为 defaultTab 并同步外部索引
   useEffect(() => {
@@ -240,7 +415,7 @@ export function SpriteSettingsPopup({
     return null;
 
   return (
-    <PopWindow
+    <ToastWindow
       isOpen={isOpen}
       onClose={onClose}
       fullScreen={isMobileScreen()}
@@ -278,16 +453,16 @@ export function SpriteSettingsPopup({
                       type="button"
                       className="btn btn-soft bg-base-200 btn-square btn-xs"
                       onClick={() => {
-                        const allSelected = spritesAvatars.length > 0 && selectedIndices.size === spritesAvatars.length;
+                        const allSelected = visibleCount > 0 && selectedIndices.size === visibleCount;
                         const newSelected = allSelected
                           ? new Set<number>()
-                          : new Set(spritesAvatars.length > 0 ? Array.from({ length: spritesAvatars.length }, (_, i) => i) : []);
+                          : new Set(filteredIndices);
                         setSelectedIndices(newSelected);
                       }}
                       title={
-                        spritesAvatars.length > 0 && selectedIndices.size === spritesAvatars.length
+                        visibleCount > 0 && selectedIndices.size === visibleCount
                           ? "取消全选"
-                          : selectedIndices.size > 0 && selectedIndices.size < spritesAvatars.length
+                          : selectedIndices.size > 0 && selectedIndices.size < visibleCount
                             ? `已选 ${selectedIndices.size}`
                             : "全选"
                       }
@@ -316,7 +491,7 @@ export function SpriteSettingsPopup({
                     </button>
                   </>
                 )}
-                {!isMultiSelectMode && spritesAvatars.length > 1 && (
+                {!isMultiSelectMode && visibleCount > 1 && (
                   <button
                     type="button"
                     className={`btn btn-soft bg-base-200 btn-square btn-xs ${isMultiSelectDisabled ? "btn-disabled" : ""}`}
@@ -332,28 +507,59 @@ export function SpriteSettingsPopup({
                 )}
               </div>
             </div>
+            <div className="px-3 pb-3">
+              <label className="text-xs font-semibold text-base-content/70" htmlFor="avatar-category-filter">
+                分类筛选
+              </label>
+              <select
+                id="avatar-category-filter"
+                className="select select-sm w-full bg-base-200"
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+              >
+                <option value="">全部</option>
+                {hasDefaultCategory && (
+                  <option value={DEFAULT_CATEGORY}>默认</option>
+                )}
+                {categoryOptions.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex-1 overflow-auto p-3">
             <SpriteListGrid
-              avatars={spritesAvatars}
-              selectedIndex={internalIndex}
-              onSelect={handleInternalIndexChange}
+              avatars={filteredSprites}
+              totalAvatarsCount={spritesAvatars.length}
+              selectedIndex={filteredIndexMap.get(internalIndex) ?? 0}
+              onSelect={(index) => {
+                const originalIndex = filteredIndices[index];
+                if (originalIndex === undefined)
+                  return;
+                handleInternalIndexChange(originalIndex);
+              }}
               mode="manage"
               className="h-full"
               gridCols="grid-cols-3"
+              gridTemplateColumns="repeat(3, minmax(0, 1fr))"
               role={role}
               onAvatarChange={handleAvatarChange}
-              onAvatarSelect={(avatarId) => {
-                const index = spritesAvatars.findIndex(a => a.avatarId === avatarId);
-                if (index !== -1) {
-                  handleInternalIndexChange(index);
-                }
-              }}
+              onAvatarSelect={handleAvatarSelectById}
+              onAvatarDeleted={handleAvatarDeleted}
               onUpload={handleAvatarUpload}
               fileName={role?.id ? `avatar-${role.id}-${Date.now()}` : undefined}
-              selectedIndices={selectedIndices}
+              selectedIndices={filteredSelectedIndices}
               isMultiSelectMode={isMultiSelectMode}
-              onMultiSelectChange={handleMultiSelectChange}
+              onMultiSelectChange={(indices, isMultiMode) => {
+                const nextSelected = new Set<number>();
+                indices.forEach((filteredIndex) => {
+                  const originalIndex = filteredIndices[filteredIndex];
+                  if (originalIndex !== undefined) {
+                    nextSelected.add(originalIndex);
+                  }
+                });
+                handleMultiSelectChange(nextSelected, isMultiMode);
+              }}
             />
           </div>
         </div>
@@ -432,6 +638,25 @@ export function SpriteSettingsPopup({
                 <PackageIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
                 <span>素材库</span>
               </button>
+              {/* 回收站 Tab */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("trash")}
+                className={`flex items-center gap-2 p-2 rounded-lg transition-colors whitespace-nowrap ${
+                  activeTab === "trash"
+                    ? "bg-primary text-primary-content"
+                    : "hover:bg-base-300"
+                }`}
+              >
+                <TrashIcon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                <span>回收站</span>
+                {trashItems.length > 0 && (
+                  <span className="badge badge-sm bg-base-100 text-base-content">
+                    {trashItems.length}
+                  </span>
+                )}
+              </button>
+
             </nav>
           </div>
 
@@ -514,6 +739,94 @@ export function SpriteSettingsPopup({
             {activeTab === "library" && (
               <AvatarLibraryTab />
             )}
+
+            {/* 回收站内容 */}
+            {activeTab === "trash" && (
+              <div className="h-full flex flex-col">
+                <div className="flex justify-between items-center mb-2 flex-shrink-0 min-h-8">
+                  <h3 className="text-lg font-semibold">回收站</h3>
+                  <button
+                    type="button"
+                    className={`btn btn-ghost btn-sm ${trashItems.length === 0 || isClearingTrash ? "btn-disabled" : ""}`}
+                    onClick={handleClearTrash}
+                    disabled={trashItems.length === 0 || isClearingTrash}
+                  >
+                    {isClearingTrash ? "清空中..." : "清空回收站"}
+                  </button>
+                </div>
+
+                <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
+                  <div className="absolute inset-0 overflow-auto p-4">
+                    {trashQuery.isLoading
+                      ? (
+                          <div className="flex flex-col items-center justify-center h-full text-base-content/60 text-sm">
+                            加载中...
+                          </div>
+                        )
+                      : trashItems.length === 0
+                        ? (
+                            <div className="flex flex-col items-center justify-center h-full text-base-content/60 text-sm">
+                              回收站为空
+                            </div>
+                          )
+                        : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {trashItems.map((avatar, index) => {
+                                const displayUrl = avatar.avatarUrl || avatar.spriteUrl || avatar.originUrl || "";
+                                const title = typeof avatar.avatarTitle === "string"
+                                  ? avatar.avatarTitle
+                                  : avatar.avatarTitle?.label;
+                                const name = title && title.trim().length ? title : "未命名头像";
+                                const isRestoring = restoringId === avatar.avatarId;
+                                const isBusy = Boolean(restoringId) || isClearingTrash;
+                                const canRestore = Boolean(avatar.avatarId);
+                                return (
+                                  <div key={avatar.avatarId ?? `trash-${index}`} className="rounded-lg border border-base-300 bg-base-100 p-3 flex flex-col gap-3">
+                                    <div className="flex gap-3 items-start">
+                                      <div className="w-16 h-16 rounded-md overflow-hidden bg-base-200 flex items-center justify-center shrink-0">
+                                        {displayUrl
+                                          ? (
+                                              <img
+                                                src={displayUrl}
+                                                alt={name}
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                                decoding="async"
+                                              />
+                                            )
+                                          : (
+                                              <span className="text-xs text-base-content/50">无预览</span>
+                                            )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium truncate">{name}</div>
+                                        {avatar.avatarId && (
+                                          <div className="text-xs text-base-content/40 mt-1">
+                                            头像ID：
+                                            {avatar.avatarId}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        onClick={() => handleRestoreFromTrash(avatar)}
+                                        disabled={!canRestore || isBusy}
+                                      >
+                                        {isRestoring ? "恢复中..." : "恢复"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -528,7 +841,7 @@ export function SpriteSettingsPopup({
               {" "}
               <span className="font-bold text-error">{selectedIndices.size}</span>
               {" "}
-              个头像吗？此操作无法撤销。
+              个头像吗？删除后会进入回收站，可在回收站恢复。
             </p>
             {selectedIndices.size >= spritesAvatars.length && (
               <div className="alert alert-warning mb-4">
@@ -548,15 +861,15 @@ export function SpriteSettingsPopup({
                 type="button"
                 className="btn btn-error"
                 onClick={handleBatchDeleteConfirm}
-                disabled={selectedIndices.size >= spritesAvatars.length}
+                disabled={selectedIndices.size >= spritesAvatars.length || isDeletingAvatar}
               >
-                确认删除
+                {isDeletingAvatar ? "删除中..." : "确认删除"}
               </button>
             </div>
           </div>
           <div className="modal-backdrop" onClick={() => setBatchDeleteConfirmOpen(false)}></div>
         </div>
       )}
-    </PopWindow>
+    </ToastWindow>
   );
 }

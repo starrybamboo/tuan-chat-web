@@ -1,6 +1,6 @@
 # 任务清单: sidebarTree 文档 tcHeader（标题/封面）一致化
 
-目录: `helloagents/plan/202601171831_doc_sidebar_tc_header/`
+Ŀ¼: `helloagents/plan/202601171831_doc_sidebar_tc_header/`
 
 ---
 
@@ -13,7 +13,7 @@
 - [√] 2.2 在 `app/components/chat/room/chatRoomListPanel.tsx` 使用缩略图渲染文档条目（叠加文档 icon 区分房间），验证 why.md#需求-文档头部一致化-场景-上传更换图片后同步到列表
 
 ## 3. 安全检查
-- [√] 3.1 仅落地标题/图片 URL 到 localStorage；不引入后端 schema/权限变更
+- [√] 3.1 仅落地标题/ͼƬ URL 到 localStorage；不引入后端 schema/权限变更
 
 ## 4. 文档更新
 - [√] 4.1 更新 `helloagents/wiki/modules/app.md`

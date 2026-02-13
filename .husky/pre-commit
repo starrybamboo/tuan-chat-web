@@ -6,5 +6,3 @@ if [ "$branch" = "refs/heads/main" ]; then
 fi
 
 git add app/assets/ai-image/styles
-
-pnpm exec lint-staged

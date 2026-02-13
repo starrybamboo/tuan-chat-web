@@ -1,4 +1,4 @@
-/* generated using openapi-typescript-codegen -- do not edit */
+﻿/* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -158,7 +158,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 创建空间，邀请的所有成员都为pl
+     * 创建空间，邀请的所有成员都会加入
      * @param requestBody
      * @returns ApiResultSpace OK
      * @throws ApiError
@@ -286,4 +286,23 @@ export class SpaceControllerService {
             },
         });
     }
+    /**
+     * 获取当前用户加入的未归档空间
+     * @returns ApiResultListSpace OK
+     * @throws ApiError
+     */
+    public getUserActiveSpaces(): CancelablePromise<ApiResultListSpace> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/space/list/active',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+
+    
 }

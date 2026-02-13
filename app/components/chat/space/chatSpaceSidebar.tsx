@@ -2,11 +2,14 @@ import type { Space } from "../../../../api";
 
 import { ChatCircleIcon } from "@phosphor-icons/react";
 import React, { useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
-import { AddIcon, SidebarSimpleIcon } from "@/icons";
+import PortalTooltip from "@/components/common/portalTooltip";
+import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
 
-export interface ChatSpaceSidebarProps {
+interface ChatSpaceSidebarProps {
   isPrivateChatMode: boolean;
+  isDiscoverMode?: boolean;
   spaces: Space[];
   spaceOrderIds?: number[];
   onReorderSpaceIds?: (nextSpaceIds: number[]) => void;
@@ -23,6 +26,7 @@ export interface ChatSpaceSidebarProps {
 
 export default function ChatSpaceSidebar({
   isPrivateChatMode,
+  isDiscoverMode = false,
   spaces,
   spaceOrderIds,
   onReorderSpaceIds,
@@ -98,50 +102,77 @@ export default function ChatSpaceSidebar({
   };
 
   return (
-    <div className="flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-hidden">
+    <div
+      className={`flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible ${
+        showCollapsedToggle ? "border-r border-gray-300 dark:border-gray-700" : ""
+      }`}
+    >
       {showCollapsedToggle && (
-        <div className="rounded w-10 relative mx-2 mt-1 mb-1">
-          <button
-            className="tooltip tooltip-bottom w-10 btn btn-square"
-            data-tip="展开侧边栏"
-            type="button"
-            aria-label="展开侧边栏"
-            onClick={onToggleLeftDrawer}
-          >
-            <SidebarSimpleIcon />
-          </button>
+        <div className="rounded w-10 relative z-20 hover:z-50 mx-2 mt-1 mb-1">
+          <PortalTooltip label="展开侧边栏" placement="right">
+            <button
+              className="w-10 btn btn-square z-9999"
+              type="button"
+              aria-label="展开侧边栏"
+              onClick={onToggleLeftDrawer}
+            >
+              <SidebarSimpleIcon className="size-6" />
+            </button>
+          </PortalTooltip>
         </div>
       )}
-      {/* 私信入口 */}
-      <div className="rounded w-10 relative mx-2">
-        <div
-          className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
-          }`}
-        />
-        <button
-          className="tooltip tooltip-bottom w-10 btn btn-square"
-          data-tip="私信"
-          type="button"
-          aria-label="私信"
-          onClick={onOpenPrivate}
-        >
-          <div className="indicator">
-            {(privateUnreadMessagesNumber > 0)
-              ? (
-                  <span className="indicator-item badge badge-xs bg-error">
-                    {privateUnreadMessagesNumber > 99 ? "99+" : privateUnreadMessagesNumber}
-                  </span>
-                )
-              : null}
-            <ChatCircleIcon className="size-6" weight="bold" />
-          </div>
-        </button>
+      <div className="flex flex-col gap-1">
+        {/* 发现入口 */}
+        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+          <div
+            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
+              isDiscoverMode ? "scale-y-100" : "scale-y-0"
+            }`}
+          />
+          <PortalTooltip label="发现" placement="right">
+            <Link
+              to="/chat/discover"
+              className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
+              aria-label="发现"
+              aria-current={isDiscoverMode ? "page" : undefined}
+            >
+              <CompassIcon className="size-6" />
+            </Link>
+          </PortalTooltip>
+        </div>
+
+        {/* 私信入口 */}
+        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+          <div
+            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
+            }`}
+          />
+          <PortalTooltip label="私信" placement="right">
+            <button
+              className="w-10 btn btn-square"
+              type="button"
+              aria-label="私信"
+              onClick={onOpenPrivate}
+            >
+              <div className="indicator">
+                {(privateUnreadMessagesNumber > 0)
+                  ? (
+                      <span className="indicator-item badge badge-xs bg-error">
+                        {privateUnreadMessagesNumber > 99 ? "99+" : privateUnreadMessagesNumber}
+                      </span>
+                    )
+                  : null}
+                <ChatCircleIcon className="size-6" weight="bold" />
+              </div>
+            </button>
+          </PortalTooltip>
+        </div>
       </div>
 
       {/* 分隔线 */}
       <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-      <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2" onContextMenu={onSpaceContextMenu}>
+      <div className="hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2" onContextMenu={onSpaceContextMenu}>
         {/* 全部空间列表 */}
         {renderSpaces.map(space => (
           <div
@@ -221,23 +252,24 @@ export default function ChatSpaceSidebar({
                   onSelectSpace(space.spaceId ?? -1);
                 }
               }}
-              isActive={activeSpaceId === space.spaceId}
+              isActive={!isDiscoverMode && activeSpaceId === space.spaceId}
             >
             </SpaceButton>
           </div>
         ))}
       </div>
-      <button
-        className="tooltip tooltip-top btn btn-square btn-dash btn-info w-10 mx-2"
-        type="button"
-        data-tip="创建"
-        aria-label="创建空间"
-        onClick={onCreateSpace}
-      >
-        <div className="avatar mask mask-squircle flex content-center">
-          <AddIcon></AddIcon>
-        </div>
-      </button>
+      <PortalTooltip label="创建" placement="right">
+        <button
+          className="btn btn-square btn-dash btn-info w-10 mx-2 relative z-20 hover:z-50"
+          type="button"
+          aria-label="创建空间"
+          onClick={onCreateSpace}
+        >
+          <div className="avatar mask mask-squircle flex content-center">
+            <AddIcon></AddIcon>
+          </div>
+        </button>
+      </PortalTooltip>
     </div>
   );
 }

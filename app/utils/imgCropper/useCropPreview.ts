@@ -26,6 +26,8 @@ type UseCropPreviewOptions = {
   mode: CropMode | (() => CropMode);
   /** 防抖延迟，默认 100ms */
   debounceMs?: number;
+  /** 自定义初始裁剪区域（可选） */
+  initialCrop?: (args: { width: number; height: number; mode: CropMode }) => { crop: Crop; pixelCrop: PixelCrop } | undefined;
   /**
    * 是否将首次预览绘制延后到下一帧（requestAnimationFrame）。
    * 用于“图片切换时需要先提交外部状态（如 transform）再绘制 canvas”的场景，避免出现中间帧闪烁。
@@ -85,6 +87,7 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   const {
     mode,
     debounceMs = 100,
+    initialCrop,
     deferInitialPreviewDraw = false,
     onPreviewUpdate,
     onImageLoadExtend,
@@ -103,7 +106,7 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   const imgRef = externalImgRef ?? internalImgRef;
   const previewCanvasRef = externalCanvasRef ?? internalCanvasRef;
 
-  // 状态
+  // ״̬
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [previewDataUrl, setPreviewDataUrl] = useState("");
@@ -121,9 +124,10 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
     const { width, height } = e.currentTarget;
     const currentMode = getMode();
 
-    const { crop: newCrop, pixelCrop } = currentMode === "avatar"
+    const resolvedInitialCrop = initialCrop?.({ width, height, mode: currentMode });
+    const { crop: newCrop, pixelCrop } = resolvedInitialCrop ?? (currentMode === "avatar"
       ? createCenteredSquareCrop(width, height)
-      : createFullImageCrop(width, height);
+      : createFullImageCrop(width, height));
 
     setCrop(newCrop);
     setCompletedCrop(pixelCrop);
@@ -159,7 +163,7 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
     else {
       drawInitialPreview();
     }
-  }, [getMode, imgRef, previewCanvasRef, handlePreviewUpdate, onImageLoadExtend, deferInitialPreviewDraw]);
+  }, [getMode, initialCrop, imgRef, previewCanvasRef, handlePreviewUpdate, onImageLoadExtend, deferInitialPreviewDraw]);
 
   // 裁剪区域变化（拖拽过程中）
   const onCropChange = useCallback((_: Crop, percentCrop: Crop) => {

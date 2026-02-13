@@ -1,11 +1,9 @@
-import React, { use, useLayoutEffect, useMemo, useState } from "react";
-import { RoomContext } from "@/components/chat/core/roomContext";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { AddRingLight, NarratorIcon } from "@/icons";
+import { NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
@@ -30,15 +28,11 @@ export default function AvatarSwitch({
   showName?: boolean;
   avatarWidth?: React.ComponentProps<typeof RoleAvatarComponent>["width"];
 }) {
-  const roomContext = use(RoomContext);
-  const _webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
 
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
-
-  const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
 
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
@@ -48,14 +42,27 @@ export default function AvatarSwitch({
   const roleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const currentRole = useMemo(() => userRoles.find(r => r.roleId === curRoleId), [userRoles, curRoleId]);
 
-  // 判断是否为旁白模式（无角色）
-  const isNarratorMode = curRoleId <= 0;
+  // 当前是否已选择角色
+  const hasSelectedRole = curRoleId > 0;
+  // 旁白模式：当前已选择旁白（roleId<=0 的情况里，-1 表示旁白；0 通常表示“未选择”）
+  const hasSelectedNarrator = curRoleId < 0;
+  const hasSelectedIdentity = hasSelectedRole || hasSelectedNarrator;
 
   const draftCustomRoleName = draftCustomRoleNameMap[curRoleId];
   const displayName = (draftCustomRoleName?.trim() || currentRole?.roleName || "");
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState("");
+  const [isAvatarChooserFullscreen, setIsAvatarChooserFullscreen] = useState(false);
+  const dropdownTriggerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleCloseDropdown = () => {
+    dropdownTriggerRef.current?.blur();
+    setIsAvatarChooserFullscreen(false);
+    if (typeof document !== "undefined") {
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+  };
 
   useLayoutEffect(() => {
     if (curAvatarId > 0)
@@ -69,7 +76,7 @@ export default function AvatarSwitch({
     }
   }, [setCurAvatarId, roleAvatars, curAvatarId, currentRole]);
 
-  // WebGAL 联动模式下的旁白模式
+  // 旁白模式
   const isHorizontal = layout === "horizontal";
   const wrapperClassName = isHorizontal
     ? `dropdown dropdown-${dropdownPosition} dropdown-${dropdownAlign} flex items-center gap-2`
@@ -96,52 +103,42 @@ export default function AvatarSwitch({
   };
   const computedAvatarWidth = avatarWidth ?? (getScreenSize() === "sm" ? 10 : 14);
   const narratorSizeClass = sizeClassMap[computedAvatarWidth] ?? "w-10 h-10";
+  const dropdownWidthClassName = isAvatarChooserFullscreen
+    ? "w-[92vw] md:w-[92vw] max-w-[92vw]"
+    : "w-[92vw] md:w-auto";
 
-  if (isNarratorMode) {
+  if (!hasSelectedIdentity) {
     return (
       <div className={wrapperClassName}>
-        <div role="button" tabIndex={0} className="">
+        <div role="button" tabIndex={0} className="" ref={dropdownTriggerRef}>
           <div
             className={tooltipClassName}
-            data-tip="当前为旁白模式，点击切换角色"
+            data-tip="未选择角色，点击选择"
           >
             <div className={`${narratorSizeClass} rounded-full bg-base-300 flex items-center justify-center`}>
               <NarratorIcon className={computedAvatarWidth <= 8 ? "size-5 text-base-content/60" : "size-6 md:size-8 text-base-content/60"} />
             </div>
             {showName && (
               <div className={`${isHorizontal ? "text-left" : "text-center"} text-sm truncate w-full text-base-content/60`}>
-                旁白
+                未选择角色
               </div>
             )}
           </div>
         </div>
         <ul
           tabIndex={0}
-          className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+          className={`dropdown-content menu bg-base-100 rounded-box z-9999 shadow-sm p-0 border border-base-300 ${dropdownWidthClassName} max-h-[75vh] overflow-y-auto overflow-x-hidden`}
         >
           <ExpressionChooser
             roleId={curRoleId}
             handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
             handleRoleChange={roleId => setCurRoleId(roleId)}
-            showNarratorOption={true}
+            onRequestClose={handleCloseDropdown}
+            defaultFullscreen={isAvatarChooserFullscreen}
+            onRequestFullscreen={setIsAvatarChooserFullscreen}
           />
         </ul>
       </div>
-    );
-  }
-
-  if (curRoleId <= 0) {
-    return (
-      (roomContext.curMember?.memberType ?? 3) < 3 && (
-        <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
-          <div className="w-full">
-            <AddRingLight className="size-10 md:size-14 group-hover:text-info"></AddRingLight>
-            <div className="text-sm truncate w-full text-center">
-              添加角色
-            </div>
-          </div>
-        </li>
-      )
     );
   }
 
@@ -149,20 +146,30 @@ export default function AvatarSwitch({
     <div className={wrapperClassName}>
       <div
         className={tooltipClassName}
-        data-tip="切换角色和表情"
+        data-tip={hasSelectedNarrator ? "切换旁白头像/角色" : "切换角色和表情"}
       >
-        <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情">
-          <RoleAvatarComponent
-            avatarId={curAvatarId}
-            width={computedAvatarWidth}
-            isRounded={true}
-            withTitle={false}
-            stopPopWindow={true}
-            alt={curRoleId > 0 ? "无可用头像" : "无可用角色"}
-          />
+        <div role="button" tabIndex={0} className="" title="切换角色和表情" aria-label="切换角色和表情" ref={dropdownTriggerRef}>
+          {hasSelectedNarrator && curAvatarId <= 0
+            ? (
+                <div className={`${narratorSizeClass} rounded-full bg-transparent flex items-center justify-center`}>
+                  <NarratorIcon className={computedAvatarWidth <= 8 ? "size-5 text-base-content/60" : "size-6 md:size-8 text-base-content/60"} />
+                </div>
+              )
+            : (
+                <RoleAvatarComponent
+                  avatarId={curAvatarId}
+                  roleId={curRoleId}
+                  width={computedAvatarWidth}
+                  isRounded={true}
+                  withTitle={false}
+                  stopToastWindow={true}
+                  useDefaultAvatarFallback={false}
+                  alt={hasSelectedRole ? "无可用头像" : "旁白"}
+                />
+              )}
         </div>
 
-        {showName && !isEditingName && (
+        {showName && hasSelectedRole && !isEditingName && (
           <div
             className={nameClassName}
             onClick={(e) => {
@@ -177,7 +184,7 @@ export default function AvatarSwitch({
           </div>
         )}
 
-        {showName && isEditingName && (
+        {showName && hasSelectedRole && isEditingName && (
           <input
             className={`input input-xs input-bordered w-full ${isHorizontal ? "text-left" : "text-center"} bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info`}
             value={editingName}
@@ -208,16 +215,24 @@ export default function AvatarSwitch({
             placeholder={currentRole?.roleName || ""}
           />
         )}
+
+        {showName && hasSelectedNarrator && (
+          <div className={`${nameClassName} text-base-content/40 select-none`} title="旁白不显示名称">
+            &nbsp;
+          </div>
+        )}
       </div>
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-[9999] shadow-sm p-0 border border-base-300 w-[92vw] md:w-auto max-h-[75vh] overflow-y-auto overflow-x-hidden"
+        className={`dropdown-content menu bg-base-100 rounded-box z-9999 shadow-sm p-0 border border-base-300 ${dropdownWidthClassName} max-h-[75vh] overflow-y-auto overflow-x-hidden`}
       >
         <ExpressionChooser
           roleId={curRoleId}
           handleExpressionChange={avatarId => setCurAvatarId(avatarId)}
           handleRoleChange={roleId => setCurRoleId(roleId)}
-          showNarratorOption={true}
+          onRequestClose={handleCloseDropdown}
+          defaultFullscreen={isAvatarChooserFullscreen}
+          onRequestFullscreen={setIsAvatarChooserFullscreen}
         />
       </ul>
     </div>

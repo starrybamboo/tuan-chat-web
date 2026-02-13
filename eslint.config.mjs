@@ -17,7 +17,6 @@ export default antfu(
       "public/**",
       "api/**",
       ".github/**",
-      "app/components/chat/infra/blocksuite/playground/**",
       "**/*.md",
       "eslint-report.json",
       "android/**",

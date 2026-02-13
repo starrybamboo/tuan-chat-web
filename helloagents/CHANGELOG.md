@@ -1,19 +1,24 @@
-# Changelog
+﻿# Changelog
 
 本文件记录项目所有重要变更。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+- ??????????????
+- ??????????????????????????
 
 ### 新增
+- 角色页面渲染预览支持修改已有头像（基于 avatarId 更新头像内容，不新增 avatarId）
 - Blocksuite 描述文档支持自定义“图片 + 标题”头部（`tc_header`），并禁用 blocksuite 内置 `doc-title`；宿主侧支持乐观显示 room/space 标题与头像覆盖值
 - Blocksuite 描述文档 `tcHeader` 新增“重置内置标题”按钮：一键清空 blocksuite 内置页面标题（用于修复历史文档的双标题/标题不一致）
 - Blocksuite 描述文档画布（edgeless）新增“全屏/退出全屏”按钮（浏览器 Fullscreen API）
+- Blocksuite 同步：从“仅快照”升级为“yjs updates 入库 + WebSocket 实时同步 + v2 snapshot 定期合并 + stateVector diff 补齐”
 - 新增 BlockSuite 学习路线文档：`app/components/chat/infra/blocksuite/doc/LEARNING-PATH.md`
 - 新增 Blocksuite 依赖文档索引与包说明：`helloagents/wiki/vendors/blocksuite/`
 - 新增 Quill 引用统计审计报告：`helloagents/wiki/reports/2026-01-14_quill_reference_audit.md`
 - 跑团指令支持“检定请求按钮消息”：使用独立消息类型 `COMMAND_REQUEST(12)`；KP 发送包含 `@All` 的指令会生成可点击按钮，成员点击后以自身角色一键发送并在原 thread 执行
+- KP 聊天输入框 @ 提及列表新增 `@All` 入口，并标注“检定请求”
 - WebGAL 实时预览设置支持配置 Terre 端口，并将 TTS/WebGAL 设置改为 IndexedDB 持久化
 - WebGAL 空间变量系统：导演控制台支持“设置变量”发送 `WEBGAL_VAR(11)` 结构化消息（也支持 `/var set a=1` 快捷方式），变量持久化到 `space.extra.webgalVars` 并在实时渲染中转换为 `setVar:* -global;`
 - Chat 房间列表：分类标题右侧新增“+”创建入口，可创建房间/文档并自动加入分类（持久化到 `/space/sidebarTree`）
@@ -26,8 +31,34 @@
 - 聊天室文本导入：当房间无可用角色时提供“创建/导入角色”快捷入口
 - 聊天室文本导入：支持发言人为“骰娘”时按 `DICE(6)` 类型发送（`extra.result=content`）
 - 聊天室文本导入：支持为发言人设置立绘位置（左/中/右），发送时写入 `message.webgal.voiceRenderSettings.figurePosition`
+- Chat：聊天输入区新增“我的文档”入口（线索按钮左侧），打开 Space 用户文档夹抽屉；文档/文件夹样式对齐 sidebarTree，并支持创建/重命名/删除/打开 Blocksuite 文档（对接 `/space/docFolder/*`）
+- Chat：支持文档卡片消息 `DOC_CARD(1002)`，支持从文档树拖拽发送到消息列表/输入框，并点击卡片弹窗只读预览 Blocksuite 文档
+- Chat：文档卡片消息右键菜单新增“复制到我的文档 / 复制到空间侧边栏（KP）”，语义为真正复制副本（从源文档导出 Blocksuite full update 并 restore 到新 doc，再写入 `/blocksuite/doc`；空间侧边栏复制会创建 `space_doc(sdoc)` 并写入 sidebarTree 引用）
+- Chat：聊天列表中的文档卡片消息支持拖拽到 sidebarTree 进行复制（KP，copy 语义）
+- Chat：支持将聊天列表的文档卡片消息拖拽复制到“我的文档”（创建 `space_user_doc(udoc)` 副本并追加到 docFolder）
+- Chat：全局音频悬浮球（聚合所有正在播放的音频，支持列表查看与暂停/停止）
+- Chat：新增发现页 `/chat/discover`，用于集中展示已归档群聊（`space.status=2`），并提供“预览/打开”入口
+- Chat：发现页使用 Chat 版面内视图渲染，保留顶部栏与最左侧空间栏（类似 Discord Discover）
+- Chat：发现页拆分为两条路由：`/chat/discover`（广场）与 `/chat/discover/my`（我的归档，使用本地存储）
 
 ### 变更
+- Chat：KP 发言角色选择支持切换房间内所有角色（含玩家角色与 NPC）
+- 音频消息改为流式播放器组件，移除波形并支持进度条拖动；BGM 预加载改为 metadata
+- OSS：新增音频上传/转码/发送调试日志开关（仅 DEV，`tc:audio:upload:debug` / `__TC_AUDIO_UPLOAD_DEBUG`）
+- OSS：音频上传统一输出为 `audio/webm`（Opus 编码，WebM 容器），并使用 `.webm` 后缀作为默认对象名扩展名
+- OSS：聊天音频默认压缩更激进（48kbps + 32kHz），并补充更低码率/更低采样率兜底预设以提高“必须更小”成功率
+- Chat：聊天音频消息播放器切回 WaveSurfer 波形方案，并改为“点击播放才初始化/加载”，避免列表渲染/刷新时触发拉取
+- OSS：语音参考文件音频上传改为“原始上传”（不走 Opus 转码）
+- OSS：音频转码增加 FFmpeg 核心源 fallback + 超时控制，避免网络异常时上传流程卡死
+- OSS：默认优先从同源静态资源加载 `@ffmpeg/core`（避免公共 CDN 不可达导致转码失败）
+- OSS：修复 Vite dev 下 `@ffmpeg/core` 深层路径无法被 exports 解析导致的预转换报错
+- OSS：`@ffmpeg/core` 版本对齐 `@ffmpeg/ffmpeg` 内置 `CORE_VERSION=0.12.9`，并在 `memory access out of bounds` 时重置转码 worker 重试一次
+- OSS：音频上传增加输入文件大小上限（30MB）避免 wasm 内存崩溃
+- Chat：聊天音频消息不再强制 60s 截断（仍受转码超时与 30MB 上限约束）
+- OSS：聊天音频转码启用“必须更小”策略（多档降码率预设），转码后不小于输入则阻止上传
+- BGM：音量值增加非有限数兜底，避免渲染时出现 `NaN` 导致 React 控制台警告
+- 聊天室文本导入：绑定角色后保留导入文本中的发言人名（写入 `customRoleName`）
+- Chat：消息发言人名不再在“名称不一致/自定义名称”时显示 `*` 标记
 - 聊天室文本导入：导入弹窗 UI 重构（双栏分区、消息预览、缺失映射提示与快捷创建入口）
 - 合并冲突处理：启用仓库级 rerere，并使用自动策略完成冲突解决与提交
 - Blocksuite：`@`（Linked Doc）候选列表标题优先使用 `tc_header.title`（与业务侧标题保持一致）
@@ -44,7 +75,11 @@
 - 文档查看统一使用 Chat 内主视图（`/chat/:spaceId/doc/:docId`），兼容入口 `/doc/:spaceId/:docId` 改为跳转到 Chat 布局（保留侧边栏并支持当前文档高亮）
 - sidebarTree 文档节点样式对齐房间：字号一致，并在标题前插入文档 icon
 - sidebarTree 独立文档打开页启用 `tcHeader`（禁用 blocksuite 内置 `doc-title`），支持上传封面并在侧边栏文档节点展示缩略图（本地缓存 `docHeaderOverrideStore`）
+- Chat：重命名文档拖拽引用工具：`dndDocRef` → `docRef`
+- Chat：文档拖拽到聊天输入框/消息列表时展示投放提示（松开发送文档卡片）
 - WebGAL 空间变量设置入口支持“导演控制台 → 设置变量”，并保留 `/var set ...` 作为快捷方式
+- Chat：sidebarTree 文档节点缓存 `fallbackTitle/fallbackImageUrl` 并在首屏优先展示缓存（避免等待 docMetas 加载）
+- WebGAL 实时渲染：消息写入后不再自动跳转预览（保持手动跳转）
 - 跑团指令“检定请求按钮消息”：移除额外“一键发送”按钮，点击检定请求卡片本体即可发送执行（不可执行时提示原因）
 - 跑团指令“检定请求按钮消息”：卡片增加“点击此进行检定”提示文案，并强化 hover/focus 视觉以提升可点击识别度
 - 线索（space_clue）正文改为使用 BlockSuite 文档入口，线索创建/详情不再编辑 `description/note`（`note` 保留为兼容字段）
@@ -63,8 +98,30 @@
 - AI 生图页 `/ai-image`：连接设置收口到右上角“设置”弹窗（Token/Endpoint/请求方式）
 
 ### 修复
+- 修复 Blocksuite 画布全屏（CSS 视口占满）下 @ 弹窗仍被遮挡：强制挂载在 iframe 文档
+- 修复 Blocksuite 全屏模式下 @ 弹窗仍被遮挡：根据 fullscreenElement 选择挂载目标
+- 修复 Blocksuite 全屏画布下 @ 快速搜索弹窗被遮挡：弹窗挂载到 top document 并提升 z-index
+- 修复聊天消息文本选区松开后丢失：存在选区时跳过消息点击逻辑
+- 修复聊天拖拽自动滚动重复声明导致的构建失败
+- 拖拽移动聊天消息时靠近顶部/底部自动滚动，便于移动到更早或更晚位置
+- 修复文档引用拖拽到聊天输入框/消息列表无响应：dragover 阶段基于 `dataTransfer.types` 判定并 `preventDefault`，确保 drop 可触发
+- 修复聊天文档卡片拖拽到侧边栏无响应：补齐 `docRef` 的 `text/plain` 兜底识别，并确保 sidebarTree dragover/drop 可触发
+- 修复聊天文档卡片从封面图片拖拽导致侧边栏不响应：封面图片禁用默认图片拖拽，确保触发 docRef 拖拽
+- 修复聊天文档卡片拖拽被“消息拖拽移动”接管：dragstart 阻止冒泡，保持 `effectAllowed=copy`
+- 修复我的文档（docFolder）列表项“⋮”菜单被后续列表项遮挡：提升操作区 `z-index`
+- 调整我的文档（docFolder）文档重命名：移除列表侧重命名入口，标题在文档内修改并自动同步
+- 修复文档卡片消息在消息列表不显示：当 `extra.docCard` 存在但 `messageType` ȱʧ/不匹配时，按文档卡片兜底渲染
+- 修复房间角色导入后 avatarId 为空导致头像不显示：前端兜底为该角色头像列表首个头像
+- 修复聊天导入/发送时未选择立绘导致消息头像回退默认图标：运行时解析 `avatarId`（不强制持久化），仍缺失时显示为空占位
+- 修复 WebGAL 实时预览在插入/删除/移动/重排消息后不更新：编排器统一 debounce 全量重建历史（尾部追加仍增量追加）
 - 修复房间初次导入无头像：房间头像缺失时用 `/favicon.ico` 兜底，并在头像加载失败时自动回退
 - 修复 chat 渲染与 BGM 悬浮球相关的 lint 规则警告
+- 修复 eslint 错误：`AudioMessage` 避免条件调用 Hooks；`SpaceWorkspace` WS 更新回调移除未使用的 `serverTime` 解构
+- 修复 CI `pnpm install` 失败：通过 `pnpm.overrides` 固定 `@electron/node-gyp` Ϊ registry 版本，避免通过 SSH clone GitHub
+- 修复聊天页面未读数在进入时持续累加：底部状态下对齐已读位置，标签仅显示实时未读
+- 修复未读来源难以定位：新增 `tc:unread:debug` 调试日志开关，输出未读统计细节
+- 修复发送语音消息时音频时长解析为 NaN 导致 `soundMessage.second` 非法，进而发送失败
+- 修复发送音频消息时偶发卡死：移除 `decodeAudioData` 兜底解析（大文件会阻塞主线程），仅基于 metadata 解析时长
 - 修复 blocksuite-frame（iframe）内 `tc_header` 图片上传不可用：补齐 `modal-root`，裁剪弹窗可正常打开并完成上传
 - 修复打开空间文档导致全量加载空间内所有文档：移除 workspace 初始化阶段标题水合（不再逐个 `doc.load()`）；远端 doc source 在 pull 阶段不再触发写回（避免打开即 PUT）
 - 修复编辑 `tcHeader` 导致 blocksuite iframe 反复重载：冻结 `blocksuite-frame` URL 中的 `tcHeaderTitle/tcHeaderImageUrl`（仅首次初始化/切换文档时传入）
@@ -80,7 +137,7 @@
 - 增加 Blocksuite @ 提及调试日志（菜单/插入路径）
 - 加固空间描述 Blocksuite @ 提及弹窗关闭与重复触发
 - 修复空间描述 Blocksuite @ 提及重复插入且弹窗不关闭
-- 修复开发环境 React hooks 报错（invalid hook call / `useEffect` 为 null）：dev 启动清理遗留 `node_modules/.vite/`，并补充 `resolve.dedupe` 覆盖 `react/jsx-*`
+- 修复开发环境 React hooks 报错（invalid hook call / `useEffect` Ϊ null）：dev 启动清理遗留 `node_modules/.vite/`，并补充 `resolve.dedupe` 覆盖 `react/jsx-*`
 - 修复开发环境偶发 Vite optimize deps 缓存/浏览器缓存不一致导致的 deps chunk 缺失报错：使用独立 `cacheDir`（`node_modules/.vite-tuan-chat-web`）并提供 `pnpm dev:force` 作为兜底命令
 - 去掉构建期预渲染：关闭 `prerender`，用于排查/规避 React #418（hydration mismatch）
 - BlockSuite 相关样式改为按需注入，并将 `@toeverything/theme` 的 `:root` 变量与 KaTeX 的全局 `body{counter-reset}` 重写为 `.tc-blocksuite-scope`/`.blocksuite-portal` 范围内生效
@@ -95,7 +152,7 @@
 - 调整 Blocksuite 在个人主页/房间设置等场景默认使用 `variant=embedded` 自动高度，以便由外层页面滚动（如需固定高度再显式传入 `variant=full`）
 - 优化 Blocksuite iframe 宿主 DOM：非全屏场景直接渲染 iframe，减少额外包裹层级，避免布局/高度被多层容器干扰
 - 修复 Chat 抽屉宽度在 hydration 时不一致导致的警告：`drawerPreferenceStore` 延迟从 localStorage hydrate，`OpenAbleDrawer` 首屏统一按 `lg` 渲染避免 SSR/客户端屏幕尺寸分支不一致
-- 为 `app/root.tsx` 的 `Layout` 增加默认 `data-theme="light"`，避免未挂载主题切换组件时 DaisyUI 主题变量缺失导致 UI 样式异常
+- Ϊ `app/root.tsx` 的 `Layout` 增加默认 `data-theme="light"`，避免未挂载主题切换组件时 DaisyUI 主题变量缺失导致 UI 样式异常
 - 统一包管理器为 pnpm：移除 `package-lock.json`，在 `package.json` 标注 `packageManager`，并在知识库中移除 npm/Docker 相关说明
 - WebGAL 实时渲染创建游戏不再使用 `WebGAL Black` 模板（不传 `templateDir`），创建失败直接返回失败
 - 修复房间列表右键菜单“房间资料”无法打开：为 `ChatPageContextMenu` 传入 `onOpenRoomSetting` 回调并跳转到房间资料页
@@ -104,7 +161,7 @@
 - 修复空间模式首次进入可能落到 `/chat/<spaceId>/null`：房间列表就绪后按自定义排序自动进入首个房间（并使用 `replace` 回填路由）
 - 修复空间抽屉面板“跑团设置”打开后空白：`SpaceDetailPanel` 增加 `trpg` tab 渲染 `SpaceTrpgSettingWindow`
 - 修复 ESLint 报错/告警：补全 Blocksuite 描述文档相关 `useEffect` 依赖；移除未使用的 Zustand `get` 参数；`/var set` 解析改为非正则解析避免回溯；`novelai-openapi.mjs` 显式引入 `node:process`
-- 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page 模式 `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
+- 修复 Blocksuite `tcHeader` 双标题：使用自定义 `tc-affine-editor-container`（fork integration-test 容器）让 page ģʽ `<doc-title>` 可选渲染，并在 specs 层过滤 `DocTitleViewExtension`
 - 修复 AI 生图页运行时拉取模型列表的 502：`/user/*` 元数据接口固定走 `https://api.novelai.net`，避免误发到 `image.novelai.net`
 - 修复 AI 生图页使用 `pst-*` token 拉取 `/user/clientsettings` 返回 403：检测到 persistent token 时直接降级为内置模型列表
 - AI 生图页模型锁定为 NAI v4.5 Full：`nai-diffusion-4-5-full`（UI 的 “4.5 FULL” 对应该模型 ID）
@@ -131,8 +188,11 @@
 
 ### 移除
 - 移除 Docker 相关文件（不再提供 Docker 构建链路）
+- Chat：移除房间级 BGM 悬浮球组件（统一使用全局音频悬浮球作为聚合入口）
 
 ### ??
+- ?? API ???? authorId ?????? RulePageRequest ???????
+- WebGAL ?????????????????????
 - ?? @???? Deleted doc?workspace ???
 - ?? @????? Deleted doc
 - ?? @????????????
@@ -141,3 +201,4 @@
 
 ### 新增
 - 初始化前端项目知识库（`helloagents/`）
+

@@ -1,10 +1,11 @@
-import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+﻿import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type {RuleCloneRequest} from "../models/RuleCloneRequest";
 import type {RuleCreateRequest} from "../models/RuleCreateRequest";
 import type {RulePageRequest} from "../models/RulePageRequest";
 import type {RuleUpdateRequest} from "../models/RuleUpdateRequest";
 import type {Rule} from "../models/Rule";
+import type { PageBaseRespRuleResponse } from "../models/PageBaseRespRuleResponse";
 
 import {tuanchat} from "../instance";
 
@@ -40,7 +41,7 @@ export function useGetRulePageInfiniteQuery(
             return tuanchat.ruleController.getRulePage(params);
         },
         getNextPageParam: (lastPage, allPages) => {
-            if (!lastPage.data?.isLast) {
+            if (lastPage.data?.isLast) {
                 return undefined;
             }
             return {
@@ -76,7 +77,7 @@ export function useCreateRuleMutation() {
 /**
  * 克隆规则
  */
-export function useCloneRuleMutation() {
+function useCloneRuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RuleCloneRequest) => tuanchat.ruleController.cloneRule(req),
@@ -99,7 +100,7 @@ export function useGetRuleDetailQuery(ruleId: number) {
         enabled: ruleId > 0 // 只有ruleId有效时才启用查询
     });
 }
-export function useGetRuleDetailQueries(ruleIds: number[]) {
+function useGetRuleDetailQueries(ruleIds: number[]) {
     return useQueries({
         queries: ruleIds.map(ruleId => ({
             queryKey: ['getRuleDetail', ruleId],
@@ -121,6 +122,10 @@ export function useDeleteRuleMutation() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getRulePage'] });
             queryClient.invalidateQueries({ queryKey: ['getRuleDetail'] });
+      // 兼容规则选择/列表等其它 queryKey
+      queryClient.invalidateQueries({ queryKey: ['rules'] });
+      queryClient.invalidateQueries({ queryKey: ['ruleList'] });
+      queryClient.invalidateQueries({ queryKey: ['ruleDetail'] });
         }
     });
 }
@@ -147,10 +152,10 @@ export function useRuleDetailQuery(ruleId: number, options?: { enabled?: boolean
  * @param keyword 搜索关键词
  * @param pageSize 每页大小
  */
-function getRulesQueryOptions(page: number, keyword?: string, pageSize: number = 4) {
+function getRulesQueryOptions(page: number, keyword?: string, pageSize: number = 4, authorId?: number) {
   return {
-    queryKey: ['rules', { page, keyword, pageSize }] as const,
-    queryFn: () => fetchRules(page, keyword, pageSize),
+    queryKey: ['rules', { page, keyword, pageSize, authorId }] as const,
+    queryFn: () => fetchRules(page, keyword, pageSize, authorId),
     staleTime: 10 * 1000, // 10秒缓存
   };
 }
@@ -158,16 +163,21 @@ function getRulesQueryOptions(page: number, keyword?: string, pageSize: number =
 /**
  * 获取规则列表（带分页和搜索）
  */
-async function fetchRules(page: number, keyword?: string, pageSize: number = 4) {
+async function fetchRules(page: number, keyword?: string, pageSize: number = 4, authorId?: number) {
   const res = await tuanchat.ruleController.getRulePage({
     pageNo: page,
     pageSize,
     keyword,
+    authorId,
   });
-  if (res.success && res.data?.list) {
-    return res.data.list;
-  }
-  return [] as Rule[];
+  const list = (res.success && res.data?.list) ? (res.data.list as unknown as Rule[]) : ([] as Rule[]);
+  const meta: Pick<PageBaseRespRuleResponse, 'pageNo' | 'pageSize' | 'totalRecords' | 'isLast'> = {
+    pageNo: res.data?.pageNo,
+    pageSize: res.data?.pageSize,
+    totalRecords: res.data?.totalRecords,
+    isLast: res.data?.isLast,
+  };
+  return { list, meta };
 }
 
 /**
@@ -176,18 +186,29 @@ async function fetchRules(page: number, keyword?: string, pageSize: number = 4) 
  * @param keyword 搜索关键词
  * @param pageSize 每页大小
  */
-export function useRulePageQuery(page: number, keyword?: string, pageSize: number = 8) {
+function useRulePageQuery(page: number, keyword?: string, pageSize: number = 8) {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    // 自动预取下一页数据，提升用户体验
-    queryClient.prefetchQuery(getRulesQueryOptions(page + 1, keyword, pageSize));
-  }, [page, keyword, pageSize, queryClient]);
-
-  return useQuery({
+  const query = useQuery({
     ...getRulesQueryOptions(page, keyword, pageSize),
     placeholderData: (previousData) => previousData, // 保持上一页数据避免闪烁
   });
+
+  const isLast = query.data?.meta?.isLast;
+
+  useEffect(() => {
+    // 自动预取下一页数据，提升用户体验
+    if (isLast) {
+      return;
+    }
+    queryClient.prefetchQuery(getRulesQueryOptions(page + 1, keyword, pageSize));
+  }, [page, keyword, pageSize, isLast, queryClient]);
+
+  return {
+    ...query,
+    data: query.data?.list ?? ([] as Rule[]),
+    meta: query.data?.meta,
+  };
 }
 
 /**
@@ -196,18 +217,30 @@ export function useRulePageQuery(page: number, keyword?: string, pageSize: numbe
  * @param page 页码
  * @param keyword 搜索关键词
  * @param pageSize 每页大小
+ * @param authorId 作者id
  */
-export function useRulePageSuspenseQuery(page: number, keyword?: string, pageSize: number = 8) {
+export function useRulePageSuspenseQuery(page: number, keyword?: string, pageSize: number = 8, authorId?: number) {
   const queryClient = useQueryClient();
+
+  const query = useSuspenseQuery({
+    ...getRulesQueryOptions(page, keyword, pageSize, authorId),
+  });
+
+  const isLast = query.data?.meta?.isLast;
 
   useEffect(() => {
     // 自动预取下一页数据，提升用户体验
-    queryClient.prefetchQuery(getRulesQueryOptions(page + 1, keyword, pageSize));
-  }, [page, keyword, pageSize, queryClient]);
+    if (isLast) {
+      return;
+    }
+    queryClient.prefetchQuery(getRulesQueryOptions(page + 1, keyword, pageSize, authorId));
+  }, [page, keyword, pageSize, authorId, isLast, queryClient]);
 
-  return useSuspenseQuery({
-    ...getRulesQueryOptions(page, keyword, pageSize),
-  });
+  return {
+    ...query,
+    data: query.data.list,
+    meta: query.data.meta,
+  };
 }
 
 export function useRuleListQuery() {
@@ -223,3 +256,4 @@ export function useRuleListQuery() {
     staleTime: 300000, // 5分钟缓存
   });
 }
+

@@ -1,7 +1,6 @@
-import React from "react";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
+import React, { useState } from "react";
 import { RoleDetail } from "@/components/common/roleDetail";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface UserRoleCardProps {
@@ -25,7 +24,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
     isLoading: isAvatarLoading,
   } = useGetRoleAvatarQuery(roleData?.data?.avatarId || 0);
 
-  const [isRoleParamsPopOpen, setIsRoleParamsPopOpen] = useSearchParamsState<boolean>(`rolePop${avatarData?.data?.avatarId}`, false);
+  const [isRoleParamsPopOpen, setIsRoleParamsPopOpen] = useState(false);
 
   const role = roleData?.data;
   const isLoading = isRoleLoading || isAvatarLoading;
@@ -106,14 +105,17 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
 
       {/* 弹窗 */}
       {isRoleParamsPopOpen && (
-        <PopWindow
+        <ToastWindow
           isOpen={isRoleParamsPopOpen}
           onClose={() => setIsRoleParamsPopOpen(false)}
         >
           <div className="items-center justify-center gap-y-4 flex flex-col w-full overflow-auto">
-            <RoleDetail roleId={avatarData?.data?.roleId ?? -1} />
+            <RoleDetail
+              roleId={avatarData?.data?.roleId ?? -1}
+              onClose={() => setIsRoleParamsPopOpen(false)}
+            />
           </div>
-        </PopWindow>
+        </ToastWindow>
       )}
     </div>
   );

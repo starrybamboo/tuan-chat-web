@@ -7,6 +7,7 @@ interface ConfigurationSectionProps {
   title?: string;
   roleId: number;
   ruleId: number;
+  isEditing?: boolean;
   fieldType: "basic" | "ability" | "skill";
   customLabel: string; // e.g., "基础属性", "能力", "技能"
   // 数据源
@@ -93,6 +94,7 @@ export function ConfigurationSection({
   title,
   roleId,
   ruleId,
+  isEditing,
   fieldType,
   customLabel,
   abilityData,
@@ -247,6 +249,7 @@ export function ConfigurationSection({
               onChange={handleModifiedChange}
               roleId={roleId}
               ruleId={ruleId}
+              isEditing={isEditing}
               title={modifiedCount > 0 ? `自定义${customLabel}` : `添加${customLabel}`}
               fieldType={fieldType}
             />
@@ -334,6 +337,7 @@ export function ConfigurationSection({
               onChange={handleTemplateChange}
               roleId={roleId}
               ruleId={ruleId}
+              isEditing={isEditing}
               title={`模版${customLabel}`}
               fieldType={fieldType}
             />

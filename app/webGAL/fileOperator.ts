@@ -1,5 +1,6 @@
 import type { GameInfoDto } from "@/webGAL/apis";
 
+import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
@@ -7,7 +8,7 @@ import { getTerreBaseUrl } from "@/webGAL/terreConfig";
  * WebGAL 调试命令枚举
  * 用于通过 WebSocket 与 WebGAL 引擎通信
  */
-export enum DebugCommand {
+enum DebugCommand {
   // 跳转到指定场景的指定行
   JUMP,
   // 同步自客户端
@@ -26,7 +27,7 @@ export enum DebugCommand {
   SET_FONT_OPTIMIZATION,
 }
 
-export type IFile = {
+type IFile = {
   extName: string;
   isDir: boolean;
   name: string;
@@ -46,6 +47,39 @@ export type IDebugMessage = {
     stageSyncMsg: any;
   };
 };
+
+const AUDIO_EXTENSIONS = new Set([
+  "mp3",
+  "wav",
+  "aac",
+  "m4a",
+  "mp4",
+  "ogg",
+  "oga",
+  "opus",
+  "webm",
+  "flac",
+  "caf",
+]);
+
+function getFileExtension(fileName: string): string {
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex <= 0 || dotIndex >= fileName.length - 1)
+    return "";
+  return fileName.slice(dotIndex + 1).toLowerCase();
+}
+
+function replaceFileExtension(fileName: string, nextExt: string): string {
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex > 0)
+    return `${fileName.slice(0, dotIndex)}.${nextExt}`;
+  return `${fileName}.${nextExt}`;
+}
+
+function isLikelyAudioFileName(fileName: string): boolean {
+  const ext = getFileExtension(fileName);
+  return Boolean(ext && AUDIO_EXTENSIONS.has(ext));
+}
 
 /**
  * 从 URL 中提取文件扩展名
@@ -86,19 +120,42 @@ export function getFileExtensionFromUrl(url: string, defaultExt: string = "webp"
 export async function uploadFile(url: string, path: string, fileName?: string | undefined): Promise<string> {
   // 如果未定义fileName，那就使用url中的fileName
   const newFileName = fileName || url.substring(url.lastIndexOf("/") + 1);
-  const safeFileName = newFileName.replace(/\P{ASCII}/gu, char =>
+
+  // 对音频统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
+  // const shouldTranscodeAudioByName = isLikelyAudioFileName(newFileName);
+  // let targetFileName = shouldTranscodeAudioByName ? replaceFileExtension(newFileName, "opus") : newFileName;
+  // 暂时禁用强制转码 Opus，使用原文件格式（如 wav）
+  let targetFileName = newFileName;
+
+  let safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
     encodeURIComponent(char).replace(/%/g, ""));
-  if (await checkFileExist(path, safeFileName)) {
+
+  if (await checkFileExist(path, safeFileName))
     return safeFileName;
-  }
+
   const response = await fetch(url);
   if (!response.ok)
     throw new Error(`Failed to fetch file: ${response.statusText}`);
   const data = await response.blob();
-  const blob = new Blob([data]);
-  // 替换中文字符（webgal不支持）
 
-  const file = new File([blob], safeFileName);
+  // const isAudioByResponse = typeof data.type === "string" && data.type.startsWith("audio/");
+  // const shouldTranscodeAudio = shouldTranscodeAudioByName || isAudioByResponse;
+  const shouldTranscodeAudio = false;
+
+  /*
+  if (shouldTranscodeAudio && !shouldTranscodeAudioByName) {
+    targetFileName = replaceFileExtension(newFileName, "opus");
+    safeFileName = targetFileName.replace(/\P{ASCII}/gu, char =>
+      encodeURIComponent(char).replace(/%/g, ""));
+
+    if (await checkFileExist(path, safeFileName))
+      return safeFileName;
+  }
+  */
+
+  const file = shouldTranscodeAudio
+    ? await transcodeAudioBlobToOpusOrThrow(data, safeFileName)
+    : new File([data], safeFileName, { type: data.type || "application/octet-stream" });
 
   const formData = new FormData();
   formData.append("files", file);
@@ -123,7 +180,7 @@ export async function checkGameExist(game: string): Promise<boolean> {
   return gameList.some(item => item.name === game);
 }
 
-export async function fetchFolder(folderPath: string) {
+async function fetchFolder(folderPath: string) {
   const res = await getTerreApis().assetsControllerReadAssets(folderPath);
   const data = res as unknown as object;
   if ("dirInfo" in data && data.dirInfo) {
@@ -170,17 +227,3 @@ export function getAsyncMsg(sceneName: string, lineNumber: number, forceReload: 
  * 可以用来执行单条 WebGAL 命令而不改变当前场景状态
  * @param command WebGAL 命令字符串
  */
-export function getTempSceneMsg(command: string): IDebugMessage {
-  return {
-    event: "message",
-    data: {
-      command: DebugCommand.TEMP_SCENE,
-      sceneMsg: {
-        scene: "",
-        sentence: 0,
-      },
-      stageSyncMsg: {},
-      message: command,
-    },
-  };
-}

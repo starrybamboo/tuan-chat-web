@@ -13,6 +13,8 @@ type UseAvatarDeletionProps = {
   selectedAvatarId: number;
   onAvatarChange?: (avatarUrl: string, avatarId: number) => void;
   onAvatarSelect?: (avatarId: number) => void;
+  onDeleteSuccess?: (avatar: RoleAvatar) => void;
+  onBatchDeleteSuccess?: (avatars: RoleAvatar[]) => void;
 };
 
 /**
@@ -28,6 +30,8 @@ export function useAvatarDeletion({
   selectedAvatarId,
   onAvatarChange,
   onAvatarSelect,
+  onDeleteSuccess,
+  onBatchDeleteSuccess,
 }: UseAvatarDeletionProps) {
   const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -87,7 +91,8 @@ export function useAvatarDeletion({
       return;
     }
 
-    const isCurrentRoleAvatar = avatarToDelete.avatarId === role.avatarId;
+    const isCurrentRoleAvatar = avatarToDelete.avatarId === role.avatarId
+      || (role.avatar && (!role.avatarId || role.avatarId === 0) && avatarToDelete.avatarUrl === role.avatar);
     const isCurrentlySelected = avatarToDelete.avatarId === selectedAvatarId;
 
     setIsDeleting(true);
@@ -120,6 +125,7 @@ export function useAvatarDeletion({
 
       // Step 2: Delete the avatar
       await deleteAvatarMutation.mutateAsync(avatarId);
+      onDeleteSuccess?.(avatarToDelete);
     }
     catch (error) {
       console.error("删除头像操作失败:", error);
@@ -135,6 +141,7 @@ export function useAvatarDeletion({
     findReplacementAvatar,
     onAvatarChange,
     onAvatarSelect,
+    onDeleteSuccess,
     deleteAvatarMutation,
     queryClient,
   ]);
@@ -162,12 +169,20 @@ export function useAvatarDeletion({
       throw new Error("删除操作正在进行中，请稍候");
     }
 
+    const avatarsToDelete = avatars.filter(avatar =>
+      avatar.avatarId && avatarIds.includes(avatar.avatarId),
+    );
+
     setIsDeleting(true);
 
     try {
       // Check if current avatar is in the deletion list
+      const roleAvatarByUrl = role.avatar && (!role.avatarId || role.avatarId === 0)
+        ? avatars.find(a => a.avatarUrl === role.avatar)
+        : null;
       const isDeletingCurrentAvatar = avatarIds.includes(role.avatarId)
-        || avatarIds.includes(selectedAvatarId);
+        || avatarIds.includes(selectedAvatarId)
+        || (roleAvatarByUrl?.avatarId ? avatarIds.includes(roleAvatarByUrl.avatarId) : false);
 
       // Step 1: If deleting current avatar, select replacement first
       if (isDeletingCurrentAvatar) {
@@ -178,11 +193,13 @@ export function useAvatarDeletion({
 
         if (replacementAvatar) {
           // Update character's avatar if needed
-          if (avatarIds.includes(role.avatarId) && onAvatarChange) {
-            onAvatarChange(
+          const shouldUpdateRoleAvatar = avatarIds.includes(role.avatarId)
+            || (roleAvatarByUrl?.avatarId ? avatarIds.includes(roleAvatarByUrl.avatarId) : false);
+          if (shouldUpdateRoleAvatar && onAvatarChange) {
+            await Promise.resolve(onAvatarChange(
               replacementAvatar.avatarUrl || "",
               replacementAvatar.avatarId || 0,
-            );
+            ));
 
             await queryClient.invalidateQueries({
               queryKey: ["getRole", role.id],
@@ -198,6 +215,9 @@ export function useAvatarDeletion({
 
       // Step 2: Delete all avatars
       await batchDeleteMutation.mutateAsync(avatarIds);
+      if (avatarsToDelete.length > 0) {
+        onBatchDeleteSuccess?.(avatarsToDelete);
+      }
     }
     catch (error) {
       console.error("批量删除头像失败:", error);
@@ -214,6 +234,7 @@ export function useAvatarDeletion({
     onAvatarChange,
     onAvatarSelect,
     batchDeleteMutation,
+    onBatchDeleteSuccess,
     queryClient,
   ]);
 

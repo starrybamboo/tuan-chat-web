@@ -1,9 +1,9 @@
 import type { RoleAvatar } from "api";
-
+import type { UploadContext } from "../../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../../types";
-
-import { useState } from "react";
-
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useCallback, useState } from "react";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { BaselineDeleteOutline } from "@/icons";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
@@ -11,6 +11,8 @@ import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
 interface SpriteListGridProps {
   /** 头像/立绘列表 */
   avatars: RoleAvatar[];
+  /** 头像总数（用于判断是否允许删除全部） */
+  totalAvatarsCount?: number;
   /** 当前选中的索引 */
   selectedIndex: number;
   /** 选中回调 */
@@ -22,7 +24,7 @@ interface SpriteListGridProps {
   /** 模式：'view' 仅展示，'manage' 管理模式（显示上传、删除等功能） */
   mode?: "view" | "manage";
   /** 上传触发后的回调 */
-  onUpload?: (data: any) => void;
+  onUpload?: (data: any, context?: UploadContext) => void | Promise<void>;
   /** 传给上传组件的文件名（可选） */
   fileName?: string;
   /** 角色信息（用于删除和编辑逻辑） */
@@ -31,12 +33,15 @@ interface SpriteListGridProps {
   onAvatarChange?: (avatarUrl: string, avatarId: number) => void;
   /** 头像选择回调（用于删除时更新选中状态） */
   onAvatarSelect?: (avatarId: number) => void;
+  onAvatarDeleted?: (avatar: RoleAvatar) => void;
   /** 多选状态（必须从父组件传入） */
   selectedIndices: Set<number>;
   /** 是否处于多选模式（必须从父组件传入） */
   isMultiSelectMode: boolean;
   /** 多选状态变化回调（必须） */
   onMultiSelectChange: (selectedIndices: Set<number>, isMultiSelectMode: boolean) => void;
+  /** 可选：直接指定 grid-template-columns，确保网格列数生效 */
+  gridTemplateColumns?: string;
 }
 
 /**
@@ -46,6 +51,7 @@ interface SpriteListGridProps {
  */
 export function SpriteListGrid({
   avatars,
+  totalAvatarsCount,
   selectedIndex,
   onSelect,
   className = "",
@@ -56,9 +62,11 @@ export function SpriteListGrid({
   role,
   onAvatarChange,
   onAvatarSelect,
+  onAvatarDeleted,
   selectedIndices,
   isMultiSelectMode,
   onMultiSelectChange,
+  gridTemplateColumns,
 }: SpriteListGridProps) {
   // 管理模式下启用上传和删除功能
   const isManageMode = mode === "manage";
@@ -80,10 +88,44 @@ export function SpriteListGrid({
   const deletionHook = useAvatarDeletion({
     role,
     avatars,
+    totalAvatarsCount,
     selectedAvatarId,
     onAvatarChange,
     onAvatarSelect,
+    onDeleteSuccess: onAvatarDeleted,
   });
+
+  const updateNameMutation = useUpdateAvatarNameMutation(role?.id);
+  const canEditName = Boolean(role?.id);
+
+  const handleAvatarNameCommit = useCallback(async (avatar: RoleAvatar, nextName: string) => {
+    if (!role?.id) {
+      return;
+    }
+    if (updateNameMutation.isPending) {
+      return;
+    }
+    const trimmedName = nextName.trim();
+    if (!trimmedName) {
+      return;
+    }
+    const normalizedAvatar: RoleAvatar = {
+      ...avatar,
+      avatarTitle: typeof avatar.avatarTitle === "string"
+        ? { label: avatar.avatarTitle }
+        : (avatar.avatarTitle ?? {}),
+    };
+
+    try {
+      await updateNameMutation.mutateAsync({
+        avatar: normalizedAvatar,
+        name: trimmedName,
+      });
+    }
+    catch (error) {
+      console.error("保存头像名称失败:", error);
+    }
+  }, [role?.id, updateNameMutation]);
 
   // Helper function to get avatar display name
   const getAvatarName = (avatar: RoleAvatar, index: number): string => {
@@ -130,7 +172,7 @@ export function SpriteListGrid({
   };
 
   // Determine if delete button should be shown (not when only 1 avatar remains)
-  const canDelete = avatars.length > 1;
+  const canDelete = (totalAvatarsCount ?? avatars.length) > 1;
   if (avatars.length === 0) {
     return (
       <div
@@ -186,12 +228,13 @@ export function SpriteListGrid({
                   setDroppedFiles(null);
                   setDroppedBatchId(null);
                 }}
-                mutate={(data) => {
+                mutate={(data, context) => {
                   try {
-                    onUpload?.(data);
+                    return onUpload?.(data, context);
                   }
                   catch (e) {
                     console.error("onUpload 回调执行失败", e);
+                    throw e;
                   }
                 }}
               >
@@ -249,10 +292,18 @@ export function SpriteListGrid({
         }}
       >
 
-        <div className={`grid ${gridCols} gap-2 overflow-auto content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}>
+        <div
+          className={`grid ${gridCols} gap-2 overflow-auto content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}
+          style={gridTemplateColumns ? { gridTemplateColumns } : undefined}
+        >
           {avatars.map((avatar, index) => {
             const avatarName = getAvatarName(avatar, index);
             const isSelected = isMultiSelectMode ? selectedIndices.has(index) : index === selectedIndex;
+            const isAppliedAvatar = Boolean(
+              role?.avatarId
+                ? avatar.avatarId === role.avatarId
+                : (role?.avatar ? avatar.avatarUrl === role.avatar : false),
+            );
 
             return (
               <div key={avatar.avatarId} className="flex flex-col">
@@ -332,6 +383,20 @@ export function SpriteListGrid({
                     {isMultiSelectMode && selectedIndices.has(index) && (
                       <div className="absolute inset-0 bg-primary/20 pointer-events-none" />
                     )}
+
+                    {/* Applied avatar indicator */}
+                    {isAppliedAvatar && (
+                      <div className="absolute bottom-0 left-1 z-10 flex items-center gap-1.5">
+                        <span
+                          className="h-3 w-3 rounded-full bg-success shadow-sm"
+                          title="这是当前应用的头像"
+                        >
+                        </span>
+                        <span className="rounded-full bg-success/90 p-1 text-[10px] text-success-content opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          当前应用
+                        </span>
+                      </div>
+                    )}
                   </button>
 
                   {/* Delete button - shown on hover (desktop) or always (mobile), hidden if only 1 avatar or in multi-select mode */}
@@ -350,9 +415,20 @@ export function SpriteListGrid({
                   )}
                 </div>
 
-                <div className="text-xs text-center text-base-content/70 truncate w-full">
-                  {avatarName}
-                </div>
+                <DoubleClickEditableText
+                  value={avatarName}
+                  disabled={!canEditName || updateNameMutation.isPending}
+                  className="text-xs text-center text-base-content/70 w-full"
+                  displayClassName={`block truncate ${canEditName ? "cursor-text" : ""}`}
+                  inputClassName="input input-xs w-full text-center"
+                  placeholder={`头像${index + 1}`}
+                  invalidBehavior="revert"
+                  validate={nextValue => (nextValue.trim().length ? null : "头像名称不能为空")}
+                  onCommit={nextValue => handleAvatarNameCommit(avatar, nextValue)}
+                  displayProps={{
+                    title: canEditName ? "双击修改头像标题" : avatarName,
+                  }}
+                />
               </div>
             );
           })}
@@ -368,13 +444,14 @@ export function SpriteListGrid({
                 setDroppedFiles(null);
                 setDroppedBatchId(null);
               }}
-              mutate={(data) => {
+              mutate={(data, context) => {
                 try {
-                  onUpload?.(data);
+                  return onUpload?.(data, context);
                 }
                 catch (e) {
                   // 保持轻量：调用方处理错误
                   console.error("onUpload 回调执行失败", e);
+                  throw e;
                 }
               }}
             >
@@ -406,7 +483,7 @@ export function SpriteListGrid({
         <div className="modal modal-open">
           <div className="modal-box">
             <h3 className="font-bold text-lg">确认删除头像</h3>
-            <p className="py-4">确定要删除这个头像吗？此操作无法撤销。</p>
+            <p className="py-4">删除后会进入回收站，可在回收站恢复。</p>
             <div className="modal-action">
               <button
                 type="button"

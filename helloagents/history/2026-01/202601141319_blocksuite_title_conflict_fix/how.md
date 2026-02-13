@@ -12,9 +12,9 @@
 ### 2) 重写 tcHeader 标题样式（避免照搬被覆盖）
 - 使用 `all: unset` 清空潜在的 reset/注入样式影响。
 - 显式设置 `font-family / font-size / line-height / font-weight / color`，并对 blocksuite 变量提供 fallback：
-  - `--affine-editor-width` fallback 为 `780px`
-  - `--affine-text-primary-color` fallback 为 `#111827`
-  - `--affine-placeholder-color` fallback 为 `#9ca3af`
+  - `--affine-editor-width` fallback Ϊ `780px`
+  - `--affine-text-primary-color` fallback Ϊ `#111827`
+  - `--affine-placeholder-color` fallback Ϊ `#9ca3af`
 
 ## 架构决策 ADR
 

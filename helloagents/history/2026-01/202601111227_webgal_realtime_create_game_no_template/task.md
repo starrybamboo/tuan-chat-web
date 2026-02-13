@@ -1,6 +1,6 @@
 # 任务清单: WebGAL 实时渲染创建游戏不使用模板
 
-目录: `helloagents/plan/202601111227_webgal_realtime_create_game_no_template/`
+Ŀ¼: `helloagents/plan/202601111227_webgal_realtime_create_game_no_template/`
 
 ---
 

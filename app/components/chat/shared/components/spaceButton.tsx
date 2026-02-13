@@ -1,6 +1,7 @@
 import type { Space } from "../../../../../api";
 import React from "react";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import PortalTooltip from "@/components/common/portalTooltip";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
   space: Space;
@@ -14,7 +15,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 
   return (
     <div
-      className="group relative w-10 my-1 rounded"
+      className="group relative z-20 hover:z-50 w-10 my-1 rounded"
       key={space.spaceId}
     >
       <div
@@ -23,29 +24,32 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
         }`}
       >
       </div>
-      <button
-        className="w-10 btn btn-square relative"
-        type="button"
-        onClick={onclick}
-      >
-        <div className="indicator">
-          {(unreadMessageNumber && unreadMessageNumber > 0)
-            ? (
-                <span
-                  className="indicator-item badge badge-xs bg-error"
-                >
-                  {unreadMessageNumber}
-                </span>
-              )
-            : null}
-          <div className="avatar mask mask-squircle size-10">
-            <img
-              src={displayAvatar}
-              alt={displayName}
-            />
+      <PortalTooltip label={displayName} placement="right">
+        <button
+          className="w-10 btn btn-square relative"
+          type="button"
+          aria-label={displayName}
+          onClick={onclick}
+        >
+          <div className="indicator">
+            {(unreadMessageNumber && unreadMessageNumber > 0)
+              ? (
+                  <span
+                    className="indicator-item badge badge-xs bg-error"
+                  >
+                    {unreadMessageNumber}
+                  </span>
+                )
+              : null}
+            <div className="avatar mask mask-squircle size-10">
+              <img
+                src={displayAvatar}
+                alt={displayName}
+              />
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+      </PortalTooltip>
     </div>
   );
 }

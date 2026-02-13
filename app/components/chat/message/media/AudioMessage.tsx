@@ -1,124 +1,244 @@
-import { useEffect, useRef, useState } from "react";
-import WaveSurfer from "wavesurfer.js";
-import { PauseIcon, PlayIcon } from "@/icons";
+// 音频消息播放组件（WaveSurfer 波形播放器）。
+// 为了避免列表渲染/刷新时自动触发下载，WaveSurfer 仅在用户点击播放时才初始化与加载音频。
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { acquireAudioMessageWaveSurfer, hasAudioMessageWaveSurfer } from "@/components/chat/infra/audioMessage/audioMessageWaveSurferCache";
+import { useAudioPlaybackRegistration } from "@/components/common/useAudioPlaybackRegistration";
+
+import "./audioMessage.css";
 
 interface AudioMessageProps {
   url: string;
   duration?: number; // Optional duration in seconds
+  title?: string;
 }
 
-export default function AudioMessage({ url, duration: initialDuration }: AudioMessageProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const wavesurferRef = useRef<WaveSurfer | null>(null);
+function formatTime(seconds: number): string {
+  const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+  const mins = Math.floor(safe / 60);
+  const secs = Math.floor(safe % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+export default function AudioMessage({ url, duration, title }: AudioMessageProps) {
+  const hasUrl = Boolean(url);
+  const waveContainerRef = useRef<HTMLDivElement | null>(null);
+  const waveSurferRef = useRef<any>(null);
+  const shouldAutoPlayRef = useRef(false);
+  const releaseRef = useRef<null | ((opts?: { keepPlaying?: boolean }) => void)>(null);
+  const unsubsRef = useRef<(() => void)[]>([]);
+
+  const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [duration, setDuration] = useState(initialDuration || 0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [resolvedDuration, setResolvedDuration] = useState<number | undefined>(undefined);
 
-  useEffect(() => {
-    if (!containerRef.current || !url)
-      return;
+  const fallbackDurationSeconds = typeof duration === "number" && Number.isFinite(duration) ? Math.max(0, duration) : undefined;
+  const currentTimeText = useMemo(() => formatTime(currentTime), [currentTime]);
 
-    if (wavesurferRef.current) {
-      wavesurferRef.current.destroy();
-      wavesurferRef.current = null;
+  const playback = useAudioPlaybackRegistration({
+    kind: "chat",
+    title: title || "聊天音频",
+    url: hasUrl ? url : undefined,
+    pause: () => {
+      try {
+        waveSurferRef.current?.pause?.();
+      }
+      catch {
+        // ignore
+      }
+    },
+  });
+
+  const cleanupWaveSurfer = (opts?: { keepPlaying?: boolean }) => {
+    const unsubs = unsubsRef.current;
+    unsubsRef.current = [];
+    for (const unsub of unsubs) {
+      try {
+        unsub();
+      }
+      catch {
+        // ignore
+      }
     }
 
-    setIsLoading(true);
-    setIsPlaying(false);
+    const release = releaseRef.current;
+    releaseRef.current = null;
+    waveSurferRef.current = null;
+    try {
+      release?.(opts);
+    }
+    catch {
+      // ignore
+    }
+  };
+
+  const bindWaveSurfer = useCallback((ws: any) => {
+    const unsubs: Array<(() => void) | undefined> = [];
+
+    unsubs.push(ws.on?.("ready", () => {
+      setIsReady(true);
+      const d = ws.getDuration?.();
+      if (typeof d === "number" && Number.isFinite(d) && d > 0)
+        setResolvedDuration(d);
+
+      if (shouldAutoPlayRef.current) {
+        shouldAutoPlayRef.current = false;
+        ws.play?.();
+      }
+    }));
+
+    unsubs.push(ws.on?.("play", () => {
+      setIsPlaying(true);
+      playback.onPlay();
+    }));
+    unsubs.push(ws.on?.("pause", () => {
+      setIsPlaying(false);
+      playback.onPause();
+    }));
+    unsubs.push(ws.on?.("finish", () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      playback.onEnded();
+    }));
+
+    const updateTime = () => {
+      const t = ws.getCurrentTime?.();
+      if (typeof t === "number" && Number.isFinite(t))
+        setCurrentTime(t);
+    };
+    unsubs.push(ws.on?.("timeupdate", updateTime));
+    unsubs.push(ws.on?.("audioprocess", updateTime));
+
+    unsubs.push(ws.on?.("error", (e: any) => {
+      console.error("[tc-audio-message] wavesurfer error", e);
+    }));
+
+    unsubsRef.current = unsubs.filter(Boolean) as Array<() => void>;
+  }, [playback]);
+
+  const ensureWaveSurfer = useCallback(async () => {
+    if (waveSurferRef.current)
+      return waveSurferRef.current;
+    if (!waveContainerRef.current)
+      throw new Error("音频波形容器未就绪");
+
+    const { ws, release } = await acquireAudioMessageWaveSurfer({
+      url,
+      container: waveContainerRef.current,
+    });
+
+    waveSurferRef.current = ws;
+    releaseRef.current = release;
+
+    bindWaveSurfer(ws);
 
     try {
-      wavesurferRef.current = WaveSurfer.create({
-        container: containerRef.current,
-        waveColor: "#94a3b8", // slate-400
-        progressColor: "#3b82f6", // blue-500
-        cursorColor: "transparent",
-        barWidth: 2,
-        barGap: 2,
-        barRadius: 2,
-        height: 40,
-        normalize: true,
-        backend: "WebAudio",
-      });
-
-      wavesurferRef.current.load(url);
-
-      wavesurferRef.current.on("ready", () => {
-        setIsLoading(false);
-        if (wavesurferRef.current) {
-          const d = wavesurferRef.current.getDuration();
-          if (d > 0)
-            setDuration(d);
-        }
-      });
-
-      wavesurferRef.current.on("play", () => setIsPlaying(true));
-      wavesurferRef.current.on("pause", () => setIsPlaying(false));
-      wavesurferRef.current.on("finish", () => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-      });
-      wavesurferRef.current.on("audioprocess", () => {
-        if (wavesurferRef.current) {
-          setCurrentTime(wavesurferRef.current.getCurrentTime());
-        }
-      });
-      wavesurferRef.current.on("error", (err) => {
-        console.error("WaveSurfer error:", err);
-        setIsLoading(false);
-      });
-    }
-    catch (error) {
-      console.error("Failed to create WaveSurfer:", error);
-      setIsLoading(false);
-    }
-
-    return () => {
-      if (wavesurferRef.current) {
-        wavesurferRef.current.destroy();
-        wavesurferRef.current = null;
+      const d = ws.getDuration?.();
+      if (typeof d === "number" && Number.isFinite(d) && d > 0) {
+        setIsReady(true);
+        setResolvedDuration(d);
       }
-    };
+    }
+    catch {
+      // ignore
+    }
+
+    try {
+      setIsPlaying(Boolean(ws.isPlaying?.()));
+      const t = ws.getCurrentTime?.();
+      if (typeof t === "number" && Number.isFinite(t))
+        setCurrentTime(t);
+    }
+    catch {
+      // ignore
+    }
+
+    return ws;
+  }, [bindWaveSurfer, url]);
+
+  useEffect(() => {
+    setIsReady(false);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setResolvedDuration(undefined);
+    shouldAutoPlayRef.current = false;
+    cleanupWaveSurfer({ keepPlaying: false });
   }, [url]);
 
-  const togglePlay = () => {
-    if (wavesurferRef.current) {
-      wavesurferRef.current.playPause();
+  useEffect(() => {
+    return () => {
+      const ws = waveSurferRef.current;
+      const keepPlaying = Boolean(ws?.isPlaying?.());
+      cleanupWaveSurfer({ keepPlaying });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasUrl)
+      return;
+    if (!waveContainerRef.current)
+      return;
+    if (!hasAudioMessageWaveSurfer(url))
+      return;
+
+    void ensureWaveSurfer();
+  }, [ensureWaveSurfer, hasUrl, url]);
+
+  const durationText = useMemo(() => {
+    const d = typeof resolvedDuration === "number" && Number.isFinite(resolvedDuration) && resolvedDuration > 0
+      ? resolvedDuration
+      : fallbackDurationSeconds;
+    return typeof d === "number" ? formatTime(d) : "00:00";
+  }, [fallbackDurationSeconds, resolvedDuration]);
+
+  const handleTogglePlay = async () => {
+    try {
+      const ws = await ensureWaveSurfer();
+      if (!isReady)
+        shouldAutoPlayRef.current = true;
+
+      if (ws.isPlaying?.())
+        ws.pause?.();
+      else
+        ws.play?.();
+    }
+    catch (e) {
+      console.error("[tc-audio-message] toggle play failed", e);
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+  if (!hasUrl)
+    return null;
 
   return (
-    <div className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 bg-base-200 rounded-lg min-w-[160px] sm:min-w-[200px] max-w-[260px] sm:max-w-[300px]">
-      <button
-        className="btn btn-circle btn-xs sm:btn-sm btn-primary flex-shrink-0"
-        onClick={togglePlay}
-        disabled={isLoading}
-        type="button"
-      >
-        {isLoading
-          ? (
-              <span className="loading loading-spinner loading-xs"></span>
-            )
-          : isPlaying
+    <div className="tc-audio-message bg-base-200 rounded-lg p-2 min-w-[200px] max-w-[340px]">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="btn btn-xs btn-circle btn-ghost"
+          onClick={handleTogglePlay}
+          aria-label={isPlaying ? "暂停" : "播放"}
+        >
+          {isPlaying
             ? (
-                <PauseIcon className="size-3 sm:size-4" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z" />
+                </svg>
               )
             : (
-                <PlayIcon className="size-3 sm:size-4 ml-0.5" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7L8 5z" />
+                </svg>
               )}
-      </button>
+        </button>
 
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <div ref={containerRef} className="w-full" />
-        <div className="flex justify-between text-xs text-base-content/70 mt-1">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
+        <div className="flex-1 min-w-0">
+          <div ref={waveContainerRef} className="tc-audio-wave" />
+          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+            <span>{currentTimeText}</span>
+            <span>{durationText}</span>
+          </div>
         </div>
       </div>
     </div>

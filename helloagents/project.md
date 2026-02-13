@@ -25,7 +25,7 @@
 
 ## 开发约定
 
-- **代码规范:** 以 `eslint.config.mjs` 为准；提交前由 `husky` + `lint-staged` 触发检查
+- **代码规范:** 以 `eslint.config.mjs` 为准；提交前由 `husky` + `lint-staged` 触发 ESLint 与编码/乱码检测（`node ./scripts/check-encoding.mjs`）
 - **命名约定:** 以现有代码为准（TS/React 常用驼峰；文件夹按模块语义命名）
 - **依赖安装:** `pnpm install`
 

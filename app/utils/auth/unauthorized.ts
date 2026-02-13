@@ -40,7 +40,7 @@ export function consumeAuthToast(): string | null {
   return msg;
 }
 
-export function clearAuthStorage() {
+function clearAuthStorage() {
   try {
     window.localStorage.removeItem("token");
     window.localStorage.removeItem("uid");

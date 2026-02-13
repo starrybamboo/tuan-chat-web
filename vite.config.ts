@@ -41,12 +41,8 @@ function fixCjsDefaultExportPlugin(): Plugin {
         "use-sync-external-store/shim/index.js",
         "dagre",
         "qrcode",
-        "quill-delta",
-        "quill-delta/dist/Delta",
-        "quill-delta/dist/Delta.js",
         "fast-diff",
         "pngjs",
-        "randombytes",
         "safe-buffer",
         "dayjs",
         "dayjs/dayjs.min.js",
@@ -512,6 +508,15 @@ export default defineConfig(({ command, mode }) => {
         // - decorators not being applied (custom elements not defined) -> "Illegal constructor"
         // - mixed module instances (src vs dist) -> DI token mismatch / Yjs store issues
         // Force them to use prebuilt dist outputs.
+        // 音频转码依赖 ffmpeg.wasm：固定到 ESM 入口，避免 Vite 在 Windows 下解析 package exports 失败
+        {
+          find: /^@ffmpeg\/ffmpeg$/,
+          replacement: nm("node_modules/@ffmpeg/ffmpeg/dist/esm/index.js"),
+        },
+        {
+          find: /^@ffmpeg\/util$/,
+          replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
+        },
         {
           find: /^@blocksuite\/std$/,
           replacement: nm("node_modules/@blocksuite/std/dist/index.js"),
@@ -692,11 +697,8 @@ export default defineConfig(({ command, mode }) => {
         /^@blocksuite\//,
         /^@toeverything\//,
         "lodash",
-        "quill-delta",
-        "quill-delta/dist/Delta",
         "fast-diff",
         "use-sync-external-store",
-        "randombytes",
         "safe-buffer",
         "pngjs",
       ],
@@ -756,12 +758,8 @@ export default defineConfig(({ command, mode }) => {
         "bytes",
         "dagre",
         "qrcode",
-        "quill-delta",
-        "quill-delta/dist/Delta",
-        "quill-delta/dist/Delta.js",
         "fast-diff",
         "pngjs",
-        "randombytes",
         "safe-buffer",
         "cssesc",
         "deepmerge",

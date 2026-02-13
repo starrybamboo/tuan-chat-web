@@ -1,12 +1,12 @@
-import React, { use, useMemo, useState } from "react";
+import React, { use, useEffect, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
-import { useAddRoomRoleMutation, useGetRoomModuleRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
+import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
-import { useGetSpaceModuleRoleQuery } from "../../../../api/hooks/spaceModuleHooks";
+import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
 import CreateNpcRoleWindow from "./createNpcRoleWindow";
 
 export function AddRoleWindow({
@@ -23,10 +23,10 @@ export function AddRoleWindow({
   const roomRolesQuery = useGetRoomRoleQuery(roomId ?? -1);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
 
-  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId ?? -1);
+  const roomNpcRolesQuery = useGetRoomNpcRoleQuery(roomId ?? -1);
   const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
 
-  const spaceRolesQuery = useGetSpaceModuleRoleQuery(spaceId);
+  const spaceRolesQuery = useGetSpaceRepositoryRoleQuery(spaceId);
   const spaceRoles = useMemo(() => spaceRolesQuery.data?.data ?? [], [spaceRolesQuery.data?.data]);
 
   const roleIdInRoomSet = useMemo(() => {
@@ -50,10 +50,42 @@ export function AddRoleWindow({
 
   const [isCreatingNpc, setIsCreatingNpc] = useState(false);
   const [activeTab, setActiveTab] = useState<"my" | "space">("my");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
 
   const availableRoles = useMemo(() => {
     return userRoles.filter(role => role.type !== 2 && !roleIdInRoomSet.has(role.roleId));
   }, [roleIdInRoomSet, userRoles]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(searchKeyword);
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchKeyword]);
+
+  const normalizedSearch = useMemo(() => debouncedKeyword.trim().toLowerCase(), [debouncedKeyword]);
+  const hasSearch = normalizedSearch.length > 0;
+
+  const filteredAvailableRoles = useMemo(() => {
+    if (!normalizedSearch)
+      return availableRoles;
+    return availableRoles.filter((role) => {
+      const roleName = role.roleName ?? "";
+      return roleName.toLowerCase().includes(normalizedSearch) || String(role.roleId).includes(normalizedSearch);
+    });
+  }, [availableRoles, normalizedSearch]);
+
+  const filteredAvailableSpaceRoles = useMemo(() => {
+    if (!normalizedSearch)
+      return availableSpaceRoles;
+    return availableSpaceRoles.filter((role) => {
+      const roleName = role.roleName ?? "";
+      return roleName.toLowerCase().includes(normalizedSearch) || String(role.roleId).includes(normalizedSearch);
+    });
+  }, [availableSpaceRoles, normalizedSearch]);
 
   if (isCreatingNpc) {
     return <CreateNpcRoleWindow onClose={() => setIsCreatingNpc(false)} />;
@@ -87,14 +119,55 @@ export function AddRoleWindow({
       </div>
 
       <div className="bg-base-100 rounded-box p-6">
+        <div className="form-control mb-4">
+          <input
+            type="text"
+            className="input input-bordered w-full"
+            placeholder={activeTab === "my" ? "搜索我的角色（名称/ID）" : "搜索空间角色（名称/ID）"}
+            aria-label={activeTab === "my" ? "搜索我的角色" : "搜索空间角色"}
+            value={searchKeyword}
+            onChange={(e) => {
+              setSearchKeyword(e.currentTarget.value);
+            }}
+          />
+        </div>
         {activeTab === "my"
           ? (
               <>
                 {
-                  availableRoles.length === 0 && (
-                    <div className="text-center font-bold py-5">你已经没有角色可以导入了哦</div>
+                  hasSearch && filteredAvailableRoles.length === 0 && (
+                    <div className="text-center font-bold py-5">
+                      未找到匹配的角色
+                    </div>
                   )
                 }
+                {hasSearch && filteredAvailableRoles.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-sm font-semibold text-base-content/70 mb-2">搜索结果</div>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      {filteredAvailableRoles.map(role => (
+                        <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
+                          <div className="flex flex-col items-center p-3">
+                            <div onClick={() => handleAddRole(role.roleId)}>
+                              <RoleAvatarComponent
+                                avatarId={role.avatarId ?? -1}
+                                roleId={role.roleId}
+                                width={24}
+                                isRounded={true}
+                                withTitle={false}
+                                stopToastWindow={true}
+                              />
+                            </div>
+                            <p className="text-center block">{role.roleName}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {availableRoles.length === 0 && (
+                  <div className="text-center font-bold py-5">你已经没有角色可以导入了哦</div>
+                )}
                 <div className="flex flex-wrap gap-3 justify-center">
                   {availableRoles.map(role => (
                     <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
@@ -106,7 +179,7 @@ export function AddRoleWindow({
                             width={24}
                             isRounded={true}
                             withTitle={false}
-                            stopPopWindow={true}
+                            stopToastWindow={true}
                           />
                         </div>
                         <p className="text-center block">{role.roleName}</p>
@@ -127,6 +200,35 @@ export function AddRoleWindow({
             )
           : (
               <>
+                {hasSearch && filteredAvailableSpaceRoles.length === 0 && (
+                  <div className="text-center font-bold py-5">
+                    未找到匹配的角色
+                  </div>
+                )}
+                {hasSearch && filteredAvailableSpaceRoles.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-sm font-semibold text-base-content/70 mb-2">搜索结果</div>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      {filteredAvailableSpaceRoles.map(role => (
+                        <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
+                          <div className="flex flex-col items-center p-3">
+                            <div onClick={() => handleImportSpaceRole(role.roleId)}>
+                              <RoleAvatarComponent
+                                avatarId={role.avatarId ?? -1}
+                                roleId={role.roleId}
+                                width={24}
+                                isRounded={true}
+                                withTitle={false}
+                                stopToastWindow={true}
+                              />
+                            </div>
+                            <p className="text-center block">{role.roleName}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {availableSpaceRoles.length === 0 && (
                   <div className="text-center font-bold py-5">暂无空间角色可导入</div>
                 )}
@@ -141,7 +243,7 @@ export function AddRoleWindow({
                             width={24}
                             isRounded={true}
                             withTitle={false}
-                            stopPopWindow={true}
+                            stopToastWindow={true}
                           />
                         </div>
                         <p className="text-center block">{role.roleName}</p>

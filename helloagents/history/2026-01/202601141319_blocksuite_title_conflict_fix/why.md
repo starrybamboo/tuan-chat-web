@@ -8,7 +8,7 @@
 2. Blocksuite 在 iframe 内会注入/调整部分 CSS（以及站点侧 reset 也可能影响 iframe），导致直接照搬原生 `doc-title` 的样式在该运行环境下不稳定，需要为 `tcHeader` 重写一套更强隔离的样式。
 
 ## 变更内容
-1. 为 `tcHeader` 模式增加兜底：当 `tcHeader.enabled=true` 时，强制隐藏 `<doc-title>`，避免与自定义 header 并存。
+1. Ϊ `tcHeader` 模式增加兜底：当 `tcHeader.enabled=true` 时，强制隐藏 `<doc-title>`，避免与自定义 header 并存。
 2. 重写 `tcHeader` 标题输入样式：使用 `all: unset` + 明确的字体/排版声明，并提供颜色/宽度变量的 fallback，抵御 Blocksuite 注入样式与 reset 的影响。
 
 ## 影响范围

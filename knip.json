@@ -1,0 +1,28 @@
+{
+  "entry": [
+    "app/root.tsx",
+    "app/routes.ts",
+    "app/routes/**/*.{ts,tsx}",
+    "electron/main.js",
+    "electron/preload.js",
+    "scripts/**/*.mjs",
+    "vite.config.ts",
+    "react-router.config.ts"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "api/**/*.{ts,tsx}",
+    "electron/**/*.{js,ts}",
+    "scripts/**/*.{js,mjs,ts}"
+  ],
+  "ignore": [
+    "build/**",
+    "dist/**",
+    "node_modules/**",
+    "release/**",
+    "api/core/request.ts",
+    "api/novelai/core/request.ts",
+    "api/hooks/RoleAndAvatarHooks.tsx",
+    "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts"
+  ]
+}

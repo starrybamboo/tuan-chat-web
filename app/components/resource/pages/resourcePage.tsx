@@ -9,7 +9,7 @@ type TabType = "myResources" | "myCollections" | "publicResources" | "publicColl
 
 export default function ResourcePage() {
   const [activeTab, setActiveTab] = useState<TabType>("publicResources");
-  const [resourceType, setResourceType] = useState<"5" | "6">("5"); // 5: 图片, 6: 音频
+  const [resourceType, setResourceType] = useState<"5" | "6">("5"); // 5: ͼƬ, 6: 音频
   const [searchText, setSearchText] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
@@ -32,7 +32,7 @@ export default function ResourcePage() {
   const resourceTypes = [
     {
       key: "5" as const,
-      label: "图片",
+      label: "ͼƬ",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -139,7 +139,7 @@ export default function ResourcePage() {
           <div className="max-w-3xl">
             <h1 className="text-3xl md:text-5xl font-bold mb-4">资源广场</h1>
             <p className="text-lg text-muted-foreground mb-4">
-              为你的跑团模组寻找图片和音频素材
+              为你的跑团仓库寻找图片和音频素材
             </p>
           </div>
         </div>

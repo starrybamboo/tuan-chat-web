@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 
-export interface SpaceInvitePanelProps {
+interface SpaceInvitePanelProps {
   onAddSpectator: (userId: number) => void;
   onAddPlayer: (userId: number) => void;
 }

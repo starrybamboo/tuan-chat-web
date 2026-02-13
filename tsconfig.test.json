@@ -11,7 +11,7 @@
       "@/*": ["./app/*"]
     },
     "resolveJsonModule": true,
-    "types": ["node", "vite/client", "jest"],
+    "types": ["node", "vite/client", "vitest/globals"],
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,

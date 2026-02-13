@@ -3,7 +3,7 @@
 ## 概述
 
 `toastWindow` 是一个函数式弹窗组件，可以通过函数调用的方式在应用中动态显示模态窗口。它基于 React Portal 技术实现，能够保持 React Router 上下文的访问能力。
-在底层，他是基于 `popWindow` 来实现的，所以，相关的样式是完全一致的，可以无缝的从popWindow切换到toastWindow。
+在底层，它通过 `ToastWindowFrame` 渲染，因此样式保持一致，可以直接使用 toastWindow。
 
 ## 基本用法
 

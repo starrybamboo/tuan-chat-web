@@ -1,6 +1,6 @@
 # 任务清单: Blocksuite mention 展示头像与昵称
 
-目录: `helloagents/plan/202601201551_blocksuite_mention_inline_avatar/`
+Ŀ¼: `helloagents/plan/202601201551_blocksuite_mention_inline_avatar/`
 
 ---
 

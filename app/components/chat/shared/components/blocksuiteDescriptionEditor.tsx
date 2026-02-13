@@ -3,7 +3,7 @@ import type { DocModeProvider } from "@blocksuite/affine/shared/services";
 import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
 import type { BlocksuiteMentionProfilePopoverState } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router";
 import { Subscription } from "rxjs";
@@ -12,7 +12,6 @@ import { isBlocksuiteDebugEnabled } from "@/components/chat/infra/blocksuite/deb
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { getRemoteSnapshot } from "@/components/chat/infra/blocksuite/descriptionDocRemote";
 import { ensureBlocksuiteDocHeader, setBlocksuiteDocHeader, subscribeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/docHeader";
-import { startBlocksuiteStyleIsolation } from "@/components/chat/infra/blocksuite/embedded/blocksuiteStyleIsolation";
 
 import { BlocksuiteMentionProfilePopover } from "@/components/chat/infra/blocksuite/mentionProfilePopover";
 import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
@@ -173,6 +172,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     readOnlyRef.current = readOnly;
   }, [readOnly]);
 
+  const instanceIdRef = useRef(instanceId);
+  useEffect(() => {
+    instanceIdRef.current = instanceId;
+  }, [instanceId]);
+
   const [currentMode, setCurrentMode] = useState<DocMode>(forcedMode);
   const currentModeRef = useRef<DocMode>(forcedMode);
 
@@ -188,7 +192,10 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   const runtimeRef = useRef<Awaited<ReturnType<typeof loadBlocksuiteRuntime>> | null>(null);
 
   const tcHeaderEnabled = Boolean(tcHeader?.enabled);
-  const [tcHeaderState, setTcHeaderState] = useState<BlocksuiteDocHeader | null>(null);
+  const [tcHeaderState, setTcHeaderState] = useState<{
+    docId: string;
+    header: BlocksuiteDocHeader;
+  } | null>(null);
 
   useEffect(() => {
     if (!isBlocksuiteDebugEnabled())
@@ -196,7 +203,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     try {
       const inIframe = isProbablyInIframe();
       const msg = { docId, workspaceId, spaceId, variant, inIframe, instanceId: props.instanceId ?? null };
-      console.debug("[BlocksuiteMentionHost] runtime mount", msg);
+      console.warn("[BlocksuiteMentionHost] runtime mount", msg);
       try {
         (globalThis as any).__tcBlocksuiteDebugLog?.({ source: "BlocksuiteMentionHost", message: "runtime mount", payload: msg });
       }
@@ -228,11 +235,13 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
   useEffect(() => {
     if (!tcHeaderEnabled || !tcHeaderState)
       return;
+    if (tcHeaderState.docId !== docId)
+      return;
 
     // Keep blocksuite workspace meta in sync (linked-doc/@ search uses meta.title).
     try {
       const runtime = runtimeRef.current;
-      runtime?.ensureDocMeta?.({ workspaceId, docId, title: tcHeaderState.title });
+      runtime?.ensureDocMeta?.({ workspaceId, docId, title: tcHeaderState.header.title });
     }
     catch {
       // ignore
@@ -247,7 +256,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         docId,
         entityType: tcHeaderEntity?.entityType,
         entityId: tcHeaderEntity?.entityId,
-        header: tcHeaderState,
+        header: tcHeaderState.header,
       };
 
       if (isProbablyInIframe()) {
@@ -258,13 +267,19 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
         docId,
         entityType: tcHeaderEntity?.entityType,
         entityId: tcHeaderEntity?.entityId,
-        header: tcHeaderState,
+        header: tcHeaderState.header,
       });
     }
     catch {
       // ignore
     }
   }, [docId, instanceId, onTcHeaderChange, tcHeaderEnabled, tcHeaderEntity?.entityId, tcHeaderEntity?.entityType, tcHeaderState, workspaceId]);
+
+  useEffect(() => {
+    if (!tcHeaderEnabled)
+      return;
+    setTcHeaderState(null);
+  }, [docId, tcHeaderEnabled]);
 
   const docModeProvider: DocModeProvider = useMemo(() => {
     // DocModeProvider 是一个“跨 doc/跨 widget”的服务，这里做最小实现：
@@ -398,9 +413,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       return;
 
     const isFullInEffect = isFull;
-
-    // IMPORTANT: 在导入任何 blocksuite 模块前启动隔离器（blocksuite 可能在模块执行期注入全局样式/副作用）。
-    const disposeIsolation = startBlocksuiteStyleIsolation();
 
     const scopeRoot = (container.closest?.(".tc-blocksuite-scope") as HTMLElement | null) ?? container;
 
@@ -541,7 +553,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
             imageUrl: tcHeader?.fallbackImageUrl,
           });
           if (ensured) {
-            setTcHeaderState(ensured);
+            setTcHeaderState({ docId, header: ensured });
             if (ensured.title) {
               runtime.ensureDocMeta({ workspaceId, docId, title: ensured.title });
             }
@@ -549,7 +561,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
           unsubscribeHeader = subscribeBlocksuiteDocHeader(store, (h) => {
             if (h) {
-              setTcHeaderState(h);
+              setTcHeaderState({ docId, header: h });
               if (h.title) {
                 runtime.ensureDocMeta({ workspaceId, docId, title: h.title });
               }
@@ -582,7 +594,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
           const paragraphs = (store as any)?.getModelsByFlavour?.("affine:paragraph") as any[] | undefined;
           const first = paragraphs?.[0];
           const firstText = first?.props?.text;
-          console.debug("[BlocksuiteDescriptionEditor] store ready", {
+          console.warn("[BlocksuiteDescriptionEditor] store ready", {
             docId,
             rootId,
             paragraphCount: paragraphs?.length ?? 0,
@@ -634,6 +646,11 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
             return;
           }
 
+          if (parsed?.kind === "independent") {
+            go(`/chat/${spaceId}/doc/${parsed.docId}`);
+            return;
+          }
+
           go(`/chat/${spaceId}/doc/${encodeURIComponent(docId)}`);
         },
       });
@@ -659,6 +676,17 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       storeRef.current = store;
 
       container.replaceChildren(editor as unknown as Node);
+      // Signal host after first paint so it can hide the skeleton.
+      if (isProbablyInIframe()) {
+        requestAnimationFrame(() => {
+          try {
+            postToParent({ tc: "tc-blocksuite-frame", instanceId: instanceIdRef.current, type: "render-ready" });
+          }
+          catch {
+            // ignore
+          }
+        });
+      }
 
       // Fallback undo/redo shortcuts (some embedded hosts may miss built-in keymap binding).
       // Only intercept when the focus is inside the editor container.
@@ -748,13 +776,6 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
       try {
         const editorAny = createdEditor as any;
         editorAny?.__tc_dispose?.();
-      }
-      catch {
-        // ignore
-      }
-
-      try {
-        disposeIsolation?.();
       }
       catch {
         // ignore
@@ -986,8 +1007,8 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     .join(" ");
 
   const canEditTcHeader = tcHeaderEnabled && !readOnly;
-  const tcHeaderImageUrl = tcHeaderState?.imageUrl ?? tcHeader?.fallbackImageUrl ?? "";
-  const tcHeaderTitle = tcHeaderState?.title ?? tcHeader?.fallbackTitle ?? "";
+  const tcHeaderImageUrl = tcHeaderState?.header.imageUrl ?? tcHeader?.fallbackImageUrl ?? "";
+  const tcHeaderTitle = tcHeaderState?.header.title ?? tcHeader?.fallbackTitle ?? "";
 
   const resetBuiltinDocTitle = async () => {
     const store = storeRef.current;
@@ -1083,7 +1104,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
     <div className={rootClassName}>
       <div
         ref={fullscreenRootRef}
-        className={`relative bg-base-100 border border-base-300 ${viewportOverflowClass}${(isEdgelessFullscreen || isBrowserFullscreen) ? " h-full" : " rounded-box"}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " flex flex-col" : ""}`}
+        className={`relative bg-base-100 ${viewportOverflowClass}${(isEdgelessFullscreen || isBrowserFullscreen) ? " h-full" : " rounded-box"}${(isFull || isEdgelessFullscreen || isBrowserFullscreen) ? " flex flex-col" : ""}`}
       >
         {tcHeaderEnabled
           ? (
@@ -1255,8 +1276,11 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const instanceId = useId();
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const postFrameParamsRef = useRef<() => void>(() => {});
   const [frameMode, setFrameMode] = useState<DocMode>(forcedMode);
   const [iframeHeight, setIframeHeight] = useState<number | null>(null);
+  const [isFrameReady, setIsFrameReady] = useState(false);
+  const [hasFrameReadyOnce, setHasFrameReadyOnce] = useState(false);
   const hostMentionDebugUntilRef = useRef(0);
   const hostMentionDebugRemainingRef = useRef(0);
   const [mentionProfilePopover, setMentionProfilePopover] = useState<BlocksuiteMentionProfilePopoverState | null>(null);
@@ -1265,7 +1289,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const mentionProfilePopoverOpenTimerRef = useRef<number | null>(null);
   const mentionProfilePopoverCloseTimerRef = useRef<number | null>(null);
 
-  const clearMentionProfilePopoverOpenTimer = () => {
+  const clearMentionProfilePopoverOpenTimer = useCallback(() => {
     const t = mentionProfilePopoverOpenTimerRef.current;
     if (t !== null) {
       mentionProfilePopoverOpenTimerRef.current = null;
@@ -1276,9 +1300,9 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         // ignore
       }
     }
-  };
+  }, []);
 
-  const clearMentionProfilePopoverCloseTimer = () => {
+  const clearMentionProfilePopoverCloseTimer = useCallback(() => {
     const t = mentionProfilePopoverCloseTimerRef.current;
     if (t !== null) {
       mentionProfilePopoverCloseTimerRef.current = null;
@@ -1289,18 +1313,18 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         // ignore
       }
     }
-  };
+  }, []);
 
-  const scheduleMentionProfilePopoverClose = () => {
+  const scheduleMentionProfilePopoverClose = useCallback(() => {
     clearMentionProfilePopoverCloseTimer();
     mentionProfilePopoverCloseTimerRef.current = window.setTimeout(() => {
       if (mentionProfilePopoverHoveredRef.current)
         return;
       setMentionProfilePopover(null);
     }, 160);
-  };
+  }, [clearMentionProfilePopoverCloseTimer]);
 
-  const scheduleMentionProfilePopoverOpen = (next: BlocksuiteMentionProfilePopoverState) => {
+  const scheduleMentionProfilePopoverOpen = useCallback((next: BlocksuiteMentionProfilePopoverState) => {
     clearMentionProfilePopoverOpenTimer();
     clearMentionProfilePopoverCloseTimer();
     mentionProfilePopoverOpenTimerRef.current = window.setTimeout(() => {
@@ -1308,7 +1332,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       mentionProfilePopoverHoveredRef.current = false;
       setMentionProfilePopover(next);
     }, 240);
-  };
+  }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer]);
 
   const onNavigateRef = useRef<BlocksuiteDescriptionEditorProps["onNavigate"]>(onNavigate);
   useEffect(() => {
@@ -1360,6 +1384,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       if (data.type === "ready") {
         // iframe 侧可能比 onLoad 更晚才真正 ready；此时再同步一次 mode/theme/height，确保体验稳定。
         try {
+          postFrameParamsRef.current();
           const win = iframeRef.current?.contentWindow;
           if (!win)
             return;
@@ -1456,6 +1481,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       }
 
       if (data.type === "tc-header" && data.header && typeof data.docId === "string") {
+        if (data.docId !== docId)
+          return;
         try {
           const header = data.header as BlocksuiteDocHeader;
           if (!header || typeof header.title !== "string" || typeof header.imageUrl !== "string")
@@ -1477,6 +1504,11 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         catch {
           // ignore
         }
+        return;
+      }
+
+      if (data.type === "render-ready") {
+        setIsFrameReady(true);
         return;
       }
 
@@ -1521,7 +1553,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
                   roleListbox: document.querySelectorAll("[role='listbox']").length,
                   roleMenu: document.querySelectorAll("[role='menu']").length,
                 };
-                console.debug("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
+                console.warn("[BlocksuiteHostDebug]", "keydown Enter", { active: summarizeEl(active), probes });
               }
               catch {
                 // ignore
@@ -1531,10 +1563,10 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
 
           if (isBlocksuiteDebugEnabled()) {
             if (payload && typeof payload === "object") {
-              console.debug("[BlocksuiteFrameDebug]", source, message, payload);
+              console.warn("[BlocksuiteFrameDebug]", source, message, payload);
             }
             else {
-              console.debug("[BlocksuiteFrameDebug]", source, message);
+              console.warn("[BlocksuiteFrameDebug]", source, message);
             }
           }
         }
@@ -1548,7 +1580,18 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     return () => {
       window.removeEventListener("message", onMessage);
     };
-  }, [forcedMode, instanceId, navigate, onModeChange, onTcHeaderChange]);
+  }, [
+    clearMentionProfilePopoverCloseTimer,
+    clearMentionProfilePopoverOpenTimer,
+    docId,
+    forcedMode,
+    instanceId,
+    navigate,
+    onModeChange,
+    onTcHeaderChange,
+    scheduleMentionProfilePopoverClose,
+    scheduleMentionProfilePopoverOpen,
+  ]);
 
   useEffect(() => {
     if (!mentionProfilePopover)
@@ -1568,7 +1611,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       window.removeEventListener("scroll", close, true);
       window.removeEventListener("resize", close, true);
     };
-  }, [mentionProfilePopover]);
+  }, [clearMentionProfilePopoverCloseTimer, clearMentionProfilePopoverOpenTimer, mentionProfilePopover]);
 
   // 宿主侧捕获 click/pointerdown：用于定位 mention 弹窗是否是 portal 到 iframe 外。
   useEffect(() => {
@@ -1612,7 +1655,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         const nodes = Array.isArray(path)
           ? path.map(summarizeNode).filter(Boolean).slice(0, 10)
           : [];
-        console.debug("[BlocksuiteHostDebug]", type, {
+        console.warn("[BlocksuiteHostDebug]", type, {
           targetTag: toLower((e.target as any)?.tagName),
           nodes,
         });
@@ -1750,15 +1793,18 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     workspaceId,
   ]);
 
+  const frozenInitParamsRef = useRef(initParams);
+  const frozenInitParams = frozenInitParamsRef.current;
+
   const src = useMemo(() => {
     const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(initParams)) {
+    for (const [k, v] of Object.entries(frozenInitParams)) {
       if (v === undefined)
         continue;
       params.set(k, String(v));
     }
     return `/blocksuite-frame?${params.toString()}`;
-  }, [initParams]);
+  }, [frozenInitParams]);
 
   const hasExplicitHeightClass = useMemo(() => {
     const v = (className ?? "").trim();
@@ -1771,6 +1817,8 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
   const iframeHeightAttr = (!isEdgelessFullscreenActive && variant !== "full" && iframeHeight && iframeHeight > 0)
     ? iframeHeight
     : undefined;
+
+  const shouldHideFrame = !hasFrameReadyOnce && !isFrameReady;
 
   // 关键：iframe 必须保持“同一个节点”，否则切换到画布全屏时会触发 remount -> iframe reload ->
   // blocksuite-frame 按 URL 的默认 mode 回到 page，并回传 mode，导致出现“白屏一下又回退”。
@@ -1786,6 +1834,7 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         "w-full",
         "border-0",
         "bg-transparent",
+        shouldHideFrame ? "opacity-0 pointer-events-none" : "opacity-100",
         className,
         (variant !== "full" && !iframeHeightAttr) ? "min-h-32" : "",
         // full variant 默认填充父容器；但如果外部已显式指定高度（例如 h-[60vh]），不要再追加 h-full 覆盖它。
@@ -1793,6 +1842,38 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
       ]
         .filter(Boolean)
         .join(" ");
+
+  function postFrameParams() {
+    try {
+      const win = iframeRef.current?.contentWindow;
+      if (!win)
+        return;
+      win.postMessage(
+        {
+          tc: "tc-blocksuite-frame",
+          instanceId,
+          type: "sync-params",
+          workspaceId,
+          spaceId,
+          docId,
+          variant,
+          readOnly,
+          allowModeSwitch,
+          fullscreenEdgeless,
+          mode: forcedMode,
+          tcHeader: tcHeaderEnabled,
+          tcHeaderTitle: frozenTcHeaderTitle,
+          tcHeaderImageUrl: frozenTcHeaderImageUrl,
+        },
+        getPostMessageTargetOrigin(),
+      );
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  postFrameParamsRef.current = postFrameParams;
 
   const syncFrameBasics = () => {
     try {
@@ -1821,9 +1902,65 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
     }
   };
 
+  useEffect(() => {
+    postFrameParamsRef.current();
+  }, [
+    allowModeSwitch,
+    docId,
+    forcedMode,
+    fullscreenEdgeless,
+    readOnly,
+    spaceId,
+    tcHeaderEnabled,
+    frozenTcHeaderImageUrl,
+    frozenTcHeaderTitle,
+    variant,
+    workspaceId,
+  ]);
+
+  useEffect(() => {
+    setIsFrameReady(false);
+  }, [docId]);
+
+  useEffect(() => {
+    if (isFrameReady)
+      setHasFrameReadyOnce(true);
+  }, [isFrameReady]);
+
   /* eslint-disable react-dom/no-unsafe-iframe-sandbox */
+
+  // blocksuiteMentionProfilePopover是“@ 提及用户”的悬浮卡片，放在宿主页面外层，方便在 iframe 外显示（避免被 iframe 限制/裁剪），通过 postMessage 和 iframe 内的编辑器通信。
   return (
     <div className={wrapperClassName}>
+      {!hasFrameReadyOnce && !isFrameReady && (
+        <div
+          className={[
+            "w-full",
+            "rounded-xl",
+            "border",
+            "border-base-300/60",
+            "bg-base-100/60",
+            "p-4",
+            (variant !== "full" && !iframeHeightAttr) ? "min-h-32" : "",
+            (variant === "full" && !hasExplicitHeightClass) ? "h-full" : "",
+          ].filter(Boolean).join(" ")}
+          aria-label="Blocksuite loading"
+        >
+          <div className="mx-auto w-full max-w-195 pr-6 px-4">
+            <div className="flex min-h-12 items-center gap-4">
+              <div className="skeleton h-14 w-14 rounded-2xl" />
+              <div className="skeleton h-12 flex-1 rounded-2xl" />
+              <div className="ml-auto flex items-center gap-2">
+                <div className="skeleton h-8 w-24 rounded-full" />
+                <div className="skeleton h-8 w-20 rounded-full" />
+              </div>
+            </div>
+            <div className="skeleton mt-3 h-4 w-full" />
+            <div className="skeleton mt-2 h-4 w-full" />
+            <div className="skeleton mt-2 h-4 w-full" />
+          </div>
+        </div>
+      )}
       <BlocksuiteMentionProfilePopover
         state={mentionProfilePopover}
         onRequestClose={() => {
@@ -1841,15 +1978,17 @@ function BlocksuiteDescriptionEditorIframeHost(props: BlocksuiteDescriptionEdito
         }}
       />
       <iframe
-        ref={iframeRef}
-        src={src}
-        title="blocksuite-editor"
-        className={iframeClassName}
-        allow="clipboard-read; clipboard-write; fullscreen"
-        allowFullScreen
-        sandbox="allow-scripts allow-same-origin"
-        height={iframeHeightAttr}
-        onLoad={() => {
+        ref={iframeRef} // 保存 iframe DOM 引用，用于 postMessage/读取 contentWindow
+        src={src} // iframe 内加载的路由（/blocksuite-frame）及其初始化参数
+        title="blocksuite-editor" // 无障碍标签，描述 iframe 内容
+        className={iframeClassName} // 尺寸/布局/样式控制（含全屏/高度策略）
+        allow="clipboard-read; clipboard-write; fullscreen" // 允许剪贴板读写与全屏权限
+        allowFullScreen // 允许 iframe 内请求全屏（配合 allow）
+        sandbox="allow-scripts allow-same-origin" // 沙盒限制，仅放开脚本执行与同源访问
+        height={iframeHeightAttr} // 非全屏嵌入态下由子页面回传的高度
+        style={{ backgroundColor: "transparent" }}
+        onLoad={() => { // iframe 加载完成后同步参数/主题/高度
+          postFrameParams();
           syncFrameBasics();
         }}
       />

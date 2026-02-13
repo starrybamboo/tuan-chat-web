@@ -22,8 +22,6 @@ import { CounterService } from './services/CounterService';
 import { DatabaseBackupService } from './services/DatabaseBackupService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
 import { DistributedTaskService } from './services/DistributedTaskService';
-import { DistributedTaskSchedulerService } from './services/DistributedTaskSchedulerService';
-import { DistributedWsService } from './services/DistributedWsService';
 import { EmojiControllerService } from './services/EmojiControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { FriendControllerService } from './services/FriendControllerService';
@@ -32,7 +30,7 @@ import { ItemControllerService } from './services/ItemControllerService';
 import { LikeRecordControllerService } from './services/LikeRecordControllerService';
 import { MessageDirectControllerService } from './services/MessageDirectControllerService';
 import { MessageSessionService } from './services/MessageSessionService';
-import { ModuleControllerService } from './services/ModuleControllerService';
+import { RepositoryControllerService } from './services/RepositoryControllerService';
 import { OssControllerService } from './services/OssControllerService';
 import { RatingService } from './services/RatingService';
 import { ResourceControllerService } from './services/ResourceControllerService';
@@ -48,14 +46,14 @@ import { ShortLinkControllerService } from './services/ShortLinkControllerServic
 import { SpaceClueService } from './services/SpaceClueService';
 import { SpaceControllerService } from './services/SpaceControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
-import { SpaceModuleControllerService } from './services/SpaceModuleControllerService';
+import { SpaceRepositoryControllerService } from './services/SpaceRepositoryControllerService';
 import { SpaceSidebarTreeControllerService } from './services/SpaceSidebarTreeControllerService';
+import { SpaceUserDocFolderControllerService } from './services/SpaceUserDocFolderControllerService';
 import { TagControllerService } from './services/TagControllerService';
 import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
 import { UserFollowControllerService } from './services/UserFollowControllerService';
 import { UserPreferenceService } from './services/UserPreferenceService';
-import { VolunteerService } from './services/VolunteerService';
 import { WebsocketDocService } from './services/WebsocketDocService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
@@ -76,8 +74,6 @@ export class TuanChat {
     public readonly databaseBackup: DatabaseBackupService;
     public readonly diceCommentController: DiceCommentControllerService;
     public readonly distributedTask: DistributedTaskService;
-    public readonly distributedTaskScheduler: DistributedTaskSchedulerService;
-    public readonly distributedWs: DistributedWsService;
     public readonly emojiController: EmojiControllerService;
     public readonly feedController: FeedControllerService;
     public readonly friendController: FriendControllerService;
@@ -86,7 +82,7 @@ export class TuanChat {
     public readonly likeRecordController: LikeRecordControllerService;
     public readonly messageDirectController: MessageDirectControllerService;
     public readonly messageSession: MessageSessionService;
-    public readonly moduleController: ModuleControllerService;
+    public readonly repositoryController: RepositoryControllerService;
     public readonly ossController: OssControllerService;
     public readonly rating: RatingService;
     public readonly resourceController: ResourceControllerService;
@@ -102,19 +98,19 @@ export class TuanChat {
     public readonly spaceClue: SpaceClueService;
     public readonly spaceController: SpaceControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
-    public readonly spaceModuleController: SpaceModuleControllerService;
+    public readonly spaceRepositoryController: SpaceRepositoryControllerService;
     public readonly spaceSidebarTreeController: SpaceSidebarTreeControllerService;
+    public readonly spaceUserDocFolderController: SpaceUserDocFolderControllerService;
     public readonly tagController: TagControllerService;
     public readonly ttsController: TtsControllerService;
     public readonly userController: UserControllerService;
     public readonly userFollowController: UserFollowControllerService;
     public readonly userPreference: UserPreferenceService;
-    public readonly volunteer: VolunteerService;
     public readonly websocketDoc: WebsocketDocService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://localhost:8081',
+            BASE: config?.BASE ?? 'http://101.126.143.129:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -141,8 +137,6 @@ export class TuanChat {
         this.databaseBackup = new DatabaseBackupService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
         this.distributedTask = new DistributedTaskService(this.request);
-        this.distributedTaskScheduler = new DistributedTaskSchedulerService(this.request);
-        this.distributedWs = new DistributedWsService(this.request);
         this.emojiController = new EmojiControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
         this.friendController = new FriendControllerService(this.request);
@@ -151,7 +145,7 @@ export class TuanChat {
         this.likeRecordController = new LikeRecordControllerService(this.request);
         this.messageDirectController = new MessageDirectControllerService(this.request);
         this.messageSession = new MessageSessionService(this.request);
-        this.moduleController = new ModuleControllerService(this.request);
+        this.repositoryController = new RepositoryControllerService(this.request);
         this.ossController = new OssControllerService(this.request);
         this.rating = new RatingService(this.request);
         this.resourceController = new ResourceControllerService(this.request);
@@ -167,14 +161,14 @@ export class TuanChat {
         this.spaceClue = new SpaceClueService(this.request);
         this.spaceController = new SpaceControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
-        this.spaceModuleController = new SpaceModuleControllerService(this.request);
+        this.spaceRepositoryController = new SpaceRepositoryControllerService(this.request);
         this.spaceSidebarTreeController = new SpaceSidebarTreeControllerService(this.request);
+        this.spaceUserDocFolderController = new SpaceUserDocFolderControllerService(this.request);
         this.tagController = new TagControllerService(this.request);
         this.ttsController = new TtsControllerService(this.request);
         this.userController = new UserControllerService(this.request);
         this.userFollowController = new UserFollowControllerService(this.request);
         this.userPreference = new UserPreferenceService(this.request);
-        this.volunteer = new VolunteerService(this.request);
         this.websocketDoc = new WebsocketDocService(this.request);
     }
 }

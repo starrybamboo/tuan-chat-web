@@ -7,15 +7,15 @@
 ## 模块概述
 
 - **职责:** 脚本命令、Lint/类型检查、提交流程、构建与发布说明
-- **状态:** ?开发中
-- **最后更新:** 2026-01-14
+- **״̬:** ?开发中
+- **最后更新:** 2026-01-29
 
 ## 规范
 
 ### 常用命令
 
 - `pnpm dev`：启动开发服务（会清理遗留 `node_modules/.vite/` 缓存）
-- `pnpm dev:force`：清理缓存并强制重建预打包（用于 deps chunk 缺失/invalid hook call）
+- `pnpm dev:force`：清理缓存并强制重建预打包（用于 deps chunk ȱʧ/invalid hook call）
 - `pnpm build`：构建
 - `pnpm typecheck`：类型检查
 - `pnpm lint` / `pnpm lint:fix`：代码规范检查与自动修复
@@ -24,6 +24,7 @@
 
 - **唯一允许：pnpm**。仓库以 `pnpm-lock.yaml` 为唯一锁文件来源。
 - **禁止使用：npm**（不要执行 `npm install` / `npm ci` / `npm run *`），避免生成/更新 `package-lock.json` 造成依赖漂移。
+- CI/Runner 环境通常无 GitHub SSH Key：若 `pnpm-lock.yaml` 中出现 `git@github.com:*` 依赖会导致 `pnpm install` 失败；优先用 `pnpm.overrides` 将其固定为 npm registry 版本（如 `@electron/node-gyp`）。
 
 ### Vite 依赖预打包（optimizeDeps）
 
@@ -44,7 +45,7 @@
 - 备选：执行 `pnpm dev:force`（或 `pnpm dev -- --force`）强制重建预打包缓存
 - 仍不稳定时：删除 `node_modules/.vite-tuan-chat-web/`（以及旧的 `node_modules/.vite/`）后重启
 
-#### React invalid hook call（`useEffect` 为 null）
+#### React invalid hook call（`useEffect` Ϊ null）
 
 若页面报错类似：
 
@@ -73,7 +74,7 @@
 
 ### 提交流程
 
-项目已配置 `husky` 与 `lint-staged`，提交前将自动执行 ESLint 检查。
+项目已配置 `husky` 与 `lint-staged`，提交前将自动执行 ESLint 检查与编码/乱码检测（`node ./scripts/check-encoding.mjs`）。
 
 ## 变更历史
 

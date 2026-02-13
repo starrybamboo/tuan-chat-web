@@ -120,7 +120,7 @@ export default function CollectionPage() {
             <li>全部</li>
             <li>帖子</li>
             <li>评论</li>
-            <li>模组</li>
+            <li>仓库</li>
           </ul>
           {isLoading
             ? (
