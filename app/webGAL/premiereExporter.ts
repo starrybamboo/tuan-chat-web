@@ -365,12 +365,50 @@ export class PremiereExporter {
     fetchRoleName?: RoleNameFetchFn, 
     fetchUserName?: UserNameFetchFn,
     fetchRoleRefVocal?: RoleRefVocalFetchFn,
-    fetchRole?: RoleFetchFn
+    fetchRole?: RoleFetchFn,
+    initialBackgroundUrl?: string
   ) {
     let currentTime = 0;
 
     // Active clips trackers
     let activeBgClip: TrackClip | null = null;
+    
+    // POS Constants need to be accessed for initial BG
+    const POS = {
+        LEFT: { x: 0.20, y: 0.55 },
+        CENTER: { x: 0.50, y: 0.55 },
+        RIGHT: { x: 0.80, y: 0.55 },
+        BG: { x: 0.50, y: 0.50 }, 
+        NAME: { x: 0.20, y: 0.80 }, 
+        DIALOGUE: { x: 0.50, y: 0.85 } 
+    };
+
+    if (initialBackgroundUrl) {
+         try {
+             // Treat as a file resource
+             const fileId = this.addResource(initialBackgroundUrl, "image", "bg_initial");
+             
+             let bgScale = 100;
+             try {
+                const dims = await this.getImageDimensions(initialBackgroundUrl);
+                const scaleX = (this.width / dims.width) * 100;
+                const scaleY = (this.height / dims.height) * 100;
+                bgScale = Math.min(scaleX, scaleY);
+             } catch {}
+
+             activeBgClip = {
+                 id: this.getNextClipId(),
+                 name: "BG Initial",
+                 start: 0, end: 0, in: 0, out: 0, 
+                 fileId, type: "video",
+                 position: POS.BG, 
+                 scale: bgScale
+             };
+         } catch (e) {
+             console.warn("[PremiereExporter] Failed to load initial background", e);
+         }
+    }
+
     const activeFigureClips: {
       left: TrackClip | null;
       center: TrackClip | null;
@@ -381,15 +419,6 @@ export class PremiereExporter {
       right: null,
     };
     
-    // Normalized Position constants
-    const POS = {
-        LEFT: { x: 0.20, y: 0.55 }, // Left third
-        CENTER: { x: 0.50, y: 0.55 }, // Center
-        RIGHT: { x: 0.80, y: 0.55 }, // Right third
-        BG: { x: 0.50, y: 0.50 }, // Full center
-        NAME: { x: 0.20, y: 0.80 }, // Lower Left area for Name 
-        DIALOGUE: { x: 0.50, y: 0.85 } // Bottom Center for Dialogue
-    };
     
     const posToTrackMap: Record<string, "left" | "center" | "right"> = {
         "left": "left", "left-center": "left",
@@ -484,14 +513,18 @@ export class PremiereExporter {
 
       // 1. Background
       let bgUrl: string | undefined;
-      const isBgAnnotation = isImageMessageBackground(msg.annotations, null);
+      // Note: isImageMessageBackground might rely on the second argument or annotation. 
+      // If imageMessage is present in msg.extra, pass it.
+      const isBgAnnotation = isImageMessageBackground(msg.annotations, msg.extra?.imageMessage);
       
-      // Strict Check: Only verify specifically tagged BGs or explicit WebGAL settings
+      // Strict Check: ONLY specifically tagged BGs or explicit WebGAL settings
       if ((msg.webgal as any)?.bgUrl) {
           bgUrl = (msg.webgal as any).bgUrl;
       } else if (isBgAnnotation) {
+          // If tagged as BG, try to get URL from standard ImageMessage location or Fallback to content regex
           bgUrl = msg.extra?.imageMessage?.url;
           if (!bgUrl) {
+              // Fallback: If annotations say BG but no structured imageMessage, check content
              const match = msg.content.match(/https?:\/\/[^\s)]+/);
              if (match) bgUrl = match[0];
           }

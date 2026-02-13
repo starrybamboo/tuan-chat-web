@@ -462,7 +462,7 @@ function RoomWindow({
           return undefined;
       };
 
-      await exporter.processMessages(historyMessages, fetchAvatar, fetchRoleName, fetchUserName, fetchRoleRefVocal, fetchRole);
+      await exporter.processMessages(historyMessages, fetchAvatar, fetchRoleName, fetchUserName, fetchRoleRefVocal, fetchRole, backgroundUrl);
 
       if (exportModeZip) {
           // --- ZIP Export Mode ---
@@ -557,7 +557,7 @@ function RoomWindow({
       console.error(e);
       toast.error("导出失败，请检查控制台", { id: loadToastId });
     }
-  }, [historyMessages, roomId, queryClient]);
+  }, [historyMessages, roomId, queryClient, backgroundUrl]);
 
   const roomName = roomHeaderOverride?.title ?? room?.name;
   const spaceName = spaceHeaderOverride?.title ?? space?.name;
