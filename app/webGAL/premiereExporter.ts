@@ -72,7 +72,7 @@ export type AvatarFetchFn = (avatarId: number) => Promise<{
 export type RoleNameFetchFn = (roleId?: number) => Promise<string | undefined | null>;
 export type UserNameFetchFn = (userId?: number) => Promise<string | undefined | null>;
 export type RoleRefVocalFetchFn = (roleId: number) => Promise<File | undefined>;
-export type RoleFetchFn = (roleId: number) => Promise<{ avatarId?: number } | undefined | null>;
+export type RoleFetchFn = (roleId: number) => Promise<{ avatarId?: number; type?: number } | undefined | null>;
 
 interface DialogEntry {
     id: number;
@@ -577,34 +577,36 @@ export class PremiereExporter {
           try {
              // Fetch Role Default ID to compare
              const roleInfo = await fetchRole(msg.roleId);
-             // Ensure type safety for comparison
              const roleDefaultId = roleInfo?.avatarId ? Number(roleInfo.avatarId) : undefined;
              
              // If we have an explicit message avatar ID...
              if (effectiveAvatarId && effectiveAvatarId > 0) {
                  const msgAvatarId = Number(effectiveAvatarId);
-                 // If role has a default, comparsion determines status
-                 if (roleDefaultId) {
+                 
+                 // Logic Update:
+                 // User correction: Even for Player Roles (Type 0), the logic holds:
+                 // - Default Avatar (msg.avatarId == role.avatarId) should be BASE SIZE (100%).
+                 // - Non-Default Avatars (Variants) should be SCALED UP (150%).
+                 // The previous bug where Type 0 characters were always scaled up implies that 
+                 // for those characters, msg.avatarId was NOT matching roleDefaultId.
+                 
+                 // Safety Check: if roleDefaultId is missing, assume Default (100%) instead of Variant.
+                 if (roleDefaultId && roleDefaultId > 0) {
                      if (msgAvatarId !== roleDefaultId) {
-                         // Explicit ID different from default -> Non-Default (Variant)
+                         // Explicit ID different from default -> Non-Default (Variant) -> 150%
                          isDefaultAvatar = false;
                      } else {
-                         // ID Matches default -> Default
+                         // ID Matches default -> Default -> 100%
                          isDefaultAvatar = true;
                      }
                  } else {
-                     // Role has NO default avatar set.
-                     // Message has explicit avatar.
-                     // User Intent: "Non-default" implies variants. 
-                     // If no default is set, technically any avatar could be considered a "setting".
-                     // But usually this means data issue. Safe fallback: Keep as Default (85) to avoid blowing up portraits.
-                     // Debug: console.warn(`Role ${msg.roleId} has no default avatarId. MsgAvatar ${msgAvatarId} treated as default.`);
+                     // Role has NO valid default avatar ID set (e.g. 0 or null).
+                     // Safety Fallback: Treat as Default (100%) to avoid blowing up arbitrary images.
                      isDefaultAvatar = true; 
                  }
              } else {
                  // No explicit ID in message -> Falls back to role default -> Is Default
                  isDefaultAvatar = true;
-                 // Fill in the avatarId for resource mapping if needed
                  if (roleDefaultId) effectiveAvatarId = roleDefaultId;
              }
           } catch (e) {
