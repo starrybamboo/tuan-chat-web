@@ -1,3 +1,4 @@
+import { zip, strToU8 } from "fflate";
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
@@ -304,11 +305,24 @@ function RoomWindow({
       return;
     }
 
-    const loadToastId = toast.loading("正在导出工程...");
+    // Updated UI Flow: Defaults to ZIP Export
+    // const exportModeZip = window.confirm("选择导出模式：\n\n[确定] = 导出 ZIP 整合包（推荐，含 XML + 图片素材 + 可选语音）。\n[取消] = 仅导出 XML 工程文件（需手动运行脚本下载素材）。");
+    const exportModeZip = true;
+    
+    let ttsApiUrl: string | undefined;
+    
+    const useVoice = window.confirm("是否生成 AI 语音？\n\n[确定] = 生成语音（需配置 API）。\n[取消] = 不生成语音（仅含图片和字幕）。");
+    if (useVoice) {
+        const key = window.prompt("请输入 TTS API 地址", "http://127.0.0.1:9000");
+        if (key) ttsApiUrl = key;
+    }
+
+    const loadToastId = toast.loading("正在处理导出...");
 
     try {
       const exporter = new PremiereExporter({
         sequenceName: `Chat_${roomId}`,
+        ttsApiUrl,
       });
       
       // 头像获取回调
@@ -341,6 +355,9 @@ function RoomWindow({
 
       // 角色名获取回调
       const roleNameCache = new Map<number, string>();
+      // 角色参考音频回调
+      const roleVocalCache = new Map<number, File | undefined>();
+
       const fetchRoleName = async (roleId?: number) => {
           if (!roleId) return null;
           if (roleNameCache.has(roleId)) return roleNameCache.get(roleId);
@@ -365,6 +382,39 @@ function RoomWindow({
               console.warn(`Fetch role name ${roleId} failed`, e);
           }
           return null;
+      };
+
+      const fetchRoleRefVocal = async (roleId: number) => {
+          if (roleVocalCache.has(roleId)) return roleVocalCache.get(roleId);
+          
+          try {
+              // Get Role Info first
+              let roleData: any = null;
+              const queryKey = ["getRole", roleId];
+              const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+              
+              if (cached?.data) roleData = cached.data;
+              else {
+                  const res = await tuanchat.roleController.getRole(roleId);
+                  if (res.data) {
+                      roleData = res.data;
+                      queryClient.setQueryData(queryKey, res);
+                  }
+              }
+
+              if (roleData?.voiceUrl) {
+                  // Fetch the file
+                  const fileRes = await fetch(roleData.voiceUrl);
+                  const blob = await fileRes.blob();
+                  const file = new File([blob], "ref.wav", { type: blob.type });
+                  roleVocalCache.set(roleId, file);
+                  return file;
+              }
+          } catch (e) {
+              console.warn(`Fetch role vocal ${roleId} failed`, e);
+          }
+          roleVocalCache.set(roleId, undefined);
+          return undefined;
       };
 
       // 用户名获取回调 (Fallback)
@@ -396,33 +446,112 @@ function RoomWindow({
           return null;
       };
 
-      await exporter.processMessages(historyMessages, fetchAvatar, fetchRoleName, fetchUserName);
-
-      const xmlContent = exporter.generateXML();
-      const downloadBlob = (content: string, filename: string, type: string) => {
-        const blob = new Blob([content], { type });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      // 新增 Role Info Fetcher (for ID comparison)
+      const fetchRole = async (roleId: number) => {
+          const queryKey = ["getRole", roleId];
+          const cached = queryClient.getQueryData<{ data: any }>(queryKey);
+          if (cached?.data) return cached.data;
+          try {
+             // Reuse existing RoleController API
+             const res = await tuanchat.roleController.getRole(roleId);
+             if (res.data) {
+                 queryClient.setQueryData(queryKey, res);
+                 return res.data;
+             }
+          } catch {}
+          return undefined;
       };
 
-      downloadBlob(xmlContent, `TuanChat_Export_${roomId}.xml`, "text/xml;charset=utf-8");
+      await exporter.processMessages(historyMessages, fetchAvatar, fetchRoleName, fetchUserName, fetchRoleRefVocal, fetchRole);
 
-      const scriptContent = exporter.generateDownloadScript();
-      downloadBlob(scriptContent, `download_assets_${roomId}.ps1`, "text/plain;charset=utf-8");
+      if (exportModeZip) {
+          // --- ZIP Export Mode ---
+          const xmlContent = exporter.generateXML();
+          const srtContent = exporter.generateSRT();
+          const nameSrtContent = exporter.generateNameSRT();
 
-      const srtContent = exporter.generateSRT();
-      downloadBlob(srtContent, `TuanChat_Subtitles_${roomId}.srt`, "text/plain;charset=utf-8");
+          const zipData: Record<string, Uint8Array> = {};
+          zipData[`TuanChat_Export_${roomId}.xml`] = strToU8(xmlContent);
+          zipData[`TuanChat_Subtitles_${roomId}.srt`] = strToU8(srtContent);
+          zipData[`TuanChat_Names_${roomId}.srt`] = strToU8(nameSrtContent);
+          
+          // Add generated Voice assets
+          for (const [name, data] of Object.entries(exporter.generatedAudioAssets)) {
+              zipData[`assets/${name}`] = data;
+          }
 
-      const nameSrtContent = exporter.generateNameSRT();
-      downloadBlob(nameSrtContent, `TuanChat_Names_${roomId}.srt`, "text/plain;charset=utf-8");
+          // Add Platform Image Assets (Sprites, Backgrounds)
+          const resources = exporter.getResources().filter(r => r.type === "image" || r.type === "video");
+          if (resources.length > 0) {
+              const fetchResult = await Promise.allSettled(resources.map(async (r) => {
+                  try {
+                       const res = await fetch(r.url, { mode: 'cors' });
+                       if (!res.ok) throw new Error(`Fetch ${r.url} failed: ${res.status}`);
+                       const blob = await res.blob();
+                       return { name: r.name, data: new Uint8Array(await blob.arrayBuffer()) };
+                  } catch (e) {
+                      console.error(e);
+                      return null; 
+                  }
+              }));
+              
+              for (const item of fetchResult) {
+                  if (item.status === 'fulfilled' && item.value) {
+                      zipData[`assets/${item.value.name}`] = item.value.data;
+                  }
+              }
+          }
 
-      toast.success("导出成功！请查看下载的文件。", { id: loadToastId });
+          // Generate Script fallback
+          // If we want to guarantee the user can download assets if they fail in zip.
+          // But Zip should work if domains are correct.
+          // The script is only needed for XML Only mode.
+
+          zip(zipData, (err, data) => {
+              if (err) {
+                  console.error(err);
+                  toast.error("压缩失败");
+                  return;
+              }
+              const blob = new Blob([data], { type: "application/zip" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `TuanChat_Export_${roomId}.zip`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              toast.success("导出成功！", { id: loadToastId });
+          });
+      } else {
+          // --- XML Only Mode (Legacy) ---
+          const xmlContent = exporter.generateXML();
+          const downloadBlob = (content: string, filename: string, type: string) => {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          };
+
+          downloadBlob(xmlContent, `TuanChat_Export_${roomId}.xml`, "text/xml;charset=utf-8");
+
+          const scriptContent = exporter.generateDownloadScript();
+          downloadBlob(scriptContent, `download_assets_${roomId}.ps1`, "text/plain;charset=utf-8");
+
+          const srtContent = exporter.generateSRT();
+          downloadBlob(srtContent, `TuanChat_Subtitles_${roomId}.srt`, "text/plain;charset=utf-8");
+
+          const nameSrtContent = exporter.generateNameSRT();
+          downloadBlob(nameSrtContent, `TuanChat_Names_${roomId}.srt`, "text/plain;charset=utf-8");
+
+          toast.success("导出成功！请查看下载的文件。", { id: loadToastId });
+      }
     }
     catch (e) {
       console.error(e);
