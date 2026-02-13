@@ -53,6 +53,7 @@ interface ChatFrameProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  onOpenThread?: (threadRootMessageId: number) => void;
   spaceName?: string;
   roomName?: string;
 }
@@ -68,6 +69,7 @@ function ChatFrame(props: ChatFrameProps) {
     onBackgroundUrlChange,
     onEffectChange,
     onExecuteCommandRequest,
+    onOpenThread,
     spaceName,
     roomName,
   } = props;
@@ -418,6 +420,7 @@ function ChatFrame(props: ChatFrameProps) {
     isMessageMovable,
     threadHintMetaByMessageId,
     onExecuteCommandRequest,
+    onOpenThread,
     onEditWebgalChoose: openWebgalChooseEditor,
     onMessageClick: handleMessageClick,
     onToggleSelection: toggleMessageSelection,

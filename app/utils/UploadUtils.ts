@@ -133,6 +133,33 @@ export class UploadUtils {
   }
 
   /**
+   * 上传通用文件（用于聊天文件消息）
+   */
+  async uploadFile(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    const hash = await this.calculateFileHash(file);
+    const fileSize = file.size;
+    const extensionMatch = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    const extension = extensionMatch?.[1] || "bin";
+    const newFileName = `${hash}_${fileSize}.${extension}`;
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+      dedupCheck: true,
+    });
+
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
+    }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, file);
+    }
+
+    return ossData.data.downloadUrl;
+  }
+
+  /**
    * 上传图片
    * @param file img文件
    * @param scene 上传场景1.聊天室,2.表情包，3.角色差分 4.仓库图片
@@ -290,7 +317,7 @@ export class UploadUtils {
         body: file,
         signal: controller.signal,
         headers: {
-          "Content-Type": file.type,
+          "Content-Type": file.type || "application/octet-stream",
           "x-oss-acl": "public-read",
         },
       });

@@ -124,6 +124,7 @@ function RoomComposerPanelImpl({
   onCompositionEnd,
 }: RoomComposerPanelProps) {
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
+  const fileAttachmentsCount = useChatComposerStore(state => state.fileAttachments.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const composerAnnotations = useChatComposerStore(state => state.annotations);
   const setComposerAnnotations = useChatComposerStore(state => state.setAnnotations);
@@ -168,22 +169,26 @@ function RoomComposerPanelImpl({
   }, [isKP, mentionRolesProp]);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
+  const prevFileAttachmentsCountRef = React.useRef(fileAttachmentsCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
 
   React.useEffect(() => {
     const prevImgFilesCount = prevImgFilesCountRef.current;
+    const prevFileAttachmentsCount = prevFileAttachmentsCountRef.current;
     const prevHasAudio = prevHasAudioRef.current;
 
     const hasNewImages = imgFilesCount > prevImgFilesCount;
+    const hasNewFiles = fileAttachmentsCount > prevFileAttachmentsCount;
     const hasNewAudio = Boolean(audioFile) && !prevHasAudio;
 
-    if (hasNewImages || hasNewAudio) {
+    if (hasNewImages || hasNewFiles || hasNewAudio) {
       chatInputRef.current?.focus();
     }
 
     prevImgFilesCountRef.current = imgFilesCount;
+    prevFileAttachmentsCountRef.current = fileAttachmentsCount;
     prevHasAudioRef.current = Boolean(audioFile);
-  }, [audioFile, chatInputRef, imgFilesCount]);
+  }, [audioFile, chatInputRef, fileAttachmentsCount, imgFilesCount]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {

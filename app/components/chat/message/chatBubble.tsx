@@ -51,7 +51,7 @@ interface CommandRequestPayload {
 const EMPTY_ANNOTATIONS: string[] = [];
 const EFFECT_PREVIEW_DURATION_MS = 2000;
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onToggleSelection, onEditWebgalChoose }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onOpenThread, onToggleSelection, onEditWebgalChoose }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -60,6 +60,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   threadHintMeta?: { rootId: number; title: string; replyCount: number };
   /** 点击“检定请求”按钮后，触发外层执行（以点击者身份发送并执行指令） */
   onExecuteCommandRequest?: (payload: { command: string; threadId?: number; requestMessageId: number }) => void;
+  onOpenThread?: (threadRootMessageId: number) => void;
   onToggleSelection?: (messageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
 }) {
@@ -147,6 +148,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     && (!message.threadId || message.threadId === message.messageId);
 
   const handleOpenThreadById = React.useCallback((rootId: number) => {
+    if (onOpenThread) {
+      onOpenThread(rootId);
+      return;
+    }
     // 打开 Thread 时，清除“插入消息”模式，避免错位。
     setInsertAfterMessageId(undefined);
     setThreadRootMessageId(rootId);
@@ -154,7 +159,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     // Thread 以右侧 SubWindow 展示
     setSideDrawerState("thread");
     setSubDrawerState("none");
-  }, [setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
+  }, [onOpenThread, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   const threadHintNode = shouldShowThreadHint
     ? (

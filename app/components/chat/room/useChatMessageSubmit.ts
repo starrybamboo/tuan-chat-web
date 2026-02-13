@@ -82,11 +82,13 @@ export default function useChatMessageSubmit({
     const {
       imgFiles,
       emojiUrls,
+      fileAttachments,
       audioFile,
       annotations: composerAnnotations,
       tempAnnotations,
       setImgFiles,
       setEmojiUrls,
+      setFileAttachments,
       setAudioFile,
       setTempAnnotations,
     } = useChatComposerStore.getState();
@@ -145,6 +147,7 @@ export default function useChatMessageSubmit({
     setIsSubmitting(true);
     try {
       const uploadedImages: any[] = [];
+      const uploadedFiles: Array<{ url: string; fileName: string; size: number }> = [];
       const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
 
       for (let i = 0; i < imgFiles.length; i++) {
@@ -159,6 +162,25 @@ export default function useChatMessageSubmit({
         uploadedImages.push({ url: emojiUrls[i], width, height, size, fileName: "emoji" });
       }
       setEmojiUrls([]);
+
+      if (fileAttachments.length > 0) {
+        const fileToastId = toast.loading("正在上传文件...");
+        try {
+          for (let i = 0; i < fileAttachments.length; i++) {
+            const file = fileAttachments[i];
+            const url = await uploadUtilsRef.current.uploadFile(file, 1);
+            uploadedFiles.push({
+              url,
+              fileName: file.name,
+              size: file.size,
+            });
+          }
+        }
+        finally {
+          toast.dismiss(fileToastId);
+        }
+      }
+      setFileAttachments([]);
 
       let soundMessageData: any = null;
       if (audioFile) {
@@ -436,15 +458,32 @@ export default function useChatMessageSubmit({
         textContent = "";
       }
 
+      for (const file of uploadedFiles) {
+        const commonFields = getCommonFields() as ChatMessageRequest;
+        const fileMsg: ChatMessageRequest = {
+          ...commonFields,
+          content: textContent,
+          messageType: MessageType.FILE,
+          extra: {
+            url: file.url,
+            fileName: file.fileName,
+            size: file.size,
+          },
+        };
+        await sendMessageWithInsert(fileMsg);
+        textContent = "";
+      }
+
       // Allow explicit blank messages when there's no other payload to send.
       const shouldSendEmptyTextMessage = isBlankInput
         && uploadedImages.length === 0
+        && uploadedFiles.length === 0
         && !soundMessageData
         && !shouldSendCommandRequest
         && !webgalVarPayload;
 
       if (textContent || shouldSendEmptyTextMessage) {
-        const isPureTextSend = uploadedImages.length === 0 && !soundMessageData;
+        const isPureTextSend = uploadedImages.length === 0 && uploadedFiles.length === 0 && !soundMessageData;
         const isWebgalCommandInput = isPureTextSend && textContent.startsWith("%");
         const normalizedContent = isWebgalCommandInput ? textContent.slice(1).trim() : textContent;
 

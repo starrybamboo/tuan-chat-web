@@ -30,6 +30,8 @@ type ChatComposerState = {
   imgFiles: File[];
   /** 聊天框中包含的表情图片 URL */
   emojiUrls: string[];
+  /** 聊天框中包含的通用文件 */
+  fileAttachments: File[];
   /** 聊天框中包含的语音 */
   audioFile: File | null;
   /** 即将发送消息的标注 */
@@ -39,9 +41,11 @@ type ChatComposerState = {
 
   updateImgFiles: (updater: (draft: File[]) => void) => void;
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
+  updateFileAttachments: (updater: (draft: File[]) => void) => void;
 
   setImgFiles: (files: File[]) => void;
   setEmojiUrls: (urls: string[]) => void;
+  setFileAttachments: (files: File[]) => void;
   setAudioFile: (file: File | null) => void;
   setAnnotations: (annotations: string[]) => void;
   setTempAnnotations: (annotations: string[]) => void;
@@ -53,6 +57,7 @@ type ChatComposerState = {
 export const useChatComposerStore = create<ChatComposerState>(set => ({
   imgFiles: [],
   emojiUrls: [],
+  fileAttachments: [],
   audioFile: null,
   annotations: [],
   tempAnnotations: [],
@@ -75,8 +80,18 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
     return { emojiUrls: next };
   }),
 
+  updateFileAttachments: updater => set((state) => {
+    const next = produce(state.fileAttachments, (draft) => {
+      updater(draft);
+    });
+    if (next === state.fileAttachments)
+      return state;
+    return { fileAttachments: next };
+  }),
+
   setImgFiles: files => set(state => (isSameFileList(state.imgFiles, files) ? state : { imgFiles: files })),
   setEmojiUrls: urls => set(state => (isSameStringList(state.emojiUrls, urls) ? state : { emojiUrls: urls })),
+  setFileAttachments: files => set(state => (isSameFileList(state.fileAttachments, files) ? state : { fileAttachments: files })),
   setAudioFile: file => set(state => (state.audioFile === file ? state : { audioFile: file })),
   setAnnotations: annotations => set(state => (isSameStringList(state.annotations, annotations) ? state : { annotations })),
   setTempAnnotations: annotations => set(state => (isSameStringList(state.tempAnnotations, annotations) ? state : { tempAnnotations: annotations })),
@@ -84,6 +99,7 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
   reset: () => set(state => (
     state.imgFiles.length === 0
     && state.emojiUrls.length === 0
+    && state.fileAttachments.length === 0
     && state.audioFile == null
     && state.annotations.length === 0
     && state.tempAnnotations.length === 0
@@ -91,6 +107,7 @@ export const useChatComposerStore = create<ChatComposerState>(set => ({
       : {
           imgFiles: [],
           emojiUrls: [],
+          fileAttachments: [],
           audioFile: null,
           annotations: [],
           tempAnnotations: [],

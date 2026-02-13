@@ -82,11 +82,12 @@ export default function ChatPage() {
     tab: subWindowTab,
     roomId: subWindowRoomId,
     docId: subWindowDocId,
+    threadRootMessageId: subWindowThreadRootMessageId,
     setIsOpen: setIsSubWindowOpen,
     setWidth: setSubWindowWidth,
-    setTab: setSubWindowTab,
     setRoomId: setSubWindowRoomId,
     setDocId: setSubWindowDocId,
+    setThreadRootMessageId: setSubWindowThreadRootMessageId,
   } = useChatPageSubWindow({
     activeSpaceId,
     activeRoomId,
@@ -323,6 +324,12 @@ export default function ChatPage() {
     spaceMembers,
   });
 
+  const handleOpenThreadInSubWindow = useCallback((roomId: number, threadRootMessageId: number) => {
+    setSubWindowRoomId(roomId);
+    setSubWindowThreadRootMessageId(threadRootMessageId);
+    setIsSubWindowOpen(true);
+  }, [setIsSubWindowOpen, setSubWindowRoomId, setSubWindowThreadRootMessageId]);
+
   const layoutContextValue = useMemo(() => {
     return {
       isPrivateChatMode,
@@ -339,6 +346,7 @@ export default function ChatPage() {
       isKPInSpace,
       activeDocTitleForTcHeader,
       onDocTcHeaderChange: handleDocTcHeaderChange,
+      onOpenThreadInSubWindow: handleOpenThreadInSubWindow,
     };
   }, [
     activeDocId,
@@ -348,6 +356,7 @@ export default function ChatPage() {
     closeRoomSettingPage,
     closeSpaceDetailPanel,
     handleDocTcHeaderChange,
+    handleOpenThreadInSubWindow,
     isKPInSpace,
     isPrivateChatMode,
     isSpaceDetailRoute,
@@ -468,11 +477,12 @@ export default function ChatPage() {
               tab={subWindowTab}
               roomId={subWindowRoomId}
               docId={subWindowDocId}
+              threadRootMessageId={subWindowThreadRootMessageId}
               setIsOpen={setIsSubWindowOpen}
               setWidth={setSubWindowWidth}
-              setTab={setSubWindowTab}
               setRoomId={setSubWindowRoomId}
               setDocId={setSubWindowDocId}
+              setThreadRootMessageId={setSubWindowThreadRootMessageId}
             />
           )}
           sidePanelProps={sidePanelProps}

@@ -325,6 +325,7 @@ function resolveSlotOffsetById(id: string): number | null {
 }
 
 const DEFAULT_KEEP_OFFSET_PART = " -keepOffset";
+const DEFAULT_RESTORE_TRANSFORM_PART = " -restoreTransform";
 
 function buildFigureArgs(id: string, slot: FigureSlot, transform: string): string {
   const parts: string[] = [];
@@ -1732,7 +1733,6 @@ export class RealtimeRenderer {
       ? await this.getAndUploadSprite(effectiveAvatarId, roleId)
       : null;
 
-    console.error(msg.content, msg.webgal?.voiceRenderSettings);
     // 获取 annotations 中的立绘位置
     const voiceRenderSettings = msg.webgal?.voiceRenderSettings as {
       emotionVector?: number[];
@@ -1806,7 +1806,7 @@ export class RealtimeRenderer {
           if (animationName) {
             await this.appendLine(
               targetRoomId,
-              `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART} -next;`,
+              `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
               syncToFile,
             );
           }
@@ -1816,7 +1816,7 @@ export class RealtimeRenderer {
         if (figureAnimation.animation) {
           await this.appendLine(
             targetRoomId,
-            `setAnimation:${figureAnimation.animation} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART} -next;`,
+            `setAnimation:${figureAnimation.animation} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
             syncToFile,
           );
         }

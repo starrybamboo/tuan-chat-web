@@ -45,12 +45,14 @@ function RoomWindow({
   targetMessageId,
   viewMode = false,
   hideSecondaryPanels = false,
+  onOpenThread,
 }: {
   roomId: number;
   spaceId: number;
   targetMessageId?: number | null;
   viewMode?: boolean;
   hideSecondaryPanels?: boolean;
+  onOpenThread?: (threadRootMessageId: number) => void;
 }) {
   const spaceContext = use(SpaceContext);
 
@@ -301,10 +303,12 @@ function RoomWindow({
     onBackgroundUrlChange: setBackgroundUrl,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
+    onOpenThread,
     spaceName,
     roomName,
   }), [
     handleExecuteCommandRequest,
+    onOpenThread,
     setBackgroundUrl,
     setCurrentEffect,
     roomName,

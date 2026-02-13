@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
-export type ChatPageSubWindowTab = "room" | "doc";
+export type ChatPageSubWindowTab = "room" | "doc" | "thread";
 
 export type ChatPageSubWindowSnapshot = {
   isOpen: boolean;
@@ -9,6 +9,7 @@ export type ChatPageSubWindowSnapshot = {
   tab: ChatPageSubWindowTab;
   roomId: number | null;
   docId: string | null;
+  threadRootMessageId: number | null;
 };
 
 type ChatPageSubWindowMap = Record<string, ChatPageSubWindowSnapshot>;
@@ -19,13 +20,17 @@ const DEFAULT_SNAPSHOT: ChatPageSubWindowSnapshot = {
   tab: "doc",
   roomId: null,
   docId: null,
+  threadRootMessageId: null,
 };
 
 function normalizeSnapshot(raw?: Partial<ChatPageSubWindowSnapshot> | null): ChatPageSubWindowSnapshot {
   const width = typeof raw?.width === "number" && Number.isFinite(raw.width) ? raw.width : DEFAULT_SNAPSHOT.width;
-  const tab = raw?.tab === "room" || raw?.tab === "doc" ? raw.tab : DEFAULT_SNAPSHOT.tab;
+  const tab = raw?.tab === "room" || raw?.tab === "doc" || raw?.tab === "thread" ? raw.tab : DEFAULT_SNAPSHOT.tab;
   const roomId = typeof raw?.roomId === "number" && Number.isFinite(raw.roomId) ? raw.roomId : null;
   const docId = typeof raw?.docId === "string" && raw.docId.length > 0 ? raw.docId : null;
+  const threadRootMessageId = typeof raw?.threadRootMessageId === "number" && Number.isFinite(raw.threadRootMessageId)
+    ? raw.threadRootMessageId
+    : null;
   const isOpen = typeof raw?.isOpen === "boolean" ? raw.isOpen : DEFAULT_SNAPSHOT.isOpen;
   return {
     isOpen,
@@ -33,6 +38,7 @@ function normalizeSnapshot(raw?: Partial<ChatPageSubWindowSnapshot> | null): Cha
     tab,
     roomId,
     docId,
+    threadRootMessageId,
   };
 }
 
@@ -48,6 +54,7 @@ type UseChatPageSubWindowResult = ChatPageSubWindowSnapshot & {
   setTab: (next: ChatPageSubWindowTab) => void;
   setRoomId: (roomId: number | null) => void;
   setDocId: (docId: string | null) => void;
+  setThreadRootMessageId: (messageId: number | null) => void;
 };
 
 export default function useChatPageSubWindow({
@@ -99,6 +106,10 @@ export default function useChatPageSubWindow({
     updateSnapshot({ tab: "doc", docId });
   }, [updateSnapshot]);
 
+  const setThreadRootMessageId = useCallback((messageId: number | null) => {
+    updateSnapshot({ tab: "thread", threadRootMessageId: messageId });
+  }, [updateSnapshot]);
+
   const openedOnceRef = useRef(false);
   const lastSpaceKeyRef = useRef(spaceKey);
 
@@ -147,5 +158,6 @@ export default function useChatPageSubWindow({
     setTab,
     setRoomId,
     setDocId,
+    setThreadRootMessageId,
   };
 }

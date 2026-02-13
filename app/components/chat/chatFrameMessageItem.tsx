@@ -20,6 +20,7 @@ interface ChatFrameMessageItemProps {
     threadId?: number;
     requestMessageId: number;
   }) => void;
+  onOpenThread?: (threadRootMessageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
   onMessageClick: (event: React.MouseEvent<HTMLDivElement>) => void;
   onToggleSelection?: (messageId: number) => void;
@@ -39,6 +40,7 @@ export default function ChatFrameMessageItem({
   isSelecting,
   threadHintMeta,
   onExecuteCommandRequest,
+  onOpenThread,
   onEditWebgalChoose,
   onMessageClick,
   onToggleSelection,
@@ -79,6 +81,7 @@ export default function ChatFrameMessageItem({
         chatMessageResponse={chatMessageResponse}
         threadHintMeta={threadHintMeta}
         onExecuteCommandRequest={onExecuteCommandRequest}
+        onOpenThread={onOpenThread}
         onToggleSelection={onToggleSelection}
         onEditWebgalChoose={onEditWebgalChoose}
       />
