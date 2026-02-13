@@ -74,7 +74,7 @@ function RoomHeaderBarImpl({
               setIsImportChatTextOpen(true);
             }}
           >
-            <ArrowSquareIn className="size-6 mt-2" />
+            <ArrowSquareIn className="size-6" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
@@ -87,7 +87,7 @@ function RoomHeaderBarImpl({
               setMultiSelecting(true);
             }}
           >
-            <ExportIcon className="size-6 mt-2" />
+            <ExportIcon className="size-6" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
@@ -97,7 +97,7 @@ function RoomHeaderBarImpl({
               onExportPremiere?.();
             }}
           >
-            <FilmStrip className="size-6 mt-2" />
+            <FilmStrip className="size-6" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
