@@ -1,4 +1,3 @@
-import type { DragEvent } from "react";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
@@ -8,25 +7,6 @@ import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
-const SUB_WINDOW_DND_DEBUG = true;
-
-function logDocDragDebug(event: DragEvent<HTMLDivElement>, docId: string, canEdit: boolean) {
-  if (!SUB_WINDOW_DND_DEBUG) {
-    return;
-  }
-  const types = Array.from(event.dataTransfer?.types ?? []);
-  const docMimeValue = event.dataTransfer?.getData(DOC_DRAG_MIME) ?? "";
-  const plainText = event.dataTransfer?.getData("text/plain") ?? "";
-  const docRefMimeValue = event.dataTransfer?.getData("application/x-tc-doc-ref") ?? "";
-  console.warn("[SubWindowDnd][DocDragStart]", {
-    docId,
-    canEdit,
-    types,
-    docMimeValue,
-    plainText,
-    hasDocRefMime: Boolean(docRefMimeValue),
-  });
-}
 
 interface RoomSidebarDocItemProps {
   node: SidebarLeafNode;
@@ -142,11 +122,9 @@ export default function RoomSidebarDocItem({
           ...(coverUrl ? { imageUrl: coverUrl } : {}),
         });
         if (!canEdit) {
-          logDocDragDebug(e, docId, canEdit);
           return;
         }
         resetDropHandled();
-        logDocDragDebug(e, docId, canEdit);
         setDragging({
           kind: "node",
           nodeId,

@@ -36,6 +36,22 @@ const EFFECT_ANNOTATION_FRAMES: Record<string, number> = {
   "effect.13": 20,
   "effect.14": 26,
 };
+const EFFECT_SOUND_FILE_CANDIDATES_BY_ID: Record<string, string[]> = {
+  "effect.1": ["en_angry.mp3", "飞书20260208-171542.mp3"],
+  "effect.2": ["en_answer.mp3", "飞书20260208-171543.mp3"],
+  "effect.3": ["en_chat.mp3", "飞书20260208-171545.mp3"],
+  "effect.4": ["en_doubt.mp3", "飞书20260208-171546.mp3"],
+  "effect.5": ["en_getit.mp3", "飞书20260208-171548.mp3"],
+  "effect.6": ["en_hmm.mp3", "飞书20260208-171549.mp3"],
+  "effect.7": ["en_omit.mp3", "飞书20260208-171550.mp3"],
+  "effect.8": ["en_sad.mp3", "飞书20260208-171552.mp3"],
+  "effect.9": ["en_shiny.mp3", "飞书20260208-171553.mp3"],
+  "effect.10": ["en_shy.mp3", "飞书20260208-171555.mp3"],
+  "effect.11": ["en_suki.mp3", "飞书20260208-171556.mp3"],
+  "effect.12": ["en_sweat.mp3", "飞书20260208-171557.mp3"],
+  "effect.13": ["en_upset.mp3", "飞书20260208-171558.mp3"],
+  "effect.14": ["en_warning.mp3", "飞书20260208-171627.mp3"],
+};
 
 export const ANNOTATION_IDS = {
   BGM: "sys:bgm",
@@ -228,6 +244,17 @@ export function getEffectDurationMs(effectId: string | undefined) {
 }
 
 export { EFFECT_FRAME_DURATION_MS };
+
+export function getEffectSoundFileCandidates(effectId: string | undefined) {
+  if (!effectId)
+    return undefined;
+  const candidates = EFFECT_SOUND_FILE_CANDIDATES_BY_ID[effectId];
+  return candidates ? candidates.slice() : undefined;
+}
+
+export function getEffectSoundFileName(effectId: string | undefined) {
+  return getEffectSoundFileCandidates(effectId)?.[0];
+}
 
 export function getFigureAnimationFromAnnotations(annotations: string[] | undefined): FigureAnimationSettings | undefined {
   const list = normalizeAnnotations(annotations);

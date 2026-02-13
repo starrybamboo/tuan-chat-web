@@ -28,11 +28,17 @@ function toRoleViewModel(roleId: number, raw: any): Role {
 
 export function RoleDetailPagePopup({
   roleId,
+  roleTypeHint,
+  roleOwnerUserIdHint,
+  roleStateHint,
   allowKickOut = true,
   kickOutByManagerOnly = false,
   onClose,
 }: {
   roleId: number;
+  roleTypeHint?: number;
+  roleOwnerUserIdHint?: number;
+  roleStateHint?: number;
   allowKickOut?: boolean;
   kickOutByManagerOnly?: boolean;
   onClose: () => void;
@@ -44,9 +50,10 @@ export function RoleDetailPagePopup({
   const spaceContext = use(SpaceContext);
   const ruleIdFromSpace = spaceContext?.ruleId ?? 0;
 
-  const roleQuery = useGetRoleQuery(roleId);
-  const fetchedRole = roleQuery.data?.data;
-  const isRoleLoading = roleQuery.isLoading;
+  const shouldFetchRole = roleStateHint == null || roleStateHint === 0;
+  const roleQuery = useGetRoleQuery(shouldFetchRole ? roleId : -1);
+  const fetchedRole = shouldFetchRole ? roleQuery.data?.data : undefined;
+  const isRoleLoading = shouldFetchRole ? roleQuery.isLoading : false;
   const isRoleMissing = !isRoleLoading && !fetchedRole;
 
   const [role, setRole] = useState<Role | null>(null);
@@ -89,11 +96,17 @@ export function RoleDetailPagePopup({
       return false;
     if (!roomId || roomId <= 0)
       return false;
+    if (isManager)
+      return true;
     if (kickOutByManagerOnly)
-      return Boolean(isManager);
+      return false;
+    if (roleTypeHint === 2)
+      return false;
+    if (roleOwnerUserIdHint != null && userId > 0)
+      return roleOwnerUserIdHint === userId;
     const ownRole = Boolean(userRole.data?.data?.find(r => r.roleId === roleId));
-    return Boolean(isManager || ownRole);
-  }, [allowKickOut, isManager, kickOutByManagerOnly, roleId, roomId, userRole.data?.data]);
+    return ownRole;
+  }, [allowKickOut, isManager, kickOutByManagerOnly, roleId, roleOwnerUserIdHint, roleTypeHint, roomId, userId, userRole.data?.data]);
 
   const handleRemoveRole = () => {
     if (!roomId || roomId <= 0) {
@@ -175,6 +188,10 @@ export function RoleDetailPagePopup({
         />
       </div>
     );
+  }
+
+  if (!role) {
+    return null;
   }
 
   return (

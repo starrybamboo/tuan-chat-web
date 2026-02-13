@@ -1,15 +1,15 @@
 import type { UserRole } from "../../../../api";
+import { useDeleteRole1Mutation } from "api/hooks/chatQueryHooks";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import ConfirmModal from "@/components/common/comfirmModel";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { getScreenSize } from "@/utils/getScreenSize";
 import { AddRingLight } from "@/icons";
-import { useDeleteRole1Mutation } from "api/hooks/chatQueryHooks";
+import { getScreenSize } from "@/utils/getScreenSize";
 
 /**
  * 角色选择器组件，用于在聊天中选择不同的角色
@@ -148,6 +148,9 @@ export default function RoleChooser({
         {manageRoleId !== null && (
           <RoleDetailPagePopup
             roleId={manageRoleId}
+            roleTypeHint={manageRole?.type}
+            roleOwnerUserIdHint={manageRole?.userId}
+            roleStateHint={manageRole?.state}
             allowKickOut={true}
             kickOutByManagerOnly={Boolean(manageRole?.type === 2)}
             onClose={() => setManageRoleId(null)}

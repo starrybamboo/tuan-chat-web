@@ -17,7 +17,6 @@ import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import BetterImg from "@/components/common/betterImg";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -123,8 +122,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const setSubDrawerState = useSideDrawerStore(state => state.setSubState);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
@@ -133,14 +130,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const isMobile = getScreenSize() === "sm";
 
   const isThreadRoot = message.messageType === MESSAGE_TYPE.THREAD_ROOT && message.threadId === message.messageId;
-  const threadTitle = (message.extra as any)?.title || message.content;
-  const threadReplyCount = useMemo(() => {
-    if (!isThreadRoot) {
-      return 0;
-    }
-    const allMessages = roomContext.chatHistory?.messages ?? [];
-    return allMessages.filter(m => m.message.threadId === message.messageId && m.message.messageId !== message.messageId).length;
-  }, [isThreadRoot, message.messageId, roomContext.chatHistory?.messages]);
 
   const shouldShowThreadHint = !!threadHintMeta
     && !isThreadRoot
@@ -148,18 +137,17 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
     && (!message.threadId || message.threadId === message.messageId);
 
   const handleOpenThreadById = React.useCallback((rootId: number) => {
-    if (onOpenThread) {
-      onOpenThread(rootId);
-      return;
-    }
     // 打开 Thread 时，清除“插入消息”模式，避免错位。
     setInsertAfterMessageId(undefined);
-    setThreadRootMessageId(rootId);
-    setComposerTarget("thread");
-    // Thread 以右侧 SubWindow 展示
-    setSideDrawerState("thread");
-    setSubDrawerState("none");
-  }, [onOpenThread, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
+    if (onOpenThread) {
+      onOpenThread(rootId);
+    }
+    else {
+      setThreadRootMessageId(rootId);
+      setComposerTarget("thread");
+      toast.error("当前页面未启用副窗口，无法打开子区");
+    }
+  }, [onOpenThread, setComposerTarget, setInsertAfterMessageId, setThreadRootMessageId]);
 
   const threadHintNode = shouldShowThreadHint
     ? (
@@ -209,19 +197,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         </div>
       )
     : null;
-
-  const handleOpenThreadRoot = React.useCallback(() => {
-    if (!isThreadRoot) {
-      return;
-    }
-    // 打开 Thread 时，清除“插入消息”模式，避免错位。
-    setInsertAfterMessageId(undefined);
-    setThreadRootMessageId(message.messageId);
-    setComposerTarget("thread");
-    // Thread 以右侧 SubWindow 展示
-    setSideDrawerState("thread");
-    setSubDrawerState("none");
-  }, [isThreadRoot, message.messageId, setComposerTarget, setInsertAfterMessageId, setSideDrawerState, setSubDrawerState, setThreadRootMessageId]);
 
   // 角色名编辑状态
   const [isEditingRoleName, setIsEditingRoleName] = useState(false);
@@ -1151,63 +1126,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
     return bodyNode;
   })();
-
-  // Thread Root（Discord 风格提示条）
-  if (isThreadRoot) {
-    const creatorName = displayRoleName;
-    return (
-      <div className="w-full py-1.5 sm:py-2 group">
-        {textStyleToolbar}
-        <div
-          className="w-full rounded-md border border-base-300 bg-base-200/40 px-2 sm:px-3 py-1.5 sm:py-2 cursor-pointer hover:bg-base-200 transition-colors"
-          onClick={handleOpenThreadRoot}
-        >
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-base-content/80">
-            <ChatBubbleEllipsesOutline className="w-3 h-3 sm:w-4 sm:h-4 opacity-70" />
-            <div className="min-w-0 flex-1">
-              <span className="font-medium text-base-content/90">{creatorName || "某人"}</span>
-              <span className="mx-1">开始了一个子区：</span>
-              <span className="font-medium text-base-content/90 truncate">{threadTitle}</span>
-              <button
-                type="button"
-                className="ml-2 link link-hover text-xs sm:text-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenThreadRoot();
-                }}
-              >
-                查看所有子区
-              </button>
-            </div>
-            <div className="text-xs text-base-content/50 shrink-0">{formattedTime}</div>
-          </div>
-
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex items-center gap-2 rounded-md bg-base-100/70 border border-base-300 px-2 py-0.5 sm:py-1">
-              <RoleAvatarComponent
-                avatarId={message.avatarId ?? 0}
-                roleId={message.roleId ?? undefined}
-                width={6}
-                isRounded={true}
-                withTitle={false}
-                stopToastWindow={true}
-                useDefaultAvatarFallback={false}
-              />
-              <div className="text-sm text-base-content/80 max-w-[60vw] sm:max-w-[360px] truncate">
-                {threadTitle}
-              </div>
-              <div className="text-xs text-base-content/60 shrink-0">
-                {threadReplyCount}
-                {" "}
-                条消息
-              </div>
-            </div>
-          </div>
-        </div>
-        {annotationsBar}
-      </div>
-    );
-  }
 
   return (
     <div>

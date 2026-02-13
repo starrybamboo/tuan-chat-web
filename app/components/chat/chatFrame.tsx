@@ -33,6 +33,7 @@ import {
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
+import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 
 /**
  * 聊天框（不带输入部分）
@@ -42,6 +43,8 @@ import {
 interface ChatFrameProps {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   messagesOverride?: ChatMessageResponse[];
+  messageScope?: ChatFrameMessageScope;
+  threadRootMessageId?: number | null;
   enableWsSync?: boolean;
   enableEffects?: boolean;
   enableUnreadIndicator?: boolean;
@@ -62,6 +65,8 @@ function ChatFrame(props: ChatFrameProps) {
   const {
     virtuosoRef,
     messagesOverride,
+    messageScope = "main",
+    threadRootMessageId,
     enableWsSync = true,
     enableEffects = true,
     enableUnreadIndicator = true,
@@ -136,6 +141,8 @@ function ChatFrame(props: ChatFrameProps) {
 
   const { historyMessages, threadHintMetaByMessageId } = useChatFrameMessages({
     messagesOverride,
+    messageScope,
+    threadRootMessageId,
     enableWsSync,
     roomId,
     chatHistory,
@@ -503,6 +510,7 @@ function ChatFrame(props: ChatFrameProps) {
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
         onToggleNarrator: handleToggleNarrator,
+        onOpenThread,
       }}
     />
   );

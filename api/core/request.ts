@@ -8,6 +8,7 @@ import type { ApiResult } from './ApiResult';
 import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
+import { handleUnauthorized } from '../../app/utils/auth/unauthorized';
 
 export const isDefined = <T>(value: T | null | undefined): value is Exclude<T, null | undefined> => {
     return value !== undefined && value !== null;
@@ -249,6 +250,38 @@ export const getResponseBody = async (response: Response): Promise<any> => {
     return undefined;
 };
 
+const AUTH_WHITELIST_PATHS = ['/user/login', '/user/register'];
+
+const shouldHandleUnauthorized = (result: ApiResult): boolean => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    if (result.status !== 401) {
+        return false;
+    }
+
+    const token = window.localStorage.getItem('token');
+    if (!token) {
+        return false;
+    }
+
+    const url = String(result.url || '');
+    return !AUTH_WHITELIST_PATHS.some(path => url.includes(path));
+};
+
+const maybeHandleUnauthorized = (result: ApiResult): void => {
+    if (!shouldHandleUnauthorized(result)) {
+        return;
+    }
+
+    try {
+        handleUnauthorized({ source: 'http' });
+    } catch {
+        // ignore
+    }
+};
+
 export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void => {
     const errors: Record<number, string> = {
         400: 'Bad Request',
@@ -263,10 +296,12 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
 
     const error = errors[result.status];
     if (error) {
+        maybeHandleUnauthorized(result);
         throw new ApiError(options, result, error);
     }
 
     if (!result.ok) {
+        maybeHandleUnauthorized(result);
         const errorStatus = result.status ?? 'unknown';
         const errorStatusText = result.statusText ?? 'unknown';
         const errorBody = (() => {

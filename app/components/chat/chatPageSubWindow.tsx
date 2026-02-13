@@ -1,16 +1,13 @@
 import type { Room } from "api";
-import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatPageSubWindowTab } from "@/components/chat/hooks/useChatPageSubWindow";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import ChatFrame from "@/components/chat/chatFrame";
-import { RoomContext } from "@/components/chat/core/roomContext";
-import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
+import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { XMarkICon } from "@/icons";
+import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
 
 type ScreenSize = "sm" | "md" | "lg";
 
@@ -28,6 +25,7 @@ interface ChatPageSubWindowProps {
   threadRootMessageId: number | null;
   setIsOpen: (next: boolean) => void;
   setWidth: (next: number) => void;
+  setTab: (tab: ChatPageSubWindowTab) => void;
   setRoomId: (roomId: number | null) => void;
   setDocId: (docId: string | null) => void;
   setThreadRootMessageId: (messageId: number | null) => void;
@@ -38,7 +36,6 @@ const MAX_WIDTH = 1200;
 const MIN_REMAINING_WIDTH = 520;
 const ROOM_DRAG_MIME = "application/x-tuanchat-room-id";
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
-const SUB_WINDOW_DND_DEBUG = true;
 
 function clampWidth(value: number) {
   const safe = Number.isFinite(value) ? value : MIN_WIDTH;
@@ -72,26 +69,6 @@ function resolveAllowedDropEffect(dataTransfer: DataTransfer | null | undefined)
   return "copy";
 }
 
-function getDragDebugPayload(dataTransfer: DataTransfer | null | undefined) {
-  if (!dataTransfer) {
-    return null;
-  }
-  return {
-    types: Array.from(dataTransfer.types ?? []),
-    roomMime: dataTransfer.getData(ROOM_DRAG_MIME),
-    docMime: dataTransfer.getData(DOC_DRAG_MIME),
-    plainText: dataTransfer.getData("text/plain"),
-    memoryPayload: getSubWindowDragPayload(),
-  };
-}
-
-function logSubWindowDnd(eventName: string, payload: unknown) {
-  if (!SUB_WINDOW_DND_DEBUG) {
-    return;
-  }
-  console.warn(`[SubWindowDnd][${eventName}]`, payload);
-}
-
 function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): DroppedTarget {
   if (!dataTransfer) {
     return null;
@@ -105,6 +82,11 @@ function parseDroppedTarget(dataTransfer: DataTransfer | null | undefined): Drop
   const docIdByMime = dataTransfer.getData(DOC_DRAG_MIME)?.trim();
   if (docIdByMime) {
     return { tab: "doc", docId: docIdByMime };
+  }
+
+  const docRef = getDocRefDragData(dataTransfer);
+  if (docRef?.docId) {
+    return { tab: "doc", docId: docRef.docId };
   }
 
   const plainText = dataTransfer.getData("text/plain")?.trim() ?? "";
@@ -138,6 +120,9 @@ function hasDroppedTargetHint(dataTransfer: DataTransfer | null | undefined): bo
   if (!dataTransfer) {
     return false;
   }
+  if (isDocRefDrag(dataTransfer)) {
+    return true;
+  }
   const types = Array.from(dataTransfer.types ?? []);
   if (types.includes(ROOM_DRAG_MIME) || types.includes(DOC_DRAG_MIME)) {
     return true;
@@ -146,45 +131,6 @@ function hasDroppedTargetHint(dataTransfer: DataTransfer | null | undefined): bo
     return true;
   }
   return false;
-}
-
-function SubWindowThreadView({
-  roomId,
-  spaceId,
-  threadRootMessageId,
-}: {
-  roomId: number;
-  spaceId: number;
-  threadRootMessageId: number;
-}) {
-  const chatHistory = useChatHistory(roomId);
-  const virtuosoRef = useRef<VirtuosoHandle | null>(null);
-  const threadMessages = useMemo(() => {
-    const allMessages = chatHistory?.messages ?? [];
-    return allMessages.filter(message => message.message.threadId === threadRootMessageId);
-  }, [chatHistory?.messages, threadRootMessageId]);
-
-  const roomContext = useMemo(() => ({
-    roomId,
-    spaceId,
-    roomMembers: [],
-    roomRolesThatUserOwn: [],
-    chatHistory,
-  }), [chatHistory, roomId, spaceId]);
-
-  return (
-    <RoomContext value={roomContext}>
-      <div className="h-full min-h-0">
-        <ChatFrame
-          virtuosoRef={virtuosoRef}
-          messagesOverride={threadMessages}
-          enableEffects={false}
-          enableUnreadIndicator={false}
-          isMessageMovable={() => false}
-        />
-      </div>
-    </RoomContext>
-  );
 }
 
 export default function ChatPageSubWindow({
@@ -201,11 +147,13 @@ export default function ChatPageSubWindow({
   threadRootMessageId,
   setIsOpen,
   setWidth,
+  setTab,
   setRoomId,
   setDocId,
   setThreadRootMessageId,
 }: ChatPageSubWindowProps) {
   const isDesktop = screenSize !== "sm";
+  const [isRightEdgeActive, setIsRightEdgeActive] = useState(false);
   const availableRoomId = useMemo(() => rooms[0]?.roomId ?? null, [rooms]);
   const availableDocId = useMemo(() => docMetas[0]?.id ?? null, [docMetas]);
   const resolvedRoomId = roomId ?? availableRoomId;
@@ -254,6 +202,9 @@ export default function ChatPageSubWindow({
 
   const dragStartXRef = useRef(0);
   const draggedRef = useRef(false);
+  const resetToEmpty = useCallback(() => {
+    setTab("empty");
+  }, [setTab]);
 
   const applyDroppedTarget = useCallback((target: DroppedTarget) => {
     if (!target) {
@@ -271,30 +222,16 @@ export default function ChatPageSubWindow({
     const target = parseDroppedTarget(event.dataTransfer);
     const hasHint = hasDroppedTargetHint(event.dataTransfer);
     const dropEffect = resolveAllowedDropEffect(event.dataTransfer);
-    logSubWindowDnd("DragOver", {
-      isOpen,
-      target,
-      hasHint,
-      dropEffect,
-      drag: getDragDebugPayload(event.dataTransfer),
-    });
     if (!target && !hasHint) {
       return;
     }
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = dropEffect;
-  }, [isOpen]);
+  }, []);
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     const target = parseDroppedTarget(event.dataTransfer);
-    const hasHint = hasDroppedTargetHint(event.dataTransfer);
-    logSubWindowDnd("Drop", {
-      isOpen,
-      target,
-      hasHint,
-      drag: getDragDebugPayload(event.dataTransfer),
-    });
     if (!target) {
       return;
     }
@@ -302,7 +239,7 @@ export default function ChatPageSubWindow({
     event.stopPropagation();
     event.nativeEvent.stopImmediatePropagation?.();
     applyDroppedTarget(target);
-  }, [applyDroppedTarget, isOpen]);
+  }, [applyDroppedTarget]);
 
   const handleOpenEdgePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!activeSpaceId || !isDesktop) {
@@ -320,6 +257,7 @@ export default function ChatPageSubWindow({
       }
       draggedRef.current = true;
       if (!isOpen) {
+        resetToEmpty();
         setIsOpen(true);
       }
       setWidth(clampWidth(delta));
@@ -331,13 +269,38 @@ export default function ChatPageSubWindow({
       document.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerup", onPointerUp);
       if (!draggedRef.current && !isOpen) {
+        resetToEmpty();
         setIsOpen(true);
       }
     };
 
     document.addEventListener("pointermove", onPointerMove);
     document.addEventListener("pointerup", onPointerUp);
-  }, [activeSpaceId, isDesktop, isOpen, setIsOpen, setWidth]);
+  }, [activeSpaceId, isDesktop, isOpen, resetToEmpty, setIsOpen, setWidth]);
+
+  useEffect(() => {
+    if (!isDesktop || !activeSpaceId || isOpen) {
+      setIsRightEdgeActive(false);
+      return;
+    }
+    if (typeof window === "undefined") {
+      return;
+    }
+    const EDGE_THRESHOLD_PX = 56;
+    const handleMouseMove = (event: MouseEvent) => {
+      const nearRightEdge = event.clientX >= (window.innerWidth - EDGE_THRESHOLD_PX);
+      setIsRightEdgeActive(prev => (prev === nearRightEdge ? prev : nearRightEdge));
+    };
+    const handleMouseOut = () => {
+      setIsRightEdgeActive(false);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseout", handleMouseOut);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseout", handleMouseOut);
+    };
+  }, [activeSpaceId, isDesktop, isOpen]);
 
   if (!isDesktop || !activeSpaceId) {
     return null;
@@ -346,17 +309,25 @@ export default function ChatPageSubWindow({
   if (!isOpen) {
     return (
       <div
-        className="absolute right-0 top-0 h-full w-10 z-30 cursor-col-resize hover:bg-info/20 transition-colors"
-        data-sub-window-drop-zone
-        onPointerDown={handleOpenEdgePointerDown}
-        onDragOverCapture={handleDragOver}
-        onDropCapture={handleDrop}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        style={{ touchAction: "none" }}
-        title="向左拖拽打开副窗口"
+        className={`absolute right-0 top-1/2 -translate-y-1/2 z-30 pointer-events-none transition-all duration-200 ${isRightEdgeActive ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}`}
       >
-        <div className="absolute right-0 top-0 h-full w-px bg-base-300" />
+        <div className="tooltip tooltip-left" data-tip="向左拖拽打开副窗口">
+          <button
+            type="button"
+            className={`h-24 w-6 rounded-l-xl border-y border-l border-base-300/50 bg-base-100/90 backdrop-blur-sm text-base-content/50 shadow-[-4px_0_12px_rgba(0,0,0,0.05)] hover:w-8 hover:text-primary hover:bg-base-100 active:scale-95 transition-all cursor-col-resize flex items-center justify-center ${isRightEdgeActive ? "pointer-events-auto" : "pointer-events-none"}`}
+            data-sub-window-drop-zone
+            onPointerDown={handleOpenEdgePointerDown}
+            onDragOverCapture={handleDragOver}
+            onDropCapture={handleDrop}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            style={{ touchAction: "none" }}
+            aria-label="向左拖拽打开副窗口"
+            title="向左拖拽打开副窗口"
+          >
+            <BaselineArrowBackIosNew className="size-4 opacity-70" />
+          </button>
+        </div>
       </div>
     );
   }
@@ -381,29 +352,31 @@ export default function ChatPageSubWindow({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        {tab !== "room" && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs min-h-0 h-7 absolute left-2 top-2 z-30 bg-base-200/70 backdrop-blur-sm"
-            onClick={() => {
-              if (resolvedRoomId) {
-                setRoomId(resolvedRoomId);
-              }
-            }}
-          >
-            返回房间
-          </button>
+        {(tab === "doc" || tab === "empty") && (
+          <div className="absolute left-2 top-2 z-30 tooltip tooltip-right" data-tip="关闭副窗口">
+            <button
+              type="button"
+              className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 bg-base-200/70 backdrop-blur-sm"
+              onClick={() => setIsOpen(false)}
+              aria-label="关闭副窗口"
+              title="关闭副窗口"
+            >
+              <XMarkICon className="size-4" />
+            </button>
+          </div>
         )}
-        <button
-          type="button"
-          className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 absolute right-2 top-2 z-30 bg-base-200/70 backdrop-blur-sm"
-          onClick={() => setIsOpen(false)}
-          aria-label="关闭副窗口"
-          title="关闭副窗口"
-        >
-          <XMarkICon className="size-4" />
-        </button>
         <div className="flex-1 min-h-0 overflow-hidden">
+          {tab === "empty" && (
+            <div className="h-full w-full flex items-center justify-center text-base-content/70">
+              <div className="max-w-sm text-center px-8">
+                <div className="text-base font-semibold">副窗口为空</div>
+                <div className="mt-2 text-sm text-base-content/60">
+                  将左侧的群聊或文档拖入此区域即可打开
+                </div>
+              </div>
+            </div>
+          )}
+
           {tab === "room" && (
             resolvedRoomId
               ? (
@@ -411,6 +384,7 @@ export default function ChatPageSubWindow({
                     roomId={resolvedRoomId}
                     spaceId={activeSpaceId}
                     hideSecondaryPanels
+                    onCloseSubWindow={() => setIsOpen(false)}
                     onOpenThread={(rootId) => {
                       setRoomId(resolvedRoomId);
                       setThreadRootMessageId(rootId);
@@ -427,10 +401,17 @@ export default function ChatPageSubWindow({
           {tab === "thread" && (
             (resolvedRoomId && threadRootMessageId)
               ? (
-                  <SubWindowThreadView
+                  <RoomWindow
                     roomId={resolvedRoomId}
                     spaceId={activeSpaceId}
+                    hideSecondaryPanels
+                    messageScope="thread"
                     threadRootMessageId={threadRootMessageId}
+                    onCloseSubWindow={() => setIsOpen(false)}
+                    onOpenThread={(rootId) => {
+                      setRoomId(resolvedRoomId);
+                      setThreadRootMessageId(rootId);
+                    }}
                   />
                 )
               : (

@@ -42,6 +42,9 @@ const sizeMap = {
 export default function RoleAvatarComponent({
   avatarId,
   roleId,
+  roleType,
+  roleOwnerUserId,
+  roleState,
   width,
   isRounded,
   // eslint-disable-next-line unused-imports/no-unused-vars
@@ -56,6 +59,9 @@ export default function RoleAvatarComponent({
 }: {
   avatarId: number;
   roleId?: number;
+  roleType?: number;
+  roleOwnerUserId?: number;
+  roleState?: number;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withTitle?: boolean; // 是否在下方显示标题
@@ -119,6 +125,9 @@ export default function RoleAvatarComponent({
                   ? (
                       <RoleDetail
                         roleId={roleIdTrue ?? -1}
+                        roleTypeHint={roleType}
+                        roleOwnerUserIdHint={roleOwnerUserId}
+                        roleStateHint={roleState}
                         allowKickOut={allowKickOut}
                         kickOutByManagerOnly={kickOutByManagerOnly}
                         onClose={() => setIsOpen(false)}
@@ -128,6 +137,9 @@ export default function RoleAvatarComponent({
                   : (
                       <RoleDetailPagePopup
                         roleId={roleIdTrue ?? -1}
+                        roleTypeHint={roleType}
+                        roleOwnerUserIdHint={roleOwnerUserId}
+                        roleStateHint={roleState}
                         allowKickOut={allowKickOut}
                         kickOutByManagerOnly={kickOutByManagerOnly}
                         onClose={() => setIsOpen(false)}

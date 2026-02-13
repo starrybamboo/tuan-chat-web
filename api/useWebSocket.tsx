@@ -135,6 +135,11 @@ function FriendRequestToastContent({
 
 export function useWebSocket() {
   const globalContext = useGlobalContext();
+  const readCurrentToken = useCallback(() => {
+    if (typeof window === "undefined")
+      return "";
+    return (window.localStorage.getItem("token") || "").trim();
+  }, []);
 
   const notifyNewFriendRequest = useCallback(async (event: NewFriendRequestPush) => {
     const friendReqId = event?.data?.friendReqId;
@@ -417,12 +422,22 @@ export function useWebSocket() {
       return;
     }
 
+    const currentToken = readCurrentToken();
+    if (!currentToken) {
+      stopHeartbeat();
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
+      }
+      reconnectAttempts.current = 0;
+      return;
+    }
+
     // 本次 connect 属于“正常建立连接”，重置手动关闭标记。
     closingRef.current = false;
     // 连接前，先重置消息
     queryClient.resetQueries({ queryKey: ["getMsgPage"] });
     try {
-      const currentToken = localStorage.getItem("token") || "";
       const wsUrl = currentToken ? `${WS_URL}?token=${encodeURIComponent(currentToken)}` : WS_URL;
       wsRef.current = new WebSocket(wsUrl);
       wsRef.current.onopen = () => {
@@ -441,6 +456,17 @@ export function useWebSocket() {
         }
         console.log(`Close code: ${event.code}, Reason: ${event.reason}`);
         stopHeartbeat();
+        wsRef.current = null;
+
+        const token = readCurrentToken();
+        if (!token) {
+          reconnectAttempts.current = 0;
+          if (reconnectTimer.current) {
+            clearTimeout(reconnectTimer.current);
+            reconnectTimer.current = null;
+          }
+          return;
+        }
 
         // 设定重连延迟（指数退避）
         const attempt = reconnectAttempts.current;
@@ -764,17 +790,24 @@ export function useWebSocket() {
    * 聊天状态控制 (type: 4)
    */
   const send = useCallback(async (request: WsMessage<any>) => {
+    if (!readCurrentToken()) {
+      return;
+    }
+
     if (!isConnected()) {
       connect();
     }
     console.log("发送消息: ",request);
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 50; i++) {
       if (wsRef.current?.readyState === WebSocket.OPEN)
         break;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    wsRef?.current?.send(JSON.stringify(request));
-  }, [connect, isConnected]);
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    wsRef.current.send(JSON.stringify(request));
+  }, [connect, isConnected, readCurrentToken]);
 
   const webSocketUtils: WebsocketUtils = useMemo(() => ({
     connect,

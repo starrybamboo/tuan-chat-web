@@ -281,9 +281,7 @@ function RoomComposerPanelImpl({
 
   const replyMessage = useRoomUiStore(state => state.replyMessage);
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
-  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const inputDisabled = notMember && noRole;
@@ -499,46 +497,6 @@ function RoomComposerPanelImpl({
                 replyMessage={replyMessage}
                 className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-1"
               />
-            </div>
-          )}
-
-          {threadRootMessageId && (
-            <div className="p-2 pb-1">
-              <div className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-2 justify-between">
-                <div className="min-w-0 flex items-center gap-2">
-                  <div className="join">
-                    <button
-                      type="button"
-                      className={`btn btn-xs join-item ${composerTarget === "main" ? "btn-info" : "btn-ghost"}`}
-                      onClick={() => setComposerTarget("main")}
-                    >
-                      主区
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-xs join-item ${composerTarget === "thread" ? "btn-info" : "btn-ghost"}`}
-                      onClick={() => setComposerTarget("thread")}
-                    >
-                      子区
-                    </button>
-                  </div>
-                  <span className="text-xs text-base-content/60 truncate">
-                    🧵
-                    {threadRootMessageId}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost shrink-0"
-                  onClick={() => {
-                    setComposerTarget("main");
-                    setThreadRootMessageId(undefined);
-                  }}
-                >
-                  关闭
-                </button>
-              </div>
             </div>
           )}
 

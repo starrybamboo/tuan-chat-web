@@ -16,18 +16,25 @@ import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
  */
 export function RoleDetail({
   roleId,
+  roleTypeHint,
+  roleOwnerUserIdHint,
+  roleStateHint,
   allowKickOut = true,
   kickOutByManagerOnly = false,
   showAbilities = true,
   onClose,
 }: {
   roleId: number;
+  roleTypeHint?: number;
+  roleOwnerUserIdHint?: number;
+  roleStateHint?: number;
   allowKickOut?: boolean;
   kickOutByManagerOnly?: boolean;
   showAbilities?: boolean;
   onClose?: () => void;
 }) {
-  const roleQuery = useGetRoleQuery(roleId);
+  const shouldFetchRole = roleStateHint == null || roleStateHint === 0;
+  const roleQuery = useGetRoleQuery(shouldFetchRole ? roleId : -1);
   const role = roleQuery.data?.data;
   const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
   const user = role?.userId ?? -1;
@@ -63,11 +70,19 @@ export function RoleDetail({
     );
   };
 
-  const canKick = allowKickOut
-    && roomId
-    && (kickOutByManagerOnly
-      ? isManager()
-      : (isManager() || userRole.data?.data?.find(r => r.roleId === roleId)));
+  const canKick = (() => {
+    if (!allowKickOut || !roomId)
+      return false;
+    if (isManager())
+      return true;
+    if (kickOutByManagerOnly)
+      return false;
+    if (roleTypeHint === 2)
+      return false;
+    if (roleOwnerUserIdHint != null && userId > 0)
+      return roleOwnerUserIdHint === userId;
+    return Boolean(userRole.data?.data?.find(r => r.roleId === roleId));
+  })();
 
   return (
     <div className="bg-base-100 flex flex-col gap-4 w-full">

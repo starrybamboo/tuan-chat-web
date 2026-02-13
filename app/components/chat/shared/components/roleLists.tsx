@@ -28,6 +28,9 @@ export default function RoleList({
             <RoleAvatarComponent
               avatarId={role.avatarId ?? -1}
               roleId={role.roleId}
+              roleType={role.type}
+              roleOwnerUserId={role.userId}
+              roleState={role.state}
               width={10}
               isRounded={true}
               withTitle={false}

@@ -11,27 +11,6 @@ interface RoomDocRefDropLayerProps {
   children: React.ReactNode;
 }
 
-const SUB_WINDOW_DND_DEBUG = true;
-
-function getDragDebugPayload(dataTransfer: DataTransfer | null | undefined) {
-  if (!dataTransfer) {
-    return null;
-  }
-  return {
-    types: Array.from(dataTransfer.types ?? []),
-    plainText: dataTransfer.getData("text/plain"),
-    uriList: dataTransfer.getData("text/uri-list"),
-    hasDocRefMime: Boolean(dataTransfer.getData("application/x-tc-doc-ref")),
-  };
-}
-
-function logDocRefDropLayer(eventName: string, payload: unknown) {
-  if (!SUB_WINDOW_DND_DEBUG) {
-    return;
-  }
-  console.warn(`[SubWindowDnd][DocRefDropLayer][${eventName}]`, payload);
-}
-
 export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDocRefDropLayerProps) {
   const [dragOverlayLabel, setDragOverlayLabel] = useState<string | null>(null);
   const dragOverlayLabelRef = useRef<string | null>(null);
@@ -55,30 +34,15 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
     if (inSubWindowDropZone) {
-      logDocRefDropLayer("DragOverIgnored", {
-        isDocRef,
-        isFile,
-        inSubWindowDropZone,
-        drag: getDragDebugPayload(event.dataTransfer),
-      });
       updateDragOverlayLabel(null);
       return;
     }
     const targetZone = getDragOverTargetZone(event.target);
     if (!targetZone) {
-      logDocRefDropLayer("DragOverNoZone", {
-        isDocRef,
-        isFile,
-        drag: getDragDebugPayload(event.dataTransfer),
-      });
       updateDragOverlayLabel(null);
       return;
     }
     if (isDocRef) {
-      logDocRefDropLayer("DragOverAccepted", {
-        isDocRef,
-        drag: getDragDebugPayload(event.dataTransfer),
-      });
       updateDragOverlayLabel("松开发送文档卡片");
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
@@ -86,10 +50,6 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
     }
     if (isFile) {
       const label = getFileDragOverlayText(event.dataTransfer);
-      logDocRefDropLayer("DragOverAcceptedFile", {
-        label,
-        drag: getDragDebugPayload(event.dataTransfer),
-      });
       updateDragOverlayLabel(label);
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
@@ -113,18 +73,10 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
     if (inSubWindowDropZone) {
-      logDocRefDropLayer("DropSkipSubWindowZone", {
-        drag: getDragDebugPayload(event.dataTransfer),
-      });
       return;
     }
     if (!getDragOverTargetZone(event.target)) {
       if (isDocRef || isFile) {
-        logDocRefDropLayer("DropOutsideDocZone", {
-          isDocRef,
-          isFile,
-          drag: getDragDebugPayload(event.dataTransfer),
-        });
         event.preventDefault();
       }
       return;
@@ -136,15 +88,8 @@ export default function RoomDocRefDropLayer({ onSendDocCard, children }: RoomDoc
     }
     const docRef = getDocRefDragData(event.dataTransfer);
     if (!docRef) {
-      logDocRefDropLayer("DropMissingDocRef", {
-        drag: getDragDebugPayload(event.dataTransfer),
-      });
       return;
     }
-    logDocRefDropLayer("DropSendDocCard", {
-      docRef,
-      drag: getDragDebugPayload(event.dataTransfer),
-    });
     event.preventDefault();
     event.stopPropagation();
     void onSendDocCard(docRef);

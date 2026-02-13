@@ -85,6 +85,7 @@ export default function ChatPage() {
     threadRootMessageId: subWindowThreadRootMessageId,
     setIsOpen: setIsSubWindowOpen,
     setWidth: setSubWindowWidth,
+    setTab: setSubWindowTab,
     setRoomId: setSubWindowRoomId,
     setDocId: setSubWindowDocId,
     setThreadRootMessageId: setSubWindowThreadRootMessageId,
@@ -480,6 +481,7 @@ export default function ChatPage() {
               threadRootMessageId={subWindowThreadRootMessageId}
               setIsOpen={setIsSubWindowOpen}
               setWidth={setSubWindowWidth}
+              setTab={setSubWindowTab}
               setRoomId={setSubWindowRoomId}
               setDocId={setSubWindowDocId}
               setThreadRootMessageId={setSubWindowThreadRootMessageId}

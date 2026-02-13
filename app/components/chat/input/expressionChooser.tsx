@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import type { RoleAvatar, UserRole } from "../../../../../api";
+import type { RoleAvatar, UserRole } from "../../../../api";
 import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -237,6 +237,9 @@ export function ExpressionChooser({
           <div className="justify-center w-full">
             <RoleDetailPagePopup
               roleId={manageRoleId}
+              roleTypeHint={manageRole?.type}
+              roleOwnerUserIdHint={manageRole?.userId}
+              roleStateHint={manageRole?.state}
               allowKickOut={true}
               kickOutByManagerOnly={Boolean(manageRole?.type === 2)}
               onClose={() => setManageRoleId(null)}

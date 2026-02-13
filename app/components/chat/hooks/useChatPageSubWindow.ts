@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
-export type ChatPageSubWindowTab = "room" | "doc" | "thread";
+export type ChatPageSubWindowTab = "empty" | "room" | "doc" | "thread";
 
 export type ChatPageSubWindowSnapshot = {
   isOpen: boolean;
@@ -17,7 +18,7 @@ type ChatPageSubWindowMap = Record<string, ChatPageSubWindowSnapshot>;
 const DEFAULT_SNAPSHOT: ChatPageSubWindowSnapshot = {
   isOpen: false,
   width: 560,
-  tab: "doc",
+  tab: "empty",
   roomId: null,
   docId: null,
   threadRootMessageId: null,
@@ -25,7 +26,9 @@ const DEFAULT_SNAPSHOT: ChatPageSubWindowSnapshot = {
 
 function normalizeSnapshot(raw?: Partial<ChatPageSubWindowSnapshot> | null): ChatPageSubWindowSnapshot {
   const width = typeof raw?.width === "number" && Number.isFinite(raw.width) ? raw.width : DEFAULT_SNAPSHOT.width;
-  const tab = raw?.tab === "room" || raw?.tab === "doc" || raw?.tab === "thread" ? raw.tab : DEFAULT_SNAPSHOT.tab;
+  const tab = raw?.tab === "empty" || raw?.tab === "room" || raw?.tab === "doc" || raw?.tab === "thread"
+    ? raw.tab
+    : DEFAULT_SNAPSHOT.tab;
   const roomId = typeof raw?.roomId === "number" && Number.isFinite(raw.roomId) ? raw.roomId : null;
   const docId = typeof raw?.docId === "string" && raw.docId.length > 0 ? raw.docId : null;
   const threadRootMessageId = typeof raw?.threadRootMessageId === "number" && Number.isFinite(raw.threadRootMessageId)

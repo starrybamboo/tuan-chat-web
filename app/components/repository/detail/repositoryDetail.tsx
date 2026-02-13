@@ -1,8 +1,7 @@
 import type { RepositoryData } from "./constants";
-import { useCreateSpaceMutation, useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
+import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
-import { useImportFromRepositoryMutation } from "api/hooks/spaceRepositoryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
@@ -77,17 +76,11 @@ export default function RepositoryDetailComponent({
     return userSpaces.find(space => space.repositoryId === repositoryId) ?? null;
   }, [userSpaces, repositoryId]);
 
-  // 仓库导入空间
-  const importFromRepository = useImportFromRepositoryMutation();
-
-  // 导入成功后显示弹窗
+  // 克隆成功后显示弹窗
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // 导入失败后显示弹窗
+  // 克隆失败后显示弹窗
   const [showErrorToast, setShowErrorToast] = useState(false);
-
-  // 创建空间并导入仓库
-  const createSpaceMutation = useCreateSpaceMutation();
 
   // 确认跳转弹窗
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
@@ -240,38 +233,48 @@ export default function RepositoryDetailComponent({
   }
 
   // ===== 事件处理函数 =====
-  const handleDirectCreateSpaceAndImport = () => {
-    createSpaceMutation.mutate({
-      userIdList: [],
-      avatar: repositoryData.image,
-      spaceName: repositoryData.repositoryName,
-      ruleId: repositoryData.ruleId || 1,
-    }, {
-      onSuccess: (data) => {
-        const newSpaceId = data.data?.spaceId;
-        if (newSpaceId) {
-          importFromRepository.mutate({ spaceId: newSpaceId, repositoryId }, {
-            onSuccess: () => {
-              setViewModeOpen(false);
-              setShowSuccessToast(true);
-              setTimeout(() => setShowSuccessToast(false), 3000);
-              setNewSpaceId(newSpaceId);
-              setShowConfirmPopup(true);
-            },
-            onError: () => {
-              setViewModeOpen(false);
-              setShowErrorToast(true);
-              setTimeout(() => setShowErrorToast(false), 3000);
-            },
-          });
-        }
-      },
-      onError: () => {
-        setViewModeOpen(false);
-        setShowErrorToast(true);
-        setTimeout(() => setShowErrorToast(false), 3000);
-      },
-    });
+  const handleCloneModule = async () => {
+    const pickSourceSpaceId = async () => {
+      const localSpaceId = repositorySpace?.spaceId;
+      if (typeof localSpaceId === "number" && Number.isFinite(localSpaceId) && localSpaceId > 0) {
+        return localSpaceId;
+      }
+
+      const freshSpacesResult = await getUserSpaces.refetch();
+      const freshSpaces = freshSpacesResult.data?.data ?? [];
+      const fallbackSpace = freshSpaces.find(space => space.repositoryId === repositoryId);
+      const fallbackSpaceId = fallbackSpace?.spaceId;
+      if (typeof fallbackSpaceId === "number" && Number.isFinite(fallbackSpaceId) && fallbackSpaceId > 0) {
+        return fallbackSpaceId;
+      }
+
+      return null;
+    };
+
+    try {
+      const sourceSpaceId = await pickSourceSpaceId();
+      if (!sourceSpaceId) {
+        throw new Error("未找到可克隆的源空间");
+      }
+
+      const cloneResult = await tuanchat.spaceController.cloneBySpaceId({ spaceId: sourceSpaceId });
+      const clonedSpaceId = cloneResult.data;
+      if (!(typeof clonedSpaceId === "number" && Number.isFinite(clonedSpaceId) && clonedSpaceId > 0)) {
+        throw new Error("克隆后未返回有效空间ID");
+      }
+
+      setViewModeOpen(false);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+      setNewSpaceId(clonedSpaceId);
+      setShowConfirmPopup(true);
+      getUserSpaces.refetch();
+    }
+    catch {
+      setViewModeOpen(false);
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
+    }
   };
 
   // 处理跳转到新空间
@@ -498,7 +501,7 @@ export default function RepositoryDetailComponent({
                           <button
                             type="button"
                             className="btn btn-sm"
-                            onClick={handleDirectCreateSpaceAndImport}
+                            onClick={handleCloneModule}
                           >
                             克隆模组
                           </button>
@@ -533,7 +536,7 @@ export default function RepositoryDetailComponent({
                       <button
                         type="button"
                         className="btn btn-sm btn-primary"
-                        onClick={handleDirectCreateSpaceAndImport}
+                        onClick={handleCloneModule}
                       >
                         克隆模组
                       </button>
@@ -548,7 +551,7 @@ export default function RepositoryDetailComponent({
                         <button
                           type="button"
                           className="btn btn-sm btn-primary"
-                          onClick={handleDirectCreateSpaceAndImport}
+                          onClick={handleCloneModule}
                         >
                           克隆模组
                         </button>
@@ -604,7 +607,7 @@ export default function RepositoryDetailComponent({
           </div>
 
           <p className="text-center text-gray-600">
-            仓库已成功导入到新空间
+            模组已成功克隆到新空间
             <br />
             <span className="font-semibold">{repositoryData.repositoryName}</span>
           </p>

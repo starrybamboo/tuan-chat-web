@@ -10,17 +10,20 @@ import {
   Bubble2,
   MemberIcon,
   RoleListIcon,
+  XMarkICon,
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
 interface RoomHeaderBarProps {
   roomName?: string;
   toggleLeftDrawer: () => void;
+  onCloseSubWindow?: () => void;
 }
 
 function RoomHeaderBarImpl({
   roomName,
   toggleLeftDrawer,
+  onCloseSubWindow,
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -44,6 +47,19 @@ function RoomHeaderBarImpl({
         border border-white/40 dark:border-white/10"
       >
         <div className="flex items-center gap-2 min-w-0">
+          {onCloseSubWindow && (
+            <div className="tooltip tooltip-bottom" data-tip="关闭副窗口">
+              <button
+                type="button"
+                aria-label="关闭副窗口"
+                title="关闭副窗口"
+                className="btn btn-ghost btn-square btn-xs"
+                onClick={onCloseSubWindow}
+              >
+                <XMarkICon className="size-4" />
+              </button>
+            </div>
+          )}
           <div className="sm:hidden">
             <button
               type="button"

@@ -6,23 +6,6 @@ import RoomButton from "@/components/chat/shared/components/roomButton";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 
 const ROOM_DRAG_MIME = "application/x-tuanchat-room-id";
-const SUB_WINDOW_DND_DEBUG = true;
-
-function logRoomDragDebug(event: DragEvent<HTMLDivElement>, roomId: number, canEdit: boolean) {
-  if (!SUB_WINDOW_DND_DEBUG) {
-    return;
-  }
-  const types = Array.from(event.dataTransfer?.types ?? []);
-  const roomMimeValue = event.dataTransfer?.getData(ROOM_DRAG_MIME) ?? "";
-  const plainText = event.dataTransfer?.getData("text/plain") ?? "";
-  console.warn("[SubWindowDnd][RoomDragStart]", {
-    roomId,
-    canEdit,
-    types,
-    roomMimeValue,
-    plainText,
-  });
-}
 
 interface RoomSidebarRoomItemProps {
   room: Room;
@@ -72,11 +55,9 @@ export default function RoomSidebarRoomItem({
     e.dataTransfer.setData("text/plain", `room:${roomId}`);
     setSubWindowDragPayload({ tab: "room", roomId });
     if (!canEdit) {
-      logRoomDragDebug(e, roomId, canEdit);
       return;
     }
     resetDropHandled();
-    logRoomDragDebug(e, roomId, canEdit);
     setDragging({
       kind: "node",
       nodeId,

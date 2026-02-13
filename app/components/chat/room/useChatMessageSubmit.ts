@@ -1,12 +1,12 @@
 import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
+import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { SpaceWebgalVarsRecord } from "@/types/webgalVar";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { formatAnkoDiceMessage } from "@/components/common/dicer/diceTable";
 import { ANNOTATION_IDS, getFigurePositionFromAnnotations, hasAnnotation, hasClearFigureAnnotation, normalizeAnnotations, setAnnotation, setFigurePositionAnnotation } from "@/types/messageAnnotations";
@@ -45,6 +45,7 @@ type UseChatMessageSubmitParams = {
   extractFirstCommandText: (text: string) => string | null;
   setInputText: (text: string) => void;
   setSpaceExtra: (payload: { spaceId: number; key: string; value: string }) => Promise<unknown>;
+  roomUiStoreApi: RoomUiStoreApi;
 };
 
 type UseChatMessageSubmitResult = {
@@ -69,6 +70,7 @@ export default function useChatMessageSubmit({
   extractFirstCommandText,
   setInputText,
   setSpaceExtra,
+  roomUiStoreApi,
 }: UseChatMessageSubmitParams): UseChatMessageSubmitResult {
   const uploadUtilsRef = useRef(new UploadUtils());
 
@@ -263,7 +265,7 @@ export default function useChatMessageSubmit({
         }
       }
 
-      const finalReplyId = useRoomUiStore.getState().replyMessage?.messageId || undefined;
+      const finalReplyId = roomUiStoreApi.getState().replyMessage?.messageId || undefined;
       let isFirstMessage = true;
 
       const getCommonFields = () => {
@@ -273,7 +275,7 @@ export default function useChatMessageSubmit({
           avatarId: resolvedAvatarId,
         };
 
-        const { threadRootMessageId: activeThreadRootId, composerTarget } = useRoomUiStore.getState();
+        const { threadRootMessageId: activeThreadRootId, composerTarget } = roomUiStoreApi.getState();
         if (composerTarget === "thread" && activeThreadRootId) {
           fields.threadId = activeThreadRootId;
         }
@@ -536,8 +538,8 @@ export default function useChatMessageSubmit({
 
       setInputText("");
       setTempAnnotations([]);
-      useRoomUiStore.getState().setReplyMessage(undefined);
-      useRoomUiStore.getState().setInsertAfterMessageId(undefined);
+      roomUiStoreApi.getState().setReplyMessage(undefined);
+      roomUiStoreApi.getState().setInsertAfterMessageId(undefined);
     }
     catch (e: any) {
       toast.error(e.message + e.stack, { duration: 3000 });
@@ -556,6 +558,7 @@ export default function useChatMessageSubmit({
     noRole,
     notMember,
     roomId,
+    roomUiStoreApi,
     sendMessageWithInsert,
     setInputText,
     setIsSubmitting,
