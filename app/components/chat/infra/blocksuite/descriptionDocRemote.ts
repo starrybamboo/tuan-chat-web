@@ -3,12 +3,6 @@ import { tuanchat } from "../../../../../api/instance";
 export type DescriptionEntityType = "space" | "room" | "user" | "space_user_doc" | "space_doc";
 export type DescriptionDocType = "description" | "readme";
 
-const LEGACY_EXTRA_KEY_PREFIX = "blocksuite_doc";
-
-function buildLegacyExtraKey(docType: DescriptionDocType) {
-  return `${LEGACY_EXTRA_KEY_PREFIX}:${docType}`;
-}
-
 export type StoredSnapshot = {
   // v1: legacy snapshot format
   v: 1;
@@ -104,53 +98,18 @@ export async function getRemoteSnapshot(params: {
 
   const task = (async (): Promise<StoredSnapshot | null> => {
   // 优先从 blocksuite_doc 表读取
-    const res = await tuanchat.request.request<any>({
-      method: "GET",
-      url: "/blocksuite/doc",
-      query: {
-        entityType: params.entityType,
-        entityId: params.entityId,
-        docType: params.docType,
-      },
-    });
+    const res = await tuanchat.blocksuiteDocController.getDoc(
+      params.entityType,
+      params.entityId,
+      params.docType,
+    );
     // Most endpoints wrap data inside ApiResult: { code, msg, data }
     // Some deployments may return the snapshot object directly.
     const fromTable = tryParseSnapshot((res as any)?.data ?? res ?? null);
     if (fromTable)
       return fromTable;
 
-    // 仅 space/room 的 description 做 legacy extra 兼容
-    if (
-      params.entityType === "user"
-      || params.entityType === "space_user_doc"
-      || params.entityType === "space_doc"
-      || params.docType !== "description"
-    ) {
-      return null;
-    }
-
-    // 兼容迁移：若新表无数据，则尝试从旧 extra 读取一次，并写回新表
-    const legacyKey = buildLegacyExtraKey(params.docType);
-    const legacyRes
-      = params.entityType === "space"
-        ? await tuanchat.spaceController.getSpaceExtra(params.entityId, legacyKey)
-        : await tuanchat.roomController.getRoomExtra(params.entityId, legacyKey);
-    const legacy = tryParseSnapshot((legacyRes as any).data ?? null);
-    if (!legacy)
-      return null;
-
-    await tuanchat.request.request<any>({
-      method: "PUT",
-      url: "/blocksuite/doc",
-      body: {
-        entityType: params.entityType,
-        entityId: params.entityId,
-        docType: params.docType,
-        snapshot: JSON.stringify(legacy),
-      },
-      mediaType: "application/json",
-    });
-    return legacy;
+    return null;
   })();
 
   snapshotInflight.set(cacheKey, task);
@@ -192,16 +151,11 @@ export async function setRemoteSnapshot(params: {
     return inflight;
   }
 
-  const task = tuanchat.request.request<any>({
-    method: "PUT",
-    url: "/blocksuite/doc",
-    body: {
-      entityType: params.entityType,
-      entityId: params.entityId,
-      docType: params.docType,
-      snapshot: JSON.stringify(params.snapshot),
-    },
-    mediaType: "application/json",
+  const task = tuanchat.blocksuiteDocController.upsertDoc({
+    entityType: params.entityType,
+    entityId: params.entityId,
+    docType: params.docType,
+    snapshot: JSON.stringify(params.snapshot),
   }).then(() => {
     snapshotLastSet.set(cacheKey, { at: Date.now(), updateB64: params.snapshot.updateB64 });
     snapshotCache.set(cacheKey, { at: Date.now(), value: params.snapshot });
@@ -231,15 +185,11 @@ export async function deleteRemoteSnapshot(params: {
     return inflight;
   }
 
-  const task = tuanchat.request.request<any>({
-    method: "DELETE",
-    url: "/blocksuite/doc",
-    query: {
-      entityType: params.entityType,
-      entityId: params.entityId,
-      docType: params.docType,
-    },
-  }).then(() => {
+  const task = tuanchat.blocksuiteDocController.deleteDoc2(
+    params.entityType,
+    params.entityId,
+    params.docType,
+  ).then(() => {
     snapshotCache.set(cacheKey, { at: Date.now(), value: null });
     snapshotInflight.delete(cacheKey);
     snapshotSetInflight.delete(cacheKey);
@@ -275,17 +225,13 @@ export async function getRemoteUpdates(params: {
   afterServerTime?: number;
   limit?: number;
 }): Promise<RemoteUpdates | null> {
-  const res = await tuanchat.request.request<any>({
-    method: "GET",
-    url: "/blocksuite/doc/updates",
-    query: {
-      entityType: params.entityType,
-      entityId: params.entityId,
-      docType: params.docType,
-      afterServerTime: params.afterServerTime,
-      limit: params.limit,
-    },
-  });
+  const res = await tuanchat.blocksuiteDocController.listDocUpdates(
+    params.entityType,
+    params.entityId,
+    params.docType,
+    params.afterServerTime,
+    params.limit,
+  );
 
   const raw = (res as any)?.data ?? res ?? null;
   if (isRemoteUpdates(raw)) {
@@ -314,16 +260,11 @@ export async function pushRemoteUpdate(params: {
   docType: DescriptionDocType;
   updateB64: string;
 }): Promise<RemoteUpdatePushResponse | null> {
-  const res = await tuanchat.request.request<any>({
-    method: "POST",
-    url: "/blocksuite/doc/update",
-    body: {
-      entityType: params.entityType,
-      entityId: params.entityId,
-      docType: params.docType,
-      updateB64: params.updateB64,
-    },
-    mediaType: "application/json",
+  const res = await tuanchat.blocksuiteDocController.pushDocUpdate({
+    entityType: params.entityType,
+    entityId: params.entityId,
+    docType: params.docType,
+    updateB64: params.updateB64,
   });
 
   const raw = (res as any)?.data ?? res ?? null;
@@ -342,15 +283,10 @@ export async function compactRemoteUpdates(params: {
   docType: DescriptionDocType;
   beforeOrEqServerTime: number;
 }): Promise<void> {
-  await tuanchat.request.request<any>({
-    method: "POST",
-    url: "/blocksuite/doc/compact",
-    body: {
-      entityType: params.entityType,
-      entityId: params.entityId,
-      docType: params.docType,
-      beforeOrEqServerTime: params.beforeOrEqServerTime,
-    },
-    mediaType: "application/json",
+  await tuanchat.blocksuiteDocController.compactDocUpdates({
+    entityType: params.entityType,
+    entityId: params.entityId,
+    docType: params.docType,
+    beforeOrEqServerTime: params.beforeOrEqServerTime,
   });
 }

@@ -1,4 +1,5 @@
 import type { ChatMessageResponse } from "../../../api";
+import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
 import React from "react";
@@ -6,6 +7,7 @@ import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
+import RegexSelectWindow from "@/components/chat/window/regexSelectWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface ChatFrameOverlaysProps {
@@ -15,11 +17,13 @@ interface ChatFrameOverlaysProps {
   setIsExportFileWindowOpen: (open: boolean) => void;
   isExportImageWindowOpen: boolean;
   setIsExportImageWindowOpen: (open: boolean) => void;
+  isRegexSelectWindowOpen: boolean;
+  setIsRegexSelectWindowOpen: (open: boolean) => void;
   historyMessages: ChatMessageResponse[];
   selectedMessageIds: Set<number>;
   exitSelection: () => void;
-  onForward: (roomId: number) => void;
-  generateForwardMessage: () => Promise<number | null>;
+  onForward: (roomId: number, mode: ForwardMode) => Promise<boolean>;
+  onApplyRegexFilter: (matchedIds: Set<number>) => void;
   spaceName?: string;
   roomName?: string;
   webgalChooseEditor?: {
@@ -41,27 +45,37 @@ export default function ChatFrameOverlays({
   setIsExportFileWindowOpen,
   isExportImageWindowOpen,
   setIsExportImageWindowOpen,
+  isRegexSelectWindowOpen,
+  setIsRegexSelectWindowOpen,
   historyMessages,
   selectedMessageIds,
   exitSelection,
   onForward,
-  generateForwardMessage,
+  onApplyRegexFilter,
   spaceName,
   roomName,
   webgalChooseEditor,
 }: ChatFrameOverlaysProps) {
   const selectedMessages = Array.from(selectedMessageIds)
     .map(id => historyMessages.find(m => m.message.messageId === id))
-    .filter((msg): msg is ChatMessageResponse => msg !== undefined);
+    .filter((msg): msg is ChatMessageResponse => msg !== undefined)
+    .sort((a, b) => (a.message.position ?? 0) - (b.message.position ?? 0));
 
   return (
     <>
       <ToastWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow
-          onClickRoom={roomId => onForward(roomId)}
-          generateForwardMessage={generateForwardMessage}
+          selectedMessages={selectedMessages}
+          onForward={onForward}
         >
         </ForwardWindow>
+      </ToastWindow>
+      <ToastWindow isOpen={isRegexSelectWindowOpen} onClose={() => setIsRegexSelectWindowOpen(false)}>
+        <RegexSelectWindow
+          sourceMessages={selectedMessages}
+          onApplyFilter={onApplyRegexFilter}
+          onClose={() => setIsRegexSelectWindowOpen(false)}
+        />
       </ToastWindow>
       <ToastWindow isOpen={isExportFileWindowOpen} onClose={() => setIsExportFileWindowOpen(false)}>
         <ExportChatWindow

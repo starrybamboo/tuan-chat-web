@@ -1,5 +1,6 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse, Message } from "../../../api";
+import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
 import React, { memo, use, useCallback, useEffect, useMemo, useState } from "react";
@@ -33,7 +34,6 @@ import {
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
-import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 
 /**
  * 聊天框（不带输入部分）
@@ -107,9 +107,11 @@ function ChatFrame(props: ChatFrameProps) {
     isForwardWindowOpen,
     isExportFileWindowOpen,
     isExportImageWindowOpen,
+    isRegexSelectWindowOpen,
     setIsForwardWindowOpen,
     setIsExportFileWindowOpen,
     setIsExportImageWindowOpen,
+    setIsRegexSelectWindowOpen,
   } = useChatFrameOverlayState();
   const [isWebgalChooseEditorOpen, setIsWebgalChooseEditorOpen] = useState(false);
   const [webgalChooseEditorOptions, setWebgalChooseEditorOptions] = useState<WebgalChooseOptionDraft[]>(() => [
@@ -367,6 +369,28 @@ function ChatFrame(props: ChatFrameProps) {
     updateSelectedMessageIds(next);
   }, [historyMessages, updateSelectedMessageIds]);
 
+  const handleApplyRegexFilter = useCallback((matchedIds: Set<number>) => {
+    if (matchedIds.size === 0) {
+      toast.error("未命中过滤条件");
+      return;
+    }
+
+    const nextSelection = new Set(selectedMessageIds);
+    let removedCount = 0;
+    for (const messageId of matchedIds) {
+      if (nextSelection.delete(messageId)) {
+        removedCount++;
+      }
+    }
+    updateSelectedMessageIds(nextSelection);
+
+    if (removedCount > 0) {
+      toast.success(`已过滤 ${removedCount} 条消息`);
+      return;
+    }
+    toast.error("命中消息不在当前已选范围");
+  }, [selectedMessageIds, updateSelectedMessageIds]);
+
   const handleExportFile = useCallback(() => {
     if (selectedMessages.length === 0) {
       toast.error("请选择要导出的消息");
@@ -377,11 +401,9 @@ function ChatFrame(props: ChatFrameProps) {
 
   const {
     handleForward,
-    generateForwardMessage,
   } = useChatFrameMessageActions({
     historyMessages,
     selectedMessageIds,
-    roomId,
     curRoleId,
     curAvatarId,
     send,
@@ -467,6 +489,7 @@ function ChatFrame(props: ChatFrameProps) {
         isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
         isSelecting,
         onSelectAll: handleSelectAll,
+        onRegexFilter: () => setIsRegexSelectWindowOpen(true),
         onExportFile: handleExportFile,
         onCancelSelection: exitSelection,
       }}
@@ -477,11 +500,13 @@ function ChatFrame(props: ChatFrameProps) {
         setIsExportFileWindowOpen,
         isExportImageWindowOpen,
         setIsExportImageWindowOpen,
+        isRegexSelectWindowOpen,
+        setIsRegexSelectWindowOpen,
         historyMessages,
         selectedMessageIds,
         exitSelection,
         onForward: handleForward,
-        generateForwardMessage,
+        onApplyRegexFilter: handleApplyRegexFilter,
         spaceName,
         roomName,
         webgalChooseEditor: {

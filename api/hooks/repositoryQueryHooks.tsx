@@ -8,7 +8,6 @@ import type { RepositoryPageByUserRequest } from "../models/RepositoryPageByUser
 import type { RepositoryForkPageRequest } from "../models/RepositoryForkPageRequest";
 import type { RepositoryPageRequest } from "../models/RepositoryPageRequest";
 import type { RepositoryUpdateRequest } from "../models/RepositoryUpdateRequest";
-import type { RepositoryEntityResponse } from "../deprecated/RepositoryEntityResponse";
 
 //========================item (物品相关) ==================================
 /**
@@ -164,6 +163,38 @@ type DeprecatedApiResult<T> = {
     data?: T;
     message?: string;
     code?: number;
+};
+
+type RepositoryEntityInfo = {
+    description?: string;
+    desc?: string;
+    image?: string;
+    tip?: string;
+    tips?: string;
+    note?: string;
+    act?: {
+        kp?: boolean;
+        [key: string]: unknown;
+    };
+    avatarIds?: number[];
+    avatar?: string;
+    modelName?: string;
+    speakerName?: string;
+    voiceUrl?: string;
+    locations?: Array<string | undefined>;
+    roles?: Array<string | undefined>;
+    items?: Array<string | undefined>;
+    moduleSceneName?: string;
+    [key: string]: unknown;
+};
+
+type RepositoryEntityResponse = {
+    id?: number;
+    name?: string;
+    entityType?: number;
+    versionId?: number;
+    entityInfo?: RepositoryEntityInfo;
+    [key: string]: unknown;
 };
 
 type DeprecatedRepositoryInfoResponse = {

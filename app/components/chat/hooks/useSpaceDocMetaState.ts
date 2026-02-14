@@ -132,11 +132,9 @@ export default function useSpaceDocMetaState({
             if (last && last.docId === pending.docId && last.title === pending.title)
               return;
 
-            void tuanchat.request.request<any>({
-              method: "PUT",
-              url: "/space/doc/title",
-              body: { docId: pending.docId, title: pending.title },
-              mediaType: "application/json",
+            void tuanchat.spaceDocController.renameDoc1({
+              docId: pending.docId,
+              title: pending.title,
             }).then(() => {
               spaceDocTitleSyncLastRef.current = pending;
             }).catch(() => {

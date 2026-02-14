@@ -4,12 +4,11 @@ import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQuery
 import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/spaceDocId";
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/blocksuiteDescriptionEditor";
-import { PopWindow } from "@/components/common/popWindow";
 import Author from "./author";
 // import IssueTab from "./issueTab";
 
@@ -108,16 +107,12 @@ export default function RepositoryDetailComponent({
   const repositorySpaces = useMemo(() => listRepositorySpaceCandidates(userSpaces, repositoryId), [repositoryId, userSpaces]);
   const repositorySpace = repositorySpaces[0] ?? null;
 
-  // 克隆成功后显示弹窗
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [isCloningModule, setIsCloningModule] = useState(false);
+  const cloningModuleLockRef = useRef(false);
 
   // 克隆失败后显示弹窗
   const [showErrorToast, setShowErrorToast] = useState(false);
-
-  // 确认跳转弹窗
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const [newSpaceId, setNewSpaceId] = useState<number | null>(null);
-  const linkedSpaceId = newSpaceId ?? repositorySpace?.spaceId ?? null;
+  const linkedSpaceId = repositorySpace?.spaceId ?? null;
   const linkedSpace = useMemo(() => {
     if (!linkedSpaceId) {
       return null;
@@ -265,7 +260,27 @@ export default function RepositoryDetailComponent({
   }
 
   // ===== 事件处理函数 =====
+  const navigateToSpace = async (spaceId: number) => {
+    try {
+      const roomsData = await tuanchat.roomController.getUserRooms(spaceId);
+      const rooms = roomsData?.data?.rooms;
+      if (rooms && rooms.length > 0) {
+        const firstRoomId = rooms[0].roomId;
+        navigate(`/chat/${spaceId}/${firstRoomId}`);
+        return;
+      }
+    }
+    catch (error) {
+      console.error("获取群组列表失败:", error);
+    }
+    navigate(`/chat/${spaceId}`);
+  };
+
   const handleCloneModule = async () => {
+    if (cloningModuleLockRef.current) {
+      return;
+    }
+
     const pickSourceSpaceIdFromCandidates = async (candidates: RepositorySpaceCandidate[]) => {
       if (candidates.length === 0) {
         return null;
@@ -335,6 +350,8 @@ export default function RepositoryDetailComponent({
       }
     };
 
+    cloningModuleLockRef.current = true;
+    setIsCloningModule(true);
     try {
       const sourceSpaceId = await pickSourceSpaceId();
       if (!sourceSpaceId) {
@@ -355,46 +372,18 @@ export default function RepositoryDetailComponent({
       }
 
       setViewModeOpen(false);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-      setNewSpaceId(clonedSpaceId);
-      setShowConfirmPopup(true);
-      getUserSpaces.refetch();
+      void getUserSpaces.refetch();
+      await navigateToSpace(clonedSpaceId);
     }
     catch {
       setViewModeOpen(false);
       setShowErrorToast(true);
       setTimeout(() => setShowErrorToast(false), 3000);
     }
-  };
-
-  // 处理跳转到新空间
-  const handleNavigateToNewSpace = async () => {
-    if (newSpaceId) {
-      try {
-        const roomsData = await tuanchat.roomController.getUserRooms(newSpaceId);
-
-        const rooms = roomsData?.data?.rooms;
-        if (rooms && rooms.length > 0) {
-          const firstRoomId = rooms[0].roomId;
-          navigate(`/chat/${newSpaceId}/${firstRoomId}`);
-        }
-        else {
-          navigate(`/chat/${newSpaceId}`);
-        }
-      }
-      catch (error) {
-        console.error("获取群组列表失败:", error);
-        navigate(`/chat/${newSpaceId}`);
-      }
-      setShowConfirmPopup(false);
+    finally {
+      cloningModuleLockRef.current = false;
+      setIsCloningModule(false);
     }
-  };
-
-  // 处理取消跳转
-  const handleCancelNavigate = () => {
-    setShowConfirmPopup(false);
-    setNewSpaceId(null);
   };
 
   // 构建信息数组，只包含有数据的字段
@@ -437,6 +426,14 @@ export default function RepositoryDetailComponent({
   const viewOverlayClassName = embedded
     ? "absolute inset-0 z-30 border border-base-300 bg-base-100 shadow-lg overflow-hidden"
     : "absolute inset-0 z-20 rounded-lg border border-base-300 bg-base-100 shadow-lg overflow-hidden";
+  const cloneButtonContent = isCloningModule
+    ? (
+        <>
+          <span className="loading loading-spinner loading-xs"></span>
+          克隆中...
+        </>
+      )
+    : "克隆模组";
 
   return (
     <>
@@ -591,10 +588,11 @@ export default function RepositoryDetailComponent({
                           <div className="mb-3">暂无关联空间资料</div>
                           <button
                             type="button"
-                            className="btn btn-sm"
+                            className="btn btn-sm gap-2"
                             onClick={handleCloneModule}
+                            disabled={isCloningModule}
                           >
-                            克隆模组
+                            {cloneButtonContent}
                           </button>
                         </div>
                       )}
@@ -626,10 +624,11 @@ export default function RepositoryDetailComponent({
                       </button>
                       <button
                         type="button"
-                        className="btn btn-sm btn-primary"
+                        className="btn btn-sm btn-primary gap-2"
                         onClick={handleCloneModule}
+                        disabled={isCloningModule}
                       >
-                        克隆模组
+                        {cloneButtonContent}
                       </button>
                     </div>
                   </div>
@@ -641,10 +640,11 @@ export default function RepositoryDetailComponent({
                         <div className="text-sm">先克隆模组到空间后再查看</div>
                         <button
                           type="button"
-                          className="btn btn-sm btn-primary"
+                          className="btn btn-sm btn-primary gap-2"
                           onClick={handleCloneModule}
+                          disabled={isCloningModule}
                         >
-                          克隆模组
+                          {cloneButtonContent}
                         </button>
                       </div>
                     )}
@@ -687,45 +687,6 @@ export default function RepositoryDetailComponent({
           </div>
         </div>
       </div>
-      {/* 在现有的 PopWindow 组件后面添加确认弹窗 */}
-      <PopWindow isOpen={showConfirmPopup} onClose={handleCancelNavigate}>
-        <div className="flex flex-col items-center p-6 gap-4">
-          <div className="text-2xl font-bold text-success">
-            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            空间创建成功！
-          </div>
-
-          <p className="text-center text-gray-600">
-            模组已成功克隆到新空间
-            <br />
-            <span className="font-semibold">{repositoryData.repositoryName}</span>
-          </p>
-
-          <div className="flex gap-4 mt-4">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={handleCancelNavigate}
-            >
-              稍后查看
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleNavigateToNewSpace}
-            >
-              立即前往
-            </button>
-          </div>
-        </div>
-      </PopWindow>
-      {showSuccessToast && (
-        <div className="fixed bottom-6 right-6 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
-          ✅ 克隆成功！
-        </div>
-      )}
       {showErrorToast && (
         <div className="fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
           ❌ 克隆失败！

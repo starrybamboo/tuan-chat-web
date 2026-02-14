@@ -59,34 +59,6 @@ type RealtimeRenderState = {
   resetRuntime: () => void;
 };
 
-function canUseLocalStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
-function readLegacyTtsApiUrl(): string {
-  if (!canUseLocalStorage()) {
-    return "";
-  }
-  try {
-    return window.localStorage.getItem("tts_api_url") || "";
-  }
-  catch {
-    return "";
-  }
-}
-
-function clearLegacyTtsApiUrl(): void {
-  if (!canUseLocalStorage()) {
-    return;
-  }
-  try {
-    window.localStorage.removeItem("tts_api_url");
-  }
-  catch {
-    // ignore
-  }
-}
-
 function normalizePort(port: number | null): number | null {
   if (port == null) {
     return null;
@@ -165,8 +137,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
       const persistedTerrePortOverride = normalizePort(persisted?.terrePort ?? null);
       const persistedAutoFigureEnabled = persisted?.autoFigureEnabled;
 
-      const legacyTtsApiUrl = !persistedTtsApiUrl ? readLegacyTtsApiUrl().trim() : "";
-      const nextTtsApiUrl = persistedTtsApiUrl || legacyTtsApiUrl || "";
+      const nextTtsApiUrl = persistedTtsApiUrl;
       const nextTerrePortOverride = persistedTerrePortOverride;
       const nextAutoFigureEnabled = typeof persistedAutoFigureEnabled === "boolean"
         ? persistedAutoFigureEnabled
@@ -180,15 +151,6 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
         autoFigureEnabled: nextAutoFigureEnabled,
         hydrated: true,
       });
-
-      if (!persisted && legacyTtsApiUrl) {
-        await setRealtimeRenderSettings({
-          ttsApiUrl: legacyTtsApiUrl,
-          terrePort: null,
-          autoFigureEnabled: nextAutoFigureEnabled,
-        });
-        clearLegacyTtsApiUrl();
-      }
     })()
       .catch((e) => {
         hydratePromise = null;

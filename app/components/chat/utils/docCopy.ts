@@ -58,11 +58,9 @@ export async function copyDocToSpaceDoc(params: {
 
   let createdDocId: number | null = null;
   try {
-    const resp = await tuanchat.request.request<any>({
-      method: "POST",
-      url: "/space/doc",
-      body: { spaceId: params.spaceId, title },
-      mediaType: "application/json",
+    const resp = await tuanchat.spaceDocController.createDoc({
+      spaceId: params.spaceId,
+      title,
     });
     const id = Number((resp as any)?.data?.docId);
     if (Number.isFinite(id) && id > 0) {

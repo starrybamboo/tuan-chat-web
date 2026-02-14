@@ -492,29 +492,7 @@ export function BlocksuiteDescriptionEditorRuntime(props: BlocksuiteDescriptionE
 
       const workspace = runtime.getOrCreateWorkspace(workspaceId);
 
-      // 1) Migrate legacy local docId (if needed)
-      try {
-        const legacyDocId = "space:description";
-        const expectedNewDocId = spaceId ? `space:${spaceId}:description` : "";
-        const runtimeWs = workspace as any;
-        if (expectedNewDocId && docId === expectedNewDocId
-          && typeof runtimeWs?.listKnownDocIds === "function"
-          && typeof runtimeWs?.encodeDocAsUpdate === "function"
-          && typeof runtimeWs?.restoreDocFromUpdate === "function") {
-          const known = runtimeWs.listKnownDocIds() as string[];
-          const hasLegacy = known.includes(legacyDocId);
-          const hasNew = known.includes(docId);
-          if (hasLegacy && !hasNew) {
-            const legacyUpdate = runtimeWs.encodeDocAsUpdate(legacyDocId) as Uint8Array;
-            runtimeWs.restoreDocFromUpdate({ docId, update: legacyUpdate });
-          }
-        }
-      }
-      catch {
-        // ignore migration failures
-      }
-
-      // 2) Restore from remote snapshot (if available)
+      // 1) Restore from remote snapshot (if available)
       // Critical: explicit fetch ensures the store is populated with remote content (correct root block)
       // *before* the editor is initialized. This prevents 'ensureAffineMinimumBlockData' from creating
       // a duplicate/conflicting default page, which results in a blank view.

@@ -1081,14 +1081,10 @@ export class RealtimeRenderer {
    */
   private convertAvatarTitleToEmotionVector(avatarTitle: Record<string, string>): number[] {
     const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
-    const legacyEmotionKeyMap: Record<string, string> = {
-      喜: "ϲ",
-      怒: "ŭ",
-    };
     const MAX_SUM = 0.5;
 
     let emotionVector = emotionOrder.map((emotion) => {
-      const value = avatarTitle[emotion] ?? avatarTitle[legacyEmotionKeyMap[emotion]];
+      const value = avatarTitle[emotion];
       const numValue = value ? Number.parseFloat(value) * 0.5 : 0.0;
       return Math.max(0.0, Math.min(1.4, numValue));
     });

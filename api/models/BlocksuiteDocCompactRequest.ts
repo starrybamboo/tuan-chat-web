@@ -7,7 +7,7 @@
  */
 export type BlocksuiteDocCompactRequest = {
     /**
-     * 实体类型(space/room/space_clue/user/space_user_doc/space_doc)
+     * 实体类型(space/room/user/space_user_doc/space_doc)
      */
     entityType: string;
     /**
