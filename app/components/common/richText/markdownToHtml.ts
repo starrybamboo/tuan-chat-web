@@ -3,6 +3,15 @@
 // 空行兼容：旧版本可能序列化为字面 "\\n"、"__BLANK_LINE__" 或私有区哨兵 U+E000。
 // 现在策略：解析阶段统一识别后直接用空字符串标识，不再向下游传递私有区字符，避免渲染字体显示方块。
 const LEGACY_SENTINEL = "\uE000";
+const MENTION_CLASS = "entity-mention";
+const LEGACY_MENTION_CLASS = "ql-mention-span";
+const MENTION_CLASSES = `${MENTION_CLASS} ${LEGACY_MENTION_CLASS}`;
+const MENTION_SELECTOR = `span.${MENTION_CLASS}[data-label][data-category], span.${LEGACY_MENTION_CLASS}[data-label][data-category]`;
+const CODE_BLOCK_CLASSES = ["rich-code-block", "ql-code-block"] as const;
+
+function hasAnyClass(el: HTMLElement, classNames: readonly string[]): boolean {
+  return classNames.some(className => el.classList.contains(className));
+}
 
 export function rawMarkdownToHtml(md: string): string {
   if (!md)
@@ -29,7 +38,7 @@ export function rawMarkdownToHtml(md: string): string {
     let out = text.replace(mentionPattern, (_m, cat, name) => {
       const safeName = String(name || "").replace(/[<>]/g, "");
       const safeCat = String(cat || "").replace(/[<>]/g, "");
-      return `<span class="ql-mention-span" data-label="${safeName}" data-category="${safeCat}">${safeName}</span>`;
+      return `<span class="${MENTION_CLASSES}" data-label="${safeName}" data-category="${safeCat}">${safeName}</span>`;
     });
     out = out.replace(/(\*\*|__)([^\n]+?)\1/g, (_m, _b, inner) => `<strong>${inner}</strong>`);
     out = out.replace(/(^|\s)\*([^\n*]+)\*(?=\s|$)/g, (m, pre, inner) => `${pre}<em>${inner}</em>`);
@@ -199,7 +208,7 @@ export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<strin
   if (!container)
     return preliminary; // 非浏览器环境直接返回
   container.innerHTML = preliminary;
-  const spans = container.querySelectorAll("span.ql-mention-span[data-label][data-category]");
+  const spans = container.querySelectorAll(MENTION_SELECTOR);
   spans.forEach((span: Element) => {
     const label = span.getAttribute("data-label") || "";
     const category = span.getAttribute("data-category") || "";
@@ -218,7 +227,7 @@ export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<strin
 }
 
 /**
- * 将 HTML 或纯文本中的 @类别名称 转成 span.ql-mention-span
+ * 将 HTML 或纯文本中的 @类别名称 转成 mention span（保留旧类名兼容）。
  */
 function _enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "地点", "物品"]): string {
   if (!raw)
@@ -226,7 +235,7 @@ function _enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "
   if (typeof document === "undefined") {
     const catAlt = categories.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
     const re = new RegExp(`@(${catAlt})([^\\s<>{}]+)`, "g");
-    return raw.replace(re, (_m, cat, name) => `<span class=\"ql-mention-span\" data-label=\"${name}\" data-category=\"${cat}\">${name}</span>`);
+    return raw.replace(re, (_m, cat, name) => `<span class=\"${MENTION_CLASSES}\" data-label=\"${name}\" data-category=\"${cat}\">${name}</span>`);
   }
   const container = document.createElement("div");
   container.innerHTML = raw;
@@ -236,12 +245,12 @@ function _enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "
   const skip = (n: Node | null): boolean => {
     while (n) {
       if (n instanceof HTMLElement) {
-        if (n.classList.contains("ql-code-block"))
+        if (hasAnyClass(n, CODE_BLOCK_CLASSES))
           return true;
         const tag = n.tagName.toLowerCase();
         if (tag === "code" || tag === "pre")
           return true;
-        if (n.classList.contains("ql-mention-span"))
+        if (n.classList.contains(MENTION_CLASS) || n.classList.contains(LEGACY_MENTION_CLASS))
           return true;
       }
       n = n.parentNode as (Node | null);
@@ -271,7 +280,7 @@ function _enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "
           frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         if (catSet.has(cat)) {
           const span = document.createElement("span");
-          span.className = "ql-mention-span";
+          span.className = MENTION_CLASSES;
           span.setAttribute("data-label", name);
           span.setAttribute("data-category", cat);
           span.textContent = name;
@@ -291,7 +300,7 @@ function _enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "
     if (node.nodeType === 1) {
       const el = node as HTMLElement;
       const tag = el.tagName.toLowerCase();
-      if (tag === "code" || tag === "pre" || el.classList.contains("ql-code-block"))
+      if (tag === "code" || tag === "pre" || hasAnyClass(el, CODE_BLOCK_CLASSES))
         return;
       Array.from(el.childNodes).forEach(c => walk(c));
     }

@@ -2,7 +2,7 @@
 import { useMemo, useRef } from "react";
 import { renderInlineHtmlUsingWysiwyg } from "./htmlTagWysiwyg"; // 新增：复用只读 HTML 标签安全渲染
 import { markdownToHtmlWithEntities, rawMarkdownToHtml } from "./markdownToHtml";
-import "./quill-overrides.css";
+import "./rich-text-overrides.css";
 
 let __mpCounter = 0; // 调试：区分多个 MentionPreview 实例
 // 全局调试开关：在控制台执行 window.__MENTION_PREVIEW_DEBUG__=true 打开；false 关闭
@@ -48,7 +48,7 @@ function MentionPreview(props: MentionPreviewProps) {
   // 只读转换：支持 **bold** / *italic* / _italic_ / ~~strike~~ / ++underline++ / @人物张三 及 /t 缩进 等现有自定义规则
   // 说明：
   // 1) 使用现有 markdownToHtmlWithEntities 以最大复用（里面已处理 @mention 生成 span、空行、列表、code 等）
-  // 2) MentionPreview 本身不需要 hover 再弹下一层，所以不加额外事件；span.ql-mention-span 仍可沿用样式。
+  // 2) MentionPreview 本身不需要 hover 再弹下一层，所以不加额外事件；mention span 由统一样式处理（兼容旧类名）。
   // 3) 【新增】与 MarkdownMentionViewer 对齐：支持还原被转义的 <a>、Markdown 链接 [text](url) 与裸链接自动转为 <a>，以及批量处理保留的 <a>/<img>/<span>/<div> 标签（安全白名单）
   const { descHtml: renderedHtml, tipsHtml: renderedTipsHtml } = useMemo(() => {
     mpDbg("useMemo start", { id });

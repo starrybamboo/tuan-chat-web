@@ -4,6 +4,8 @@ import { renderInlineHtmlUsingWysiwyg } from "./htmlTagWysiwyg";
 import { markdownToHtmlWithEntities, rawMarkdownToHtml } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
 
+const MENTION_SELECTOR = "span.entity-mention[data-label][data-category], span.ql-mention-span[data-label][data-category]";
+
 interface MarkdownMentionViewerProps {
   markdown: string;
   entitiesMap?: Record<string, string[]>; // { 人物: [...], 地点: [...], 物品: [...] }
@@ -177,7 +179,7 @@ export default function MarkdownMentionViewer(props: MarkdownMentionViewerProps)
       if (!target) {
         return;
       }
-      const span = target.closest("span.ql-mention-span[data-label][data-category]") as HTMLElement | null;
+      const span = target.closest(MENTION_SELECTOR) as HTMLElement | null;
       if (!span) {
         setPreview(null);
         return;
@@ -219,7 +221,7 @@ export default function MarkdownMentionViewer(props: MarkdownMentionViewerProps)
         return;
       }
       const target = e.target as HTMLElement | null;
-      const span = target?.closest("span.ql-mention-span[data-label][data-category]");
+      const span = target?.closest(MENTION_SELECTOR);
       if (span) {
         // 移出 span 但进入面板时保持
         // 直接等待 preview 面板自身的 onMouseEnter 处理锁

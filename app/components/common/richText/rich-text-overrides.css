@@ -15,11 +15,11 @@
     --ql-base-size: clamp(18px, 1.2vmin, 26px);
   }
 }
-/* Quill 会在容器内创建 .ql-container 和 .ql-editor，这里同步继承高度 */
+/* 历史编辑器使用 .ql-container / .ql-editor，这里继续兼容这些类名并同步继承高度 */
 .ql-wrapper .ql-container {
   min-height: inherit;
   border: none; /* 使用外层边框，避免双线 */
-  font-size: var(--ql-base-size) !important; /* 强制覆盖 Quill 内置样式 */
+  font-size: var(--ql-base-size) !important; /* 强制覆盖编辑区默认样式 */
 }
 
 .ql-wrapper .ql-editor {
@@ -29,8 +29,8 @@
   font-size: var(--ql-base-size) !important;
 }
 
-/* 标题等比放大（沿用 Quill 默认比例：h1:2em, h2:1.5em, h3:1.17em）并加粗 600 */
-/* 标题：提高特定性并加 !important 避免被 Quill 主题覆盖 */
+/* 标题等比放大（沿用旧编辑器比例：h1:2em, h2:1.5em, h3:1.17em）并加粗 600 */
+/* 标题：提高特定性并加 !important 避免被历史主题覆盖 */
 .ql-wrapper .ql-editor h1,
 .ql-wrapper .ql-editor h2,
 .ql-wrapper .ql-editor h3 {
@@ -248,6 +248,7 @@
 .mention-preview .preview-html p {
   margin: 0.45em 0;
 }
+.mention-preview .preview-html .entity-mention,
 .mention-preview .preview-html .ql-mention-span {
   display: inline-block;
   padding: 0 4px;
@@ -257,14 +258,17 @@
   background: #eef2ff;
   color: #4338ca;
 }
+.mention-preview .preview-html .entity-mention[data-category="人物"],
 .mention-preview .preview-html .ql-mention-span[data-category="人物"] {
   background: #fef3c7;
   color: #92400e;
 }
+.mention-preview .preview-html .entity-mention[data-category="地点"],
 .mention-preview .preview-html .ql-mention-span[data-category="地点"] {
   background: #d1fae5;
   color: #065f46;
 }
+.mention-preview .preview-html .entity-mention[data-category="物品"],
 .mention-preview .preview-html .ql-mention-span[data-category="物品"] {
   background: #e0f2fe;
   color: #075985;

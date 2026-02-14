@@ -1,4 +1,4 @@
-// 简单 HTML 标签识别（所见即所得预处理阶段）
+﻿// 简单 HTML 标签识别（所见即所得预处理阶段）
 // 需求：在输入空格时（空格可位于标签中间或末尾），识别用户正在输入的部分/完整标签
 // 仅支持标签: span, div, a, img
 // 仅关注属性: src, href, id, width, height （其它属性忽略）
@@ -97,19 +97,19 @@ function _logHtmlTagIfAny(lineLeft: string): void {
   }
 }
 
-// 将检测到的标签转换为 Quill 文档内容
+// 将检测到的标签转换为富文本文档内容
 // 调用时机：用户在标签末尾或标签内部敲下空格（已经调用 detectHtmlTagOnSpace）后
 // 参数：
-//  quillInstance: Quill 实例
+//  editorInstance: 编辑器实例
 //  lineLeft: 当前行（到空格前）文本
 //  globalIndex: 空格的文档 index（即刚刚插入的空格位置）
 // 返回：true 表示已处理并替换；false 表示未处理
 function _convertHtmlTagIfAny(
-  quillInstance: any,
+  editorInstance: any,
   lineLeft: string,
   globalIndex: number,
 ): boolean {
-  if (!quillInstance || typeof globalIndex !== "number") {
+  if (!editorInstance || typeof globalIndex !== "number") {
     return false;
   }
   const detected = detectHtmlTagOnSpace(lineLeft);
@@ -135,7 +135,7 @@ function _convertHtmlTagIfAny(
   // 但为提高健壮性，这里仍做从 globalIndex - rawLen 起始的精准匹配，失败则在一个窗口内继续回溯。
   const primaryStart = globalIndex - rawLen; // 假设标签紧邻空格
   try {
-    const primaryText = quillInstance.getText?.(primaryStart, rawLen) || "";
+    const primaryText = editorInstance.getText?.(primaryStart, rawLen) || "";
     if (primaryText === raw) {
       tagDocStart = primaryStart;
     }
@@ -148,7 +148,7 @@ function _convertHtmlTagIfAny(
     const limit = Math.max(0, globalIndex - maxBack);
     for (let start = primaryStart - 1; start >= limit; start -= 1) {
       try {
-        const seg = quillInstance.getText?.(start, rawLen) || "";
+        const seg = editorInstance.getText?.(start, rawLen) || "";
         if (seg === raw) {
           tagDocStart = start;
           break;
@@ -164,7 +164,7 @@ function _convertHtmlTagIfAny(
     const possibleStart = globalIndex - rawLen;
     if (possibleStart >= 0) {
       try {
-        const seg = quillInstance.getText?.(possibleStart, rawLen) || "";
+        const seg = editorInstance.getText?.(possibleStart, rawLen) || "";
         if (seg === raw) {
           tagDocStart = possibleStart;
         }
@@ -181,7 +181,7 @@ function _convertHtmlTagIfAny(
   // 构造插入内容
   const ops: any[] = [];
   if (tag === "img") {
-    // 简单使用 Quill 内置 image blot：插入 attrs.src
+    // 简单使用编辑器内置 image blot：插入 attrs.src
     const src = (attrs.src || attrs.href || "") as string;
     if (!src) {
       return false; // 没有 src 不转换
@@ -216,23 +216,23 @@ function _convertHtmlTagIfAny(
   try {
     // 先删除原始标签源码（silent 避免递归 text-change 引起的竞争）
     if (tagLength > 0) {
-      quillInstance.deleteText(tagDocStart, tagLength, "silent");
+      editorInstance.deleteText(tagDocStart, tagLength, "silent");
     }
     // 在删除位置插入结构化内容（仍用 silent，手动调度刷新）并统计总插入长度
     let insertPos = tagDocStart;
     let insertedTotal = 0;
     for (const op of ops) {
       if (typeof op.insert === "object" && op.insert.image) {
-        quillInstance.insertEmbed(insertPos, "image", op.insert.image, "silent");
+        editorInstance.insertEmbed(insertPos, "image", op.insert.image, "silent");
         insertPos += 1;
         insertedTotal += 1; // embed 长度视为 1
       }
       else if (typeof op.insert === "string") {
-        quillInstance.insertText(insertPos, op.insert, op.attributes || {}, "silent");
+        editorInstance.insertText(insertPos, op.insert, op.attributes || {}, "silent");
         // 如果是 a 标签：尝试立即为生成的 anchor 标记 data-origin-raw（包含延迟兜底）
         if (tag === "a") {
           try {
-            const leafInfo = quillInstance.getLeaf(insertPos);
+            const leafInfo = editorInstance.getLeaf(insertPos);
             const leafNode = leafInfo && leafInfo[0] && leafInfo[0].domNode as HTMLElement | undefined;
             let anchor: HTMLElement | null = leafNode || null;
             if (anchor && anchor.tagName !== "A") {
@@ -244,7 +244,7 @@ function _convertHtmlTagIfAny(
             else {
               setTimeout(() => {
                 try {
-                  const leafInfo2 = quillInstance.getLeaf(insertPos);
+                  const leafInfo2 = editorInstance.getLeaf(insertPos);
                   const leafNode2 = leafInfo2 && leafInfo2[0] && leafInfo2[0].domNode as HTMLElement | undefined;
                   let anchor2: HTMLElement | null = leafNode2 || null;
                   if (anchor2 && anchor2.tagName !== "A") {
@@ -267,7 +267,7 @@ function _convertHtmlTagIfAny(
     // 若是 img 并提供 width/height，尝试直接设置 DOM 属性（增强3）
     if (tag === "img" && (attrs.width || attrs.height)) {
       try {
-        const leafInfo = quillInstance.getLeaf(tagDocStart);
+        const leafInfo = editorInstance.getLeaf(tagDocStart);
         const leafNode = leafInfo && leafInfo[0] && leafInfo[0].domNode;
         if (leafNode && leafNode.tagName === "IMG") {
           const imgEl = leafNode as HTMLImageElement;
@@ -304,7 +304,7 @@ function _convertHtmlTagIfAny(
     // 新的空格位置 = (globalIndex - tagLength) + insertedTotal
     const spaceNewIndex = (globalIndex - tagLength) + insertedTotal;
     // 希望光标落在空格之后继续输入
-    quillInstance.setSelection(spaceNewIndex + 1, 0, "silent");
+    editorInstance.setSelection(spaceNewIndex + 1, 0, "silent");
   }
   catch {
     return false;
@@ -465,3 +465,4 @@ export function renderInlineHtmlUsingWysiwyg(html: string): string {
 
   return html;
 }
+

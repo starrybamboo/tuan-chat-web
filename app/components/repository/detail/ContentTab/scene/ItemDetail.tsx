@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
+import MarkdownMentionViewer from "@/components/common/richText/MarkdownMentionViewer";
 import { useContentPermission } from "../ContentPermissionContext";
 
 interface ItemDetailProps {
