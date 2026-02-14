@@ -3,16 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 点赞目标
+ * 选择项列表
  */
-export type LikeTarget = {
+export type WebgalChooseOption = {
     /**
-     * 目标内容ID
+     * 选项文本
      */
-    targetId?: number;
+    text: string;
     /**
-     * 目标类型(1-feed, 2-post, 3-repository等)
+     * 自定义代码（可选）
      */
-    targetType?: string;
+    code?: string;
 };
 

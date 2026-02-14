@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ItemResponse } from './ItemResponse';
+import type { SpaceDocResponse } from './SpaceDocResponse';
 /**
  * 基础返回体
  */
-export type ApiResultListItemResponse = {
+export type ApiResultListSpaceDocResponse = {
     /**
      * 成功标识true or false
      */
@@ -22,6 +22,6 @@ export type ApiResultListItemResponse = {
     /**
      * 返回对象
      */
-    data?: Array<ItemResponse>;
+    data?: Array<SpaceDocResponse>;
 };
 

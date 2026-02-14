@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { PageBaseRespItemResponse } from './PageBaseRespItemResponse';
+import type { BlocksuiteDocUpdatesResponse } from './BlocksuiteDocUpdatesResponse';
 /**
  * 基础返回体
  */
-export type ApiResultPageBaseRespItemResponse = {
+export type ApiResultBlocksuiteDocUpdatesResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultPageBaseRespItemResponse = {
      * 错误消息
      */
     errMsg?: string;
-    data?: PageBaseRespItemResponse;
+    data?: BlocksuiteDocUpdatesResponse;
 };
 

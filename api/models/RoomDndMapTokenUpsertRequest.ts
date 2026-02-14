@@ -2,18 +2,22 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type RoomExtraSetRequest = {
+export type RoomDndMapTokenUpsertRequest = {
     /**
-     * 房间ID
+     * Room id
      */
     roomId: number;
     /**
-     * 键
+     * Role id
      */
-    key: string;
+    roleId: number;
     /**
-     * 值
+     * Row index
      */
-    value: string;
+    rowIndex: number;
+    /**
+     * Col index
+     */
+    colIndex: number;
 };
 

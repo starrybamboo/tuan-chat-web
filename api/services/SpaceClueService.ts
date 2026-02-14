@@ -104,17 +104,20 @@ export class SpaceClueService {
     /**
      * 根据空间ID查询当前用户的线索文件夹
      * @param spaceId
+     * @param commitId
      * @returns ApiResultListSpaceClueStars OK
      * @throws ApiError
      */
     public getMyClueStarsBySpace(
         spaceId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultListSpaceClueStars> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/space/clue/stars/list',
             query: {
                 'spaceId': spaceId,
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,
@@ -127,17 +130,20 @@ export class SpaceClueService {
     /**
      * 根据线索文件夹ID查询线索列表
      * @param clueStarsId
+     * @param commitId
      * @returns ApiResultListSpaceClue OK
      * @throws ApiError
      */
     public getCluesByClueStars(
         clueStarsId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultListSpaceClue> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/space/clue/list',
             query: {
                 'clueStarsId': clueStarsId,
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,

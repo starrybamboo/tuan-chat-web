@@ -14,5 +14,9 @@ export type HistoryMessageRequest = {
      * 消息同步ID，返回大于或等于此ID的消息
      */
     syncId: number;
+    /**
+     * Commit ID (optional, archive snapshot)
+     */
+    commitId?: number;
 };
 

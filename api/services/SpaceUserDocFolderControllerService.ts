@@ -86,7 +86,7 @@ export class SpaceUserDocFolderControllerService {
      * @returns ApiResultSpaceUserDocResponse OK
      * @throws ApiError
      */
-    public createDoc(
+    public createDoc1(
         requestBody: SpaceUserDocCreateRequest,
     ): CancelablePromise<ApiResultSpaceUserDocResponse> {
         return this.httpRequest.request({
@@ -108,7 +108,7 @@ export class SpaceUserDocFolderControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteDoc(
+    public deleteDoc1(
         docId: number,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({

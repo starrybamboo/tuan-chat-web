@@ -8,7 +8,7 @@ export type EmojiCreateRequest = {
      */
     name: string;
     /**
-     * ͼƬURL
+     * 图片URL
      */
     imageUrl: string;
     /**

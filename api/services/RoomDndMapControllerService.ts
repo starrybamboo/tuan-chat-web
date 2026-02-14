@@ -2,34 +2,31 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultItemResponse } from '../models/ApiResultItemResponse';
-import type { ApiResultListItemResponse } from '../models/ApiResultListItemResponse';
-import type { ApiResultLong } from '../models/ApiResultLong';
-import type { ApiResultPageBaseRespItemResponse } from '../models/ApiResultPageBaseRespItemResponse';
+import type { ApiResultRoomDndMapResponse } from '../models/ApiResultRoomDndMapResponse';
+import type { ApiResultRoomDndMapTokenResponse } from '../models/ApiResultRoomDndMapTokenResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { ItemAddRequest } from '../models/ItemAddRequest';
-import type { ItemPageRequest } from '../models/ItemPageRequest';
-import type { ItemsGetRequest } from '../models/ItemsGetRequest';
-import type { ItemUpdateRequest } from '../models/ItemUpdateRequest';
+import type { RoomDndMapClearRequest } from '../models/RoomDndMapClearRequest';
+import type { RoomDndMapTokenRemoveRequest } from '../models/RoomDndMapTokenRemoveRequest';
+import type { RoomDndMapTokenUpsertRequest } from '../models/RoomDndMapTokenUpsertRequest';
+import type { RoomDndMapUpsertRequest } from '../models/RoomDndMapUpsertRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class ItemControllerService {
+export class RoomDndMapControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 获取物品详情
-     * 根据id获取物品详情
-     * @param id 物品ID
-     * @returns ApiResultItemResponse OK
+     * Get room DND map
+     * @param roomId
+     * @returns ApiResultRoomDndMapResponse OK
      * @throws ApiError
      */
-    public getById(
-        id: number,
-    ): CancelablePromise<ApiResultItemResponse> {
+    public getRoomMap(
+        roomId: number,
+    ): CancelablePromise<ApiResultRoomDndMapResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/item',
+            url: '/room/dnd-map',
             query: {
-                'id': id,
+                'roomId': roomId,
             },
             errors: {
                 400: `Bad Request`,
@@ -40,18 +37,17 @@ export class ItemControllerService {
         });
     }
     /**
-     * 更新物品
-     * 更新物品信息
+     * Upsert room DND map
      * @param requestBody
-     * @returns ApiResultVoid OK
+     * @returns ApiResultRoomDndMapResponse OK
      * @throws ApiError
      */
-    public updateItem(
-        requestBody: ItemUpdateRequest,
-    ): CancelablePromise<ApiResultVoid> {
+    public upsertRoomMap(
+        requestBody: RoomDndMapUpsertRequest,
+    ): CancelablePromise<ApiResultRoomDndMapResponse> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/item',
+            url: '/room/dnd-map',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -63,64 +59,17 @@ export class ItemControllerService {
         });
     }
     /**
-     * 添加物品
-     * 添加物品信息
+     * Clear room DND map
      * @param requestBody
-     * @returns ApiResultLong OK
-     * @throws ApiError
-     */
-    public addItem(
-        requestBody: ItemAddRequest,
-    ): CancelablePromise<ApiResultLong> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/item',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 删除物品
-     * 根据ID删除物品
-     * @param id 物品ID
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteItem(
-        id: number,
+    public clearRoomMap(
+        requestBody: RoomDndMapClearRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/item',
-            query: {
-                'id': id,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 分页获取物品
-     * @param requestBody
-     * @returns ApiResultPageBaseRespItemResponse OK
-     * @throws ApiError
-     */
-    public page(
-        requestBody: ItemPageRequest,
-    ): CancelablePromise<ApiResultPageBaseRespItemResponse> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/item/page',
+            url: '/room/dnd-map',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -132,17 +81,39 @@ export class ItemControllerService {
         });
     }
     /**
-     * 获取多个物品详情
+     * Upsert room DND map token
      * @param requestBody
-     * @returns ApiResultListItemResponse OK
+     * @returns ApiResultRoomDndMapTokenResponse OK
      * @throws ApiError
      */
-    public getByIds(
-        requestBody: ItemsGetRequest,
-    ): CancelablePromise<ApiResultListItemResponse> {
+    public upsertToken(
+        requestBody: RoomDndMapTokenUpsertRequest,
+    ): CancelablePromise<ApiResultRoomDndMapTokenResponse> {
         return this.httpRequest.request({
-            method: 'POST',
-            url: '/item/list',
+            method: 'PUT',
+            url: '/room/dnd-map/token',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * Remove room DND map token
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public removeToken(
+        requestBody: RoomDndMapTokenRemoveRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/room/dnd-map/token',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

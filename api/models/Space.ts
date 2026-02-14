@@ -27,16 +27,16 @@ export type Space = {
      */
     ruleId?: number;
     /**
-     * 空间所有者id
+     * 空间拥有者id
      */
     userId?: number;
     /**
-     * ״̬ 0正常 1删除 2归档
+     * 状态：0正常 1删除 2归档
      */
     status?: number;
     repositoryId?: number;
     /**
-     * fork来源ID（克隆来源归档快照引用；直接克隆时写入原spaceId，与commitId语义一致）
+     * 克隆来源的base commitId（用于fork追踪）
      */
     parentCommitId?: number;
     /**

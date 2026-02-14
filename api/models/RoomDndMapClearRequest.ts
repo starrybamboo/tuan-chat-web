@@ -2,10 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 获取多个物品详情
- */
-export type ItemsGetRequest = {
-    itemIds: Array<number>;
+export type RoomDndMapClearRequest = {
+    /**
+     * Room id
+     */
+    roomId: number;
 };
 

@@ -3,16 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 点赞目标
+ * 创建 Space 共享文档请求
  */
-export type LikeTarget = {
+export type SpaceDocCreateRequest = {
     /**
-     * 目标内容ID
+     * 空间ID
      */
-    targetId?: number;
+    spaceId: number;
     /**
-     * 目标类型(1-feed, 2-post, 3-repository等)
+     * 文档标题（可选）
      */
-    targetType?: string;
+    title?: string;
 };
 

@@ -29,7 +29,7 @@ export type UserInfoResponse = {
      */
     description?: string;
     /**
-     * 性别: 隐藏(null) 男 Ů
+     * 性别: 隐藏(null) 男 女
      */
     gender?: string;
     /**

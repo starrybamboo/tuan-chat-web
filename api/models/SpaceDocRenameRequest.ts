@@ -3,16 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 点赞目标
+ * 重命名 Space 共享文档请求
  */
-export type LikeTarget = {
+export type SpaceDocRenameRequest = {
     /**
-     * 目标内容ID
+     * 文档ID
      */
-    targetId?: number;
+    docId: number;
     /**
-     * 目标类型(1-feed, 2-post, 3-repository等)
+     * 标题
      */
-    targetType?: string;
+    title: string;
 };
 

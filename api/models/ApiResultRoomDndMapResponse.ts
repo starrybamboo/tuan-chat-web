@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ItemResponse } from './ItemResponse';
+import type { RoomDndMapResponse } from './RoomDndMapResponse';
 /**
  * 基础返回体
  */
-export type ApiResultItemResponse = {
+export type ApiResultRoomDndMapResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultItemResponse = {
      * 错误消息
      */
     errMsg?: string;
-    data?: ItemResponse;
+    data?: RoomDndMapResponse;
 };
 

@@ -26,17 +26,17 @@ import { EmojiControllerService } from './services/EmojiControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { FriendControllerService } from './services/FriendControllerService';
 import { ImageGenerationControllerService } from './services/ImageGenerationControllerService';
-import { ItemControllerService } from './services/ItemControllerService';
 import { LikeRecordControllerService } from './services/LikeRecordControllerService';
 import { MessageDirectControllerService } from './services/MessageDirectControllerService';
 import { MessageSessionService } from './services/MessageSessionService';
-import { RepositoryControllerService } from './services/RepositoryControllerService';
 import { OssControllerService } from './services/OssControllerService';
 import { RatingService } from './services/RatingService';
+import { RepositoryControllerService } from './services/RepositoryControllerService';
 import { ResourceControllerService } from './services/ResourceControllerService';
 import { RoleControllerService } from './services/RoleControllerService';
 import { RoleGenerationControllerService } from './services/RoleGenerationControllerService';
 import { RoomControllerService } from './services/RoomControllerService';
+import { RoomDndMapControllerService } from './services/RoomDndMapControllerService';
 import { RoomMemberControllerService } from './services/RoomMemberControllerService';
 import { RoomRoleControllerService } from './services/RoomRoleControllerService';
 import { RuleControllerService } from './services/RuleControllerService';
@@ -45,6 +45,7 @@ import { ScWalletsService } from './services/ScWalletsService';
 import { ShortLinkControllerService } from './services/ShortLinkControllerService';
 import { SpaceClueService } from './services/SpaceClueService';
 import { SpaceControllerService } from './services/SpaceControllerService';
+import { SpaceDocControllerService } from './services/SpaceDocControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
 import { SpaceRepositoryControllerService } from './services/SpaceRepositoryControllerService';
 import { SpaceSidebarTreeControllerService } from './services/SpaceSidebarTreeControllerService';
@@ -78,17 +79,17 @@ export class TuanChat {
     public readonly feedController: FeedControllerService;
     public readonly friendController: FriendControllerService;
     public readonly imageGenerationController: ImageGenerationControllerService;
-    public readonly itemController: ItemControllerService;
     public readonly likeRecordController: LikeRecordControllerService;
     public readonly messageDirectController: MessageDirectControllerService;
     public readonly messageSession: MessageSessionService;
-    public readonly repositoryController: RepositoryControllerService;
     public readonly ossController: OssControllerService;
     public readonly rating: RatingService;
+    public readonly repositoryController: RepositoryControllerService;
     public readonly resourceController: ResourceControllerService;
     public readonly roleController: RoleControllerService;
     public readonly roleGenerationController: RoleGenerationControllerService;
     public readonly roomController: RoomControllerService;
+    public readonly roomDndMapController: RoomDndMapControllerService;
     public readonly roomMemberController: RoomMemberControllerService;
     public readonly roomRoleController: RoomRoleControllerService;
     public readonly ruleController: RuleControllerService;
@@ -97,6 +98,7 @@ export class TuanChat {
     public readonly shortLinkController: ShortLinkControllerService;
     public readonly spaceClue: SpaceClueService;
     public readonly spaceController: SpaceControllerService;
+    public readonly spaceDocController: SpaceDocControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
     public readonly spaceRepositoryController: SpaceRepositoryControllerService;
     public readonly spaceSidebarTreeController: SpaceSidebarTreeControllerService;
@@ -110,7 +112,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://101.126.143.129:8081',
+            BASE: config?.BASE ?? 'http://localhost:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -141,17 +143,17 @@ export class TuanChat {
         this.feedController = new FeedControllerService(this.request);
         this.friendController = new FriendControllerService(this.request);
         this.imageGenerationController = new ImageGenerationControllerService(this.request);
-        this.itemController = new ItemControllerService(this.request);
         this.likeRecordController = new LikeRecordControllerService(this.request);
         this.messageDirectController = new MessageDirectControllerService(this.request);
         this.messageSession = new MessageSessionService(this.request);
-        this.repositoryController = new RepositoryControllerService(this.request);
         this.ossController = new OssControllerService(this.request);
         this.rating = new RatingService(this.request);
+        this.repositoryController = new RepositoryControllerService(this.request);
         this.resourceController = new ResourceControllerService(this.request);
         this.roleController = new RoleControllerService(this.request);
         this.roleGenerationController = new RoleGenerationControllerService(this.request);
         this.roomController = new RoomControllerService(this.request);
+        this.roomDndMapController = new RoomDndMapControllerService(this.request);
         this.roomMemberController = new RoomMemberControllerService(this.request);
         this.roomRoleController = new RoomRoleControllerService(this.request);
         this.ruleController = new RuleControllerService(this.request);
@@ -160,6 +162,7 @@ export class TuanChat {
         this.shortLinkController = new ShortLinkControllerService(this.request);
         this.spaceClue = new SpaceClueService(this.request);
         this.spaceController = new SpaceControllerService(this.request);
+        this.spaceDocController = new SpaceDocControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
         this.spaceRepositoryController = new SpaceRepositoryControllerService(this.request);
         this.spaceSidebarTreeController = new SpaceSidebarTreeControllerService(this.request);

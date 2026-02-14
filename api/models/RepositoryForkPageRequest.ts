@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 仓库 fork 翻页请求
+ * Repository fork 翻页请求
  */
 export type RepositoryForkPageRequest = {
     /**
@@ -19,3 +19,4 @@ export type RepositoryForkPageRequest = {
      */
     repositoryId: number;
 };
+

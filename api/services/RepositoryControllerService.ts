@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultRepository } from '../models/ApiResultRepository';
 import type { ApiResultPageBaseRespRepository } from '../models/ApiResultPageBaseRespRepository';
+import type { ApiResultRepository } from '../models/ApiResultRepository';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RepositoryForkPageRequest } from '../models/RepositoryForkPageRequest';
 import type { RepositoryPageByUserRequest } from '../models/RepositoryPageByUserRequest';
@@ -14,8 +14,8 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class RepositoryControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 鏇存柊涓€涓墽鏈?
-     * 鏍规嵁璇锋眰鏇存柊
+     * 更新仓库
+     * 根据请求更新
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -37,8 +37,8 @@ export class RepositoryControllerService {
         });
     }
     /**
-     * 鏍规嵁鐢ㄦ埛ID鑾峰彇鍓ф湰鍒楄〃
-     * 鑾峰彇鎸囧畾鐢ㄦ埛鍒涘缓鐨勫墽鏈垪琛?
+     * 根据用户ID获取仓库列表
+     * 获取指定用户创建的仓库列表
      * @param requestBody
      * @returns ApiResultPageBaseRespRepository OK
      * @throws ApiError
@@ -49,6 +49,29 @@ export class RepositoryControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/repository/user/page',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取仓库列表
+     * 分页获取已发布的根仓库列表
+     * @param requestBody
+     * @returns ApiResultPageBaseRespRepository OK
+     * @throws ApiError
+     */
+    public page(
+        requestBody: RepositoryPageRequest,
+    ): CancelablePromise<ApiResultPageBaseRespRepository> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/repository/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -83,31 +106,8 @@ export class RepositoryControllerService {
         });
     }
     /**
-     * 鑾峰彇涓€涓窇鍥㈢殑鍓ф湰鍒楄〃
-     * 鍒嗛〉鑾峰彇涓€涓窇鍥㈢殑鍓ф湰鍒楄〃,鍙互鏍规嵁ruleId鍒嗛〉
-     * @param requestBody
-     * @returns ApiResultPageBaseRespRepository OK
-     * @throws ApiError
-     */
-    public page(
-        requestBody: RepositoryPageRequest,
-    ): CancelablePromise<ApiResultPageBaseRespRepository> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/repository/page',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 鑾峰彇涓€涓窇鍥㈢殑鍓ф湰璇︽儏
-     * 鏍规嵁id鑾峰彇涓€涓窇鍥㈢殑鍓ф湰璇︽儏
+     * 获取仓库详情
+     * 根据id获取仓库详情
      * @param id ID
      * @returns ApiResultRepository OK
      * @throws ApiError
@@ -130,4 +130,3 @@ export class RepositoryControllerService {
         });
     }
 }
-

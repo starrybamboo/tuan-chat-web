@@ -1,3 +1,4 @@
+import type { Space } from "api/models/Space";
 import type { RepositoryData } from "./constants";
 import { useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery, useRepositoryForkListQuery } from "api/hooks/repositoryQueryHooks";
@@ -19,6 +20,38 @@ interface RepositoryDetailComponentProps {
   embedded?: boolean;
   viewModeOpen?: boolean;
   onViewModeOpenChange?: (open: boolean) => void;
+}
+
+type RepositorySpaceCandidate = Space & { spaceId: number };
+
+function isValidSpaceId(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function parseSpaceUpdateTime(value?: string): number {
+  const timestamp = Date.parse(value ?? "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function normalizeSidebarTreeJson(treeJson?: string | null): string | null {
+  if (typeof treeJson !== "string") {
+    return null;
+  }
+  const normalized = treeJson.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function isRepositorySpaceCandidate(space: Space, repositoryId: number): space is RepositorySpaceCandidate {
+  return space.repositoryId === repositoryId && isValidSpaceId(space.spaceId);
+}
+
+function listRepositorySpaceCandidates(spaces: Space[], repositoryId: number): RepositorySpaceCandidate[] {
+  if (!isValidSpaceId(repositoryId)) {
+    return [];
+  }
+  return spaces
+    .filter(space => isRepositorySpaceCandidate(space, repositoryId))
+    .sort((a, b) => parseSpaceUpdateTime(b.updateTime) - parseSpaceUpdateTime(a.updateTime));
 }
 
 export default function RepositoryDetailComponent({
@@ -72,9 +105,8 @@ export default function RepositoryDetailComponent({
   // 获取 userSpace 数据
   const getUserSpaces = useGetUserSpacesQuery();
   const userSpaces = useMemo(() => getUserSpaces.data?.data ?? [], [getUserSpaces.data?.data]);
-  const repositorySpace = useMemo(() => {
-    return userSpaces.find(space => space.repositoryId === repositoryId) ?? null;
-  }, [userSpaces, repositoryId]);
+  const repositorySpaces = useMemo(() => listRepositorySpaceCandidates(userSpaces, repositoryId), [repositoryId, userSpaces]);
+  const repositorySpace = repositorySpaces[0] ?? null;
 
   // 克隆成功后显示弹窗
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -234,21 +266,73 @@ export default function RepositoryDetailComponent({
 
   // ===== 事件处理函数 =====
   const handleCloneModule = async () => {
+    const pickSourceSpaceIdFromCandidates = async (candidates: RepositorySpaceCandidate[]) => {
+      if (candidates.length === 0) {
+        return null;
+      }
+
+      // 同仓库可能存在多个空间，优先选“有 sidebarTree 且最近更新”的来源。
+      const hasSidebarTreeFlags = await Promise.all(
+        candidates.map(async (space) => {
+          try {
+            const sidebarTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(space.spaceId);
+            return Boolean(normalizeSidebarTreeJson(sidebarTreeResult.data?.treeJson));
+          }
+          catch {
+            return false;
+          }
+        }),
+      );
+      const candidateIndex = hasSidebarTreeFlags.findIndex(Boolean);
+      if (candidateIndex >= 0) {
+        return candidates[candidateIndex].spaceId;
+      }
+      return candidates[0].spaceId;
+    };
+
     const pickSourceSpaceId = async () => {
-      const localSpaceId = repositorySpace?.spaceId;
-      if (typeof localSpaceId === "number" && Number.isFinite(localSpaceId) && localSpaceId > 0) {
-        return localSpaceId;
+      const localSourceSpaceId = await pickSourceSpaceIdFromCandidates(repositorySpaces);
+      if (isValidSpaceId(localSourceSpaceId)) {
+        return localSourceSpaceId;
       }
 
       const freshSpacesResult = await getUserSpaces.refetch();
       const freshSpaces = freshSpacesResult.data?.data ?? [];
-      const fallbackSpace = freshSpaces.find(space => space.repositoryId === repositoryId);
-      const fallbackSpaceId = fallbackSpace?.spaceId;
-      if (typeof fallbackSpaceId === "number" && Number.isFinite(fallbackSpaceId) && fallbackSpaceId > 0) {
-        return fallbackSpaceId;
+      const fallbackCandidates = listRepositorySpaceCandidates(freshSpaces, repositoryId);
+      return pickSourceSpaceIdFromCandidates(fallbackCandidates);
+    };
+
+    const syncSidebarTreeAfterClone = async (sourceSpaceId: number, clonedSpaceId: number) => {
+      const sourceTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(sourceSpaceId);
+      const sourceTreeJson = normalizeSidebarTreeJson(sourceTreeResult.data?.treeJson);
+      if (!sourceTreeJson) {
+        return;
       }
 
-      return null;
+      const clonedTreeResult = await tuanchat.spaceSidebarTreeController.getSidebarTree(clonedSpaceId);
+      const clonedTreeJson = normalizeSidebarTreeJson(clonedTreeResult.data?.treeJson);
+      if (clonedTreeJson === sourceTreeJson) {
+        return;
+      }
+
+      const expectedVersion = clonedTreeResult.data?.version ?? 0;
+      const setResult = await tuanchat.spaceSidebarTreeController.setSidebarTree({
+        spaceId: clonedSpaceId,
+        expectedVersion,
+        treeJson: sourceTreeJson,
+      });
+
+      // 版本冲突时，按服务端返回的最新版本再尝试一次。
+      if (!setResult.success && setResult.data?.treeJson !== sourceTreeJson) {
+        const retryVersion = setResult.data?.version;
+        if (typeof retryVersion === "number" && Number.isFinite(retryVersion) && retryVersion >= 0) {
+          await tuanchat.spaceSidebarTreeController.setSidebarTree({
+            spaceId: clonedSpaceId,
+            expectedVersion: retryVersion,
+            treeJson: sourceTreeJson,
+          });
+        }
+      }
     };
 
     try {
@@ -261,6 +345,13 @@ export default function RepositoryDetailComponent({
       const clonedSpaceId = cloneResult.data;
       if (!(typeof clonedSpaceId === "number" && Number.isFinite(clonedSpaceId) && clonedSpaceId > 0)) {
         throw new Error("克隆后未返回有效空间ID");
+      }
+
+      try {
+        await syncSidebarTreeAfterClone(sourceSpaceId, clonedSpaceId);
+      }
+      catch (syncError) {
+        console.warn("[RepositoryDetail] 同步 sidebarTree 失败，已忽略：", syncError);
       }
 
       setViewModeOpen(false);
