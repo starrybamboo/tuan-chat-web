@@ -16,7 +16,7 @@ export type RoomDndMapSnapshot = {
   updatedAt?: number;
 };
 
-export type RoomDndMapChangeOp = "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+type RoomDndMapChangeOp = "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
 
 export type RoomDndMapChangeEvent = {
   roomId: number;

@@ -10,6 +10,7 @@ import {
   recordAnnotationUsage,
   saveCustomAnnotations,
 } from "@/components/chat/message/annotations/annotationCatalog";
+import { normalizeAnnotations } from "@/types/messageAnnotations";
 
 interface AnnotationPickerProps {
   initialSelected?: string[];
@@ -25,10 +26,11 @@ function existsByLabel(catalog: AnnotationDefinition[], label: string, category?
 }
 
 const DEFAULT_SELECTED: string[] = [];
+const normalizeSelected = (list: string[] | undefined) => Array.from(new Set(normalizeAnnotations(list)));
 
 export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, onChange, onClose }: AnnotationPickerProps) {
   const [catalog, setCatalog] = useState<AnnotationDefinition[]>([]);
-  const [selected, setSelected] = useState<string[]>(initialSelected);
+  const [selected, setSelected] = useState<string[]>(() => normalizeSelected(initialSelected));
   const [usage, setUsage] = useState<Record<string, number>>({});
   const [customLabel, setCustomLabel] = useState("");
   const [customCategory, setCustomCategory] = useState("");
@@ -39,7 +41,7 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, o
   }, []);
 
   useEffect(() => {
-    setSelected(initialSelected);
+    setSelected(normalizeSelected(initialSelected));
   }, [initialSelected]);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -60,8 +62,9 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, o
   }, [catalog]);
 
   const applySelection = useCallback((next: string[]) => {
-    setSelected(next);
-    onChange?.(next);
+    const normalized = normalizeSelected(next);
+    setSelected(normalized);
+    onChange?.(normalized);
   }, [onChange]);
 
   const handleToggle = useCallback((id: string) => {

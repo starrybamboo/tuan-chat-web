@@ -502,8 +502,8 @@ function RoomComposerPanelImpl({
 
           {insertAfterMessageId && (
             <div className="p-2 pb-1">
-              <div className="flex flex-row gap-2 items-center bg-info/20 rounded-md shadow-sm text-sm p-2 justify-between">
-                <span className="text-info-content">将插入到消息后</span>
+              <div className="flex flex-row gap-2 items-center bg-info/20 border border-info/40 rounded-md shadow-sm text-sm p-2 justify-between">
+                <span className="text-base-content/90 font-medium">将插入到消息后</span>
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost"

@@ -429,7 +429,7 @@ export class RealtimeRenderer {
   private pendingDiceMergeMap = new Map<string, PendingDiceMergeEntry>(); // `${roomId}_${messageId}` -> 延迟渲染的骰子消息
   private lastFigureSlotIdMap = new Map<number, string>(); // roomId -> 最近一次显示的立绘槽位 id
   private renderedFigureStateMap = new Map<number, Map<string, RoomFigureRenderState>>(); // roomId -> slotId -> 最近一次下发的立绘状态
-  private annotationEffectSoundCache = new Map<string, string | null>(); // effectId -> 可用音效文件名
+  private annotationEffectSoundCache = new Map<string, string>(); // effectId -> 可用音效文件名
   // 自动跳转已永久关闭，避免新增消息打断当前预览位置
   private readonly autoJumpEnabled = false;
 
@@ -1426,9 +1426,8 @@ export class RealtimeRenderer {
     }
     if (this.annotationEffectSoundCache.has(effectId)) {
       const cached = this.annotationEffectSoundCache.get(effectId);
-      if (!cached) {
+      if (!cached)
         return null;
-      }
       const base = getTerreBaseUrl().replace(/\/$/, "");
       return {
         url: `${base}/games/${this.gameName}/game/se/effects/${cached}`,
@@ -1436,7 +1435,6 @@ export class RealtimeRenderer {
     }
     const soundCandidates = getEffectSoundFileCandidates(effectId);
     if (!soundCandidates || soundCandidates.length === 0) {
-      this.annotationEffectSoundCache.set(effectId, null);
       return null;
     }
     const soundDir = `games/${this.gameName}/game/se/effects`;
@@ -1456,7 +1454,6 @@ export class RealtimeRenderer {
         continue;
       }
     }
-    this.annotationEffectSoundCache.set(effectId, null);
     return null;
   }
 
@@ -1889,8 +1886,13 @@ export class RealtimeRenderer {
           return;
         }
         else {
+          const effectName = effectMessage.effectName.trim();
+          const effectSound = await this.resolveAnnotationEffectSound(effectName);
+          if (effectSound) {
+            await this.appendLine(targetRoomId, `playEffect:${effectSound.url} -next;`, syncToFile);
+          }
           // 应用特效：pixiPerform:rain -next;
-          command = `pixiPerform:${effectMessage.effectName} -next;`;
+          command = `pixiPerform:${effectName} -next;`;
         }
         await this.appendLine(targetRoomId, command, syncToFile);
         if (syncToFile)

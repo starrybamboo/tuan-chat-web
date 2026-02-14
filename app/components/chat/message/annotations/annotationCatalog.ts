@@ -32,7 +32,7 @@ export type AnnotationDefinition = {
   effectFrames?: number;
 };
 
-export const ANNOTATION_TONE_CLASSES: Record<AnnotationTone, string> = {
+const ANNOTATION_TONE_CLASSES: Record<AnnotationTone, string> = {
   neutral: "border-base-300 bg-base-200/70 text-base-content/80 hover:bg-base-300",
   info: "border-info/30 bg-info/15 text-info hover:bg-info/20",
   success: "border-success/30 bg-success/15 text-success hover:bg-success/20",
@@ -57,20 +57,20 @@ const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "sys:bg", label: "背景", category: "图片", tone: "primary", source: "builtin" },
   { id: "image.show", label: "展示", category: "图片", tone: "primary", source: "builtin" },
 
-  { id: "effect.1", label: "特效1", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171542.webp", hideLabel: true, effectFrames: 36 },
-  { id: "effect.2", label: "特效2", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171543.webp", hideLabel: true, effectFrames: 22 },
-  { id: "effect.3", label: "特效3", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171545.webp", hideLabel: true, effectFrames: 26 },
-  { id: "effect.4", label: "特效4", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171546.webp", hideLabel: true, effectFrames: 42 },
-  { id: "effect.5", label: "特效5", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171548.webp", hideLabel: true, effectFrames: 33 },
-  { id: "effect.6", label: "特效6", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171549.webp", hideLabel: true, effectFrames: 54 },
-  { id: "effect.7", label: "特效7", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171550.webp", hideLabel: true, effectFrames: 47 },
-  { id: "effect.8", label: "特效8", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171552.webp", hideLabel: true, effectFrames: 33 },
-  { id: "effect.9", label: "特效9", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171553.webp", hideLabel: true, effectFrames: 34 },
-  { id: "effect.10", label: "特效10", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171555.webp", hideLabel: true, effectFrames: 38 },
-  { id: "effect.11", label: "特效11", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171556.webp", hideLabel: true, effectFrames: 26 },
-  { id: "effect.12", label: "特效12", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171557.webp", hideLabel: true, effectFrames: 35 },
-  { id: "effect.13", label: "特效13", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171558.webp", hideLabel: true, effectFrames: 20 },
-  { id: "effect.14", label: "特效14", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/飞书20260208-171627.webp", hideLabel: true, effectFrames: 26 },
+  { id: "effect.en_hmm.webp", label: "en_hmm", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_hmm.webp", hideLabel: true, effectFrames: 36 },
+  { id: "effect.en_doubt.webp", label: "en_doubt", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_doubt.webp", hideLabel: true, effectFrames: 22 },
+  { id: "effect.en_answer.webp", label: "en_answer", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_answer.webp", hideLabel: true, effectFrames: 26 },
+  { id: "effect.en_sad.webp", label: "en_sad", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_sad.webp", hideLabel: true, effectFrames: 42 },
+  { id: "effect.en_sweat.webp", label: "en_sweat", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_sweat.webp", hideLabel: true, effectFrames: 33 },
+  { id: "effect.en_shiny.webp", label: "en_shiny", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_shiny.webp", hideLabel: true, effectFrames: 54 },
+  { id: "effect.en_upset.webp", label: "en_upset", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_upset.webp", hideLabel: true, effectFrames: 47 },
+  { id: "effect.en_shy.webp", label: "en_shy", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_shy.webp", hideLabel: true, effectFrames: 33 },
+  { id: "effect.en_suki.webp", label: "en_suki", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_suki.webp", hideLabel: true, effectFrames: 34 },
+  { id: "effect.en_warning.webp", label: "en_warning", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_warning.webp", hideLabel: true, effectFrames: 38 },
+  { id: "effect.en_omit.webp", label: "en_omit", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_omit.webp", hideLabel: true, effectFrames: 26 },
+  { id: "effect.en_chat.webp", label: "en_chat", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_chat.webp", hideLabel: true, effectFrames: 35 },
+  { id: "effect.en_getit.webp", label: "en_getit", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_getit.webp", hideLabel: true, effectFrames: 20 },
+  { id: "effect.en_angry.webp", label: "en_angry", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_angry.webp", hideLabel: true, effectFrames: 26 },
 
   { id: "figure.anim.ba-exit-to-left", label: "从左退场", category: "立绘", tone: "accent", source: "builtin", icon: ExitToLeftIcon, hideLabel: true },
   { id: "figure.anim.ba-enter-from-left", label: "从左入场", category: "立绘", tone: "accent", source: "builtin", icon: EnterFromLeftIcon, hideLabel: true },
@@ -112,8 +112,6 @@ function safeParseJson<T>(raw: string | null, fallback: T): T {
     return fallback;
   }
 }
-
-export const getBuiltinAnnotations = (): AnnotationDefinition[] => BUILTIN_ANNOTATIONS.slice();
 
 function isValidAnnotation(value: any): value is AnnotationDefinition {
   return value && typeof value.id === "string" && typeof value.label === "string";

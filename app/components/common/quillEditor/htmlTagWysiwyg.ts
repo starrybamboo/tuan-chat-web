@@ -87,7 +87,7 @@ function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | null {
 }
 
 // 调用入口：在空格插入后，提供当前行(到空格前)文本进行检测并输出
-export function logHtmlTagIfAny(lineLeft: string): void {
+function _logHtmlTagIfAny(lineLeft: string): void {
   const r = detectHtmlTagOnSpace(lineLeft);
   if (r) {
     // 暂时只输出
@@ -104,7 +104,7 @@ export function logHtmlTagIfAny(lineLeft: string): void {
 //  lineLeft: 当前行（到空格前）文本
 //  globalIndex: 空格的文档 index（即刚刚插入的空格位置）
 // 返回：true 表示已处理并替换；false 表示未处理
-export function convertHtmlTagIfAny(
+function _convertHtmlTagIfAny(
   quillInstance: any,
   lineLeft: string,
   globalIndex: number,

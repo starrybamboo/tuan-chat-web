@@ -3,6 +3,7 @@ import {
   buildAnnotationMap,
   getAnnotationToneClass,
 } from "@/components/chat/message/annotations/annotationCatalog";
+import { normalizeAnnotations } from "@/types/messageAnnotations";
 
 interface MessageAnnotationsBarProps {
   annotations?: string[];
@@ -25,7 +26,7 @@ export default function MessageAnnotationsBar({
   alwaysShowAddButton = false,
   className,
 }: MessageAnnotationsBarProps) {
-  const items = Array.isArray(annotations) ? annotations : DEFAULT_ANNOTATIONS;
+  const items = Array.from(new Set(normalizeAnnotations(annotations)));
   const annotationMap = buildAnnotationMap();
   const getToneClass = (def?: AnnotationDefinition) => getAnnotationToneClass(def?.tone ?? "neutral");
   const getFigureToneClass = (def?: AnnotationDefinition) => {

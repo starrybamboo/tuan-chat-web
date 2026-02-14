@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 // AI生成的预览数据类型
-export interface AIGeneratedData {
+interface AIGeneratedData {
   act?: Record<string, string>;
   basic?: Record<string, string>;
   ability?: Record<string, string>;

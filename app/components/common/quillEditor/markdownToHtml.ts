@@ -220,7 +220,7 @@ export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<strin
 /**
  * 将 HTML 或纯文本中的 @类别名称 转成 span.ql-mention-span
  */
-export function enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "地点", "物品"]): string {
+function _enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "地点", "物品"]): string {
   if (!raw)
     return "";
   if (typeof document === "undefined") {

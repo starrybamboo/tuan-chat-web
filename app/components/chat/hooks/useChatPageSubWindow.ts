@@ -4,7 +4,7 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 
 export type ChatPageSubWindowTab = "empty" | "room" | "doc" | "thread";
 
-export type ChatPageSubWindowSnapshot = {
+type ChatPageSubWindowSnapshot = {
   isOpen: boolean;
   width: number;
   tab: ChatPageSubWindowTab;

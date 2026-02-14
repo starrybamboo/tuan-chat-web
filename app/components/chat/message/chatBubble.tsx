@@ -47,7 +47,6 @@ interface CommandRequestPayload {
   allowedRoleIds?: number[];
 }
 
-const EMPTY_ANNOTATIONS: string[] = [];
 const EFFECT_PREVIEW_DURATION_MS = 2000;
 
 function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHintMeta, onExecuteCommandRequest, onOpenThread, onToggleSelection, onEditWebgalChoose }: {
@@ -65,9 +64,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 }) {
   const message = chatMessageResponse.message;
   const annotations = useMemo(() => {
-    const base = Array.isArray(message.annotations)
-      ? (message.annotations ?? EMPTY_ANNOTATIONS)
-      : EMPTY_ANNOTATIONS;
+    const base = normalizeAnnotations(message.annotations);
     if (message.messageType === MESSAGE_TYPE.IMG && message.extra?.imageMessage?.background) {
       return base.includes(ANNOTATION_IDS.BACKGROUND) ? base : [...base, ANNOTATION_IDS.BACKGROUND];
     }

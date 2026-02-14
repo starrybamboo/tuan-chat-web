@@ -1,6 +1,6 @@
 import type { AudioTranscodeOptions } from "@/utils/audioTranscodeUtils";
 
-export const AUDIO_UPLOAD_MAX_INPUT_BYTES = 30 * 1024 * 1024;
+const AUDIO_UPLOAD_MAX_INPUT_BYTES = 30 * 1024 * 1024;
 const AUDIO_UPLOAD_PREFER_SMALLER_MIN_BYTES = 48 * 1024;
 
 function normalizeMaxDurationSec(maxDurationSec?: number): number | undefined {
@@ -22,7 +22,7 @@ export function assertAudioUploadInputSizeOrThrow(inputBytes: number): void {
   throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 ${maxMb}MB）`);
 }
 
-export function resolveAudioTranscodeExecTimeoutMs(inputBytes: number, maxDurationSec?: number): number {
+function resolveAudioTranscodeExecTimeoutMs(inputBytes: number, maxDurationSec?: number): number {
   const normalizedDuration = normalizeMaxDurationSec(maxDurationSec);
   if (normalizedDuration) {
     return Math.max(60_000, Math.min(240_000, Math.floor(normalizedDuration * 4_000)));

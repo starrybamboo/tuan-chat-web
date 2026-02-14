@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export type ChatFrameOverlayState = {
+type ChatFrameOverlayState = {
   isForwardWindowOpen: boolean;
   isExportFileWindowOpen: boolean;
   isExportImageWindowOpen: boolean;

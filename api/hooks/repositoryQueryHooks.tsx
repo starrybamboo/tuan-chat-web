@@ -178,7 +178,7 @@ type DeprecatedRepositoryInfoResponse = {
 /**
  * 获取仓库信息
  */
-export function useRepositoryInfoQuery(repositoryId: number, branchId?: number) {
+function useRepositoryInfoQuery(repositoryId: number, branchId?: number) {
     return useQuery<DeprecatedApiResult<DeprecatedRepositoryInfoResponse>>({
         queryKey: ['repositoryInfo', repositoryId, branchId],
         // 后端已下线 Commit/RepositoryInfo；返回占位数据，避免旧页面报错。
