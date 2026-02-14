@@ -4,9 +4,8 @@
   "copyright": "Copyright © 2025 ${tuan-chat}",
   "publish": [
     {
-      "provider": "github",
-      "owner": "starrybamboo",
-      "repo": "tuan-chat-web"
+      "provider": "generic",
+      "url": "http://47.119.147.6:84/"
     }
   ],
   "files": ["./electron", "./build"],
