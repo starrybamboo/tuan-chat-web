@@ -172,6 +172,7 @@ export function SpriteCropper({
     ? `avatar:${filteredAvatars[currentSpriteIndex]?.avatarId ?? currentSpriteIndex}:source:${sourceMode}`
     : `url:${currentUrl}:source:${sourceMode}`;
   const latestSwitchKeyRef = useRef<string>(spriteSwitchKey);
+  const lastResetSourceUrlRef = useRef<string | null>(null);
   const [previewReadyKey, setPreviewReadyKey] = useState<string>("");
   const isPreviewReady = previewReadyKey === spriteSwitchKey;
 
@@ -256,6 +257,17 @@ export function SpriteCropper({
 
   // 切换裁剪源/图片时重置裁剪状态，避免沿用旧的 crop 尺寸导致“看起来没切换”
   useLayoutEffect(() => {
+    // 首次挂载不重置，避免与初始化 onLoad 竞争导致 completedCrop 被清空。
+    if (lastResetSourceUrlRef.current === null) {
+      lastResetSourceUrlRef.current = currentUrl;
+      return;
+    }
+
+    if (lastResetSourceUrlRef.current === currentUrl) {
+      return;
+    }
+
+    lastResetSourceUrlRef.current = currentUrl;
     resetCropState();
     setPreviewReadyKey("");
   }, [currentUrl, resetCropState]);
