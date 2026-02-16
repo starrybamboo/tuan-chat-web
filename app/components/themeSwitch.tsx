@@ -4,10 +4,11 @@ import { useEffect } from "react";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
 export default function ThemeSwitch() {
-  // 是否反转浏览器的暗亮模式，存到localstorage中
-  const [reverseDarkMode, setIsDarkMode] = useLocalStorage("reverseDarkMode", false);
   // 浏览器的暗亮模式
   const prefersIsDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  // 是否反转浏览器的暗亮模式，存到localstorage中
+  // 默认反转一次，确保初始主题为夜间模式
+  const [reverseDarkMode, setIsDarkMode] = useLocalStorage("reverseDarkMode", !prefersIsDarkMode);
 
   const lightTheme = "light";
   // 站点 CSS 里自定义的 DaisyUI 主题名是 "dark"（并且 Tailwind 的 dark: 变体也只匹配 data-theme=dark）

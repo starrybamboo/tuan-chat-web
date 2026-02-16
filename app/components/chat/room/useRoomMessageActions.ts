@@ -1,11 +1,11 @@
 import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
+import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { WebgalChoosePayload } from "@/types/webgalChoose";
 import type { SpaceWebgalVarsRecord, WebgalVarMessagePayload } from "@/types/webgalVar";
 
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
@@ -25,6 +25,7 @@ type UseRoomMessageActionsParams = {
   addOrUpdateMessage?: (message: ChatMessageResponse) => void;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   setSpaceExtra: (payload: { spaceId: number; key: string; value: string }) => Promise<unknown>;
+  roomUiStoreApi: RoomUiStoreApi;
 };
 
 type UseRoomMessageActionsResult = {
@@ -47,12 +48,13 @@ export default function useRoomMessageActions({
   addOrUpdateMessage,
   ensureRuntimeAvatarIdForRole,
   setSpaceExtra,
+  roomUiStoreApi,
 }: UseRoomMessageActionsParams): UseRoomMessageActionsResult {
   const webgalVarSendingRef = useRef(false);
   const webgalChooseSendingRef = useRef(false);
 
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
-    const insertAfterMessageId = useRoomUiStore.getState().insertAfterMessageId;
+    const insertAfterMessageId = roomUiStoreApi.getState().insertAfterMessageId;
 
     if (insertAfterMessageId && mainHistoryMessages?.length) {
       const targetIndex = mainHistoryMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
@@ -95,7 +97,7 @@ export default function useRoomMessageActions({
     else {
       send(message);
     }
-  }, [addOrUpdateMessage, mainHistoryMessages, send, sendMessage]);
+  }, [addOrUpdateMessage, mainHistoryMessages, roomUiStoreApi, send, sendMessage]);
 
   const handleSetWebgalVar = useCallback(async (key: string, expr: string) => {
     const rawKey = String(key ?? "").trim();

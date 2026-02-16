@@ -66,7 +66,7 @@ export default function CollectionPreview({ collectionId, resourceId, collection
         <div className="relative rounded-lg overflow-hidden w-full">
           {(collectionTypeId === 2) && (
             <div className="flex items-center justify-center w-full h-full text-sm text-gray-500">
-              <img src="http://101.126.143.129:9000/avatar/avatar/5275ec2f0e6ba166343a5ec60c5674d8_31076.webp" className="object-cover w-full h-40"></img>
+              <img src="https://tuan.chat/avatar/avatar/5275ec2f0e6ba166343a5ec60c5674d8_31076.webp" className="object-cover w-full h-40"></img>
             </div>
           )}
         </div>

@@ -3,11 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 仓库更新请求
+ * Repository 更新请求
  */
 export type RepositoryUpdateRequest = {
     /**
-     * 仓库ID
+     * 仓库id
      */
     repositoryId: number;
     /**
@@ -15,36 +15,36 @@ export type RepositoryUpdateRequest = {
      */
     repositoryName?: string;
     /**
-     * 仓库的描述
+     * 仓库描述
      */
     description?: string;
     /**
-     * 仓库作者名字
+     * 作者名字
      */
     authorName?: string;
     readMe?: string;
     /**
-     * 仓库可能需要花费的时间，以小时为单位
+     * 可能需要花费的时间，以小时为单位
      */
     minTime?: number;
     /**
-     * 仓库需要人数
+     * 需要人数
      */
     minPeople?: number;
     /**
-     * 仓库可能需要花费的时间，以小时为单位
+     * 可能需要花费的时间，以小时为单位
      */
     maxTime?: number;
     /**
-     * 仓库需要人数
+     * 需要人数
      */
     maxPeople?: number;
     /**
-     * 仓库封面
+     * 封面
      */
     image?: string;
     /**
-     * 仓库状态，0未发布，1已发布
+     * 状态，0未发布，1已发布
      */
     state?: number;
 };

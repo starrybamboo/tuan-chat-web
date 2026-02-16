@@ -3,76 +3,76 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 仓库表
+ * Repository entity
  */
 export type Repository = {
     /**
-     * 仓库ID
+     * Repository id
      */
     repositoryId?: number;
     /**
-     * 所用的规则id
+     * Rule id
      */
     ruleId?: number;
     /**
-     * 仓库名称
+     * Repository name
      */
     repositoryName?: string;
     /**
-     * 仓库的描述
+     * Description
      */
     description?: string;
     /**
-     * 上传者
+     * Owner id
      */
     userId?: number;
     /**
-     * 作者
+     * Author name
      */
     authorName?: string;
     /**
-     * md内容
+     * Readme content
      */
     readMe?: string;
     /**
-     * 仓库可能需要花费的时间，以小时为单位
+     * Min play time (hours)
      */
     minTime?: number;
     /**
-     * 仓库需要人数
+     * Min people
      */
     minPeople?: number;
     /**
-     * 仓库封面
+     * Cover image
      */
     image?: string;
     /**
-     * 仓库可能需要花费的时间，以小时为单位
+     * Max play time (hours)
      */
     maxTime?: number;
     /**
-     * 仓库需要人数
+     * Max people
      */
     maxPeople?: number;
     /**
-     * 从哪个仓库fork来
+     * Parent repository id
      */
     parentRepositoryId?: number;
     /**
-     * 所属fork网络的根仓库ID(搜索折叠用)
+     * Root repository id
      */
     rootRepositoryId?: number;
     /**
-     * 最新提交id
+     * Head commit id
      */
     commitId?: number;
     state?: number;
     /**
-     * 创建时间
+     * Create time
      */
     createTime?: string;
     /**
-     * 修改时间
+     * Update time
      */
     updateTime?: string;
 };

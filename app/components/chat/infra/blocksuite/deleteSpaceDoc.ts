@@ -28,11 +28,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   try {
     if (remoteKey?.entityType === "space_doc") {
       const { tuanchat } = await import("../../../../../api/instance");
-      await tuanchat.request.request<any>({
-        method: "DELETE",
-        url: "/space/doc",
-        query: { docId: remoteKey.entityId },
-      });
+      await tuanchat.spaceDocController.deleteDoc(remoteKey.entityId);
     }
   }
   catch {

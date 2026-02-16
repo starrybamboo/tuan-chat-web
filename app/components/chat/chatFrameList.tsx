@@ -19,6 +19,7 @@ interface SelectionToolbarProps {
   isSpaceOwner: boolean;
   onCancel: () => void;
   onSelectAll: () => void;
+  onRegexFilter: () => void;
   onExportFile: () => void;
   onExportImage: () => void;
   onForward: () => void;
@@ -32,6 +33,7 @@ const SelectionToolbar = memo(({
   isSpaceOwner,
   onCancel,
   onSelectAll,
+  onRegexFilter,
   onExportFile,
   onExportImage,
   onForward,
@@ -48,6 +50,9 @@ const SelectionToolbar = memo(({
       <div className="gap-x-4 flex">
         <button className="btn btn-sm" onClick={onSelectAll} type="button" disabled={!canSelectAll}>
           全选
+        </button>
+        <button className="btn btn-sm" onClick={onRegexFilter} type="button" disabled={!canSelectAll}>
+          筛选
         </button>
         <button className="btn btn-sm" onClick={onCancel} type="button">
           取消
@@ -140,6 +145,7 @@ interface ChatFrameListProps {
   selectedMessageIds: Set<number>;
   isSelecting: boolean;
   onSelectAll: () => void;
+  onRegexFilter: () => void;
   onExportFile: () => void;
   onCancelSelection: () => void;
   setIsExportImageWindowOpen: (open: boolean) => void;
@@ -165,6 +171,7 @@ export default function ChatFrameList({
   selectedMessageIds,
   isSelecting,
   onSelectAll,
+  onRegexFilter,
   onExportFile,
   onCancelSelection,
   setIsExportImageWindowOpen,
@@ -189,6 +196,7 @@ export default function ChatFrameList({
           isSpaceOwner={isSpaceOwner}
           onCancel={onCancelSelection}
           onSelectAll={onSelectAll}
+          onRegexFilter={onRegexFilter}
           onExportFile={onExportFile}
           onExportImage={() => setIsExportImageWindowOpen(true)}
           onForward={() => setIsForwardWindowOpen(true)}

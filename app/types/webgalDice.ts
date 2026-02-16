@@ -1,7 +1,8 @@
 const DICE_OPTION_PATTERN = /^\s*[0-9\uFF10\uFF11\uFF12\uFF13\uFF14\uFF15\uFF16\uFF17\uFF18\uFF19]+\s*(?:[.)）．。、,:：，]\s*|\s)\S.*$/;
 const DICE_EXPRESSION_PATTERN = /\d*\s*d\s*(?:\d+|%)/i;
+const TRPG_D100_RESULT_PATTERN = /\b(?:100|[1-9]?\d)\s*\/\s*(?:100|[1-9]?\d)\b/;
 
-export type WebgalDiceRenderMode = "dialog" | "narration" | "anko" | "script";
+export type WebgalDiceRenderMode = "dialog" | "narration" | "anko" | "trpg" | "script";
 
 export type WebgalDiceSoundConfig = {
   /** Direct sound URL (highest priority). */
@@ -35,7 +36,7 @@ export type WebgalDiceRenderPayload = {
   sound?: WebgalDiceSoundConfig;
 };
 
-const DICE_RENDER_MODES = new Set<WebgalDiceRenderMode>(["dialog", "narration", "anko", "script"]);
+const DICE_RENDER_MODES = new Set<WebgalDiceRenderMode>(["dialog", "narration", "anko", "trpg", "script"]);
 
 function normalizeLineBreaks(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -105,6 +106,14 @@ export function isLikelyAnkoDiceContent(content: string): boolean {
     return false;
   }
   return lines.some(line => DICE_EXPRESSION_PATTERN.test(line));
+}
+
+export function isLikelyTrpgDiceContent(content: string): boolean {
+  const normalized = normalizeLineBreaks(String(content ?? ""));
+  if (!normalized.trim()) {
+    return false;
+  }
+  return TRPG_D100_RESULT_PATTERN.test(normalized);
 }
 
 export function stripDiceHighlightTokens(content: string, color: string = "#FF6B00"): string {

@@ -1,5 +1,5 @@
-import type { Emoji as EmojiType } from "api/models/Emoji";
-import EmojiWindow from "@/components/chat/window/EmojiWindow";
+import type { Sticker as StickerType } from "api/models/Sticker";
+import StickerWindow from "@/components/chat/window/StickerWindow";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -11,7 +11,17 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
   const webSocketUtils = globalContext.websocketUtils;
 
   // 消息发送hook
-  const { messageInput, setMessageInput, imgFiles, updateImgFiles, emojiUrls, updateEmojiUrls, handleSendMessage } = usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId });
+  const {
+    messageInput,
+    setMessageInput,
+    imgFiles,
+    updateImgFiles,
+    emojiUrls,
+    updateEmojiUrls,
+    setEmojiMetaByUrl,
+    removeEmojiMetaByUrl,
+    handleSendMessage,
+  } = usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId });
 
   /**
    * 文本消息发送
@@ -46,7 +56,10 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
               <BetterImg
                 src={url}
                 className="h-14 w-max rounded"
-                onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                onClose={() => {
+                  updateEmojiUrls(draft => void draft.splice(index, 1));
+                  removeEmojiMetaByUrl(url);
+                }}
                 key={url}
               />
             ))}
@@ -68,7 +81,7 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
             />
           </div>
           <div className="flex items-center gap-2">
-            <Emoji updateEmojiUrls={updateEmojiUrls}>
+            <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
               <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
             </Emoji>
 
@@ -106,7 +119,10 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
               <BetterImg
                 src={url}
                 className="h-14 w-max rounded"
-                onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                onClose={() => {
+                  updateEmojiUrls(draft => void draft.splice(index, 1));
+                  removeEmojiMetaByUrl(url);
+                }}
                 key={url}
               />
             ))}
@@ -128,7 +144,7 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
         <div className="h-12 w-full flex items-center justify-between px-2">
           {/* 工具 */}
           <div className="h-full flex items-center gap-4">
-            <Emoji updateEmojiUrls={updateEmojiUrls}>
+            <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
               <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
             </Emoji>
             <Image updateImgFiles={updateImgFiles}>
@@ -150,8 +166,16 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
   );
 }
 
-function Emoji({ children, updateEmojiUrls }: { children: React.ReactNode; updateEmojiUrls: (recipe: (draft: string[]) => void) => void }) {
-  const onChoose = async (emoji: EmojiType) => {
+function Emoji({
+  children,
+  updateEmojiUrls,
+  setEmojiMetaByUrl,
+}: {
+  children: React.ReactNode;
+  updateEmojiUrls: (recipe: (draft: string[]) => void) => void;
+  setEmojiMetaByUrl: (url: string, meta: { width?: number; height?: number; size?: number; fileName?: string }) => void;
+}) {
+  const onChoose = async (emoji: StickerType) => {
     // 添加到表情列表
     updateEmojiUrls((draft) => {
       const newUrl = emoji?.imageUrl;
@@ -159,6 +183,14 @@ function Emoji({ children, updateEmojiUrls }: { children: React.ReactNode; updat
         draft.push(newUrl);
       }
     });
+    if (emoji?.imageUrl) {
+      setEmojiMetaByUrl(emoji.imageUrl, {
+        width: emoji.width,
+        height: emoji.height,
+        size: emoji.fileSize,
+        fileName: emoji.name,
+      });
+    }
   };
   return (
     <div className="dropdown dropdown-top flex items-center justify-center h-full">
@@ -176,7 +208,7 @@ function Emoji({ children, updateEmojiUrls }: { children: React.ReactNode; updat
         tabIndex={0}
         className="dropdown-content menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto w-96 transform -translate-x-1/3 md:translate-x-0"
       >
-        <EmojiWindow onChoose={onChoose}></EmojiWindow>
+        <StickerWindow onChoose={onChoose}></StickerWindow>
       </ul>
     </div>
   );

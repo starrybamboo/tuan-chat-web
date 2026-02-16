@@ -4,7 +4,7 @@ const ROOM_MAP_PATH_REGEX = /^\/room-map\/\d+\/\d+(?:\/|$)/;
 const ROOM_MAP_URL_REGEX = /^(?:https?:\/\/[^/]+)?\/room-map\/\d+\/\d+(?:[/?#].*)?$/i;
 const FALLBACK_ORIGIN = "http://localhost";
 
-export function isRoomMapUrl(rawUrl: string): boolean {
+function isRoomMapUrl(rawUrl: string): boolean {
   try {
     const url = new URL(rawUrl, FALLBACK_ORIGIN);
     return ROOM_MAP_PATH_REGEX.test(url.pathname);
@@ -14,7 +14,7 @@ export function isRoomMapUrl(rawUrl: string): boolean {
   }
 }
 
-export function normalizeRoomMapUrl(rawUrl: string): string | null {
+function normalizeRoomMapUrl(rawUrl: string): string | null {
   try {
     const base = typeof window === "undefined" ? FALLBACK_ORIGIN : window.location.origin;
     const url = new URL(rawUrl, base);

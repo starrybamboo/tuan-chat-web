@@ -1,5 +1,5 @@
 // NovelAI 自然语言 prompt → tags 工具：通过后端 LLM 将自然语言描述转换为适合 NovelAI 的 tags/negative tags。
-import { tuanchat } from "../../api/instance";
+import { relayAiGatewayText } from "./aiRelay";
 
 export type NovelAiNl2TagsResult = {
   prompt: string;
@@ -67,8 +67,10 @@ export async function convertNaturalLanguageToNovelAiTags(args: {
     safeNegativeHint ? `用户不希望出现：${safeNegativeHint}` : "",
   ].filter(Boolean).join("\n");
 
-  const res = await tuanchat.aiWritingController.flash(promptText);
-  const raw = String(res?.data ?? "").trim();
+  const raw = (await relayAiGatewayText({
+    model: "qwen-flash",
+    prompt: promptText,
+  })).trim();
   if (!raw)
     throw new Error("NL→tags 转换失败：后端未返回内容");
 

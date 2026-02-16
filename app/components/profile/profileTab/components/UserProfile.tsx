@@ -1,4 +1,4 @@
-import type { UserInfoResponse } from "../../../../../api";
+import type { UserProfileInfoResponse } from "../../../../../api/models/UserProfileInfoResponse";
 import React, { useState } from "react";
 
 interface ProfileEditingState {
@@ -13,7 +13,7 @@ interface ProfileEditingState {
 }
 
 interface UserProfileProps {
-  user: UserInfoResponse | undefined;
+  user: UserProfileInfoResponse | undefined;
   userId: number;
   loginUserId: number;
   isLoading: boolean;

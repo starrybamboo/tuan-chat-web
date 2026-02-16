@@ -204,17 +204,20 @@ export class AbilityControllerService {
     /**
      * 根据角色id获得角色的所有能力
      * @param roleId
+     * @param commitId
      * @returns ApiResultListRoleAbility OK
      * @throws ApiError
      */
     public listRoleAbility(
         roleId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultListRoleAbility> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/role/ability/list',
             query: {
                 'roleId': roleId,
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,

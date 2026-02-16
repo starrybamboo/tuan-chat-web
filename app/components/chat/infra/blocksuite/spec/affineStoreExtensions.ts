@@ -15,6 +15,7 @@ import { EmbedDocStoreExtension } from "@blocksuite/affine/blocks/embed-doc/stor
 import { EmbedStoreExtension } from "@blocksuite/affine/blocks/embed/store";
 import { FrameStoreExtension } from "@blocksuite/affine/blocks/frame/store";
 import { ImageStoreExtension } from "@blocksuite/affine/blocks/image/store";
+import { LatexStoreExtension as BlockLatexStoreExtension } from "@blocksuite/affine/blocks/latex/store";
 import { ListStoreExtension } from "@blocksuite/affine/blocks/list/store";
 import { NoteStoreExtension } from "@blocksuite/affine/blocks/note/store";
 import { ParagraphStoreExtension } from "@blocksuite/affine/blocks/paragraph/store";
@@ -25,7 +26,7 @@ import { TableStoreExtension } from "@blocksuite/affine/blocks/table/store";
 import { StoreExtensionManager } from "@blocksuite/affine/ext-loader";
 import { ConnectorStoreExtension } from "@blocksuite/affine/gfx/connector/store";
 import { FootnoteStoreExtension } from "@blocksuite/affine/inlines/footnote/store";
-import { LatexStoreExtension } from "@blocksuite/affine/inlines/latex/store";
+import { LatexStoreExtension as InlineLatexStoreExtension } from "@blocksuite/affine/inlines/latex/store";
 import { LinkStoreExtension } from "@blocksuite/affine/inlines/link/store";
 import { InlinePresetStoreExtension } from "@blocksuite/affine/inlines/preset/store";
 import { ReferenceStoreExtension } from "@blocksuite/affine/inlines/reference/store";
@@ -61,8 +62,11 @@ const storeManager = new StoreExtensionManager([
   EmbedDocStoreExtension,
   // Image block（clipboard/snapshot 会用到 affine:image）
   ImageStoreExtension,
+  // Equation block（slash menu 的 Equation）
+  BlockLatexStoreExtension,
   InlinePresetStoreExtension,
-  LatexStoreExtension,
+  // Inline equation（行内公式）
+  InlineLatexStoreExtension,
   ReferenceStoreExtension,
   LinkStoreExtension,
   FootnoteStoreExtension,

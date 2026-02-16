@@ -124,6 +124,7 @@ function RoomComposerPanelImpl({
   onCompositionEnd,
 }: RoomComposerPanelProps) {
   const imgFilesCount = useChatComposerStore(state => state.imgFiles.length);
+  const fileAttachmentsCount = useChatComposerStore(state => state.fileAttachments.length);
   const audioFile = useChatComposerStore(state => state.audioFile);
   const composerAnnotations = useChatComposerStore(state => state.annotations);
   const setComposerAnnotations = useChatComposerStore(state => state.setAnnotations);
@@ -168,22 +169,26 @@ function RoomComposerPanelImpl({
   }, [isKP, mentionRolesProp]);
 
   const prevImgFilesCountRef = React.useRef(imgFilesCount);
+  const prevFileAttachmentsCountRef = React.useRef(fileAttachmentsCount);
   const prevHasAudioRef = React.useRef(Boolean(audioFile));
 
   React.useEffect(() => {
     const prevImgFilesCount = prevImgFilesCountRef.current;
+    const prevFileAttachmentsCount = prevFileAttachmentsCountRef.current;
     const prevHasAudio = prevHasAudioRef.current;
 
     const hasNewImages = imgFilesCount > prevImgFilesCount;
+    const hasNewFiles = fileAttachmentsCount > prevFileAttachmentsCount;
     const hasNewAudio = Boolean(audioFile) && !prevHasAudio;
 
-    if (hasNewImages || hasNewAudio) {
+    if (hasNewImages || hasNewFiles || hasNewAudio) {
       chatInputRef.current?.focus();
     }
 
     prevImgFilesCountRef.current = imgFilesCount;
+    prevFileAttachmentsCountRef.current = fileAttachmentsCount;
     prevHasAudioRef.current = Boolean(audioFile);
-  }, [audioFile, chatInputRef, imgFilesCount]);
+  }, [audioFile, chatInputRef, fileAttachmentsCount, imgFilesCount]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -276,9 +281,7 @@ function RoomComposerPanelImpl({
 
   const replyMessage = useRoomUiStore(state => state.replyMessage);
   const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
-  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const composerTarget = useRoomUiStore(state => state.composerTarget);
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const inputDisabled = notMember && noRole;
@@ -497,50 +500,10 @@ function RoomComposerPanelImpl({
             </div>
           )}
 
-          {threadRootMessageId && (
-            <div className="p-2 pb-1">
-              <div className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-2 justify-between">
-                <div className="min-w-0 flex items-center gap-2">
-                  <div className="join">
-                    <button
-                      type="button"
-                      className={`btn btn-xs join-item ${composerTarget === "main" ? "btn-info" : "btn-ghost"}`}
-                      onClick={() => setComposerTarget("main")}
-                    >
-                      主区
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-xs join-item ${composerTarget === "thread" ? "btn-info" : "btn-ghost"}`}
-                      onClick={() => setComposerTarget("thread")}
-                    >
-                      子区
-                    </button>
-                  </div>
-                  <span className="text-xs text-base-content/60 truncate">
-                    🧵
-                    {threadRootMessageId}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost shrink-0"
-                  onClick={() => {
-                    setComposerTarget("main");
-                    setThreadRootMessageId(undefined);
-                  }}
-                >
-                  关闭
-                </button>
-              </div>
-            </div>
-          )}
-
           {insertAfterMessageId && (
             <div className="p-2 pb-1">
-              <div className="flex flex-row gap-2 items-center bg-info/20 rounded-md shadow-sm text-sm p-2 justify-between">
-                <span className="text-info-content">将插入到消息后</span>
+              <div className="flex flex-row gap-2 items-center bg-info/20 border border-info/40 rounded-md shadow-sm text-sm p-2 justify-between">
+                <span className="text-base-content/90 font-medium">将插入到消息后</span>
                 <button
                   type="button"
                   className="btn btn-xs btn-ghost"

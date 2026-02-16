@@ -8,12 +8,18 @@ export default function RoomButton({
   onclick,
   isActive,
   children,
+  draggable,
+  onDragStart,
+  onDragEnd,
 }: {
   room: Room;
   unreadMessageNumber: number | undefined;
   onclick: () => void;
   isActive: boolean;
   children?: React.ReactNode;
+  draggable?: boolean;
+  onDragStart?: React.DragEventHandler<HTMLDivElement>;
+  onDragEnd?: React.DragEventHandler<HTMLDivElement>;
 }) {
   const headerOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${room.roomId}`]);
   const displayName = headerOverride?.title || room.name;
@@ -24,10 +30,13 @@ export default function RoomButton({
     <div
       key={room.roomId}
       className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full
-                               min-w-0 ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
+                               min-w-0 select-none ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
       role="button"
       tabIndex={0}
       aria-pressed={isActive}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       onClick={onclick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -50,6 +59,7 @@ export default function RoomButton({
           <img
             src={displayAvatar}
             alt={displayName}
+            draggable={false}
             onError={(e) => {
               const img = e.currentTarget;
               if (img.dataset.fallbackApplied)

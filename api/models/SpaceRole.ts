@@ -19,7 +19,7 @@ export type SpaceRole = {
      */
     userId?: number;
     /**
-     * 角色类型（复用 role.type）：0角色，1骰娘，2NPC（历史：space_role 仅用于 NPC 映射）
+     * 角色类型（复用 role.type）：0角色，1骰娘，2NPC
      */
     type?: number;
     createTime?: string;

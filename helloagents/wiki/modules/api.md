@@ -62,7 +62,7 @@
 - Rule/RuleResponse ?? authorId ???
 - RulePageRequest ?? authorId ?????????
 - ????/?????????? token ??????
-## Space 用户文档夹 API（/space/docFolder/*）
+## Space 用户文档 API（/space/userDoc/*）
 
-- OpenAPI 客户端：`api/services/SpaceUserDocFolderControllerService.ts`
-- React Query hooks：`api/hooks/spaceUserDocFolderHooks.ts`
+- OpenAPI 客户端：`api/services/SpaceUserDocControllerService.ts`
+- React Query hooks：`api/hooks/spaceUserDocHooks.ts`

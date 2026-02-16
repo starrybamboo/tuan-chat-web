@@ -12,17 +12,20 @@ export class SpaceRepositoryControllerService {
     /**
      * 获取空间的所有NPC，仅kp调用
      * @param spaceId
+     * @param commitId
      * @returns ApiResultListUserRole OK
      * @throws ApiError
      */
     public spaceRole(
         spaceId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/space/repository/role',
             query: {
                 'spaceId': spaceId,
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,

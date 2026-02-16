@@ -1,5 +1,5 @@
 // import { useAddRepositoryMutation, useAddMutation, useRepositoryInfoQuery } from "api/hooks/repositoryQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useGetUserProfileQuery } from "api/hooks/UserHooks";
 import { useCallback, useState } from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -14,7 +14,7 @@ export default function Author({ userId }: { userId?: number }) {
   const [isUserCardOpen, setIsUserCardOpen] = useState(false);
 
   // 获取用户信息
-  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || 0);
+  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserProfileQuery(userId || 0);
 
   // 使用API获取的数据或默认数据
   const userData = userInfoData?.data;

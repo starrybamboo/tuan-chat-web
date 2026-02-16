@@ -28,7 +28,7 @@ jobs:
       - name: 部署到服务器
         uses: appleboy/scp-action@v1
         with:
-          host: 47.119.147.6
+          host: 38.14.195.6
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           source: build/client/**
@@ -48,7 +48,7 @@ jobs:
 #          remote_path: /www/wwwroot/tuan-chat-web-test # 目标目录
 #
 #          # SSH 连接信息
-#          remote_host: 47.119.147.6
+#          remote_host: 38.14.195.6
 #          remote_user: ${{ secrets.SSH_USERNAME }}
 #          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 

@@ -30,6 +30,7 @@ export default function useChatUnreadIndicators({
     sortedRealTimeMessages: privateMessageList.sortedRealTimeMessages,
     userId,
     urlRoomId: isPrivateChatMode ? urlRoomId : undefined,
+    isInboxReady: privateMessageList.isInboxReady,
   });
   const privateTotalUnreadMessages = useMemo(() => {
     return privateMessageList.realTimeContacts.reduce((sum, contactId) => {

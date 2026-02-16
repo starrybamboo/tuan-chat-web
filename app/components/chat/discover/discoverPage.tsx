@@ -16,7 +16,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 
 const EMPTY_ARRAY: never[] = [];
 
-export type DiscoverMode = "square" | "my";
+type DiscoverMode = "square" | "my";
 
 interface DiscoverPageProps {
   mode: DiscoverMode;

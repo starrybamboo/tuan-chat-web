@@ -142,7 +142,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
   return (
     <>
-      <div className="flex gap-3 p-3 w-full max-w-3xl mx-auto">
+      <div className="flex gap-3 p-3 w-full max-w-3xl">
         <button
           type="button"
           className={`group w-full text-left rounded-xl border border-base-300 bg-base-100 shadow-sm hover:shadow-md transition-shadow ${
@@ -161,7 +161,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               ? payload.spaceId
               : (typeof currentSpaceId === "number" && currentSpaceId > 0 ? currentSpaceId : undefined);
 
-            e.dataTransfer.effectAllowed = "copy";
+            e.dataTransfer.effectAllowed = "copyLink";
             try {
               e.dataTransfer.setData("text/plain", `tc-doc-ref:${payload.docId}`);
             }

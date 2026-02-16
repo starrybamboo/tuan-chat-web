@@ -27,6 +27,10 @@ export type Collection = {
      */
     comment?: string;
     /**
+     * 标记类型
+     */
+    markType?: string;
+    /**
      * 逻辑删除
      */
     isDeleted?: boolean;

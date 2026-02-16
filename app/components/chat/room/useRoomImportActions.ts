@@ -2,13 +2,13 @@ import { useCallback } from "react";
 import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/descriptionDocId";
 import { extractDocExcerptFromStore } from "@/components/chat/infra/blocksuite/docExcerpt";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
@@ -29,6 +29,7 @@ type UseRoomImportActionsParams = {
   roomContext: RoomContextType;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<void>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
+  roomUiStoreApi: RoomUiStoreApi;
 };
 
 type ImportMessageItem = {
@@ -54,6 +55,7 @@ export default function useRoomImportActions({
   roomContext,
   sendMessageWithInsert,
   ensureRuntimeAvatarIdForRole,
+  roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
   const handleImportChatText = useCallback(async (
     messages: ImportMessageItem[],
@@ -72,7 +74,7 @@ export default function useRoomImportActions({
       return;
     }
 
-    const ui = useRoomUiStore.getState();
+    const ui = roomUiStoreApi.getState();
     const prevInsertAfter = ui.insertAfterMessageId;
     const prevReply = ui.replyMessage;
 
@@ -81,7 +83,7 @@ export default function useRoomImportActions({
 
     setIsSubmitting(true);
     try {
-      const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+      const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
 
       const resolvedAvatarIdByRole = new Map<number, number>();
@@ -182,8 +184,8 @@ export default function useRoomImportActions({
       }
     }
     finally {
-      useRoomUiStore.getState().setInsertAfterMessageId(prevInsertAfter);
-      useRoomUiStore.getState().setReplyMessage(prevReply);
+      roomUiStoreApi.getState().setInsertAfterMessageId(prevInsertAfter);
+      roomUiStoreApi.getState().setReplyMessage(prevReply);
       setIsSubmitting(false);
     }
   }, [
@@ -192,6 +194,7 @@ export default function useRoomImportActions({
     notMember,
     roomContext,
     roomId,
+    roomUiStoreApi,
     sendMessageWithInsert,
     setIsSubmitting,
   ]);
@@ -273,7 +276,7 @@ export default function useRoomImportActions({
       } as any,
     };
 
-    const { threadRootMessageId, composerTarget } = useRoomUiStore.getState();
+    const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
     if (composerTarget === "thread" && threadRootMessageId) {
       request.threadId = threadRootMessageId;
     }
@@ -286,6 +289,7 @@ export default function useRoomImportActions({
     isSubmitting,
     notMember,
     roomId,
+    roomUiStoreApi,
     sendMessageWithInsert,
     spaceId,
   ]);

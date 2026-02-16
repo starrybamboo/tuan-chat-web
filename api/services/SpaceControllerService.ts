@@ -1,4 +1,4 @@
-﻿/* generated using openapi-typescript-codegen -- do not edit */
+/* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -136,7 +136,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 更新空间信息(名称、头像、描述、规则)
+     * 更新空间信息（名称、头像、描述、规则）
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -158,7 +158,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 创建空间，邀请的所有成员都会加入
+     * 创建空间
      * @param requestBody
      * @returns ApiResultSpace OK
      * @throws ApiError
@@ -226,17 +226,22 @@ export class SpaceControllerService {
     /**
      * 获取空间
      * @param spaceId
+     * @param commitId
      * @returns ApiResultSpace OK
      * @throws ApiError
      */
     public getSpaceInfo(
         spaceId: number,
+        commitId?: number,
     ): CancelablePromise<ApiResultSpace> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/space/{spaceId}',
             path: {
                 'spaceId': spaceId,
+            },
+            query: {
+                'commitId': commitId,
             },
             errors: {
                 400: `Bad Request`,
@@ -270,7 +275,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 获取当前用户加入的所有空间
+     * 获取当前用户加入的所有空间（包含归档）
      * @returns ApiResultListSpace OK
      * @throws ApiError
      */
@@ -303,6 +308,4 @@ export class SpaceControllerService {
             },
         });
     }
-
-    
 }

@@ -11,7 +11,7 @@ export type RoleAvatarCreateRequest = {
      */
     roleId?: number;
     /**
-     * avatar category
+     * 头像分类
      */
     category?: string;
 };

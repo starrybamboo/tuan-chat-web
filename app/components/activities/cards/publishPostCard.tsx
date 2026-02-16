@@ -1,6 +1,6 @@
 import type { MomentFeedRequest } from "../../../../api";
 import React, { useEffect, useRef, useState } from "react";
-import EmojiWindow from "@/components/chat/window/EmojiWindow";
+import StickerWindow from "@/components/chat/window/StickerWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -18,7 +18,7 @@ interface LocalImage {
   uploadedUrl?: string; // 上传成功后后端返回的最终 URL（上传后优先使用）
   uploading: boolean;
   error?: string | null;
-  isEmoji?: boolean; // 来自 EmojiWindow 的外链表情
+  isEmoji?: boolean; // 来自 StickerWindow 的外链表情
   name?: string;
   size?: number;
 }
@@ -32,7 +32,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const [images, setImages] = useState<LocalImage[]>([]);
 
   // 控制表情弹窗显示（如果你想改为 Modal，可替换）
-  const [showEmojiWindow, setShowEmojiWindow] = useState(false);
+  const [showStickerWindow, setShowStickerWindow] = useState(false);
 
   const uploadUtilsRef = useRef(new UploadUtils());
   const uploadingPromisesRef = useRef<Record<string, Promise<void>>>({});
@@ -94,7 +94,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
       id,
       file,
       url: blobUrl, // 先用本地 blob 预览
-      uploading: true, // 参考 EmojiWindow：选择即上传 -> uploading true
+      uploading: true, // 参考 StickerWindow：选择即上传 -> uploading true
       error: null,
       name: file.name,
       size: file.size,
@@ -127,7 +127,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     //   alert(`最多只能上传 ${maxImages} 张图片`);
     //   return;
     // }
-    const id = `emoji_${emoji.emojiId ?? Date.now()}`;
+    const id = `emoji_${emoji.stickerId ?? Date.now()}`;
     const newImg: LocalImage = {
       id,
       url: emoji.imageUrl,
@@ -138,7 +138,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     };
     setImages(prev => [...prev, newImg]);
     // 如果你想在选择表情包后自动关闭弹窗：
-    setShowEmojiWindow(false);
+    setShowStickerWindow(false);
   };
 
   const handleDeleteImage = (id: string) => {
@@ -302,7 +302,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                 type="button"
                 title="添加表情"
                 disabled={isPublishing}
-                onClick={() => setShowEmojiWindow(v => !v)}
+                onClick={() => setShowStickerWindow(v => !v)}
               >
                 <EmojiIconWhite />
               </button>
@@ -354,9 +354,9 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
           </div>
 
           {/* 表情包弹窗 */}
-          {showEmojiWindow && (
+          {showStickerWindow && (
             <div className="mt-2 border border-base-300 rounded-lg bg-base-100 shadow-lg p-2">
-              <EmojiWindow onChoose={handleEmojiChoose} />
+              <StickerWindow onChoose={handleEmojiChoose} />
             </div>
           )}
         </div>

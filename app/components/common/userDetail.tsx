@@ -5,7 +5,7 @@ import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
-import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
+import { useGetUserProfileQuery } from "../../../api/hooks/UserHooks";
 import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/UserFollower";
 
@@ -19,7 +19,7 @@ interface UserDetailProps {
  * @param {string} props.userId - 用户ID，组件内会自动调api来获取用户信息
  */
 export function UserDetail({ userId }: UserDetailProps) {
-  const userQuery = useGetUserInfoQuery(userId);
+  const userQuery = useGetUserProfileQuery(userId);
   const loginUserId = useGlobalContext().userId ?? -1;
 
   const user = userQuery.data?.data;

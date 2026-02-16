@@ -35,12 +35,16 @@ const sizeMap = {
  * @param stopToastWindow 是否禁用点击弹出角色详情窗口，默认为false
  * @param alt
  * @param allowKickOut 是否允许被踢出，仓库角色是不可以的
+ * @param kickOutByManagerOnly 是否仅房主可踢出
  * @param hoverToScale 是否允许鼠标悬停时放大
  * @param detailVariant 详情弹窗形态：simple(旧) / page(复用角色页面)
  */
 export default function RoleAvatarComponent({
   avatarId,
   roleId,
+  roleType,
+  roleOwnerUserId,
+  roleState,
   width,
   isRounded,
   // eslint-disable-next-line unused-imports/no-unused-vars
@@ -49,11 +53,15 @@ export default function RoleAvatarComponent({
   alt = "avatar",
   useDefaultAvatarFallback = true,
   allowKickOut = true,
+  kickOutByManagerOnly = false,
   hoverToScale = false,
   detailVariant = "page",
 }: {
   avatarId: number;
   roleId?: number;
+  roleType?: number;
+  roleOwnerUserId?: number;
+  roleState?: number;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withTitle?: boolean; // 是否在下方显示标题
@@ -62,6 +70,7 @@ export default function RoleAvatarComponent({
   /** 当 avatarId <= 0 且无法从 roleId 找到可用头像时，是否回退到默认图标（/favicon.ico） */
   useDefaultAvatarFallback?: boolean;
   allowKickOut?: boolean;
+  kickOutByManagerOnly?: boolean;
   hoverToScale?: boolean;
   detailVariant?: "simple" | "page";
 }) {
@@ -116,7 +125,11 @@ export default function RoleAvatarComponent({
                   ? (
                       <RoleDetail
                         roleId={roleIdTrue ?? -1}
+                        roleTypeHint={roleType}
+                        roleOwnerUserIdHint={roleOwnerUserId}
+                        roleStateHint={roleState}
                         allowKickOut={allowKickOut}
+                        kickOutByManagerOnly={kickOutByManagerOnly}
                         onClose={() => setIsOpen(false)}
                       >
                       </RoleDetail>
@@ -124,7 +137,11 @@ export default function RoleAvatarComponent({
                   : (
                       <RoleDetailPagePopup
                         roleId={roleIdTrue ?? -1}
+                        roleTypeHint={roleType}
+                        roleOwnerUserIdHint={roleOwnerUserId}
+                        roleStateHint={roleState}
                         allowKickOut={allowKickOut}
+                        kickOutByManagerOnly={kickOutByManagerOnly}
                         onClose={() => setIsOpen(false)}
                       />
                     )}

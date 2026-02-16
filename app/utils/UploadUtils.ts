@@ -2,7 +2,9 @@ import { Md5 } from "ts-md5";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
+import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { compressImage } from "@/utils/imgCompressUtils";
+import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 import { tuanchat } from "../../api/instance";
 
@@ -41,12 +43,7 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
-    // 保护：避免超大文件导致浏览器内存/wasm 失败（转码需要把输入放入 wasm FS）
-    const maxInputBytes = 30 * 1024 * 1024; // 30MB
-    if (file.size > maxInputBytes) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
-      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
-    }
+    assertAudioUploadInputSizeOrThrow(file.size);
 
     // 统一转码压缩为 Opus（不兼容 Safari）；失败则阻止上传
     const debugEnabled = isAudioUploadDebugEnabled();
@@ -54,23 +51,11 @@ export class UploadUtils {
     if (debugEnabled)
       console.warn(`${debugPrefix} UploadUtils.uploadAudio input`, { name: file.name, type: file.type, size: file.size, maxDuration, scene });
 
-    const execTimeoutMs = maxDuration > 0
-      ? Math.max(60_000, Math.min(240_000, Math.floor(maxDuration * 4_000)))
-      : Math.max(120_000, Math.min(600_000, Math.floor((file.size / 1024 / 1024) * 20_000)));
+    const transcodeOptions = buildDefaultAudioUploadTranscodeOptions(file.size, maxDuration);
 
-    const processedFile = await transcodeAudioFileToOpusOrThrow(file, {
-      maxDurationSec: maxDuration,
-      loadTimeoutMs: 45_000,
-      execTimeoutMs,
-      // 更狠的默认压缩：更低目标码率 + 降采样（不兼容 Safari）
-      bitrateKbps: 48,
-      sampleRateHz: 32000,
-      // 目标：尽量比输入更小（否则按“阻止上传”策略处理）
-      // 太小的文件可能被容器开销反噬，跳过严格约束避免误伤
-      preferSmallerThanBytes: file.size >= 48 * 1024 ? file.size : undefined,
-    });
+    const processedFile = await transcodeAudioFileToOpusOrThrow(file, transcodeOptions);
     if (debugEnabled)
-      console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size });
+      console.warn(`${debugPrefix} processed`, { name: processedFile.name, type: processedFile.type, size: processedFile.size, transcodeOptions });
 
     // 1. 计算文件内容的哈希值
     const hash = await this.calculateFileHash(processedFile);
@@ -124,15 +109,102 @@ export class UploadUtils {
       throw new Error("只支持音频文件格式");
     }
 
-    const maxInputBytes = 30 * 1024 * 1024; // 30MB
-    if (file.size > maxInputBytes) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
-      throw new Error(`音频文件过大（${mb}MB），已阻止上传（上限 30MB）`);
-    }
+    assertAudioUploadInputSizeOrThrow(file.size);
 
     const hash = await this.calculateFileHash(file);
     const fileSize = file.size;
     const extension = this.getAudioExtension(file);
+    const newFileName = `${hash}_${fileSize}.${extension}`;
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+      dedupCheck: true,
+    });
+
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
+    }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, file);
+    }
+
+    return ossData.data.downloadUrl;
+  }
+
+  /**
+   * 上传视频文件（统一转码为 webm）
+   */
+  async uploadVideo(
+    file: File,
+    scene: 1 | 2 | 3 | 4 = 1,
+  ): Promise<{ url: string; fileName: string; size: number }> {
+    const extension = ((file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "").trim();
+    const inferredVideoMimeByExt: Record<string, string> = {
+      mp4: "video/mp4",
+      m4v: "video/mp4",
+      mov: "video/quicktime",
+      webm: "video/webm",
+      mkv: "video/x-matroska",
+      avi: "video/x-msvideo",
+      wmv: "video/x-ms-wmv",
+      flv: "video/x-flv",
+      mpg: "video/mpeg",
+      mpeg: "video/mpeg",
+    };
+
+    let videoFile = file;
+    if (!videoFile.type.startsWith("video/")) {
+      const inferredType = inferredVideoMimeByExt[extension];
+      if (!inferredType) {
+        throw new Error("只支持视频文件格式");
+      }
+      videoFile = new File([file], file.name, {
+        type: inferredType,
+        lastModified: file.lastModified,
+      });
+    }
+
+    const processedFile = await transcodeVideoFileToWebmOrThrow(videoFile, {
+      maxHeight: 1080,
+      maxFps: 30,
+      crf: 34,
+    });
+
+    const hash = await this.calculateFileHash(processedFile);
+    const fileSize = processedFile.size;
+    const newFileName = `${hash}_${fileSize}.webm`;
+
+    const ossData = await tuanchat.ossController.getUploadUrl({
+      fileName: newFileName,
+      scene,
+      dedupCheck: true,
+    });
+
+    if (!ossData.data?.downloadUrl) {
+      throw new Error("获取下载地址失败");
+    }
+
+    if (ossData.data.uploadUrl) {
+      await this.executeUpload(ossData.data.uploadUrl, processedFile);
+    }
+
+    return {
+      url: ossData.data.downloadUrl,
+      fileName: processedFile.name,
+      size: fileSize,
+    };
+  }
+
+  /**
+   * 上传通用文件（用于聊天文件消息）
+   */
+  async uploadFile(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+    const hash = await this.calculateFileHash(file);
+    const fileSize = file.size;
+    const extensionMatch = (file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/);
+    const extension = extensionMatch?.[1] || "bin";
     const newFileName = `${hash}_${fileSize}.${extension}`;
 
     const ossData = await tuanchat.ossController.getUploadUrl({
@@ -310,7 +382,7 @@ export class UploadUtils {
         body: file,
         signal: controller.signal,
         headers: {
-          "Content-Type": file.type,
+          "Content-Type": file.type || "application/octet-stream",
           "x-oss-acl": "public-read",
         },
       });

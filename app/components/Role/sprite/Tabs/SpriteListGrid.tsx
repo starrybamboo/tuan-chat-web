@@ -88,7 +88,6 @@ export function SpriteListGrid({
   const deletionHook = useAvatarDeletion({
     role,
     avatars,
-    totalAvatarsCount,
     selectedAvatarId,
     onAvatarChange,
     onAvatarSelect,

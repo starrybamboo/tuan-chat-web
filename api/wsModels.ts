@@ -22,6 +22,7 @@ export enum MessageType {
     COMMAND_REQUEST = 12,
     /** WebGAL 选择消息（结构化选项） */
     WEBGAL_CHOOSE = 13,
+    VIDEO = 14,
     CLUE_CARD = 1000,
     THREAD_ROOT = 10001,
 }
@@ -91,6 +92,7 @@ interface PrivateMessage extends BaseMessage<{
         imageMessage?: { background: boolean; width: number; height: number };
         forwardMessage?: { messageList: any[] };
         soundMessage?: { second: number; url?: string; fileName?: string; size?: number; purpose?: string; volume?: number };
+        videoMessage?: { second?: number; url?: string; fileName?: string; size?: number };
         clueMessage?: { img: string; name: string; description: string };
         effectMessage?: { effectName: string; duration?: number; strength?: number };
         commandRequest?: { command: string; allowAll?: boolean; allowedRoleIds?: number[] };
@@ -205,13 +207,13 @@ interface GroupMessagePush extends BaseMessage<{
             imageMessage?: any;
             forwardMessage?: any;
             soundMessage?: any;
+            videoMessage?: any;
             clueMessage?: any;
             effectMessage?: any;
         };
         createTime: string;
         updateTime: string;
     };
-    messageMark: any[];
 }> {
     type: 4;
 }

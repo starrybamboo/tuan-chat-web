@@ -6,7 +6,6 @@ import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessag
 import type { ApiResultCursorPageBaseResponseChatMessageResponse } from '../models/ApiResultCursorPageBaseResponseChatMessageResponse';
 import type { ApiResultListMessage } from '../models/ApiResultListMessage';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
-import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ChatMessagePageRequest } from '../models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
 import type { HistoryMessageRequest } from '../models/HistoryMessageRequest';

@@ -16,7 +16,7 @@ export type RoomDndMapSnapshot = {
   updatedAt?: number;
 };
 
-export type RoomDndMapChangeOp = "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+type RoomDndMapChangeOp = "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
 
 export type RoomDndMapChangeEvent = {
   roomId: number;
@@ -55,11 +55,7 @@ export async function fetchRoomDndMap(roomId: number): Promise<RoomDndMapSnapsho
     return null;
   }
   try {
-    const res = await tuanchat.request.request<any>({
-      method: "GET",
-      url: "/room/dnd-map",
-      query: { roomId },
-    });
+    const res = await tuanchat.roomDndMapController.getRoomMap(roomId);
     return (res as any)?.data ?? null;
   }
   catch (err) {
@@ -69,42 +65,22 @@ export async function fetchRoomDndMap(roomId: number): Promise<RoomDndMapSnapsho
 }
 
 export async function upsertRoomDndMap(payload: RoomDndMapUpsertPayload): Promise<RoomDndMapSnapshot | null> {
-  const res = await tuanchat.request.request<any>({
-    method: "PUT",
-    url: "/room/dnd-map",
-    body: payload,
-    mediaType: "application/json",
-  });
+  const res = await tuanchat.roomDndMapController.upsertRoomMap(payload);
   return (res as any)?.data ?? null;
 }
 
 export async function clearRoomDndMap(roomId: number): Promise<boolean> {
-  await tuanchat.request.request<any>({
-    method: "DELETE",
-    url: "/room/dnd-map",
-    body: { roomId },
-    mediaType: "application/json",
-  });
+  await tuanchat.roomDndMapController.clearRoomMap({ roomId });
   return true;
 }
 
 export async function upsertRoomDndMapToken(payload: RoomDndMapTokenUpsertPayload): Promise<RoomDndMapToken | null> {
-  const res = await tuanchat.request.request<any>({
-    method: "PUT",
-    url: "/room/dnd-map/token",
-    body: payload,
-    mediaType: "application/json",
-  });
+  const res = await tuanchat.roomDndMapController.upsertToken(payload);
   return (res as any)?.data ?? null;
 }
 
 export async function removeRoomDndMapToken(payload: RoomDndMapTokenRemovePayload): Promise<boolean> {
-  await tuanchat.request.request<any>({
-    method: "DELETE",
-    url: "/room/dnd-map/token",
-    body: payload,
-    mediaType: "application/json",
-  });
+  await tuanchat.roomDndMapController.removeToken(payload);
   return true;
 }
 

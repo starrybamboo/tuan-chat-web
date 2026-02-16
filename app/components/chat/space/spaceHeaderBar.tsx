@@ -1,12 +1,11 @@
+import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 import { ArchiveIcon, HouseIcon } from "@phosphor-icons/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
-import { AddIcon, ChevronDown, DiceD6Icon, MapPlaceHolderIcon, MemberIcon, Setting, SidebarSimpleIcon } from "@/icons";
+import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
 import { useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
-
-export type SpaceDetailTab = "members" | "workflow" | "trpg" | "setting";
 
 interface SpaceHeaderBarProps {
   spaceName?: string;
@@ -99,11 +98,11 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 type="button"
                 className="gap-3"
                 onClick={() => {
-                  onOpenSpaceDetailPanel("workflow");
+                  onOpenSpaceDetailPanel("trpg");
                 }}
               >
-                <MapPlaceHolderIcon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">流程图</span>
+                <DiceD6Icon className="size-4 opacity-70" />
+                <span className="flex-1 text-left">跑团设置</span>
               </button>
             </li>
             <li>
@@ -111,11 +110,11 @@ export default function SpaceHeaderBar({ spaceName, isArchived, isSpaceOwner, on
                 type="button"
                 className="gap-3"
                 onClick={() => {
-                  onOpenSpaceDetailPanel("trpg");
+                  onOpenSpaceDetailPanel("webgal");
                 }}
               >
-                <DiceD6Icon className="size-4 opacity-70" />
-                <span className="flex-1 text-left">跑团设置</span>
+                <WebgalIcon className="size-4 opacity-70" />
+                <span className="flex-1 text-left">WebGAL 渲染</span>
               </button>
             </li>
             {isSpaceOwner && (

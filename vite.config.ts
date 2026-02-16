@@ -514,6 +514,12 @@ export default defineConfig(({ command, mode }) => {
           replacement: nm("node_modules/@ffmpeg/ffmpeg/dist/esm/index.js"),
         },
         {
+          // lz-string 在 CJS/ESM 互操作下可能只暴露 default，导致依赖内的 `import * as lz` 调用失败。
+          // 统一走 shim，保证 namespace/default 两种调用都可用。
+          find: /^lz-string$/,
+          replacement: resolve(__dirname, "app/shims/lzStringCompat.ts"),
+        },
+        {
           find: /^@ffmpeg\/util$/,
           replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
         },

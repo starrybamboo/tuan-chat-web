@@ -13,6 +13,13 @@ type UsePrivateMessageSenderProps = {
   currentContactUserId: number | null;
 };
 
+type EmojiAttachmentMeta = {
+  width?: number;
+  height?: number;
+  size?: number;
+  fileName?: string;
+};
+
 export function usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId }: UsePrivateMessageSenderProps) {
   const WEBSOCKET_TYPE = 5; // WebSocket 私聊消息类型
   const uploadUtils = new UploadUtils();
@@ -21,8 +28,30 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
   const [messageInput, setMessageInput] = useState("");
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
   const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
+  const [emojiMetaByUrl, setEmojiMetaByUrlState] = useState<Record<string, EmojiAttachmentMeta>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletedContactIds, setDeletedContactIds] = useLocalStorage<number[]>("deletedContactIds", []);
+
+  const setEmojiMetaByUrl = (url: string, meta: EmojiAttachmentMeta) => {
+    if (!url) {
+      return;
+    }
+    setEmojiMetaByUrlState(prev => ({
+      ...prev,
+      [url]: meta,
+    }));
+  };
+
+  const removeEmojiMetaByUrl = (url: string) => {
+    setEmojiMetaByUrlState((prev) => {
+      if (!url || !Object.prototype.hasOwnProperty.call(prev, url)) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[url];
+      return next;
+    });
+  };
 
   // 发送消息函数
   const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message });
@@ -38,7 +67,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
       if (imgFiles.length > 0) {
         for (let i = 0; i < imgFiles.length; i++) {
           const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-          const { width, height } = await getImageSize(imgFiles[i]);
+          const { width, height, size } = await getImageSize(imgFiles[i]);
 
           if (imgDownLoadUrl && imgDownLoadUrl !== "") {
             const imageMessage: MessageDirectSendRequest = {
@@ -46,7 +75,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               content: "",
               messageType: 2, // 图片消息类型
               extra: {
-                size: 0,
+                size: size > 0 ? size : imgFiles[i].size,
                 url: imgDownLoadUrl,
                 fileName: imgDownLoadUrl.split("/").pop() || `${userId}-${Date.now()}`,
                 width,
@@ -74,15 +103,25 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
       // 发送表情消息
       if (emojiUrls.length > 0) {
         for (const emojiUrl of emojiUrls) {
-          const { width, height } = await getImageSize(emojiUrl);
+          const meta = emojiMetaByUrl[emojiUrl];
+          let width = meta?.width ?? -1;
+          let height = meta?.height ?? -1;
+          let size = meta?.size ?? -1;
+
+          if (width <= 0 || height <= 0 || size <= 0) {
+            const measured = await getImageSize(emojiUrl);
+            width = width > 0 ? width : measured.width;
+            height = height > 0 ? height : measured.height;
+            size = size > 0 ? size : measured.size;
+          }
 
           const emojiMessage: MessageDirectSendRequest = {
             receiverId: currentContactUserId,
             content: "",
             messageType: 2,
             extra: {
-              size: 0,
-              fileName: emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
+              size: size > 0 ? size : 0,
+              fileName: meta?.fileName || emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
               width,
               height,
               url: emojiUrl,
@@ -93,6 +132,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
         updateEmojiUrls((draft) => {
           draft.splice(0, draft.length);
         });
+        setEmojiMetaByUrlState({});
       }
     }
     finally {
@@ -109,6 +149,8 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
     updateImgFiles,
     emojiUrls,
     updateEmojiUrls,
+    setEmojiMetaByUrl,
+    removeEmojiMetaByUrl,
     isSubmitting,
     handleSendMessage,
   };

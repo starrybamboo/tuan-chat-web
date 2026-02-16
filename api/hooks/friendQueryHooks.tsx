@@ -1,12 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { tuanchat } from "../instance";
+import type { FriendBlockRequest } from "../models/FriendBlockRequest";
 import type { FriendCheckRequest } from "../models/FriendCheckRequest";
 import type { FriendDeleteRequest } from "../models/FriendDeleteRequest";
 import type { FriendListRequest } from "../models/FriendListRequest";
 import type { FriendReqHandleRequest } from "../models/FriendReqHandleRequest";
 import type { FriendReqSendRequest } from "../models/FriendReqSendRequest";
 import type { PageBaseRequest } from "../models/PageBaseRequest";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "../instance";
 
 /**
  * 获取当前登录用户的好友列表
@@ -15,6 +15,17 @@ export function useGetFriendListQuery(requestBody: FriendListRequest) {
   return useQuery({
     queryKey: ["friendList", requestBody],
     queryFn: () => tuanchat.friendController.getFriendList(requestBody),
+    staleTime: 300000, // 5分钟缓存
+  });
+}
+
+/**
+ * 获取当前登录用户的黑名单列表
+ */
+export function useGetBlackListQuery(requestBody: FriendListRequest) {
+  return useQuery({
+    queryKey: ["friendBlackList", requestBody],
+    queryFn: () => tuanchat.friendController.getBlackList(requestBody),
     staleTime: 300000, // 5分钟缓存
   });
 }
@@ -96,6 +107,37 @@ export function useDeleteFriendMutation() {
     mutationFn: (requestBody: FriendDeleteRequest) => tuanchat.friendController.deleteFriend(requestBody),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["friendList"] });
+      queryClient.invalidateQueries({ queryKey: ["friendBlackList"] });
+      queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
+    },
+  });
+}
+
+/**
+ * 拉黑好友
+ */
+export function useBlockFriendMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestBody: FriendBlockRequest) => tuanchat.friendController.blockFriend(requestBody),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["friendList"] });
+      queryClient.invalidateQueries({ queryKey: ["friendBlackList"] });
+      queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
+    },
+  });
+}
+
+/**
+ * 取消拉黑好友
+ */
+export function useUnblockFriendMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestBody: FriendBlockRequest) => tuanchat.friendController.unblockFriend(requestBody),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["friendList"] });
+      queryClient.invalidateQueries({ queryKey: ["friendBlackList"] });
       queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
     },
   });

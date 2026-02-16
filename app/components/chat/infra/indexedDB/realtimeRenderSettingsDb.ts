@@ -3,6 +3,16 @@ type RealtimeRenderSettingsRow = {
   ttsApiUrl: string;
   terrePort: number | null;
   autoFigureEnabled?: boolean;
+  coverFromRoomAvatarEnabled?: boolean;
+  startupLogoFromRoomAvatarEnabled?: boolean;
+  gameIconFromRoomAvatarEnabled?: boolean;
+  gameNameFromRoomNameEnabled?: boolean;
+  description?: string;
+  packageName?: string;
+  showPanicEnabled?: boolean;
+  defaultLanguage?: string;
+  enableAppreciation?: boolean;
+  typingSoundEnabled?: boolean;
   updatedAt: number;
 };
 
@@ -35,6 +45,16 @@ export async function getRealtimeRenderSettings(): Promise<{
   ttsApiUrl: string;
   terrePort: number | null;
   autoFigureEnabled?: boolean;
+  coverFromRoomAvatarEnabled?: boolean;
+  startupLogoFromRoomAvatarEnabled?: boolean;
+  gameIconFromRoomAvatarEnabled?: boolean;
+  gameNameFromRoomNameEnabled?: boolean;
+  description?: string;
+  packageName?: string;
+  showPanicEnabled?: boolean;
+  defaultLanguage?: string;
+  enableAppreciation?: boolean;
+  typingSoundEnabled?: boolean;
 } | null> {
   if (!canUseIndexedDB()) {
     return null;
@@ -53,6 +73,16 @@ export async function getRealtimeRenderSettings(): Promise<{
             ttsApiUrl: row.ttsApiUrl,
             terrePort: row.terrePort,
             autoFigureEnabled: row.autoFigureEnabled,
+            coverFromRoomAvatarEnabled: row.coverFromRoomAvatarEnabled,
+            startupLogoFromRoomAvatarEnabled: row.startupLogoFromRoomAvatarEnabled,
+            gameIconFromRoomAvatarEnabled: row.gameIconFromRoomAvatarEnabled,
+            gameNameFromRoomNameEnabled: row.gameNameFromRoomNameEnabled,
+            description: row.description,
+            packageName: row.packageName,
+            showPanicEnabled: row.showPanicEnabled,
+            defaultLanguage: row.defaultLanguage,
+            enableAppreciation: row.enableAppreciation,
+            typingSoundEnabled: row.typingSoundEnabled,
           }
         : null);
     };
@@ -66,6 +96,16 @@ export async function setRealtimeRenderSettings(settings: {
   ttsApiUrl?: string;
   terrePort?: number | null;
   autoFigureEnabled?: boolean;
+  coverFromRoomAvatarEnabled?: boolean;
+  startupLogoFromRoomAvatarEnabled?: boolean;
+  gameIconFromRoomAvatarEnabled?: boolean;
+  gameNameFromRoomNameEnabled?: boolean;
+  description?: string;
+  packageName?: string;
+  showPanicEnabled?: boolean;
+  defaultLanguage?: string;
+  enableAppreciation?: boolean;
+  typingSoundEnabled?: boolean;
 }): Promise<void> {
   if (!canUseIndexedDB()) {
     return;
@@ -84,6 +124,36 @@ export async function setRealtimeRenderSettings(settings: {
       ttsApiUrl: "ttsApiUrl" in settings ? settings.ttsApiUrl ?? "" : row?.ttsApiUrl ?? "",
       terrePort: "terrePort" in settings ? settings.terrePort ?? null : row?.terrePort ?? null,
       autoFigureEnabled: "autoFigureEnabled" in settings ? settings.autoFigureEnabled : row?.autoFigureEnabled,
+      coverFromRoomAvatarEnabled: "coverFromRoomAvatarEnabled" in settings
+        ? settings.coverFromRoomAvatarEnabled
+        : row?.coverFromRoomAvatarEnabled,
+      startupLogoFromRoomAvatarEnabled: "startupLogoFromRoomAvatarEnabled" in settings
+        ? settings.startupLogoFromRoomAvatarEnabled
+        : row?.startupLogoFromRoomAvatarEnabled,
+      gameIconFromRoomAvatarEnabled: "gameIconFromRoomAvatarEnabled" in settings
+        ? settings.gameIconFromRoomAvatarEnabled
+        : row?.gameIconFromRoomAvatarEnabled,
+      gameNameFromRoomNameEnabled: "gameNameFromRoomNameEnabled" in settings
+        ? settings.gameNameFromRoomNameEnabled
+        : row?.gameNameFromRoomNameEnabled,
+      description: "description" in settings
+        ? settings.description ?? ""
+        : row?.description,
+      packageName: "packageName" in settings
+        ? settings.packageName ?? ""
+        : row?.packageName,
+      showPanicEnabled: "showPanicEnabled" in settings
+        ? settings.showPanicEnabled
+        : row?.showPanicEnabled,
+      defaultLanguage: "defaultLanguage" in settings
+        ? settings.defaultLanguage ?? ""
+        : row?.defaultLanguage,
+      enableAppreciation: "enableAppreciation" in settings
+        ? settings.enableAppreciation
+        : row?.enableAppreciation,
+      typingSoundEnabled: "typingSoundEnabled" in settings
+        ? settings.typingSoundEnabled
+        : row?.typingSoundEnabled,
       updatedAt: Date.now(),
     };
 

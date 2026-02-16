@@ -14,8 +14,12 @@ export type ThreadHintMeta = {
   replyCount: number;
 };
 
+export type ChatFrameMessageScope = "main" | "thread";
+
 type UseChatFrameMessagesParams = {
   messagesOverride?: ChatMessageResponse[];
+  messageScope?: ChatFrameMessageScope;
+  threadRootMessageId?: number | null;
   enableWsSync: boolean;
   roomId: number;
   chatHistory?: UseChatHistoryReturn;
@@ -29,6 +33,8 @@ type UseChatFrameMessagesResult = {
 
 export default function useChatFrameMessages({
   messagesOverride,
+  messageScope = "main",
+  threadRootMessageId,
   enableWsSync,
   roomId,
   chatHistory,
@@ -124,6 +130,13 @@ export default function useChatFrameMessages({
     }
     const allMessages = chatHistory?.messages ?? [];
 
+    if (messageScope === "thread") {
+      if (!threadRootMessageId) {
+        return [];
+      }
+      return allMessages.filter(m => m.message.threadId === threadRootMessageId);
+    }
+
     // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
     // - root：threadId === messageId（显示）
     // - reply：threadId !== messageId（隐藏）
@@ -138,7 +151,7 @@ export default function useChatFrameMessages({
       }
       return threadId === messageId;
     });
-  }, [messagesOverride, chatHistory?.messages]);
+  }, [chatHistory?.messages, messageScope, messagesOverride, threadRootMessageId]);
 
   const threadHintMetaByMessageId = useMemo(() => {
     // key: parentMessageId（被创建子区的那条原消息）

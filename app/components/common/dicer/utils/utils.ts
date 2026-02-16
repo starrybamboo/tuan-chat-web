@@ -427,7 +427,9 @@ async function getDicerRoleIdRaw(roomContext: RoomContextType): Promise<number> 
       return roleDicerRoleId;
     }
     // 如果没有绑定，则尝试从用户配置中获取骰娘角色id
-    const userDicerRoleId = Number((await tuanchat.userController.getUserInfo(roomContext.curMember?.userId ?? 0)).data?.extra?.dicerRoleId) ?? Number.NaN;
+    const myInfoResult = await tuanchat.userController.getMyUserInfo();
+    const userExtra = normalizeRecord(myInfoResult.data?.extra);
+    const userDicerRoleId = Number(userExtra.dicerRoleId) ?? Number.NaN;
     if (!Number.isNaN(userDicerRoleId)) {
       return userDicerRoleId;
     }
@@ -439,6 +441,25 @@ async function getDicerRoleIdRaw(roomContext: RoomContextType): Promise<number> 
     return DEFAULT_DICER_ROLE_ID;
   }
   return spaceLevelDicerRoleId;
+}
+
+function normalizeRecord(value: unknown): Record<string, unknown> {
+  if (!value) {
+    return {};
+  }
+  if (typeof value === "object") {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+    }
+    catch {
+      return {};
+    }
+  }
+  return {};
 }
 
 async function getDicerRoleId(roomContext: RoomContextType): Promise<number> {

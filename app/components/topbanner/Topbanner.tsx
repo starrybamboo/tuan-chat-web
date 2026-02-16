@@ -130,7 +130,7 @@ export default function Topbar() {
           <div className="hidden md:flex">
             <Link to="/chat/private" className="flex items-center">
               <img
-                src="http://47.119.147.6/tuan/favicon.ico"
+                src="https://tuan.chat/tuan/favicon.ico"
                 alt="Logo"
                 className="h-6 w-6 mx-3 transition-transform duration-300 ease-out"
               />

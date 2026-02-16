@@ -1,6 +1,6 @@
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
-import type { SpaceDetailTab } from "@/components/chat/space/spaceHeaderBar";
+import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import React, { useMemo } from "react";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";

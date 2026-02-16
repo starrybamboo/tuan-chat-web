@@ -9,7 +9,7 @@ import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import FriendsPage from "@/components/privateChat/FriendsPage";
 import RightChatView from "@/components/privateChat/RightChatView";
 
-export function ChatPageMainContent() {
+function ChatPageMainContent() {
   const { isSpaceDetailRoute } = useChatPageLayoutContext();
 
   return isSpaceDetailRoute ? <ChatPageSpaceDetailContent /> : <ChatPageChatContent />;
@@ -22,6 +22,7 @@ function ChatPageChatContent() {
     setIsOpenLeftDrawer,
     activeSpaceId,
     targetMessageId,
+    onOpenThreadInSubWindow,
   } = useChatPageLayoutContext();
   const [searchParams] = useSearchParams();
   const previewParam = searchParams.get("preview");
@@ -55,11 +56,12 @@ function ChatPageChatContent() {
       spaceId={activeSpaceId ?? -1}
       targetMessageId={targetMessageId}
       viewMode={isPreviewMode}
+      onOpenThread={activeRoomId ? threadRootMessageId => onOpenThreadInSubWindow(activeRoomId, threadRootMessageId) : undefined}
     />
   );
 }
 
-export function ChatPageSpaceDetailContent() {
+function ChatPageSpaceDetailContent() {
   const { activeSpaceId, spaceDetailTab, closeSpaceDetailPanel } = useChatPageLayoutContext();
 
   if (!activeSpaceId) {
