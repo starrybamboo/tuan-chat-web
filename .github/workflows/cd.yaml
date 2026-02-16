@@ -32,7 +32,7 @@ jobs:
         uses: appleboy/scp-action@v1
         with:
           # 优先使用新版 SERVER_* secrets；保留 SSH_* 兼容旧配置
-          host: ${{ secrets.SSH_HOST || '38.14.195.6' }}
+          host: 38.14.195.6
           username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
           source: build/client/**
