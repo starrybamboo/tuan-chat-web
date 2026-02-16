@@ -2406,8 +2406,13 @@ export class RealtimeRenderer {
 
     // 处理视频消息（Type 14）
     if ((msg.messageType as number) === MESSAGE_TYPE.VIDEO) {
-      const videoMsg = msg.extra?.videoMessage
-        ?? ((msg.extra as any)?.url ? msg.extra as any : undefined);
+      const messageExtra = msg.extra as ({
+        videoMessage?: { url?: string; fileName?: string };
+        url?: string;
+        fileName?: string;
+      } | undefined);
+      const videoMsg = messageExtra?.videoMessage
+        ?? (messageExtra?.url ? messageExtra : undefined);
       const url = videoMsg?.url;
       if (!url) {
         finalizeMessageLineRange();

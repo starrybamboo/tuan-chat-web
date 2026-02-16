@@ -25,6 +25,7 @@ interface RoomWindowLayoutProps {
   hideSecondaryPanels?: boolean;
   /** 点击消息区域时，输入框默认切换到哪个发送目标 */
   chatAreaComposerTarget?: "main" | "thread";
+  onExportPremiere?: () => void;
 }
 
 export default function RoomWindowLayout({
@@ -40,6 +41,7 @@ export default function RoomWindowLayout({
   hideComposer = false,
   hideSecondaryPanels = false,
   chatAreaComposerTarget = "main",
+  onExportPremiere,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
@@ -67,6 +69,7 @@ export default function RoomWindowLayout({
             roomName={roomName}
             toggleLeftDrawer={toggleLeftDrawer}
             onCloseSubWindow={onCloseSubWindow}
+            onExportPremiere={onExportPremiere}
           />
           <div className="flex-1 w-full flex bg-transparent relative min-h-0">
             <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>

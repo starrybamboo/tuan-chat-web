@@ -3,6 +3,7 @@ import { Api, HttpClient } from "@/webGAL/apis";
 import { getTerreBaseUrl } from "./terreConfig";
 
 export { checkGameExist } from "./fileOperator";
+export { PremiereExporter, type PremiereExportOptions } from "./premiereExporter";
 
 let _terreApis: Api | null = null;
 let _terreApisBaseUrl: string | null = null;

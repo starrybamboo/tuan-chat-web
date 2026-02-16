@@ -1,4 +1,4 @@
-import { ArrowSquareIn, ExportIcon } from "@phosphor-icons/react";
+import { ArrowSquareIn, ExportIcon, FilmStrip } from "@phosphor-icons/react";
 import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -18,12 +18,14 @@ interface RoomHeaderBarProps {
   roomName?: string;
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
+  onExportPremiere?: () => void;
 }
 
 function RoomHeaderBarImpl({
   roomName,
   toggleLeftDrawer,
   onCloseSubWindow,
+  onExportPremiere,
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -88,7 +90,7 @@ function RoomHeaderBarImpl({
               setIsImportChatTextOpen(true);
             }}
           >
-            <ArrowSquareIn className="size-6 mt-2" />
+            <ArrowSquareIn className="size-6" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
@@ -101,7 +103,17 @@ function RoomHeaderBarImpl({
               setMultiSelecting(true);
             }}
           >
-            <ExportIcon className="size-6 mt-2" />
+            <ExportIcon className="size-6" />
+          </div>
+          <div
+            className="tooltip tooltip-bottom hover:text-info relative z-50"
+            data-tip="导出 PR 工程"
+            onClick={() => {
+              closeThreadPane();
+              onExportPremiere?.();
+            }}
+          >
+            <FilmStrip className="size-6" />
           </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"

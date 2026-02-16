@@ -1,5 +1,7 @@
 import { memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+
 export type MoodMap = Record<string, string>;
 type MoodNumberMap = Record<string, number>;
 
@@ -208,16 +210,29 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
                   onChange={e => handleChange(k, Number(e.target.value))}
                 />
 
-                <input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={step}
+                <DoubleClickEditableText
                   value={v}
                   disabled={disabled}
-                  onChange={e => handleChange(k, Number(e.target.value))}
-                  onBlur={e => handleChange(k, Number(e.target.value))}
-                  className="input input-sm bg-transparent w-auto rounded-md text-left focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-12 shrink-0"
+                  displayClassName={`block w-full text-left font-mono text-sm ${disabled ? "text-base-content/40" : "text-base-content/70 cursor-text"}`}
+                  inputClassName="input input-sm bg-transparent w-full rounded-md text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  formatDisplay={value => Number(value.toFixed(2)).toString()}
+                  formatInput={value => Number(value.toFixed(2)).toString()}
+                  parse={(rawValue) => {
+                    const nextValue = Number.parseFloat(rawValue);
+                    return Number.isFinite(nextValue) ? nextValue : null;
+                  }}
+                  invalidBehavior="revert"
+                  onCommit={nextValue => handleChange(k, nextValue)}
+                  inputProps={{
+                    inputMode: "decimal",
+                    min: 0,
+                    max: 1,
+                    step,
+                  }}
+                  displayProps={{
+                    title: disabled ? undefined : "双击编辑情感数值",
+                  }}
                 />
               </div>
             </div>
