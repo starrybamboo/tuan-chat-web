@@ -1,6 +1,6 @@
 import { zip, strToU8 } from "fflate";
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
@@ -29,6 +29,7 @@ import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { useBgmStore } from "@/components/chat/stores/bgmStore";
+import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
@@ -36,13 +37,16 @@ import { PremiereExporter } from "@/webGAL";
 import { useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { toast } from "react-hot-toast";
+import { useStore } from "zustand";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
+  useDeleteMessageMutation,
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
   useSendMessageMutation,
   useSetSpaceExtraMutation,
+  useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 
 function RoomWindow({
@@ -92,6 +96,8 @@ function RoomWindow({
   }, [webSocketUtils]);
 
   const sendMessageMutation = useSendMessageMutation(roomId);
+  const deleteMessageMutation = useDeleteMessageMutation();
+  const updateMessageMutation = useUpdateMessageMutation();
   const setSpaceExtraMutation = useSetSpaceExtraMutation();
 
   const {
@@ -224,6 +230,7 @@ function RoomWindow({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isApplyingMessageHistory, setIsApplyingMessageHistory] = useState(false);
   const noRole = curRoleId <= 0;
 
   const {
@@ -248,7 +255,6 @@ function RoomWindow({
     isSubmitting,
     notMember,
     mainHistoryMessages,
-    send,
     sendMessage: sendMessageMutation.mutateAsync,
     addOrUpdateMessage: chatHistory?.addOrUpdateMessage,
     ensureRuntimeAvatarIdForRole,
@@ -323,6 +329,173 @@ function RoomWindow({
     setInputText,
     setLLMMessage,
   });
+
+  const undoInProgressRef = useRef(false);
+  const redoInProgressRef = useRef(false);
+
+  const syncMessageAfterHistoryApply = useCallback((nextMessage: Message) => {
+    chatHistory?.addOrUpdateMessage({ message: nextMessage } as ChatMessageResponse);
+  }, [chatHistory]);
+
+  const handleUndoLastMessageAction = useCallback(async () => {
+    if (undoInProgressRef.current || redoInProgressRef.current) {
+      return;
+    }
+
+    const action = roomUiStore.getState().popMessageUndo();
+    if (!action) {
+      toast("没有可撤销的消息操作", { icon: "ℹ️" });
+      return;
+    }
+
+    undoInProgressRef.current = true;
+    setIsApplyingMessageHistory(true);
+    roomUiStore.getState().setApplyingMessageUndo(true);
+
+    try {
+      if (action.type === "send") {
+        const messageId = action.after.messageId;
+        const response = await deleteMessageMutation.mutateAsync(messageId);
+        const localTarget = chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
+        const fallbackDeleted = {
+          ...(localTarget ?? action.after),
+          status: 1,
+        };
+        syncMessageAfterHistoryApply(response?.data ?? fallbackDeleted);
+        roomUiStore.getState().restoreMessageRedo(action);
+        toast.success("已撤销发送");
+        return;
+      }
+
+      if (action.type === "delete") {
+        const response = await updateMessageMutation.mutateAsync(action.before);
+        syncMessageAfterHistoryApply(response?.data ?? action.before);
+        roomUiStore.getState().restoreMessageRedo(action);
+        toast.success("已撤销删除");
+        return;
+      }
+
+      const response = await updateMessageMutation.mutateAsync(action.before);
+      syncMessageAfterHistoryApply(response?.data ?? action.before);
+      roomUiStore.getState().restoreMessageRedo(action);
+      toast.success("已撤销修改");
+    }
+    catch (error) {
+      console.error("撤销消息操作失败", error);
+      roomUiStore.getState().restoreMessageUndo(action);
+      toast.error("撤销失败，请稍后重试");
+    }
+    finally {
+      roomUiStore.getState().setApplyingMessageUndo(false);
+      setIsApplyingMessageHistory(false);
+      undoInProgressRef.current = false;
+    }
+  }, [deleteMessageMutation, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
+
+  const handleRedoLastMessageAction = useCallback(async () => {
+    if (undoInProgressRef.current || redoInProgressRef.current) {
+      return;
+    }
+
+    const action = roomUiStore.getState().popMessageRedo();
+    if (!action) {
+      toast("没有可回退的消息操作", { icon: "ℹ️" });
+      return;
+    }
+
+    redoInProgressRef.current = true;
+    setIsApplyingMessageHistory(true);
+    roomUiStore.getState().setApplyingMessageUndo(true);
+
+    try {
+      if (action.type === "send") {
+        const response = await updateMessageMutation.mutateAsync({
+          ...action.after,
+          status: 0,
+        });
+        syncMessageAfterHistoryApply(response?.data ?? { ...action.after, status: 0 });
+        roomUiStore.getState().restoreMessageUndo(action);
+        toast.success("已回退发送");
+        return;
+      }
+
+      if (action.type === "delete") {
+        const messageId = action.before.messageId;
+        const response = await deleteMessageMutation.mutateAsync(messageId);
+        const localTarget = chatHistory?.messages.find(m => m.message.messageId === messageId)?.message;
+        const fallbackDeleted = {
+          ...(localTarget ?? action.before),
+          status: 1,
+        };
+        syncMessageAfterHistoryApply(response?.data ?? fallbackDeleted);
+        roomUiStore.getState().restoreMessageUndo(action);
+        toast.success("已回退删除");
+        return;
+      }
+
+      const response = await updateMessageMutation.mutateAsync(action.after);
+      syncMessageAfterHistoryApply(response?.data ?? action.after);
+      roomUiStore.getState().restoreMessageUndo(action);
+      toast.success("已回退修改");
+    }
+    catch (error) {
+      console.error("回退消息操作失败", error);
+      roomUiStore.getState().restoreMessageRedo(action);
+      toast.error("回退失败，请稍后重试");
+    }
+    finally {
+      roomUiStore.getState().setApplyingMessageUndo(false);
+      setIsApplyingMessageHistory(false);
+      redoInProgressRef.current = false;
+    }
+  }, [chatHistory, deleteMessageMutation, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
+
+  useEffect(() => {
+    const handleGlobalUndoKeyDown = (event: KeyboardEvent) => {
+      const isUndoShortcut = (event.ctrlKey || event.metaKey)
+        && !event.shiftKey
+        && event.key.toLowerCase() === "z";
+      const isRedoShortcutByY = (event.ctrlKey || event.metaKey)
+        && !event.shiftKey
+        && event.key.toLowerCase() === "y";
+      const isRedoShortcutByShiftZ = (event.ctrlKey || event.metaKey)
+        && event.shiftKey
+        && event.key.toLowerCase() === "z";
+      const isRedoShortcut = isRedoShortcutByY || isRedoShortcutByShiftZ;
+      if (!isUndoShortcut && !isRedoShortcut) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName;
+        const isEditableTarget = target.isContentEditable || tagName === "INPUT" || tagName === "TEXTAREA";
+        if (isEditableTarget) {
+          if (target.closest(".editable-field")) {
+            return;
+          }
+          const isChatInput = target.classList.contains("chatInputTextarea");
+          const hasInputText = useChatInputUiStore.getState().plainText.trim().length > 0;
+          if (!isChatInput || hasInputText) {
+            return;
+          }
+        }
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (isUndoShortcut) {
+        void handleUndoLastMessageAction();
+        return;
+      }
+      void handleRedoLastMessageAction();
+    };
+
+    window.addEventListener("keydown", handleGlobalUndoKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleGlobalUndoKeyDown, true);
+    };
+  }, [handleRedoLastMessageAction, handleUndoLastMessageAction]);
 
   const queryClient = useQueryClient();
 
@@ -658,6 +831,9 @@ function RoomWindow({
     onCompositionEnd,
   };
 
+  const canUndo = useStore(roomUiStore, state => state.messageUndoStack.length > 0);
+  const canRedo = useStore(roomUiStore, state => state.messageRedoStack.length > 0);
+
   return (
     <RoomUiStoreProvider store={roomUiStore}>
       <RoomContext value={roomContext}>
@@ -687,6 +863,10 @@ function RoomWindow({
             hideSecondaryPanels={hideSecondaryPanels}
             chatAreaComposerTarget={messageScope === "thread" ? "thread" : "main"}
             onExportPremiere={handleExportPremiere}
+            onUndo={handleUndoLastMessageAction}
+            onRedo={handleRedoLastMessageAction}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         </RoomDocRefDropLayer>
         {!viewMode && (
@@ -703,6 +883,16 @@ function RoomWindow({
             isRenderWindowOpen={isRenderWindowOpen}
             setIsRenderWindowOpen={setIsRenderWindowOpen}
           />
+        )}
+        {isApplyingMessageHistory && (
+          <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="正在处理消息操作">
+            <div className="modal-box max-w-sm text-center">
+              <div className="flex items-center justify-center gap-3">
+                <span className="loading loading-spinner loading-md"></span>
+                <span className="font-medium">正在处理，请稍候…</span>
+              </div>
+            </div>
+          </div>
         )}
       </RoomContext>
     </RoomUiStoreProvider>

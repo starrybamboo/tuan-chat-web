@@ -256,7 +256,9 @@ export class HttpClient {
   }
 
   private buildUrl(path: string, query?: QueryParamsType): string {
-    const url = new URL(path, this.baseURL);
+    const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
+    const base = this.baseURL.endsWith("/") ? this.baseURL : `${this.baseURL}/`;
+    const url = new URL(normalizedPath, base);
     if (query) {
       Object.entries(query).forEach(([key, value]) => {
         if (Array.isArray(value)) {

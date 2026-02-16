@@ -330,13 +330,16 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     }
 
     await ensureHydrated();
-    launchWebGal();
+    const electronEnv = isElectronEnv();
+    if (electronEnv) {
+      launchWebGal();
+    }
 
     toast.loading("正在启动 WebGAL...", { id: "space-webgal-init" });
     try {
       await pollPort(
-        terrePort,
-        isElectronEnv() ? 15000 : 500,
+        getTerreBaseUrl(),
+        electronEnv ? 15000 : 500,
         100,
       );
 
@@ -353,7 +356,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
       toast.error("WebGAL 启动超时", { id: "space-webgal-init" });
       return false;
     }
-  }, [ensureHydrated, isRealtimeActive, realtimeStatus, startRealtimeRender, terrePort]);
+  }, [ensureHydrated, isRealtimeActive, realtimeStatus, startRealtimeRender]);
 
   const handleStopRealtimeRender = useCallback(() => {
     stopRealtimeRender();

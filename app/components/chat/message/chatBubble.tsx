@@ -16,7 +16,7 @@ import { PreviewMessage } from "@/components/chat/message/preview/previewMessage
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import BetterImg from "@/components/common/betterImg";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -117,6 +117,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
   const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
+  const roomUiStoreApi = useRoomUiStoreApi();
   const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
@@ -237,6 +238,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
 
   // 更新消息并同步到本地缓存
   const updateMessageAndSync = useCallback((newMessage: Message) => {
+    if (JSON.stringify(chatMessageResponse.message) !== JSON.stringify(newMessage)) {
+      roomUiStoreApi.getState().pushMessageUndo({
+        type: "update",
+        before: chatMessageResponse.message,
+        after: newMessage,
+      });
+    }
     updateMessageMutation.mutate(newMessage, {
       onSuccess: (response) => {
         // 更新成功后同步到本地 IndexedDB
@@ -254,7 +262,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         }
       },
     });
-  }, [chatMessageResponse, roomContext, updateMessageMutation]);
+  }, [chatMessageResponse, roomContext, roomUiStoreApi, updateMessageMutation]);
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
@@ -439,22 +447,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       messageType: newMessageType,
     } as Message;
 
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
-          }
-        }
-      },
-    });
-  }, [canEdit, chatMessageResponse, isIntroText, message, roomContext, updateMessageMutation]);
+    updateMessageAndSync(newMessage);
+  }, [canEdit, isIntroText, message, updateMessageAndSync]);
 
   const handleToggleIntroTextClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -719,23 +713,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       },
     };
 
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          // 如果 WebGAL 联动模式开启，则重渲染
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
-          }
-        }
-      },
-    });
-  }, [chatMessageResponse, message, roomContext, updateMessageMutation]);
+    updateMessageAndSync(newMessage);
+  }, [message, updateMessageAndSync]);
 
   // 处理角色名编辑
   function handleRoleNameClick() {
@@ -769,21 +748,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       customRoleName: trimmedName || undefined, // 空字符串时清除自定义名称
     } as Message;
 
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
-          }
-        }
-      },
-    });
+    updateMessageAndSync(newMessage);
     setIsEditingRoleName(false);
   }
 
@@ -798,21 +763,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
       annotations: nextAnnotations,
     } as Message;
 
-    updateMessageMutation.mutate(newMessage, {
-      onSuccess: (response) => {
-        if (response?.data && roomContext.chatHistory) {
-          const updatedChatMessageResponse = {
-            ...chatMessageResponse,
-            message: response.data,
-          };
-          roomContext.chatHistory.addOrUpdateMessage(updatedChatMessageResponse);
-
-          if (roomContext.updateAndRerenderMessageInWebGAL) {
-            roomContext.updateAndRerenderMessageInWebGAL(updatedChatMessageResponse, false);
-          }
-        }
-      },
-    });
+    updateMessageAndSync(newMessage);
   }
 
   const formatFileSize = (bytes?: number) => {
@@ -1018,28 +969,27 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, threadHi
         case MESSAGE_TYPE.VIDEO: {
           const videoMessage = extra?.videoMessage ?? extra?.fileMessage ?? extra;
           const videoUrl = typeof videoMessage?.url === "string" ? videoMessage.url : "";
-          const fileName = videoMessage?.fileName || message.content || "视频";
-          const sizeLabel = formatFileSize(videoMessage?.size);
           return (
-            <div className="flex flex-col gap-2 min-w-0">
+            <div className="flex flex-col gap-2 min-w-0 w-full max-w-[420px]">
               {videoUrl
                 ? (
-                    <video
-                      src={videoUrl}
-                      controls={true}
-                      preload="metadata"
-                      className="rounded max-w-full max-h-[360px] bg-black"
-                      onClick={event => event.stopPropagation()}
-                    />
+                    <div className="relative overflow-hidden rounded-2xl border border-base-300/70 bg-base-200/40 shadow-sm">
+                      <video
+                        src={videoUrl}
+                        controls={true}
+                        preload="metadata"
+                        className="block w-full max-h-[360px] bg-black object-contain"
+                        onClick={event => event.stopPropagation()}
+                      />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
+                      <span className="pointer-events-none badge badge-neutral badge-xs absolute top-2 left-2 opacity-90">视频</span>
+                    </div>
                   )
                 : (
-                    <span className="text-xs text-base-content/60">[视频]</span>
+                    <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/30 px-3 py-6 text-xs text-base-content/60 text-center">
+                      [视频资源不可用]
+                    </div>
                   )}
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="badge badge-outline badge-xs">视频</span>
-                <span className="truncate">{fileName}</span>
-                {sizeLabel && <span className="text-[10px] text-base-content/50">{sizeLabel}</span>}
-              </div>
               {message.content && (
                 <div className="text-sm text-base-content/80 whitespace-pre-wrap break-words">
                   {message.content}
