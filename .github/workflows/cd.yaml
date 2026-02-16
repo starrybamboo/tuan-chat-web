@@ -2,13 +2,16 @@ name: TuanChat 自动构建与部署
 
 on:
   push:
-    branches: [ "main", "dev/Aentro" ]   # 后者是测试cd流程的分支
+    branches: [ "main", "dev" ]
   workflow_dispatch:  # 允许手动触发
 
 jobs:
   build-and-deploy:
     name: tuan-chat-web构建与部署
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_TARGET: ${{ github.ref_name == 'dev' && '/www/wwwroot/tuan-chat-web-test' || '/www/wwwroot/tuan-chat-web' }}
+      BUILD_MODE: ${{ github.ref_name == 'dev' && 'test' || 'production' }}
     steps:
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
       - name: Install pnpm
@@ -23,7 +26,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: build
-        run: pnpm build
+        run: pnpm build --mode $BUILD_MODE
 
       - name: 部署到服务器
         uses: appleboy/scp-action@v1
@@ -32,7 +35,7 @@ jobs:
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           source: build/client/**
-          target: /www/wwwroot/tuan-chat-web-test
+          target: ${{ env.DEPLOY_TARGET }}
           overwrite: true
           strip_components: 2
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action

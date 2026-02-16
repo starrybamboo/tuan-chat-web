@@ -77,6 +77,16 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
   };
 }
 
+if (typeof window !== "undefined" && import.meta.env.VITE_ENABLE_REACT_SCAN === "true") {
+  void import("react-scan")
+    .then(({ scan }) => {
+      scan();
+    })
+    .catch(() => {
+      // ignore
+    });
+}
+
 const queryClient = new QueryClient(
   {
     defaultOptions: {

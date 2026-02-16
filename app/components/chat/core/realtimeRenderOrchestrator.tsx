@@ -9,6 +9,7 @@ import { isImageMessageBackground } from "@/types/messageAnnotations";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
+import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 
 function sortMessagesForRender(messages: ChatMessageResponse[]) {
@@ -57,7 +58,6 @@ export default function RealtimeRenderOrchestrator({
   onApiChange,
 }: Props) {
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
-  const terrePort = useRealtimeRenderStore(state => state.terrePort);
   useEffect(() => {
     void ensureHydrated();
   }, [ensureHydrated]);
@@ -266,13 +266,17 @@ export default function RealtimeRenderOrchestrator({
     isStartingRealtimeRenderRef.current = true;
     try {
       await ensureHydrated();
-      launchWebGal();
+      const electronEnv = isElectronEnv();
+      const terreBaseUrl = getTerreBaseUrl();
+      if (electronEnv) {
+        launchWebGal();
+      }
 
       toast.loading("正在启动 WebGAL...", { id: "webgal-init" });
       try {
         await pollPort(
-          terrePort,
-          isElectronEnv() ? 15000 : 500,
+          terreBaseUrl,
+          electronEnv ? 15000 : 500,
           100,
         );
 
@@ -297,7 +301,7 @@ export default function RealtimeRenderOrchestrator({
     finally {
       isStartingRealtimeRenderRef.current = false;
     }
-  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, terrePort]);
+  }, [ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState]);
 
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {

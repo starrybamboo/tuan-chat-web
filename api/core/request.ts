@@ -251,37 +251,115 @@ export const getResponseBody = async (response: Response): Promise<any> => {
     return undefined;
 };
 
+const GENERIC_BACKEND_ERROR_TEXTS = new Set<string>([
+    '系统出小差了，请稍后再试哦~~',
+    '系统出小差了，请稍后再试哦~',
+    '系统出小差了，请稍后再试',
+]);
+
+const isRecord = (value: unknown): value is Record<string, any> => {
+    return typeof value === 'object' && value !== null;
+};
+
+const isMeaningfulText = (value: unknown): value is string => {
+    return typeof value === 'string' && value.trim().length > 0;
+};
+
+const readNestedText = (body: unknown, path: string[]): string | undefined => {
+    let current: unknown = body;
+    for (const key of path) {
+        if (!isRecord(current) || !(key in current)) {
+            return undefined;
+        }
+        current = current[key];
+    }
+    return isMeaningfulText(current) ? current.trim() : undefined;
+};
+
+const toPrettyBody = (body: unknown): string | undefined => {
+    if (body === undefined) {
+        return undefined;
+    }
+    if (isMeaningfulText(body)) {
+        return body.trim();
+    }
+    try {
+        return JSON.stringify(body, null, 2);
+    } catch {
+        return String(body);
+    }
+};
+
+const resolveApiErrorMessage = (result: ApiResult): string => {
+    const status = result.status ?? 'unknown';
+    const statusText = result.statusText ?? 'unknown';
+    const body = result.body;
+    const isDev = Boolean(import.meta.env?.DEV);
+
+    const stackText = [
+        ['stackTrace'],
+        ['stack'],
+        ['trace'],
+        ['errorStack'],
+        ['data', 'stackTrace'],
+        ['data', 'stack'],
+        ['data', 'trace'],
+        ['error', 'stackTrace'],
+        ['error', 'stack'],
+        ['exception', 'stackTrace'],
+        ['exception', 'stack'],
+    ].map(path => readNestedText(body, path)).find(Boolean);
+
+    const messageText = [
+        ['errMsg'],
+        ['message'],
+        ['error'],
+        ['detail'],
+        ['msg'],
+        ['data', 'errMsg'],
+        ['data', 'message'],
+        ['error', 'message'],
+        ['exception', 'message'],
+    ].map(path => readNestedText(body, path)).find(Boolean);
+
+    const normalizedMessage = messageText?.trim();
+    const isGenericMessage = Boolean(normalizedMessage && GENERIC_BACKEND_ERROR_TEXTS.has(normalizedMessage));
+    const prettyBody = toPrettyBody(body);
+
+    if (isDev) {
+        if (stackText) {
+            const header = `HTTP ${status} ${statusText}`;
+            const prefix = !isGenericMessage && normalizedMessage ? `${normalizedMessage}\n` : '';
+            return `${header}\n${prefix}${stackText}`;
+        }
+
+        if (!isGenericMessage && normalizedMessage) {
+            return normalizedMessage;
+        }
+
+        if (prettyBody) {
+            return `HTTP ${status} ${statusText}\n${prettyBody}`;
+        }
+    }
+
+    if (!isGenericMessage && normalizedMessage) {
+        return normalizedMessage;
+    }
+
+    if (isGenericMessage) {
+        return `HTTP ${status} ${statusText}\n后端返回了通用错误文案，未返回调用栈，请查看服务端日志。`;
+    }
+
+    if (prettyBody) {
+        return `HTTP ${status} ${statusText}\n${prettyBody}`;
+    }
+
+    return `HTTP ${status} ${statusText}`;
+};
+
 export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void => {
-    const errors: Record<number, string> = {
-        400: 'Bad Request',
-        401: 'Unauthorized',
-        403: 'Forbidden',
-        404: 'Not Found',
-        500: 'Internal Server Error',
-        502: 'Bad Gateway',
-        503: 'Service Unavailable',
-        ...options.errors,
-    }
-
-    const error = errors[result.status];
-    if (error) {
-        throw new ApiError(options, result, error);
-    }
-
     if (!result.ok) {
-        const errorStatus = result.status ?? 'unknown';
-        const errorStatusText = result.statusText ?? 'unknown';
-        const errorBody = (() => {
-            try {
-                return JSON.stringify(result.body, null, 2);
-            } catch (e) {
-                return undefined;
-            }
-        })();
-
-        throw new ApiError(options, result,
-            `Generic Error: status: ${errorStatus}; status text: ${errorStatusText}; body: ${errorBody}`
-        );
+        throw new ApiError(options, result, resolveApiErrorMessage(result));
     }
 };
 

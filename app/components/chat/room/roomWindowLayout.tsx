@@ -26,6 +26,10 @@ interface RoomWindowLayoutProps {
   /** 点击消息区域时，输入框默认切换到哪个发送目标 */
   chatAreaComposerTarget?: "main" | "thread";
   onExportPremiere?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export default function RoomWindowLayout({
@@ -42,6 +46,10 @@ export default function RoomWindowLayout({
   hideSecondaryPanels = false,
   chatAreaComposerTarget = "main",
   onExportPremiere,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
@@ -70,6 +78,10 @@ export default function RoomWindowLayout({
             toggleLeftDrawer={toggleLeftDrawer}
             onCloseSubWindow={onCloseSubWindow}
             onExportPremiere={onExportPremiere}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
           <div className="flex-1 w-full flex bg-transparent relative min-h-0">
             <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>

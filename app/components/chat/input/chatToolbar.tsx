@@ -619,7 +619,7 @@ function ChatToolbar({
                   data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                 >
                   <LinkFilled
-                    className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+                    className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "text-info" : ""}`}
                     onClick={handleToggleWebgalLinkMode}
                   />
                 </div>
@@ -631,7 +631,7 @@ function ChatToolbar({
                   data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
                 >
                   <DiceD6Icon
-                    className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+                    className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
                     onClick={handleToggleRunMode}
                   />
                 </div>
@@ -657,7 +657,7 @@ function ChatToolbar({
                     data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                   >
                     <LinkFilled
-                      className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "" : "grayscale opacity-50"}`}
+                      className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "text-info" : ""}`}
                       onClick={handleToggleWebgalLinkMode}
                     />
                   </div>
@@ -669,7 +669,7 @@ function ChatToolbar({
                     data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
                   >
                     <DiceD6Icon
-                      className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "" : "grayscale opacity-50"}`}
+                      className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
                       onClick={handleToggleRunMode}
                     />
                   </div>

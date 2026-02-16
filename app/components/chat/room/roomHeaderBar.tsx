@@ -1,4 +1,4 @@
-import { ArrowSquareIn, ExportIcon, FilmStrip } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowCounterClockwise, ArrowSquareIn, ExportIcon, FilmStrip } from "@phosphor-icons/react";
 import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -19,6 +19,10 @@ interface RoomHeaderBarProps {
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
   onExportPremiere?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 function RoomHeaderBarImpl({
@@ -26,6 +30,10 @@ function RoomHeaderBarImpl({
   toggleLeftDrawer,
   onCloseSubWindow,
   onExportPremiere,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
@@ -79,6 +87,28 @@ function RoomHeaderBarImpl({
           </span>
         </div>
         <div className="flex gap-2 items-center overflow-visible">
+          <div className="tooltip tooltip-bottom relative z-50" data-tip="撤销 (Ctrl+Z)">
+            <button
+              type="button"
+              className="btn btn-ghost btn-square btn-xs"
+              disabled={!canUndo}
+              onClick={() => onUndo?.()}
+              aria-label="撤销"
+            >
+              <ArrowCounterClockwise className="size-5" />
+            </button>
+          </div>
+          <div className="tooltip tooltip-bottom relative z-50" data-tip="回退 (Ctrl+Y / Ctrl+Shift+Z)">
+            <button
+              type="button"
+              className="btn btn-ghost btn-square btn-xs"
+              disabled={!canRedo}
+              onClick={() => onRedo?.()}
+              aria-label="回退"
+            >
+              <ArrowClockwise className="size-5" />
+            </button>
+          </div>
           <div
             className="tooltip tooltip-bottom hover:text-info relative z-50"
             data-tip="导入记录"

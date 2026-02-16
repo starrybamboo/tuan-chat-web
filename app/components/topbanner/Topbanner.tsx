@@ -130,9 +130,13 @@ export default function Topbar() {
           <div className="hidden md:flex">
             <Link to="/chat/private" className="flex items-center">
               <img
-                src="https://tuan.chat/tuan/favicon.ico"
+                src="/favicon.ico"
                 alt="Logo"
                 className="h-6 w-6 mx-3 transition-transform duration-300 ease-out"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = "/logo.svg";
+                }}
               />
             </Link>
           </div>
